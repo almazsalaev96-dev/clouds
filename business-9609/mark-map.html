@@ -1,0 +1,623 @@
+<title>9609 Mark Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+
+<style>
+:root{
+  --ground:#F6F7F9;
+  --panel:#FFFFFF;
+  --panel-2:#EDEFF3;
+  --ink:#161A21;
+  --ink-soft:#3C4450;
+  --muted:#69717F;
+  --rule:#DCE0E7;
+  --rule-strong:#C3C9D3;
+  --navy:#1F3A5F;
+  --ao1:#78828F;
+  --ao2:#3F6E8C;
+  --ao3:#B36A18;
+  --ao4:#A82F2C;
+  --ao3-wash:#F6EADA;
+  --ao4-wash:#F7E4E2;
+  --flag:#A82F2C;
+  --shadow:0 1px 2px rgba(22,26,33,.05), 0 8px 24px -16px rgba(22,26,33,.22);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#101317;
+    --panel:#171B21;
+    --panel-2:#1E232B;
+    --ink:#E7EAEF;
+    --ink-soft:#BFC6D0;
+    --muted:#8A93A0;
+    --rule:#272D36;
+    --rule-strong:#39414C;
+    --navy:#9FBEDE;
+    --ao1:#98A1AE;
+    --ao2:#79ADCD;
+    --ao3:#DDA155;
+    --ao4:#E8736C;
+    --ao3-wash:#2A2119;
+    --ao4-wash:#2C1C1B;
+    --flag:#E8736C;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#101317;
+  --panel:#171B21;
+  --panel-2:#1E232B;
+  --ink:#E7EAEF;
+  --ink-soft:#BFC6D0;
+  --muted:#8A93A0;
+  --rule:#272D36;
+  --rule-strong:#39414C;
+  --navy:#9FBEDE;
+  --ao1:#98A1AE;
+  --ao2:#79ADCD;
+  --ao3:#DDA155;
+  --ao4:#E8736C;
+  --ao3-wash:#2A2119;
+  --ao4-wash:#2C1C1B;
+  --flag:#E8736C;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size:16.5px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px 120px;}
+
+/* ---------- masthead ---------- */
+.mast{
+  border-bottom:1px solid var(--rule);
+  padding:56px 0 30px;
+  display:grid;
+  gap:18px;
+}
+.code{
+  font-family:"IBM Plex Mono", ui-monospace, monospace;
+  font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted);
+  display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;
+}
+.code b{color:var(--flag);font-weight:600;}
+h1{
+  font-family:Newsreader, Georgia, serif;
+  font-weight:500;
+  font-size:clamp(2.4rem,5.6vw,3.9rem);
+  line-height:1.04;
+  letter-spacing:-.015em;
+  margin:0;
+  text-wrap:balance;
+}
+h1 em{font-style:italic;color:var(--navy);}
+.dek{
+  font-size:1.12rem;color:var(--ink-soft);max-width:62ch;margin:0;
+  text-wrap:pretty;
+}
+
+/* ---------- toc ---------- */
+nav.toc{
+  display:flex;flex-wrap:wrap;gap:6px;
+  padding:20px 0 0;
+}
+nav.toc a{
+  font-family:"IBM Plex Mono", monospace;
+  font-size:.74rem;letter-spacing:.06em;
+  color:var(--ink-soft);text-decoration:none;
+  border:1px solid var(--rule);border-radius:2px;
+  padding:5px 10px;background:var(--panel);
+  transition:border-color .15s, color .15s;
+}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--navy);color:var(--navy);}
+
+/* ---------- sections ---------- */
+section{
+  padding-top:64px;
+  scroll-margin-top:20px;
+}
+.shead{
+  display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:baseline;
+  border-bottom:2px solid var(--ink);
+  padding-bottom:10px;margin-bottom:26px;
+}
+.snum{
+  font-family:"IBM Plex Mono", monospace;
+  font-size:.76rem;font-weight:600;letter-spacing:.12em;
+  color:var(--flag);
+}
+h2{
+  font-family:Newsreader, Georgia, serif;
+  font-weight:500;font-size:clamp(1.6rem,3.4vw,2.15rem);
+  margin:0;line-height:1.15;letter-spacing:-.01em;
+}
+h3{
+  font-family:"IBM Plex Sans", sans-serif;
+  font-size:.79rem;font-weight:600;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--muted);
+  margin:38px 0 12px;
+}
+h4{
+  font-family:Newsreader, Georgia, serif;
+  font-size:1.24rem;font-weight:600;margin:30px 0 8px;letter-spacing:-.005em;
+}
+p{margin:0 0 15px;max-width:68ch;}
+p.wide{max-width:none;}
+ul,ol{margin:0 0 15px;padding-left:1.15em;max-width:68ch;}
+li{margin-bottom:7px;}
+strong{font-weight:600;}
+a{color:var(--navy);}
+code,.mono{font-family:"IBM Plex Mono", ui-monospace, monospace;font-size:.9em;}
+
+/* ---------- the 200-mark bar ---------- */
+.barwrap{
+  background:var(--panel);border:1px solid var(--rule);border-radius:3px;
+  padding:26px 26px 20px;margin:26px 0 8px;box-shadow:var(--shadow);
+}
+.bartitle{
+  font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:16px;
+}
+.bar{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;height:56px;}
+.seg{
+  border-radius:2px;display:flex;flex-direction:column;justify-content:center;
+  padding-left:12px;color:#fff;
+}
+.seg .n{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:1.05rem;line-height:1;}
+.seg .l{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;opacity:.9;margin-top:4px;}
+.s1{background:var(--ao1);} .s2{background:var(--ao2);}
+.s3{background:var(--ao3);} .s4{background:var(--ao4);}
+.brace{
+  display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:9px;
+  font-family:"IBM Plex Mono",monospace;font-size:.72rem;letter-spacing:.04em;
+}
+.brace span{
+  border-top:1px solid var(--rule-strong);padding-top:7px;color:var(--muted);
+}
+.brace span.hot{border-top:2px solid var(--flag);color:var(--flag);font-weight:600;}
+
+/* ---------- tables ---------- */
+.scroll{overflow-x:auto;margin:0 0 22px;border:1px solid var(--rule);border-radius:3px;background:var(--panel);}
+table{border-collapse:collapse;width:100%;font-size:.9rem;min-width:520px;}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--rule);vertical-align:top;}
+thead th{
+  font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--muted);font-weight:500;
+  background:var(--panel-2);border-bottom:1px solid var(--rule-strong);
+  white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:none;}
+td.num,th.num{text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap;}
+tr.total td{background:var(--panel-2);font-weight:600;border-top:1px solid var(--rule-strong);}
+td.ao1{color:var(--ao1);} td.ao2{color:var(--ao2);}
+td.ao3{color:var(--ao3);font-weight:600;} td.ao4{color:var(--ao4);font-weight:600;}
+th.k{white-space:nowrap;}
+
+/* ---------- callouts ---------- */
+.claim{
+  border-left:3px solid var(--flag);
+  background:var(--ao4-wash);
+  padding:18px 22px;margin:24px 0;border-radius:0 3px 3px 0;
+}
+.claim p{margin:0;max-width:64ch;}
+.claim p + p{margin-top:10px;}
+.claim .lede{font-family:Newsreader,Georgia,serif;font-size:1.18rem;line-height:1.4;}
+
+.note{
+  border:1px solid var(--rule);border-left:3px solid var(--ao2);
+  background:var(--panel);padding:16px 20px;margin:22px 0;border-radius:0 3px 3px 0;
+}
+.note p{margin:0;font-size:.94rem;}
+
+/* ---------- numbered moves ---------- */
+.moves{list-style:none;padding:0;margin:18px 0 22px;display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:3px;overflow:hidden;}
+.moves li{
+  margin:0;background:var(--panel);padding:14px 18px;
+  display:grid;grid-template-columns:26px 1fr;gap:14px;align-items:start;
+}
+.moves .mn{
+  font-family:"IBM Plex Mono",monospace;font-size:.78rem;font-weight:600;
+  color:var(--ao4);padding-top:2px;
+}
+.moves .mt{font-weight:600;}
+.moves .md{color:var(--ink-soft);font-size:.93rem;display:block;margin-top:2px;}
+.moves .ex{
+  display:block;margin-top:6px;font-family:Newsreader,Georgia,serif;font-style:italic;
+  color:var(--muted);font-size:.98rem;line-height:1.45;
+}
+
+/* ---------- example compare ---------- */
+.compare{display:grid;gap:14px;margin:20px 0 24px;}
+@media(min-width:760px){.compare{grid-template-columns:1fr 1fr;}}
+.ex-card{border:1px solid var(--rule);border-radius:3px;background:var(--panel);padding:16px 18px;}
+.ex-card .tag{
+  font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.13em;
+  text-transform:uppercase;display:inline-block;margin-bottom:9px;padding:2px 7px;border-radius:2px;
+}
+.ex-card.bad .tag{background:var(--panel-2);color:var(--muted);}
+.ex-card.good .tag{background:var(--ao4);color:#fff;}
+.ex-card p{margin:0;font-size:.95rem;max-width:none;}
+.ex-card.good p em{font-style:normal;background:var(--ao3-wash);padding:0 2px;border-radius:2px;}
+
+/* ---------- template block ---------- */
+.tmpl{
+  font-family:Newsreader,Georgia,serif;font-size:1.08rem;line-height:1.6;
+  background:var(--panel);border:1px dashed var(--rule-strong);
+  padding:20px 24px;border-radius:3px;margin:18px 0 24px;max-width:70ch;
+}
+.tmpl b{font-family:"IBM Plex Mono",monospace;font-size:.86rem;font-weight:500;
+  background:var(--ao3-wash);color:var(--ao3);padding:1px 5px;border-radius:2px;font-style:normal;}
+
+/* ---------- phases ---------- */
+.phases{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:3px;overflow:hidden;margin:20px 0 24px;}
+.phase{background:var(--panel);padding:18px 20px;display:grid;grid-template-columns:74px 1fr;gap:18px;}
+.phase .pk{font-family:"IBM Plex Mono",monospace;font-size:.72rem;letter-spacing:.08em;color:var(--muted);}
+.phase .pk b{display:block;color:var(--navy);font-size:1.5rem;font-weight:600;letter-spacing:-.02em;line-height:1.1;margin-bottom:2px;}
+.phase h4{margin:0 0 6px;font-size:1.1rem;}
+.phase p,.phase ul{margin-bottom:0;font-size:.94rem;}
+.phase.hot{background:var(--ao4-wash);}
+.phase.hot .pk b{color:var(--flag);}
+
+/* ---------- checklist ---------- */
+.check{list-style:none;padding:0;margin:18px 0 10px;display:grid;gap:9px;}
+.check li{
+  display:grid;grid-template-columns:20px 1fr;gap:12px;align-items:start;
+  padding-bottom:9px;border-bottom:1px solid var(--rule);font-size:.97rem;
+}
+.check li::before{
+  content:"";width:13px;height:13px;border:1.5px solid var(--rule-strong);
+  border-radius:2px;margin-top:5px;
+}
+.kicker{
+  font-family:Newsreader,Georgia,serif;font-style:italic;font-size:1.1rem;
+  color:var(--ink-soft);margin-top:14px;
+}
+
+/* ---------- sources ---------- */
+.sources{margin-top:70px;padding-top:22px;border-top:1px solid var(--rule);}
+.sources ul{list-style:none;padding:0;font-size:.88rem;}
+.sources li{margin-bottom:7px;}
+.sources a{color:var(--ink-soft);text-decoration:none;border-bottom:1px solid var(--rule-strong);}
+.sources a:hover{color:var(--navy);border-color:var(--navy);}
+
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important;}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <div class="code">
+    <span>Cambridge International AS &amp; A Level</span>
+    <span>Syllabus <b>9609</b> · Business</span>
+    <span>2026–2028</span>
+    <span><b>Not 9708</b> — that's Economics</span>
+  </div>
+  <h1>Where the two hundred marks <em>actually</em> are</h1>
+  <p class="dek">A strategy for grade A/A* built from the published assessment weightings, examiner reports, and the learning science that makes any of it stick. The central finding: three quarters of your marks are not for knowing things.</p>
+  <nav class="toc">
+    <a href="#arithmetic">01 The mark arithmetic</a>
+    <a href="#rewards">02 What examiners reward</a>
+    <a href="#syllabus">03 Syllabus map</a>
+    <a href="#science">04 Learning science</a>
+    <a href="#plan">05 The plan</a>
+    <a href="#checklist">06 The checklist</a>
+  </nav>
+</header>
+
+<section id="arithmetic">
+  <div class="shead"><span class="snum">01</span><h2>The mark arithmetic</h2></div>
+
+  <p>The A Level is <strong>200 raw marks</strong> across four papers. Weighting equals raw marks ÷ 2 for every single paper — so <strong>every raw mark is worth exactly the same, everywhere</strong>. No paper deserves disproportionate panic.</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th class="k">Paper</th><th>Name</th><th class="num">Time</th><th class="num">Marks</th><th class="num">% A Level</th><th>Format</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>Business Concepts 1 <span class="mono">(AS)</span></td><td class="num">1h 15</td><td class="num">40</td><td class="num">20%</td><td>4 compulsory short answers (5 marks each) + 1 essay from 2 (20 marks)</td></tr>
+      <tr><td class="num">2</td><td>Business Concepts 2 <span class="mono">(AS)</span></td><td class="num">1h 30</td><td class="num">60</td><td class="num">30%</td><td>2 compulsory data-response questions on a case-study insert</td></tr>
+      <tr><td class="num">3</td><td>Business Decision-Making <span class="mono">(A2)</span></td><td class="num">1h 45</td><td class="num">60</td><td class="num">30%</td><td>Case study and data; decision-focused</td></tr>
+      <tr><td class="num">4</td><td>Business Strategy <span class="mono">(A2)</span></td><td class="num">1h 15</td><td class="num">40</td><td class="num">20%</td><td>2 compulsory 20-mark essays on a case study</td></tr>
+      <tr class="total"><td></td><td>A Level total</td><td class="num">5h 45</td><td class="num">200</td><td class="num">100%</td><td>AS Level = Papers 1 + 2 only (40% / 60% of AS)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>The four assessment objectives, in raw marks</h3>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Assessment objective</th><th class="num">P1</th><th class="num">P2</th><th class="num">P3</th><th class="num">P4</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr><td class="ao1"><strong>AO1</strong> Knowledge &amp; understanding</td><td class="num">14</td><td class="num">18</td><td class="num">12</td><td class="num">6</td><td class="num">50</td></tr>
+      <tr><td class="ao2"><strong>AO2</strong> Application to context</td><td class="num">12</td><td class="num">18</td><td class="num">16</td><td class="num">4</td><td class="num">50</td></tr>
+      <tr><td class="ao3"><strong>AO3</strong> Analysis</td><td class="num">8</td><td class="num">12</td><td class="num">14</td><td class="num">16</td><td class="num">50</td></tr>
+      <tr><td class="ao4"><strong>AO4</strong> Evaluation</td><td class="num">6</td><td class="num">12</td><td class="num">18</td><td class="num">14</td><td class="num">50</td></tr>
+      <tr class="total"><td>Paper total</td><td class="num">40</td><td class="num">60</td><td class="num">60</td><td class="num">40</td><td class="num">200</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="barwrap">
+    <div class="bartitle">All 200 A Level marks, by assessment objective</div>
+    <div class="bar">
+      <div class="seg s1"><span class="n">50</span><span class="l">AO1 Knowledge</span></div>
+      <div class="seg s2"><span class="n">50</span><span class="l">AO2 Application</span></div>
+      <div class="seg s3"><span class="n">50</span><span class="l">AO3 Analysis</span></div>
+      <div class="seg s4"><span class="n">50</span><span class="l">AO4 Evaluation</span></div>
+    </div>
+    <div class="brace">
+      <span>100 marks — content you can revise</span>
+      <span class="hot">100 marks — skills you can only train by writing</span>
+    </div>
+  </div>
+
+  <div class="claim">
+    <p class="lede">Only 50 of 200 marks reward knowing things.</p>
+    <p>AO1 is the smallest quarter — and it is the one almost every candidate spends eighty per cent of their revision on. Memorising the syllabus perfectly, and doing nothing else, caps you at roughly a C or B. This is the single most common reason capable students miss A*.</p>
+  </div>
+
+  <h3>Paper 4 is the densest lever in the qualification</h3>
+  <p>Seventy-five per cent of Paper 4 is analysis and evaluation. It is only two essays. The published weightings force this split for each 20-mark essay:</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Per 20-mark Paper 4 essay</th><th class="num">AO1</th><th class="num">AO2</th><th class="num">AO3</th><th class="num">AO4</th></tr></thead>
+    <tbody>
+      <tr><td>Marks available</td><td class="num ao1">3</td><td class="num ao2">2</td><td class="num ao3">8</td><td class="num ao4">7</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>A beautifully defined, perfectly contextualised essay with no chains of reasoning and no judgement scores <strong class="mono">5/20</strong>. Examiner reports say precisely this: candidates "develop only limited evaluative sections."</p>
+
+  <div class="note"><p><strong>On Paper 1's essay,</strong> the split is more knowledge-weighted — roughly AO1 4 / AO2 4 / AO3 6 / AO4 6. Treat that as an estimate; the Paper 4 figures above are forced arithmetically by the published weightings.</p></div>
+
+  <h3>Time discipline — minutes per mark</h3>
+  <div class="scroll">
+  <table>
+    <thead><tr><th class="k">Paper</th><th class="num">Budget</th><th>Practical plan</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td class="num">1.9 min</td><td>35 min Section A (~8 min per 5-marker) · 5 min essay plan · 33 min essay</td></tr>
+      <tr><td class="num">2</td><td class="num">1.5 min</td><td>10 min reading the case · 80 min answering</td></tr>
+      <tr><td class="num">3</td><td class="num">1.75 min</td><td>15 min case and data · 90 min answering</td></tr>
+      <tr><td class="num">4</td><td class="num">1.9 min</td><td>15 min case and planning both essays · 30 min each essay</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p><strong>The rule:</strong> when a question's time is up, stop mid-sentence. The last five marks of an over-running question are the hardest marks on the paper; the first five marks of the next question are the easiest. Abandoning on time is worth more than anything you know.</p>
+</section>
+
+<section id="rewards">
+  <div class="shead"><span class="snum">02</span><h2>What examiners actually reward</h2></div>
+
+  <h4>AO2 — naming the business is not application</h4>
+  <p>Examiner reports are explicit: repeating the case-study name without specific reference does not count. Application means using something <strong>only true of this business</strong> — a figure from the case, its market conditions, its stated objective, its constraint, its ownership or stage.</p>
+
+  <div class="compare">
+    <div class="ex-card bad"><span class="tag">No marks</span><p>"This would help Zeta Ltd increase its sales and improve profitability."</p></div>
+    <div class="ex-card good"><span class="tag">Application</span><p>"With <em>only $40 000 of retained profit</em> and no access to share capital as a <em>family-owned business</em>, Zeta cannot fund this from internal sources."</p></div>
+  </div>
+  <p><strong>The test:</strong> cover the business name. If the sentence still works for any random company, it isn't application. Rewrite it.</p>
+
+  <h4>AO3 — build chains, not lists</h4>
+  <p>A point is worth nothing; a chain is worth marks. Minimum three links: <span class="mono">cause → mechanism → effect → consequence for this business</span>.</p>
+
+  <div class="compare">
+    <div class="ex-card bad"><span class="tag">A list</span><p>"Delegation improves motivation."</p></div>
+    <div class="ex-card good"><span class="tag">A chain</span><p>"Delegating stock ordering to branch managers gives them control over a decision that visibly affects their branch, <em>which</em> satisfies the esteem needs Maslow places above security — and <em>because</em> the case reports 34% turnover concentrated in supervisory grades, retaining them <em>directly</em> cuts the $18 000 recruitment cost."</p></div>
+  </div>
+  <p>Words that signal a chain: <span class="mono">which means · so · therefore · as a result · this leads to · consequently · which in turn</span>. A paragraph containing none of them contains no analysis.</p>
+
+  <h4>AO4 — the eight evaluation moves</h4>
+  <p>This is where A* is won. Generic conclusions score near zero. Deploy two or three of these per essay, always tied to case specifics.</p>
+
+  <ol class="moves">
+    <li><span class="mn">01</span><span><span class="mt">Depends-on</span><span class="md">Name the variable the whole answer hinges on.</span><span class="ex">"This holds only if demand is price-inelastic; the 15% sales drop after a 5% price rise suggests it isn't."</span></span></li>
+    <li><span class="mn">02</span><span><span class="mt">Short run versus long run</span><span class="md">A decision that hurts now and pays later, or the reverse.</span></span></li>
+    <li><span class="mn">03</span><span><span class="mt">Relative significance</span><span class="md">Of the factors discussed, which matters most, and why. Ranking is evaluation; listing is not.</span></span></li>
+    <li><span class="mn">04</span><span><span class="mt">Stakeholder conflict</span><span class="md">Who gains, who loses, and whose claim is stronger here.</span></span></li>
+    <li><span class="mn">05</span><span><span class="mt">Quality of the evidence</span><span class="md">Sample size, age of the data, opinion presented as fact, forecast assumptions. High-value — it earns AO3 credit too.</span></span></li>
+    <li><span class="mn">06</span><span><span class="mt">Opportunity cost</span><span class="md">What else could that money, capacity or management time do?</span></span></li>
+    <li><span class="mn">07</span><span><span class="mt">Risk and reversibility</span><span class="md">How bad if it fails — and can it be undone?</span></span></li>
+    <li><span class="mn">08</span><span><span class="mt">Assumption challenge</span><span class="md">The theory assumes X; in this business, X does not hold.</span></span></li>
+  </ol>
+
+  <h4>The conclusion that earns full AO4</h4>
+  <p>A top conclusion is not a summary. It commits to an answer, explains why one factor outweighed the others, and attaches a condition drawn from the case.</p>
+
+  <div class="tmpl">On balance, <b>firm</b> should <b>decision</b>, because <b>the decisive factor</b> — which here outweighs <b>the strongest counter-argument</b>, since <b>case-specific reason</b>. This holds provided <b>condition from the case</b>; if that fails, <b>alternative</b> becomes preferable.</div>
+  <p>Four sentences. Reliably worth the top evaluation band. Never write "both options have their merits."</p>
+
+  <h4>Command words set a ceiling</h4>
+  <div class="scroll">
+  <table>
+    <thead><tr><th class="k">Command word</th><th class="k">Highest AO</th><th>What it means practically</th></tr></thead>
+    <tbody>
+      <tr><td>Define · State · Identify</td><td class="ao1">AO1</td><td>One precise sentence. No explanation — examiners note it wastes time</td></tr>
+      <tr><td>Explain · Briefly explain</td><td class="ao2">AO2</td><td>Definition plus how it applies here. No judgement</td></tr>
+      <tr><td>Calculate</td><td class="ao2">AO2</td><td>Show working, state units, convert to % where asked, then interpret the number</td></tr>
+      <tr><td>Analyse</td><td class="ao3">AO3</td><td>Chains only. <strong>Do not evaluate — there are no AO4 marks to earn</strong></td></tr>
+      <tr><td>Discuss</td><td class="ao4">AO4</td><td>Both sides, then judge</td></tr>
+      <tr><td>Evaluate · Assess</td><td class="ao4">AO4</td><td>Judgement dominant — front-load the evaluation</td></tr>
+      <tr><td>Recommend · Advise</td><td class="ao4">AO4</td><td>Must end with a specific, justified course of action</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>The highest-frequency avoidable error in this subject: writing evaluation into an "Analyse" question, where it earns nothing, and writing none into an "Evaluate" question, where it is most of the marks.</p>
+
+  <h4>Calculation traps flagged in examiner reports</h4>
+  <ul>
+    <li><strong>Inverting the formula</strong> — profit ÷ revenue, not revenue ÷ profit</li>
+    <li><strong>Forgetting to multiply by 100</strong> — a ratio is not a percentage</li>
+    <li><strong>Mark-up is not margin</strong> — a 50% mark-up on cost is a 33.3% profit margin</li>
+    <li>Always state the unit: <span class="mono">$ · % · days · times</span></li>
+    <li>Always add one sentence saying what the number <em>means</em> — that is often where the mark sits</li>
+  </ul>
+
+  <div class="note"><p><strong>Presentation.</strong> One paragraph per point. Examiner reports state directly that separate paragraphs greatly increase the chance each point is recognised. Wall-of-text answers lose marks that were genuinely earned.</p></div>
+</section>
+
+<section id="syllabus">
+  <div class="shead"><span class="snum">03</span><h2>Syllabus map</h2></div>
+  <p>AS Level covers sections 1–5. A Level covers 1–10, where 6–10 extend the same five areas strategically.</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th class="k">Area</th><th>AS Level <span class="mono">(1–5)</span></th><th>A Level extension <span class="mono">(6–10)</span></th></tr></thead>
+    <tbody>
+      <tr><td><strong>Business &amp; environment</strong></td><td>Enterprise · business structure · size of business · objectives · stakeholders</td><td>External influences — political, legal, economic, social, technological, competitive, international, environmental · business strategy · corporate planning</td></tr>
+      <tr><td><strong>People</strong></td><td>Human resource management · motivation · management</td><td>Organisational structure · business communication · leadership · HRM strategy</td></tr>
+      <tr><td><strong>Marketing</strong></td><td>Nature of marketing · market research · the marketing mix</td><td>Elasticity · product development · sales forecasting · marketing planning · international marketing</td></tr>
+      <tr><td><strong>Operations</strong></td><td>Nature of operations · inventory · capacity · quality</td><td>Location and scale · quality management · lean production · ERP · critical path analysis</td></tr>
+      <tr><td><strong>Finance</strong></td><td>Sources of finance · costs · break-even · budgets · cash flow · financial statements</td><td>Ratio analysis · investment appraisal · long-term financing strategy</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Numerical toolkit — make these automatic</h3>
+  <p>These are free AO1/AO2 marks, and a calculation you can't do costs the interpretation marks that follow it.</p>
+  <p class="wide"><strong>AS —</strong> <span class="mono">market share · market growth · revenue · fixed, variable and total cost · contribution per unit · break-even output · margin of safety · gross, operating and profit margins · ROCE · current ratio · acid-test ratio · labour productivity · labour turnover · absenteeism · capacity utilisation · added value · price, income and promotional elasticity · cash-flow forecast · working capital</span></p>
+  <p class="wide"><strong>A2 —</strong> <span class="mono">gearing · inventory turnover · trade receivable days · dividend yield · dividend cover · earnings per share · price/earnings ratio · payback · average rate of return · net present value · internal rate of return · decision trees and expected values · critical path analysis (EST, LFT, float) · moving averages and time series · correlation · economic order quantity · re-order level</span></p>
+  <p class="wide"><strong>Frameworks on instant recall —</strong> <span class="mono">SWOT · PEST(LE) · Ansoff · Boston matrix · Porter's five forces · Porter's generic strategies · force-field analysis · Maslow · Herzberg · Taylor · Mayo · McGregor X/Y · Kaizen, lean and JIT · Handy and Mintzberg on structure</span></p>
+</section>
+
+<section id="science">
+  <div class="shead"><span class="snum">04</span><h2>The learning science</h2></div>
+  <p>Method matters more than hours. Everything here is a replicated finding in cognitive psychology, mapped to a concrete 9609 action.</p>
+
+  <h4>Retrieval practice — the testing effect</h4>
+  <p>Recalling information strengthens memory far more than re-reading it. <strong>Action:</strong> never read a topic without immediately closing the page and writing the whole thing from blank paper, then correcting in a second colour.</p>
+
+  <h4>Spaced repetition</h4>
+  <p>Material revisited at expanding intervals is retained far longer than material studied in one block. <strong>Action:</strong> every topic gets a ten-minute blank-paper recall on <span class="mono">day 1, 3, 7, 16 and 35</span>. Each touch is a recall, never a re-read.</p>
+
+  <h4>Interleaving</h4>
+  <p>Mixing topics beats studying them in blocks. It feels harder and worse, and it produces better exam performance. <strong>Action:</strong> mix finance, motivation and marketing in one sitting — Papers 2, 3 and 4 jump across the syllabus inside a single case study, so train for that.</p>
+
+  <div class="claim">
+    <p class="lede">The fluency illusion is your main enemy.</p>
+    <p>Highlighting, re-reading and watching videos create a <em>feeling</em> of mastery that does not survive an exam hall. Recognising material is mistaken for being able to produce it. The only valid evidence you know something is closed-book output that you then mark against a real mark scheme. Ban the highlighter.</p>
+  </div>
+
+  <h4>Five amplifiers</h4>
+  <ul>
+    <li><strong>Elaborative interrogation.</strong> For every concept ask "why does this work, and when does it fail?" The second half is literally your AO4 bank.</li>
+    <li><strong>The generation effect.</strong> Attempt the answer before reading the mark scheme, even when you're sure you'll fail. The struggle is what makes it stick.</li>
+    <li><strong>Pre-testing.</strong> Attempt questions on topics you haven't studied yet — the failed attempt primes the later learning.</li>
+    <li><strong>Delayed feedback.</strong> Mark your own paper the next day, not immediately. Delayed correction retains better.</li>
+    <li><strong>Deliberate practice.</strong> Don't "revise Business." If your evaluation is weak, spend a week writing <em>only conclusions</em> — twenty of them, no essays. Isolate, drill, reintegrate.</li>
+  </ul>
+
+  <h4>Exam-day psychology</h4>
+  <ul>
+    <li><strong>Expressive writing.</strong> Ten minutes writing about your exam worries shortly beforehand has been shown to significantly raise scores in anxious students (Ramirez &amp; Beilock, <em>Science</em>, 2011). It frees the working memory anxiety was consuming. Do it in the corridor.</li>
+    <li><strong>Stress reappraisal.</strong> Relabel arousal as fuel — "my heart is racing because my body is getting ready" beats trying to calm down. Suppression costs working memory; reappraisal doesn't.</li>
+    <li><strong>Implementation intentions.</strong> Pre-decide with if–then rules: <em>if I don't know the answer, then I write the definition and move on; if thirty minutes have passed on essay one, then I start essay two regardless.</em> Pre-committed rules survive panic. Good intentions don't.</li>
+    <li><strong>Sleep.</strong> Consolidation happens during sleep — it is the mechanism by which yesterday's revision becomes memory. A five-hour night costs more marks than five hours of cramming gains.</li>
+    <li><strong>The first five minutes.</strong> Read the whole paper before writing, and start with the question you can answer best.</li>
+  </ul>
+</section>
+
+<section id="plan">
+  <div class="shead"><span class="snum">05</span><h2>The plan</h2></div>
+  <p>Phases scale to whatever time remains — the percentages work whether you have three weeks or nine months.</p>
+
+  <div class="phases">
+    <div class="phase">
+      <div class="pk"><b>0</b>one sitting</div>
+      <div>
+        <h4>Diagnostic</h4>
+        <p>Sit one full past paper cold, timed and closed-book — <em>before</em> revising anything. Mark it yourself against the official mark scheme and tally your marks <strong>by AO</strong>. You now know whether your problem is content, application, chains or judgement. Almost everyone discovers it's AO3/AO4 — and almost everyone would otherwise have spent the term fixing AO1.</p>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="pk"><b>1</b>~25%</div>
+      <div>
+        <h4>Content spine</h4>
+        <p>One handwritten page per topic: definition · mechanism · one framework or formula · <strong>two lines on when it fails</strong> · one real example. Each page written from memory first, then corrected against the textbook in another colour. The correction pass is the learning.</p>
+      </div>
+    </div>
+    <div class="phase hot">
+      <div class="pk"><b>2</b>~35%</div>
+      <div>
+        <h4>Skill drilling — the A* phase</h4>
+        <p>Separated from content deliberately, because AO3 and AO4 are skills that transfer across topics.</p>
+        <ul>
+          <li><strong>Chain drills</strong> — write a three-link causal chain into a given context. Twenty a week, five minutes each.</li>
+          <li><strong>Evaluation drills</strong> — take a past-paper essay title and write <em>only the conclusion</em>, using the four-sentence template. Ten a week.</li>
+          <li><strong>Application drills</strong> — rewrite one generic sentence three ways for three different case-study businesses.</li>
+          <li><strong>Calculation sets</strong> — every formula until automatic, including the interpreting sentence.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="pk"><b>3</b>~30%</div>
+      <div>
+        <h4>Timed papers and self-marking</h4>
+        <p>Full papers under real time, no notes. <strong>Mark them yourself the next day against official mark schemes</strong> — this is the highest-value activity in the subject, because it teaches you the marker's model of a good answer, which is the actual object of assessment. Keep an error log: every lost mark tagged by AO and by cause. Patterns appear within three papers. Work backwards through recent series, then across all variants.</p>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="pk"><b>4</b>final ~10%</div>
+      <div>
+        <h4>Taper</h4>
+        <p>No new content. Spaced recall of the one-page spine only. One paper every other day, not every day. Rehearse the eight evaluation moves and the conclusion template until reflexive. Sleep, timing rules, if–then plans.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Weekly rhythm</h3>
+  <div class="scroll">
+  <table>
+    <thead><tr><th class="k">Day</th><th>Focus</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">Mon</td><td>New or weak content, then blank-paper recall</td></tr>
+      <tr><td class="mono">Tue</td><td>Chain drills (AO3) and a calculation set</td></tr>
+      <tr><td class="mono">Wed</td><td>Timed section of a paper</td></tr>
+      <tr><td class="mono">Thu</td><td>Self-mark Wednesday's work · update the error log</td></tr>
+      <tr><td class="mono">Fri</td><td>Evaluation drills (AO4) — conclusions only</td></tr>
+      <tr><td class="mono">Sat</td><td>Full timed paper</td></tr>
+      <tr><td class="mono">Sun</td><td>Spaced recall of days 3, 7, 16 and 35 · rest</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="checklist">
+  <div class="shead"><span class="snum">06</span><h2>The checklist</h2></div>
+  <p>Run this against every essay you write between now and the exam.</p>
+  <ul class="check">
+    <li>Have I identified the <strong>command word</strong> and the AO ceiling it sets?</li>
+    <li>Is every point in its <strong>own paragraph</strong>?</li>
+    <li>Does every paragraph contain <em>which means / so / therefore</em> — a <strong>chain</strong>, not a list?</li>
+    <li>Is there something in every paragraph <strong>only true of this business</strong> — a number, a constraint, an objective, a market condition?</li>
+    <li>Have I used <strong>two or three named evaluation moves</strong>?</li>
+    <li>Does my conclusion <strong>commit to an answer</strong>, say why that factor outweighed the others, and attach a <strong>condition</strong>?</li>
+    <li>Did I finish <strong>on time</strong>?</li>
+  </ul>
+  <p class="kicker">Seven boxes. They are, almost exactly, the mark scheme.</p>
+</section>
+
+<div class="sources">
+  <h3>Sources</h3>
+  <ul>
+    <li><a href="https://www.cambridgeinternational.org/Images/697371-2026-2028-syllabus.pdf">Cambridge International AS &amp; A Level Business 9609 — syllabus for 2026–2028</a></li>
+    <li><a href="https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-international-as-and-a-level-business-9609/">9609 subject page — Cambridge International</a></li>
+    <li><a href="https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-international-as-and-a-level-business-9609/past-papers/">9609 past papers and mark schemes</a></li>
+    <li><a href="https://pastpapers.co/caie/A-Level/Business-9609/2023-May-June/9609_s23_er.pdf">9609 examiner report — June 2023</a></li>
+    <li><a href="https://papers.xtremepape.rs/CAIE/AS%20and%20A%20Level/Business%20(9609)/9609_w21_er.pdf">9609 examiner report — November 2021</a></li>
+    <li><a href="https://www.cambridgeinternational.org/Images/740287-business-9609-june-2025-grade-threshold-table.pdf">9609 grade thresholds — June 2025</a></li>
+    <li><a href="https://www.caiebusiness.com/how-to-as-paper-1/">How to answer AS Business Paper 1 questions (9609)</a></li>
+  </ul>
+</div>
+
+</div>
