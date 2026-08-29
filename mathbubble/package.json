@@ -1,0 +1,12 @@
+{
+  "name": "mathbubble",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A floating bubble that helps with the maths you shade on your iPad.",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/server.js",
+    "icons": "node tools/make-icons.mjs"
+  },
+  "engines": { "node": ">=18" }
+}
