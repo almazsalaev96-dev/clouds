@@ -36,6 +36,14 @@ export class NeedsKeyError extends Error {
   }
 }
 
+/** Thrown for anything the student can fix from the Settings sheet. */
+export class KeyProblemError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'KeyProblemError';
+  }
+}
+
 async function openStream(body, signal) {
   const config = await serverConfig();
   const key = (prefs.get('apiKey') || '').trim();
@@ -53,17 +61,16 @@ async function openStream(body, signal) {
 
   if (!key) throw new NeedsKeyError();
 
-  return fetch(ANTHROPIC_URL, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify(body),
-    signal,
-  });
+  const headers = {
+    'content-type': 'application/json',
+    'x-api-key': key,
+    'anthropic-version': '2023-06-01',
+    'anthropic-dangerous-direct-browser-access': 'true',
+  };
+  const workspaceId = (prefs.get('workspaceId') || '').trim();
+  if (workspaceId) headers['anthropic-workspace-id'] = workspaceId;
+
+  return fetch(ANTHROPIC_URL, { method: 'POST', headers, body: JSON.stringify(body), signal });
 }
 
 async function readError(res) {
@@ -74,10 +81,24 @@ async function readError(res) {
   } catch {
     /* non-JSON error body */
   }
-  if (res.status === 401) return 'That API key was rejected. Check it in Settings.';
-  if (res.status === 429) return 'Rate limited — wait a few seconds and ask again.';
-  if (res.status === 529 || res.status === 503) return 'Claude is busy right now. Try again in a moment.';
-  return detail || `Request failed (${res.status}).`;
+
+  // A key tied to more than one workspace needs the workspace named
+  // explicitly — Anthropic reports it as a 400 mentioning the header.
+  if (res.status === 400 && /workspace/i.test(detail)) {
+    const err = new KeyProblemError(
+      'This key needs a Workspace ID — add it in Settings (below the key), or create a plain API key at console.anthropic.com/settings/keys instead.'
+    );
+    err.fixable = true;
+    return err;
+  }
+  if (res.status === 401) {
+    const err = new KeyProblemError('That API key was rejected. Check it in Settings.');
+    err.fixable = true;
+    return err;
+  }
+  if (res.status === 429) return new Error('Rate limited — wait a few seconds and ask again.');
+  if (res.status === 529 || res.status === 503) return new Error('Claude is busy right now. Try again in a moment.');
+  return new Error(detail || `Request failed (${res.status}).`);
 }
 
 /**
@@ -94,7 +115,7 @@ export async function streamChat({ system, messages, signal, onDelta }) {
   };
 
   const res = await openStream(body, signal);
-  if (!res.ok) throw new Error(await readError(res));
+  if (!res.ok) throw await readError(res);
   if (!res.body) throw new Error('Streaming is not supported in this browser.');
 
   const reader = res.body.getReader();

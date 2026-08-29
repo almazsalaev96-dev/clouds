@@ -5,7 +5,7 @@
  * Attachments are PNG crops produced by the board.
  */
 
-import { streamChat, imageBlock, NeedsKeyError } from './api.js';
+import { streamChat, imageBlock, NeedsKeyError, KeyProblemError } from './api.js';
 import { renderMarkdown } from './render.js';
 import { prefs } from './store.js';
 
@@ -199,7 +199,7 @@ export class Chat {
       } else {
         this.notice = {
           message: err?.message || 'Something went wrong reaching the tutor.',
-          needsKey: err instanceof NeedsKeyError,
+          needsKey: err instanceof NeedsKeyError || err instanceof KeyProblemError,
         };
       }
     } finally {
@@ -265,11 +265,12 @@ export class Chat {
     if (this.notice) {
       const el = document.createElement('div');
       el.className = 'msg tutor notice';
+      // A key problem gets both: Settings to fix it, Try again for once they
+      // have — no need to retype the question after a one-field fix.
       el.innerHTML =
         `<p style="color:var(--ink-2);margin-bottom:8px">${escapeText(this.notice.message)}</p>` +
-        (this.notice.needsKey
-          ? '<button type="button" class="chip" data-open-settings>Open Settings</button>'
-          : '<button type="button" class="chip" data-retry>Try again</button>');
+        (this.notice.needsKey ? '<button type="button" class="chip" data-open-settings>Open Settings</button> ' : '') +
+        '<button type="button" class="chip" data-retry>Try again</button>';
       this.list.append(el);
     }
     this.#scroll();

@@ -78,6 +78,9 @@ const DEFAULTS = {
   pencilOnly: false,
   model: 'claude-sonnet-5',
   apiKey: '',
+  // Only some Anthropic keys need this (identity-linked keys spanning more
+  // than one workspace); left blank it is simply never sent.
+  workspaceId: '',
   color: '#14162b',
   penWidth: 3,
   bubble: null, // {x, y} as a fraction of the viewport

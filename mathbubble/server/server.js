@@ -23,6 +23,9 @@ const path = require('node:path');
 const PORT = Number(process.env.PORT || 5173);
 const HOST = process.env.HOST || '0.0.0.0';
 const API_KEY = process.env.ANTHROPIC_API_KEY || '';
+// Only some Anthropic keys need this (identity-linked keys spanning more
+// than one workspace); unset, the header below is simply never sent.
+const WORKSPACE_ID = process.env.ANTHROPIC_WORKSPACE_ID || '';
 const DEFAULT_MODEL = process.env.MATHBUBBLE_MODEL || 'claude-sonnet-5';
 const ANTHROPIC_VERSION = '2023-06-01';
 // Overridable so the proxy can point at a gateway (or a stub, in tests).
@@ -117,6 +120,7 @@ function proxyChat(req, res, payload) {
         'x-api-key': API_KEY,
         'anthropic-version': ANTHROPIC_VERSION,
         'content-length': Buffer.byteLength(payload),
+        ...(WORKSPACE_ID ? { 'anthropic-workspace-id': WORKSPACE_ID } : {}),
       },
     },
     (up) => {

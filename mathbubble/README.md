@@ -70,6 +70,7 @@ service workers on HTTPS or localhost. Everything else still works.
 | `PORT` | `5173` | Port to listen on |
 | `MATHBUBBLE_MODEL` | `claude-sonnet-5` | Default model offered to clients |
 | `ANTHROPIC_BASE_URL` | `https://api.anthropic.com` | Point at a gateway instead |
+| `ANTHROPIC_WORKSPACE_ID` | — | Only for keys tied to more than one workspace (Settings has the same field for a personal key) |
 
 ## Put it on the home screen
 

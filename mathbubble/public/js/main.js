@@ -392,9 +392,14 @@ class App {
     key.value = prefs.get('apiKey') || '';
     key.addEventListener('change', () => prefs.set('apiKey', key.value.trim()));
 
+    const workspace = $('#setWorkspace');
+    workspace.value = prefs.get('workspaceId') || '';
+    workspace.addEventListener('change', () => prefs.set('workspaceId', workspace.value.trim()));
+
     serverConfig().then((config) => {
       if (config.hasServerKey) {
         $('#keyRow').style.display = 'none';
+        $('#workspaceRow').style.display = 'none';
       }
       // Respect the server's configured model until the student picks one.
       if (config.model && !prefs.get('modelChosen')) {
