@@ -1,0 +1,36 @@
+# Publishes MathBubble to GitHub Pages as static files.
+#
+# In this mode there is no server, so each person adds their own Anthropic API
+# key in the app's Settings. To have students share one key instead, run
+# mathbubble/server/server.js on a host with ANTHROPIC_API_KEY set.
+name: Deploy MathBubble to Pages
+
+on:
+  push:
+    branches: [main]
+    paths: ['mathbubble/public/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: mathbubble/public
+      - id: deployment
+        uses: actions/deploy-pages@v4

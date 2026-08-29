@@ -12,11 +12,17 @@ import { prefs } from './store.js';
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const MAX_TOKENS = 1600;
 
+// Relative to this module, so the app finds its proxy whether it is served at
+// the origin root or from a sub-path — and simply finds nothing (falling back
+// to a personal key) when it is hosted as static files with no server at all.
+const API_ROOT = new URL('../api/', import.meta.url);
+const endpoint = (name) => new URL(name, API_ROOT).href;
+
 let configPromise = null;
 
 export function serverConfig() {
   if (!configPromise) {
-    configPromise = fetch('/api/config')
+    configPromise = fetch(endpoint('config'))
       .then((r) => (r.ok ? r.json() : { hasServerKey: false }))
       .catch(() => ({ hasServerKey: false }));
   }
@@ -35,7 +41,7 @@ async function openStream(body, signal) {
   const key = (prefs.get('apiKey') || '').trim();
 
   if (config.hasServerKey) {
-    const res = await fetch('/api/chat', {
+    const res = await fetch(endpoint('chat'), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),

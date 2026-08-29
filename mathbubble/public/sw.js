@@ -5,22 +5,22 @@
 
 const CACHE = 'mathbubble-v1';
 const SHELL = [
-  '/',
-  '/index.html',
-  '/css/app.css',
-  '/js/main.js',
-  '/js/board.js',
-  '/js/bubble.js',
-  '/js/shade.js',
-  '/js/chat.js',
-  '/js/api.js',
-  '/js/store.js',
-  '/js/render.js',
-  '/vendor/katex/katex.min.js',
-  '/vendor/katex/katex.min.css',
-  '/manifest.webmanifest',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+  './',
+  './index.html',
+  './css/app.css',
+  './js/main.js',
+  './js/board.js',
+  './js/bubble.js',
+  './js/shade.js',
+  './js/chat.js',
+  './js/api.js',
+  './js/store.js',
+  './js/render.js',
+  './vendor/katex/katex.min.js',
+  './vendor/katex/katex.min.css',
+  './manifest.webmanifest',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -40,7 +40,8 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  if (event.request.method !== 'GET' || url.pathname.startsWith('/api/')) return;
+  // Never cache tutor traffic, wherever the app is mounted.
+  if (event.request.method !== 'GET' || url.pathname.includes('/api/')) return;
 
   event.respondWith(
     caches.match(event.request).then((hit) => {

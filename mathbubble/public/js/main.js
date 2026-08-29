@@ -427,5 +427,8 @@ function downscaleImage(file, maxEdge = 1600) {
 window.app = new App();
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+  // Resolved against this module so the app also works from a sub-path
+  // (a GitHub Pages project site, say), not just the origin root.
+  const swUrl = new URL('../sw.js', import.meta.url);
+  window.addEventListener('load', () => navigator.serviceWorker.register(swUrl).catch(() => {}));
 }

@@ -13,38 +13,65 @@ zoom, works offline apart from the asking.
 
 ---
 
-## Run it
+## It runs in the browser
+
+There is nothing to install on the iPad. MathBubble is a web page — you open a
+URL in Safari and use it. Pick one of two ways to put it at a URL.
+
+### A. No server: static hosting
+
+The app can talk to Anthropic straight from the browser, so it works as plain
+static files. Push to `main` and the included workflow publishes
+`mathbubble/public` to GitHub Pages; enable it once under **Settings → Pages →
+Source: GitHub Actions**, and you get an HTTPS URL like
+`https://<you>.github.io/clouds/`.
+
+Any static host works the same way — Netlify, Cloudflare Pages, or a folder on
+a web server. Paths are relative, so it can live at a sub-path.
+
+The trade-off: with no server there is nowhere to keep a secret, so **each
+person pastes their own Anthropic API key into Settings** (it stays in their
+browser and goes straight to Anthropic). Fine for you or a few people; awkward
+for thirty students.
+
+It cannot be opened as a `file://` page — browsers block ES modules there. It
+needs to be served from a URL, which is what the above does.
+
+### B. With the server: one shared key
 
 ```bash
 cd mathbubble
 ANTHROPIC_API_KEY=sk-ant-... npm start
 ```
 
-Open <http://localhost:5173>.
+Open <http://localhost:5173>, or the machine's LAN address from the iPad. Now
+**students need no key of their own** — the server holds it and proxies for
+them, so usage lands on one bill you can see.
 
-The API key is optional. Without it the app still runs, and each student pastes
-their own key into Settings (stored in their browser, sent straight to
-Anthropic). With it, students need no key at all — which is what you want for a
-class.
+Deploy the same thing to any host that runs a Node process (Render, Railway,
+Fly.io, a small VPS): no build step, no dependencies, no database — just
+`node server/server.js`.
 
-Useful environment variables:
+One caution for a class: a public URL backed by your key means anyone who finds
+it can spend your credits. Keep it on the school network, or put a passcode in
+front of it.
+
+Over plain HTTP on a LAN address, offline caching is off — browsers only allow
+service workers on HTTPS or localhost. Everything else still works.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | — | Server-side key, so students need none |
 | `PORT` | `5173` | Port to listen on |
 | `MATHBUBBLE_MODEL` | `claude-sonnet-5` | Default model offered to clients |
+| `ANTHROPIC_BASE_URL` | `https://api.anthropic.com` | Point at a gateway instead |
 
-## Put it on an iPad
+## Put it on the home screen
 
-1. Run the server on a machine on the same Wi-Fi (or deploy it anywhere that
-   serves `public/` and proxies `/api/chat`).
-2. On the iPad, open `http://<that-machine>:5173` in Safari.
-3. **Share → Add to Home Screen.** It then launches full-screen with no browser
-   chrome, which is the way to use it.
-
-Add-to-Home-Screen also makes the page work offline: the canvas, your pages and
-your tools are cached. Only asking the tutor needs a connection.
+On the iPad, open the URL in Safari and choose **Share → Add to Home Screen**.
+It then launches full-screen with no browser chrome, which is the way to use
+it. Over HTTPS that also caches the app, so the canvas, your pages and your
+tools keep working with no connection — only asking the tutor needs one.
 
 ## How students use it
 
@@ -85,6 +112,7 @@ are served from this app, not a CDN.
 
 ```
 server/server.js       static host + streaming /api/chat proxy (no dependencies)
+.github/workflows/     publishes public/ to GitHub Pages on push to main
 public/index.html      the whole UI
 public/js/board.js     canvas: strokes, pressure, pan/zoom, undo, PNG capture
 public/js/bubble.js    the floating circle: tap / hold / drag
