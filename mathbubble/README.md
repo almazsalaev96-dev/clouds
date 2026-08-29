@@ -25,11 +25,8 @@ static files. The included workflow publishes `mathbubble/public` to GitHub
 Pages and turns Pages on by itself, giving you an HTTPS URL like
 `https://<you>.github.io/clouds/`.
 
-It only runs on the repository's **default branch** — GitHub accepts Pages
-deployments from nowhere else — so this branch has to be merged there first.
-Note that this repository currently has no `main`: its default branch is
-`claude/business-a-level-prep-bsbmuu`. Either merge into that, or create `main`
-from this branch and set it as the default under **Settings → Branches**.
+It runs from this branch directly — Actions-based Pages deployment has no
+default-branch requirement, so nothing needs merging anywhere first.
 
 Any static host works the same way — Netlify, Cloudflare Pages, or a folder on
 a web server. Paths are relative, so it can live at a sub-path.

@@ -5,9 +5,10 @@
 # mathbubble/server/server.js on a host with ANTHROPIC_API_KEY set.
 name: Deploy MathBubble to Pages
 
-# This repository has no 'main'; its default branch is named by whichever
-# session created it. Match on any branch and let the job filter, so the
-# workflow keeps working whatever the default branch is called.
+# Actions-based Pages deployment has no default-branch requirement — it
+# publishes whatever this workflow uploads, triggered from any branch. Kept
+# branch-agnostic ('**') so it keeps working if this file is later merged
+# somewhere else, or this repo's default branch changes.
 on:
   push:
     branches: ['**']
@@ -25,8 +26,6 @@ concurrency:
 
 jobs:
   deploy:
-    # Pages only accepts deployments from the default branch.
-    if: github.ref_name == github.event.repository.default_branch
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
