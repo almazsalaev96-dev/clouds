@@ -5,9 +5,12 @@
 # mathbubble/server/server.js on a host with ANTHROPIC_API_KEY set.
 name: Deploy MathBubble to Pages
 
+# This repository has no 'main'; its default branch is named by whichever
+# session created it. Match on any branch and let the job filter, so the
+# workflow keeps working whatever the default branch is called.
 on:
   push:
-    branches: [main]
+    branches: ['**']
     paths: ['mathbubble/public/**', '.github/workflows/pages.yml']
   workflow_dispatch:
 
@@ -22,13 +25,18 @@ concurrency:
 
 jobs:
   deploy:
+    # Pages only accepts deployments from the default branch.
+    if: github.ref_name == github.event.repository.default_branch
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # enablement turns Pages on for the repo, so there is no manual toggle.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: mathbubble/public
