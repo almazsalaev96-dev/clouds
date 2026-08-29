@@ -9,6 +9,7 @@ import { Shader } from './shade.js';
 import { Chat } from './chat.js';
 import { pages as pageStore, newPage, prefs } from './store.js';
 import { serverConfig } from './api.js';
+import { strokesThumbnail } from './thumbnail.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -61,6 +62,7 @@ class App {
     this.pages = [];
     this.index = 0;
     this.saveTimer = null;
+    this.hasLoadedPage = false; // guards showPage's flush — see there
 
     this.#buildSwatches();
     this.#bindToolbar();
@@ -95,11 +97,33 @@ class App {
     return this.pages[this.index];
   }
 
+  /**
+   * Switches to page i, first flushing whatever page is on screen now.
+   * Without that flush, strokes drawn less than 400ms earlier — exactly what
+   * tapping an arrow right after writing looks like — never reached the
+   * outgoing page's own record and were silently lost.
+   *
+   * Only safe when `this.pages` still has the outgoing page sitting at the
+   * current index, i.e. the normal case: arrows, a page-grid tap, a fresh
+   * page. A caller that has already spliced the array (deletePage,
+   * importPdf) has either handled that page's data itself already or knows
+   * it's gone — those call #loadPage directly to skip this flush.
+   */
   showPage(i) {
+    if (this.hasLoadedPage) {
+      clearTimeout(this.saveTimer);
+      Object.assign(this.page, this.board.serialize(), { updatedAt: Date.now() });
+      pageStore.put({ ...this.page }).catch(() => {});
+    }
+    this.#loadPage(i);
+  }
+
+  #loadPage(i) {
     this.index = Math.max(0, Math.min(i, this.pages.length - 1));
     prefs.set('lastPage', this.index);
     this.board.load(this.page);
     this.chat.load(this.page.chat);
+    this.hasLoadedPage = true;
     this.#syncPageBar();
     this.#syncUndo();
   }
@@ -135,6 +159,94 @@ class App {
   #syncUndo() {
     $('#tUndo').disabled = !this.board.canUndo;
     $('#tRedo').disabled = !this.board.canRedo;
+  }
+
+  /** All pages at a glance — jump to one, or delete one, without stepping through arrows. */
+  openPagesGrid() {
+    // Bring the in-memory page up to date immediately; savePage()'s own
+    // write to IndexedDB is debounced and would otherwise leave a stale
+    // thumbnail for whichever page is open right now.
+    Object.assign(this.page, this.board.serialize());
+    this.#renderPagesGrid();
+    $('#pagesGrid').showModal();
+  }
+
+  #renderPagesGrid() {
+    const host = $('#pageGridBody');
+    host.innerHTML = '';
+    this.pages.forEach((p, i) => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = `page-card${i === this.index ? ' current' : ''}`;
+
+      const thumb = p.bg?.src || strokesThumbnail(p);
+      card.innerHTML =
+        (thumb ? `<img src="${thumb}" alt="Page ${i + 1}" loading="lazy">` : `<div class="blank">Blank</div>`) +
+        `<span class="num">${i + 1}</span>`;
+
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'del';
+      del.setAttribute('aria-label', `Delete page ${i + 1}`);
+      del.innerHTML = '<svg><use href="#i-trash"/></svg>';
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.deletePage(i);
+      });
+      card.append(del);
+
+      card.addEventListener('click', () => {
+        this.showPage(i);
+        $('#pagesGrid').close();
+      });
+      host.append(card);
+    });
+  }
+
+  async deletePage(i) {
+    // Bring the in-memory current page up to date first — the debounced
+    // autosave might not have run yet, and the bulk persist below would
+    // otherwise write a stale copy of whichever page is presently open.
+    Object.assign(this.page, this.board.serialize());
+
+    if (this.pages.length <= 1) {
+      // Always at least one page — clear it in place rather than deleting.
+      const p = this.pages[i];
+      p.strokes = [];
+      p.bg = null;
+      p.chat = [];
+      await pageStore.put({ ...p });
+      if (i === this.index) this.board.clear();
+      toast('Only page — cleared instead of deleted');
+      this.#renderPagesGrid();
+      return;
+    }
+    if (!confirm(`Delete page ${i + 1}? This can't be undone.`)) return;
+
+    const wasCurrent = i === this.index;
+    const [removed] = this.pages.splice(i, 1);
+    this.pages.forEach((p, idx) => { p.order = idx; });
+    await Promise.all(this.pages.map((p) => pageStore.put({ ...p })));
+    await pageStore.remove(removed.id);
+
+    let next = i < this.index ? this.index - 1 : this.index;
+    next = Math.max(0, Math.min(next, this.pages.length - 1));
+
+    if (wasCurrent) {
+      // The page the board was showing is the one just deleted; load
+      // whichever page now sits at the (possibly shifted) current index —
+      // #loadPage, not showPage, since there is nothing left to flush.
+      this.#loadPage(next);
+    } else {
+      // The board is already showing the right page — just correct the
+      // index and label; reloading it here would reset its undo history.
+      this.index = next;
+      prefs.set('lastPage', this.index);
+      this.#syncPageBar();
+      this.#syncUndo();
+    }
+    this.#renderPagesGrid();
+    toast('Page deleted');
   }
 
   /* ---------------- shade flow ---------------- */
@@ -305,6 +417,7 @@ class App {
     $('#tRedo').addEventListener('click', () => this.board.redo());
     $('#tFit').addEventListener('click', () => this.board.resetView());
     $('#tAdd').addEventListener('click', () => this.#toggleAddMenu($('#tAdd')));
+    $('#tShare').addEventListener('click', () => this.exportPage());
     $('#tSettings').addEventListener('click', () => $('#settings').showModal());
 
     $('#addMenu').addEventListener('click', (e) => {
@@ -351,6 +464,50 @@ class App {
    * board page, so a student can write directly on the real thing instead of
    * a single flattened screenshot of it.
    */
+  /**
+   * Shares (or, where that's unavailable, opens for saving) the current page
+   * as one flattened image — the way out of the app, for showing a teacher
+   * or keeping a copy, that isn't just asking the tutor.
+   */
+  async exportPage() {
+    Object.assign(this.page, this.board.serialize());
+    const bounds = this.board.contentBounds();
+    if (!bounds) {
+      toast('Nothing to share yet — write something first');
+      return;
+    }
+
+    const dataUrl = this.board.captureRegion(bounds, { pad: 24, minSize: 0 });
+    const filename = `page-${this.index + 1}.png`;
+
+    if (navigator.share) {
+      // Built synchronously (no fetch/await) so the share call stays inside
+      // the same user gesture — WebKit revokes permission once it's gone.
+      const file = new File([dataUrlToBlob(dataUrl)], filename, { type: 'image/png' });
+      if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: filename });
+          return;
+        } catch (err) {
+          if (err?.name === 'AbortError') return; // the student cancelled the sheet
+          // otherwise fall through to the tab fallback below
+        }
+      }
+    }
+
+    const win = window.open();
+    if (win) {
+      win.document.title = filename;
+      win.document.body.style.margin = '0';
+      const img = win.document.createElement('img');
+      img.src = dataUrl;
+      img.style.maxWidth = '100%';
+      win.document.body.append(img);
+    } else {
+      toast("Couldn't open a share sheet — try again");
+    }
+  }
+
   async importPdf(file) {
     toast(`Opening ${file.name}…`, 60000);
     try {
@@ -363,11 +520,16 @@ class App {
         return;
       }
 
+      // Bring the in-memory current page up to date first — the debounced
+      // autosave may not have run yet, and both the blank check and the
+      // bulk persist below need to see the real, current state.
+      Object.assign(this.page, this.board.serialize());
+
       // A genuinely blank current page is replaced rather than left empty
       // and orphaned; anything with content is kept, and the import lands
       // straight after it. The blank page is removed first so the insertion
       // index below doesn't drift once new pages start shifting the array.
-      const blank = !this.board.strokes.length && !this.board.bg && !this.page.chat.length;
+      const blank = !this.page.strokes.length && !this.page.bg && !this.page.chat.length;
       const replaced = blank ? this.pages.splice(this.index, 1)[0] : null;
       const insertAt = blank ? this.index : this.index + 1;
 
@@ -380,7 +542,11 @@ class App {
       this.pages.forEach((p, i) => { p.order = i; });
       await Promise.all(this.pages.map((p) => pageStore.put({ ...p })));
       if (replaced) await pageStore.remove(replaced.id);
-      this.showPage(insertAt);
+      // #loadPage, not showPage — the array above has already been
+      // restructured, so there is no valid "outgoing page at this.index" for
+      // showPage's flush to write into; it would stomp whatever page ended
+      // up at that slot with stale board content from before the import.
+      this.#loadPage(insertAt);
 
       toast(
         truncated
@@ -406,6 +572,13 @@ class App {
       this.board.clear();
       toast('Page cleared — undo with the arrow');
     });
+    $('#pageLabel').addEventListener('click', () => this.openPagesGrid());
+
+    $('#pagesGridClose').addEventListener('click', () => $('#pagesGrid').close());
+    $('#pagesGridAdd').addEventListener('click', () => {
+      this.addPage();
+      this.#renderPagesGrid();
+    });
 
     // The tutor surfaces an "Open Settings" button when no key is configured.
     $('#messages').addEventListener('click', (e) => {
@@ -416,6 +589,13 @@ class App {
     $('#chatNew').addEventListener('click', () => {
       this.chat.reset();
       toast('Fresh conversation');
+    });
+    $('#chatDelete').addEventListener('click', () => {
+      if (!this.chat.messages.length) return toast('Nothing to delete');
+      if (!confirm('Delete this conversation? This can\'t be undone.')) return;
+      this.chat.reset();
+      this.chat.close();
+      toast('Conversation deleted');
     });
   }
 
@@ -613,6 +793,16 @@ function fitRect(imgW, imgH) {
   const rw = imgW * scale;
   const rh = imgH * scale;
   return { x: (w - rw) / 2, y: h * 0.05, w: rw, h: rh };
+}
+
+/** Synchronous data-URL → Blob, so a share call stays inside the user gesture. */
+function dataUrlToBlob(dataUrl) {
+  const [meta, b64] = dataUrl.split(',');
+  const mime = /data:(.*?);base64/.exec(meta)?.[1] || 'image/png';
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
 }
 
 window.app = new App();

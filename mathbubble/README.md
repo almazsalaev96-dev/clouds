@@ -121,6 +121,37 @@ in, besides just writing:
   to StudyBubble, tap Paste. See **Honest limits** below for why this exists
   instead of the bubble simply appearing inside that other app.
 
+## Managing pages and conversations
+
+Tap the **page label** at the top ("Page 2 of 6") for an overview of every
+page as a thumbnail grid: tap one to jump straight to it, tap the small trash
+icon on a card to delete that page (with the last page, that clears it
+instead — there's always at least one). A page you're mid-way through keeps
+its undo history when you delete some *other* page; only the page actually
+being deleted (or the one you land on) reloads.
+
+The **trash icon in the chat header** deletes the current conversation
+outright (with a confirmation, since it can't be undone) — the **+** next to
+it is the lighter-weight "start fresh, stay in the panel" version, no
+confirmation needed since either one can be recovered by just asking again.
+
+The **share icon in the toolbar** exports the current page as one flattened
+image — through the system share sheet on iPad (AirDrop, Messages, Save to
+Photos, whatever's installed), or a new tab to save it elsewhere.
+
+## The tutor can draw
+
+Some things are clearer as a picture than a sentence — a triangle with its
+sides labelled, an angle marked on a diagram, a number line, a quick graph.
+The tutor can include one, as inline SVG rendered from a small JSON shape
+list it writes in a fenced \`\`\`diagram block — lines, circles, rects,
+polygons, arcs (for angle markers), and text labels. It's the model's own
+figure, not a photo — a real photograph isn't something this app calls out
+to generate, since that needs a separate image-generation service with its
+own cost and setup this project doesn't assume you want. The diagram spec is
+plain data (numbers and short strings): nothing the tutor writes ever
+becomes markup, so there's no path from a reply to injected HTML.
+
 ## Settings that matter for a class
 
 - **Subject** — Auto by default (the tutor reads it off the page); set one
@@ -156,6 +187,8 @@ public/js/chat.js      tutor prompt (subject/level/style-aware), streaming, mess
 public/js/render.js    Markdown subset + KaTeX
 public/js/api.js       server proxy, with a bring-your-own-key fallback
 public/js/pdfimport.js PDF → one page image per PDF page, via pdf.js
+public/js/diagram.js   validated JSON shape list → inline SVG, for the tutor's figures
+public/js/thumbnail.js small canvas renders for the Pages grid
 public/js/store.js     IndexedDB pages, localStorage preferences
 tools/make-icons.mjs   generates the PNG app icons
 ```

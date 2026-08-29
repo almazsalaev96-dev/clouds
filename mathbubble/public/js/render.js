@@ -1,14 +1,26 @@
 /**
  * Turns a tutor reply into HTML: a small, deliberate subset of Markdown plus
- * KaTeX for the maths. Math is pulled out before any escaping happens so that
- * things like \frac{a}{b} and x < y survive intact.
+ * KaTeX for the maths, and inline SVG for the occasional diagram. Math and
+ * fenced blocks are pulled out before any escaping happens so that things
+ * like \frac{a}{b}, x < y, and raw diagram JSON all survive intact.
  */
+
+import { diagramSvg } from './diagram.js';
 
 // A character that never appears in a reply, so placeholders can't collide.
 const SENTINEL = '\u0000';
 
 const escapeHtml = (s) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+function extractFences(src) {
+  const found = [];
+  const text = src.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, body) => {
+    found.push({ lang: lang.trim().toLowerCase(), body: body.replace(/\n$/, '') });
+    return `${SENTINEL}F${found.length - 1}${SENTINEL}`;
+  });
+  return { text, found };
+}
 
 function extractMath(src) {
   const found = [];
@@ -103,11 +115,12 @@ function markdown(src) {
 }
 
 export function renderMarkdown(src) {
-  const { text, found } = extractMath(String(src || ''));
+  const { text: withoutFences, found: fences } = extractFences(String(src || ''));
+  const { text, found: mathItems } = extractMath(withoutFences);
   let html = markdown(escapeHtml(text));
 
   html = html.replace(new RegExp(`${SENTINEL}M(\\d+)${SENTINEL}`, 'g'), (_, i) => {
-    const item = found[Number(i)];
+    const item = mathItems[Number(i)];
     if (!item) return '';
     if (window.katex) {
       try {
@@ -123,6 +136,17 @@ export function renderMarkdown(src) {
     }
     const tex = escapeHtml(item.tex);
     return item.display ? `<div class="katex-display"><code>${tex}</code></div>` : `<code>${tex}</code>`;
+  });
+
+  html = html.replace(new RegExp(`${SENTINEL}F(\\d+)${SENTINEL}`, 'g'), (_, i) => {
+    const fence = fences[Number(i)];
+    if (!fence) return '';
+    if (fence.lang === 'diagram') {
+      const svg = diagramSvg(fence.body);
+      if (svg) return svg;
+      // Malformed diagram JSON — show it as a code block rather than drop it silently.
+    }
+    return `<pre><code>${escapeHtml(fence.body)}</code></pre>`;
   });
 
   return html;

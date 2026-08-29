@@ -423,6 +423,23 @@ body.shading #stage::after {
 .msg h3 { font-size: 15px; margin: 12px 0 6px; }
 .msg .katex-display { margin: 10px 0; overflow-x: auto; overflow-y: hidden; padding-bottom: 2px; }
 .msg hr { border: 0; border-top: 1px solid var(--border); margin: 12px 0; }
+.msg pre {
+  margin: 10px 0;
+  padding: 10px 12px;
+  background: var(--accent-soft);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+.msg pre code { background: none; padding: 0; white-space: pre; }
+.msg svg.diagram {
+  display: block;
+  margin: 10px auto;
+  max-width: 100%;
+  height: auto;
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
 
 .thinking { display: flex; gap: 5px; align-items: center; height: 22px; }
 .thinking i {
@@ -537,6 +554,46 @@ dialog {
   max-height: 84dvh;
 }
 dialog::backdrop { background: rgba(10, 11, 22, 0.4); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+
+#pagesGrid { width: min(760px, calc(100vw - 32px)); }
+
+.page-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 12px;
+  padding: 4px 0 12px;
+}
+.page-card {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--bg);
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+.page-card.current { border-color: var(--accent); }
+.page-card img { width: 100%; height: 100%; object-fit: contain; background: #fff; display: block; }
+.page-card .blank {
+  width: 100%; height: 100%;
+  display: grid; place-items: center;
+  color: var(--ink-3); font-size: 12px;
+}
+.page-card .num {
+  position: absolute; left: 6px; bottom: 6px;
+  font-size: 11px; font-weight: 650;
+  background: rgba(10, 11, 22, 0.62); color: #fff;
+  padding: 2px 8px; border-radius: 999px;
+}
+.page-card .del {
+  position: absolute; top: 6px; right: 6px;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(10, 11, 22, 0.62); color: #fff;
+  display: grid; place-items: center;
+  transition: transform var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.page-card .del:active { transform: scale(0.9); }
+.page-card .del svg { width: 15px; height: 15px; }
 .sheet-head { display: flex; align-items: center; padding: 14px 10px 14px 18px; border-bottom: 1px solid var(--border); }
 .sheet-head h2 { margin: 0; font-size: 17px; flex: 1; }
 .sheet-body { padding: 6px 18px 18px; overflow-y: auto; }
@@ -585,7 +642,17 @@ dialog::backdrop { background: rgba(10, 11, 22, 0.4); -webkit-backdrop-filter: b
   gap: 2px;
   padding: 5px;
 }
-#pagebar .label { padding: 0 10px; font-size: 13px; color: var(--ink-2); font-weight: 550; min-width: 76px; text-align: center; }
+#pagebar .label {
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--ink-2);
+  font-weight: 550;
+  min-width: 76px;
+  text-align: center;
+  border-radius: 9px;
+  transition: background var(--dur) var(--ease);
+}
+#pagebar .label:hover, #pagebar .label:active { background: var(--accent-soft); color: var(--accent); }
 #pagebar .icon-btn { width: 36px; height: 36px; }
 
 /* Apple Pencil hover ring — see #bindPencilHover in main.js */
