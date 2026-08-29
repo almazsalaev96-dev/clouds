@@ -188,7 +188,44 @@ class App {
     if (act === 'shade') this.startShading();
     else if (act === 'page') this.askAboutPage();
     else if (act === 'photo') $('#photoInput').click();
+    else if (act === 'paste') this.pasteFromClipboard();
     else if (act === 'chat') this.openChat();
+  }
+
+  /**
+   * Pulls an image straight off the system clipboard — the fast route for a
+   * screenshot taken in another app (Teams, a PDF, anywhere): screenshot it
+   * there, switch to MathBubble, tap Paste. No iOS app, this one included,
+   * can draw on top of another app's screen, so a screenshot is the bridge.
+   *
+   * Must run inside a direct user gesture (a tap), which navigator.clipboard
+   * requires — so this is only ever called from a click handler, never on a
+   * timer or a visibility change.
+   */
+  async pasteFromClipboard() {
+    if (!navigator.clipboard?.read) {
+      toast('This browser can’t paste images — use the photo button instead');
+      return;
+    }
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const type = item.types.find((t) => t.startsWith('image/'));
+        if (!type) continue;
+        const blob = await item.getType(type);
+        const dataUrl = await downscaleImage(blob);
+        this.board.setBackground(dataUrl);
+        toast('Screenshot pasted — write on it, then shade your question');
+        return;
+      }
+      toast('No image on the clipboard — copy a screenshot first');
+    } catch (err) {
+      if (err?.name === 'NotAllowedError') {
+        toast('Allow Paste when your iPad asks, then try again');
+      } else {
+        toast("Couldn't paste that");
+      }
+    }
   }
 
   /* ---------------- ui wiring ---------------- */
@@ -257,6 +294,7 @@ class App {
     $('#tRedo').addEventListener('click', () => this.board.redo());
     $('#tFit').addEventListener('click', () => this.board.resetView());
     $('#tPhoto').addEventListener('click', () => $('#photoInput').click());
+    $('#tPaste').addEventListener('click', () => this.pasteFromClipboard());
     $('#tSettings').addEventListener('click', () => $('#settings').showModal());
 
     $('#photoInput').addEventListener('change', async (e) => {
@@ -388,6 +426,24 @@ class App {
         else if (this.chat.isOpen) this.chat.close();
       } else if (!typing && e.key.toLowerCase() === 'a' && !e.metaKey && !e.ctrlKey) {
         this.startShading();
+      }
+    });
+
+    // A hardware-keyboard Cmd/Ctrl+V with an image on the clipboard (e.g. a
+    // screenshot copied from Teams) drops it straight onto the page. Typing
+    // into an actual text field pastes text there as normal.
+    document.addEventListener('paste', async (e) => {
+      if (e.target.closest('input, textarea, [contenteditable]')) return;
+      const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith('image/'));
+      if (!item) return;
+      e.preventDefault();
+      const file = item.getAsFile();
+      if (!file) return;
+      try {
+        this.board.setBackground(await downscaleImage(file));
+        toast('Screenshot pasted — write on it, then shade your question');
+      } catch {
+        toast("Couldn't paste that");
       }
     });
 

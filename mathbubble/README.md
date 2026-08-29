@@ -129,12 +129,27 @@ public/js/store.js     IndexedDB pages, localStorage preferences
 tools/make-icons.mjs   generates the PNG app icons
 ```
 
+## Working with an assignment that's open in another app
+
+A student's question is often already on screen somewhere else — a PDF in
+Microsoft Teams, a worksheet in a different app. Get it in with **Paste**:
+
+1. Screenshot it (however that app / the iPad normally does it), or use that
+   app's own **Copy** on the page or image.
+2. Switch to MathBubble.
+3. Tap the **clipboard icon** in the toolbar, or hold the bubble → **Paste a
+   screenshot**.
+
+It lands as the page background, full size, ready to write on directly —
+same as the camera button, just without leaving the app to take a photo.
+
 ## Honest limits
 
-- A web app cannot float over *other* iPad apps or read another app's screen —
-  iOS has no API for that at any price. The bubble floats over **your work in
-  this app**, which is why the app includes its own writing canvas and a
-  "photograph the worksheet" route for printed questions.
+- No app on iPad — a web app, or any native app, this one included — can draw
+  on top of *another* app's screen or read what's inside it. iOS has no API
+  for that at any price, for anyone. So the bubble can't "sit on" an
+  assignment that's open in Teams or anywhere else; **Paste** (above) is the
+  bridge — screenshot it there, drop it in here.
 - Handwriting recognition is the model's, not a separate OCR pass. Messy digits
   can be misread; the tutor is told to say what it read when a symbol is
   ambiguous.
