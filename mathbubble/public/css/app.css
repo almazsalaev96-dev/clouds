@@ -224,6 +224,18 @@ body.shading #stage::after {
 #bubbleMenu.open { display: flex; animation: pop 180ms var(--ease); }
 @keyframes pop { from { opacity: 0; transform: translateY(6px) scale(0.96); } }
 
+/* Toolbar's "Add" popover — same list styling, anchored to the button instead. */
+.add-menu {
+  position: fixed;
+  z-index: 31;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  min-width: 220px;
+}
+.add-menu.open { display: flex; animation: pop 180ms var(--ease); }
+
 .menu-item {
   display: flex;
   align-items: center;
@@ -575,6 +587,19 @@ dialog::backdrop { background: rgba(10, 11, 22, 0.4); -webkit-backdrop-filter: b
 }
 #pagebar .label { padding: 0 10px; font-size: 13px; color: var(--ink-2); font-weight: 550; min-width: 76px; text-align: center; }
 #pagebar .icon-btn { width: 36px; height: 36px; }
+
+/* Apple Pencil hover ring — see #bindPencilHover in main.js */
+#pencilHover {
+  position: fixed;
+  z-index: 25;
+  display: none;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  opacity: 0.55;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: width 60ms var(--ease), height 60ms var(--ease);
+}
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

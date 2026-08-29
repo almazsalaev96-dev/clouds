@@ -73,6 +73,7 @@ const PREF_KEY = 'mathbubble.prefs';
 
 const DEFAULTS = {
   level: 'gcse',
+  subject: 'auto',
   style: 'socratic',
   dark: false,
   pencilOnly: false,

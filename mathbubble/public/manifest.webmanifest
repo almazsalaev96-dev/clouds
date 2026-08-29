@@ -1,7 +1,7 @@
 {
-  "name": "MathBubble — shade it, ask it",
-  "short_name": "MathBubble",
-  "description": "Write maths by hand, shade the bit you're stuck on, and get help with exactly that.",
+  "name": "StudyBubble — shade it, ask it",
+  "short_name": "StudyBubble",
+  "description": "Write by hand — any subject — shade the bit you're stuck on, and get help with exactly that.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

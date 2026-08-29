@@ -69,7 +69,27 @@ function render(size) {
     return Math.hypot(px2 - cx, py2 - cy) <= r;
   };
   const circle = (cx, cy, r, px2, py2) => Math.hypot(px2 - cx, py2 - cy) <= r;
-  const bar = (x, y, w, h, px2, py2) => px2 >= x && px2 <= x + w && py2 >= y && py2 <= y + h;
+
+  // A 4-point sparkle — the same motif as the in-app bubble icon (#i-spark),
+  // so the home-screen icon and the floating button read as one glyph. Eight
+  // vertices alternating an outer point (N/E/S/W) with an inner one (pulled
+  // toward the centre on the diagonals), tested by a standard ray cast.
+  const star = (cx, cy, outer, inner, px2, py2) => {
+    const k = Math.SQRT1_2;
+    const verts = [
+      [cx, cy - outer], [cx + inner * k, cy - inner * k],
+      [cx + outer, cy], [cx + inner * k, cy + inner * k],
+      [cx, cy + outer], [cx - inner * k, cy + inner * k],
+      [cx - outer, cy], [cx - inner * k, cy - inner * k],
+    ];
+    let inside = false;
+    for (let i = 0, j = verts.length - 1; i < verts.length; j = i++) {
+      const [xi, yi] = verts[i];
+      const [xj, yj] = verts[j];
+      if (yi > py2 !== yj > py2 && px2 < ((xj - xi) * (py2 - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  };
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -87,12 +107,7 @@ function render(size) {
               circle(256, 240, 150, fx, fy) ||
               (fy > 340 && fy < 430 && fx > 150 && fx < 150 + (430 - fy) * 1.5);
             if (inBubble) col = [255, 255, 255];
-            // A pi glyph inside the bubble, built from three bars.
-            const inPi =
-              bar(176, 196, 160, 30, fx, fy) ||
-              bar(206, 226, 28, 118, fx, fy) ||
-              bar(286, 226, 28, 118, fx, fy);
-            if (inBubble && inPi) col = INK;
+            if (inBubble && star(256, 240, 96, 34, fx, fy)) col = INK;
           }
 
           if (col) {

@@ -68,6 +68,7 @@ class App {
     this.#bindPages();
     this.#bindSettings();
     this.#bindWindow();
+    this.#bindPencilHover();
 
     this.load();
   }
@@ -86,7 +87,7 @@ class App {
 
     if (!prefs.get('seenTip')) {
       prefs.set('seenTip', true);
-      setTimeout(() => toast('Write your maths, then tap the bubble to ask about it', 5200), 700);
+      setTimeout(() => toast('Write your work, then tap the bubble to ask about it', 5200), 700);
     }
   }
 
@@ -188,6 +189,7 @@ class App {
     if (act === 'shade') this.startShading();
     else if (act === 'page') this.askAboutPage();
     else if (act === 'photo') $('#photoInput').click();
+    else if (act === 'pdf') $('#pdfInput').click();
     else if (act === 'paste') this.pasteFromClipboard();
     else if (act === 'chat') this.openChat();
   }
@@ -195,7 +197,7 @@ class App {
   /**
    * Pulls an image straight off the system clipboard — the fast route for a
    * screenshot taken in another app (Teams, a PDF, anywhere): screenshot it
-   * there, switch to MathBubble, tap Paste. No iOS app, this one included,
+   * there, switch to StudyBubble, tap Paste. No iOS app, this one included,
    * can draw on top of another app's screen, so a screenshot is the bridge.
    *
    * Must run inside a direct user gesture (a tap), which navigator.clipboard
@@ -267,6 +269,15 @@ class App {
     host.classList.add('open');
   }
 
+  #toggleAddMenu(anchor) {
+    const host = $('#addMenu');
+    if (host.classList.contains('open')) return host.classList.remove('open');
+    const r = anchor.getBoundingClientRect();
+    host.style.left = `${r.right + 10}px`;
+    host.style.top = `${Math.min(r.top, window.innerHeight - 190)}px`;
+    host.classList.add('open');
+  }
+
   #bindToolbar() {
     const tools = ['pen', 'marker', 'eraser', 'pan'];
     const buttons = {
@@ -293,9 +304,15 @@ class App {
     $('#tUndo').addEventListener('click', () => this.board.undo());
     $('#tRedo').addEventListener('click', () => this.board.redo());
     $('#tFit').addEventListener('click', () => this.board.resetView());
-    $('#tPhoto').addEventListener('click', () => $('#photoInput').click());
-    $('#tPaste').addEventListener('click', () => this.pasteFromClipboard());
+    $('#tAdd').addEventListener('click', () => this.#toggleAddMenu($('#tAdd')));
     $('#tSettings').addEventListener('click', () => $('#settings').showModal());
+
+    $('#addMenu').addEventListener('click', (e) => {
+      const item = e.target.closest('[data-act]');
+      if (!item) return;
+      $('#addMenu').classList.remove('open');
+      this.runMenu(item.dataset.act);
+    });
 
     $('#photoInput').addEventListener('change', async (e) => {
       const file = e.target.files?.[0];
@@ -310,12 +327,69 @@ class App {
       }
     });
 
-    document.addEventListener('pointerdown', (e) => {
-      const host = $('#swatches');
-      if (!host.classList.contains('open')) return;
-      if (host.contains(e.target) || e.target.closest('#toolbar')) return;
-      host.classList.remove('open');
+    $('#pdfInput').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      e.target.value = '';
+      if (!file) return;
+      await this.importPdf(file);
     });
+
+    document.addEventListener('pointerdown', (e) => {
+      const swatches = $('#swatches');
+      if (swatches.classList.contains('open') && !swatches.contains(e.target) && !e.target.closest('#toolbar')) {
+        swatches.classList.remove('open');
+      }
+      const add = $('#addMenu');
+      if (add.classList.contains('open') && !add.contains(e.target) && !e.target.closest('#toolbar')) {
+        add.classList.remove('open');
+      }
+    });
+  }
+
+  /**
+   * Renders each page of a PDF (a past paper, a worksheet) into its own
+   * board page, so a student can write directly on the real thing instead of
+   * a single flattened screenshot of it.
+   */
+  async importPdf(file) {
+    toast(`Opening ${file.name}…`, 60000);
+    try {
+      const { pdfToPageImages } = await import('./pdfimport.js');
+      const { images, truncated, totalPages } = await pdfToPageImages(file, (done, total) => {
+        toast(`Opening ${file.name} — page ${done} of ${total}…`, 60000);
+      });
+      if (!images.length) {
+        toast("Couldn't find any pages in that PDF");
+        return;
+      }
+
+      // A genuinely blank current page is replaced rather than left empty
+      // and orphaned; anything with content is kept, and the import lands
+      // straight after it. The blank page is removed first so the insertion
+      // index below doesn't drift once new pages start shifting the array.
+      const blank = !this.board.strokes.length && !this.board.bg && !this.page.chat.length;
+      const replaced = blank ? this.pages.splice(this.index, 1)[0] : null;
+      const insertAt = blank ? this.index : this.index + 1;
+
+      images.forEach((img, i) => {
+        const page = newPage(insertAt + i);
+        page.bg = { src: img.dataUrl, rect: fitRect(img.width, img.height) };
+        this.pages.splice(insertAt + i, 0, page);
+      });
+
+      this.pages.forEach((p, i) => { p.order = i; });
+      await Promise.all(this.pages.map((p) => pageStore.put({ ...p })));
+      if (replaced) await pageStore.remove(replaced.id);
+      this.showPage(insertAt);
+
+      toast(
+        truncated
+          ? `Imported the first ${images.length} of ${totalPages} pages`
+          : `Imported ${images.length} page${images.length > 1 ? 's' : ''} — write on it, then shade a question`
+      );
+    } catch (err) {
+      toast("Couldn't open that PDF");
+    }
   }
 
   #bindShadeBar() {
@@ -348,6 +422,10 @@ class App {
   #bindSettings() {
     const dialog = $('#settings');
     $('#settingsClose').addEventListener('click', () => dialog.close());
+
+    const subject = $('#setSubject');
+    subject.value = prefs.get('subject');
+    subject.addEventListener('change', () => prefs.set('subject', subject.value));
 
     const level = $('#setLevel');
     level.value = prefs.get('level');
@@ -459,6 +537,44 @@ class App {
       if (e.target.closest('#stage')) e.preventDefault();
     });
   }
+
+  /**
+   * Apple Pencil reports pointer position before the tip touches the glass —
+   * "hovering" is a real Pointer Events state (pointerType 'pen', pressure 0,
+   * buttons 0), not an iOS-only trick — so a ring the size of the current
+   * brush can track it, the way a real pen-and-paper app would.
+   */
+  #bindPencilHover() {
+    const dot = document.createElement('div');
+    dot.id = 'pencilHover';
+    document.body.append(dot);
+
+    const hide = () => { dot.style.display = 'none'; };
+
+    window.addEventListener('pointermove', (e) => {
+      const live = e.pointerType === 'pen' && e.buttons === 0;
+      const overCanvas = e.target.closest('#board, #overlay');
+      const drawable = this.board.tool !== 'pan' && !this.shader.active;
+      if (!live || !overCanvas || !drawable) return hide();
+
+      const scale = this.board.view.scale;
+      const diameter =
+        (this.board.tool === 'eraser' ? this.board.width * 6 : this.board.tool === 'marker' ? this.board.width * 5 : this.board.width) *
+        2 *
+        scale;
+
+      dot.style.left = `${e.clientX}px`;
+      dot.style.top = `${e.clientY}px`;
+      dot.style.width = dot.style.height = `${Math.max(8, diameter)}px`;
+      dot.style.borderColor = this.board.tool === 'eraser' ? 'var(--ink-3)' : this.board.color;
+      dot.style.background = this.board.tool === 'marker' ? this.board.color : 'transparent';
+      dot.style.display = 'block';
+    });
+
+    window.addEventListener('pointerdown', hide);
+    window.addEventListener('pointerleave', hide);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) hide(); });
+  }
 }
 
 /* ---------------- helpers ---------------- */
@@ -483,6 +599,20 @@ function downscaleImage(file, maxEdge = 1600) {
     };
     reader.readAsDataURL(file);
   });
+}
+
+/**
+ * Placement for an image landing on a page nobody has opened yet — mirrors
+ * Board's own auto-fit (world coordinates start at 0,0 scale 1 for a fresh
+ * page, so "the current viewport" is the right frame to fit within).
+ */
+function fitRect(imgW, imgH) {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const scale = Math.min((w * 0.9) / imgW, (h * 0.86) / imgH);
+  const rw = imgW * scale;
+  const rh = imgH * scale;
+  return { x: (w - rw) / 2, y: h * 0.05, w: rw, h: rh };
 }
 
 window.app = new App();
