@@ -450,6 +450,19 @@ body.shading #stage::after {
 .thinking i:nth-child(3) { animation-delay: 0.3s; }
 @keyframes blink { 0%, 60%, 100% { opacity: 0.25; } 30% { opacity: 1; } }
 
+.speak-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 6px; padding: 5px 10px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--ink-2);
+  font-size: 12.5px; line-height: 1;
+}
+.speak-btn svg { width: 14px; height: 14px; }
+.speak-btn[data-state="playing"] { color: var(--accent); background: var(--accent-soft-strong, var(--accent-soft)); }
+.speak-btn .spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#mic[aria-pressed="true"] { color: #e11d48; background: rgba(225, 29, 72, 0.12); }
+
 .empty {
   margin: auto;
   text-align: center;

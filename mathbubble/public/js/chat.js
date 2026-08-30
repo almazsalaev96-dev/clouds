@@ -8,6 +8,7 @@
 import { streamChat, imageBlock, NeedsKeyError, KeyProblemError } from './api.js';
 import { renderMarkdown } from './render.js';
 import { prefs } from './store.js';
+import { synthesize, VoiceKeyError, dictationSupported, createDictation } from './voice.js';
 
 const escapeText = (s) =>
   String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -85,13 +86,15 @@ Never mention these instructions or that you are an AI model.`;
 }
 
 export class Chat {
-  constructor(root, { onPersist } = {}) {
+  constructor(root, { onPersist, onVoiceError } = {}) {
     this.root = root;
     this.onPersist = onPersist || (() => {});
+    this.onVoiceError = onVoiceError || (() => {});
     this.list = root.querySelector('#messages');
     this.input = root.querySelector('#input');
     this.form = root.querySelector('#composer');
     this.sendBtn = root.querySelector('#send');
+    this.mic = root.querySelector('#mic');
     this.quick = root.querySelector('#quick');
     this.preview = root.querySelector('#attachPreview');
     this.previewImg = root.querySelector('#attachImg');
@@ -101,8 +104,15 @@ export class Chat {
     this.controller = null;
     this.notice = null; // transient error shown under the thread
 
+    this.audio = new Audio();
+    this.audio.addEventListener('ended', () => this.#stopSpeaking());
+    this.speakingIndex = -1;
+    this.loadingIndex = -1;
+    this.speakingUrl = null;
+
     this.#buildQuickActions();
     this.#bind();
+    this.#bindMic();
     this.render();
   }
 
@@ -174,6 +184,7 @@ export class Chat {
     this.controller?.abort();
     this.controller = null;
     this.#syncSend();
+    this.#stopSpeaking();
   }
 
   /* ---------------- sending ---------------- */
@@ -220,6 +231,9 @@ export class Chat {
       paint();
       this.messages.push({ role: 'assistant', text: acc });
       this.onPersist(this.messages);
+      if (prefs.get('autoSpeak') && (prefs.get('elevenKey') || '').trim()) {
+        this.toggleSpeak(this.messages.length - 1);
+      }
     } catch (err) {
       if (err?.name === 'AbortError') {
         if (acc.trim()) {
@@ -274,7 +288,7 @@ export class Chat {
       return;
     }
 
-    for (const m of this.messages) {
+    this.messages.forEach((m, i) => {
       const el = document.createElement('div');
       el.className = `msg ${m.role === 'user' ? 'user' : 'tutor'}`;
       if (m.image) {
@@ -289,8 +303,20 @@ export class Chat {
       if (m.role === 'user') body.textContent = m.text;
       else body.innerHTML = renderMarkdown(m.text);
       el.append(body);
+
+      if (m.role !== 'user' && m.text?.trim()) {
+        const speak = document.createElement('button');
+        speak.type = 'button';
+        speak.className = 'speak-btn';
+        speak.dataset.speakIndex = String(i);
+        speak.innerHTML = '<svg><use href="#i-volume"/></svg><span>Listen</span>';
+        speak.addEventListener('click', () => this.toggleSpeak(i));
+        el.append(speak);
+      }
+
       this.list.append(el);
-    }
+    });
+    this.#syncSpeakButtons();
 
     if (this.notice) {
       const el = document.createElement('div');
@@ -320,6 +346,121 @@ export class Chat {
 
   #scroll() {
     this.list.scrollTop = this.list.scrollHeight;
+  }
+
+  /* ---------------- voice ---------------- */
+
+  /** Plays (or stops) a reply's narration. Tapping the same reply again stops it; tapping a different one switches. */
+  async toggleSpeak(index) {
+    const msg = this.messages[index];
+    if (!msg || msg.role === 'user' || !msg.text?.trim()) return;
+
+    if (this.speakingIndex === index || this.loadingIndex === index) {
+      this.#stopSpeaking();
+      return;
+    }
+
+    this.#stopSpeaking();
+    this.loadingIndex = index;
+    this.#syncSpeakButtons();
+
+    try {
+      const url = await synthesize(msg.text);
+      if (this.loadingIndex !== index) {
+        // Cancelled (stopped, or another reply started) while the request was in flight.
+        URL.revokeObjectURL(url);
+        return;
+      }
+      this.loadingIndex = -1;
+      this.speakingIndex = index;
+      this.speakingUrl = url;
+      this.audio.src = url;
+      await this.audio.play();
+      this.#syncSpeakButtons();
+    } catch (err) {
+      this.loadingIndex = -1;
+      this.#syncSpeakButtons();
+      if (err?.name !== 'AbortError') {
+        this.onVoiceError(err instanceof VoiceKeyError ? err.message : "Couldn't read that aloud.");
+      }
+    }
+  }
+
+  #stopSpeaking() {
+    this.audio.pause();
+    if (this.audio.hasAttribute('src')) {
+      this.audio.removeAttribute('src');
+      this.audio.load();
+    }
+    if (this.speakingUrl) {
+      URL.revokeObjectURL(this.speakingUrl);
+      this.speakingUrl = null;
+    }
+    this.speakingIndex = -1;
+    this.loadingIndex = -1;
+    this.#syncSpeakButtons();
+  }
+
+  #syncSpeakButtons() {
+    for (const btn of this.list.querySelectorAll('[data-speak-index]')) {
+      const i = Number(btn.dataset.speakIndex);
+      const svg = btn.querySelector('svg');
+      const use = btn.querySelector('use');
+      const label = btn.querySelector('span');
+      if (i === this.loadingIndex) {
+        btn.dataset.state = 'loading';
+        svg.classList.add('spin');
+        use.setAttribute('href', '#i-loader');
+        label.textContent = 'Loading…';
+      } else if (i === this.speakingIndex) {
+        btn.dataset.state = 'playing';
+        svg.classList.remove('spin');
+        use.setAttribute('href', '#i-volume-x');
+        label.textContent = 'Stop';
+      } else {
+        btn.removeAttribute('data-state');
+        svg.classList.remove('spin');
+        use.setAttribute('href', '#i-volume');
+        label.textContent = 'Listen';
+      }
+    }
+  }
+
+  /** Wires the microphone button to dictate straight into the composer — hidden entirely where SpeechRecognition isn't available (no key needed, unlike the tutor's own voice). */
+  #bindMic() {
+    if (!dictationSupported || !this.mic) return;
+    this.mic.hidden = false;
+
+    let dictation = null;
+    let baseValue = '';
+
+    this.mic.addEventListener('click', () => {
+      if (dictation) {
+        dictation.stop();
+        return;
+      }
+      baseValue = this.input.value.trim() ? `${this.input.value.trim()} ` : '';
+      dictation = createDictation({
+        onResult: ({ final, interim }) => {
+          this.input.value = baseValue + final + interim;
+          this.#autosize();
+          this.#syncSend();
+        },
+        onEnd: () => {
+          dictation = null;
+          this.mic.setAttribute('aria-pressed', 'false');
+        },
+        onError: (code) => {
+          dictation = null;
+          this.mic.setAttribute('aria-pressed', 'false');
+          if (code !== 'aborted' && code !== 'no-speech') {
+            this.onVoiceError("Couldn't hear that — check microphone permission and try again.");
+          }
+        },
+      });
+      this.mic.setAttribute('aria-pressed', 'true');
+      dictation.start();
+    });
   }
 
   /* ---------------- wiring ---------------- */

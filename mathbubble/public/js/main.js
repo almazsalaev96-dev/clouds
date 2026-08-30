@@ -10,6 +10,7 @@ import { Chat } from './chat.js';
 import { pages as pageStore, newPage, prefs } from './store.js';
 import { serverConfig } from './api.js';
 import { strokesThumbnail } from './thumbnail.js';
+import { listVoices, DEFAULT_VOICE } from './voice.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -57,7 +58,10 @@ class App {
       },
     });
 
-    this.chat = new Chat($('#chat'), { onPersist: (messages) => this.saveChat(messages) });
+    this.chat = new Chat($('#chat'), {
+      onPersist: (messages) => this.saveChat(messages),
+      onVoiceError: (message) => toast(message),
+    });
 
     this.bubble = new Bubble($('#bubble'), $('#bubbleMenu'), {
       onTap: () => this.startShading(),
@@ -95,6 +99,36 @@ class App {
     if (!prefs.get('seenTip')) {
       prefs.set('seenTip', true);
       setTimeout(() => toast('Write your work, then tap the bubble to ask about it', 5200), 700);
+    }
+
+    this.#openSharedFile();
+  }
+
+  /**
+   * Picks up a file the OS share sheet handed to sw.js's share-target route
+   * (Android/Chrome, installed app only — iOS Safari has no equivalent API).
+   * The service worker already redirected here with ?shared=1 and parked the
+   * actual file in its own cache, since a redirect response can't carry one.
+   */
+  async #openSharedFile() {
+    if (!location.search.includes('shared=1') || !('caches' in window)) return;
+    history.replaceState(null, '', location.pathname);
+    try {
+      const cache = await caches.open('mathbubble-share');
+      const res = await cache.match('shared-file');
+      if (!res) return;
+      await cache.delete('shared-file');
+      const blob = await res.blob();
+      const filename = decodeURIComponent(res.headers.get('x-filename') || 'shared-file');
+      const type = res.headers.get('content-type') || blob.type;
+      if (type === 'application/pdf' || /\.pdf$/i.test(filename)) {
+        await this.importPdf(new File([blob], filename, { type }));
+      } else if (type.startsWith('image/')) {
+        this.board.setBackground(await downscaleImage(blob));
+        toast('Opened what you shared — write on it, then shade your question');
+      }
+    } catch {
+      // Best effort — the app just opens normally if this fails.
     }
   }
 
@@ -314,10 +348,13 @@ class App {
   }
 
   /**
-   * Pulls an image straight off the system clipboard — the fast route for a
-   * screenshot taken in another app (Teams, a PDF, anywhere): screenshot it
-   * there, switch to StudyBubble, tap Paste. No iOS app, this one included,
-   * can draw on top of another app's screen, so a screenshot is the bridge.
+   * Pulls a screenshot — or, on iPadOS, a whole copied PDF (from Files, Mail,
+   * or Teams) — straight off the system clipboard. This is the realistic
+   * bridge into Teams on iPad: iOS has no Web Share Target API for a web
+   * app, no matter how it's installed, so "tap Share, StudyBubble opens
+   * with the file" (the Android/Chrome path — see share_target in the
+   * manifest) isn't something Apple lets a PWA offer. Copy in Teams, switch
+   * here, tap Paste is the closest equivalent that actually works.
    *
    * Must run inside a direct user gesture (a tap), which navigator.clipboard
    * requires — so this is only ever called from a click handler, never on a
@@ -325,21 +362,28 @@ class App {
    */
   async pasteFromClipboard() {
     if (!navigator.clipboard?.read) {
-      toast('This browser can’t paste images — use the photo button instead');
+      toast('This browser can’t paste — use the photo or PDF button instead');
       return;
     }
     try {
       const items = await navigator.clipboard.read();
       for (const item of items) {
-        const type = item.types.find((t) => t.startsWith('image/'));
-        if (!type) continue;
-        const blob = await item.getType(type);
-        const dataUrl = await downscaleImage(blob);
-        this.board.setBackground(dataUrl);
-        toast('Screenshot pasted — write on it, then shade your question');
-        return;
+        const pdfType = item.types.find((t) => t === 'application/pdf');
+        if (pdfType) {
+          const blob = await item.getType(pdfType);
+          await this.importPdf(new File([blob], 'pasted.pdf', { type: pdfType }));
+          return;
+        }
+        const imgType = item.types.find((t) => t.startsWith('image/'));
+        if (imgType) {
+          const blob = await item.getType(imgType);
+          const dataUrl = await downscaleImage(blob);
+          this.board.setBackground(dataUrl);
+          toast('Screenshot pasted — write on it, then shade your question');
+          return;
+        }
       }
-      toast('No image on the clipboard — copy a screenshot first');
+      toast('Nothing to paste — copy a screenshot or PDF first');
     } catch (err) {
       if (err?.name === 'NotAllowedError') {
         toast('Allow Paste when your iPad asks, then try again');
@@ -829,6 +873,8 @@ class App {
     workspace.value = prefs.get('workspaceId') || '';
     workspace.addEventListener('change', () => prefs.set('workspaceId', workspace.value.trim()));
 
+    this.#bindVoiceSettings();
+
     serverConfig().then((config) => {
       if (config.hasServerKey) {
         $('#keyRow').style.display = 'none';
@@ -843,6 +889,67 @@ class App {
         }
       }
     });
+  }
+
+  /**
+   * The voice rows only make sense once a key is entered — the picker needs
+   * that key to even ask ElevenLabs which voices exist, and auto-speak is a
+   * pointless toggle with nothing to speak with. So both stay hidden until
+   * there's a key, exactly like the key row itself hides once a server key
+   * makes it moot.
+   */
+  #bindVoiceSettings() {
+    const keyInput = $('#setElevenKey');
+    const voiceRow = $('#elevenVoiceRow');
+    const voiceSelect = $('#setElevenVoice');
+    const autoRow = $('#autoSpeakRow');
+    const autoSwitch = $('#setAutoSpeak');
+
+    keyInput.value = prefs.get('elevenKey') || '';
+
+    const syncRows = () => {
+      const has = Boolean((prefs.get('elevenKey') || '').trim());
+      voiceRow.style.display = has ? '' : 'none';
+      autoRow.style.display = has ? '' : 'none';
+    };
+
+    const populateVoices = async () => {
+      const chosen = prefs.get('elevenVoice') || DEFAULT_VOICE;
+      voiceSelect.innerHTML = '<option>Loading voices…</option>';
+      const voices = await listVoices();
+      voiceSelect.innerHTML = '';
+      const list = voices.length ? voices : [{ id: DEFAULT_VOICE, name: 'Default voice' }];
+      for (const v of list) {
+        const opt = document.createElement('option');
+        opt.value = v.id;
+        opt.textContent = v.name;
+        voiceSelect.append(opt);
+      }
+      voiceSelect.value = list.some((v) => v.id === chosen) ? chosen : list[0].id;
+      if (voiceSelect.value !== chosen) prefs.set('elevenVoice', voiceSelect.value);
+    };
+
+    keyInput.addEventListener('change', () => {
+      prefs.set('elevenKey', keyInput.value.trim());
+      syncRows();
+      if (keyInput.value.trim()) populateVoices();
+    });
+
+    voiceSelect.addEventListener('change', () => prefs.set('elevenVoice', voiceSelect.value));
+
+    toggle(autoSwitch, 'autoSpeak');
+
+    syncRows();
+    if (keyInput.value.trim()) populateVoices();
+
+    function toggle(el, key) {
+      el.setAttribute('aria-pressed', String(Boolean(prefs.get(key))));
+      el.addEventListener('click', () => {
+        const next = el.getAttribute('aria-pressed') !== 'true';
+        el.setAttribute('aria-pressed', String(next));
+        prefs.set(key, next);
+      });
+    }
   }
 
   #bindWindow() {
@@ -886,14 +993,20 @@ class App {
     // into an actual text field pastes text there as normal.
     document.addEventListener('paste', async (e) => {
       if (e.target.closest('input, textarea, [contenteditable]')) return;
-      const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith('image/'));
+      const items = [...(e.clipboardData?.items || [])];
+      const pdfItem = items.find((i) => i.type === 'application/pdf');
+      const imgItem = items.find((i) => i.type.startsWith('image/'));
+      const item = pdfItem || imgItem;
       if (!item) return;
       e.preventDefault();
       const file = item.getAsFile();
       if (!file) return;
       try {
-        this.board.setBackground(await downscaleImage(file));
-        toast('Screenshot pasted — write on it, then shade your question');
+        if (item === pdfItem) await this.importPdf(file);
+        else {
+          this.board.setBackground(await downscaleImage(file));
+          toast('Screenshot pasted — write on it, then shade your question');
+        }
       } catch {
         toast("Couldn't paste that");
       }

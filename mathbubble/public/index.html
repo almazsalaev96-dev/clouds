@@ -52,6 +52,10 @@
     <g id="i-shape"><rect x="3.5" y="3.5" width="8" height="8" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16.5" cy="16.5" r="4.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M14 5.5l3.5 3.5 3-4.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></g>
     <g id="i-search"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></g>
     <g id="i-share"><path d="M12 14V3M12 3L7 8M12 3l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 12v6a2 2 0 002 2h10a2 2 0 002-2v-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <g id="i-volume"><path d="M4 9.5v5h4l5 4v-13l-5 4H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></g>
+    <g id="i-volume-x"><path d="M4 9.5v5h4l5 4v-13l-5 4H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M16 10l4.5 4.5M20.5 10L16 14.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></g>
+    <g id="i-loader"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-opacity="0.25"/><path d="M20 12a8 8 0 00-8-8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></g>
+    <g id="i-mic"><rect x="9" y="2.5" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M6 11a6 6 0 0012 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></g>
   </defs>
 </svg>
 
@@ -185,6 +189,7 @@
     <div class="field">
       <textarea id="input" rows="1" placeholder="Ask anything about this…" enterkeyhint="send"></textarea>
     </div>
+    <button class="icon-btn" id="mic" type="button" title="Speak your question" aria-label="Dictate" hidden><svg><use href="#i-mic"/></svg></button>
     <button class="send" id="send" type="submit" disabled aria-label="Send"><svg><use href="#i-send"/></svg></button>
   </form>
 </aside>
@@ -279,7 +284,25 @@
       <input type="text" id="setWorkspace" placeholder="wrkspc-…" autocomplete="off" spellcheck="false">
     </div>
     <div class="field-row">
-      <p class="note">Your work stays on this device. Only the part you shade — plus the conversation — is sent to Anthropic to answer your question.</p>
+      <label for="setElevenKey">Voice — ElevenLabs API key</label>
+      <div class="help">Lets the tutor read its replies aloud, in a natural voice. Get a key at elevenlabs.io — stored in this browser, sent straight to ElevenLabs. Leave blank to keep the tutor text-only.</div>
+      <input type="password" id="setElevenKey" placeholder="eleven-…" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field-row" id="elevenVoiceRow" style="display:none">
+      <label for="setElevenVoice">Voice</label>
+      <select id="setElevenVoice"></select>
+    </div>
+    <div class="field-row" id="autoSpeakRow" style="display:none">
+      <div class="row-flex">
+        <div>
+          <label for="setAutoSpeak" style="margin:0">Speak replies automatically</label>
+          <div class="help" style="margin:0">Off: tap the speaker icon on a reply to hear it. On: every new reply is read aloud as it arrives.</div>
+        </div>
+        <button type="button" class="switch" id="setAutoSpeak" aria-pressed="false" aria-label="Speak replies automatically"></button>
+      </div>
+    </div>
+    <div class="field-row">
+      <p class="note">Your work stays on this device. Only the part you shade — plus the conversation — is sent to Anthropic to answer your question, and only the tutor's own reply text is sent to ElevenLabs if you turn voice on.</p>
     </div>
   </div>
 </dialog>

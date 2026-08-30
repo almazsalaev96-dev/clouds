@@ -86,6 +86,9 @@ const DEFAULTS = {
   color: '#14162b',
   penWidth: 3,
   bubble: null, // {x, y} as a fraction of the viewport
+  elevenKey: '',
+  elevenVoice: '',
+  autoSpeak: false,
 };
 
 export const prefs = {
