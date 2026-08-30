@@ -77,6 +77,7 @@ const DEFAULTS = {
   style: 'socratic',
   dark: false,
   pencilOnly: false,
+  snapShapes: true,
   model: 'claude-sonnet-5',
   apiKey: '',
   // Only some Anthropic keys need this (identity-linked keys spanning more

@@ -127,6 +127,11 @@ export class Chat {
     this.isOpen ? this.close() : this.open();
   }
 
+  /** Re-reads the subject and rebuilds the follow-up chips. */
+  refreshQuickActions() {
+    this.#buildQuickActions();
+  }
+
   load(messages) {
     this.stop();
     this.messages = Array.isArray(messages) ? messages.slice() : [];
@@ -319,17 +324,78 @@ export class Chat {
 
   /* ---------------- wiring ---------------- */
 
-  #buildQuickActions() {
-    const actions = [
+  /**
+   * The follow-up chips change with the subject: "Check my working" is the
+   * right prompt for maths and useless for an essay, where "Check my grammar"
+   * is what a student actually wants. Everything shares a common core.
+   */
+  #quickActionsFor(subject) {
+    const core = [
       ['Hint', 'Give me a hint for this — not the answer.'],
       ['Next step', "What's the next step? Just one step, please."],
-      ['Check my working', "Check my working. Where's the first mistake?"],
-      ['Explain', "Explain what this question is actually asking, in simple words."],
-      ['Why?', 'Why does that step work?'],
-      ['Full solution', 'Show me the full worked solution, step by step.'],
-      ['Similar question', 'Give me one similar practice question to try (no solution yet).'],
     ];
-    for (const [label, text] of actions) {
+    const explain = ['Explain', 'Explain what this question is actually asking, in simple words.'];
+    const why = ['Why?', 'Why does that work?'];
+    const practice = ['Similar question', 'Give me one similar practice question to try (no solution yet).'];
+
+    const bySubject = {
+      english: [
+        ['Check my writing', 'Check what I have written — grammar, spelling and punctuation first, then how clear it is.'],
+        ['Improve this', 'Suggest how to say this better, and tell me why your version is stronger.'],
+        ['Stronger argument', 'Is my argument convincing? What evidence or reasoning is missing?'],
+        ['Structure', 'Is this well structured? How should I organise these paragraphs?'],
+        explain,
+      ],
+      languages: [
+        ['Check my grammar', 'Check my grammar and spelling. Show the correction and name the rule I got wrong.'],
+        ['Translate', 'Translate this, then explain the two or three word choices that matter most.'],
+        ['More natural', 'How would a native speaker say this instead?'],
+        practice,
+      ],
+      history: [
+        ['Check my answer', 'Check my answer. Is it accurate, and does it actually answer the question asked?'],
+        ['Evidence', 'What evidence or examples would make this answer stronger?'],
+        ['Both sides', 'What is the counter-argument I should mention?'],
+        explain,
+      ],
+      chemistry: [
+        ['Check my working', "Check my working. Where's the first mistake?"],
+        ['Balance it', 'Help me balance this equation — one step at a time, not the finished answer.'],
+        why, explain,
+        ['Full solution', 'Show me the full worked solution, step by step.'],
+      ],
+      biology: [
+        ['Check my answer', 'Check my answer against what the question is really asking.'],
+        ['Key terms', 'Which key terms should I be using here to get the marks?'],
+        explain, why, practice,
+      ],
+      cs: [
+        ['Find the bug', "Where's the bug? Point at the first line that's wrong — don't rewrite it all."],
+        ['Trace it', 'Trace through this step by step with a small example input.'],
+        explain, why,
+      ],
+    };
+    bySubject.physics = bySubject.chemistry;
+
+    const tail = [
+      ['Full solution', 'Show me the full worked solution, step by step.'],
+      ['Another way', 'Is there another way to do this? Show me the alternative method.'],
+      practice,
+    ];
+    const maths = [
+      ['Check my working', "Check my working. Where's the first mistake?"],
+      explain, why, ...tail,
+    ];
+
+    const chosen = bySubject[subject] || maths;
+    // De-duplicate by label; several subject lists share the common entries.
+    const seen = new Set();
+    return [...core, ...chosen].filter(([label]) => !seen.has(label) && seen.add(label));
+  }
+
+  #buildQuickActions() {
+    this.quick.innerHTML = '';
+    for (const [label, text] of this.#quickActionsFor(prefs.get('subject'))) {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'chip';

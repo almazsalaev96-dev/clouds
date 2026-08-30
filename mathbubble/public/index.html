@@ -45,6 +45,12 @@
     <g id="i-paste"><rect x="6" y="4" width="12" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9 4a1 1 0 011-1h4a1 1 0 011 1v1.5H9V4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12h6M9 16h6M9 8.5h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></g>
     <g id="i-pdf"><path d="M7 2.5h7l4 4V20a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 016 20V4a1.5 1.5 0 011-1.5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M14 2.5V6a1 1 0 001 1h3.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 13v5M9 13h1.4a1.6 1.6 0 010 3.2H9M13 18v-5h2.2M13 15.5h1.8M17 13v5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></g>
     <g id="i-attach"><path d="M8 12.5l6.5-6.5a3.2 3.2 0 014.5 4.5L11.5 18a5.2 5.2 0 01-7.4-7.4L12.5 2.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <g id="i-lasso"><path d="M12 4.5c4.7 0 8.5 2.2 8.5 5s-3.8 5-8.5 5-8.5-2.2-8.5-5c0-1.6 1.2-3 3-4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-dasharray="3.5 2.6"/><path d="M7 14.2v3.3a2 2 0 002 2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="10.5" cy="20.2" r="1.7" fill="currentColor"/></g>
+    <g id="i-line"><path d="M4 19L20 5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="4" cy="19" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="20" cy="5" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/></g>
+    <g id="i-text"><path d="M5 6.5V5h14v1.5M12 5v14M9 19h6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <g id="i-paper"><rect x="4" y="3" width="16" height="18" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></g>
+    <g id="i-shape"><rect x="3.5" y="3.5" width="8" height="8" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16.5" cy="16.5" r="4.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M14 5.5l3.5 3.5 3-4.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <g id="i-search"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></g>
     <g id="i-share"><path d="M12 14V3M12 3L7 8M12 3l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 12v6a2 2 0 002 2h10a2 2 0 002-2v-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></g>
   </defs>
 </svg>
@@ -69,11 +75,15 @@
   <button class="tool" id="tPen" data-tool="pen" aria-pressed="true" title="Pen" aria-label="Pen"><svg><use href="#i-pen"/></svg></button>
   <button class="tool" id="tMarker" data-tool="marker" aria-pressed="false" title="Highlighter" aria-label="Highlighter"><svg><use href="#i-marker"/></svg></button>
   <button class="tool" id="tEraser" data-tool="eraser" aria-pressed="false" title="Eraser" aria-label="Eraser"><svg><use href="#i-eraser"/></svg></button>
+  <button class="tool" id="tLine" data-tool="line" aria-pressed="false" title="Straight line" aria-label="Straight line"><svg><use href="#i-line"/></svg></button>
+  <button class="tool" id="tText" data-tool="text" aria-pressed="false" title="Type text" aria-label="Type text"><svg><use href="#i-text"/></svg></button>
+  <button class="tool" id="tLasso" data-tool="lasso" aria-pressed="false" title="Select (lasso)" aria-label="Select with lasso"><svg><use href="#i-lasso"/></svg></button>
   <button class="tool" id="tPan" data-tool="pan" aria-pressed="false" title="Move the page" aria-label="Move the page"><svg><use href="#i-hand"/></svg></button>
   <div class="tool-sep"></div>
   <button class="tool" id="tUndo" title="Undo" aria-label="Undo"><svg><use href="#i-undo"/></svg></button>
   <button class="tool" id="tRedo" title="Redo" aria-label="Redo"><svg><use href="#i-redo"/></svg></button>
   <div class="tool-sep"></div>
+  <button class="tool" id="tPaper" title="Paper style" aria-label="Paper style"><svg><use href="#i-paper"/></svg></button>
   <button class="tool" id="tAdd" title="Add a photo, a PDF, or paste a screenshot" aria-label="Add material"><svg><use href="#i-attach"/></svg></button>
   <button class="tool" id="tShare" title="Share or save this page" aria-label="Share or save this page"><svg><use href="#i-share"/></svg></button>
   <button class="tool" id="tFit" title="Reset zoom" aria-label="Reset zoom"><svg><use href="#i-fit"/></svg></button>
@@ -94,6 +104,17 @@
     <span>Paste<small>A screenshot from Teams, or anywhere</small></span>
   </button>
 </div>
+
+<div id="paperMenu" class="panel add-menu" role="menu" aria-label="Paper style"></div>
+
+<div id="selectionBar" class="panel" role="toolbar" aria-label="Selection actions">
+  <button class="icon-btn" id="selColor" title="Change colour" aria-label="Change colour"><svg><use href="#i-marker"/></svg></button>
+  <button class="icon-btn" id="selDuplicate" title="Duplicate" aria-label="Duplicate"><svg><use href="#i-copy"/></svg></button>
+  <button class="icon-btn" id="selAsk" title="Ask about this" aria-label="Ask about this"><svg><use href="#i-spark"/></svg></button>
+  <button class="icon-btn" id="selDelete" title="Delete" aria-label="Delete"><svg><use href="#i-trash"/></svg></button>
+</div>
+
+<textarea id="textEditor" spellcheck="true" aria-label="Text box"></textarea>
 
 <div id="swatches" class="swatches panel" role="group" aria-label="Pen colour and size"></div>
 <input type="file" id="photoInput" accept="image/*" hidden>
@@ -218,6 +239,15 @@
           <div class="help" style="margin:0">Easier at night; ink turns light.</div>
         </div>
         <button type="button" class="switch" id="setDark" aria-pressed="false" aria-label="Dark paper"></button>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="row-flex">
+        <div>
+          <label for="setSnap" style="margin:0">Snap shapes</label>
+          <div class="help" style="margin:0">A rough circle, box, triangle or line becomes a clean one. Undo once to get your own drawing back.</div>
+        </div>
+        <button type="button" class="switch" id="setSnap" aria-pressed="true" aria-label="Snap shapes"></button>
       </div>
     </div>
     <div class="field-row">

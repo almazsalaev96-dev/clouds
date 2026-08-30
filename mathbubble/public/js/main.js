@@ -42,7 +42,12 @@ function toast(message, ms = 2400) {
 
 class App {
   constructor() {
-    this.board = new Board($('#board'), { prefs, onChange: () => this.savePage() });
+    this.board = new Board($('#board'), {
+      prefs,
+      onChange: () => this.savePage(),
+      onSelectionChange: () => this.#syncSelectionBar(),
+      onTextEdit: (item) => this.editText(item),
+    });
     this.shader = new Shader($('#overlay'), this.board, {
       onSelection: (has) => {
         $('#shadeGo').disabled = !has;
@@ -266,11 +271,13 @@ class App {
     $('#shadeBar').classList.remove('open');
   }
 
+  /** Asks about whatever is currently marked out — a shaded region or a lasso selection. */
   askAboutSelection() {
-    const bounds = this.shader.bounds();
+    const bounds = this.shader.bounds() || this.board.selectionBounds();
     if (!bounds) return;
     const shot = this.board.captureRegion(bounds);
     this.stopShading();
+    this.board.clearSelection();
     this.openChat();
     this.chat.askAbout(shot);
   }
@@ -381,6 +388,108 @@ class App {
     host.classList.add('open');
   }
 
+  #buildPaperMenu() {
+    const host = $('#paperMenu');
+    const styles = [
+      ['dots', 'Dots', 'Light guide, stays out of the way'],
+      ['lines', 'Lined', 'For writing and essays'],
+      ['grid', 'Grid', 'For diagrams and tables'],
+      ['graph', 'Graph', 'Squared, for plotting'],
+      ['music', 'Music', 'Five-line staves'],
+      ['plain', 'Plain', 'Nothing at all'],
+    ];
+    host.innerHTML = '';
+    for (const [id, name, hint] of styles) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'menu-item';
+      b.dataset.template = id;
+      b.setAttribute('role', 'menuitem');
+      b.innerHTML =
+        `<span class="paper-swatch ${id}"></span>` +
+        `<span>${name}<small>${hint}</small></span>` +
+        (this.board.template === id ? '<svg style="margin-left:auto"><use href="#i-check"/></svg>' : '');
+      host.append(b);
+    }
+  }
+
+  #togglePaperMenu(anchor) {
+    const host = $('#paperMenu');
+    if (host.classList.contains('open')) return host.classList.remove('open');
+    this.#buildPaperMenu();
+    const r = anchor.getBoundingClientRect();
+    host.style.left = `${r.right + 10}px`;
+    host.style.top = `${Math.min(r.top, window.innerHeight - 330)}px`;
+    host.classList.add('open');
+  }
+
+  /** Keeps the floating selection actions pinned above the selection. */
+  #syncSelectionBar() {
+    const bar = $('#selectionBar');
+    const bounds = this.board.selectionBounds();
+    if (!bounds) return bar.classList.remove('open');
+
+    const a = this.board.toScreen(bounds.x, bounds.y);
+    const b = this.board.toScreen(bounds.x + bounds.w, bounds.y + bounds.h);
+    bar.classList.add('open');
+    const width = bar.offsetWidth || 190;
+    const left = Math.min(Math.max((a.x + b.x) / 2 - width / 2, 12), window.innerWidth - width - 12);
+    // Above the selection by default; below it when there's no room up top.
+    const top = a.y - 60 < 70 ? b.y + 16 : a.y - 60;
+    bar.style.left = `${left}px`;
+    bar.style.top = `${Math.min(top, window.innerHeight - 70)}px`;
+  }
+
+  /**
+   * Opens the typing overlay on a text box, positioned and scaled to match
+   * exactly where it will land on the canvas.
+   */
+  editText(item) {
+    const ta = $('#textEditor');
+    const scale = this.board.view.scale;
+    const screen = this.board.toScreen(item.x, item.y);
+    const size = item.size * scale;
+
+    ta.value = item.text || '';
+    ta.style.font = `${size}px -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif`;
+    ta.style.color = item.color;
+    ta.style.left = `${screen.x - 7}px`;
+    ta.style.top = `${screen.y - size * 0.82 - 3}px`;
+    ta.classList.add('open');
+
+    const autosize = () => {
+      ta.style.width = '10px';
+      ta.style.height = '10px';
+      ta.style.width = `${Math.max(ta.scrollWidth + 16, 60)}px`;
+      ta.style.height = `${ta.scrollHeight + 4}px`;
+    };
+    autosize();
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+
+    const finish = () => {
+      ta.removeEventListener('blur', finish);
+      ta.removeEventListener('input', autosize);
+      ta.removeEventListener('keydown', onKey);
+      ta.classList.remove('open');
+      this.board.commitText(item, ta.value);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        ta.blur();
+      }
+      // Enter makes a new line; Cmd/Ctrl+Enter finishes, for a hardware keyboard.
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        ta.blur();
+      }
+    };
+    ta.addEventListener('blur', finish);
+    ta.addEventListener('input', autosize);
+    ta.addEventListener('keydown', onKey);
+  }
+
   #toggleAddMenu(anchor) {
     const host = $('#addMenu');
     if (host.classList.contains('open')) return host.classList.remove('open');
@@ -391,15 +500,21 @@ class App {
   }
 
   #bindToolbar() {
-    const tools = ['pen', 'marker', 'eraser', 'pan'];
+    const tools = ['pen', 'marker', 'eraser', 'line', 'text', 'lasso', 'pan'];
     const buttons = {
       pen: $('#tPen'),
       marker: $('#tMarker'),
       eraser: $('#tEraser'),
+      line: $('#tLine'),
+      text: $('#tText'),
+      lasso: $('#tLasso'),
       pan: $('#tPan'),
     };
 
     const select = (tool) => {
+      // Leaving the lasso drops the selection, so its floating bar can't
+      // linger over a tool that has nothing selected.
+      if (tool !== 'lasso') this.board.clearSelection();
       this.board.setTool(tool);
       for (const t of tools) buttons[t].setAttribute('aria-pressed', String(t === tool));
     };
@@ -418,6 +533,20 @@ class App {
     $('#tFit').addEventListener('click', () => this.board.resetView());
     $('#tAdd').addEventListener('click', () => this.#toggleAddMenu($('#tAdd')));
     $('#tShare').addEventListener('click', () => this.exportPage());
+    $('#tPaper').addEventListener('click', () => this.#togglePaperMenu($('#tPaper')));
+
+    $('#paperMenu').addEventListener('click', (e) => {
+      const item = e.target.closest('[data-template]');
+      if (!item) return;
+      $('#paperMenu').classList.remove('open');
+      this.board.setTemplate(item.dataset.template);
+      this.#buildPaperMenu();
+    });
+
+    $('#selDelete').addEventListener('click', () => this.board.deleteSelection());
+    $('#selDuplicate').addEventListener('click', () => this.board.duplicateSelection());
+    $('#selColor').addEventListener('click', () => this.board.recolorSelection(this.board.color));
+    $('#selAsk').addEventListener('click', () => this.askAboutSelection());
     $('#tSettings').addEventListener('click', () => $('#settings').showModal());
 
     $('#addMenu').addEventListener('click', (e) => {
@@ -455,6 +584,10 @@ class App {
       const add = $('#addMenu');
       if (add.classList.contains('open') && !add.contains(e.target) && !e.target.closest('#toolbar')) {
         add.classList.remove('open');
+      }
+      const paper = $('#paperMenu');
+      if (paper.classList.contains('open') && !paper.contains(e.target) && !e.target.closest('#toolbar')) {
+        paper.classList.remove('open');
       }
     });
   }
@@ -605,7 +738,11 @@ class App {
 
     const subject = $('#setSubject');
     subject.value = prefs.get('subject');
-    subject.addEventListener('change', () => prefs.set('subject', subject.value));
+    subject.addEventListener('change', () => {
+      prefs.set('subject', subject.value);
+      // The follow-up chips are subject-specific, so they change with it.
+      this.chat.refreshQuickActions();
+    });
 
     const level = $('#setLevel');
     level.value = prefs.get('level');
@@ -645,6 +782,7 @@ class App {
       this.board.dirty = true;
     });
     toggle($('#setPencil'), 'pencilOnly');
+    toggle($('#setSnap'), 'snapShapes');
 
     const key = $('#setKey');
     key.value = prefs.get('apiKey') || '';
@@ -674,7 +812,16 @@ class App {
     const onResize = () => {
       this.board.resize();
       this.shader.resize();
+      this.#syncSelectionBar();
     };
+
+    // The bar is positioned in screen space from world coordinates, so it has
+    // to be re-pinned whenever the view moves under it.
+    const followView = () => {
+      if (this.board.selection.size) this.#syncSelectionBar();
+    };
+    $('#board').addEventListener('pointermove', followView);
+    $('#board').addEventListener('wheel', followView, { passive: true });
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', () => setTimeout(onResize, 200));
 
@@ -684,8 +831,13 @@ class App {
         if (typing) return;
         e.preventDefault();
         e.shiftKey ? this.board.redo() : this.board.undo();
+      } else if (e.key === 'Backspace' || e.key === 'Delete') {
+        if (typing || !this.board.selection.size) return;
+        e.preventDefault();
+        this.board.deleteSelection();
       } else if (e.key === 'Escape') {
-        if (this.shader.active) this.stopShading();
+        if (this.board.selection.size) this.board.clearSelection();
+        else if (this.shader.active) this.stopShading();
         else if (this.chat.isOpen) this.chat.close();
       } else if (!typing && e.key.toLowerCase() === 'a' && !e.metaKey && !e.ctrlKey) {
         this.startShading();

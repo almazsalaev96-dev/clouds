@@ -91,6 +91,11 @@ tools keep working with no connection — only asking the tutor needs one.
 | Gesture | What happens |
 | --- | --- |
 | Write anywhere | Draws. Apple Pencil pressure changes the line weight, and a hover ring previews size/colour before the tip touches down |
+| Draw a rough circle, box, triangle or line | **It snaps to a clean shape.** Undo once to get your own drawing back |
+| **Lasso tool** | Loop around anything to select it — drag to move, then duplicate, recolour, delete, or ask about just that |
+| **Line tool** | A ruler: always a straight segment |
+| **Text tool** | Tap to type on the page — for essays, labels and notes |
+| **Paper button** | Dots, lined, grid, graph, music staves, or plain — per page |
 | **Tap the bubble** | Shade mode — drag over the question you're stuck on, then **Ask** |
 | **Hold the bubble** | Menu: whole page, add material, or just chat |
 | **Drag the bubble** | Moves it; it snaps to the nearest side and stays there |
@@ -139,6 +144,25 @@ The **share icon in the toolbar** exports the current page as one flattened
 image — through the system share sheet on iPad (AirDrop, Messages, Save to
 Photos, whatever's installed), or a new tab to save it elsewhere.
 
+## Drawing tools
+
+The parts of a serious note-taking app that a study app usually doesn't have:
+
+- **Shape snapping** (on by default, toggle in Settings). Draw a rough circle,
+  box, triangle or line and it becomes a clean one. It is deliberately
+  conservative — it scores how closely your stroke actually matches an ideal
+  shape and leaves handwriting, squiggles and sketches completely alone, because
+  snapping something you meant to be freehand is worse than not snapping a
+  square. Undo once returns your own drawing; undo twice removes the stroke.
+- **Lasso select.** Loop around some work to select it, drag it somewhere else,
+  and duplicate, recolour or delete it — or hit the ✦ button to ask the tutor
+  about exactly that selection, without shading it separately.
+- **Straight line tool**, for axes, graphs, force diagrams, and underlining.
+- **Text tool**, so an essay or a set of labels can be typed rather than
+  handwritten. Typed text is sent to the tutor along with the handwriting.
+- **Paper styles** per page: dots, lined, grid, graph (with darker fifth
+  lines), music staves, or plain.
+
 ## The tutor can draw
 
 Some things are clearer as a picture than a sentence — a triangle with its
@@ -155,7 +179,12 @@ becomes markup, so there's no path from a reply to injected HTML.
 ## Settings that matter for a class
 
 - **Subject** — Auto by default (the tutor reads it off the page); set one
-  explicitly if you'd rather be specific than let it infer.
+  explicitly if you'd rather be specific than let it infer. The subject also
+  changes the one-tap follow-up buttons: maths gets *Check my working* and
+  *Another way*, English gets *Check my writing* and *Stronger argument*,
+  a language gets *Translate* and *More natural*, computer science gets
+  *Find the bug* and *Trace it*.
+- **Snap shapes** — on by default; turn it off for freehand sketching.
 - **Level** — primary through university. It changes the vocabulary and the
   methods the tutor is allowed to reach for.
 - **Teaching style** — *Guided* holds the answer back and asks questions,
@@ -187,6 +216,7 @@ public/js/chat.js      tutor prompt (subject/level/style-aware), streaming, mess
 public/js/render.js    Markdown subset + KaTeX
 public/js/api.js       server proxy, with a bring-your-own-key fallback
 public/js/pdfimport.js PDF → one page image per PDF page, via pdf.js
+public/js/shapes.js    shape recognition: stroke → clean circle/box/triangle/line
 public/js/diagram.js   validated JSON shape list → inline SVG, for the tutor's figures
 public/js/thumbnail.js small canvas renders for the Pages grid
 public/js/store.js     IndexedDB pages, localStorage preferences
