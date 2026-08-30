@@ -14,22 +14,98 @@ const MAX_CAPTURE_EDGE = 1500; // keeps the uploaded crop inside Anthropic's swe
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-function luminance(hex) {
+export function luminance(hex) {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex);
   if (!m) return 0;
   const n = parseInt(m[1], 16);
   return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
 }
 
-const TEXT_FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif';
-const LINE_HEIGHT = 1.35;
+/**
+ * Draws one stroke (handwriting, a marker highlight, or a snapped shape) to
+ * any 2D context in world coordinates. A free function, not a method — used
+ * identically by the live board, the offscreen tutor-crop capture, and the
+ * PDF exporter, so what a student sees is exactly what gets sent or saved.
+ */
+export function paintStroke(ctx, stroke, scale, forPrint = false) {
+  const pts = stroke.points;
+  if (pts.length < 2) return;
+
+  let color = stroke.color;
+  if (forPrint && luminance(color) > 0.62) color = '#14162b'; // dark-mode ink → readable on white
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = color;
+  if (stroke.tool === 'marker') {
+    ctx.globalAlpha = 0.32;
+    ctx.lineWidth = stroke.width * scale;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  // A snapped shape is geometry, not handwriting: draw it as one continuous
+  // path at a uniform width. The midpoint smoothing below starts the path
+  // half a segment in, which on a closed shape leaves a visible notch where
+  // it comes back round, and pressure variation makes a "clean" shape look
+  // anything but.
+  if (stroke.shape) {
+    ctx.lineWidth = Math.max(0.4, stroke.width * 0.9 * scale);
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    if (stroke.shape !== 'line') ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  // Pen: per-segment width so Apple Pencil pressure shows through, with
+  // midpoint smoothing so fast strokes don't look faceted.
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1];
+    const b = pts[i];
+    ctx.beginPath();
+    ctx.lineWidth = Math.max(0.4, stroke.width * ((a.p + b.p) / 2) * 1.8 * scale);
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    const prev = pts[i - 2] || a;
+    ctx.moveTo((prev.x + a.x) / 2, (prev.y + a.y) / 2);
+    ctx.quadraticCurveTo(a.x, a.y, mid.x, mid.y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** Draws every text box in `texts` to any 2D context, in world coordinates. */
+export function paintTexts(ctx, texts, forPrint = false) {
+  for (const t of texts) {
+    if (!t.text) continue;
+    let color = t.color || '#14162b';
+    if (forPrint && luminance(color) > 0.62) color = '#14162b';
+    const m = textMetrics(t);
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.font = `${t.size}px ${TEXT_FONT}`;
+    ctx.textBaseline = 'alphabetic';
+    m.lines.forEach((line, i) => ctx.fillText(line, t.x, t.y + i * t.size * LINE_HEIGHT));
+    ctx.restore();
+  }
+}
+
+export const TEXT_FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif';
+export const LINE_HEIGHT = 1.35;
 
 /**
  * Size of a text box in world units. Canvas measureText needs a context, so
  * one throwaway context is kept here rather than created per call.
  */
 let measureCtx = null;
-function textMetrics(item) {
+export function textMetrics(item) {
   const lines = String(item.text || '').split('\n');
   if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
   measureCtx.font = `${item.size}px ${TEXT_FONT}`;
@@ -795,57 +871,7 @@ export class Board {
   /* ---------------- painting ---------------- */
 
   #paintStroke(ctx, stroke, scale, forPrint = false) {
-    const pts = stroke.points;
-    if (pts.length < 2) return;
-
-    let color = stroke.color;
-    if (forPrint && luminance(color) > 0.62) color = '#14162b'; // dark-mode ink → readable on white
-
-    ctx.save();
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = color;
-    if (stroke.tool === 'marker') {
-      ctx.globalAlpha = 0.32;
-      ctx.lineWidth = stroke.width * scale;
-      ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-      ctx.stroke();
-      ctx.restore();
-      return;
-    }
-
-    // A snapped shape is geometry, not handwriting: draw it as one continuous
-    // path at a uniform width. The midpoint smoothing below starts the path
-    // half a segment in, which on a closed shape leaves a visible notch where
-    // it comes back round, and pressure variation makes a "clean" shape look
-    // anything but.
-    if (stroke.shape) {
-      ctx.lineWidth = Math.max(0.4, stroke.width * 0.9 * scale);
-      ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-      if (stroke.shape !== 'line') ctx.closePath();
-      ctx.stroke();
-      ctx.restore();
-      return;
-    }
-
-    // Pen: per-segment width so Apple Pencil pressure shows through, with
-    // midpoint smoothing so fast strokes don't look faceted.
-    for (let i = 1; i < pts.length; i++) {
-      const a = pts[i - 1];
-      const b = pts[i];
-      ctx.beginPath();
-      ctx.lineWidth = Math.max(0.4, stroke.width * ((a.p + b.p) / 2) * 1.8 * scale);
-      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-      const prev = pts[i - 2] || a;
-      ctx.moveTo((prev.x + a.x) / 2, (prev.y + a.y) / 2);
-      ctx.quadraticCurveTo(a.x, a.y, mid.x, mid.y);
-      ctx.stroke();
-    }
-    ctx.restore();
+    paintStroke(ctx, stroke, scale, forPrint);
   }
 
   #paintPaper(ctx, w, h) {
@@ -925,18 +951,7 @@ export class Board {
 
   /** Text boxes, drawn in world space. */
   #paintTexts(ctx, forPrint = false) {
-    for (const t of this.texts) {
-      if (!t.text) continue;
-      let color = t.color || '#14162b';
-      if (forPrint && luminance(color) > 0.62) color = '#14162b';
-      const m = textMetrics(t);
-      ctx.save();
-      ctx.fillStyle = color;
-      ctx.font = `${t.size}px ${TEXT_FONT}`;
-      ctx.textBaseline = 'alphabetic';
-      m.lines.forEach((line, i) => ctx.fillText(line, t.x, t.y + i * t.size * LINE_HEIGHT));
-      ctx.restore();
-    }
+    paintTexts(ctx, this.texts, forPrint);
   }
 
   /** Selection highlight + the loop being drawn, in world space. */

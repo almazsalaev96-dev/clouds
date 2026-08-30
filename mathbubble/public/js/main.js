@@ -611,12 +611,49 @@ class App {
     }
 
     const dataUrl = this.board.captureRegion(bounds, { pad: 24, minSize: 0 });
-    const filename = `page-${this.index + 1}.png`;
+    // Built synchronously (no fetch/await) so the share call below stays
+    // inside the same user gesture — WebKit revokes permission once it's gone.
+    const blob = dataUrlToBlob(dataUrl);
+    await this.#shareFile(blob, `page-${this.index + 1}.png`, 'image/png');
+  }
 
+  /**
+   * The whole notebook, every page in order, as one real PDF — the thing to
+   * actually hand a teacher once the work is done, not a pile of loose
+   * screenshots. Necessarily has real async work (loading each page's
+   * background image, assembling the file) between the tap and the share
+   * call, which WebKit's user-activation window may or may not survive —
+   * #shareFile's tab fallback covers it either way, and that fallback is
+   * arguably the better outcome anyway: Safari's own PDF viewer has its own
+   * Share/Print/Save-to-Files button built in.
+   */
+  async exportNotebook() {
+    Object.assign(this.page, this.board.serialize());
+    toast('Building PDF…', 60000);
+    try {
+      const { pageToJpeg, buildPdf } = await import('./pdfexport.js');
+      const jpegs = [];
+      for (const p of this.pages) {
+        const img = await pageToJpeg(p);
+        if (img) jpegs.push(img);
+      }
+      if (!jpegs.length) {
+        toast('Nothing to export yet — write something first');
+        return;
+      }
+      const blob = buildPdf(jpegs);
+      const filename = `studybubble-${new Date().toISOString().slice(0, 10)}.pdf`;
+      await this.#shareFile(blob, filename, 'application/pdf');
+      toast(`Exported ${jpegs.length} page${jpegs.length > 1 ? 's' : ''}`);
+    } catch {
+      toast("Couldn't build the PDF");
+    }
+  }
+
+  /** Shared by exportPage and exportNotebook: share sheet, or a new tab to save from. */
+  async #shareFile(blob, filename, mime) {
     if (navigator.share) {
-      // Built synchronously (no fetch/await) so the share call stays inside
-      // the same user gesture — WebKit revokes permission once it's gone.
-      const file = new File([dataUrlToBlob(dataUrl)], filename, { type: 'image/png' });
+      const file = new File([blob], filename, { type: mime });
       if (!navigator.canShare || navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({ files: [file], title: filename });
@@ -627,18 +664,10 @@ class App {
         }
       }
     }
-
-    const win = window.open();
-    if (win) {
-      win.document.title = filename;
-      win.document.body.style.margin = '0';
-      const img = win.document.createElement('img');
-      img.src = dataUrl;
-      img.style.maxWidth = '100%';
-      win.document.body.append(img);
-    } else {
-      toast("Couldn't open a share sheet — try again");
-    }
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if (win) setTimeout(() => URL.revokeObjectURL(url), 60000);
+    else toast("Couldn't open that — try again");
   }
 
   async importPdf(file) {
@@ -668,7 +697,14 @@ class App {
 
       images.forEach((img, i) => {
         const page = newPage(insertAt + i);
-        page.bg = { src: img.dataUrl, rect: fitRect(img.width, img.height) };
+        // rect: null, not a pre-computed size — Board's own setBackground
+        // auto-fit (used for every other image import) recomputes the fit
+        // from the real viewport at the moment each page is actually shown,
+        // rather than trusting a snapshot of window dimensions taken once at
+        // import time that may be stale by the time page 2 or 3 is opened
+        // (Safari's collapsing toolbar changes window.innerHeight after the
+        // fact, and a rotated or resized device makes it wrong outright).
+        page.bg = { src: img.dataUrl, rect: null };
         this.pages.splice(insertAt + i, 0, page);
       });
 
@@ -712,6 +748,7 @@ class App {
       this.addPage();
       this.#renderPagesGrid();
     });
+    $('#pagesGridExport').addEventListener('click', () => this.exportNotebook());
 
     // The tutor surfaces an "Open Settings" button when no key is configured.
     $('#messages').addEventListener('click', (e) => {
@@ -931,20 +968,6 @@ function downscaleImage(file, maxEdge = 1600) {
     };
     reader.readAsDataURL(file);
   });
-}
-
-/**
- * Placement for an image landing on a page nobody has opened yet — mirrors
- * Board's own auto-fit (world coordinates start at 0,0 scale 1 for a fresh
- * page, so "the current viewport" is the right frame to fit within).
- */
-function fitRect(imgW, imgH) {
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  const scale = Math.min((w * 0.9) / imgW, (h * 0.86) / imgH);
-  const rw = imgW * scale;
-  const rh = imgH * scale;
-  return { x: (w - rw) / 2, y: h * 0.05, w: rw, h: rh };
 }
 
 /** Synchronous data-URL → Blob, so a share call stays inside the user gesture. */
