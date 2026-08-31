@@ -11,9 +11,11 @@ struct StudyProgressView: View {
 
     @Environment(AppEnvironment.self) private var app
     @Environment(AppSettings.self) private var settings
-    @State private var range: Range = .week
+    @State private var window: Window = .week
 
-    enum Range: String, CaseIterable, Identifiable {
+    /// Named `Window` rather than `Range` so it doesn't shadow the standard
+    /// library type inside this file.
+    enum Window: String, CaseIterable, Identifiable {
         case week = "7 days"
         case month = "30 days"
         var id: String { rawValue }
@@ -25,14 +27,14 @@ struct StudyProgressView: View {
     }
 
     private var summary: StudyAnalytics.Summary {
-        app.analytics.summary(since: range.since)
+        app.analytics.summary(since: window.since)
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Space.xl) {
-                Picker("Range", selection: $range) {
-                    ForEach(Range.allCases) { Text($0.rawValue).tag($0) }
+                Picker("Range", selection: $window) {
+                    ForEach(Window.allCases) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)
 

@@ -253,8 +253,7 @@ struct FinishAssignmentView: View {
             )
             let url = app.store.url(storageName, in: .submissions)
 
-            let submission = recordSubmission(storageName: storageName, result: result)
-            _ = submission
+            recordSubmission(storageName: storageName, result: result)
 
             exported = ExportedFile(
                 url: url,

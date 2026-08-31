@@ -102,6 +102,16 @@ final class PencilToolState {
         return palette[safe: colorIndex]?.color ?? palette[0].color
     }
 
+    /// A value that changes whenever the selected tool changes.
+    ///
+    /// `PencilToolState` is a class, so passing it to `PDFStudyView` does not
+    /// tell SwiftUI that anything changed when the toolbar mutates it. The
+    /// reader reads this in its body, which registers a dependency on each
+    /// property below and guarantees `updateUIViewController` runs.
+    var signature: String {
+        "\(kind.rawValue)|\(width)|\(colorIndex)|\(erasesWholeStrokes)|\(pencilOnlyDrawing)|\(rulerActive)"
+    }
+
     /// The PencilKit tool this state describes.
     var tool: PKTool {
         switch kind {

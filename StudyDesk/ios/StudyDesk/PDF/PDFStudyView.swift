@@ -12,6 +12,10 @@ struct PDFStudyView: UIViewControllerRepresentable {
 
     let pdf: PDFDocument
     let toolState: PencilToolState
+    /// Changes whenever the selected tool does. Not read directly — its job is
+    /// to make SwiftUI re-run `updateUIViewController`, which pushes the new
+    /// tool to every visible canvas. See `PencilToolState.signature`.
+    let toolSignature: String
     let initialPageIndex: Int
     let isRegionSelectionActive: Bool
 

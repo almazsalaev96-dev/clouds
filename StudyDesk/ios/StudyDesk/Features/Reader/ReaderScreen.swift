@@ -59,6 +59,7 @@ struct ReaderScreen: View {
             PDFStudyView(
                 pdf: model.pdf,
                 toolState: toolState,
+                toolSignature: toolState.signature,
                 initialPageIndex: document.lastPageIndex,
                 isRegionSelectionActive: model.isSelectingRegion,
                 drawingProvider: { model.drawings.drawing(forPage: $0) },
