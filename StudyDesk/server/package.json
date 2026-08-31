@@ -1,0 +1,22 @@
+{
+  "name": "studydesk-server",
+  "version": "1.0.0",
+  "description": "Secure proxy for the Study Desk iPad app: tutoring model and speech, with the keys kept here.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": [
+    "education",
+    "ipad",
+    "tutoring"
+  ],
+  "license": "MIT",
+  "dependencies": {}
+}

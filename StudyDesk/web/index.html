@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study Desk — an AI study workspace for iPad</title>
+<meta name="description" content="Open a worksheet, write on it with Apple Pencil, and ask a tutor that already understands the page. Then send a clean PDF to your teacher.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f5f4f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111114" media="(prefers-color-scheme: dark)">
+
+<meta property="og:title" content="Study Desk — an AI study workspace for iPad">
+<meta property="og:description" content="A tutor that can read the question and your handwriting as two different things.">
+<meta property="og:type" content="website">
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128218;</text></svg>">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="#main">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>Study Desk</span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="#how">How it works</a>
+      <a href="#pencil">Pencil</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#status">Status</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">iPad · Apple Pencil · AI tutor</p>
+        <h1>A tutor that can tell the question from&nbsp;your&nbsp;answer.</h1>
+        <p class="lede">
+          Open a worksheet. Write on it with Apple Pencil. When you get stuck, ask —
+          and the tutor already knows which question you're on and what you've
+          written underneath it.
+        </p>
+        <p class="hero-flow" aria-label="The workflow, start to finish">
+          <span>worksheet</span><span>handwriting</span><span>a hint</span><span>finished work</span><span>your teacher</span>
+        </p>
+        <div class="hero-actions">
+          <a class="button primary" href="#how">See how it works</a>
+          <a class="button" href="https://github.com/almazsalaev96-dev/clouds/tree/main/StudyDesk">Read the source</a>
+        </div>
+      </div>
+
+      <!-- A schematic of the layer separation, not a fake screenshot. -->
+      <figure class="hero-figure">
+        <div class="device" role="img"
+             aria-label="A worksheet page showing the printed question 2x + 5 = 15 with the handwritten answer x = 4 below it, and a tutor card responding.">
+          <div class="page">
+            <p class="page-label">Question 4</p>
+            <p class="printed">Solve 2<em>x</em> + 5 = 15</p>
+            <p class="handwritten">x = 4</p>
+            <div class="layer-tags" aria-hidden="true">
+              <span class="tag printed-tag">PDF text layer → the question</span>
+              <span class="tag ink-tag">ink layer → the answer</span>
+            </div>
+          </div>
+          <div class="tutor-card">
+            <p class="tutor-head"><span class="spark" aria-hidden="true">✦</span> Study Tutor</p>
+            <p class="tutor-body">You're very close. Substitute <em>x</em> = 4 back into the original equation and see what the left-hand side comes to.</p>
+            <p class="tutor-chips" aria-hidden="true"><span>Hint</span><span>Step by step</span><span>Check</span></p>
+          </div>
+        </div>
+        <figcaption>The printed question and the handwriting reach the tutor from two separate layers. That is the whole idea.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- The two ideas -->
+  <section class="band" id="how">
+    <div class="wrap">
+      <h2>Two ideas hold the whole thing up</h2>
+      <p class="section-lede">
+        Most "AI in a PDF" apps take a screenshot and hope. Study Desk doesn't need
+        to, because of how the page is built.
+      </p>
+
+      <div class="cards">
+        <article class="card">
+          <h3><span class="card-num">01</span> The context engine</h3>
+          <p>
+            The printed question comes from the PDF's own text layer. Your working
+            comes from reading the Apple&nbsp;Pencil ink layer — on your iPad, on its own,
+            with nothing printed in the picture.
+          </p>
+          <p>
+            Because those are physically different layers, the tutor can be told
+            <em>the question is 2x&nbsp;+&nbsp;5&nbsp;=&nbsp;15 and the student answered x&nbsp;=&nbsp;4</em>,
+            rather than being handed an image and asked to guess. That is what makes
+            "check my work" and "find my mistake" produce real feedback instead of a
+            description of the page.
+          </p>
+        </article>
+
+        <article class="card">
+          <h3><span class="card-num">02</span> The Pencil engine</h3>
+          <p>
+            Ink is not painted over a picture of the page. Every PDF page gets a real
+            PencilKit canvas positioned by PDFKit itself, so PDFKit owns zoom and
+            scrolling and PencilKit owns the strokes.
+          </p>
+          <p>
+            No coordinate maths runs while your hand is moving — which is exactly what
+            makes ink drift away from the page in apps that do it the other way. Strokes
+            stay vector, stay sharp at any zoom, and belong to a <em>page</em>, so they
+            survive rotation, Split&nbsp;View and a different iPad.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ask about anything -->
+  <section class="band alt">
+    <div class="wrap split">
+      <div>
+        <h2>Ask about exactly what's confusing you</h2>
+        <p class="section-lede">
+          The tutor button reads the situation before you tap it.
+        </p>
+        <ul class="button-states">
+          <li><span class="state">Nothing selected</span> <span class="arrow" aria-hidden="true">→</span> <b>Ask about this page</b></li>
+          <li><span class="state">Text selected</span> <span class="arrow" aria-hidden="true">→</span> <b>Explain this</b></li>
+          <li><span class="state">You've written something</span> <span class="arrow" aria-hidden="true">→</span> <b>Check my work</b></li>
+          <li><span class="state">A question detected</span> <span class="arrow" aria-hidden="true">→</span> <b>Help with this question</b></li>
+          <li><span class="state">A box dragged round a diagram</span> <span class="arrow" aria-hidden="true">→</span> <b>Ask about this part</b></li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="sub">Hints before answers — but never a locked door</h3>
+        <p>
+          Ask for the answer and the tutor offers a hint first. Both buttons are equally
+          easy to press. The point is to make the smaller step visible, not to make the
+          bigger one hard.
+        </p>
+        <h3 class="sub">Four verdicts, not two</h3>
+        <p>
+          Checking your work returns <b>correct</b>, <b>nearly there</b>, <b>not yet</b>,
+          or <b>can't quite read it</b>. That last one matters: a student marked wrong
+          because of their handwriting stops showing anyone their working.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pencil -->
+  <section class="band" id="pencil">
+    <div class="wrap">
+      <h2>Writing beats everything else</h2>
+      <p class="section-lede">
+        If a feature ever conflicts with Pencil latency, the feature loses. Some
+        consequences of taking that seriously:
+      </p>
+      <div class="grid-3">
+        <div class="mini">
+          <h3>Fingers scroll, Pencil writes</h3>
+          <p>Palm rejection and two-finger pan come from PencilKit's own input policy, not from a gesture recogniser fighting it.</p>
+        </div>
+        <div class="mini">
+          <h3>Saves in under a second</h3>
+          <p>Ink updates in memory instantly and is written at most once a second — and immediately when you change page or leave the app.</p>
+        </div>
+        <div class="mini">
+          <h3>Your original is never touched</h3>
+          <p>The imported PDF is stored byte-for-byte and never written to. Your work is a separate layer; the export is a third file.</p>
+        </div>
+        <div class="mini">
+          <h3>Sharp at any zoom</h3>
+          <p>Canvases re-render at the zoomed resolution, so ink laid down at 100% is still crisp when you zoom in to check a fraction.</p>
+        </div>
+        <div class="mini">
+          <h3>500 pages stays smooth</h3>
+          <p>Drawings are held only for the pages around you. A textbook doesn't load 500 canvases to show you page 12.</p>
+        </div>
+        <div class="mini">
+          <h3>Handwriting stays yours</h3>
+          <p>Anything the tutor suggests drawing is a distinct colour, clearly marked, and never applied without you saying so.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Finish -->
+  <section class="band alt">
+    <div class="wrap">
+      <h2>Finishing is part of the app</h2>
+      <p class="section-lede">
+        "It's in the app" and "my teacher has it" are not the same thing. Everything
+        between them is where marks get lost.
+      </p>
+      <ol class="steps">
+        <li><b>Final review</b><span>Blank pages flagged, work confirmed saved, page count shown.</span></li>
+        <li><b>A real PDF</b><span>The original page drawn as vector — text stays selectable — with your ink on top at high resolution.</span></li>
+        <li><b>You see it first</b><span>File name, page count, size. Nothing is sent until you've looked.</span></li>
+        <li><b>Sent your way</b><span>The iPad share sheet, so it reaches Teams, Classroom, email or whatever your school uses.</span></li>
+        <li><b>Kept</b><span>The exact file you sent stays in Submitted, so "what did I hand in?" always has an answer.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Privacy -->
+  <section class="band" id="privacy">
+    <div class="wrap">
+      <h2>What actually leaves the iPad</h2>
+      <p class="section-lede">
+        School documents contain real things about real children. This is the whole
+        list, and the app shows it to you at the moment you ask a question.
+      </p>
+
+      <div class="privacy-grid">
+        <div class="privacy-col stays">
+          <h3>Stays on the iPad</h3>
+          <ul>
+            <li>Your PDFs, in full</li>
+            <li>Your handwriting, as ink</li>
+            <li>Handwriting recognition — it runs on the device</li>
+            <li>Your notes and your study history</li>
+            <li>Every page you didn't ask about</li>
+          </ul>
+        </div>
+        <div class="privacy-col sends">
+          <h3>Sent, only when you ask a question</h3>
+          <ul>
+            <li>The printed text of that one page</li>
+            <li>A short text reading of your handwriting</li>
+            <li>One picture of that page, or the part you selected — switchable off</li>
+            <li>Your last few messages in that chat</li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="note">
+        No account. No email. No advertising identifier. The app holds one anonymous
+        token so the server can rate-limit an install, and reinstalling replaces it.
+        Turn page pictures off and everything works as text — diagrams stop, the rest
+        doesn't.
+      </p>
+      <p class="note">
+        The AI and voice keys are never on the iPad. Requests go through a small proxy
+        that holds them, because a key shipped inside an app is a key that has been
+        given away, however well it is hidden.
+      </p>
+    </div>
+  </section>
+
+  <!-- Honest status -->
+  <section class="band alt" id="status">
+    <div class="wrap">
+      <h2>Where this actually is</h2>
+      <p class="section-lede">
+        Being straight about it, because a page like this is usually where software
+        stops being honest.
+      </p>
+      <table class="status-table">
+        <caption class="visually-hidden">Build and verification status by component</caption>
+        <thead>
+          <tr><th scope="col">Component</th><th scope="col">State</th><th scope="col">Verified how</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Backend proxy</th>
+            <td><span class="pill ok">Runs</span></td>
+            <td>80 automated tests, including streaming end-to-end against a stubbed model API</td>
+          </tr>
+          <tr>
+            <th scope="row">This website</th>
+            <td><span class="pill ok">Runs</span></td>
+            <td>Static, no dependencies, no build step</td>
+          </tr>
+          <tr>
+            <th scope="row">iPad app</th>
+            <td><span class="pill pending">Source complete</span></td>
+            <td>Needs Xcode on a Mac to compile — it has not been built or run on a device</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="note">
+        The iPad app is written against PDFKit, PencilKit, Vision and SwiftData and is
+        structured to build with XcodeGen. It has not been compiled, and the Pencil
+        latency claims on this page are design intent, not measurements. Anyone with a
+        Mac can check both in an afternoon.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <p>Study Desk — worksheet → handwriting → help → finished work → your teacher.</p>
+    <p class="muted">Built as an open project. Not affiliated with Apple.</p>
+  </div>
+</footer>
+
+</body>
+</html>
