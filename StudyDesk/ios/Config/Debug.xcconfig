@@ -1,0 +1,14 @@
+// Debug configuration.
+//
+// BACKEND_BASE_URL points the app at the Study Desk proxy. It never contains a
+// secret — the proxy holds the AI and ElevenLabs keys. Use your Mac's LAN
+// address (not localhost) so a physical iPad can reach the dev server.
+//
+// xcconfig treats "//" as a comment, so the scheme separator is spelled with
+// the $() escape below and reassembled in Info.plist.
+
+BACKEND_SCHEME = http
+BACKEND_HOST = 127.0.0.1:8787
+BACKEND_BASE_URL = $(BACKEND_SCHEME):/$()/$(BACKEND_HOST)
+
+APP_DISPLAY_NAME = Study Desk

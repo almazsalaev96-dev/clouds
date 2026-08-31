@@ -1,0 +1,16 @@
+# macOS / Xcode
+.DS_Store
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+
+# Node
+node_modules/
+dist/
+*.log
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example

@@ -1,0 +1,44 @@
+name: StudyDesk
+options:
+  bundleIdPrefix: com.studydesk
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+configs:
+  Debug: debug
+  Release: release
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    DEVELOPMENT_TEAM: ""
+  configs:
+    Debug:
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+    Release:
+      SWIFT_COMPILATION_MODE: wholemodule
+
+targets:
+  StudyDesk:
+    type: application
+    platform: iOS
+    sources:
+      - path: StudyDesk
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Release: Config/Release.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.studydesk.app
+        INFOPLIST_FILE: StudyDesk/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: StudyDesk/Resources/StudyDesk.entitlements
+        SUPPORTS_MAC_CATALYST: NO
+        UISupportedInterfaceOrientations: ""
+    info:
+      path: StudyDesk/Resources/Info.plist

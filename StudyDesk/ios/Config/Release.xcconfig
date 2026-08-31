@@ -1,0 +1,10 @@
+// Release configuration.
+//
+// Point this at the deployed Study Desk proxy. HTTPS is required in release:
+// App Transport Security is not relaxed for this build.
+
+BACKEND_SCHEME = https
+BACKEND_HOST = api.studydesk.app
+BACKEND_BASE_URL = $(BACKEND_SCHEME):/$()/$(BACKEND_HOST)
+
+APP_DISPLAY_NAME = Study Desk

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<!--
+  Intentionally empty for v1. Nothing the MVP does requires a capability.
+
+  When iCloud sync ships (docs/roadmap.md, phase 3) this file gains
+  com.apple.developer.icloud-container-identifiers and the CloudKit service;
+  the persistence layer is already shaped for it.
+-->
+<dict/>
+</plist>
