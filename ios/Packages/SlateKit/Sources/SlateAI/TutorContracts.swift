@@ -161,3 +161,43 @@ public struct GeneratedQuestion: Codable, Sendable, Hashable, Identifiable {
     public var id: String { prompt }
     public var conceptIDs: [ConceptID] { conceptIds.map(ConceptID.init) }
 }
+
+public struct DocumentAnalysis: Codable, Sendable, Hashable {
+    public struct Question: Codable, Sendable, Hashable {
+        public struct Region: Codable, Sendable, Hashable {
+            public let page: Int
+            public let x: Double
+            public let y: Double
+            public let width: Double
+            public let height: Double
+        }
+        public let number: String
+        public let text: String
+        public let marks: Int?
+        public let answerRegion: Region?
+        public let conceptIds: [String]
+        public let commandWord: String?
+    }
+
+    public struct Figure: Codable, Sendable, Hashable {
+        public let page: Int
+        public let kind: String
+        public let caption: String
+    }
+
+    public struct NamedConcept: Codable, Sendable, Hashable, Identifiable {
+        public let id: String
+        public let name: String
+    }
+
+    public let title: String
+    public let subject: String
+    public let documentType: String
+    public let confidence: Double
+    public let questions: [Question]
+    public let figures: [Figure]
+    public let concepts: [NamedConcept]
+
+    /// A page of notes with no questions on it is a correct analysis, not a failed one.
+    public var isQuestionPaper: Bool { !questions.isEmpty }
+}

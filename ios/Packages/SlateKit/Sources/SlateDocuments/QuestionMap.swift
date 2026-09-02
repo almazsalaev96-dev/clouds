@@ -44,7 +44,9 @@ public struct QuestionMap: Codable, Sendable, Hashable {
 }
 
 public struct MappedQuestion: Codable, Sendable, Hashable, Identifiable {
-    public let id: QuestionID
+    /// Settable so a re-analysis can adopt the identity of the question it replaces,
+    /// keeping every attempt already recorded against it.
+    public var id: QuestionID
     /// As printed: "3", "3(b)", "Q7 (ii)". Never renumbered.
     public var number: String
     public var text: String

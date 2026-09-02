@@ -12,7 +12,7 @@ and no macOS**. That divides the repository cleanly.
 
 | Component | Evidence |
 |---|---|
-| Learning engine (Python reference) | 45 tests, `python3 -m unittest discover -s tests` |
+| Learning engine (Python reference) | 57 tests, `python3 -m unittest discover -s tests` |
 | Golden fixture | regenerated and byte-compared against the committed file in CI |
 | Gateway (Node/TypeScript) | 100 tests, `npm test`; `tsc --noEmit` clean |
 | Deterministic grader | 43 of those 100, covering parsing, equivalence, units, sets, near misses |
@@ -28,7 +28,7 @@ cd server && npm install && npm run check
 
 ## Written, reviewed, **not compiled**
 
-The entire `ios/` tree. Roughly 6,900 lines of Swift across 42 files. It has been
+The entire `ios/` tree. Roughly 8,700 lines of Swift across 48 files. It has been
 read back and statically audited — conditional-compilation balance, brace balance,
 access levels on cross-module initialisers, `switch` expressions whose branches have
 different concrete types, and Swift-version-gated syntax such as `@retroactive`. Four
@@ -61,6 +61,7 @@ Not oversights. Each was considered and left out, with the reason.
 | iCloud sync | The architecture is local-first and the file layout is sync-shaped, but shipping sync before the single-device experience is excellent means debugging conflict resolution instead of the product. |
 | Teacher mode | Architected for (`AssignmentID` and submission history exist) and correctly out of a first release. A teacher dashboard changes who the product is for. |
 | Curriculum and mark-scheme data | The metadata fields exist and are unpopulated. Inventing an exam board's mark scheme would be worse than having none: a student would trust it. |
+| Exam mode with a timer | `TestReport` is complete and golden-tested, and nothing presents it yet. It needs the practice screen's question runner plus a timer, which is a day's work on top of what is here. |
 | On-device OCR pass | `HandwritingReading` is the seam. A Vision-framework implementation slots in behind it and would cut both cost and latency; it needs a device to tune against. |
 | Live "AI watches you write" | The hook exists (`onSettled` fires when the pencil stops) and is deliberately wired to nothing. It is the single easiest feature in this product to make unbearable. |
 
@@ -88,7 +89,16 @@ Stated because finding them in six months is worse.
 5. **`FinalReview.local` is the cheap half.** It finds blank answers and stray marks
    from the question map. Page-order and missing-page detection need the model pass.
 6. **Concept identifiers are strings with no shipped graph.** `Concept.prerequisites`
-   is honoured by the recommender wherever a graph is supplied; none is supplied.
+   is honoured by the recommender wherever a graph is supplied; none is supplied. The
+   concepts a document analysis returns are the only source, so the graph is flat until
+   a curriculum is loaded.
+7. **Document analysis reads the first six pages only.** Enough to identify the document
+   and map the questions a student starts on. The rest is provisional until they reach
+   it, and `DocumentAnalyser.Result.isPartial` says so.
+8. **Answer regions are inferred from question order when the layout gives no clue.**
+   A reasonable guess on a worksheet, and the student's own strokes override it the
+   moment they write — but on an unusual layout the first "check this" may resolve to
+   the wrong question until then.
 
 ---
 

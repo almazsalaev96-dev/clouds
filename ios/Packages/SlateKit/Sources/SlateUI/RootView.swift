@@ -37,11 +37,14 @@ public struct RootView: View {
     @State private var practising: PracticeModel?
 
     private let desk: DeskModel
+    private let library: LibraryModel
     private let study: StudyModel
     private let mistakes: MistakesModel
 
-    public init(desk: DeskModel, study: StudyModel, mistakes: MistakesModel) {
+    public init(desk: DeskModel, library: LibraryModel,
+                study: StudyModel, mistakes: MistakesModel) {
         self.desk = desk
+        self.library = library
         self.study = study
         self.mistakes = mistakes
     }
@@ -70,13 +73,7 @@ public struct RootView: View {
         case .desk:
             DeskView(model: desk)
         case .work:
-            EmptyStateView(
-                icon: "tray.and.arrow.down",
-                title: "Your documents live here",
-                detail: "Worksheets, past papers, notes and scans, grouped by subject.",
-                actionLabel: "Add something",
-                action: desk.importDocument
-            )
+            LibraryView(model: library)
         case .study:
             StudyView(model: study)
         case .knowledge:

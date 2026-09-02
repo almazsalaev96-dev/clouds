@@ -20,6 +20,7 @@ final class AppContainer: ObservableObject {
     let tutor: TutorService
     let voice: VoiceProvider
     let desk: DeskModel
+    let library: LibraryModel
     let study: StudyModel
     let mistakes: MistakesModel
 
@@ -52,6 +53,18 @@ final class AppContainer: ObservableObject {
         // handles that by producing nothing rather than by guessing.
         let concepts: [Concept] = []
         desk = DeskModel(store: store, events: events, concepts: concepts, clock: clock)
+
+        // Analysis is handed in as a closure so the library never learns what a
+        // gateway is, and so a test can supply a map without a network.
+        let analyser = DocumentAnalyser(service: tutor)
+        let documentStore = store
+        library = LibraryModel(store: store, tutorService: tutor) { meta in
+            let paths = documentStore.paths(for: meta.id)
+            let result = try await analyser.analyse(
+                url: paths.original, filename: meta.title, pageCount: meta.pageCount
+            )
+            return result.map
+        }
         study = StudyModel(events: events, concepts: concepts, clock: clock)
         mistakes = MistakesModel(events: events, concepts: concepts, clock: clock)
     }

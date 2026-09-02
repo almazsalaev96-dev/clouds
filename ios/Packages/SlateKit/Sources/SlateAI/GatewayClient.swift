@@ -15,6 +15,18 @@ public protocol TutorService: Sendable {
     func gradeOnly(submitted: String, expected: [ExpectedAnswer]) async throws -> GradeOnlyReply
     func readHandwriting(_ request: HandwritingRequest) async throws -> HandwritingReading
     func generate(_ request: GenerateRequest) async throws -> [GeneratedQuestion]
+    func analyseDocument(_ request: DocumentRequest) async throws -> DocumentAnalysis
+}
+
+public struct DocumentRequest: Codable, Sendable {
+    public var text: String?
+    public var images: [ContextEngine.Payload.Image]?
+    public var filename: String?
+
+    public init(text: String? = nil, images: [ContextEngine.Payload.Image]? = nil,
+                filename: String? = nil) {
+        self.text = text; self.images = images; self.filename = filename
+    }
 }
 
 public struct ExpectedAnswer: Codable, Sendable, Hashable {
@@ -155,6 +167,10 @@ public actor GatewayClient: TutorService {
         try await post("/v1/generate", request, as: QuestionsEnvelope.self).questions
     }
 
+    public func analyseDocument(_ request: DocumentRequest) async throws -> DocumentAnalysis {
+        try await post("/v1/document", request, as: AnalysisEnvelope.self).analysis
+    }
+
     // MARK: - Transport
 
     private struct Envelope<T: Decodable>: Decodable { let reply: T }
@@ -162,6 +178,7 @@ public actor GatewayClient: TutorService {
     private struct GradeEnvelope: Decodable { let grade: GradeOnlyReply }
     private struct ReadingEnvelope: Decodable { let reading: HandwritingReading }
     private struct QuestionsEnvelope: Decodable { let questions: [GeneratedQuestion] }
+    private struct AnalysisEnvelope: Decodable { let analysis: DocumentAnalysis }
     private struct ErrorEnvelope: Decodable {
         struct Body: Decodable { let code: String; let message: String; let retryable: Bool }
         let error: Body
