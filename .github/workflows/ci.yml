@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  learning-engine:
+    name: Learning engine (reference)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Behavioural tests
+        working-directory: tools/learning-sim
+        run: python3 -m unittest discover -s tests -v
+
+      # The Swift implementation is held to this file. If it is stale, the two
+      # implementations have already drifted and the parity suite on macOS is
+      # asserting against yesterday's model.
+      - name: Golden fixture is not stale
+        working-directory: tools/learning-sim
+        run: |
+          python3 -m slatelearn.golden
+          git diff --exit-code ../../fixtures/learning-golden.json \
+            || { echo "::error::fixtures/learning-golden.json is stale — run 'python3 -m slatelearn.golden' and commit"; exit 1; }
+
+  gateway:
+    name: Gateway
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install
+        working-directory: server
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: server
+        run: npm run typecheck
+
+      - name: Tests
+        working-directory: server
+        run: npm test
+
+      - name: No credentials in the client-facing surface
+        run: |
+          # A key reaching the app would defeat the entire gateway architecture.
+          if grep -rEn 'sk-ant-[A-Za-z0-9]|xi-api-key["'"'"']?\s*[:=]\s*["'"'"'][A-Za-z0-9]' \
+               --include='*.ts' --include='*.swift' --include='*.plist' \
+               server/src ios/ 2>/dev/null; then
+            echo "::error::a provider credential appears to be committed"
+            exit 1
+          fi
+
+  ios:
+    name: iPad app
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build SlateKit
+        working-directory: ios/Packages/SlateKit
+        run: swift build
+
+      # The one that matters: proves the Swift learning engine reproduces the Python
+      # reference exactly, so the intellectual core is correct on device.
+      - name: Cross-language parity
+        working-directory: ios/Packages/SlateKit
+        run: swift test --filter GoldenParityTests
+
+      - name: All package tests
+        working-directory: ios/Packages/SlateKit
+        run: swift test
+
+      - name: Generate the Xcode project
+        run: |
+          brew install xcodegen
+          cd ios && xcodegen generate
+
+      - name: Build the app
+        working-directory: ios
+        run: |
+          xcodebuild -project Slate.xcodeproj -scheme Slate \
+            -destination 'platform=iOS Simulator,name=iPad Pro 11-inch (M4)' \
+            -quiet build
