@@ -34,9 +34,17 @@ public struct RootView: View {
     }
 
     @State private var tab: Tab = .desk
-    private let desk: DeskModel
+    @State private var practising: PracticeModel?
 
-    public init(desk: DeskModel) { self.desk = desk }
+    private let desk: DeskModel
+    private let study: StudyModel
+    private let mistakes: MistakesModel
+
+    public init(desk: DeskModel, study: StudyModel, mistakes: MistakesModel) {
+        self.desk = desk
+        self.study = study
+        self.mistakes = mistakes
+    }
 
     public var body: some View {
         TabView(selection: $tab) {
@@ -51,6 +59,9 @@ public struct RootView: View {
         }
         .tint(Slate.Palette.tutor)
         .task { await desk.refresh() }
+        // One presentation for every route into practice, so starting a session from
+        // the desk, from Study, or from a mistake pattern all land in the same place.
+        .sheet(item: $practising) { PracticeView(model: $0) }
     }
 
     @ViewBuilder
@@ -67,17 +78,9 @@ public struct RootView: View {
                 action: desk.importDocument
             )
         case .study:
-            EmptyStateView(
-                icon: "graduationcap",
-                title: "Practice and revision",
-                detail: "Once you have marked some work, this is where the weak spots turn into short sessions."
-            )
+            StudyView(model: study)
         case .knowledge:
-            EmptyStateView(
-                icon: "books.vertical",
-                title: "Notes and mistakes",
-                detail: "Everything you have written, and every mistake worth coming back to, in one searchable place."
-            )
+            MistakesView(model: mistakes)
         }
     }
 }

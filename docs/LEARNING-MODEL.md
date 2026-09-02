@@ -312,6 +312,52 @@ where it previously offered an explanation.
 
 ---
 
+## 9b. Interventions: the shortest sequence that fixes it
+
+"Fix this" is the product's most-used promise, so what sits behind it is derived from
+the evidence rather than a fixed lesson template.
+
+```
+diagnose?  →  prerequisite?  →  teach  →  example?  →  guided  →  practise  →  verify
+```
+
+Which steps appear depends on the state:
+
+| Situation | Plan |
+|---|---|
+| `reliable` but `R < 0.7` | `practise → verify` only. This is a recall problem; re-teaching it would be slower and mildly insulting. |
+| `reliable`, no transfer evidence | `transfer` alone. |
+| uncertain, or `0.25 < p < 0.55` with no known error | prepend `diagnose`. Teaching the wrong thing costs more than two minutes spent finding out. |
+| a prerequisite is weak | prepend `prerequisite`. Fixing the symptom leaves the cause. |
+| everything else | the full sequence, teaching with the next untried strategy. |
+
+**Strategy escalation.** A failed explanation is never repeated in different words. The
+order moves from telling towards asking:
+
+```
+explanation → workedExample → guidedQuestion → analogy → visual
+            → prerequisite → counterexample → retrievalPrompt
+```
+
+If the teaching step is already a worked example, the separate example step is dropped:
+it would be the same thing twice.
+
+**Time budgeting.** Steps are removed in a fixed order —
+`transfer, example, diagnose, guided, prerequisite, practise` — until the plan fits.
+`verify` is not in that list. An intervention that skips verification has not been
+shortened, it has been abandoned, so a three-minute budget produces `teach → verify`
+rather than a lesson with nothing at the end of it.
+
+**Follow-up** is scheduled from the stability the concept *would* have after one
+successful unaided review, so the return visit is planned from where the student will
+be rather than from where they are now.
+
+**Did it work?** `verifyPassed` requires two things: the unaided probability moved, and
+an independent success was added. Getting the last question right after being shown the
+answer fails both, which is the point.
+
+---
+
 ## 10. What the model refuses to do
 
 - It will not call something mastered on a single correct answer.

@@ -16,7 +16,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
-from . import eig, engine, mastery, misconception, nextaction, scheduling
+from . import eig, engine, intervention, mastery, misconception, nextaction, scheduling
 from .engine import QuestionResult
 from .nextaction import AssignmentSnapshot, Concept, SessionContext
 from .types import Assistance, Attempt, AttemptKind, ConceptState, ErrorType, Outcome
@@ -363,10 +363,59 @@ def sc_test_report() -> Dict[str, Any]:
             "report": engine.build_report(results, proj, names).to_dict()}
 
 
+def sc_intervention() -> Dict[str, Any]:
+    now = T0 + timedelta(days=30)
+
+    def built(spec, start):
+        st = ConceptState("cts")
+        for i, (outcome, assist, kind) in enumerate(spec):
+            st = mastery.apply(st, Attempt(
+                "cts", now - timedelta(days=start - i), outcome, assist, kind,
+                session_id=f"s{i}"))
+        return st
+
+    unaided = [(Outcome.CORRECT, Assistance.NONE, AttemptKind.PRACTICE)] * 5
+    hinted = [(Outcome.INCORRECT, Assistance.HINT, AttemptKind.PRACTICE)] * 3
+
+    cases = [
+        ("neverSeen", ConceptState("cts"), 12.0, [], None, False, False),
+        ("struggling", built(hinted, 5), 12.0, [], None, False, False),
+        ("struggingAfterExplanation", built(hinted, 5), 12.0,
+         [intervention.Strategy.EXPLANATION], "a sign error", False, False),
+        ("weakPrerequisite", built(hinted, 5), 12.0, [], None, True, False),
+        ("uncertain", built(hinted, 5), 12.0, [], None, False, True),
+        ("faded", built(unaided, 90), 12.0, [], None, False, False),
+        ("solidNoTransfer", built(unaided, 5), 12.0, [], None, False, False),
+        ("sixMinutesOnly", built(hinted, 5), 6.0, [], None, False, False),
+        ("threeMinutesOnly", built(hinted, 5), 3.0, [], None, False, False),
+    ]
+
+    out = []
+    for label, state, minutes, used, error, prerequisite, uncertain in cases:
+        plan = intervention.build(
+            state, now, available_minutes=minutes, strategies_used=used,
+            known_error=error, has_weak_prerequisite=prerequisite, uncertain=uncertain)
+        out.append({
+            "case": label,
+            "availableMinutes": minutes,
+            "state": state_json(state),
+            "plan": plan.to_dict(),
+        })
+
+    ladder = []
+    used: List[intervention.Strategy] = []
+    for _ in range(len(intervention.STRATEGY_ORDER) + 1):
+        nxt = intervention.next_strategy(used)
+        ladder.append(nxt.value)
+        used.append(nxt)
+
+    return {"name": "intervention", "now": iso(now), "cases": out, "strategyLadder": ladder}
+
+
 SCENARIOS = [
     sc_mastery_ladder, sc_solution_dependency, sc_assistance_ladder, sc_careless,
     sc_unreadable, sc_forgetting, sc_lapse, sc_scheduling, sc_patterns, sc_eig,
-    sc_next_action, sc_projection, sc_test_report,
+    sc_next_action, sc_projection, sc_test_report, sc_intervention,
 ]
 
 
@@ -394,6 +443,8 @@ def constants() -> Dict[str, Any]:
         "deadlineHorizonHours": nextaction.DEADLINE_HORIZON_HOURS,
         "fatigueOnsetMinutes": nextaction.FATIGUE_ONSET_MIN,
         "fatigueSpanMinutes": nextaction.FATIGUE_SPAN_MIN,
+        "interventionMinMinutes": intervention.MIN_MINUTES,
+        "stepMinutes": {k.value: v for k, v in intervention.STEP_MINUTES.items()},
     }
 
 

@@ -37,7 +37,18 @@
     "wRest": 0.6,
     "deadlineHorizonHours": 72.0,
     "fatigueOnsetMinutes": 25.0,
-    "fatigueSpanMinutes": 45.0
+    "fatigueSpanMinutes": 45.0,
+    "interventionMinMinutes": 3.0,
+    "stepMinutes": {
+      "diagnose": 2.0,
+      "prerequisite": 3.0,
+      "teach": 1.5,
+      "example": 1.5,
+      "guided": 2.0,
+      "practise": 2.5,
+      "verify": 2.0,
+      "transfer": 2.5
+    }
   },
   "scenarios": [
     {
@@ -2521,6 +2532,557 @@
           "assignmentId": null
         }
       }
+    },
+    {
+      "name": "intervention",
+      "now": "2026-01-31T09:00:00Z",
+      "cases": [
+        {
+          "case": "neverSeen",
+          "availableMinutes": 12.0,
+          "state": {
+            "alpha": 0.8,
+            "beta": 1.2,
+            "difficulty": 5.0,
+            "stability": 0.0,
+            "lastReviewed": null,
+            "attempts": 0,
+            "independentCorrect": 0,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 0,
+            "pUnaided": 0.4,
+            "evidence": 0.0,
+            "freshState": "unseen"
+          },
+          "plan": {
+            "conceptId": "cts",
+            "steps": [
+              {
+                "kind": "teach",
+                "strategy": "explanation",
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 1.5,
+                "detail": ""
+              },
+              {
+                "kind": "example",
+                "strategy": "workedExample",
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 1.5,
+                "detail": ""
+              },
+              {
+                "kind": "guided",
+                "strategy": null,
+                "difficulty": "easy",
+                "assistance": "guided",
+                "minutes": 2.0,
+                "detail": ""
+              },
+              {
+                "kind": "practise",
+                "strategy": null,
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 2.5,
+                "detail": ""
+              },
+              {
+                "kind": "verify",
+                "strategy": null,
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 2.0,
+                "detail": ""
+              }
+            ],
+            "minutes": 9.5,
+            "rationale": "New ground, so this starts from the idea itself.",
+            "followUpDays": 1.0,
+            "dropped": []
+          }
+        },
+        {
+          "case": "struggling",
+          "availableMinutes": 12.0,
+          "state": {
+            "alpha": 0.8,
+            "beta": 4.182754444,
+            "difficulty": 6.283625,
+            "stability": 0.444,
+            "lastReviewed": "2026-01-28T09:00:00Z",
+            "attempts": 3,
+            "independentCorrect": 0,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 3,
+            "pUnaided": 0.160553768,
+            "evidence": 2.982754444,
+            "freshState": "introduced"
+          },
+          "plan": {
+            "conceptId": "cts",
+            "steps": [
+              {
+                "kind": "teach",
+                "strategy": "explanation",
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 1.5,
+                "detail": ""
+              },
+              {
+                "kind": "example",
+                "strategy": "workedExample",
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 1.5,
+                "detail": ""
+              },
+              {
+                "kind": "guided",
+                "strategy": null,
+                "difficulty": "easy",
+                "assistance": "guided",
+                "minutes": 2.0,
+                "detail": ""
+              },
+              {
+                "kind": "practise",
+                "strategy": null,
+                "difficulty": "easy",
+                "assistance": "none",
+                "minutes": 2.5,
+                "detail": ""
+              },
+              {
+                "kind": "verify",
+                "strategy": null,
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 2.0,
+                "detail": ""
+              }
+            ],
+            "minutes": 9.5,
+            "rationale": "You are at 16% unaided on this.",
+            "followUpDays": 0.8436,
+            "dropped": []
+          }
+        },
+        {
+          "case": "struggingAfterExplanation",
+          "availableMinutes": 12.0,
+          "state": {
+            "alpha": 0.8,
+            "beta": 4.182754444,
+            "difficulty": 6.283625,
+            "stability": 0.444,
+            "lastReviewed": "2026-01-28T09:00:00Z",
+            "attempts": 3,
+            "independentCorrect": 0,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 3,
+            "pUnaided": 0.160553768,
+            "evidence": 2.982754444,
+            "freshState": "introduced"
+          },
+          "plan": {
+            "conceptId": "cts",
+            "steps": [
+              {
+                "kind": "teach",
+                "strategy": "workedExample",
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 1.5,
+                "detail": ""
+              },
+              {
+                "kind": "guided",
+                "strategy": null,
+                "difficulty": "easy",
+                "assistance": "guided",
+                "minutes": 2.0,
+                "detail": ""
+              },
+              {
+                "kind": "practise",
+                "strategy": null,
+                "difficulty": "easy",
+                "assistance": "none",
+                "minutes": 2.5,
+                "detail": ""
+              },
+              {
+                "kind": "verify",
+                "strategy": null,
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 2.0,
+                "detail": ""
+              }
+            ],
+            "minutes": 8.0,
+            "rationale": "Your last attempts point at a sign error. This goes straight at it.",
+            "followUpDays": 0.8436,
+            "dropped": []
+          }
+        },
+        {
+          "case": "weakPrerequisite",
+          "availableMinutes": 12.0,
+          "state": {
+            "alpha": 0.8,
+            "beta": 4.182754444,
+            "difficulty": 6.283625,
+            "stability": 0.444,
+            "lastReviewed": "2026-01-28T09:00:00Z",
+            "attempts": 3,
+            "independentCorrect": 0,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 3,
+            "pUnaided": 0.160553768,
+            "evidence": 2.982754444,
+            "freshState": "introduced"
+          },
+          "plan": {
+            "conceptId": "cts",
+            "steps": [
+              {
+                "kind": "prerequisite",
+                "strategy": null,
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 3.0,
+                "detail": ""
+              },
+              {
+                "kind": "teach",
+                "strategy": "explanation",
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 1.5,
+                "detail": ""
+              },
+              {
+                "kind": "guided",
+                "strategy": null,
+                "difficulty": "easy",
+                "assistance": "guided",
+                "minutes": 2.0,
+                "detail": ""
+              },
+              {
+                "kind": "practise",
+                "strategy": null,
+                "difficulty": "easy",
+                "assistance": "none",
+                "minutes": 2.5,
+                "detail": ""
+              },
+              {
+                "kind": "verify",
+                "strategy": null,
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 2.0,
+                "detail": ""
+              }
+            ],
+            "minutes": 11.0,
+            "rationale": "You are at 16% unaided on this.",
+            "followUpDays": 0.8436,
+            "dropped": [
+              "example"
+            ]
+          }
+        },
+        {
+          "case": "uncertain",
+          "availableMinutes": 12.0,
+          "state": {
+            "alpha": 0.8,
+            "beta": 4.182754444,
+            "difficulty": 6.283625,
+            "stability": 0.444,
+            "lastReviewed": "2026-01-28T09:00:00Z",
+            "attempts": 3,
+            "independentCorrect": 0,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 3,
+            "pUnaided": 0.160553768,
+            "evidence": 2.982754444,
+            "freshState": "introduced"
+          },
+          "plan": {
+            "conceptId": "cts",
+            "steps": [
+              {
+                "kind": "diagnose",
+                "strategy": null,
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 2.0,
+                "detail": ""
+              },
+              {
+                "kind": "teach",
+                "strategy": "explanation",
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 1.5,
+                "detail": ""
+              },
+              {
+                "kind": "example",
+                "strategy": "workedExample",
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 1.5,
+                "detail": ""
+              },
+              {
+                "kind": "guided",
+                "strategy": null,
+                "difficulty": "easy",
+                "assistance": "guided",
+                "minutes": 2.0,
+                "detail": ""
+              },
+              {
+                "kind": "practise",
+                "strategy": null,
+                "difficulty": "easy",
+                "assistance": "none",
+                "minutes": 2.5,
+                "detail": ""
+              },
+              {
+                "kind": "verify",
+                "strategy": null,
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 2.0,
+                "detail": ""
+              }
+            ],
+            "minutes": 11.5,
+            "rationale": "You are at 16% unaided on this.",
+            "followUpDays": 0.8436,
+            "dropped": []
+          }
+        },
+        {
+          "case": "faded",
+          "availableMinutes": 12.0,
+          "state": {
+            "alpha": 5.742735011,
+            "beta": 1.2,
+            "difficulty": 2.964028437,
+            "stability": 7.436209487,
+            "lastReviewed": "2025-11-06T09:00:00Z",
+            "attempts": 5,
+            "independentCorrect": 5,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 5,
+            "pUnaided": 0.827157453,
+            "evidence": 4.942735011,
+            "freshState": "reliable"
+          },
+          "plan": {
+            "conceptId": "cts",
+            "steps": [
+              {
+                "kind": "practise",
+                "strategy": null,
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 2.5,
+                "detail": ""
+              },
+              {
+                "kind": "verify",
+                "strategy": null,
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 2.0,
+                "detail": ""
+              }
+            ],
+            "minutes": 4.5,
+            "rationale": "You could do this before; recall has dropped to 44%. No re-teaching, just bringing it back.",
+            "followUpDays": 14.128798025,
+            "dropped": []
+          }
+        },
+        {
+          "case": "solidNoTransfer",
+          "availableMinutes": 12.0,
+          "state": {
+            "alpha": 5.742735011,
+            "beta": 1.2,
+            "difficulty": 2.964028437,
+            "stability": 7.436209487,
+            "lastReviewed": "2026-01-30T09:00:00Z",
+            "attempts": 5,
+            "independentCorrect": 5,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 5,
+            "pUnaided": 0.827157453,
+            "evidence": 4.942735011,
+            "freshState": "reliable"
+          },
+          "plan": {
+            "conceptId": "cts",
+            "steps": [
+              {
+                "kind": "transfer",
+                "strategy": null,
+                "difficulty": "hard",
+                "assistance": "none",
+                "minutes": 2.5,
+                "detail": ""
+              }
+            ],
+            "minutes": 2.5,
+            "rationale": "You can do the standard version. This checks that you understand it.",
+            "followUpDays": 14.128798025,
+            "dropped": []
+          }
+        },
+        {
+          "case": "sixMinutesOnly",
+          "availableMinutes": 6.0,
+          "state": {
+            "alpha": 0.8,
+            "beta": 4.182754444,
+            "difficulty": 6.283625,
+            "stability": 0.444,
+            "lastReviewed": "2026-01-28T09:00:00Z",
+            "attempts": 3,
+            "independentCorrect": 0,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 3,
+            "pUnaided": 0.160553768,
+            "evidence": 2.982754444,
+            "freshState": "introduced"
+          },
+          "plan": {
+            "conceptId": "cts",
+            "steps": [
+              {
+                "kind": "teach",
+                "strategy": "explanation",
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 1.5,
+                "detail": ""
+              },
+              {
+                "kind": "practise",
+                "strategy": null,
+                "difficulty": "easy",
+                "assistance": "none",
+                "minutes": 2.5,
+                "detail": ""
+              },
+              {
+                "kind": "verify",
+                "strategy": null,
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 2.0,
+                "detail": ""
+              }
+            ],
+            "minutes": 6.0,
+            "rationale": "You are at 16% unaided on this.",
+            "followUpDays": 0.8436,
+            "dropped": [
+              "example",
+              "guided"
+            ]
+          }
+        },
+        {
+          "case": "threeMinutesOnly",
+          "availableMinutes": 3.0,
+          "state": {
+            "alpha": 0.8,
+            "beta": 4.182754444,
+            "difficulty": 6.283625,
+            "stability": 0.444,
+            "lastReviewed": "2026-01-28T09:00:00Z",
+            "attempts": 3,
+            "independentCorrect": 0,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 3,
+            "pUnaided": 0.160553768,
+            "evidence": 2.982754444,
+            "freshState": "introduced"
+          },
+          "plan": {
+            "conceptId": "cts",
+            "steps": [
+              {
+                "kind": "teach",
+                "strategy": "explanation",
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 1.5,
+                "detail": ""
+              },
+              {
+                "kind": "verify",
+                "strategy": null,
+                "difficulty": "medium",
+                "assistance": "none",
+                "minutes": 2.0,
+                "detail": ""
+              }
+            ],
+            "minutes": 3.5,
+            "rationale": "You are at 16% unaided on this.",
+            "followUpDays": 0.8436,
+            "dropped": [
+              "example",
+              "guided",
+              "practise"
+            ]
+          }
+        }
+      ],
+      "strategyLadder": [
+        "explanation",
+        "workedExample",
+        "guidedQuestion",
+        "analogy",
+        "visual",
+        "prerequisite",
+        "counterexample",
+        "retrievalPrompt",
+        "prerequisite"
+      ]
     }
   ]
 }

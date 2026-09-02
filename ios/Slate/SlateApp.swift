@@ -13,7 +13,7 @@ struct SlateApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(desk: container.desk)
+            RootView(desk: container.desk, study: container.study, mistakes: container.mistakes)
                 .task { await container.start() }
         }
         .onChange(of: scenePhase) { _, phase in

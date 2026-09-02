@@ -20,6 +20,8 @@ final class AppContainer: ObservableObject {
     let tutor: TutorService
     let voice: VoiceProvider
     let desk: DeskModel
+    let study: StudyModel
+    let mistakes: MistakesModel
 
     init() {
         let documents = FileManager.default
@@ -46,7 +48,12 @@ final class AppContainer: ObservableObject {
             deviceID: configuration.deviceID
         )
 
-        desk = DeskModel(store: store, events: events, concepts: [], clock: clock)
+        // The concept graph is empty until a document has been analysed; every engine
+        // handles that by producing nothing rather than by guessing.
+        let concepts: [Concept] = []
+        desk = DeskModel(store: store, events: events, concepts: concepts, clock: clock)
+        study = StudyModel(events: events, concepts: concepts, clock: clock)
+        mistakes = MistakesModel(events: events, concepts: concepts, clock: clock)
     }
 
     func start() async {

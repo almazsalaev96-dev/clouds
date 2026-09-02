@@ -407,6 +407,86 @@ final class GoldenParityTests: XCTestCase {
         }
     }
 
+    // MARK: - Intervention
+
+    func testInterventionPlansMatchTheReference() throws {
+        let s = try scenario("intervention")
+        let now = try date(s["now"])
+
+        for testCase in s["cases"].array {
+            let label = try XCTUnwrap(testCase["case"].string)
+            let stateJSON = testCase["state"]
+
+            var state = ConceptState(conceptID: ConceptID("cts"))
+            state.alpha = try XCTUnwrap(stateJSON["alpha"].double)
+            state.beta = try XCTUnwrap(stateJSON["beta"].double)
+            state.difficulty = try XCTUnwrap(stateJSON["difficulty"].double)
+            state.stability = try XCTUnwrap(stateJSON["stability"].double)
+            state.lastReviewed = stateJSON["lastReviewed"].isNull
+                ? nil : try date(stateJSON["lastReviewed"])
+            state.attempts = try XCTUnwrap(stateJSON["attempts"].int)
+            state.independentCorrect = try XCTUnwrap(stateJSON["independentCorrect"].int)
+            state.transferCorrect = try XCTUnwrap(stateJSON["transferCorrect"].int)
+            state.retentionCorrect = try XCTUnwrap(stateJSON["retentionCorrect"].int)
+            state.sessions = Set((0..<(try XCTUnwrap(stateJSON["sessions"].int))).map(String.init))
+
+            let (used, knownError, prerequisite, uncertain): ([Intervention.Strategy], String?, Bool, Bool) =
+                switch label {
+                case "struggingAfterExplanation": ([.explanation], "a sign error", false, false)
+                case "weakPrerequisite": ([], nil, true, false)
+                case "uncertain": ([], nil, false, true)
+                default: ([], nil, false, false)
+                }
+
+            let plan = Intervention.build(
+                state: state, at: now,
+                availableMinutes: try XCTUnwrap(testCase["availableMinutes"].double),
+                strategiesUsed: used, knownError: knownError,
+                hasWeakPrerequisite: prerequisite, uncertain: uncertain
+            )
+            let want = testCase["plan"]
+
+            XCTAssertEqual(plan.steps.map(\.kind.rawValue),
+                           want["steps"].array.compactMap { $0["kind"].string },
+                           "\(label): different steps")
+            XCTAssertEqual(plan.steps.map { $0.strategy?.rawValue },
+                           want["steps"].array.map { $0["strategy"].string },
+                           "\(label): different strategies")
+            XCTAssertEqual(plan.dropped.map(\.rawValue),
+                           want["dropped"].array.compactMap(\.string),
+                           "\(label): different steps dropped")
+            try assertClose(plan.minutes, want["minutes"], "\(label).minutes")
+            try assertClose(plan.followUpDays, want["followUpDays"], "\(label).followUpDays")
+            XCTAssertEqual(plan.rationale, want["rationale"].string, "\(label).rationale")
+        }
+
+        var used: [Intervention.Strategy] = []
+        var ladder: [String] = []
+        for _ in 0...(Intervention.strategyOrder.count) {
+            let next = Intervention.nextStrategy(after: used)
+            ladder.append(next.rawValue)
+            used.append(next)
+        }
+        XCTAssertEqual(ladder, s["strategyLadder"].array.compactMap(\.string))
+    }
+
+    func testVerificationIsNeverDropped() throws {
+        // Not in the fixture on purpose: this must hold for *every* budget, not only
+        // the ones the reference happened to sample.
+        var state = ConceptState(conceptID: ConceptID("cts"))
+        state.alpha = 1.0
+        state.beta = 4.0
+        state.attempts = 3
+        state.stability = 1.2
+        state.lastReviewed = Date()
+
+        for minutes in [30.0, 12.0, 8.0, 6.0, 4.0, 1.0, 0.0] {
+            let plan = Intervention.build(state: state, at: Date(), availableMinutes: minutes)
+            XCTAssertTrue(plan.steps.contains { $0.kind == .verify },
+                          "verification was dropped at a \(minutes)-minute budget")
+        }
+    }
+
     // MARK: - Test report
 
     func testReportMatchesTheReference() throws {

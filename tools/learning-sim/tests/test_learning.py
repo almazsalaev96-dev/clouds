@@ -13,7 +13,9 @@ from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from slatelearn import eig, engine, mastery, misconception, nextaction, scheduling  # noqa: E402
+from slatelearn import (  # noqa: E402
+    eig, engine, intervention, mastery, misconception, nextaction, scheduling,
+)
 from slatelearn.engine import QuestionResult  # noqa: E402
 from slatelearn.nextaction import (  # noqa: E402
     ActionKind, AssignmentSnapshot, Concept, SessionContext,
@@ -393,6 +395,94 @@ class TestProjectionPurity(unittest.TestCase):
         before = (st.alpha, st.beta, st.stability, st.attempts)
         mastery.apply(st, Attempt("x", T0, C, session_id="s"))
         self.assertEqual((st.alpha, st.beta, st.stability, st.attempts), before)
+
+
+class TestIntervention(unittest.TestCase):
+    NOW = T0 + timedelta(days=30)
+
+    def state(self, spec, start=5):
+        st = ConceptState("cts")
+        for i, (outcome, assist, kind) in enumerate(spec):
+            st = mastery.apply(st, Attempt(
+                "cts", self.NOW - timedelta(days=start - i), outcome, assist, kind,
+                session_id=f"s{i}"))
+        return st
+
+    def kinds(self, plan):
+        return [s.kind.value for s in plan.steps]
+
+    def test_a_faded_concept_is_recalled_not_retaught(self):
+        st = self.state([(C, Assistance.NONE, PRACTICE)] * 5, start=90)
+        plan = intervention.build(st, self.NOW)
+        self.assertNotIn("teach", self.kinds(plan))
+        self.assertIn("practise", self.kinds(plan))
+
+    def test_new_ground_starts_from_the_idea(self):
+        plan = intervention.build(ConceptState("cts"), self.NOW)
+        self.assertEqual(self.kinds(plan)[0], "teach")
+
+    def test_solid_work_gets_a_transfer_probe_not_a_lesson(self):
+        st = self.state([(C, Assistance.NONE, PRACTICE)] * 5)
+        self.assertEqual(self.kinds(intervention.build(st, self.NOW)), ["transfer"])
+
+    def test_a_failed_approach_is_not_repeated(self):
+        st = self.state([(I, Assistance.HINT, PRACTICE)] * 3)
+        plan = intervention.build(st, self.NOW,
+                                  strategies_used=[intervention.Strategy.EXPLANATION])
+        used = [s.strategy for s in plan.steps if s.strategy]
+        self.assertNotIn(intervention.Strategy.EXPLANATION, used)
+
+    def test_teaching_by_worked_example_does_not_also_add_an_example(self):
+        st = self.state([(I, Assistance.HINT, PRACTICE)] * 3)
+        plan = intervention.build(st, self.NOW,
+                                  strategies_used=[intervention.Strategy.EXPLANATION])
+        self.assertEqual(self.kinds(plan).count("example"), 0)
+
+    def test_verification_survives_every_budget(self):
+        st = self.state([(I, Assistance.HINT, PRACTICE)] * 3)
+        for minutes in (30, 12, 8, 6, 4, 1):
+            plan = intervention.build(st, self.NOW, available_minutes=minutes)
+            self.assertIn("verify", self.kinds(plan),
+                          f"verification was dropped at {minutes} minutes")
+
+    def test_a_short_budget_drops_the_cheapest_things_first(self):
+        st = self.state([(I, Assistance.HINT, PRACTICE)] * 3)
+        plan = intervention.build(st, self.NOW, available_minutes=6)
+        self.assertLessEqual(plan.minutes, 6.0)
+        self.assertIn("teach", self.kinds(plan))
+
+    def test_a_weak_prerequisite_is_addressed_first(self):
+        st = self.state([(I, Assistance.HINT, PRACTICE)] * 3)
+        plan = intervention.build(st, self.NOW, has_weak_prerequisite=True)
+        self.assertEqual(self.kinds(plan)[0], "prerequisite")
+
+    def test_uncertainty_asks_before_it_teaches(self):
+        st = self.state([(I, Assistance.HINT, PRACTICE)] * 3)
+        plan = intervention.build(st, self.NOW, uncertain=True)
+        self.assertEqual(self.kinds(plan)[0], "diagnose")
+
+    def test_the_strategy_ladder_never_runs_out(self):
+        used = []
+        for _ in range(20):
+            used.append(intervention.next_strategy(used))
+        self.assertEqual(len(used), 20)
+
+    def test_follow_up_is_scheduled_from_where_the_student_will_be(self):
+        st = self.state([(I, Assistance.HINT, PRACTICE)] * 3)
+        plan = intervention.build(st, self.NOW)
+        self.assertGreater(plan.follow_up_days, 0)
+        self.assertLess(plan.follow_up_days, 30)
+
+    def test_success_is_measured_not_asserted(self):
+        before = self.state([(I, Assistance.HINT, PRACTICE)] * 3)
+        after = mastery.apply(before, Attempt("cts", self.NOW, C, Assistance.NONE,
+                                              PRACTICE, session_id="new"))
+        self.assertTrue(intervention.verify_passed(before, after))
+
+        # Getting it right only after being shown the answer proves nothing.
+        shown = mastery.apply(before, Attempt("cts", self.NOW, C, Assistance.SOLUTION,
+                                              PRACTICE, session_id="new"))
+        self.assertFalse(intervention.verify_passed(before, shown))
 
 
 class TestGoldenFixture(unittest.TestCase):
