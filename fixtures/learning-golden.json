@@ -1,0 +1,2526 @@
+{
+  "$schema": "slate/learning-golden/1",
+  "version": 1,
+  "epoch": "2026-01-01T09:00:00Z",
+  "decimalPlaces": 9,
+  "constants": {
+    "alpha0": 0.8,
+    "beta0": 1.2,
+    "evidenceHalfLifeDays": 120.0,
+    "sMin": 0.4,
+    "sMax": 3650.0,
+    "stabA": 0.9,
+    "stabB": 0.22,
+    "stabC": 0.9,
+    "lapseK": 2.6,
+    "lapseD": -0.28,
+    "lapseS": 0.44,
+    "lapseR": 0.36,
+    "dStep": 0.9,
+    "dRevert": 0.05,
+    "pPracticing": 0.4,
+    "pDeveloping": 0.55,
+    "pReliable": 0.75,
+    "pMastered": 0.85,
+    "retentionMinDays": 3.0,
+    "rCapReliable": 0.8,
+    "rCapDeveloping": 0.6,
+    "rCapPracticing": 0.35,
+    "rDefault": 0.9,
+    "rExamNear": 0.93,
+    "rExamImminent": 0.95,
+    "wFix": 0.55,
+    "wReview": 0.4,
+    "wTransfer": 0.25,
+    "wAssignment": 2.2,
+    "wDiagnostic": 0.5,
+    "wRest": 0.6,
+    "deadlineHorizonHours": 72.0,
+    "fatigueOnsetMinutes": 25.0,
+    "fatigueSpanMinutes": 45.0
+  },
+  "scenarios": [
+    {
+      "name": "masteryLadder",
+      "note": "unaided practice -> reliable -> transferable -> mastered",
+      "steps": [
+        {
+          "attempt": {
+            "conceptId": "cts",
+            "at": "2026-01-01T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "cts-s0",
+            "questionId": "cts-q0",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 1.8,
+            "beta": 1.2,
+            "difficulty": 4.55,
+            "stability": 2.064,
+            "lastReviewed": "2026-01-01T09:00:00Z",
+            "attempts": 1,
+            "independentCorrect": 1,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 1,
+            "pUnaided": 0.6,
+            "evidence": 1.0,
+            "freshState": "practicing"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "cts",
+            "at": "2026-01-02T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "cts-s1",
+            "questionId": "cts-q1",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 2.794240424,
+            "beta": 1.2,
+            "difficulty": 4.1225,
+            "stability": 3.464584336,
+            "lastReviewed": "2026-01-02T09:00:00Z",
+            "attempts": 2,
+            "independentCorrect": 2,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 2,
+            "pUnaided": 0.699567409,
+            "evidence": 1.994240424,
+            "freshState": "practicing"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "cts",
+            "at": "2026-01-03T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "cts-s2",
+            "questionId": "cts-q2",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 3.782754444,
+            "beta": 1.2,
+            "difficulty": 3.716375,
+            "stability": 4.803850812,
+            "lastReviewed": "2026-01-03T09:00:00Z",
+            "attempts": 3,
+            "independentCorrect": 3,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 3,
+            "pUnaided": 0.759169348,
+            "evidence": 2.982754444,
+            "freshState": "reliable"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "cts",
+            "at": "2026-01-04T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "cts-s3",
+            "questionId": "cts-q3",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 4.765575043,
+            "beta": 1.2,
+            "difficulty": 3.33055625,
+            "stability": 6.122636236,
+            "lastReviewed": "2026-01-04T09:00:00Z",
+            "attempts": 4,
+            "independentCorrect": 4,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 4,
+            "pUnaided": 0.79884588,
+            "evidence": 3.965575043,
+            "freshState": "reliable"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "cts",
+            "at": "2026-01-05T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "cts-s4",
+            "questionId": "cts-q4",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 5.742735011,
+            "beta": 1.2,
+            "difficulty": 2.964028437,
+            "stability": 7.436209487,
+            "lastReviewed": "2026-01-05T09:00:00Z",
+            "attempts": 5,
+            "independentCorrect": 5,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 5,
+            "pUnaided": 0.827157453,
+            "evidence": 4.942735011,
+            "freshState": "reliable"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "cts",
+            "at": "2026-01-06T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "cts-s5",
+            "questionId": "cts-q5",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 6.714266952,
+            "beta": 1.2,
+            "difficulty": 2.615827016,
+            "stability": 8.751637378,
+            "lastReviewed": "2026-01-06T09:00:00Z",
+            "attempts": 6,
+            "independentCorrect": 6,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 6,
+            "pUnaided": 0.848375092,
+            "evidence": 5.914266952,
+            "freshState": "reliable"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "cts",
+            "at": "2026-01-11T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "transfer",
+            "errorType": null,
+            "sessionId": "cts-t",
+            "questionId": "cts-qt",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 7.845899253,
+            "beta": 1.2,
+            "difficulty": 2.285035665,
+            "stability": 15.175990205,
+            "lastReviewed": "2026-01-11T09:00:00Z",
+            "attempts": 7,
+            "independentCorrect": 7,
+            "transferCorrect": 1,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 7,
+            "pUnaided": 0.867343205,
+            "evidence": 7.045899253,
+            "freshState": "transferable"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "cts",
+            "at": "2026-01-21T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "retrieval",
+            "errorType": null,
+            "sessionId": "cts-r",
+            "questionId": "cts-qr",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 8.600443314,
+            "beta": 1.2,
+            "difficulty": 1.970783882,
+            "stability": 26.90805503,
+            "lastReviewed": "2026-01-21T09:00:00Z",
+            "attempts": 8,
+            "independentCorrect": 8,
+            "transferCorrect": 1,
+            "retentionCorrect": 1,
+            "carelessSlips": 0,
+            "sessions": 8,
+            "pUnaided": 0.877556559,
+            "evidence": 7.800443314,
+            "freshState": "mastered"
+          }
+        }
+      ]
+    },
+    {
+      "name": "solutionDependency",
+      "note": "being shown the answer six times is not evidence of ability",
+      "steps": [
+        {
+          "attempt": {
+            "conceptId": "solv",
+            "at": "2026-01-01T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "solution",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "solv-s0",
+            "questionId": "solv-q0",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 0.8,
+            "beta": 1.2,
+            "difficulty": 4.55,
+            "stability": 2.064,
+            "lastReviewed": "2026-01-01T09:00:00Z",
+            "attempts": 1,
+            "independentCorrect": 0,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 1,
+            "pUnaided": 0.4,
+            "evidence": 0.0,
+            "freshState": "introduced"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "solv",
+            "at": "2026-01-02T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "solution",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "solv-s1",
+            "questionId": "solv-q1",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 0.8,
+            "beta": 1.2,
+            "difficulty": 4.1225,
+            "stability": 2.27408765,
+            "lastReviewed": "2026-01-02T09:00:00Z",
+            "attempts": 2,
+            "independentCorrect": 0,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 2,
+            "pUnaided": 0.4,
+            "evidence": 0.0,
+            "freshState": "introduced"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "solv",
+            "at": "2026-01-03T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "solution",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "solv-s2",
+            "questionId": "solv-q2",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 0.8,
+            "beta": 1.2,
+            "difficulty": 3.716375,
+            "stability": 2.492473586,
+            "lastReviewed": "2026-01-03T09:00:00Z",
+            "attempts": 3,
+            "independentCorrect": 0,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 3,
+            "pUnaided": 0.4,
+            "evidence": 0.0,
+            "freshState": "introduced"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "solv",
+            "at": "2026-01-04T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "solution",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "solv-s3",
+            "questionId": "solv-q3",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 0.8,
+            "beta": 1.2,
+            "difficulty": 3.33055625,
+            "stability": 2.718358539,
+            "lastReviewed": "2026-01-04T09:00:00Z",
+            "attempts": 4,
+            "independentCorrect": 0,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 4,
+            "pUnaided": 0.4,
+            "evidence": 0.0,
+            "freshState": "introduced"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "solv",
+            "at": "2026-01-05T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "solution",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "solv-s4",
+            "questionId": "solv-q4",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 0.8,
+            "beta": 1.2,
+            "difficulty": 2.964028437,
+            "stability": 2.951031538,
+            "lastReviewed": "2026-01-05T09:00:00Z",
+            "attempts": 5,
+            "independentCorrect": 0,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 5,
+            "pUnaided": 0.4,
+            "evidence": 0.0,
+            "freshState": "introduced"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "solv",
+            "at": "2026-01-06T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "solution",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "solv-s5",
+            "questionId": "solv-q5",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 0.8,
+            "beta": 1.2,
+            "difficulty": 2.615827016,
+            "stability": 3.189857401,
+            "lastReviewed": "2026-01-06T09:00:00Z",
+            "attempts": 6,
+            "independentCorrect": 0,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 6,
+            "pUnaided": 0.4,
+            "evidence": 0.0,
+            "freshState": "introduced"
+          }
+        }
+      ]
+    },
+    {
+      "name": "assistanceLadder",
+      "note": "help consumed is discounted, independence recovers",
+      "steps": [
+        {
+          "attempt": {
+            "conceptId": "hints",
+            "at": "2026-01-01T09:00:00Z",
+            "outcome": "incorrect",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "hints-s0",
+            "questionId": "hints-q0",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 0.8,
+            "beta": 2.2,
+            "difficulty": 5.45,
+            "stability": 0.444,
+            "lastReviewed": "2026-01-01T09:00:00Z",
+            "attempts": 1,
+            "independentCorrect": 0,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 1,
+            "pUnaided": 0.266666667,
+            "evidence": 1.0,
+            "freshState": "introduced"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "hints",
+            "at": "2026-01-02T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "hint",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "hints-s1",
+            "questionId": "hints-q1",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 1.5,
+            "beta": 2.494240424,
+            "difficulty": 4.9775,
+            "stability": 1.37527247,
+            "lastReviewed": "2026-01-02T09:00:00Z",
+            "attempts": 2,
+            "independentCorrect": 0,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 2,
+            "pUnaided": 0.375540739,
+            "evidence": 1.994240424,
+            "freshState": "introduced"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "hints",
+            "at": "2026-01-03T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "nudge",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "hints-s2",
+            "questionId": "hints-q2",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 2.345968297,
+            "beta": 2.636786147,
+            "difficulty": 4.528625,
+            "stability": 2.79552289,
+            "lastReviewed": "2026-01-03T09:00:00Z",
+            "attempts": 3,
+            "independentCorrect": 1,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 3,
+            "pUnaided": 0.470817561,
+            "evidence": 2.982754444,
+            "freshState": "practicing"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "hints",
+            "at": "2026-01-04T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "hints-s3",
+            "questionId": "hints-q3",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 3.337064174,
+            "beta": 2.628510868,
+            "difficulty": 4.10219375,
+            "stability": 4.11961751,
+            "lastReviewed": "2026-01-04T09:00:00Z",
+            "attempts": 4,
+            "independentCorrect": 2,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 4,
+            "pUnaided": 0.55938684,
+            "evidence": 3.965575043,
+            "freshState": "developing"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "hints",
+            "at": "2026-01-05T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "hints-s4",
+            "questionId": "hints-q4",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 4.32245176,
+            "beta": 2.620283251,
+            "difficulty": 3.697084062,
+            "stability": 5.415833204,
+            "lastReviewed": "2026-01-05T09:00:00Z",
+            "attempts": 5,
+            "independentCorrect": 3,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 5,
+            "pUnaided": 0.622586308,
+            "evidence": 4.942735011,
+            "freshState": "developing"
+          }
+        }
+      ],
+      "independence": 0.8875
+    },
+    {
+      "name": "carelessVsGap",
+      "note": "a slip must not cost mastery the way a knowledge gap does",
+      "careless": [
+        {
+          "attempt": {
+            "conceptId": "care",
+            "at": "2026-01-01T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "care-s0",
+            "questionId": "care-q0",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 1.8,
+            "beta": 1.2,
+            "difficulty": 4.55,
+            "stability": 2.064,
+            "lastReviewed": "2026-01-01T09:00:00Z",
+            "attempts": 1,
+            "independentCorrect": 1,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 1,
+            "pUnaided": 0.6,
+            "evidence": 1.0,
+            "freshState": "practicing"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "care",
+            "at": "2026-01-02T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "care-s1",
+            "questionId": "care-q1",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 2.794240424,
+            "beta": 1.2,
+            "difficulty": 4.1225,
+            "stability": 3.464584336,
+            "lastReviewed": "2026-01-02T09:00:00Z",
+            "attempts": 2,
+            "independentCorrect": 2,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 2,
+            "pUnaided": 0.699567409,
+            "evidence": 1.994240424,
+            "freshState": "practicing"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "care",
+            "at": "2026-01-03T09:00:00Z",
+            "outcome": "incorrect",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": "careless",
+            "sessionId": "care-s2",
+            "questionId": "care-q2",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 2.794240424,
+            "beta": 1.2,
+            "difficulty": 4.616375,
+            "stability": 4.168852468,
+            "lastReviewed": "2026-01-03T09:00:00Z",
+            "attempts": 3,
+            "independentCorrect": 2,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 1,
+            "sessions": 3,
+            "pUnaided": 0.699567409,
+            "evidence": 1.994240424,
+            "freshState": "developing"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "care",
+            "at": "2026-01-04T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "care-s3",
+            "questionId": "care-q3",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 3.782754444,
+            "beta": 1.2,
+            "difficulty": 4.18555625,
+            "stability": 5.37542023,
+            "lastReviewed": "2026-01-04T09:00:00Z",
+            "attempts": 4,
+            "independentCorrect": 3,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 1,
+            "sessions": 4,
+            "pUnaided": 0.759169348,
+            "evidence": 2.982754444,
+            "freshState": "reliable"
+          }
+        }
+      ],
+      "knowledgeGap": [
+        {
+          "attempt": {
+            "conceptId": "gap",
+            "at": "2026-01-01T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "gap-s0",
+            "questionId": "gap-q0",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 1.8,
+            "beta": 1.2,
+            "difficulty": 4.55,
+            "stability": 2.064,
+            "lastReviewed": "2026-01-01T09:00:00Z",
+            "attempts": 1,
+            "independentCorrect": 1,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 1,
+            "pUnaided": 0.6,
+            "evidence": 1.0,
+            "freshState": "practicing"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "gap",
+            "at": "2026-01-02T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "gap-s1",
+            "questionId": "gap-q1",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 2.794240424,
+            "beta": 1.2,
+            "difficulty": 4.1225,
+            "stability": 3.464584336,
+            "lastReviewed": "2026-01-02T09:00:00Z",
+            "attempts": 2,
+            "independentCorrect": 2,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 2,
+            "pUnaided": 0.699567409,
+            "evidence": 1.994240424,
+            "freshState": "practicing"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "gap",
+            "at": "2026-01-03T09:00:00Z",
+            "outcome": "incorrect",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": "knowledgeGap",
+            "sessionId": "gap-s2",
+            "questionId": "gap-q2",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 2.782754444,
+            "beta": 2.2,
+            "difficulty": 4.616375,
+            "stability": 2.959878199,
+            "lastReviewed": "2026-01-03T09:00:00Z",
+            "attempts": 3,
+            "independentCorrect": 2,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 3,
+            "pUnaided": 0.558477139,
+            "evidence": 2.982754444,
+            "freshState": "developing"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "gap",
+            "at": "2026-01-04T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "gap-s3",
+            "questionId": "gap-q3",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 3.771334619,
+            "beta": 2.194240424,
+            "difficulty": 4.18555625,
+            "stability": 4.253182863,
+            "lastReviewed": "2026-01-04T09:00:00Z",
+            "attempts": 4,
+            "independentCorrect": 3,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 4,
+            "pUnaided": 0.632182915,
+            "evidence": 3.965575043,
+            "freshState": "developing"
+          }
+        }
+      ]
+    },
+    {
+      "name": "unreadableIsNotEvidence",
+      "note": "handwriting we could not read changes nothing but the count",
+      "steps": [
+        {
+          "attempt": {
+            "conceptId": "read",
+            "at": "2026-01-01T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "read-s0",
+            "questionId": "read-q0",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 1.8,
+            "beta": 1.2,
+            "difficulty": 4.55,
+            "stability": 2.064,
+            "lastReviewed": "2026-01-01T09:00:00Z",
+            "attempts": 1,
+            "independentCorrect": 1,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 1,
+            "pUnaided": 0.6,
+            "evidence": 1.0,
+            "freshState": "practicing"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "read",
+            "at": "2026-01-02T09:00:00Z",
+            "outcome": "incorrect",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": "unreadable",
+            "sessionId": "read-s1",
+            "questionId": "read-q1",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 1.8,
+            "beta": 1.2,
+            "difficulty": 4.55,
+            "stability": 2.064,
+            "lastReviewed": "2026-01-01T09:00:00Z",
+            "attempts": 2,
+            "independentCorrect": 1,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 2,
+            "pUnaided": 0.6,
+            "evidence": 1.0,
+            "freshState": "practicing"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "read",
+            "at": "2026-01-03T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "read-s2",
+            "questionId": "read-q2",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 2.78851402,
+            "beta": 1.2,
+            "difficulty": 4.1225,
+            "stability": 4.785544146,
+            "lastReviewed": "2026-01-03T09:00:00Z",
+            "attempts": 3,
+            "independentCorrect": 2,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 3,
+            "pUnaided": 0.699136071,
+            "evidence": 1.98851402,
+            "freshState": "developing"
+          }
+        }
+      ]
+    },
+    {
+      "name": "forgetting",
+      "note": "mastered is not a trophy; it expires without review",
+      "finalState": {
+        "alpha": 6.970404649,
+        "beta": 1.2,
+        "difficulty": 2.615827016,
+        "stability": 17.17800291,
+        "lastReviewed": "2026-01-13T09:00:00Z",
+        "attempts": 6,
+        "independentCorrect": 6,
+        "transferCorrect": 1,
+        "retentionCorrect": 1,
+        "carelessSlips": 0,
+        "sessions": 6,
+        "pUnaided": 0.853128449,
+        "evidence": 6.170404649,
+        "freshState": "mastered"
+      },
+      "curve": [
+        {
+          "days": 0,
+          "retrievability": 1.0,
+          "effectiveState": "mastered"
+        },
+        {
+          "days": 1,
+          "retrievability": 0.993573348,
+          "effectiveState": "mastered"
+        },
+        {
+          "days": 3,
+          "retrievability": 0.980964712,
+          "effectiveState": "mastered"
+        },
+        {
+          "days": 7,
+          "retrievability": 0.956683711,
+          "effectiveState": "mastered"
+        },
+        {
+          "days": 14,
+          "retrievability": 0.916964224,
+          "effectiveState": "mastered"
+        },
+        {
+          "days": 30,
+          "retrievability": 0.837488241,
+          "effectiveState": "mastered"
+        },
+        {
+          "days": 60,
+          "retrievability": 0.720412705,
+          "effectiveState": "reliable"
+        },
+        {
+          "days": 120,
+          "retrievability": 0.563003953,
+          "effectiveState": "developing"
+        },
+        {
+          "days": 365,
+          "retrievability": 0.297539306,
+          "effectiveState": "practicing"
+        }
+      ]
+    },
+    {
+      "name": "lapseAndRecovery",
+      "note": "a lapse costs stability but does not reset it to zero",
+      "steps": [
+        {
+          "attempt": {
+            "conceptId": "lapse",
+            "at": "2026-01-01T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "lapse-s0",
+            "questionId": "lapse-q0",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 1.8,
+            "beta": 1.2,
+            "difficulty": 4.55,
+            "stability": 2.064,
+            "lastReviewed": "2026-01-01T09:00:00Z",
+            "attempts": 1,
+            "independentCorrect": 1,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 1,
+            "pUnaided": 0.6,
+            "evidence": 1.0,
+            "freshState": "practicing"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "lapse",
+            "at": "2026-01-02T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "lapse-s1",
+            "questionId": "lapse-q1",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 2.794240424,
+            "beta": 1.2,
+            "difficulty": 4.1225,
+            "stability": 3.464584336,
+            "lastReviewed": "2026-01-02T09:00:00Z",
+            "attempts": 2,
+            "independentCorrect": 2,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 2,
+            "pUnaided": 0.699567409,
+            "evidence": 1.994240424,
+            "freshState": "practicing"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "lapse",
+            "at": "2026-01-03T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "lapse-s2",
+            "questionId": "lapse-q2",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 3.782754444,
+            "beta": 1.2,
+            "difficulty": 3.716375,
+            "stability": 4.803850812,
+            "lastReviewed": "2026-01-03T09:00:00Z",
+            "attempts": 3,
+            "independentCorrect": 3,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 3,
+            "pUnaided": 0.759169348,
+            "evidence": 2.982754444,
+            "freshState": "reliable"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "lapse",
+            "at": "2026-01-04T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "lapse-s3",
+            "questionId": "lapse-q3",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 4.765575043,
+            "beta": 1.2,
+            "difficulty": 3.33055625,
+            "stability": 6.122636236,
+            "lastReviewed": "2026-01-04T09:00:00Z",
+            "attempts": 4,
+            "independentCorrect": 4,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 4,
+            "pUnaided": 0.79884588,
+            "evidence": 3.965575043,
+            "freshState": "reliable"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "lapse",
+            "at": "2026-02-10T09:00:00Z",
+            "outcome": "incorrect",
+            "assistance": "none",
+            "kind": "retrieval",
+            "errorType": "knowledgeGap",
+            "sessionId": "l-x",
+            "questionId": "",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 4.002495961,
+            "beta": 2.35,
+            "difficulty": 3.864028437,
+            "stability": 4.567330684,
+            "lastReviewed": "2026-02-10T09:00:00Z",
+            "attempts": 5,
+            "independentCorrect": 4,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 5,
+            "pUnaided": 0.630066668,
+            "evidence": 4.352495961,
+            "freshState": "developing"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "lapse",
+            "at": "2026-02-11T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "hint",
+            "kind": "practice",
+            "errorType": null,
+            "sessionId": "l-y",
+            "questionId": "",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 4.684050942,
+            "beta": 2.643376487,
+            "difficulty": 3.470827016,
+            "stability": 5.352292906,
+            "lastReviewed": "2026-02-11T09:00:00Z",
+            "attempts": 6,
+            "independentCorrect": 4,
+            "transferCorrect": 0,
+            "retentionCorrect": 0,
+            "carelessSlips": 0,
+            "sessions": 6,
+            "pUnaided": 0.639249039,
+            "evidence": 5.327427429,
+            "freshState": "developing"
+          }
+        },
+        {
+          "attempt": {
+            "conceptId": "lapse",
+            "at": "2026-02-14T09:00:00Z",
+            "outcome": "correct",
+            "assistance": "none",
+            "kind": "retrieval",
+            "errorType": null,
+            "sessionId": "l-z",
+            "questionId": "",
+            "confidence": null,
+            "secondsSpent": null
+          },
+          "state": {
+            "alpha": 5.767325271,
+            "beta": 2.618580143,
+            "difficulty": 3.097285665,
+            "stability": 9.249499599,
+            "lastReviewed": "2026-02-14T09:00:00Z",
+            "attempts": 7,
+            "independentCorrect": 5,
+            "transferCorrect": 0,
+            "retentionCorrect": 1,
+            "carelessSlips": 0,
+            "sessions": 7,
+            "pUnaided": 0.68774032,
+            "evidence": 6.385905414,
+            "freshState": "developing"
+          }
+        }
+      ]
+    },
+    {
+      "name": "scheduling",
+      "intervals": [
+        {
+          "stability": 0.4,
+          "context": "default",
+          "targetRetention": 0.9,
+          "intervalDays": 0.4
+        },
+        {
+          "stability": 0.4,
+          "context": "examIn10",
+          "targetRetention": 0.93,
+          "intervalDays": 0.270967742
+        },
+        {
+          "stability": 0.4,
+          "context": "examIn3",
+          "targetRetention": 0.95,
+          "intervalDays": 0.189473684
+        },
+        {
+          "stability": 0.4,
+          "context": "prerequisite",
+          "targetRetention": 0.93,
+          "intervalDays": 0.270967742
+        },
+        {
+          "stability": 0.4,
+          "context": "lowPriority",
+          "targetRetention": 0.85,
+          "intervalDays": 0.635294118
+        },
+        {
+          "stability": 1.0,
+          "context": "default",
+          "targetRetention": 0.9,
+          "intervalDays": 1.0
+        },
+        {
+          "stability": 1.0,
+          "context": "examIn10",
+          "targetRetention": 0.93,
+          "intervalDays": 0.677419355
+        },
+        {
+          "stability": 1.0,
+          "context": "examIn3",
+          "targetRetention": 0.95,
+          "intervalDays": 0.473684211
+        },
+        {
+          "stability": 1.0,
+          "context": "prerequisite",
+          "targetRetention": 0.93,
+          "intervalDays": 0.677419355
+        },
+        {
+          "stability": 1.0,
+          "context": "lowPriority",
+          "targetRetention": 0.85,
+          "intervalDays": 1.588235294
+        },
+        {
+          "stability": 3.0,
+          "context": "default",
+          "targetRetention": 0.9,
+          "intervalDays": 3.0
+        },
+        {
+          "stability": 3.0,
+          "context": "examIn10",
+          "targetRetention": 0.93,
+          "intervalDays": 2.032258065
+        },
+        {
+          "stability": 3.0,
+          "context": "examIn3",
+          "targetRetention": 0.95,
+          "intervalDays": 1.421052632
+        },
+        {
+          "stability": 3.0,
+          "context": "prerequisite",
+          "targetRetention": 0.93,
+          "intervalDays": 2.032258065
+        },
+        {
+          "stability": 3.0,
+          "context": "lowPriority",
+          "targetRetention": 0.85,
+          "intervalDays": 4.764705882
+        },
+        {
+          "stability": 8.75,
+          "context": "default",
+          "targetRetention": 0.9,
+          "intervalDays": 8.75
+        },
+        {
+          "stability": 8.75,
+          "context": "examIn10",
+          "targetRetention": 0.93,
+          "intervalDays": 5.927419355
+        },
+        {
+          "stability": 8.75,
+          "context": "examIn3",
+          "targetRetention": 0.95,
+          "intervalDays": 4.144736842
+        },
+        {
+          "stability": 8.75,
+          "context": "prerequisite",
+          "targetRetention": 0.93,
+          "intervalDays": 5.927419355
+        },
+        {
+          "stability": 8.75,
+          "context": "lowPriority",
+          "targetRetention": 0.85,
+          "intervalDays": 13.897058824
+        },
+        {
+          "stability": 30.0,
+          "context": "default",
+          "targetRetention": 0.9,
+          "intervalDays": 30.0
+        },
+        {
+          "stability": 30.0,
+          "context": "examIn10",
+          "targetRetention": 0.93,
+          "intervalDays": 20.322580645
+        },
+        {
+          "stability": 30.0,
+          "context": "examIn3",
+          "targetRetention": 0.95,
+          "intervalDays": 14.210526316
+        },
+        {
+          "stability": 30.0,
+          "context": "prerequisite",
+          "targetRetention": 0.93,
+          "intervalDays": 20.322580645
+        },
+        {
+          "stability": 30.0,
+          "context": "lowPriority",
+          "targetRetention": 0.85,
+          "intervalDays": 47.647058824
+        },
+        {
+          "stability": 120.0,
+          "context": "default",
+          "targetRetention": 0.9,
+          "intervalDays": 120.0
+        },
+        {
+          "stability": 120.0,
+          "context": "examIn10",
+          "targetRetention": 0.93,
+          "intervalDays": 81.290322581
+        },
+        {
+          "stability": 120.0,
+          "context": "examIn3",
+          "targetRetention": 0.95,
+          "intervalDays": 56.842105263
+        },
+        {
+          "stability": 120.0,
+          "context": "prerequisite",
+          "targetRetention": 0.93,
+          "intervalDays": 81.290322581
+        },
+        {
+          "stability": 120.0,
+          "context": "lowPriority",
+          "targetRetention": 0.85,
+          "intervalDays": 190.588235294
+        }
+      ],
+      "retrievability": [
+        {
+          "stability": 1.0,
+          "days": 0,
+          "retrievability": 1.0
+        },
+        {
+          "stability": 1.0,
+          "days": 1,
+          "retrievability": 0.9
+        },
+        {
+          "stability": 1.0,
+          "days": 7,
+          "retrievability": 0.5625
+        },
+        {
+          "stability": 1.0,
+          "days": 30,
+          "retrievability": 0.230769231
+        },
+        {
+          "stability": 1.0,
+          "days": 90,
+          "retrievability": 0.090909091
+        },
+        {
+          "stability": 8.75,
+          "days": 0,
+          "retrievability": 1.0
+        },
+        {
+          "stability": 8.75,
+          "days": 1,
+          "retrievability": 0.987460815
+        },
+        {
+          "stability": 8.75,
+          "days": 7,
+          "retrievability": 0.918367347
+        },
+        {
+          "stability": 8.75,
+          "days": 30,
+          "retrievability": 0.724137931
+        },
+        {
+          "stability": 8.75,
+          "days": 90,
+          "retrievability": 0.466666667
+        },
+        {
+          "stability": 60.0,
+          "days": 0,
+          "retrievability": 1.0
+        },
+        {
+          "stability": 60.0,
+          "days": 1,
+          "retrievability": 0.998151571
+        },
+        {
+          "stability": 60.0,
+          "days": 7,
+          "retrievability": 0.987202925
+        },
+        {
+          "stability": 60.0,
+          "days": 30,
+          "retrievability": 0.947368421
+        },
+        {
+          "stability": 60.0,
+          "days": 90,
+          "retrievability": 0.857142857
+        }
+      ]
+    },
+    {
+      "name": "misconceptionPatterns",
+      "now": "2026-01-31T09:00:00Z",
+      "attempts": [
+        {
+          "conceptId": "topic0",
+          "at": "2026-01-31T09:00:00Z",
+          "outcome": "incorrect",
+          "assistance": "none",
+          "kind": "practice",
+          "errorType": "calculation",
+          "sessionId": "s0",
+          "questionId": "q0",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "topic1",
+          "at": "2026-01-29T09:00:00Z",
+          "outcome": "incorrect",
+          "assistance": "none",
+          "kind": "practice",
+          "errorType": "calculation",
+          "sessionId": "s1",
+          "questionId": "q1",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "topic2",
+          "at": "2026-01-27T09:00:00Z",
+          "outcome": "incorrect",
+          "assistance": "none",
+          "kind": "practice",
+          "errorType": "calculation",
+          "sessionId": "s2",
+          "questionId": "q2",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "topic0",
+          "at": "2026-01-25T09:00:00Z",
+          "outcome": "incorrect",
+          "assistance": "none",
+          "kind": "practice",
+          "errorType": "calculation",
+          "sessionId": "s3",
+          "questionId": "q3",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "topic0",
+          "at": "2026-01-30T09:00:00Z",
+          "outcome": "incorrect",
+          "assistance": "none",
+          "kind": "practice",
+          "errorType": "misconception",
+          "sessionId": "s0",
+          "questionId": "m0",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "topic0",
+          "at": "2026-01-29T09:00:00Z",
+          "outcome": "incorrect",
+          "assistance": "none",
+          "kind": "practice",
+          "errorType": "misconception",
+          "sessionId": "s1",
+          "questionId": "m1",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "topic0",
+          "at": "2026-01-28T09:00:00Z",
+          "outcome": "incorrect",
+          "assistance": "none",
+          "kind": "practice",
+          "errorType": "misconception",
+          "sessionId": "s2",
+          "questionId": "m2",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "topic1",
+          "at": "2026-01-30T09:00:00Z",
+          "outcome": "incorrect",
+          "assistance": "none",
+          "kind": "practice",
+          "errorType": "reading",
+          "sessionId": "",
+          "questionId": "r0",
+          "confidence": null,
+          "secondsSpent": null
+        }
+      ],
+      "patterns": [
+        {
+          "errorType": "calculation",
+          "occurrences": 4,
+          "distinctConcepts": 3,
+          "distinctQuestions": 4,
+          "conceptIds": [
+            "topic0",
+            "topic1",
+            "topic2"
+          ],
+          "lastSeen": "2026-01-31T09:00:00+00:00",
+          "strength": 24.034326127
+        },
+        {
+          "errorType": "misconception",
+          "occurrences": 3,
+          "distinctConcepts": 1,
+          "distinctQuestions": 3,
+          "conceptIds": [
+            "topic0"
+          ],
+          "lastSeen": "2026-01-30T09:00:00+00:00",
+          "strength": 8.158174916
+        }
+      ],
+      "headlines": [
+        "4 arithmetic slips across 3 topics.",
+        "3 the same misunderstanding in this topic."
+      ]
+    },
+    {
+      "name": "expectedInformationGain",
+      "priorEntropyBits": 2.0,
+      "ranked": [
+        {
+          "questionId": "splitFormula",
+          "eig": 0.788769983,
+          "eigPerMinute": 0.525846655
+        },
+        {
+          "questionId": "signProbe",
+          "eig": 0.386339447,
+          "eigPerMinute": 0.386339447
+        },
+        {
+          "questionId": "slowButSharp",
+          "eig": 0.529483408,
+          "eigPerMinute": 0.088247235
+        },
+        {
+          "questionId": "uninformative",
+          "eig": 0.0,
+          "eigPerMinute": 0.0
+        }
+      ],
+      "adaptiveRun": {
+        "asked": [
+          "splitFormula",
+          "signProbe"
+        ],
+        "transcript": [
+          {
+            "questionId": "splitFormula",
+            "response": "signError"
+          },
+          {
+            "questionId": "signProbe",
+            "response": "signError"
+          }
+        ],
+        "posterior": {
+          "formula": 0.009686168,
+          "none": 0.00232468,
+          "rearrange": 0.058117009,
+          "sign": 0.929872143
+        },
+        "leading": "sign",
+        "leadingProbability": 0.929872143,
+        "remainingBits": 0.421241028
+      }
+    },
+    {
+      "name": "nextBestAction",
+      "now": "2026-01-31T09:00:00Z",
+      "attempts": [
+        {
+          "conceptId": "cts",
+          "at": "2026-01-28T09:00:00Z",
+          "outcome": "incorrect",
+          "assistance": "hint",
+          "kind": "practice",
+          "errorType": null,
+          "sessionId": "cts-s0",
+          "questionId": "cts-q0",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "cts",
+          "at": "2026-01-29T09:00:00Z",
+          "outcome": "incorrect",
+          "assistance": "hint",
+          "kind": "practice",
+          "errorType": "misconception",
+          "sessionId": "cts-s1",
+          "questionId": "cts-q1",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "cts",
+          "at": "2026-01-30T09:00:00Z",
+          "outcome": "partial",
+          "assistance": "guided",
+          "kind": "practice",
+          "errorType": null,
+          "sessionId": "cts-s2",
+          "questionId": "cts-q2",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "fact",
+          "at": "2026-01-01T09:00:00Z",
+          "outcome": "correct",
+          "assistance": "none",
+          "kind": "practice",
+          "errorType": null,
+          "sessionId": "fact-s0",
+          "questionId": "fact-q0",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "fact",
+          "at": "2026-01-02T09:00:00Z",
+          "outcome": "correct",
+          "assistance": "none",
+          "kind": "practice",
+          "errorType": null,
+          "sessionId": "fact-s1",
+          "questionId": "fact-q1",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "fact",
+          "at": "2026-01-03T09:00:00Z",
+          "outcome": "correct",
+          "assistance": "none",
+          "kind": "practice",
+          "errorType": null,
+          "sessionId": "fact-s2",
+          "questionId": "fact-q2",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "fact",
+          "at": "2026-01-04T09:00:00Z",
+          "outcome": "correct",
+          "assistance": "none",
+          "kind": "practice",
+          "errorType": null,
+          "sessionId": "fact-s3",
+          "questionId": "fact-q3",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "graphs",
+          "at": "2026-01-26T09:00:00Z",
+          "outcome": "correct",
+          "assistance": "none",
+          "kind": "practice",
+          "errorType": null,
+          "sessionId": "graphs-s0",
+          "questionId": "graphs-q0",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "graphs",
+          "at": "2026-01-27T09:00:00Z",
+          "outcome": "correct",
+          "assistance": "none",
+          "kind": "practice",
+          "errorType": null,
+          "sessionId": "graphs-s1",
+          "questionId": "graphs-q1",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "graphs",
+          "at": "2026-01-28T09:00:00Z",
+          "outcome": "correct",
+          "assistance": "none",
+          "kind": "practice",
+          "errorType": null,
+          "sessionId": "graphs-s2",
+          "questionId": "graphs-q2",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "graphs",
+          "at": "2026-01-29T09:00:00Z",
+          "outcome": "correct",
+          "assistance": "none",
+          "kind": "practice",
+          "errorType": null,
+          "sessionId": "graphs-s3",
+          "questionId": "graphs-q3",
+          "confidence": null,
+          "secondsSpent": null
+        },
+        {
+          "conceptId": "graphs",
+          "at": "2026-01-30T09:00:00Z",
+          "outcome": "correct",
+          "assistance": "none",
+          "kind": "practice",
+          "errorType": null,
+          "sessionId": "graphs-s4",
+          "questionId": "graphs-q4",
+          "confidence": null,
+          "secondsSpent": null
+        }
+      ],
+      "cases": [
+        {
+          "case": "dueTomorrow",
+          "recommendations": [
+            {
+              "kind": "finishAssignment",
+              "title": "Continue: Physics worksheet",
+              "reason": "6 of 18 questions left.",
+              "minutes": 10.0,
+              "value": 1.350295908,
+              "score": 0.135029591,
+              "conceptIds": [
+                "graphs"
+              ],
+              "assignmentId": "a1"
+            },
+            {
+              "kind": "fixWeakness",
+              "title": "Fix: Completing the square",
+              "reason": "You are at 21% unaided on this.",
+              "minutes": 8.0,
+              "value": 0.775954195,
+              "score": 0.096994274,
+              "conceptIds": [
+                "cts"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "transferProbe",
+              "title": "Try a different angle: Factorising",
+              "reason": "You can do the standard version. This checks you understand it.",
+              "minutes": 4.0,
+              "value": 0.3125,
+              "score": 0.078125,
+              "conceptIds": [
+                "fact"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "transferProbe",
+              "title": "Try a different angle: Quadratic graphs",
+              "reason": "You can do the standard version. This checks you understand it.",
+              "minutes": 4.0,
+              "value": 0.2921875,
+              "score": 0.073046875,
+              "conceptIds": [
+                "graphs"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "retrievalReview",
+              "title": "Recall: Factorising",
+              "reason": "Review 20 days overdue; recall is at 67%.",
+              "minutes": 2.5,
+              "value": 0.131351156,
+              "score": 0.052540463,
+              "conceptIds": [
+                "fact"
+              ],
+              "assignmentId": null
+            }
+          ],
+          "plan": [
+            {
+              "kind": "finishAssignment",
+              "title": "Continue: Physics worksheet",
+              "reason": "6 of 18 questions left.",
+              "minutes": 10.0,
+              "value": 1.350295908,
+              "score": 0.135029591,
+              "conceptIds": [
+                "graphs"
+              ],
+              "assignmentId": "a1"
+            },
+            {
+              "kind": "fixWeakness",
+              "title": "Fix: Completing the square",
+              "reason": "You are at 21% unaided on this.",
+              "minutes": 8.0,
+              "value": 0.775954195,
+              "score": 0.096994274,
+              "conceptIds": [
+                "cts"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "transferProbe",
+              "title": "Try a different angle: Factorising",
+              "reason": "You can do the standard version. This checks you understand it.",
+              "minutes": 4.0,
+              "value": 0.3125,
+              "score": 0.078125,
+              "conceptIds": [
+                "fact"
+              ],
+              "assignmentId": null
+            }
+          ],
+          "planMinutes": 22.0
+        },
+        {
+          "case": "dueInFiveDays",
+          "recommendations": [
+            {
+              "kind": "fixWeakness",
+              "title": "Fix: Completing the square",
+              "reason": "You are at 21% unaided on this.",
+              "minutes": 8.0,
+              "value": 0.775954195,
+              "score": 0.096994274,
+              "conceptIds": [
+                "cts"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "transferProbe",
+              "title": "Try a different angle: Factorising",
+              "reason": "You can do the standard version. This checks you understand it.",
+              "minutes": 4.0,
+              "value": 0.3125,
+              "score": 0.078125,
+              "conceptIds": [
+                "fact"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "transferProbe",
+              "title": "Try a different angle: Quadratic graphs",
+              "reason": "You can do the standard version. This checks you understand it.",
+              "minutes": 4.0,
+              "value": 0.2921875,
+              "score": 0.073046875,
+              "conceptIds": [
+                "graphs"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "retrievalReview",
+              "title": "Recall: Factorising",
+              "reason": "Review 20 days overdue; recall is at 67%.",
+              "minutes": 2.5,
+              "value": 0.131351156,
+              "score": 0.052540463,
+              "conceptIds": [
+                "fact"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "finishAssignment",
+              "title": "Continue: Physics worksheet",
+              "reason": "6 of 18 questions left.",
+              "minutes": 10.0,
+              "value": 0.33,
+              "score": 0.033,
+              "conceptIds": [
+                "graphs"
+              ],
+              "assignmentId": "a1"
+            }
+          ],
+          "plan": [
+            {
+              "kind": "fixWeakness",
+              "title": "Fix: Completing the square",
+              "reason": "You are at 21% unaided on this.",
+              "minutes": 8.0,
+              "value": 0.775954195,
+              "score": 0.096994274,
+              "conceptIds": [
+                "cts"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "transferProbe",
+              "title": "Try a different angle: Factorising",
+              "reason": "You can do the standard version. This checks you understand it.",
+              "minutes": 4.0,
+              "value": 0.3125,
+              "score": 0.078125,
+              "conceptIds": [
+                "fact"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "transferProbe",
+              "title": "Try a different angle: Quadratic graphs",
+              "reason": "You can do the standard version. This checks you understand it.",
+              "minutes": 4.0,
+              "value": 0.2921875,
+              "score": 0.073046875,
+              "conceptIds": [
+                "graphs"
+              ],
+              "assignmentId": null
+            }
+          ],
+          "planMinutes": 16.0
+        },
+        {
+          "case": "tired",
+          "recommendations": [
+            {
+              "kind": "finishAssignment",
+              "title": "Continue: Physics worksheet",
+              "reason": "6 of 18 questions left.",
+              "minutes": 10.0,
+              "value": 1.350295908,
+              "score": 0.135029591,
+              "conceptIds": [
+                "graphs"
+              ],
+              "assignmentId": "a1"
+            },
+            {
+              "kind": "rest",
+              "title": "Take five minutes",
+              "reason": "You have been working for 70 minutes.",
+              "minutes": 5.0,
+              "value": 0.6,
+              "score": 0.12,
+              "conceptIds": [],
+              "assignmentId": null
+            },
+            {
+              "kind": "fixWeakness",
+              "title": "Fix: Completing the square",
+              "reason": "You are at 21% unaided on this.",
+              "minutes": 8.0,
+              "value": 0.775954195,
+              "score": 0.096994274,
+              "conceptIds": [
+                "cts"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "transferProbe",
+              "title": "Try a different angle: Factorising",
+              "reason": "You can do the standard version. This checks you understand it.",
+              "minutes": 4.0,
+              "value": 0.3125,
+              "score": 0.078125,
+              "conceptIds": [
+                "fact"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "transferProbe",
+              "title": "Try a different angle: Quadratic graphs",
+              "reason": "You can do the standard version. This checks you understand it.",
+              "minutes": 4.0,
+              "value": 0.2921875,
+              "score": 0.073046875,
+              "conceptIds": [
+                "graphs"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "retrievalReview",
+              "title": "Recall: Factorising",
+              "reason": "Review 20 days overdue; recall is at 67%.",
+              "minutes": 2.5,
+              "value": 0.131351156,
+              "score": 0.052540463,
+              "conceptIds": [
+                "fact"
+              ],
+              "assignmentId": null
+            }
+          ],
+          "plan": [
+            {
+              "kind": "finishAssignment",
+              "title": "Continue: Physics worksheet",
+              "reason": "6 of 18 questions left.",
+              "minutes": 10.0,
+              "value": 1.350295908,
+              "score": 0.135029591,
+              "conceptIds": [
+                "graphs"
+              ],
+              "assignmentId": "a1"
+            },
+            {
+              "kind": "rest",
+              "title": "Take five minutes",
+              "reason": "You have been working for 70 minutes.",
+              "minutes": 5.0,
+              "value": 0.6,
+              "score": 0.12,
+              "conceptIds": [],
+              "assignmentId": null
+            },
+            {
+              "kind": "fixWeakness",
+              "title": "Fix: Completing the square",
+              "reason": "You are at 21% unaided on this.",
+              "minutes": 8.0,
+              "value": 0.775954195,
+              "score": 0.096994274,
+              "conceptIds": [
+                "cts"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "transferProbe",
+              "title": "Try a different angle: Factorising",
+              "reason": "You can do the standard version. This checks you understand it.",
+              "minutes": 4.0,
+              "value": 0.3125,
+              "score": 0.078125,
+              "conceptIds": [
+                "fact"
+              ],
+              "assignmentId": null
+            }
+          ],
+          "planMinutes": 27.0
+        },
+        {
+          "case": "uncertainModel",
+          "recommendations": [
+            {
+              "kind": "fixWeakness",
+              "title": "Fix: Completing the square",
+              "reason": "You are at 21% unaided on this.",
+              "minutes": 8.0,
+              "value": 0.775954195,
+              "score": 0.096994274,
+              "conceptIds": [
+                "cts"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "transferProbe",
+              "title": "Try a different angle: Factorising",
+              "reason": "You can do the standard version. This checks you understand it.",
+              "minutes": 4.0,
+              "value": 0.3125,
+              "score": 0.078125,
+              "conceptIds": [
+                "fact"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "diagnostic",
+              "title": "Six quick questions",
+              "reason": "Your recent work does not say clearly where the problem is.",
+              "minutes": 6.0,
+              "value": 0.45,
+              "score": 0.075,
+              "conceptIds": [],
+              "assignmentId": null
+            },
+            {
+              "kind": "transferProbe",
+              "title": "Try a different angle: Quadratic graphs",
+              "reason": "You can do the standard version. This checks you understand it.",
+              "minutes": 4.0,
+              "value": 0.2921875,
+              "score": 0.073046875,
+              "conceptIds": [
+                "graphs"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "retrievalReview",
+              "title": "Recall: Factorising",
+              "reason": "Review 20 days overdue; recall is at 67%.",
+              "minutes": 2.5,
+              "value": 0.131351156,
+              "score": 0.052540463,
+              "conceptIds": [
+                "fact"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "finishAssignment",
+              "title": "Continue: Physics worksheet",
+              "reason": "6 of 18 questions left.",
+              "minutes": 10.0,
+              "value": 0.33,
+              "score": 0.033,
+              "conceptIds": [
+                "graphs"
+              ],
+              "assignmentId": "a1"
+            }
+          ],
+          "plan": [
+            {
+              "kind": "fixWeakness",
+              "title": "Fix: Completing the square",
+              "reason": "You are at 21% unaided on this.",
+              "minutes": 8.0,
+              "value": 0.775954195,
+              "score": 0.096994274,
+              "conceptIds": [
+                "cts"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "transferProbe",
+              "title": "Try a different angle: Factorising",
+              "reason": "You can do the standard version. This checks you understand it.",
+              "minutes": 4.0,
+              "value": 0.3125,
+              "score": 0.078125,
+              "conceptIds": [
+                "fact"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "diagnostic",
+              "title": "Six quick questions",
+              "reason": "Your recent work does not say clearly where the problem is.",
+              "minutes": 6.0,
+              "value": 0.45,
+              "score": 0.075,
+              "conceptIds": [],
+              "assignmentId": null
+            },
+            {
+              "kind": "transferProbe",
+              "title": "Try a different angle: Quadratic graphs",
+              "reason": "You can do the standard version. This checks you understand it.",
+              "minutes": 4.0,
+              "value": 0.2921875,
+              "score": 0.073046875,
+              "conceptIds": [
+                "graphs"
+              ],
+              "assignmentId": null
+            }
+          ],
+          "planMinutes": 22.0
+        },
+        {
+          "case": "tenMinutesOnly",
+          "recommendations": [
+            {
+              "kind": "fixWeakness",
+              "title": "Fix: Completing the square",
+              "reason": "You are at 21% unaided on this.",
+              "minutes": 8.0,
+              "value": 0.775954195,
+              "score": 0.096994274,
+              "conceptIds": [
+                "cts"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "transferProbe",
+              "title": "Try a different angle: Factorising",
+              "reason": "You can do the standard version. This checks you understand it.",
+              "minutes": 4.0,
+              "value": 0.3125,
+              "score": 0.078125,
+              "conceptIds": [
+                "fact"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "transferProbe",
+              "title": "Try a different angle: Quadratic graphs",
+              "reason": "You can do the standard version. This checks you understand it.",
+              "minutes": 4.0,
+              "value": 0.2921875,
+              "score": 0.073046875,
+              "conceptIds": [
+                "graphs"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "retrievalReview",
+              "title": "Recall: Factorising",
+              "reason": "Review 20 days overdue; recall is at 67%.",
+              "minutes": 2.5,
+              "value": 0.131351156,
+              "score": 0.052540463,
+              "conceptIds": [
+                "fact"
+              ],
+              "assignmentId": null
+            },
+            {
+              "kind": "finishAssignment",
+              "title": "Continue: Physics worksheet",
+              "reason": "6 of 18 questions left.",
+              "minutes": 10.0,
+              "value": 0.33,
+              "score": 0.033,
+              "conceptIds": [
+                "graphs"
+              ],
+              "assignmentId": "a1"
+            }
+          ],
+          "plan": [
+            {
+              "kind": "fixWeakness",
+              "title": "Fix: Completing the square",
+              "reason": "You are at 21% unaided on this.",
+              "minutes": 8.0,
+              "value": 0.775954195,
+              "score": 0.096994274,
+              "conceptIds": [
+                "cts"
+              ],
+              "assignmentId": null
+            }
+          ],
+          "planMinutes": 8.0
+        }
+      ]
+    },
+    {
+      "name": "projection",
+      "concepts": [
+        {
+          "conceptId": "cts",
+          "name": "Completing the square",
+          "state": "introduced",
+          "freshState": "introduced",
+          "pUnaided": 0.21072682,
+          "retrievability": 0.917938562,
+          "stabilityDays": 1.242887972,
+          "difficulty": 5.833625,
+          "attempts": 3,
+          "independentCorrect": 0,
+          "evidence": 2.982754444,
+          "independence": 0.5,
+          "dueAt": "2026-01-31T14:49:45.520748+00:00",
+          "overdueDays": 0.0
+        },
+        {
+          "conceptId": "fact",
+          "name": "Factorising",
+          "state": "reliable",
+          "freshState": "reliable",
+          "pUnaided": 0.79884588,
+          "retrievability": 0.67114769,
+          "stabilityDays": 6.122636236,
+          "difficulty": 3.33055625,
+          "attempts": 4,
+          "independentCorrect": 4,
+          "evidence": 3.965575043,
+          "independence": 1.0,
+          "dueAt": "2026-01-10T11:56:35.770766+00:00",
+          "overdueDays": 20.877363764
+        },
+        {
+          "conceptId": "graphs",
+          "name": "Quadratic graphs",
+          "state": "reliable",
+          "freshState": "reliable",
+          "pUnaided": 0.827157453,
+          "retrievability": 0.985278072,
+          "stabilityDays": 7.436209487,
+          "difficulty": 2.964028437,
+          "attempts": 5,
+          "independentCorrect": 5,
+          "evidence": 4.942735011,
+          "independence": 1.0,
+          "dueAt": "2026-02-06T19:28:08.499685+00:00",
+          "overdueDays": 0.0
+        }
+      ],
+      "weakestFirst": [
+        "cts",
+        "fact",
+        "graphs"
+      ],
+      "patterns": []
+    },
+    {
+      "name": "testReport",
+      "report": {
+        "marksAwarded": 8,
+        "marksAvailable": 16,
+        "percentage": 50.0,
+        "seconds": 590.0,
+        "byConcept": {
+          "fact": {
+            "name": "Factorising",
+            "marksAwarded": 3,
+            "marksAvailable": 3,
+            "questions": 1,
+            "seconds": 45.0,
+            "percentage": 100.0
+          },
+          "cts": {
+            "name": "Completing the square",
+            "marksAwarded": 1,
+            "marksAvailable": 8,
+            "questions": 2,
+            "seconds": 390.0,
+            "percentage": 12.5
+          },
+          "graphs": {
+            "name": "Quadratic graphs",
+            "marksAwarded": 4,
+            "marksAvailable": 5,
+            "questions": 2,
+            "seconds": 155.0,
+            "percentage": 80.0
+          }
+        },
+        "errorCounts": {
+          "misconception": 1,
+          "calculation": 1,
+          "reasoningGap": 1
+        },
+        "calibration": {
+          "meanConfidence": 0.73,
+          "meanScore": 0.55,
+          "gap": 0.18,
+          "verdict": "wellCalibrated",
+          "confidentlyWrong": [
+            "q2",
+            "q3"
+          ]
+        },
+        "slowest": [
+          "q2",
+          "q3",
+          "q5"
+        ],
+        "strengths": [
+          "fact",
+          "graphs"
+        ],
+        "weaknesses": [
+          "cts"
+        ],
+        "nextStep": {
+          "kind": "fixWeakness",
+          "title": "Fix: Completing the square",
+          "reason": "You are at 21% unaided on this.",
+          "minutes": 8.0,
+          "value": 0.775954195,
+          "score": 0.096994274,
+          "conceptIds": [
+            "cts"
+          ],
+          "assignmentId": null
+        }
+      }
+    }
+  ]
+}
