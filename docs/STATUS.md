@@ -18,7 +18,7 @@ and no macOS**. That divides the repository cleanly.
 | Deterministic grader | 54 of those 132, covering parsing, equivalence, units, sets, near misses, and the notation students actually type |
 | Learning engine (JavaScript) | 16 parity tests against `fixtures/learning-golden.json`, to 9 decimal places |
 | Web content and diagnostics | 8 tests: every worked answer is accepted by the real marker, every likelihood row sums to 1, every seeded misconception is identified within four questions |
-| Web app, in a real browser | 28 checks driven through headless Chromium: import, pen input, marking, the help ladder, an adaptive diagnostic to a conclusion, persistence across reload, dark mode, iPad-portrait layout, and grader parity between the bundled page and the TypeScript source |
+| Web app, in a real browser | 50 checks driven through headless Chromium: every screen, pen input and lasso selection, marking and mistake analysis, the contextual tutor, an adaptive diagnostic to a conclusion, a timed test to a diagnosis, persistence across reload, dark mode, 44px targets, iPad-portrait layout, and grader parity between the bundled page and the TypeScript source |
 
 Run them yourself:
 

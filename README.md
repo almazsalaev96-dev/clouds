@@ -22,7 +22,7 @@ beliefs built on it.
 ## What is in here
 
 ```
-docs/                 architecture, the learning model, privacy, honest status
+docs/                 architecture, the learning model, the interface, privacy, honest status
 tools/learning-sim/   the learning engine reference implementation, in Python
 fixtures/             the cross-language oracle both implementations are held to
 server/               the gateway: the only network peer the app talks to
@@ -43,6 +43,14 @@ One self-contained HTML file, no server, no build step at runtime, no credential
 works offline on an iPad in Safari, with Apple Pencil as a first-class input: pressure
 varies the stroke, coalesced samples keep fast writing smooth, and a resting palm is
 rejected while the finger keeps working the interface.
+
+It is an AI-native workspace rather than a viewer with a chatbot beside it: the
+interface knows which question, which piece of your handwriting or which page you
+are looking at, so "explain this" works with nothing typed. The tutor's accent
+colour appears only where there is intelligence, an answer arrives as short titled
+sections rather than a chat bubble, and a wrong answer produces *your answer → what
+went wrong → the concept → try again* instead of a cross. `docs/DESIGN.md` sets out
+the system.
 
 What is real in it, rather than mocked:
 

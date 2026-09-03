@@ -13,11 +13,13 @@ import { CONCEPTS, questionById } from "./bank.js";
 
 const EVENTS_KEY = "slate.events.v1";
 const INK_KEY = "slate.ink.v1";
+const TYPED_KEY = "slate.typed.v1";
 const PREFS_KEY = "slate.prefs.v1";
 const SCHEMA = 1;
 
 let events = [];
 let ink = {};           // documentId -> pageIndex -> stroke[]
+let typed = {};         // documentId -> pageIndex -> typed annotation[]
 let prefs = {};
 let listeners = [];
 let dirty = false;
@@ -49,6 +51,7 @@ export function load() {
   const stored = readJSON(EVENTS_KEY, null);
   events = stored && stored.schema === SCHEMA && Array.isArray(stored.events) ? stored.events : [];
   ink = readJSON(INK_KEY, {}) || {};
+  typed = readJSON(TYPED_KEY, {}) || {};
   prefs = readJSON(PREFS_KEY, {}) || {};
 }
 
@@ -101,9 +104,11 @@ export function redact(predicate, reason) {
 export function eraseEverything() {
   events = [];
   ink = {};
+  typed = {};
   try {
     localStorage.removeItem(EVENTS_KEY);
     localStorage.removeItem(INK_KEY);
+    localStorage.removeItem(TYPED_KEY);
   } catch { /* nothing recoverable to do */ }
   notify({ type: "erase" });
 }
@@ -214,6 +219,59 @@ export function clearInk(documentId, pageIndex) {
   scheduleInkPersist();
 }
 
+// ------------------------------------------------------------ typed layer
+
+/**
+ * Typed notes are a separate layer from ink, which is a separate layer from the
+ * original page. Nothing is ever composited into the document itself — that
+ * happens once, at export, so handing work in can never alter what you were given.
+ */
+export function typedFor(documentId, pageIndex) {
+  return (typed[documentId] && typed[documentId][pageIndex]) || [];
+}
+
+export function addTyped(documentId, pageIndex, item) {
+  if (!typed[documentId]) typed[documentId] = {};
+  if (!typed[documentId][pageIndex]) typed[documentId][pageIndex] = [];
+  typed[documentId][pageIndex].push(item);
+  writeJSON(TYPED_KEY, typed);
+  return item;
+}
+
+export function updateTyped(documentId, pageIndex, id, patch) {
+  const list = typedFor(documentId, pageIndex);
+  const found = list.find((t) => t.id === id);
+  if (!found) return;
+  Object.assign(found, patch);
+  if (!found.text.trim()) {
+    typed[documentId][pageIndex] = list.filter((t) => t.id !== id);
+  }
+  writeJSON(TYPED_KEY, typed);
+}
+
+// ---------------------------------------------------------------- documents
+
+/** The documents the student has imported, newest first. */
+export function documents() {
+  const byId = new Map();
+  for (const e of events) {
+    if (e.type !== "documentImported") continue;
+    byId.set(e.documentId, {
+      id: e.documentId, name: e.name, size: e.size, pages: e.pages,
+      subject: e.subject || null, analysis: e.analysis || null, importedAt: e.at,
+    });
+  }
+  const opened = new Map();
+  for (const e of events) if (e.type === "documentOpened") opened.set(e.documentId, e.at);
+  return [...byId.values()]
+    .map((d) => ({ ...d, lastOpened: opened.get(d.id) || d.importedAt }))
+    .sort((a, b) => b.lastOpened - a.lastOpened);
+}
+
+export function examRuns() {
+  return events.filter((e) => e.type === "examCompleted").sort((a, b) => b.at - a.at);
+}
+
 let inkTimer = null;
 function scheduleInkPersist() {
   if (inkTimer) return;
@@ -242,7 +300,7 @@ export function exportAll() {
     schema: SCHEMA,
     exportedAt: new Date().toISOString(),
     note: "Your study record. Every conclusion Slate draws is recomputed from these events.",
-    events, ink, prefs,
+    events, ink, typed, prefs,
   }, null, 2);
 }
 
@@ -251,8 +309,9 @@ export function importAll(json) {
   if (parsed.schema !== SCHEMA || !Array.isArray(parsed.events)) throw new Error("unrecognised file");
   events = parsed.events;
   ink = parsed.ink || {};
+  typed = parsed.typed || {};
   prefs = parsed.prefs || {};
-  persist(); persistInk(); writeJSON(PREFS_KEY, prefs);
+  persist(); persistInk(); writeJSON(TYPED_KEY, typed); writeJSON(PREFS_KEY, prefs);
   cache = null;
   notify({ type: "import" });
 }
