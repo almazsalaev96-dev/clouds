@@ -15,6 +15,7 @@ public struct WorkspaceView: View {
 
     @ObservedObject var model: WorkspaceModel
     @ObservedObject var voice: VoiceController
+    @StateObject private var tips = FirstRunTips()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pageSize: CGSize = .zero
 
@@ -72,10 +73,14 @@ public struct WorkspaceView: View {
                     },
                     // The one moment the tutor may speak unprompted: the pencil has
                     // been down and is now still. Even then it offers, it does not act.
-                    onSettled: nil
+                    onSettled: { tips.offer(.askTheTutor) }
                 )
             }
-            .onAppear { pageSize = proxy.size }
+            .onAppear {
+                pageSize = proxy.size
+                // On the page, the first time it is true, and never again.
+                tips.offer(.writeAnywhere)
+            }
             .onChange(of: proxy.size) { _, new in pageSize = new }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -89,6 +94,9 @@ public struct WorkspaceView: View {
             }
             if let problem = model.problem {
                 Banner(text: problem, tone: .problem) { model.dismissProblem() }
+            }
+            if let tip = tips.showing {
+                Banner(text: tip.text, tone: .reassuring) { tips.dismiss() }
             }
         }
         .padding(Slate.Space.l)

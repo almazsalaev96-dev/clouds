@@ -19,14 +19,17 @@ public struct InkCanvas: UIViewRepresentable {
     public let isReadOnly: Bool
     /// Called on every committed change. Debounced by the coordinator, because
     /// journalling every intermediate stroke of a fast scribble would stall the pencil.
-    public let onChange: (Data) -> Void
+    ///
+    /// Main-actor isolated: it updates the document model and, through it, the view.
+    public let onChange: @MainActor (Data) -> Void
     /// Called when the student lifts the pencil and pauses, which is the only moment
     /// the tutor is allowed to consider saying anything unprompted.
-    public let onSettled: (() -> Void)?
+    public let onSettled: (@MainActor () -> Void)?
 
     public init(tool: Binding<InkTool>, page: Int, initialDrawing: Data?,
-                isReadOnly: Bool = false, onChange: @escaping (Data) -> Void,
-                onSettled: (() -> Void)? = nil) {
+                isReadOnly: Bool = false,
+                onChange: @escaping @MainActor (Data) -> Void,
+                onSettled: (@MainActor () -> Void)? = nil) {
         _tool = tool
         self.page = page
         self.initialDrawing = initialDrawing
@@ -68,12 +71,13 @@ public struct InkCanvas: UIViewRepresentable {
     }
 
     public final class Coordinator: NSObject, PKCanvasViewDelegate {
-        var onChange: (Data) -> Void
-        var onSettled: (() -> Void)?
+        var onChange: @MainActor (Data) -> Void
+        var onSettled: (@MainActor () -> Void)?
         private var saveWork: DispatchWorkItem?
         private var settleWork: DispatchWorkItem?
 
-        init(onChange: @escaping (Data) -> Void, onSettled: (() -> Void)?) {
+        init(onChange: @escaping @MainActor (Data) -> Void,
+             onSettled: (@MainActor () -> Void)?) {
             self.onChange = onChange
             self.onSettled = onSettled
         }
@@ -85,14 +89,18 @@ public struct InkCanvas: UIViewRepresentable {
             // sequence of strokes is one write, short enough that a crash costs at
             // most a fraction of a second of work.
             saveWork?.cancel()
-            let save = DispatchWorkItem { [onChange] in onChange(data) }
+            // These fire on the main queue by construction; `assumeIsolated` states
+            // that to the compiler rather than hopping and losing a frame.
+            let save = DispatchWorkItem { [onChange] in
+                MainActor.assumeIsolated { onChange(data) }
+            }
             saveWork = save
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: save)
 
             // A longer pause means they have stopped, not that they are mid-word.
             settleWork?.cancel()
             guard let onSettled else { return }
-            let settle = DispatchWorkItem { onSettled() }
+            let settle = DispatchWorkItem { MainActor.assumeIsolated { onSettled() } }
             settleWork = settle
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.5, execute: settle)
         }

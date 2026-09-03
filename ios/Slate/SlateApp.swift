@@ -10,22 +10,30 @@ import SlateVoice
 @main
 struct SlateApp: App {
     @StateObject private var container = AppContainer()
+    @State private var showOnboarding = !OnboardingState.isComplete()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
-            RootView(
-                desk: container.desk,
-                library: container.library,
-                study: container.study,
-                mistakes: container.mistakes,
-                voice: container.voiceController,
-                makePractice: { container.practice(for: $0) },
-                makeTest: { container.test(for: $0) },
-                makeWorkspace: { container.workspace(for: $0) },
-                makeDiagnostic: { container.diagnostic(for: $0) }
-            )
+            if showOnboarding {
+                OnboardingView {
+                    OnboardingState.markComplete()
+                    showOnboarding = false
+                }
+            } else {
+                RootView(
+                    desk: container.desk,
+                    library: container.library,
+                    study: container.study,
+                    mistakes: container.mistakes,
+                    voice: container.voiceController,
+                    makePractice: { container.practice(for: $0) },
+                    makeTest: { container.test(for: $0) },
+                    makeWorkspace: { container.workspace(for: $0) },
+                    makeDiagnostic: { container.diagnostic(for: $0) }
+                )
                 .task { await container.start() }
+            }
         }
         .onChange(of: scenePhase) { _, phase in
             // Backgrounding is the last reliable moment before the process can be
