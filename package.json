@@ -14,7 +14,9 @@
     "test:ui": "node --test --test-timeout=30000 packages/server/test/browser.test.ts",
     "start": "node packages/server/src/main.ts",
     "dev": "node --watch packages/server/src/main.ts",
-    "build": "node tools/build-vercel.mjs"
+    "build": "node tools/build-vercel.mjs",
+    "deploy": "node tools/build-vercel.mjs && npx --yes vercel deploy --prebuilt --prod",
+    "deploy:preview": "node tools/build-vercel.mjs && npx --yes vercel deploy --prebuilt"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.123.0"

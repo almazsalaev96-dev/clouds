@@ -103,18 +103,28 @@ costs more trust than a missing feature.
 
 ## Deploying to Vercel
 
-The repository is deployment-ready: `vercel.json` runs `tools/build-vercel.mjs`,
-which emits Vercel's Build Output API tree — the server bundled to one
-function, the client bundled and served statically.
+One command, from a machine that can reach Vercel:
 
-**Connect it once** (Vercel → Add New Project → import this repository). This
-needs the [Vercel GitHub App](https://github.com/apps/vercel) installed on the
-account, after which every push deploys.
+```bash
+npm install
+npm run deploy          # builds, then deploys to production
+npm run deploy:preview  # same, to a preview URL
+```
 
-Then set `ANTHROPIC_API_KEY` in the project's environment variables to enable
-conversation.
+`tools/build-vercel.mjs` emits Vercel's Build Output API tree — the server
+bundled to one function, the client bundled and served statically — and
+`vercel deploy --prebuilt` uploads exactly that. The first run asks you to log
+in and pick a scope; after that it is the one command.
 
-### Two things that deployment does not change, and one that it does
+To get a deployment on every push instead, import the repository at
+vercel.com (needs the [Vercel GitHub App](https://github.com/apps/vercel)) and
+**set the production branch to `claude/ai-native-knowledge-platform-ks7zt0`** —
+the repository default branch contains none of this code, so leaving it
+alone builds an empty site.
+
+Then set `ANTHROPIC_API_KEY` in the project's environment variables.
+
+### Two things deployment does not change, and one that it does
 
 Reading, structure extraction, search, artifacts, mastery and memory work
 without a model. The interface says plainly when conversation is unavailable.
