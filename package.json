@@ -13,12 +13,14 @@
     "test:api": "node --test packages/server/test/api.test.ts",
     "test:ui": "node --test --test-timeout=30000 packages/server/test/browser.test.ts",
     "start": "node packages/server/src/main.ts",
-    "dev": "node --watch packages/server/src/main.ts"
+    "dev": "node --watch packages/server/src/main.ts",
+    "build": "node tools/build-vercel.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.123.0"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
     "playwright-core": "^1.62.1"
   }
 }

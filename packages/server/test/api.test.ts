@@ -294,6 +294,28 @@ test("path traversal cannot escape the web root", async () => {
   }
 });
 
+test("the interface is told plainly when storage is not durable", async () => {
+  const store = createStore();
+  const { server } = createApp({
+    store, secureCookies: false, durable: false,
+    engine: { router: new ModelRouter().register(scripted), tools: defaultToolRegistry() },
+  });
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+  const port = (server.address() as AddressInfo).port;
+
+  const state = await (await fetch(`http://127.0.0.1:${port}/api/state`)).json();
+  assert.equal(state.storage.durable, false);
+  assert.match(state.storage.note, /disappears|not.*saved/i);
+
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+});
+
+test("a normal deployment reports storage as durable", async () => {
+  const state = await (await api("/api/state")).json();
+  assert.equal(state.storage.durable, true);
+  assert.equal(state.storage.note, null);
+});
+
 test("the interface is told plainly when no model is configured", async () => {
   const store = createStore();
   const { server } = createApp({

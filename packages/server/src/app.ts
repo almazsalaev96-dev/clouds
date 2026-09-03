@@ -6,7 +6,7 @@
  * which is the only way the store accepts a query at all.
  */
 
-import { createServer, type Server } from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,7 +30,25 @@ import {
   setSessionCookie, signSession, verifySession, type Ctx,
 } from "./http.ts";
 
-const WEB_ROOT = fileURLToPath(new URL("../../../apps/web/", import.meta.url));
+/**
+ * Resolved lazily and defensively.
+ *
+ * `import.meta.url` is not always meaningful once the server has been bundled
+ * for another runtime, and a throw at module scope takes down every route —
+ * including the ones that never touch the filesystem. Static files are served
+ * by the platform in that deployment anyway, so failing to locate them must
+ * degrade to a 404, not to a dead function.
+ */
+let webRoot: string | null | undefined;
+function resolveWebRoot(): string | null {
+  if (webRoot !== undefined) return webRoot;
+  try {
+    webRoot = fileURLToPath(new URL("../../../apps/web/", import.meta.url));
+  } catch {
+    webRoot = null;
+  }
+  return webRoot;
+}
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -46,9 +64,27 @@ export interface AppOptions {
   engine?: Partial<Engine>;
   /** Set false in tests so cookies work over plain HTTP. */
   secureCookies?: boolean;
+  /**
+   * Whether writes survive the process. False on a serverless runtime with no
+   * database attached, where the store lives only in a warm instance's memory.
+   * Reported to the client so the interface can say so plainly (§33) instead
+   * of letting someone discover it by losing a document.
+   */
+  durable?: boolean;
 }
 
-export function createApp(options: AppOptions = {}): { server: Server; store: Store; engine: Engine } {
+export interface App {
+  handler: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
+  store: Store;
+  engine: Engine;
+}
+
+/**
+ * Builds the request handler without binding a port, so the same application
+ * runs behind `createServer` locally and inside a serverless function on a
+ * platform that owns the listener itself.
+ */
+export function createHandler(options: AppOptions = {}): App {
   const store = options.store ?? createStore();
 
   const router = new ModelRouter();
@@ -67,10 +103,10 @@ export function createApp(options: AppOptions = {}): { server: Server; store: St
   // Generous enough that real use never notices; tight enough that a runaway
   // client cannot spend unbounded money.
   const turnLimiter = new RateLimiter(12, 30);
-  const routes = buildRoutes(engine, turnLimiter);
+  const routes = buildRoutes(engine, turnLimiter, options.durable ?? true);
   const secure = options.secureCookies ?? process.env.NODE_ENV === "production";
 
-  const server = createServer(async (req, res) => {
+  const handler = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
     const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
 
     try {
@@ -104,20 +140,28 @@ export function createApp(options: AppOptions = {}): { server: Server; store: St
       if (!res.headersSent) sendError(res, 500, "Something went wrong on the server.", "model_error");
       else res.end();
     }
-  });
+  };
 
-  return { server, store, engine };
+  return { handler, store, engine };
+}
+
+export function createApp(options: AppOptions = {}): { server: Server; store: Store; engine: Engine } {
+  const app = createHandler(options);
+  return { server: createServer(app.handler), store: app.store, engine: app.engine };
 }
 
 async function serveStatic(pathname: string, res: import("node:http").ServerResponse): Promise<void> {
+  const root = resolveWebRoot();
+  if (!root) return sendError(res, 404, "Not found.", "not_found");
+
   const requested = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
 
   // Path traversal guard: resolve the request, then ask whether the result is
   // still inside the web root. `relative` is used rather than a string prefix
   // because the root path ends in a separator, and prefix comparison against
   // it is easy to get subtly wrong in a way that fails closed on every file.
-  const resolved = resolve(WEB_ROOT, requested);
-  const rel = relative(WEB_ROOT, resolved);
+  const resolved = resolve(root, requested);
+  const rel = relative(root, resolved);
   if (rel === "" || rel.startsWith("..") || isAbsolute(rel)) {
     return sendError(res, 403, "Forbidden.", "forbidden");
   }
@@ -134,7 +178,7 @@ async function serveStatic(pathname: string, res: import("node:http").ServerResp
   }
 }
 
-function buildRoutes(engine: Engine, turnLimiter: RateLimiter): Router {
+function buildRoutes(engine: Engine, turnLimiter: RateLimiter, durable: boolean): Router {
   const { store } = engine;
   const router = new Router();
 
@@ -165,6 +209,12 @@ function buildRoutes(engine: Engine, turnLimiter: RateLimiter): Router {
       model: modelStatus.ok
         ? { available: true, id: modelStatus.value.id }
         : { available: false, failure: modelStatus.failure },
+      storage: {
+        durable,
+        note: durable
+          ? null
+          : "This deployment has no database attached, so anything you add lives only in memory and disappears when the server restarts.",
+      },
     });
   });
 

@@ -15,6 +15,7 @@ export const state = {
   user: null,
   workspaceId: null,
   model: { available: false, failure: null },
+  storage: { durable: true, note: null },
 
   documents: [],
   conversations: [],
@@ -85,16 +86,17 @@ export async function loadState() {
     update({ ready: true, loadFailure: result.failure });
     return;
   }
-  const { user, workspaceId, documents, conversations, artifacts, nextActions, model } = result.value;
+  const { user, workspaceId, documents, conversations, artifacts, nextActions, model, storage } = result.value;
   update({
     ready: true, loadFailure: null,
     user, workspaceId, documents, conversations, artifacts, nextActions, model,
+    storage: storage ?? { durable: true, note: null },
   });
 }
 
 export async function refreshLists() {
   const result = await api("/api/state");
   if (!result.ok) return;
-  const { documents, conversations, artifacts, nextActions, model } = result.value;
-  update({ documents, conversations, artifacts, nextActions, model });
+  const { documents, conversations, artifacts, nextActions, model, storage } = result.value;
+  update({ documents, conversations, artifacts, nextActions, model, storage: storage ?? state.storage });
 }

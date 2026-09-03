@@ -297,11 +297,23 @@ function askBox({ autofocus = false, placeholder = "Ask anything, or drop in a d
 }
 
 function modelBanner() {
-  if (state.model.available) return null;
-  return h("div", { class: "banner", role: "status" },
-    h("span", {}, state.model.failure?.message ??
-      "The AI is not available right now. Reading, search and notes still work."),
-  );
+  const banners = [];
+
+  // Told plainly and up front, because the alternative is someone discovering
+  // it by losing a document they spent time on.
+  if (state.storage && state.storage.durable === false) {
+    banners.push(h("div", { class: "banner", role: "status" },
+      h("span", {}, state.storage.note ??
+        "Nothing is being saved in this deployment — it is a demo, and your work disappears when the server restarts.")));
+  }
+
+  if (!state.model.available) {
+    banners.push(h("div", { class: "banner", role: "status" },
+      h("span", {}, state.model.failure?.message ??
+        "The AI is not available right now. Reading, search and notes still work.")));
+  }
+
+  return banners.length ? banners : null;
 }
 
 function noticeBanner() {
