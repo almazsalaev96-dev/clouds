@@ -41,14 +41,41 @@ export function normalise(input: string): string {
     .replace(/[≤]/g, "<=")
     .replace(/[≥]/g, ">=")
     .replace(/[≠]/g, "!=")
-    .replace(/[√]/g, "sqrt")
+    // A space matters: "√9" must become "sqrt 9" so the parser applies the function.
+    // Without it the lexer reads one identifier called "sqrt9" and treats a correct
+    // answer as an unknown variable.
+    .replace(/[√]/g, "sqrt ")
     .replace(/[π]/g, "pi")
     .replace(/[∞]/g, "Infinity")
     .replace(/[‘’“”]/g, "")
     .replace(/ /g, " ");
   // Unicode vulgar fractions that survived NFKC as "1⁄2"
   s = s.replace(/⁄/g, "/");
-  return s.trim();
+
+  // Students separate roots with words far more often than with commas.
+  // "3 or -2" and "x = 3 and y = 4" are lists, and reading `or` as the product of
+  // two variables marks a correct answer wrong.
+  s = s.replace(/\b(?:or|and)\b/gi, ",");
+
+  s = s.trim();
+
+  // A thousands separator, but only when the *entire* answer is one formatted number.
+  // Anything looser would merge the solution set "2, 300" into 2300, which is a far
+  // worse failure than not understanding a comma.
+  if (/^-?\d{1,3}(?:,\d{3})+(?:\.\d+)?$/.test(s)) {
+    s = s.replace(/,/g, "");
+  }
+
+  // A mixed number, again only when it is the whole answer. In school mathematics
+  // "2 1/2" means two and a half; reading it as 2 x 1/2 = 1 would silently mark a
+  // correct answer wrong, and the multiplication reading is written "2*1/2" anyway.
+  const mixed = /^(-?)(\d+)\s+(\d+)\s*\/\s*(\d+)$/.exec(s);
+  if (mixed) {
+    const [, sign, whole, numerator, denominator] = mixed;
+    s = `${sign}(${whole} + ${numerator}/${denominator})`;
+  }
+
+  return s;
 }
 
 const RELATIONS = ["<=", ">=", "!=", "==", "=", "<", ">"];

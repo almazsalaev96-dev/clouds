@@ -16,7 +16,8 @@ describe("tokenizer normalisation", () => {
   it("folds the characters students actually type", () => {
     assert.equal(normalise("2 × 3 − 1"), "2 * 3 - 1");
     assert.equal(normalise("x² + 1"), "x^2 + 1");
-    assert.equal(normalise("√2"), "sqrt2");
+    // The space is load-bearing: without it the lexer reads one identifier "sqrt2".
+    assert.equal(normalise("√2"), "sqrt 2");
     assert.equal(normalise("2π"), "2pi");
     assert.equal(normalise("a ≤ b"), "a <= b");
     assert.equal(normalise("x¹²"), "x^12");
@@ -252,6 +253,67 @@ describe("any-of acceptable answers", () => {
     const r = grade("2, -3", [{ text: "x = 1" }, { text: "-3, 2" }]);
     assert.equal(r.verdict, "correct");
     assert.equal(r.matchedIndex, 1);
+  });
+});
+
+describe("how students actually write answers", () => {
+  // Every case here was a wrong verdict before it was a test. They are all the same
+  // failure: a correct answer marked incorrect because of notation.
+  it("accepts 'or' and 'and' between values", () => {
+    assert.equal(verdict("3 or -2", "3, -2"), "correct");
+    assert.equal(verdict("x = 3 or x = -2", "3, -2"), "correct");
+    assert.equal(verdict("x = 3 and y = 4", "x = 3, y = 4"), "correct");
+  });
+
+  it("reads a unicode root applied straight to a number", () => {
+    assert.equal(verdict("√9", "3"), "correct");
+    assert.equal(verdict("√(x+1)", "sqrt(x+1)"), "correct");
+    assert.equal(verdict("2√3", "2*sqrt(3)"), "correct");
+  });
+
+  it("reads a thousands separator when the answer is one number", () => {
+    assert.equal(verdict("1,000", "1000"), "correct");
+    assert.equal(verdict("1,234,567", "1234567"), "correct");
+  });
+
+  it("does not mistake a solution set for a thousands separator", () => {
+    // The dangerous direction: merging the roots 2 and 300 into 2300.
+    assert.equal(verdict("2, 300", "2, 300"), "correct");
+    assert.equal(verdict("2,300", "2, 300"), "incorrect");
+  });
+
+  it("reads a mixed number as a mixed number", () => {
+    // Reading "2 1/2" as 2 x 1/2 = 1 would silently mark a correct answer wrong.
+    assert.equal(verdict("2 1/2", "2.5"), "correct");
+    assert.equal(verdict("-3 3/4", "-3.75"), "correct");
+  });
+
+  it("still reads juxtaposition as multiplication where that is what it is", () => {
+    assert.equal(verdict("2 x", "2*x"), "correct");
+    assert.equal(verdict("2(1/2)", "1"), "correct");
+  });
+
+  it("recognises an angle answered in degrees", () => {
+    const r = grade("sin(30)", exp("0.5"));
+    assert.equal(r.verdict, "incorrect", "it is genuinely wrong in radians");
+    assert.equal(r.nearMiss?.kind, "degreesForRadians");
+    assert.ok(r.nearMiss!.detail.includes("degrees"));
+  });
+
+  it("does not cry degrees over an ordinary wrong answer", () => {
+    assert.equal(grade("sin(1.2)", exp("0.5")).nearMiss?.kind, undefined);
+  });
+
+  it("handles the notation a calculator produces", () => {
+    assert.equal(verdict("3.0e2", "300"), "correct");
+    assert.equal(verdict("1e-3", "0.001"), "correct");
+    assert.equal(verdict("2^-1", "0.5"), "correct");
+  });
+
+  it("is unbothered by spacing and redundant signs", () => {
+    assert.equal(verdict("- 4", "-4"), "correct");
+    assert.equal(verdict("+5", "5"), "correct");
+    assert.equal(verdict("-(-5)", "5"), "correct");
   });
 });
 

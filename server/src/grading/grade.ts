@@ -143,6 +143,14 @@ function findNearMiss(want: Node, got: Node, opts: object): NearMiss | null {
       suggestedErrorType: "procedural",
     };
   }
+  const degrees = asDegrees(got);
+  if (degrees.changed && equivalent(want, degrees.node, opts).equivalent) {
+    return {
+      kind: "degreesForRadians",
+      detail: "That is right if the angle is in degrees. The calculation used radians.",
+      suggestedErrorType: "procedural",
+    };
+  }
   if (equivalent(want, scale(got, 180 / Math.PI), opts).equivalent) {
     return {
       kind: "radiansForDegrees",
@@ -172,6 +180,65 @@ function findNearMiss(want: Node, got: Node, opts: object): NearMiss | null {
     };
   }
   return null;
+}
+
+const TRIG = new Set(["sin", "cos", "tan", "sec", "csc", "cot"]);
+
+/**
+ * Rewrite every trigonometric argument as if it had been given in degrees.
+ *
+ * A student who writes `sin(30)` on a trigonometry worksheet means thirty degrees.
+ * The value-level transformations cannot catch this because the mistake is inside the
+ * function's argument, so it gets its own pass — and it is one of the two or three
+ * commonest wrong answers in the whole subject.
+ */
+function asDegrees(node: Node): { node: Node; changed: boolean } {
+  switch (node.kind) {
+    case "num":
+    case "var":
+      return { node, changed: false };
+    case "neg": {
+      const inner = asDegrees(node.arg);
+      return { node: { kind: "neg", arg: inner.node }, changed: inner.changed };
+    }
+    case "bin": {
+      const left = asDegrees(node.left);
+      const right = asDegrees(node.right);
+      return {
+        node: { kind: "bin", op: node.op, left: left.node, right: right.node },
+        changed: left.changed || right.changed,
+      };
+    }
+    case "call": {
+      const args = node.args.map(asDegrees);
+      let changed = args.some((a) => a.changed);
+      let mapped = args.map((a) => a.node);
+      if (TRIG.has(node.name) && mapped.length === 1) {
+        mapped = [{
+          kind: "bin", op: "*",
+          left: mapped[0]!,
+          right: { kind: "num", value: Math.PI / 180 },
+        }];
+        changed = true;
+      }
+      return { node: { kind: "call", name: node.name, args: mapped }, changed };
+    }
+    case "rel": {
+      const left = asDegrees(node.left);
+      const right = asDegrees(node.right);
+      return {
+        node: { kind: "rel", op: node.op, left: left.node, right: right.node },
+        changed: left.changed || right.changed,
+      };
+    }
+    case "list": {
+      const items = node.items.map(asDegrees);
+      return {
+        node: { kind: "list", items: items.map((i) => i.node) },
+        changed: items.some((i) => i.changed),
+      };
+    }
+  }
 }
 
 function significantFigures(x: number): number {
