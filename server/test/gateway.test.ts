@@ -97,8 +97,23 @@ describe("redaction", () => {
     assert.equal(r.removed["name"], 1);
   });
 
-  it("removes long identifiers", () => {
-    assert.ok(!redact("Candidate 1234567890123").text.includes("1234567890123"));
+  it("removes long identifiers, and says that is what they were", () => {
+    const r = redact("Candidate 1234567890123");
+    assert.ok(!r.text.includes("1234567890123"));
+    // The label matters: a candidate number reported as a phone number makes the
+    // removal report misleading to anyone auditing what left the device.
+    assert.equal(r.removed["longNumber"], 1);
+    assert.equal(r.removed["phone"], undefined);
+  });
+
+  it("removes a phone number written with spaces", () => {
+    assert.ok(!redact("Call 07700 900123 today").text.includes("900123"));
+    assert.ok(!redact("Ring +44 20 7946 0958").text.includes("7946"));
+  });
+
+  it("leaves a short number that is not an identifier", () => {
+    // The nine-digit floor exists so the redactor does not eat the mathematics.
+    assert.equal(redact("Answer: 1234567").text, "Answer: 1234567");
   });
 
   it("leaves the mathematics alone", () => {
@@ -151,6 +166,37 @@ describe("context budget", () => {
     assert.ok(Buffer.byteLength(clipped) <= 9);
     assert.equal(clipped, clipped.normalize());
     assert.ok(!clipped.includes("�"));
+  });
+
+  it("keeps a small high-value part rather than padding a large one", () => {
+    // The mastery hints are a few hundred bytes and tell the tutor whether this
+    // student has met the idea before. Letting page text crowd them out because it
+    // sits higher in the priority list is exactly backwards.
+    const r = assemble([
+      part("focus", "f"), part("studentWork", "w"), part("questionText", "q"),
+      part("pageText", "p".repeat(20_000)),
+      part("masteryHints", "Completing the square: getting there"),
+    ], 3000);
+    assert.ok(r.included.includes("masteryHints"));
+    assert.ok(r.truncated.includes("pageText"));
+    assert.ok(r.bytes <= 3000);
+  });
+
+  it("still emits parts in priority order after reallocating", () => {
+    const r = assemble([
+      part("masteryHints", "short"), part("pageText", "p".repeat(2000)),
+      part("focus", "f"),
+    ], 10_000);
+    assert.deepEqual(r.included, ["focus", "pageText", "masteryHints"]);
+    assert.ok(r.text.indexOf("focus") < r.text.indexOf("pageText"));
+  });
+
+  it("does not let a pile of small parts eat the whole budget", () => {
+    const parts = Array.from({ length: 40 }, (_, i) =>
+      ({ kind: "figures", label: `fig${i}`, text: "x".repeat(200) } as never));
+    const r = assemble([part("focus", "f"), ...parts], 4000);
+    assert.ok(r.bytes <= 4000);
+    assert.ok(r.included.includes("focus"));
   });
 
   it("stays inside the budget", () => {

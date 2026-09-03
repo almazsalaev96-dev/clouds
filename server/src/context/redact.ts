@@ -18,6 +18,10 @@ const RULES: Array<{
   replacement: string;
   guard?: (match: string) => boolean;
 }> = [
+  // Long unbroken digit runs are candidate identifiers: student numbers, card numbers,
+  // NHS or national insurance numbers. Real mathematics rarely needs a bare 12-digit
+  // integer, and when it does, losing it is cheaper than leaking an ID.
+  { name: "longNumber", pattern: /(?<![\d.])\d{9,}(?![\d.])/g, replacement: "[number]" },
   { name: "email", pattern: /\b[\w.+-]+@[\w-]+\.[\w.-]{2,}\b/g, replacement: "[email]" },
   // Phone numbers vary too much between countries for one shape to catch them, and a
   // loose shape eats real numbers out of the mathematics. So: match a plausible
@@ -33,10 +37,6 @@ const RULES: Array<{
   },
   { name: "postcode", pattern: /\b[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}\b/g, replacement: "[postcode]" },
   { name: "url", pattern: /\bhttps?:\/\/\S+/g, replacement: "[link]" },
-  // Long unbroken digit runs are candidate identifiers: student numbers, card numbers,
-  // NHS or national insurance numbers. Real mathematics rarely needs a bare 12-digit
-  // integer, and when it does, losing it is cheaper than leaking an ID.
-  { name: "longNumber", pattern: /(?<![\d.])\d{9,}(?![\d.])/g, replacement: "[number]" },
 ];
 
 export function redact(text: string, extraTerms: readonly string[] = []): RedactionReport {

@@ -14,8 +14,8 @@ and no macOS**. That divides the repository cleanly.
 |---|---|
 | Learning engine (Python reference) | 57 tests, `python3 -m unittest discover -s tests` |
 | Golden fixture | regenerated and byte-compared against the committed file in CI |
-| Gateway (Node/TypeScript) | 110 tests, `npm test`; `tsc --noEmit` clean |
-| Deterministic grader | 53 of those 110, covering parsing, equivalence, units, sets, near misses, and the notation students actually type |
+| Gateway (Node/TypeScript) | 115 tests, `npm test`; `tsc --noEmit` clean |
+| Deterministic grader | 53 of those 115, covering parsing, equivalence, units, sets, near misses, and the notation students actually type |
 
 Run them yourself:
 

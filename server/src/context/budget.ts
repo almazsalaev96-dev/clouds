@@ -51,6 +51,18 @@ export interface BudgetResult {
  */
 const MIN_USEFUL_BYTES = 400;
 
+/**
+ * A part this small is never dropped for want of space.
+ *
+ * The mastery hints are a few hundred bytes and are the difference between the tutor
+ * knowing this student has met the idea before and not. Letting fifteen kilobytes of
+ * raw page text crowd them out because it sits higher in the priority list is exactly
+ * backwards, so small parts get their own allowance and the large ones share the rest.
+ */
+const SMALL_PART_BYTES = 512;
+/** Ceiling on that allowance, so a pile of small parts cannot consume the budget. */
+const SMALL_RESERVE_FRACTION = 0.5;
+
 export function assemble(parts: readonly ContextPart[], budgetBytes: number): BudgetResult {
   const ordered = [...parts]
     .filter((p) => p.text.trim().length > 0)
@@ -59,30 +71,53 @@ export function assemble(parts: readonly ContextPart[], budgetBytes: number): Bu
   const included: ContextPartKind[] = [];
   const dropped: ContextPartKind[] = [];
   const truncated: ContextPartKind[] = [];
-  const chunks: string[] = [];
-  let used = 0;
 
-  for (const part of ordered) {
+  const sized = ordered.map((part) => {
     const header = `## ${part.label}\n`;
     const full = `${header}${part.text.trim()}\n\n`;
-    const size = Buffer.byteLength(full, "utf8");
+    return { part, header, full, size: Buffer.byteLength(full, "utf8") };
+  });
 
-    if (used + size <= budgetBytes) {
-      chunks.push(full);
-      used += size;
-      included.push(part.kind);
+  // Allocation happens in two passes so that a small, high-value part is not starved
+  // by a large one that merely sits higher in the priority list. Emission still
+  // follows priority — only the claim on the budget is reordered.
+  const isSmall = (size: number) => size <= SMALL_PART_BYTES;
+  const smallReserve = Math.min(
+    sized.filter((s) => isSmall(s.size)).reduce((total, s) => total + s.size, 0),
+    Math.floor(budgetBytes * SMALL_RESERVE_FRACTION),
+  );
+
+  const emitted = new Map<ContextPartKind, string>();
+  let usedSmall = 0;
+  let usedLarge = 0;
+
+  // Pass one: the small parts, cheapest first, so the most fit inside the reserve.
+  for (const s of [...sized].filter((s) => isSmall(s.size)).sort((a, b) => a.size - b.size)) {
+    if (usedSmall + s.size > smallReserve) continue;
+    emitted.set(s.part.kind, s.full);
+    usedSmall += s.size;
+  }
+
+  const largeBudget = Math.max(0, budgetBytes - usedSmall);
+
+  // Pass two: everything else, in priority order, trimming and dropping as needed.
+  for (const { part, header, full, size } of sized) {
+    if (emitted.has(part.kind)) continue;
+
+    if (usedLarge + size <= largeBudget) {
+      emitted.set(part.kind, full);
+      usedLarge += size;
       continue;
     }
 
-    const remaining = budgetBytes - used - Buffer.byteLength(header, "utf8") - 32;
+    const remaining = largeBudget - usedLarge - Buffer.byteLength(header, "utf8") - 32;
     const canTruncate = part.truncatable !== false && remaining >= MIN_USEFUL_BYTES;
 
     if (canTruncate) {
       const body = clipToBytes(part.text.trim(), remaining);
       const piece = `${header}${body}\n[trimmed to fit]\n\n`;
-      chunks.push(piece);
-      used += Buffer.byteLength(piece, "utf8");
-      included.push(part.kind);
+      emitted.set(part.kind, piece);
+      usedLarge += Buffer.byteLength(piece, "utf8");
       truncated.push(part.kind);
       continue;
     }
@@ -95,7 +130,21 @@ export function assemble(parts: readonly ContextPart[], budgetBytes: number): Bu
     dropped.push(part.kind);
   }
 
-  return { text: chunks.join(""), bytes: used, included, dropped, truncated };
+  const chunks: string[] = [];
+  for (const { part } of sized) {
+    const piece = emitted.get(part.kind);
+    if (piece === undefined) continue;
+    chunks.push(piece);
+    included.push(part.kind);
+  }
+
+  return {
+    text: chunks.join(""),
+    bytes: usedSmall + usedLarge,
+    included,
+    dropped,
+    truncated,
+  };
 }
 
 export class ContextTooLarge extends Error {
