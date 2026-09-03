@@ -1,0 +1,1320 @@
+<title>The Reader's Docket</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Archivo:wght@400;500;600;700&display=swap">
+
+<style>
+:root{
+  --ground:#E9EAE5;
+  --panel:#FAFAF8;
+  --panel-2:#F0F1EC;
+  --panel-3:#E2E4DC;
+  --ink:#1A1D18;
+  --ink-soft:#3D4239;
+  --muted:#6E7468;
+  --faint:#949A8C;
+  --rule:#CFD2C7;
+  --rule-strong:#B4B8A9;
+  --ivy:#2C4A3B;
+  --ivy-bright:#3F6B54;
+  --ivy-wash:#DFE7E0;
+  --crimson:#8C2F27;
+  --crimson-wash:#F0DFDC;
+  --amber:#8A6314;
+  --amber-wash:#F0E6CF;
+  --shadow:0 1px 2px rgba(26,29,24,.06), 0 8px 24px -12px rgba(26,29,24,.18);
+  --mono-fig:"Archivo",ui-sans-serif,system-ui,sans-serif;
+  --serif:"Spectral",Georgia,"Times New Roman",serif;
+  --sans:"Archivo",ui-sans-serif,system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#14170F;
+    --panel:#1C2018;
+    --panel-2:#232820;
+    --panel-3:#2C3228;
+    --ink:#E7E9E0;
+    --ink-soft:#C2C7B8;
+    --muted:#8E9484;
+    --faint:#6C7263;
+    --rule:#333A2D;
+    --rule-strong:#48513E;
+    --ivy:#83B99C;
+    --ivy-bright:#9CCFB2;
+    --ivy-wash:#22301F;
+    --crimson:#DE8579;
+    --crimson-wash:#3A211D;
+    --amber:#D8AA4F;
+    --amber-wash:#332813;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#14170F;
+  --panel:#1C2018;
+  --panel-2:#232820;
+  --panel-3:#2C3228;
+  --ink:#E7E9E0;
+  --ink-soft:#C2C7B8;
+  --muted:#8E9484;
+  --faint:#6C7263;
+  --rule:#333A2D;
+  --rule-strong:#48513E;
+  --ivy:#83B99C;
+  --ivy-bright:#9CCFB2;
+  --ivy-wash:#22301F;
+  --crimson:#DE8579;
+  --crimson-wash:#3A211D;
+  --amber:#D8AA4F;
+  --amber-wash:#332813;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--serif);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--serif);font-weight:600;text-wrap:balance;margin:0;line-height:1.25}
+p{margin:0}
+a{color:var(--ivy)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ivy-bright);outline-offset:2px;border-radius:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px 96px}
+
+/* ---------- masthead ---------- */
+.masthead{
+  border-bottom:1px solid var(--rule-strong);
+  padding:34px 0 22px;
+  margin-bottom:28px;
+  display:flex;flex-wrap:wrap;gap:24px;align-items:flex-end;justify-content:space-between;
+}
+.mast-l{max-width:640px}
+.eyebrow{
+  font-family:var(--sans);font-size:10.5px;font-weight:600;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:10px;
+}
+.masthead h1{font-size:clamp(30px,4.4vw,46px);letter-spacing:-.015em;font-weight:600}
+.masthead .sub{color:var(--ink-soft);font-size:16px;margin-top:10px;max-width:60ch}
+.mast-r{font-family:var(--sans);font-size:12px;color:var(--muted);text-align:right;line-height:1.7}
+.mast-r b{color:var(--ink-soft);font-weight:600}
+
+/* ---------- caveat strip ---------- */
+.caveat{
+  border:1px solid var(--rule-strong);
+  border-left:3px solid var(--amber);
+  background:var(--panel-2);
+  padding:14px 18px;font-size:13.5px;color:var(--ink-soft);
+  margin-bottom:28px;line-height:1.65;
+}
+.caveat b{color:var(--ink)}
+
+/* ---------- layout ---------- */
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:34px;align-items:start}
+@media (max-width:980px){
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .rail{order:-1;position:static!important}
+}
+
+/* ---------- form ---------- */
+.sect{border-top:1px solid var(--rule);padding:26px 0 4px}
+.sect:first-child{border-top:none;padding-top:0}
+.sect-head{display:flex;align-items:baseline;gap:12px;margin-bottom:4px}
+.sect-num{
+  font-family:var(--sans);font-size:12.5px;font-weight:700;color:var(--ivy);
+  letter-spacing:.1em;min-width:22px;
+}
+.sect h2{font-size:21px;letter-spacing:-.01em}
+.sect-note{font-size:13.5px;color:var(--muted);margin:6px 0 18px;max-width:62ch;line-height:1.6}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px 18px}
+.fields.two{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.f{display:flex;flex-direction:column;gap:5px;min-width:0}
+.f.wide{grid-column:1/-1}
+label{
+  font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--muted);
+}
+.hint{font-family:var(--sans);font-size:11.5px;color:var(--faint);letter-spacing:0;text-transform:none;font-weight:400;line-height:1.5}
+input[type=text],input[type=number],select,textarea{
+  background:var(--panel);border:1px solid var(--rule-strong);border-radius:2px;
+  padding:8px 10px;font-family:var(--sans);font-size:14px;width:100%;
+}
+textarea{font-family:var(--serif);font-size:15px;line-height:1.65;resize:vertical;min-height:190px}
+select{cursor:pointer}
+.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:9px 18px}
+.chk{
+  display:flex;gap:9px;align-items:flex-start;font-family:var(--sans);font-size:13.5px;
+  font-weight:400;letter-spacing:0;text-transform:none;
+  color:var(--ink-soft);cursor:pointer;line-height:1.45;
+}
+.chk input{margin:3px 0 0;accent-color:var(--ivy);flex:none}
+.chk span small{display:block;color:var(--faint);font-size:11.5px}
+
+/* activity rows */
+.acts{display:flex;flex-direction:column;gap:10px}
+.act{
+  display:grid;grid-template-columns:1fr 170px 118px 40px;gap:10px;align-items:center;
+  background:var(--panel);border:1px solid var(--rule);border-radius:2px;padding:10px;
+}
+@media (max-width:620px){.act{grid-template-columns:1fr 1fr;}.act .x{grid-column:2;justify-self:end}}
+.x{
+  background:none;border:1px solid var(--rule-strong);border-radius:2px;color:var(--muted);
+  width:30px;height:30px;cursor:pointer;font-family:var(--sans);line-height:1;
+}
+.x:hover{color:var(--crimson);border-color:var(--crimson)}
+.btn{
+  font-family:var(--sans);font-size:13px;font-weight:600;letter-spacing:.02em;
+  background:var(--panel);border:1px solid var(--rule-strong);border-radius:2px;
+  padding:8px 14px;cursor:pointer;color:var(--ink-soft);
+}
+.btn:hover{border-color:var(--ivy);color:var(--ivy)}
+.btn.primary{background:var(--ivy);border-color:var(--ivy);color:var(--panel)}
+.btn.primary:hover{background:var(--ivy-bright);border-color:var(--ivy-bright)}
+.btnrow{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+
+/* ---------- rail: the reader card ---------- */
+.rail{position:sticky;top:20px;display:flex;flex-direction:column;gap:16px}
+.card{
+  background:var(--panel);border:1px solid var(--rule-strong);border-radius:2px;
+  box-shadow:var(--shadow);
+}
+.card-top{
+  padding:14px 18px;border-bottom:1px solid var(--rule);
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+}
+.card-top .ttl{font-family:var(--sans);font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.card-top .who{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--ivy);text-align:right}
+
+.ratings{padding:6px 18px 14px}
+.rrow{
+  display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;
+  padding:9px 0;border-bottom:1px dotted var(--rule);
+}
+.rrow:last-child{border-bottom:none}
+.rname{font-family:var(--sans);font-size:12.5px;font-weight:500;color:var(--ink-soft)}
+.scale{display:flex;gap:3px}
+.box{
+  width:17px;height:19px;border:1px solid var(--rule-strong);border-radius:1px;
+  font-family:var(--sans);font-size:10px;font-weight:600;color:var(--faint);
+  display:flex;align-items:center;justify-content:center;background:var(--panel-2);
+}
+.box.on{background:var(--ivy);border-color:var(--ivy);color:var(--panel)}
+.rmod{
+  font-family:var(--sans);font-size:12px;font-weight:700;width:22px;text-align:right;
+  color:var(--ivy);font-variant-numeric:tabular-nums;
+}
+
+.overall{padding:16px 18px;border-top:1px solid var(--rule-strong);background:var(--panel-2)}
+.ov-line{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.ov-lbl{font-family:var(--sans);font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.ov-val{font-family:var(--sans);font-size:40px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.ov-note{font-size:13px;color:var(--ink-soft);margin-top:8px;line-height:1.5}
+
+.verdict{padding:18px;border-top:1px solid var(--rule-strong);text-align:center}
+.stamp{
+  display:inline-block;border:2.5px solid currentColor;border-radius:3px;
+  padding:7px 18px 8px;font-family:var(--sans);font-weight:700;font-size:15px;
+  letter-spacing:.12em;text-transform:uppercase;transform:rotate(-1.6deg);
+}
+.stamp.admit{color:var(--ivy)}
+.stamp.wait{color:var(--amber)}
+.stamp.deny{color:var(--crimson)}
+.prob{margin-top:14px;font-family:var(--sans);font-variant-numeric:tabular-nums}
+.prob .num{font-size:29px;font-weight:700;letter-spacing:-.02em;display:block;line-height:1.1}
+.prob .cap{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:5px;display:block}
+.bar{height:6px;background:var(--panel-3);border-radius:0;margin:14px 0 8px;position:relative;overflow:hidden}
+.bar i{position:absolute;top:0;bottom:0;background:currentColor;opacity:.85}
+.bar-base{position:absolute;top:-3px;bottom:-3px;width:1.5px;background:var(--ink);opacity:.55}
+.barcap{display:flex;justify-content:space-between;font-family:var(--sans);font-size:10.5px;color:var(--faint);letter-spacing:.04em}
+
+/* ---------- report ---------- */
+.report{margin-top:52px;border-top:2px solid var(--ink);padding-top:0}
+.rep-head{
+  display:flex;justify-content:space-between;align-items:baseline;gap:20px;flex-wrap:wrap;
+  padding:20px 0 22px;border-bottom:1px solid var(--rule);
+}
+.rep-head h2{font-size:27px;letter-spacing:-.015em}
+.rep-head .meta{font-family:var(--sans);font-size:12px;color:var(--muted)}
+
+.lever{
+  margin:26px 0;padding:20px 22px;background:var(--ivy-wash);
+  border:1px solid var(--rule-strong);border-left:3px solid var(--ivy);
+}
+.lever .k{font-family:var(--sans);font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ivy);margin-bottom:8px}
+.lever h3{font-size:20px;margin-bottom:8px}
+.lever p{font-size:15px;color:var(--ink-soft);max-width:70ch}
+
+.dims{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 40px}
+@media(max-width:800px){.dims{grid-template-columns:minmax(0,1fr)}}
+.dim{padding:22px 0;border-top:1px solid var(--rule)}
+.dims .dim{padding-right:28px}
+@media(max-width:760px){.dims .dim{padding-right:0}}
+.dim-h{display:flex;align-items:baseline;gap:10px;margin-bottom:3px}
+.dim-h h3{font-size:17px}
+.dim-badge{
+  font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.06em;
+  padding:2px 7px;border:1px solid currentColor;border-radius:2px;
+}
+.dim-verdict{font-family:var(--sans);font-size:12px;color:var(--muted);margin-bottom:10px}
+.dim p{font-size:14.5px;color:var(--ink-soft);margin-bottom:10px;max-width:62ch}
+.dim ul{margin:0;padding-left:18px;font-size:14px;color:var(--ink-soft)}
+.dim li{margin-bottom:6px;max-width:60ch}
+.dim li b{color:var(--ink);font-weight:600}
+
+/* essay lab */
+.essay-out{margin-top:20px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 30px}
+@media(max-width:860px){.essay-out{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.essay-out{grid-template-columns:minmax(0,1fr)}}
+.metric{padding:13px 0;border-top:1px solid var(--rule)}
+.metric .mv{font-family:var(--sans);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.metric .mk{font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.metric .md{font-size:13px;color:var(--ink-soft);margin-top:5px;line-height:1.5;max-width:40ch}
+.flags{margin-top:22px;display:flex;flex-direction:column;gap:0}
+.flag{display:grid;grid-template-columns:88px 1fr;gap:14px;padding:12px 0;border-top:1px solid var(--rule);align-items:start}
+.flag .lv{
+  font-family:var(--sans);font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  padding-top:2px;
+}
+.flag.hi .lv{color:var(--crimson)}
+.flag.md .lv{color:var(--amber)}
+.flag.ok .lv{color:var(--ivy)}
+.flag .tx{font-size:14.5px;color:var(--ink-soft);max-width:72ch}
+.flag .tx b{color:var(--ink);font-weight:600}
+.flag .tx q{color:var(--ink);font-style:italic}
+
+/* data table */
+.tablewrap{overflow-x:auto;margin-top:14px;border:1px solid var(--rule)}
+table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:13px;min-width:560px}
+th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--rule);font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left;font-weight:500}
+thead th{
+  font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+  background:var(--panel-2);border-bottom:1px solid var(--rule-strong);
+}
+tbody tr:last-child td{border-bottom:none}
+tbody tr.me td{background:var(--ivy-wash);font-weight:600}
+td.np{color:var(--faint)}
+
+.footnote{font-size:13px;color:var(--muted);margin-top:14px;line-height:1.6;max-width:78ch}
+.footnote code{font-family:var(--sans);font-size:12px;background:var(--panel-2);padding:1px 5px;border-radius:2px}
+
+/* prompt pack */
+.pack{
+  margin-top:22px;background:var(--panel);border:1px solid var(--rule-strong);
+  padding:18px;font-family:var(--sans);font-size:12.5px;line-height:1.6;
+  white-space:pre-wrap;color:var(--ink-soft);max-height:280px;overflow:auto;
+}
+.toast{
+  position:fixed;left:50%;bottom:28px;transform:translateX(-50%);
+  background:var(--ink);color:var(--ground);font-family:var(--sans);font-size:13px;font-weight:500;
+  padding:10px 18px;border-radius:2px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;
+}
+.toast.show{opacity:1}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="mast-l">
+    <div class="eyebrow">Undergraduate Admissions &middot; First Reader Evaluation</div>
+    <h1>The Reader's Docket</h1>
+    <p class="sub">Fill in the file the way an admissions office receives it. The docket returns the five ratings a first reader assigns, an overall rating, an honest probability band &mdash; and the specific thing that would move each rating up one notch.</p>
+  </div>
+  <div class="mast-r">
+    <div><b>Rubric</b> &nbsp;Harvard reader scale, 1&ndash;6</div>
+    <div><b>Calibration</b> &nbsp;SFFA v. Harvard trial data</div>
+    <div><b>Base rates</b> &nbsp;Published CDS, 5 cycles</div>
+    <div><b>Race</b> &nbsp;Not scored (SFFA, 2023)</div>
+  </div>
+</header>
+
+<div class="caveat">
+  <b>Read this before you trust a number.</b> No public dataset exists of real applications with their outcomes &mdash; admissions files are confidential and nothing was trained on them. What this docket <i>is</i> built on is the material that is genuinely public: the 1&ndash;6 reader rubric and the admit-rate-by-rating figures disclosed in <i>SFFA v. Harvard</i>; each school's Common Data Set, which publishes both its admit rate and which factors it rates &ldquo;very important&rdquo;; and the score and rank distributions of enrolled students. So treat the output as a <b>well-calibrated second opinion, not a prediction</b>. The ratings and the coaching are where the value is. The percentage is the least reliable line on the page.
+</div>
+
+<div class="grid">
+<!-- ============ LEFT: THE FILE ============ -->
+<main>
+
+<section class="sect">
+  <div class="sect-head"><span class="sect-num">I</span><h2>The file</h2></div>
+  <p class="sect-note">Which school, and which round. Round matters more than most applicants think, and for a different reason than they think &mdash; see the report.</p>
+  <div class="fields">
+    <div class="f">
+      <label for="school">School</label>
+      <select id="school"></select>
+    </div>
+    <div class="f">
+      <label for="round">Round</label>
+      <select id="round">
+        <option value="rd">Regular Decision</option>
+        <option value="ed">Early Decision (binding)</option>
+        <option value="rea">Early Action / REA (non-binding)</option>
+      </select>
+    </div>
+    <div class="f">
+      <label for="major">Intended field</label>
+      <select id="major">
+        <option value="undecided">Undecided / open</option>
+        <option value="humanities">Humanities, languages, classics</option>
+        <option value="socsci">Social sciences, economics</option>
+        <option value="natsci">Natural sciences, maths</option>
+        <option value="cs">Computer science</option>
+        <option value="eng">Engineering</option>
+        <option value="business">Business / Wharton-type</option>
+        <option value="arts">Arts, music, theatre</option>
+      </select>
+    </div>
+    <div class="f">
+      <label for="citizen">Applicant status</label>
+      <select id="citizen">
+        <option value="dom">Domestic (US citizen / permanent resident)</option>
+        <option value="intl">International</option>
+      </select>
+    </div>
+  </div>
+</section>
+
+<section class="sect">
+  <div class="sect-head"><span class="sect-num">II</span><h2>Academic record</h2></div>
+  <p class="sect-note">This section decides whether the rest of the file gets read carefully. It almost never decides the admit. Roughly three-quarters of the applicants at these schools are academically qualified; the academic rating is a gate, not a race.</p>
+  <div class="fields">
+    <div class="f">
+      <label for="gpa">Unweighted GPA <span class="hint">on 4.0</span></label>
+      <input type="number" id="gpa" step="0.01" min="0" max="4" value="3.96">
+    </div>
+    <div class="f">
+      <label for="rank">Class rank <span class="hint">top % &mdash; blank if not ranked</span></label>
+      <input type="number" id="rank" step="0.5" min="0" max="100" value="3">
+    </div>
+    <div class="f">
+      <label for="testtype">Testing</label>
+      <select id="testtype">
+        <option value="sat">SAT</option>
+        <option value="act">ACT</option>
+        <option value="none">Applying test-optional</option>
+      </select>
+    </div>
+    <div class="f">
+      <label for="score">Score</label>
+      <input type="number" id="score" step="10" value="1540">
+    </div>
+    <div class="f">
+      <label for="rigor">Curriculum rigor <span class="hint">as your counsellor will tick it</span></label>
+      <select id="rigor">
+        <option value="4">Most demanding available</option>
+        <option value="3">Very demanding</option>
+        <option value="2">Demanding</option>
+        <option value="1">Average</option>
+      </select>
+    </div>
+    <div class="f">
+      <label for="advanced">Advanced courses <span class="hint">AP / IB HL / A Level / dual enrolment</span></label>
+      <input type="number" id="advanced" min="0" max="30" value="9">
+    </div>
+    <div class="f wide">
+      <label>Evidence of scholarship beyond coursework</label>
+      <div class="checks">
+        <label class="chk"><input type="checkbox" id="sch_research"><span>Published or presented research<small>Journal, conference, or a named lab mentor</small></span></label>
+        <label class="chk"><input type="checkbox" id="sch_olympiad"><span>National olympiad distinction<small>USAMO/USNCO/USAPhO qualifier or above, IMO/IPhO team</small></span></label>
+        <label class="chk"><input type="checkbox" id="sch_science"><span>ISEF / Regeneron STS finalist<small>Or an equivalent national research competition</small></span></label>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sect">
+  <div class="sect-head"><span class="sect-num">III</span><h2>Activities</h2></div>
+  <p class="sect-note">Enter your strongest few, not all ten. The rating is set by your best one or two &mdash; a long list of tier-4 memberships scores the same as a short one. Choose the tier honestly; almost everyone over-rates themselves by one level.</p>
+  <div class="acts" id="acts"></div>
+  <div class="btnrow"><button class="btn" id="addAct">+ Add activity</button></div>
+  <div class="fields two" style="margin-top:20px">
+    <div class="f">
+      <label for="spike">Coherence of the profile</label>
+      <select id="spike">
+        <option value="3">Sharp spike &mdash; everything points one direction</option>
+        <option value="2">Two clear threads that connect</option>
+        <option value="1">Broad and well-rounded, no clear centre</option>
+        <option value="0">Scattered &mdash; unrelated activities</option>
+      </select>
+      <span class="hint">"Well-rounded" is what the class is, not what a member of it is.</span>
+    </div>
+    <div class="f">
+      <label for="hours">Depth in your top activity</label>
+      <select id="hours">
+        <option value="3">4+ years, still deepening</option>
+        <option value="2">2&ndash;3 years, real commitment</option>
+        <option value="1">1 year</option>
+        <option value="0">Started this year</option>
+      </select>
+    </div>
+  </div>
+</section>
+
+<section class="sect">
+  <div class="sect-head"><span class="sect-num">IV</span><h2>The personal statement</h2></div>
+  <p class="sect-note">Paste the full essay. The diagnostic below is mechanical &mdash; it measures concreteness, clich&eacute; load, structure, and voice, which is what most weak drafts fail on. It cannot judge whether the essay is <i>true</i> or moving. For that, use the deep-read prompt at the bottom of the report.</p>
+  <div class="f wide">
+    <label for="essay">Common App personal statement <span class="hint">650-word limit</span></label>
+    <textarea id="essay" placeholder="Paste your essay here..."></textarea>
+  </div>
+  <div class="fields" style="margin-top:16px">
+    <div class="f">
+      <label for="supps">Supplemental essays</label>
+      <select id="supps">
+        <option value="3">Deeply researched, school-specific, named people and courses</option>
+        <option value="2">Solid, some specifics</option>
+        <option value="1">Generic &mdash; could be sent to any school</option>
+        <option value="0">Not written yet</option>
+      </select>
+    </div>
+    <div class="f">
+      <label for="interview">Alumni interview</label>
+      <select id="interview">
+        <option value="2">Went well &mdash; real conversation</option>
+        <option value="1">Fine, unremarkable</option>
+        <option value="0">Not yet, or not offered</option>
+        <option value="-1">Went badly</option>
+      </select>
+    </div>
+  </div>
+</section>
+
+<section class="sect">
+  <div class="sect-head"><span class="sect-num">V</span><h2>School support</h2></div>
+  <p class="sect-note">Letters are rated separately from everything else and they matter more than applicants expect. A letter that says "one of the two best I have taught in twenty years" is a different document from a warm one.</p>
+  <div class="fields">
+    <div class="f">
+      <label for="rec1">Strongest teacher letter</label>
+      <select id="rec1">
+        <option value="4">Superlative &mdash; best in years, with anecdotes</option>
+        <option value="3">Very strong, specific, enthusiastic</option>
+        <option value="2">Positive but general</option>
+        <option value="1">Adequate / lukewarm</option>
+      </select>
+    </div>
+    <div class="f">
+      <label for="rec2">Second teacher letter</label>
+      <select id="rec2">
+        <option value="3">Very strong and specific</option>
+        <option value="2">Positive but general</option>
+        <option value="1">Adequate</option>
+      </select>
+    </div>
+    <div class="f">
+      <label for="counselor">Counsellor letter</label>
+      <select id="counselor">
+        <option value="3">Knows me well, advocates hard</option>
+        <option value="2">Knows me somewhat</option>
+        <option value="1">Barely knows me &mdash; large caseload</option>
+      </select>
+    </div>
+  </div>
+</section>
+
+<section class="sect">
+  <div class="sect-head"><span class="sect-num">VI</span><h2>Context and institutional factors</h2></div>
+  <p class="sect-note">Every file is read against the opportunity available to it. The same activity list means something different at a school that sends forty students a year to these colleges and one that has never sent any. The second group below is the part of admissions nobody enjoys discussing; the docket includes it because pretending it does not exist produces bad advice.</p>
+  <div class="fields" style="margin-bottom:18px">
+    <div class="f">
+      <label for="schooltype">Your secondary school</label>
+      <select id="schooltype">
+        <option value="0">Under-resourced &mdash; few or no advanced courses offered</option>
+        <option value="1">Typical public school</option>
+        <option value="2">Strong public / magnet</option>
+        <option value="3">Competitive private or feeder school</option>
+      </select>
+    </div>
+    <div class="f">
+      <label for="geo">Region</label>
+      <select id="geo">
+        <option value="1">Common applicant region (NE corridor, CA, major metro)</option>
+        <option value="2">Ordinary US region</option>
+        <option value="3">Rural or under-represented US state</option>
+      </select>
+    </div>
+    <div class="f">
+      <label for="aid">Financial aid</label>
+      <select id="aid">
+        <option value="0">Not applying for aid</option>
+        <option value="1">Applying for aid</option>
+        <option value="2">Applying for substantial aid / Pell-eligible</option>
+      </select>
+    </div>
+  </div>
+  <label style="display:block;margin-bottom:9px">Institutional factors</label>
+  <div class="checks">
+    <label class="chk"><input type="checkbox" id="h_athlete"><span>Recruited athlete on a coach's list<small>The single largest factor in the file, by a wide margin</small></span></label>
+    <label class="chk"><input type="checkbox" id="h_legacy"><span>Legacy<small>Parent attended the undergraduate college</small></span></label>
+    <label class="chk"><input type="checkbox" id="h_dean"><span>Development / dean's interest<small>Family is a significant donor or trustee-adjacent</small></span></label>
+    <label class="chk"><input type="checkbox" id="h_faculty"><span>Child of faculty or staff</span></label>
+    <label class="chk"><input type="checkbox" id="h_firstgen"><span>First-generation to university<small>Neither parent holds a four-year degree</small></span></label>
+    <label class="chk"><input type="checkbox" id="h_qb"><span>QuestBridge finalist<small>Or a comparable national access programme</small></span></label>
+  </div>
+  <div class="btnrow">
+    <button class="btn primary" id="run">Read the file</button>
+    <button class="btn" id="save">Save profile</button>
+    <button class="btn" id="load">Load saved</button>
+    <button class="btn" id="demo">Reset to example</button>
+    <button class="btn" id="clear">Clear everything</button>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ RIGHT: THE CARD ============ -->
+<aside class="rail">
+  <div class="card">
+    <div class="card-top">
+      <span class="ttl">Reader's card</span>
+      <span class="who" id="cardWho">Harvard &middot; RD</span>
+    </div>
+    <div class="ratings" id="ratings"></div>
+    <div class="overall">
+      <div class="ov-line">
+        <span class="ov-lbl">Overall</span>
+        <span class="ov-val" id="ovVal">2</span>
+      </div>
+      <p class="ov-note" id="ovNote"></p>
+    </div>
+    <div class="verdict">
+      <span class="stamp admit" id="stamp">Admit</span>
+      <div class="prob" id="probBox">
+        <span class="num" id="probNum">14&ndash;22%</span>
+        <span class="cap">Estimated admit probability</span>
+      </div>
+      <div class="bar" id="bar"><i id="barFill"></i><span class="bar-base" id="barBase"></span></div>
+      <div class="barcap"><span>0%</span><span id="baseLbl">base rate</span><span>50%</span></div>
+    </div>
+  </div>
+  <p style="font-size:12.5px;color:var(--muted);line-height:1.6;font-family:var(--sans)">
+    The card updates as you type. The vertical mark on the bar is this school's overall admit rate &mdash; the line you have to be meaningfully above.
+  </p>
+</aside>
+</div>
+
+<!-- ============ REPORT ============ -->
+<section class="report" id="report">
+  <div class="rep-head">
+    <h2>Evaluation and committee notes</h2>
+    <span class="meta" id="repMeta"></span>
+  </div>
+
+  <div class="lever" id="lever">
+    <div class="k">Highest-leverage change</div>
+    <h3 id="leverH"></h3>
+    <p id="leverP"></p>
+  </div>
+
+  <div class="dims" id="dims"></div>
+
+  <div class="sect" style="border-top:1px solid var(--rule);margin-top:30px">
+    <div class="sect-head"><span class="sect-num">§</span><h2>Essay diagnostic</h2></div>
+    <p class="sect-note">Mechanical measures only. Every one of these is a thing a reader notices in the first fifteen seconds.</p>
+    <div class="essay-out" id="essayOut"></div>
+    <div class="flags" id="essayFlags"></div>
+  </div>
+
+  <div class="sect" style="border-top:1px solid var(--rule)">
+    <div class="sect-head"><span class="sect-num">§</span><h2>Five cycles at this school</h2></div>
+    <p class="sect-note">Admit rates as announced or as published in the Common Data Set. Several of these schools stopped announcing figures after 2021, which is itself informative &mdash; marked <code>n/p</code>.</p>
+    <div class="tablewrap"><table id="rateTable"></table></div>
+    <p class="footnote" id="rateNote"></p>
+  </div>
+
+  <div class="sect" style="border-top:1px solid var(--rule)">
+    <div class="sect-head"><span class="sect-num">§</span><h2>Deep read</h2></div>
+    <p class="sect-note">The diagnostic above counts things. It cannot tell you whether your essay sounds like you, whether the story earns its ending, or whether the reader will remember it an hour later. Copy the block below into Claude and you will get that read.</p>
+    <div class="btnrow" style="margin-top:0"><button class="btn primary" id="copyPack">Copy the deep-read prompt</button></div>
+    <div class="pack" id="pack"></div>
+  </div>
+</section>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   THE READER'S DOCKET — evaluation engine
+   Rubric: the 1-6 reader scale disclosed in SFFA v. Harvard.
+   Probability: logistic over the composite docket score, anchored
+   to the admit-rate-by-overall-rating figures from the same trial
+   record, then scaled by the school's published base rate.
+   ============================================================ */
+
+/* ---- School data. Admit rates by entering class. n/p = school
+        stopped publishing. Verify against the current CDS. ---- */
+const SCHOOLS = {
+  harvard:{n:"Harvard",rate:3.6,sat:[1500,1580],act:[34,36],
+    rates:{2025:3.43,2026:3.19,2027:3.41,2028:3.59,2029:null},
+    early:"rea",legacy:true,intlBlind:true,
+    c7:"Rigor, GPA, essay, recommendations, character and extracurriculars all rated very important. Test scores considered."},
+  yale:{n:"Yale",rate:4.2,sat:[1500,1560],act:[33,35],
+    rates:{2025:4.62,2026:4.46,2027:4.35,2028:3.70,2029:null},
+    early:"rea",legacy:true,intlBlind:true,
+    c7:"Rigor, GPA, essay, recommendations, character, extracurriculars and talent very important."},
+  princeton:{n:"Princeton",rate:4.5,sat:[1510,1570],act:[34,35],
+    rates:{2025:3.98,2026:null,2027:null,2028:null,2029:null},
+    early:"rea",legacy:true,intlBlind:true,
+    c7:"Rigor, GPA, class rank, essay, recommendations, character and extracurriculars very important."},
+  columbia:{n:"Columbia",rate:3.9,sat:[1500,1560],act:[34,35],
+    rates:{2025:3.66,2026:3.73,2027:3.90,2028:null,2029:null},
+    early:"ed",legacy:true,intlBlind:false,
+    c7:"Rigor, GPA, essay, recommendations, character and extracurriculars very important."},
+  penn:{n:"Penn",rate:6.0,sat:[1500,1570],act:[34,35],
+    rates:{2025:5.68,2026:null,2027:null,2028:null,2029:null},
+    early:"ed",legacy:true,intlBlind:false,
+    c7:"Rigor, GPA, class rank, essay, recommendations and extracurriculars very important."},
+  brown:{n:"Brown",rate:5.2,sat:[1500,1560],act:[34,36],
+    rates:{2025:5.40,2026:5.03,2027:5.08,2028:5.20,2029:5.65},
+    early:"ed",legacy:true,intlBlind:false,
+    c7:"Rigor, GPA, essay, recommendations, character and extracurriculars very important."},
+  dartmouth:{n:"Dartmouth",rate:5.8,sat:[1500,1580],act:[33,35],
+    rates:{2025:6.17,2026:6.24,2027:6.23,2028:5.30,2029:6.00},
+    early:"ed",legacy:true,intlBlind:false,
+    c7:"Rigor, GPA, class rank, essay, recommendations, character and extracurriculars very important."},
+  cornell:{n:"Cornell",rate:7.5,sat:[1470,1550],act:[33,35],
+    rates:{2025:8.70,2026:null,2027:null,2028:null,2029:null},
+    early:"ed",legacy:true,intlBlind:false,
+    c7:"Rigor, GPA, essay and recommendations very important; weighting varies by undergraduate college."},
+  mit:{n:"MIT",rate:4.5,sat:[1520,1580],act:[35,36],
+    rates:{2025:4.03,2026:3.96,2027:4.80,2028:4.50,2029:4.20},
+    early:"rea",legacy:false,intlBlind:true,
+    c7:"Rigor, GPA, essay, recommendations, character and extracurriculars very important. No legacy preference; MIT does not consider it."},
+  stanford:{n:"Stanford",rate:3.9,sat:[1500,1570],act:[34,35],
+    rates:{2025:3.95,2026:null,2027:null,2028:null,2029:null},
+    early:"rea",legacy:true,intlBlind:false,
+    c7:"Rigor, GPA, essay, recommendations, character, extracurriculars and talent very important."}
+};
+
+const TIERS = {
+  1:{lbl:"Tier 1 — national / international",pts:100,
+     ex:"National champion or medallist, published author, founder of something with genuine outside reach, recruited-level artist, national office"},
+  2:{lbl:"Tier 2 — state / regional distinction",pts:80,
+     ex:"State-level award, regional recognition, led an organisation with measurable outside impact, all-state musician"},
+  3:{lbl:"Tier 3 — school leadership",pts:60,
+     ex:"Club president, team captain, section leader, newspaper editor — real responsibility, school-bounded"},
+  4:{lbl:"Tier 4 — participation",pts:30,
+     ex:"Member, volunteer hours, an activity you did without leading or distinguishing yourself"}
+};
+
+/* ---------------- helpers ---------------- */
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const lerp = (x,x0,y0,x1,y1) => y0 + (y1-y0)*clamp((x-x0)/(x1-x0),0,1);
+
+/* ---------------- activities ---------------- */
+let acts = [];
+function actRow(a,i){
+  const d = document.createElement("div");
+  d.className = "act";
+  d.innerHTML =
+    '<input type="text" placeholder="Activity, briefly" value="'+(a.name||"").replace(/"/g,"&quot;")+'" data-k="name">'+
+    '<select data-k="tier">'+[1,2,3,4].map(t=>'<option value="'+t+'"'+(a.tier==t?" selected":"")+'>'+TIERS[t].lbl.split(" — ")[0]+' · '+TIERS[t].lbl.split(" — ")[1]+'</option>').join("")+'</select>'+
+    '<select data-k="role"><option value="2"'+(a.role==2?" selected":"")+'>Founded / led</option><option value="1"'+(a.role==1?" selected":"")+'>Officer</option><option value="0"'+(a.role==0?" selected":"")+'>Member</option></select>'+
+    '<button class="x" title="Remove">&times;</button>';
+  d.querySelectorAll("[data-k]").forEach(el=>{
+    el.addEventListener("input",()=>{ acts[i][el.dataset.k] = el.value; run(); });
+    el.addEventListener("change",()=>{ acts[i][el.dataset.k] = el.value; run(); });
+  });
+  d.querySelector(".x").addEventListener("click",()=>{ acts.splice(i,1); drawActs(); run(); });
+  return d;
+}
+function drawActs(){
+  const w = $("acts"); w.innerHTML="";
+  acts.forEach((a,i)=>w.appendChild(actRow(a,i)));
+}
+
+/* ---------------- essay diagnostic ---------------- */
+const CLICHES = [
+ "ever since i was","ever since i can remember","from a young age","at a young age",
+ "little did i know","changed my life","changed my perspective","opened my eyes",
+ "outside my comfort zone","out of my comfort zone","taught me the value of",
+ "i learned that hard work","hard work pays off","never give up","gave me a new perspective",
+ "passion for helping","make a difference in the world","i want to help people",
+ "webster's dictionary","the dictionary defines","in conclusion","last but not least",
+ "it was at that moment","that is when i realized","i realized that i wanted",
+ "a rollercoaster of emotions","blood sweat and tears","against all odds",
+ "i am a firm believer","this experience taught me","looking back on it now",
+ "i have always been fascinated","sparked my interest","fuelled my passion","fueled my passion"
+];
+const ABSTRACT = ["passion","passionate","journey","perseverance","resilience","dedication","determination",
+ "growth","impact","inspire","inspiring","inspired","community","leader","leadership","hardworking",
+ "determined","challenge","challenging","opportunity","experience","values","grateful","empathy",
+ "compassion","overcome","strive","striving","potential","meaningful","fulfilling","rewarding"];
+const SENSORY = ["smell","smelled","taste","tasted","cold","warm","loud","quiet","hands","fingers","dust",
+ "rain","salt","bread","paint","engine","chalk","cracked","stained","wooden","metal","screen","kitchen",
+ "hallway","bench","rust","grease","ink","cardboard","frozen","humid","soil","thread","needle","wire"];
+const CROWDED = [
+ [/mission trip|volunteer(ing)? (trip|abroad)|orphanage/i,"the service trip abroad"],
+ [/torn (my )?acl|the injury|season[- ]ending injury|sidelined/i,"the sports injury"],
+ [/my (grandmother|grandfather|grandma|grandpa) (died|passed)/i,"the death of a grandparent"],
+ [/moved to (a new|america|the united states)|immigrat/i,"the immigration or moving story"],
+ [/(the )?pandemic|covid|lockdown|quarantine/i,"the pandemic"],
+ [/model un|debate tournament|robotics competition/i,"the competition recap"],
+ [/i (am|was) the (eldest|oldest) (child|sibling|daughter|son)/i,"the eldest-child essay"]
+];
+
+function analyseEssay(t){
+  const raw = (t||"").trim();
+  const R = {empty:!raw, words:0, score:0, flags:[]};
+  if(!raw) return R;
+  const words = raw.split(/\s+/).filter(Boolean);
+  const wc = words.length;
+  const sents = raw.split(/(?<=[.!?])\s+/).filter(s=>s.trim().length>1);
+  const low = " "+raw.toLowerCase().replace(/[’']/g,"'")+" ";
+  let s = 60;
+  R.words = wc;
+
+  /* length */
+  if(wc>=560 && wc<=660){ s+=6; R.len={v:"On target",lv:"ok"}; }
+  else if(wc>660){ s-=9; R.len={v:"Over limit",lv:"hi"}; }
+  else if(wc>=450){ s+=1; R.len={v:"Short of the limit",lv:"md"}; }
+  else { s-=13; R.len={v:"Far too short",lv:"hi"}; }
+
+  /* clichés */
+  const hits = CLICHES.filter(c=>low.includes(" "+c));
+  s -= Math.min(20, hits.length*4.5);
+  R.cliche = hits;
+
+  /* concreteness */
+  const digits = (raw.match(/\b\d+\b/g)||[]).length;
+  const proper = (raw.match(/(?!^)(?<![.!?]\s)\b[A-Z][a-z]{2,}\b/g)||[]).length;
+  const sens = words.filter(w=>SENSORY.includes(w.toLowerCase().replace(/[^a-z]/g,""))).length;
+  const concrete = digits + proper + sens;
+  const cRate = wc ? concrete/wc*100 : 0;
+  R.concrete = cRate;
+  if(cRate>=6) s+=13; else if(cRate>=4) s+=8; else if(cRate>=2.4) s+=2; else s-=11;
+
+  /* abstraction load */
+  const abs = words.filter(w=>ABSTRACT.includes(w.toLowerCase().replace(/[^a-z]/g,""))).length;
+  const aRate = wc ? abs/wc*100 : 0;
+  R.abstract = aRate;
+  if(aRate>3.2) s-=9; else if(aRate>2.2) s-=4; else if(aRate<1.1) s+=4;
+
+  /* opening */
+  const open = (sents[0]||"").trim();
+  const weakOpen = /^(the dictionary|webster|according to|["“].{10,}["”]\s*[-—]|i have always|ever since|from a young age|there are (many|two) (kinds|types))/i.test(open)
+                   || /^["“]/.test(open) && open.length>90;
+  const strongOpen = /^[A-Z].{0,90}(said|shouted|handed|dropped|slammed|burned|smelled|woke|ran|cut|broke|opened|knocked|spilled|counted|dialled|dialed)/i.test(open)
+                   || /^["“][^"”]{3,60}["”],?\s/.test(open) || /\b\d/.test(open);
+  if(weakOpen){ s-=9; R.open={v:"Weak",lv:"hi"}; }
+  else if(strongOpen){ s+=7; R.open={v:"Strong",lv:"ok"}; }
+  else { R.open={v:"Serviceable",lv:"md"}; }
+  R.openText = open;
+
+  /* reflection in the last third */
+  const tail = words.slice(Math.floor(wc*0.66)).join(" ").toLowerCase();
+  const reflects = /(i (now )?(understand|see|know)|what i (had )?missed|i was wrong|i still|it turns out|i had assumed|i no longer|what i actually)/.test(tail);
+  const flatEnd = /(i learned|taught me|this experience|in conclusion|i (will|hope to) (continue|bring))/.test(tail);
+  if(reflects) s+=7; if(flatEnd) s-=6;
+  R.reflects = reflects; R.flatEnd = flatEnd;
+
+  /* rhythm */
+  const lens = sents.map(x=>x.split(/\s+/).length);
+  const mean = lens.reduce((a,b)=>a+b,0)/(lens.length||1);
+  const sd = Math.sqrt(lens.reduce((a,b)=>a+(b-mean)**2,0)/(lens.length||1));
+  R.sd = sd; R.meanSent = mean;
+  if(sd>6.5) s+=5; else if(sd<3.2) s-=6;
+
+  /* voice */
+  const iStart = sents.filter(x=>/^\s*I\b/.test(x)).length;
+  R.iRatio = sents.length ? iStart/sents.length : 0;
+  if(R.iRatio>0.55) s-=5;
+
+  /* noise */
+  const adverbs = words.filter(w=>/ly$/.test(w.toLowerCase())&&w.length>5).length;
+  R.adverbs = wc?adverbs/wc*100:0;
+  if(R.adverbs>3) s-=4;
+  if((raw.match(/!/g)||[]).length>1) s-=3;
+
+  /* crowded topic */
+  R.crowded = CROWDED.filter(c=>c[0].test(raw)).map(c=>c[1]);
+
+  R.sents = sents.length;
+  R.score = clamp(Math.round(s),0,100);
+  return R;
+}
+
+/* ---------------- rating helper ---------------- */
+function ratingOf(sc){
+  const bands = [[92,100,1],[78,92,2],[60,78,3],[42,60,4],[25,42,5],[0,25,6]];
+  for(const [lo,hi,r] of bands){
+    if(sc>=lo){
+      const frac = (sc-lo)/(hi-lo);
+      const mod = (r===1||r===6) ? "" : (frac>0.66 ? "+" : (frac<0.33 ? "\u2212" : ""));
+      return {r, mod, sc};
+    }
+  }
+  return {r:6, mod:"", sc};
+}
+
+/* ---------------- read the form ---------------- */
+function readInputs(){
+  const v = id => $(id).value;
+  const c = id => $(id).checked;
+  return {
+    school:v("school"), round:v("round"), major:v("major"), citizen:v("citizen"),
+    gpa:parseFloat(v("gpa"))||0,
+    rank: v("rank")===""?null:parseFloat(v("rank")),
+    testtype:v("testtype"), score:parseFloat(v("score"))||0,
+    rigor:+v("rigor"), advanced:parseFloat(v("advanced"))||0,
+    research:c("sch_research"), olympiad:c("sch_olympiad"), isef:c("sch_science"),
+    acts:acts.map(a=>({name:a.name,tier:+a.tier,role:+a.role})),
+    spike:+v("spike"), depth:+v("hours"),
+    essay:v("essay"), supps:+v("supps"), interview:+v("interview"),
+    rec1:+v("rec1"), rec2:+v("rec2"), counselor:+v("counselor"),
+    schooltype:+v("schooltype"), geo:+v("geo"), aid:+v("aid"),
+    athlete:c("h_athlete"), legacy:c("h_legacy"), dean:c("h_dean"),
+    faculty:c("h_faculty"), firstgen:c("h_firstgen"), qb:c("h_qb")
+  };
+}
+
+const ACT2SAT = {36:1580,35:1550,34:1520,33:1490,32:1450,31:1420,30:1390,29:1350,28:1320,27:1280,26:1240,25:1210,24:1180};
+
+/* ---------------- the evaluation ---------------- */
+function evaluate(o){
+  const S = SCHOOLS[o.school];
+  const out = {S};
+
+  /* --- academic --- */
+  let gpaPts = lerp(o.gpa,3.20,2,4.0,40);
+  let rankAdj = 0;
+  if(o.rank!==null){ rankAdj = o.rank<=1?3 : o.rank<=5?2 : o.rank<=10?1 : o.rank<=25?0 : -5; }
+  let sat = 0, imputed=false;
+  if(o.testtype==="sat") sat = o.score;
+  else if(o.testtype==="act") sat = ACT2SAT[Math.round(o.score)] || lerp(o.score,24,1180,36,1580);
+  let testPts;
+  if(o.testtype==="none"){ testPts = 0.60*(gpaPts/40*35); imputed=true; }
+  else testPts = lerp(sat,1150,0,1580,35);
+  const expected = [3,6,9,11][o.schooltype];
+  const rigorBase = [0,5,12,19,25][o.rigor];
+  const rigorAdj = clamp((o.advanced-expected)/Math.max(expected,1)*5,-5,4);
+  const rigorPts = clamp(rigorBase+rigorAdj,0,25);
+  const scholar = Math.min(12,(o.research?5:0)+(o.olympiad?7:0)+(o.isef?6:0));
+  /* Coursework alone tops out at 89 — an academic 1 is defined by original
+     scholarship, not by a flawless transcript, so only the scholarship
+     component can carry a file across that line. */
+  const acadBase = Math.min(89, gpaPts+rankAdj+testPts+rigorPts);
+  let acad = clamp(acadBase + scholar, 0, 100);
+  out.testPts=testPts; out.imputed=imputed; out.sat=sat; out.scholar=scholar; out.rigorPts=rigorPts;
+
+  /* --- opportunity factor: every file is read against its context --- */
+  const opp = 1 + (3-o.schooltype)*0.032 + (o.firstgen?0.045:0) + (o.aid===2?0.03:0);
+  out.opp = opp;
+
+  /* --- extracurricular --- */
+  const roleBonus = r => r===2?6:r===1?3:0;
+  const list = o.acts.map(a=>({tier:a.tier,role:a.role}));
+  if(o.ecBump && list.length){
+    let bi=0, bv=-1;
+    list.forEach((a,i)=>{ const v=TIERS[a.tier].pts+roleBonus(a.role); if(v>bv){bv=v;bi=i;} });
+    list[bi].tier = Math.max(1,list[bi].tier-1);
+  }
+  const pts = list.map(a=>Math.min(105,TIERS[a.tier].pts + roleBonus(a.role))).sort((a,b)=>b-a);
+  const best = pts[0]||0, second = pts[1]||0;
+  let ecRaw = clamp(best*0.80 + second*0.12 + o.depth*2 + o.spike*2.5, 0, 100);
+  /* Context lifts a thin record much more than a distinguished one: doing a lot
+     with little is the thing being credited, and a national award is already
+     read on its own terms. */
+  const ec = clamp(ecRaw + (opp-1)*100*(1-ecRaw/100)*0.8, 0, 100);
+  out.bestTier = o.acts.length?Math.min(...o.acts.map(a=>a.tier)):4;
+
+  /* --- personal --- */
+  const E = analyseEssay(o.essay);
+  out.E = E;
+  const eScore = o.essayOverride!=null ? o.essayOverride : (E.empty?62:E.score);
+  let personal = clamp(eScore*0.50 + o.supps*7 + o.interview*4 + 20,0,100);
+
+  /* --- school support --- */
+  const support = clamp([0,12,20,30,34][o.rec1] + [0,9,15,20][o.rec2] + [0,9,16,20][o.counselor] + 6
+                  + ((o.rec1===4&&o.rec2===3&&o.counselor===3)?8:0),0,100);
+
+  /* --- athletic --- */
+  const athletic = o.athlete?95:45;
+
+  /* --- composite --- */
+  let docket = 0.28*acad + 0.34*ec + 0.26*personal + 0.12*support;
+  if(ec>=88 && o.spike>=2) docket += 2.5;
+  if(acad<55) docket *= 0.80;
+  if(acad<42) docket *= 0.78;
+  docket = clamp(docket,0,100);
+
+  /* --- probability --- */
+  /* Calibrated so that at Harvard a distinguished-but-unhooked file lands near
+     5%, a national-spike file near 50%, and the ceiling for anyone is 85%. */
+  let p = 0.85 / (1 + Math.exp(-(docket-92.87)/5.15));
+
+  const hooks = [];
+  let mult = 1;
+  const add = (m,label) => { mult*=m; hooks.push([label,m]); };
+  if(o.legacy && S.legacy) add(2.4,"Legacy");
+  if(o.legacy && !S.legacy) hooks.push([S.n+" does not consider legacy",1]);
+  if(o.dean) add(3.5,"Development / dean's interest");
+  if(o.faculty) add(2.4,"Child of faculty or staff");
+  if(o.firstgen) add(1.45,"First-generation");
+  if(o.qb) add(1.7,"QuestBridge finalist");
+  if(o.aid===2 && !o.qb) add(1.2,"High financial need at a need-blind school");
+  if(o.geo===3) add(1.25,"Under-represented region");
+  if(o.round==="ed" && S.early==="ed") add(1.75,"Binding Early Decision");
+  if(o.round==="rea" && S.early==="rea") add(1.2,"Restrictive Early Action");
+  if(o.round==="ed" && S.early!=="ed") hooks.push([S.n+" has no binding ED round",1]);
+  if(o.citizen==="intl"){
+    const m = S.intlBlind ? (o.aid?0.60:0.78) : (o.aid?0.42:0.70);
+    add(m,"International applicant"+(o.aid?" seeking aid":""));
+  }
+  const hardMajor = {cs:0.78,eng:0.80,business:0.62}[o.major];
+  if(hardMajor && ["cornell","columbia","penn","mit"].includes(o.school)) add(hardMajor,"Competitive intended field at this school");
+  else if(o.major==="humanities"||o.major==="arts") add(1.10,"Less over-subscribed field");
+  mult = Math.min(mult,6);
+  /* School base rate and institutional factors act on the odds, not on the
+     probability — multiplying a probability directly runs it past 1. */
+  let odds = p/(1-p);
+  odds *= (S.rate/3.6) * mult;
+  p = odds/(1+odds);
+  if(o.athlete){ p = Math.max(p, acad>=55?0.82:0.45); hooks.push(["Recruited athlete on a coach's list",null]); }
+  p = clamp(p,0.002,0.96);
+
+  out.acad=acad; out.ec=ec; out.personal=personal; out.support=support; out.athletic=athletic;
+  out.docket=docket; out.p=p; out.hooks=hooks; out.eScore=eScore;
+  out.rAcad=ratingOf(acad); out.rEc=ratingOf(ec); out.rPers=ratingOf(personal);
+  out.rSup=ratingOf(support); out.rAth=ratingOf(athletic);
+  out.rOverall = ratingOf(docket);
+  return out;
+}
+
+function verdictOf(p){
+  if(p>=0.45) return {k:"admit",t:"Admit",note:"Above the line. Present a coherent, well-supported case."};
+  if(p>=0.22) return {k:"admit",t:"Admit — plausible",note:"A genuine candidate. The committee could go either way; nothing here is decided by you alone."};
+  if(p>=0.09) return {k:"wait",t:"Waitlist band",note:"Strong file competing against many equally strong ones. This is where the essay and the letters do the real work."};
+  if(p>=0.035) return {k:"deny",t:"Deny — likely",note:"Qualified but not distinguished from the pool. There is a path; it runs through the report below."};
+  return {k:"deny",t:"Deny",note:"The file does not currently clear the bar at this school. That is a statement about this school, not about you."};
+}
+
+/* ---------------- coaching copy ---------------- */
+const NEXT = {
+  acad:{1:"There is no higher academic rating. Academics are no longer your constraint — stop optimising here.",
+        2:"An academic 1 means original scholarship: published research, a national olympiad medal, mathematics well past the school curriculum. Almost nobody needs this. It is not the efficient use of your remaining time.",
+        3:"An academic 2 means excellent grades in the most demanding curriculum your school offers, with scores in the school's middle 50%. Close the gap that is furthest from that description first.",
+        4:"An academic 3 needs consistently strong grades and a curriculum your counsellor will describe as demanding. Grades in the next two terms carry real weight — upward trends are read generously.",
+        5:"Before anything else, the transcript has to establish that you can do the work. That is the whole job of this section.",
+        6:"The academic record is the constraint. Everything else in the file waits behind it."},
+  ec:{1:"There is no higher rating. Protect it: keep doing the thing, and let the essays show why it matters to you rather than restating the award.",
+      2:"An EC 1 means recognition that reaches beyond your state, or a project with genuine outside consequence — users, readers, revenue, a policy changed, a record set. Depth in one thing, not another club.",
+      3:"An EC 2 means distinction outside your own school: a state award, a regional office, an organisation whose impact can be counted. Take the activity you already lead and push it outward — enter it, publish it, scale it, get it judged by strangers.",
+      4:"An EC 3 means real responsibility, not membership. Take the thing you care about most and get an actual role in it: run it, found it, or own a piece of it end to end.",
+      5:"Pick one activity. Give it a year of serious, visible commitment. One deep thing beats eight shallow ones, always.",
+      6:"Start with one activity you would do anyway if nobody were watching."},
+  personal:{1:"Rare. Leave it alone.",
+      2:"A personal 1 comes from letters and essays that independently describe the same unusual person — not from a better-written essay.",
+      3:"A personal 2 needs a personal statement that could only have been written by you: one specific scene, concrete detail, and a reflection that surprises. Then supplements that name real courses and real people at this school.",
+      4:"A personal 3 needs an essay about something small and true rather than something large and impressive, plus supplements that prove you have actually read the course catalogue.",
+      5:"The essays are currently the weakest part of the file, which is good news — it is the part you can still change completely.",
+      6:"Start the personal statement over. Write about one afternoon, not one lifetime."},
+  support:{1:"Exceptional. Nothing to do.",
+      2:"Little to gain here. Give your recommenders your activity list and a note about what you hope they will say.",
+      3:"Choose recommenders who have seen you struggle and recover, not the ones who gave you the highest grades. Meet them in person, hand them a page about what you did in their class, and ask early.",
+      4:"Your letters are likely to be generic. Fix that now: pick two teachers from courses where you spoke, argued, or came back after a bad start, and give them material to write from.",
+      5:"Make sure your counsellor knows who you are before they write. Book the meeting.",
+      6:"Make sure your counsellor knows who you are before they write. Book the meeting."}
+};
+const RVERD = {
+  acad:{1:"Summa potential — original scholarship",2:"Magna potential — excellent student",3:"Cum laude potential — very good student",4:"Adequate preparation",5:"Marginal preparation",6:"Below the threshold"},
+  ec:{1:"National-level achievement or professional-standard work",2:"Strong contribution with recognition beyond the school",3:"Solid participation without special distinction",4:"Little involvement",5:"Minimal involvement",6:"No meaningful involvement"},
+  personal:{1:"Outstanding",2:"Very strong",3:"Generally positive",4:"Bland or immature",5:"Questionable",6:"Worrisome"},
+  support:{1:"Strikingly strong support",2:"Very strong support",3:"Generally positive support",4:"Lukewarm",5:"Slightly negative",6:"Negative"}
+};
+
+/* ---------------- render ---------------- */
+function renderCard(R,o){
+  const rows = [
+    ["Academic",R.rAcad],["Extracurricular",R.rEc],["Athletic",R.rAth],
+    ["Personal",R.rPers],["School support",R.rSup]
+  ];
+  $("ratings").innerHTML = rows.map(([n,r])=>
+    '<div class="rrow"><span class="rname">'+n+'</span><span class="scale">'+
+    [1,2,3,4,5,6].map(i=>'<span class="box'+(i===r.r?" on":"")+'">'+i+'</span>').join("")+
+    '</span><span class="rmod">'+(r.mod||"&nbsp;")+'</span></div>').join("");
+
+  $("ovVal").textContent = R.rOverall.r + (R.rOverall.mod||"");
+  const V = verdictOf(R.p);
+  $("ovNote").textContent = V.note;
+  const st = $("stamp"); st.className = "stamp "+V.k; st.textContent = V.t;
+
+  const lo = Math.max(0.1,R.p*100*0.72), hi = Math.min(97,R.p*100*1.34);
+  $("probNum").textContent = (lo<1?lo.toFixed(1):Math.round(lo))+"–"+(hi<1?hi.toFixed(1):Math.round(hi))+"%";
+  const col = V.k==="admit"?"var(--ivy)":V.k==="wait"?"var(--amber)":"var(--crimson)";
+  $("probBox").style.color = col;
+  $("bar").style.color = col;
+  $("barFill").style.left = (lo/50*100)+"%";
+  $("barFill").style.width = Math.max(1.5,(hi-lo)/50*100)+"%";
+  $("barBase").style.left = (R.S.rate/50*100)+"%";
+  $("baseLbl").textContent = R.S.rate.toFixed(1)+"% base";
+  $("cardWho").innerHTML = R.S.n+" &middot; "+({rd:"RD",ed:"ED",rea:"REA"})[o.round];
+}
+
+function dimBlock(key,title,rating,body,bullets){
+  const col = rating.r<=2?"var(--ivy)":rating.r===3?"var(--amber)":"var(--crimson)";
+  return '<div class="dim"><div class="dim-h"><h3>'+title+'</h3>'+
+    '<span class="dim-badge" style="color:'+col+'">'+rating.r+(rating.mod||"")+'</span></div>'+
+    '<div class="dim-verdict">'+RVERD[key][rating.r]+'</div>'+
+    '<p>'+body+'</p>'+
+    (bullets.length?'<ul>'+bullets.map(b=>'<li>'+b+'</li>').join("")+'</ul>':'')+
+    '<p style="margin-top:12px;font-size:13.5px;color:var(--muted)"><b style="color:var(--ink-soft)">To reach '+Math.max(1,rating.r-1)+':</b> '+NEXT[key][rating.r]+'</p></div>';
+}
+
+function renderReport(R,o){
+  const S = R.S;
+  $("repMeta").innerHTML = S.n+" &middot; "+({rd:"Regular Decision",ed:"Early Decision",rea:"Early Action"})[o.round]+
+    " &middot; docket score "+R.docket.toFixed(1)+" / 100";
+
+  /* ---- leverage analysis: re-run the evaluation with one thing changed ---- */
+  const cands = [];
+  const base = R.p;
+  const test = (mod,label,how) => {
+    const p2 = evaluate(Object.assign({},o,mod)).p;
+    if(p2>base*1.02) cands.push({d:p2-base,rel:p2/base,label,how,p2});
+  };
+  if(R.bestTier>1 && o.acts.length) test({ecBump:true},
+    "Push your strongest activity up one tier",
+    "Take the activity you already lead and get it judged outside your school — enter the state competition, publish the work, take the project to real users, run for the regional office. The rating is set by external recognition, not by hours.");
+  if(R.eScore<82) test({essayOverride:88},
+    "Rewrite the personal statement",
+    "Your draft currently reads at "+Math.round(R.eScore)+"/100 on the mechanical measures below. A genuinely strong draft is the cheapest large gain available to you — it costs weeks, not years, and it is the only part of the file you can still change completely.");
+  if(o.supps<3) test({supps:3},
+    "Rewrite the supplements to be school-specific",
+    "Name two courses, one professor, and one thing at "+S.n+" you could not get elsewhere. Readers can tell a recycled supplement in one sentence, and a recycled supplement reads as indifference.");
+  if(o.rigor<4) test({rigor:4},
+    "Take the most demanding schedule available to you",
+    "The counsellor ticks one box for curriculum rigour and it is read before your grades. Fill next year with the hardest courses your school offers in the subjects you claim to care about.");
+  if(o.testtype!=="none" && R.sat < S.sat[1]) test({score:o.testtype==="sat"?S.sat[1]:36, testtype:o.testtype},
+    "Retest toward "+S.sat[1]+" SAT-equivalent",
+    "You are currently "+(R.sat<S.sat[0]?"below":"inside")+" the enrolled middle 50% ("+S.sat[0]+"–"+S.sat[1]+"). Scores do not win an admit, but a score below the 25th percentile makes the reader work to justify you.");
+  if(o.round==="rd" && S.early==="ed") test({round:"ed"},
+    "Apply Early Decision instead",
+    "The ED rate at "+S.n+" is roughly two to three times the regular rate. Be honest about why: much of that gap is athletes and legacies concentrated in the early pool, not a bonus applied to you. The real gains are demonstrated commitment and a smaller pool. Only do it if this is genuinely your first choice — it is binding.");
+  if(o.rec1<4) test({rec1:4},
+    "Cultivate one superlative letter",
+    "Choose the teacher who watched you struggle and come back, not the one who gave you the easiest A. Give them a page on what you did in their class. The difference between a warm letter and a striking one is worth more than a hundred SAT points.");
+  if(o.spike<3) test({spike:3},
+    "Make the profile point one direction",
+    "Readers remember applicants they can describe in one sentence. Cut what does not belong to the story and go deeper into what does.");
+  cands.sort((a,b)=>b.d-a.d);
+
+  if(cands.length){
+    const c = cands[0];
+    $("leverH").textContent = c.label;
+    $("leverP").innerHTML = c.how + ' <b style="color:var(--ivy)">Modelled effect: '+(base*100).toFixed(1)+
+      '% &rarr; '+(c.p2*100).toFixed(1)+'%.</b>'+
+      (cands[1]?' Next after that: '+cands[1].label.charAt(0).toLowerCase()+cands[1].label.slice(1)+'.':'');
+  } else {
+    $("leverH").textContent = "Nothing mechanical is left to fix";
+    $("leverP").textContent = "Every lever the model can see is already pulled. What remains is outside anyone's control — which committee reads you, what the class needs this year, who else applied from your school. Apply broadly and stop optimising.";
+  }
+
+  /* ---- dimensions ---- */
+  const aB = [];
+  if(R.imputed) aB.push("<b>Test-optional</b> — the model imputes a score from your grades at a discount. At schools that have reinstated testing this is not an option; where it remains, applicants without scores are admitted at lower rates, and a strong score would raise this rating.");
+  else if(R.sat<S.sat[0]) aB.push("Your <b>"+Math.round(R.sat)+" SAT-equivalent</b> sits below "+S.n+"'s enrolled 25th percentile of "+S.sat[0]+".");
+  else if(R.sat>=S.sat[1]) aB.push("Your score is at or above the enrolled 75th percentile ("+S.sat[1]+"). <b>More points here buy nothing.</b>");
+  else aB.push("Your score sits inside the enrolled middle 50% ("+S.sat[0]+"–"+S.sat[1]+"), which is where it needs to be and no further.");
+  if(o.rigor<4) aB.push("Curriculum rigour is not yet at <b>most demanding</b> — the single line on the counsellor form that is read before your grades.");
+  if(R.scholar>0) aB.push("Scholarship beyond the classroom is recorded and is doing real work in this rating.");
+  else if(R.rAcad.r<=2) aB.push("You are a strong student without evidence of scholarship <i>beyond</i> coursework. That is what separates a 2 from a 1 — and chasing it is usually the wrong use of your time.");
+  if(o.schooltype===0) aB.push("Your record is read against a school with few advanced courses. <b>You are not compared to the feeder-school applicant</b>; you are compared to what was available to you.");
+
+  const eB = [];
+  const tierNames = o.acts.length?o.acts.map(a=>TIERS[a.tier].lbl.split(" — ")[0]).join(", "):"none entered";
+  eB.push("Entered: <b>"+tierNames+"</b>. The rating is driven by your best one or two — the rest of the list is context, not credit.");
+  if(R.bestTier>=3) eB.push("Nothing in the list currently reaches outside your own school. <b>That is the ceiling on this rating</b>, and it is the most common reason a strong student is denied.");
+  if(o.spike<=1) eB.push("The profile reads as broad rather than pointed. Committees build a well-rounded <i>class</i> out of pointed <i>students</i>.");
+  if(o.depth<2) eB.push("Depth is thin. Four years of one thing is read very differently from one year of four things.");
+  if(R.opp>1.05) eB.push("An <b>opportunity adjustment of &times;"+R.opp.toFixed(2)+"</b> is applied here: what you did is weighed against what was available to you.");
+
+  const pB = [];
+  if(R.E.empty) pB.push("<b>No essay entered</b> — this rating is a placeholder. Paste the draft above and it will be scored.");
+  else pB.push("The personal statement scores <b>"+R.E.score+"/100</b> on the mechanical measures in the next section.");
+  if(o.supps<=1) pB.push("Generic supplements are a <b>net negative</b>, not a neutral. They tell the reader you are applying to a rank, not a school.");
+  if(o.interview===-1) pB.push("A poor interview is recoverable — alumni interviews carry modest weight — but do not repeat it elsewhere.");
+  pB.push("Note: this rating is where <i>character</i> lives. Since <i>SFFA</i> (2023) race cannot be a factor, but an essay may still discuss how race has shaped your life, and readers weigh what you did with your circumstances.");
+
+  const sB = [];
+  if(o.rec1<=2) sB.push("Your strongest letter is described as general. <b>General letters are the default</b>, and they are why so many identical-looking files are denied.");
+  if(o.counselor<=1) sB.push("A counsellor who barely knows you writes a form letter. Book a meeting and bring a page about yourself; this is a fixable problem with a one-hour cost.");
+  if(o.rec1>=3&&o.rec2>=2&&o.counselor>=2) sB.push("Support is solid. Give each recommender your activity list and a short note on what you hope they will say — not to script them, but so they write about the right term.");
+
+  $("dims").innerHTML =
+    dimBlock("acad","Academic",R.rAcad,"Grades, rigour, testing and evidence of scholarship. At these schools roughly three-quarters of applicants clear this bar; clearing it is necessary and almost never sufficient.",aB)+
+    dimBlock("ec","Extracurricular",R.rEc,"Distinction and impact outside the classroom, judged by reach rather than by hours. This is the rating that most often decides an unhooked file.",eB)+
+    dimBlock("personal","Personal",R.rPers,"Character as it comes through the essays, the supplements and the interview — whether a reader finishes the file feeling they have met someone.",pB)+
+    dimBlock("support","School support",R.rSup,"The counsellor and teacher letters, rated on their own. Applicants consistently underweight this and it is one of the cheapest things to improve.",sB);
+
+  /* ---- hooks ---- */
+  if(R.hooks.length){
+    const hb = R.hooks.map(([l,m])=>'<li><b>'+l+'</b>'+(m&&m!==1?' &mdash; modelled &times;'+m.toFixed(2):(m===1?' &mdash; no effect':' &mdash; effectively decisive'))+'</li>').join("");
+    $("dims").insertAdjacentHTML("beforeend",
+      '<div class="dim" style="grid-column:1/-1"><div class="dim-h"><h3>Institutional factors</h3></div>'+
+      '<div class="dim-verdict">Applied after the ratings, not inside them</div>'+
+      '<p>These are the parts of the process an applicant cannot control and should not agonise over. They are listed because advice that pretends they do not exist is bad advice.</p>'+
+      '<ul>'+hb+'</ul>'+
+      '<p style="margin-top:12px;font-size:13.5px;color:var(--muted)">Calibrated from the figures disclosed in <i>SFFA v. Harvard</i>: recruited athletes were admitted at roughly 86%, legacies at roughly 33%, against about 4.5% for everyone else. The multipliers here are deliberately smaller than those raw ratios, because part of the ratio is that hooked applicants are also stronger applicants.</p></div>');
+  }
+
+  /* ---- essay diagnostic ---- */
+  const E = R.E;
+  if(E.empty){
+    $("essayOut").innerHTML = '<div class="metric" style="grid-column:1/-1"><div class="mk">No essay entered</div><div class="md">Paste your personal statement in section IV and this section fills in.</div></div>';
+    $("essayFlags").innerHTML = "";
+  } else {
+    const M = (v,k,d)=>'<div class="metric"><div class="mv">'+v+'</div><div class="mk">'+k+'</div><div class="md">'+d+'</div></div>';
+    $("essayOut").innerHTML =
+      M(E.score+"/100","Mechanical score","What the measurable parts of the draft are worth. It says nothing about whether the essay is true or moving.")+
+      M(E.words,"Words","The limit is 650. "+(E.words>660?"You are over it and the Common App will cut you off.":E.words<500?"You are leaving room on the table.":"Well placed."))+
+      M(E.concrete.toFixed(1),"Concrete markers / 100 words","Names, numbers, physical detail. Under 2.4 reads as abstract; above 6 reads as a scene. "+(E.concrete<2.4?"Yours is thin.":"Yours holds up."))+
+      M(E.abstract.toFixed(1),"Abstract words / 100 words","Passion, journey, resilience, impact. Above 3.2 and the essay is telling rather than showing. "+(E.abstract>3.2?"Yours is high.":"Yours is controlled."))+
+      M(E.sd.toFixed(1),"Sentence-length variance","Flat rhythm reads as flat voice. Under 3.2 means every sentence is the same length. "+(E.sd<3.2?"Yours is monotonous.":"Yours varies well."))+
+      M(Math.round(E.iRatio*100)+"%","Sentences opening with \"I\"","Above 55% and the prose starts to plod. "+(E.iRatio>0.55?"Yours does.":"Yours is fine."));
+
+    const F=[];
+    const push=(lv,t)=>F.push('<div class="flag '+lv+'"><span class="lv">'+(lv==="hi"?"Fix":lv==="md"?"Consider":"Working")+'</span><span class="tx">'+t+'</span></div>');
+    if(E.cliche.length) push("hi","<b>"+E.cliche.length+" admissions clich&eacute;"+(E.cliche.length>1?"s":"")+" found:</b> "+E.cliche.map(c=>"<q>"+c+"</q>").join(", ")+". Every reader has seen these several hundred times this week. Cut each one and write the specific thing it was standing in for.");
+    else push("ok","No stock admissions phrases detected. That already puts the draft ahead of most.");
+    if(E.open.lv==="hi") push("hi","<b>The opening is weak.</b> It begins: <q>"+E.openText.slice(0,110)+"</q> Readers give an essay about fifteen seconds. Open inside a moment — an action, a line of speech, a physical detail — not with a definition, a famous quote, or a summary of who you are.");
+    else if(E.open.lv==="ok") push("ok","<b>Strong opening.</b> It puts the reader inside something rather than announcing a theme.");
+    else push("md","<b>The opening is serviceable but not gripping.</b> Try cutting the first sentence entirely and beginning with the second — this works more often than it has any right to.");
+    if(E.concrete<2.4) push("hi","<b>The essay tells more than it shows.</b> Only "+E.concrete.toFixed(1)+" concrete markers per 100 words. Find the three most abstract sentences and replace each with one thing a camera could have recorded.");
+    if(E.abstract>3.2) push("hi","<b>Abstraction load is high.</b> Words like <q>passion</q>, <q>journey</q> and <q>impact</q> are the vocabulary of every other essay in the pile. Delete them and the sentence usually improves.");
+    if(E.flatEnd) push("md","<b>The ending flattens into a lesson.</b> Phrases like <q>this experience taught me</q> hand the reader a moral they would rather find themselves. End on the concrete, not the summary.");
+    if(!E.reflects) push("md","<b>Little visible reflection in the final third.</b> The strongest essays turn: you thought one thing, and by the end you think something more complicated. Narration without that turn reads as a diary entry.");
+    if(E.iRatio>0.55) push("md","<b>"+Math.round(E.iRatio*100)+"% of your sentences begin with \"I\".</b> Vary the entry point — start with the object, the time, the other person.");
+    if(E.sd<3.2) push("md","<b>Every sentence is roughly the same length.</b> Put one three-word sentence somewhere. It will do more for the voice than a new adjective.");
+    if(E.words>660) push("hi","<b>Over the 650-word limit by "+(E.words-650)+".</b> Cut from the setup, not the ending — nearly every draft can lose its first paragraph.");
+    if(E.crowded.length) push("md","<b>Crowded topic:</b> this reads as "+E.crowded.join(" and ")+". Not disqualifying — no topic is — but a reader will have seen several this week, so the specificity has to carry it entirely.");
+    if(E.adverbs>3) push("md","<b>Adverb density is high</b> ("+E.adverbs.toFixed(1)+"% of words end in -ly). Most are propping up a weak verb. Replace the pair with one stronger verb.");
+    $("essayFlags").innerHTML = F.join("");
+  }
+
+  /* ---- five cycles ---- */
+  const yrs = [2025,2026,2027,2028,2029];
+  let th = "<thead><tr><th>School</th>"+yrs.map(y=>"<th>Class of "+y+"</th>").join("")+"</tr></thead><tbody>";
+  const order = Object.keys(SCHOOLS);
+  th += order.map(k=>{
+    const s = SCHOOLS[k];
+    return '<tr'+(k===o.school?' class="me"':'')+'><td>'+s.n+'</td>'+
+      yrs.map(y=>{const v=s.rates[y];return v==null?'<td class="np">n/p</td>':'<td>'+v.toFixed(2)+'%</td>';}).join("")+'</tr>';
+  }).join("")+"</tbody>";
+  $("rateTable").innerHTML = th;
+  $("rateNote").innerHTML = "<b>"+S.n+" &mdash; what the Common Data Set says about weighting:</b> "+S.c7+
+    " Enrolled middle 50%: <b>"+S.sat[0]+"&ndash;"+S.sat[1]+" SAT</b>, <b>"+S.act[0]+"&ndash;"+S.act[1]+" ACT</b>. "+
+    "Figures are approximate and drawn from public announcements and Common Data Sets; several schools stopped announcing admit rates after the Class of 2025, so verify the current year on the school's own CDS page before relying on any of this.";
+
+  /* ---- deep-read prompt ---- */
+  const packTxt =
+"I am applying to "+S.n+" ("+({rd:"Regular Decision",ed:"Early Decision",rea:"Early Action"})[o.round]+"), intending to study "+
+$("major").options[$("major").selectedIndex].text.toLowerCase()+".\n\n"+
+"MY FILE\n"+
+"- Unweighted GPA "+o.gpa+(o.rank!==null?", top "+o.rank+"% of class":"")+"\n"+
+"- "+(o.testtype==="none"?"Applying test-optional":o.testtype.toUpperCase()+" "+o.score)+", curriculum rigour: "+
+  ["average","demanding","very demanding","most demanding available"][o.rigor-1]+", "+o.advanced+" advanced courses\n"+
+"- Activities: "+(o.acts.length?o.acts.map(a=>(a.name||"unnamed")+" ("+TIERS[a.tier].lbl.split(" — ")[0]+", "+["member","officer","founded/led"][a.role]+")").join("; "):"none listed")+"\n"+
+"- School context: "+["under-resourced school","typical public school","strong public or magnet","competitive private or feeder"][o.schooltype]+
+  (o.firstgen?", first-generation to university":"")+(o.citizen==="intl"?", international applicant":"")+"\n"+
+"- A rubric-based simulator rated this file: academic "+R.rAcad.r+R.rAcad.mod+", extracurricular "+R.rEc.r+R.rEc.mod+
+  ", personal "+R.rPers.r+R.rPers.mod+", school support "+R.rSup.r+R.rSup.mod+", overall "+R.rOverall.r+R.rOverall.mod+".\n\n"+
+"WHAT I WANT FROM YOU\n"+
+"1. Read the essay below as an admissions officer would on their fortieth file of the day. Tell me honestly whether you would remember it an hour later, and why or why not.\n"+
+"2. Point to the exact sentences that are doing real work, and the exact sentences that are decoration. Quote them.\n"+
+"3. Tell me what this essay claims about me, and whether the rest of the file above supports that claim or contradicts it.\n"+
+"4. Find the one paragraph that should be cut and the one moment that should be expanded.\n"+
+"5. Do not rewrite it for me. Ask me the three questions whose answers would make the next draft better, then wait for my answers.\n"+
+"6. After that, tell me the single most useful thing I could do in the next month that is not about this essay.\n\n"+
+"MY PERSONAL STATEMENT ("+(E.empty?0:E.words)+" words)\n---\n"+(o.essay||"[not yet written]")+"\n---";
+  $("pack").textContent = packTxt;
+  window.__pack = packTxt;
+}
+
+/* ---------------- run ---------------- */
+function run(){
+  const o = readInputs();
+  const R = evaluate(o);
+  renderCard(R,o);
+  renderReport(R,o);
+}
+
+/* ---------------- example file (so the page opens working) ---------------- */
+const DEMO = {
+  school:"harvard",round:"rd",major:"socsci",citizen:"dom",
+  gpa:3.96,rank:3,testtype:"sat",score:1540,rigor:"4",advanced:9,
+  research:false,olympiad:false,isef:false,
+  acts:[
+    {name:"Founded a free tax-filing clinic for immigrant families",tier:2,role:2},
+    {name:"Editor-in-chief, school newspaper",tier:3,role:2},
+    {name:"Varsity cross country",tier:4,role:0}
+  ],
+  spike:"2",depth:"2",supps:"2",interview:"1",rec1:"3",rec2:"2",counselor:"2",
+  schooltype:"1",geo:"2",aid:"1",
+  athlete:false,legacy:false,dean:false,faculty:false,firstgen:true,qb:false,
+  essay:"The first man I ever filed a return for could not read the form and would not say so. He was maybe sixty, in a puffy jacket he did not take off, and when I slid the 1040 across the folding table he studied it the way you study a menu in a language you almost know. Then he pushed it back and said, in Spanish, that his daughter usually did this.\n\nI had been volunteering for four Saturdays. I knew where the standard deduction went. What I did not know was how to say I can read it to you without it sounding like an accusation, so I said nothing, and I read it out anyway, line by line, as though I were checking my own arithmetic. He corrected me twice. Both times he was right.\n\nWe got him $1,340 back. He shook my hand with both of his and left, and I sat down in the plastic chair and understood that I had almost done real harm by being helpful in the obvious way.\n\nThe clinic was my idea, which meant the mistakes were also mine. I had built it around a problem I thought I understood: people were leaving money with the IRS because filing is expensive. The actual problem, it turned out, was that filing is humiliating. Nobody had told me that. I had to be corrected by a man in a puffy jacket.\n\nSo we changed things. We stopped calling them clients. We moved the tables so nobody sat with their back to the room. I wrote a one-page script for volunteers that began, before anything else, with reading the form aloud to everyone, so that no one had to ask. Last April we filed 211 returns and returned about $290,000 to a neighbourhood of roughly four thousand people.\n\nI am still not sure I would have noticed any of this if he had simply let me help him. What I keep is not the number. It is the two seconds of silence after he pushed the paper back, which I have replayed more times than I have replayed anything I am proud of, and which I now recognise as the sound of someone deciding whether to trust me."
+};
+function applyProfile(P){
+  ["school","round","major","citizen","gpa","rank","testtype","score","rigor","advanced",
+   "spike","supps","interview","rec1","rec2","counselor","schooltype","geo","aid","essay"]
+   .forEach(k=>{ if(P[k]!==undefined && $(k)) $(k).value = P[k]; });
+  ["research","olympiad","isef"].forEach(k=>{ const m={research:"sch_research",olympiad:"sch_olympiad",isef:"sch_science"}; $(m[k]).checked = !!P[k]; });
+  ["athlete","legacy","dean","faculty","firstgen","qb"].forEach(k=>{ $("h_"+k).checked = !!P[k]; });
+  $("hours").value = P.depth!==undefined?P.depth:"2";
+  acts = (P.acts||[]).map(a=>({name:a.name,tier:a.tier,role:a.role}));
+  drawActs();
+}
+function currentProfile(){
+  const o = readInputs();
+  return Object.assign({},o,{depth:o.depth,acts:acts.map(a=>({name:a.name,tier:+a.tier,role:+a.role}))});
+}
+
+/* ---------------- wiring ---------------- */
+$("school").innerHTML = Object.entries(SCHOOLS).map(([k,s])=>'<option value="'+k+'">'+s.n+'</option>').join("");
+applyProfile(DEMO);
+
+document.querySelectorAll("input,select,textarea").forEach(el=>{
+  el.addEventListener("input",run); el.addEventListener("change",run);
+});
+$("addAct").addEventListener("click",()=>{ acts.push({name:"",tier:3,role:0}); drawActs(); run(); });
+$("run").addEventListener("click",()=>{ run(); $("report").scrollIntoView({behavior:"smooth",block:"start"}); });
+$("demo").addEventListener("click",()=>{ applyProfile(DEMO); run(); toast("Example profile restored"); });
+$("clear").addEventListener("click",()=>{
+  applyProfile({school:"harvard",round:"rd",major:"undecided",citizen:"dom",gpa:"",rank:"",
+    testtype:"sat",score:"",rigor:"3",advanced:0,spike:"1",depth:"1",supps:"0",interview:"0",
+    rec1:"2",rec2:"2",counselor:"2",schooltype:"1",geo:"2",aid:"0",essay:"",acts:[]});
+  run(); toast("Cleared");
+});
+$("save").addEventListener("click",()=>{
+  try{ localStorage.setItem("docket.profile",JSON.stringify(currentProfile())); toast("Profile saved in this browser"); }
+  catch(e){ toast("This browser will not let the page save"); }
+});
+$("load").addEventListener("click",()=>{
+  try{
+    const s = localStorage.getItem("docket.profile");
+    if(!s){ toast("Nothing saved yet"); return; }
+    applyProfile(JSON.parse(s)); run(); toast("Saved profile loaded");
+  }catch(e){ toast("Could not read the saved profile"); }
+});
+$("copyPack").addEventListener("click",()=>{
+  const t = window.__pack||"";
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(()=>toast("Copied — paste it into Claude"),()=>toast("Select the text below and copy it"));
+  } else toast("Select the text below and copy it");
+});
+let tT;
+function toast(m){
+  const t=$("toast"); t.textContent=m; t.classList.add("show");
+  clearTimeout(tT); tT=setTimeout(()=>t.classList.remove("show"),2200);
+}
+run();
+</script>
