@@ -33,6 +33,7 @@ final class AppContainer: ObservableObject {
     let library: LibraryModel
     let study: StudyModel
     let mistakes: MistakesModel
+    let settings: SettingsModel
 
     init() {
         let documents = FileManager.default
@@ -89,6 +90,7 @@ final class AppContainer: ObservableObject {
         }
         study = StudyModel(events: events, concepts: startingConcepts, clock: clock)
         mistakes = MistakesModel(events: events, concepts: startingConcepts, clock: clock)
+        settings = SettingsModel(store: store, events: events, clock: clock)
     }
 
     /// Sessions are built here because they need the services, and handed to the UI as

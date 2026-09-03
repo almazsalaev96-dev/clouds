@@ -51,6 +51,7 @@ public struct RootView: View {
     private let makeTest: ([Concept]) -> TestSessionModel
     private let makeWorkspace: (DocumentMeta) -> WorkspaceModel?
     private let makeDiagnostic: ([Concept]) -> DiagnosticModel
+    private let settings: SettingsModel
     /// One voice for the whole app, so starting a new utterance anywhere stops the one
     /// already speaking. Two controllers would mean two voices talking over each other.
     @ObservedObject private var voice: VoiceController
@@ -60,7 +61,8 @@ public struct RootView: View {
                 makePractice: @escaping (ConceptID) -> PracticeModel?,
                 makeTest: @escaping ([Concept]) -> TestSessionModel,
                 makeWorkspace: @escaping (DocumentMeta) -> WorkspaceModel?,
-                makeDiagnostic: @escaping ([Concept]) -> DiagnosticModel) {
+                makeDiagnostic: @escaping ([Concept]) -> DiagnosticModel,
+                settings: SettingsModel) {
         self.desk = desk
         self.library = library
         self.study = study
@@ -70,6 +72,7 @@ public struct RootView: View {
         self.makeTest = makeTest
         self.makeWorkspace = makeWorkspace
         self.makeDiagnostic = makeDiagnostic
+        self.settings = settings
     }
 
     public var body: some View {
@@ -78,6 +81,19 @@ public struct RootView: View {
                 NavigationStack {
                     content(for: item)
                         .navigationTitle(item == .desk ? "" : item.label)
+                        .toolbar {
+                            // One entry point, on the Desk only. Settings on every tab
+                            // is four buttons for a screen nobody should need often.
+                            if item == .desk {
+                                ToolbarItem(placement: .primaryAction) {
+                                    NavigationLink {
+                                        SettingsView(model: settings, voice: voice)
+                                    } label: {
+                                        Label("Settings", systemImage: "gearshape")
+                                    }
+                                }
+                            }
+                        }
                 }
                 .tabItem { Label(item.label, systemImage: item.systemImage) }
                 .tag(item)

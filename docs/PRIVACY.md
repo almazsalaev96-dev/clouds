@@ -63,12 +63,24 @@ and attached to no name.
 
 ## Control
 
+All of this lives in **Settings**, reached from the Desk.
+
 - **Deleting works.** The event log is append-only, but redaction is itself an event.
-  Deleting a document, a session or a subject records a tombstone, and every projection
-  is *recomputed* from what remains. The mastery scores built on deleted evidence do not
-  linger, because they were never stored in the first place.
-- **Exporting works.** Documents are standard PDFs, notes are JSON, the log is
-  newline-delimited JSON. Nothing is in a proprietary format and nothing is held hostage.
+  Deleting a subject or everything records a tombstone, and every projection is
+  *recomputed* from what remains. The mastery scores built on deleted evidence do not
+  linger, because they were never stored in the first place. This is asserted by
+  `RedactionTests`, not merely intended: a redacted concept must vanish from the
+  projection, contribute nothing to recommendations, leave everything else untouched,
+  and not silence work done afterwards.
+
+  Deleting what Slate concluded never touches the work itself. Your documents and your
+  handwriting are not affected by anything on that screen.
+
+- **Exporting works.** One button produces a folder: each document as the PDF you
+  imported plus its JSON sidecars, and the complete learning history as JSON, with a
+  README explaining what each file is. Nothing is in a proprietary format, and nothing
+  in it needs Slate to open it.
+
 - **The original is never modified.** Not on import, not on export, not on submission.
 
 ---
