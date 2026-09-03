@@ -13,11 +13,15 @@ import SlateModel
 public struct PracticeView: View {
 
     @ObservedObject var model: PracticeModel
+    @ObservedObject var voice: VoiceController
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var answerFocused: Bool
 
-    public init(model: PracticeModel) { self.model = model }
+    public init(model: PracticeModel, voice: VoiceController) {
+        self.model = model
+        self.voice = voice
+    }
 
     public var body: some View {
         NavigationStack {
@@ -40,6 +44,7 @@ public struct PracticeView: View {
                 }
             }
             .task { await model.start() }
+            .onDisappear { voice.stopIfSpeaking() }
             .animation(Slate.Motion.respectful(Slate.Motion.standard, reduceMotion: reduceMotion),
                        value: model.stepIndex)
         }
@@ -84,6 +89,7 @@ public struct PracticeView: View {
                     .font(Slate.Typography.body)
                     .foregroundStyle(Slate.Palette.ink)
                     .textSelection(.enabled)
+                ListenButton(voice: voice, text: text)
             }
 
         case .answering(let step, let question):

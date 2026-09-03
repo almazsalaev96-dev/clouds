@@ -28,7 +28,7 @@ cd server && npm install && npm run check
 
 ## Written, reviewed, **not compiled**
 
-The entire `ios/` tree. Roughly 10,200 lines of Swift across 57 files. It has been
+The entire `ios/` tree. Roughly 10,500 lines of Swift across 58 files. It has been
 read back and statically audited — conditional-compilation balance, brace balance,
 access levels on cross-module initialisers, `switch` expressions whose branches have
 different concrete types, and Swift-version-gated syntax such as `@retroactive`. Four
@@ -61,6 +61,8 @@ Not oversights. Each was considered and left out, with the reason.
 | iCloud sync | The architecture is local-first and the file layout is sync-shaped, but shipping sync before the single-device experience is excellent means debugging conflict resolution instead of the product. |
 | Teacher mode | Architected for (`AssignmentID` and submission history exist) and correctly out of a first release. A teacher dashboard changes who the product is for. |
 | Curriculum and mark-scheme data | The metadata fields exist and are unpopulated. Inventing an exam board's mark scheme would be worse than having none: a student would trust it. |
+| Notes | The knowledge layer stops at the mistake book. Notes need their own editor and a link model back to pages and questions, and adding a half-built one would make Knowledge feel unfinished rather than focused. |
+| Voice input | The tutor can be listened to; it cannot yet be talked to. Speech recognition is a separate permission, a separate failure surface, and worth doing properly rather than early. |
 | On-device OCR pass | `HandwritingReading` is the seam. A Vision-framework implementation slots in behind it and would cut both cost and latency; it needs a device to tune against. |
 | Live "AI watches you write" | The hook exists (`onSettled` fires when the pencil stops) and is deliberately wired to nothing. It is the single easiest feature in this product to make unbearable. |
 

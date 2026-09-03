@@ -13,6 +13,7 @@ import SlateModel
 struct TutorPanel: View {
 
     @ObservedObject var model: WorkspaceModel
+    @ObservedObject var voice: VoiceController
     @State private var typed = ""
     @FocusState private var isTyping: Bool
 
@@ -26,7 +27,7 @@ struct TutorPanel: View {
                         CheckResult(check: check)
                     }
                     if let reply = model.tutorReply {
-                        TutorMessage(reply: reply)
+                        TutorMessage(reply: reply, voice: voice)
                     }
                     if model.lastCheck == nil && model.tutorReply == nil {
                         EmptyStateView(
@@ -121,6 +122,7 @@ struct TutorPanel: View {
 /// A tutor reply. The message first, steps folded away, uncertainty stated.
 struct TutorMessage: View {
     let reply: TutorReply
+    @ObservedObject var voice: VoiceController
     @State private var showSteps = false
 
     var body: some View {
@@ -129,6 +131,10 @@ struct TutorMessage: View {
                 .font(Slate.Typography.body)
                 .foregroundStyle(Slate.Palette.ink)
                 .textSelection(.enabled)
+
+            // Only the message is read aloud, never the steps. Hearing a list of steps
+            // recited is useless; reading them while they are on screen is not.
+            ListenButton(voice: voice, text: reply.message)
 
             if let uncertainty = reply.uncertainty, !uncertainty.isEmpty {
                 // Shown, not buried. A tutor that admits it cannot read a digit is

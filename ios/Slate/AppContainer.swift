@@ -49,11 +49,13 @@ final class AppContainer: ObservableObject {
             token: configuration.token,
             deviceID: configuration.deviceID
         )
-        voice = StreamingVoice(
+        let speech = StreamingVoice(
             baseURL: configuration.baseURL,
             token: configuration.token,
             deviceID: configuration.deviceID
         )
+        voice = speech
+        voiceController = VoiceController(provider: speech)
 
         // The concept graph is empty until a document has been analysed; every engine
         // handles that by producing nothing rather than by guessing.
@@ -126,6 +128,7 @@ final class AppContainer: ObservableObject {
     }
 
     func flush() {
+        voiceController.stopIfSpeaking()
         // Nothing here should ever be the reason work is lost, so failures are
         // swallowed rather than allowed to take the app down on the way out.
         try? store.emptyTrash()

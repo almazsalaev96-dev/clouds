@@ -14,10 +14,14 @@ import SlateModel
 public struct WorkspaceView: View {
 
     @ObservedObject var model: WorkspaceModel
+    @ObservedObject var voice: VoiceController
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pageSize: CGSize = .zero
 
-    public init(model: WorkspaceModel) { self.model = model }
+    public init(model: WorkspaceModel, voice: VoiceController) {
+        self.model = model
+        self.voice = voice
+    }
 
     public var body: some View {
         ZStack(alignment: .bottom) {
@@ -27,7 +31,7 @@ public struct WorkspaceView: View {
                 page
                 if model.isTutorOpen && !model.isDistractionFree {
                     Divider().overlay(Slate.Palette.hairline)
-                    TutorPanel(model: model)
+                    TutorPanel(model: model, voice: voice)
                         .frame(width: Slate.Layout.tutorPanelWidth)
                         .transition(.move(edge: .trailing).combined(with: .opacity))
                 }
@@ -46,7 +50,11 @@ public struct WorkspaceView: View {
         .animation(Slate.Motion.respectful(Slate.Motion.sheet, reduceMotion: reduceMotion),
                    value: model.isTutorOpen)
         .toolbar { toolbarContent }
-        .onDisappear { model.flush() }
+        .onDisappear {
+            model.flush()
+            // Nothing should keep talking about a page the student has left.
+            voice.stopIfSpeaking()
+        }
     }
 
     private var page: some View {

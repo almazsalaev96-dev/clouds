@@ -2,6 +2,7 @@
 import SwiftUI
 import SlateDesign
 import SlateDocuments
+import SlateVoice
 import SlateFoundation
 import SlateModel
 
@@ -50,9 +51,12 @@ public struct RootView: View {
     private let makeTest: ([Concept]) -> TestSessionModel
     private let makeWorkspace: (DocumentMeta) -> WorkspaceModel?
     private let makeDiagnostic: ([Concept]) -> DiagnosticModel
+    /// One voice for the whole app, so starting a new utterance anywhere stops the one
+    /// already speaking. Two controllers would mean two voices talking over each other.
+    @ObservedObject private var voice: VoiceController
 
     public init(desk: DeskModel, library: LibraryModel,
-                study: StudyModel, mistakes: MistakesModel,
+                study: StudyModel, mistakes: MistakesModel, voice: VoiceController,
                 makePractice: @escaping (ConceptID) -> PracticeModel?,
                 makeTest: @escaping ([Concept]) -> TestSessionModel,
                 makeWorkspace: @escaping (DocumentMeta) -> WorkspaceModel?,
@@ -61,6 +65,7 @@ public struct RootView: View {
         self.library = library
         self.study = study
         self.mistakes = mistakes
+        _voice = ObservedObject(wrappedValue: voice)
         self.makePractice = makePractice
         self.makeTest = makeTest
         self.makeWorkspace = makeWorkspace
@@ -83,7 +88,7 @@ public struct RootView: View {
         // One presentation for every route into practice, so starting a session from
         // the desk, from Study, from a mistake pattern, or from a test result all land
         // in the same place.
-        .sheet(item: $practising) { PracticeView(model: $0) }
+        .sheet(item: $practising) { PracticeView(model: $0, voice: voice) }
         .sheet(item: $sitting) { model in
             TestSessionView(model: model) { concept in
                 // Test result to intervention without leaving the flow. A test that
@@ -97,11 +102,12 @@ public struct RootView: View {
         // navigation bar above it is a worksheet with less page on it.
         .fullScreenCover(item: $working) { model in
             NavigationStack {
-                WorkspaceView(model: model)
+                WorkspaceView(model: model, voice: voice)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Library") {
                                 model.flush()
+                                voice.stopIfSpeaking()
                                 working = nil
                             }
                         }

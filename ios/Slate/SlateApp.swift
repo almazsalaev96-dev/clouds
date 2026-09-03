@@ -19,6 +19,7 @@ struct SlateApp: App {
                 library: container.library,
                 study: container.study,
                 mistakes: container.mistakes,
+                voice: container.voiceController,
                 makePractice: { container.practice(for: $0) },
                 makeTest: { container.test(for: $0) },
                 makeWorkspace: { container.workspace(for: $0) },
