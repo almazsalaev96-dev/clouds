@@ -33,6 +33,9 @@ await build({
   lineLimit: 500,
   legalComments: "none",
   logLevel: "warning",
+  // Installed by the platform rather than inlined: it triples the bundle, and
+  // the platform's own install handles the SDK's CommonJS interop.
+  external: ["@anthropic-ai/sdk"],
 });
 
 await writeFile(`${FN}/.vc-config.json`, `${JSON.stringify({

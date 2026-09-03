@@ -98,3 +98,29 @@ scheduling, real embeddings, and the native client. Reasons for each are in
 `docs/ARCHITECTURE.md` under MVP boundary — most come down to the same thing:
 doing them badly is worse than not doing them, because confidently wrong output
 costs more trust than a missing feature.
+
+---
+
+## Deploying to Vercel
+
+The repository is deployment-ready: `vercel.json` runs `tools/build-vercel.mjs`,
+which emits Vercel's Build Output API tree — the server bundled to one
+function, the client bundled and served statically.
+
+**Connect it once** (Vercel → Add New Project → import this repository). This
+needs the [Vercel GitHub App](https://github.com/apps/vercel) installed on the
+account, after which every push deploys.
+
+Then set `ANTHROPIC_API_KEY` in the project's environment variables to enable
+conversation.
+
+### Two things that deployment does not change, and one that it does
+
+Reading, structure extraction, search, artifacts, mastery and memory work
+without a model. The interface says plainly when conversation is unavailable.
+
+**Serverless functions are ephemeral and there is no database attached**, so
+the store lives only in a warm instance's memory and does not survive a
+restart. The deployed app says so on screen rather than letting anyone discover
+it by losing work. Making it durable is a `Store` adapter — `Store` is an
+interface and every caller goes through it — not a rewrite.
