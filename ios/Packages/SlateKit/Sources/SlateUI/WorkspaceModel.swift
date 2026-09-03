@@ -43,6 +43,8 @@ public final class WorkspaceModel: ObservableObject, Identifiable {
     /// Shown once, after the fact, and only when something was genuinely recovered.
     @Published public private(set) var recoveryNotice: String?
     @Published public private(set) var isDistractionFree = false
+    /// A draft, not a note. It becomes one only if the student keeps it.
+    @Published public var notesDraft: RevisionNotes?
 
     private let store: DocumentStore
     private let ink: InkStore
@@ -266,6 +268,55 @@ public final class WorkspaceModel: ObservableObject, Identifiable {
         case .solution: .solve
         }
         await ask("Show me more.", mode: mode)
+    }
+
+    // MARK: - Notes
+
+    /// Turn what is on this page into revision notes.
+    ///
+    /// The result is a draft held here and shown for approval. Nothing is written to
+    /// the student's notes unless they say so, and anything the tutor added that the
+    /// page did not say travels with the draft so it can be marked.
+    public func makeRevisionNotes() async {
+        isThinking = true
+        problem = nil
+        defer { isThinking = false }
+
+        // The page's own text, pulled here rather than passed in, so the caller cannot
+        // accidentally ask for notes about nothing.
+        let pageText = extractedPageText()
+        let questions = map.questions.filter { $0.page == page }.map { "\($0.number). \($0.text)" }
+        guard !pageText.isEmpty || !questions.isEmpty else {
+            problem = "There is nothing on this page to make notes from yet."
+            return
+        }
+
+        do {
+            notesDraft = try await tutorService.makeNotes(NotesRequest(
+                sourceText: pageText,
+                questionTexts: questions,
+                conceptIDs: map.questions.filter { $0.page == page }.flatMap(\.conceptIDs),
+                subject: meta.subject,
+                title: meta.title
+            ))
+        } catch {
+            problem = (error as? LocalizedError)?.errorDescription
+                ?? "Notes could not be drafted just now."
+        }
+    }
+
+    public func discardNotesDraft() { notesDraft = nil }
+
+    /// Text of the current page. Empty for a scan, which is fine: the questions the
+    /// analysis found are enough to make notes from, and sending a picture of a page
+    /// for this would be an expensive way to get the same paragraph.
+    private func extractedPageText() -> String {
+        #if canImport(PDFKit)
+        return PDFText.pages(of: documentURL, range: page..<(page + 1))
+            .first?.text.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        #else
+        return ""
+        #endif
     }
 
     // MARK: - Evidence

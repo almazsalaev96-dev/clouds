@@ -17,6 +17,30 @@ public protocol TutorService: Sendable {
     func generate(_ request: GenerateRequest) async throws -> [GeneratedQuestion]
     func analyseDocument(_ request: DocumentRequest) async throws -> DocumentAnalysis
     func diagnose(_ request: DiagnoseRequest) async throws -> DiagnosticSet
+    func makeNotes(_ request: NotesRequest) async throws -> RevisionNotes
+}
+
+public struct NotesRequest: Codable, Sendable {
+    public var sourceText: String?
+    public var questionTexts: [String]?
+    public var conceptIds: [String]?
+    public var subject: String?
+    public var title: String?
+    public var redactTerms: [String]?
+    public var images: [ContextEngine.Payload.Image]?
+
+    public init(sourceText: String? = nil, questionTexts: [String] = [],
+                conceptIDs: [ConceptID] = [], subject: String? = nil,
+                title: String? = nil, redactTerms: [String] = [],
+                images: [ContextEngine.Payload.Image] = []) {
+        self.sourceText = sourceText
+        self.questionTexts = questionTexts.isEmpty ? nil : questionTexts
+        self.conceptIds = conceptIDs.isEmpty ? nil : conceptIDs.map(\.rawValue)
+        self.subject = subject
+        self.title = title
+        self.redactTerms = redactTerms.isEmpty ? nil : redactTerms
+        self.images = images.isEmpty ? nil : images
+    }
 }
 
 public struct DiagnoseRequest: Codable, Sendable {
@@ -195,6 +219,10 @@ public actor GatewayClient: TutorService {
         try await post("/v1/diagnose", request, as: DiagnosticSet.self)
     }
 
+    public func makeNotes(_ request: NotesRequest) async throws -> RevisionNotes {
+        try await post("/v1/notes", request, as: NotesEnvelope.self).notes
+    }
+
     // MARK: - Transport
 
     private struct Envelope<T: Decodable>: Decodable { let reply: T }
@@ -203,6 +231,7 @@ public actor GatewayClient: TutorService {
     private struct ReadingEnvelope: Decodable { let reading: HandwritingReading }
     private struct QuestionsEnvelope: Decodable { let questions: [GeneratedQuestion] }
     private struct AnalysisEnvelope: Decodable { let analysis: DocumentAnalysis }
+    private struct NotesEnvelope: Decodable { let notes: RevisionNotes }
     private struct ErrorEnvelope: Decodable {
         struct Body: Decodable { let code: String; let message: String; let retryable: Bool }
         let error: Body

@@ -4,7 +4,7 @@ import { loadConfig, redactConfig } from "../src/config.ts";
 import { assemble, clipToBytes, ContextTooLarge } from "../src/context/budget.ts";
 import { redact } from "../src/context/redact.ts";
 import { toJSONSchema, validate, S } from "../src/domain/schema.ts";
-import { CheckReply, TutorReply } from "../src/domain/contracts.ts";
+import { CheckReply, RevisionNotes, TutorReply } from "../src/domain/contracts.ts";
 import {
   entropy, expectedInformationGain, priorMap, validateDiagnostic,
   type DiagnosticQuestion, type Hypothesis,
@@ -550,6 +550,35 @@ describe("routes", () => {
     assert.equal(body.questions.length, 1);
   });
 
+  it("turns material into notes", async () => {
+    const res = await harness.app.handle(post("/v1/notes", {
+      sourceText: "To complete the square, halve the coefficient of x and square it.",
+      subject: "Mathematics", title: "Quadratics worksheet",
+    }));
+    assert.equal(res.status, 200);
+    const body = await res.json() as {
+      notes: { title: string; sections: unknown[]; addedBeyondTheSource: string[] };
+    };
+    assert.ok(body.notes.sections.length > 0);
+    // Nothing invented. When the model does reach beyond the material it has to say
+    // so, and the interface marks it.
+    assert.deepEqual(body.notes.addedBeyondTheSource, []);
+  });
+
+  it("refuses to make notes from nothing", async () => {
+    assert.equal((await harness.app.handle(post("/v1/notes", {}))).status, 400);
+  });
+
+  it("redacts the source before making notes from it", async () => {
+    await harness.app.handle(post("/v1/notes", {
+      sourceText: "Almaz Salaev, 12B, almaz@school.org. Complete the square by halving b.",
+      redactTerms: ["Almaz Salaev"],
+    }));
+    const prompt = harness.ai.calls[0]!.prompt;
+    assert.ok(!prompt.includes("almaz@school.org"));
+    assert.ok(!prompt.includes("Almaz"));
+  });
+
   it("streams speech", async () => {
     const res = await harness.app.handle(post("/v1/voice", { text: "Try the third line again." }));
     assert.equal(res.status, 200);
@@ -594,6 +623,48 @@ describe("routes", () => {
   it("carries a request id on every response", async () => {
     const res = await harness.app.handle(post("/v1/grade", { submitted: "1", expected: [{ text: "1" }] }));
     assert.ok(res.headers.get("x-request-id"));
+  });
+});
+
+describe("contract shapes the model is held to", () => {
+  // The reason these exist: a contract that drifts from what the app decodes fails at
+  // the worst possible moment, in front of a student, with a spinner.
+  it("requires notes to declare anything not in the source", () => {
+    const valid = {
+      title: "Quadratics",
+      sections: [{ heading: "Method", points: ["Halve b, square it."] }],
+      addedBeyondTheSource: [],
+      conceptIds: [],
+    };
+    assert.equal(validate(RevisionNotes, valid).ok, true);
+
+    const missing = { ...valid } as Record<string, unknown>;
+    delete missing["addedBeyondTheSource"];
+    assert.equal(validate(RevisionNotes, missing).ok, false);
+  });
+
+  it("rejects a section with no points in it", () => {
+    assert.equal(validate(RevisionNotes, {
+      title: "T", sections: [{ heading: "H", points: [] }],
+      addedBeyondTheSource: [], conceptIds: [],
+    }).ok, false);
+  });
+
+  it("requires a tutor reply to carry its own confidence", () => {
+    const reply = {
+      mode: "hint", message: "Look at line three.",
+      conceptIds: [], nextAction: { kind: "tryAgain", label: "Try again" },
+    };
+    assert.equal(validate(TutorReply, reply).ok, false);
+    assert.equal(validate(TutorReply, { ...reply, confidence: 0.8 }).ok, true);
+  });
+
+  it("rejects a confidence outside zero to one", () => {
+    const reply = {
+      mode: "hint", message: "m", confidence: 1.4,
+      conceptIds: [], nextAction: { kind: "tryAgain", label: "Try again" },
+    };
+    assert.equal(validate(TutorReply, reply).ok, false);
   });
 });
 

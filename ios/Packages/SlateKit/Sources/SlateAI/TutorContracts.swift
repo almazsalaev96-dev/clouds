@@ -248,3 +248,25 @@ public struct DiagnosticSet: Codable, Sendable, Hashable {
     public let priorEntropyBits: Double
     public let bestQuestionBits: Double
 }
+
+/// A revision-note draft. Not a note until the student says so.
+public struct RevisionNotes: Codable, Sendable, Hashable, Identifiable {
+    public var id: String { title }
+
+    public struct Section: Codable, Sendable, Hashable, Identifiable {
+        public let heading: String
+        public let points: [String]
+        public var id: String { heading }
+    }
+
+    public let title: String
+    public let sections: [Section]
+    /// Anything the source did not actually say. Shown to the student before they keep
+    /// it, because notes they trust that quietly contain an invention are worse than
+    /// no notes at all.
+    public let addedBeyondTheSource: [String]
+    public let conceptIds: [String]
+
+    public var conceptIDs: [ConceptID] { conceptIds.map(ConceptID.init) }
+    public var isEntirelyFromTheSource: Bool { addedBeyondTheSource.isEmpty }
+}

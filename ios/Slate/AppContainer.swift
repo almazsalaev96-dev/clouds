@@ -34,6 +34,7 @@ final class AppContainer: ObservableObject {
     let study: StudyModel
     let mistakes: MistakesModel
     let settings: SettingsModel
+    let notes: NotesModel
 
     init() {
         let documents = FileManager.default
@@ -91,6 +92,14 @@ final class AppContainer: ObservableObject {
         study = StudyModel(events: events, concepts: startingConcepts, clock: clock)
         mistakes = MistakesModel(events: events, concepts: startingConcepts, clock: clock)
         settings = SettingsModel(store: store, events: events, clock: clock)
+
+        let notesURL = documents.deletingLastPathComponent().appendingPathComponent("notes.json")
+        // A notes store that cannot be created falls back to a temporary one for the
+        // same reason the document store does: a message beats a crash.
+        let noteStore = (try? NoteStore(url: notesURL, clock: clock))
+            ?? (try? NoteStore(url: FileManager.default.temporaryDirectory
+                .appendingPathComponent("slate-notes.json"), clock: clock))
+        notes = NotesModel(store: noteStore ?? NoteStore.unavailable, clock: clock)
     }
 
     /// Sessions are built here because they need the services, and handed to the UI as

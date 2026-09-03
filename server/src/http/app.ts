@@ -11,7 +11,7 @@ import { assemble, ContextTooLarge, type ContextPart } from "../context/budget.t
 import { redact } from "../context/redact.ts";
 import {
   CheckReply, DiagnosticHypotheses, DocumentAnalysis, FinalReviewFindings,
-  HandwritingReading, ImprovementSuggestions, QuestionSet, TutorReply,
+  HandwritingReading, ImprovementSuggestions, QuestionSet, RevisionNotes, TutorReply,
 } from "../domain/contracts.ts";
 import { SYSTEM_PROMPTS } from "../domain/prompts.ts";
 import {
@@ -390,6 +390,47 @@ export function createApp(deps: AppDeps): App {
         schema: FinalReviewFindings, images: images(b.images),
       });
       return json({ review: result.value, usage: result.usage }, 200, requestId);
+    },
+
+    "POST /v1/notes": async (request, requestId) => {
+      const b = await body<{
+        sourceText?: string; questionTexts?: string[]; conceptIds?: string[];
+        subject?: string; title?: string; redactTerms?: string[];
+        images?: unknown;
+      }>(request);
+
+      const source = (b.sourceText ?? "").trim();
+      const questions = b.questionTexts ?? [];
+      const hasImages = Array.isArray(b.images) && b.images.length > 0;
+      if (!source && questions.length === 0 && !hasImages) {
+        throw badRequest("there is nothing here to make notes from");
+      }
+
+      const context = buildContext([
+        {
+          kind: "focus", label: "What to turn into notes",
+          text: b.title ? `From: ${b.title}` : "The material below.",
+        },
+        { kind: "pageText", label: "The material", text: source },
+        { kind: "questionText", label: "Questions on it", text: questions.join("\n") },
+        {
+          kind: "masteryHints", label: "Topics",
+          text: (b.conceptIds ?? []).join(", "),
+        },
+        { kind: "figures", label: "Subject", text: b.subject ?? "" },
+      ], b.redactTerms ?? []);
+
+      const result = await ai.complete<{ addedBeyondTheSource: string[] }>({
+        task: "review", system: SYSTEM_PROMPTS.notes, prompt: context,
+        schema: RevisionNotes, images: images(b.images),
+      });
+
+      if (result.value.addedBeyondTheSource.length > 0) {
+        log.info("notes went beyond the source", {
+          additions: result.value.addedBeyondTheSource.length,
+        });
+      }
+      return json({ notes: result.value, usage: result.usage }, 200, requestId);
     },
 
     "POST /v1/improve": async (request, requestId) => {

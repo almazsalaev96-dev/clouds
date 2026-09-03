@@ -14,8 +14,8 @@ and no macOS**. That divides the repository cleanly.
 |---|---|
 | Learning engine (Python reference) | 57 tests, `python3 -m unittest discover -s tests` |
 | Golden fixture | regenerated and byte-compared against the committed file in CI |
-| Gateway (Node/TypeScript) | 124 tests, `npm test`; `tsc --noEmit` clean |
-| Deterministic grader | 53 of those 124, covering parsing, equivalence, units, sets, near misses, and the notation students actually type |
+| Gateway (Node/TypeScript) | 131 tests, `npm test`; `tsc --noEmit` clean |
+| Deterministic grader | 53 of those 131, covering parsing, equivalence, units, sets, near misses, and the notation students actually type |
 
 Run them yourself:
 
@@ -28,7 +28,7 @@ cd server && npm install && npm run check
 
 ## Written, reviewed, **not compiled**
 
-The entire `ios/` tree. Roughly 11,100 lines of Swift across 62 files. It has been
+The entire `ios/` tree. Roughly 11,900 lines of Swift across 66 files. It has been
 read back and statically audited — conditional-compilation balance, brace balance,
 access levels on cross-module initialisers, `switch` expressions whose branches have
 different concrete types, and Swift-version-gated syntax such as `@retroactive`. Four
@@ -61,7 +61,6 @@ Not oversights. Each was considered and left out, with the reason.
 | iCloud sync | The architecture is local-first and the file layout is sync-shaped, but shipping sync before the single-device experience is excellent means debugging conflict resolution instead of the product. |
 | Teacher mode | Architected for (`AssignmentID` and submission history exist) and correctly out of a first release. A teacher dashboard changes who the product is for. |
 | Curriculum and mark-scheme data | The metadata fields exist and are unpopulated. Inventing an exam board's mark scheme would be worse than having none: a student would trust it. |
-| Notes | The knowledge layer stops at the mistake book. Notes need their own editor and a link model back to pages and questions, and adding a half-built one would make Knowledge feel unfinished rather than focused. |
 | Voice input | The tutor can be listened to; it cannot yet be talked to. Speech recognition is a separate permission, a separate failure surface, and worth doing properly rather than early. |
 | On-device OCR pass | `HandwritingReading` is the seam. A Vision-framework implementation slots in behind it and would cut both cost and latency; it needs a device to tune against. |
 | Live "AI watches you write" | The hook exists (`onSettled` fires when the pencil stops) and is deliberately wired to nothing. It is the single easiest feature in this product to make unbearable. |
@@ -100,6 +99,13 @@ Stated because finding them in six months is worse.
    A reasonable guess on a worksheet, and the student's own strokes override it the
    moment they write — but on an unusual layout the first "check this" may resolve to
    the wrong question until then.
+
+9. **Notes are typed only.** A note can hold handwriting — `Note.inkPages` exists and
+   round-trips — but there is no ink surface in the note editor. Handwriting belongs on
+   the page it was written on, and a second, worse canvas here would be a trap.
+10. **Search is substring matching over notes only.** It does what a student expects of
+   a search box on one screen. The natural-language search across documents, mistakes
+   and past tests that the brief describes needs an index, and an index needs a reason.
 
 ---
 

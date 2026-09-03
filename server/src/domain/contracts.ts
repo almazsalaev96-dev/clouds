@@ -178,10 +178,23 @@ export const FinalReviewFindings: Schema = S.object({
   }, ["kind", "page", "detail"]), { maxItems: 60 }),
 }, ["findings"]);
 
+export const RevisionNotes: Schema = S.object({
+  title: S.string({ maxLength: 120 }),
+  sections: S.array(S.object({
+    heading: S.string({ maxLength: 100 }),
+    points: S.array(S.string({ maxLength: 300 }), { minItems: 1, maxItems: 8 }),
+  }, ["heading", "points"]), { minItems: 1, maxItems: 8 }),
+  // Anything the source did not actually say goes here, or nowhere. Revision notes a
+  // student trusts that quietly contain an invention are worse than no notes, so where
+  // the model reached beyond the material it says so and the interface marks it.
+  addedBeyondTheSource: S.array(S.string({ maxLength: 200 }), { maxItems: 5 }),
+  conceptIds: S.array(S.string({ maxLength: 120 }), { maxItems: 8 }),
+}, ["title", "sections", "addedBeyondTheSource", "conceptIds"]);
+
 export const CONTRACTS = {
   TutorReply, CheckReply, HandwritingReading, DocumentAnalysis,
   GeneratedQuestion, QuestionSet, DiagnosticHypotheses,
-  ImprovementSuggestions, FinalReviewFindings,
+  ImprovementSuggestions, FinalReviewFindings, RevisionNotes,
 } as const;
 
 export type ContractName = keyof typeof CONTRACTS;

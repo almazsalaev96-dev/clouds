@@ -52,6 +52,7 @@ public struct RootView: View {
     private let makeWorkspace: (DocumentMeta) -> WorkspaceModel?
     private let makeDiagnostic: ([Concept]) -> DiagnosticModel
     private let settings: SettingsModel
+    private let notes: NotesModel
     /// One voice for the whole app, so starting a new utterance anywhere stops the one
     /// already speaking. Two controllers would mean two voices talking over each other.
     @ObservedObject private var voice: VoiceController
@@ -62,7 +63,7 @@ public struct RootView: View {
                 makeTest: @escaping ([Concept]) -> TestSessionModel,
                 makeWorkspace: @escaping (DocumentMeta) -> WorkspaceModel?,
                 makeDiagnostic: @escaping ([Concept]) -> DiagnosticModel,
-                settings: SettingsModel) {
+                settings: SettingsModel, notes: NotesModel) {
         self.desk = desk
         self.library = library
         self.study = study
@@ -73,6 +74,7 @@ public struct RootView: View {
         self.makeWorkspace = makeWorkspace
         self.makeDiagnostic = makeDiagnostic
         self.settings = settings
+        self.notes = notes
     }
 
     public var body: some View {
@@ -118,7 +120,11 @@ public struct RootView: View {
         // navigation bar above it is a worksheet with less page on it.
         .fullScreenCover(item: $working) { model in
             NavigationStack {
-                WorkspaceView(model: model, voice: voice)
+                WorkspaceView(model: model, voice: voice) { draft in
+                    // A kept draft lands in the same store the Knowledge tab reads,
+                    // so it is there the moment the student goes looking.
+                    notes.accept(draft, from: model.meta.id)
+                }
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Library") {
@@ -184,7 +190,7 @@ public struct RootView: View {
         case .study:
             StudyView(model: study)
         case .knowledge:
-            MistakesView(model: mistakes)
+            KnowledgeView(notes: notes, mistakes: mistakes)
         }
     }
 }

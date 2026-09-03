@@ -126,6 +126,24 @@ function defaultHandler(request: AIRequest): unknown {
         }],
       };
     case "review":
+      // Two contracts share the review task; the mock distinguishes them the same way
+      // the caller does, by what was asked for.
+      if (request.system.includes("revision notes")) {
+        return {
+          title: "Completing the square",
+          sections: [{
+            heading: "The method",
+            points: [
+              "Halve the coefficient of x, then square it.",
+              "Add and subtract that number inside the expression.",
+              "The first three terms are now a perfect square.",
+            ],
+          }],
+          addedBeyondTheSource: [],
+          conceptIds: ["completing-the-square"],
+        };
+      }
+      if (request.system.includes("checking finished work")) return { findings: [] };
       return { findings: [] };
   }
 }

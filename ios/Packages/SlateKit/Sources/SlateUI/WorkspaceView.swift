@@ -16,12 +16,17 @@ public struct WorkspaceView: View {
     @ObservedObject var model: WorkspaceModel
     @ObservedObject var voice: VoiceController
     @StateObject private var tips = FirstRunTips()
+    /// Supplied by the root so a kept draft lands in the same store the Knowledge tab
+    /// reads from.
+    let keepNotes: (RevisionNotes) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pageSize: CGSize = .zero
 
-    public init(model: WorkspaceModel, voice: VoiceController) {
+    public init(model: WorkspaceModel, voice: VoiceController,
+                keepNotes: @escaping (RevisionNotes) -> Void) {
         self.model = model
         self.voice = voice
+        self.keepNotes = keepNotes
     }
 
     public var body: some View {
@@ -51,6 +56,14 @@ public struct WorkspaceView: View {
         .animation(Slate.Motion.respectful(Slate.Motion.sheet, reduceMotion: reduceMotion),
                    value: model.isTutorOpen)
         .toolbar { toolbarContent }
+        .sheet(item: $model.notesDraft) { draft in
+            NotesDraftReview(draft: draft) {
+                keepNotes(draft)
+                model.discardNotesDraft()
+            } discard: {
+                model.discardNotesDraft()
+            }
+        }
         .onDisappear {
             model.flush()
             // Nothing should keep talking about a page the student has left.
@@ -106,6 +119,13 @@ public struct WorkspaceView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                Task { await model.makeRevisionNotes() }
+            } label: {
+                Label("Make revision notes", systemImage: "note.text.badge.plus")
+            }
+        }
         ToolbarItem(placement: .topBarTrailing) {
             Button {
                 model.toggleDistractionFree()
@@ -219,6 +239,80 @@ struct Banner: View {
         .slateSurface(raised: true, radius: Slate.Radius.small)
         .frame(maxWidth: 520)
         .accessibilityElement(children: .combine)
+    }
+}
+#endif
+
+#if canImport(SwiftUI)
+/// A draft, shown for approval.
+///
+/// Deliberately not called "your notes" until it is kept. Anything the tutor added that
+/// the source did not say is shown before the decision, not after — a student who keeps
+/// this is going to revise from it in three weeks and will not remember which lines
+/// came from their own worksheet.
+struct NotesDraftReview: View {
+    let draft: RevisionNotes
+    let keep: () -> Void
+    let discard: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Slate.Space.xl) {
+                    Text(draft.title)
+                        .font(Slate.Typography.title)
+                        .foregroundStyle(Slate.Palette.ink)
+
+                    ForEach(draft.sections) { section in
+                        VStack(alignment: .leading, spacing: Slate.Space.s) {
+                            Text(section.heading)
+                                .font(Slate.Typography.heading)
+                                .foregroundStyle(Slate.Palette.ink)
+                            ForEach(section.points, id: \.self) { point in
+                                HStack(alignment: .top, spacing: Slate.Space.s) {
+                                    Text("·").foregroundStyle(Slate.Palette.inkTertiary)
+                                    Text(point)
+                                        .font(Slate.Typography.body)
+                                        .foregroundStyle(Slate.Palette.ink)
+                                }
+                            }
+                        }
+                    }
+
+                    if !draft.isEntirelyFromTheSource {
+                        VStack(alignment: .leading, spacing: Slate.Space.s) {
+                            Label("Not from your page", systemImage: "info.circle")
+                                .font(Slate.Typography.footnote.weight(.medium))
+                                .foregroundStyle(Slate.Palette.partial)
+                            ForEach(draft.addedBeyondTheSource, id: \.self) { line in
+                                Text(line)
+                                    .font(Slate.Typography.footnote)
+                                    .foregroundStyle(Slate.Palette.inkSecondary)
+                            }
+                            Text("These are the tutor's, not your worksheet's. Check them before you revise from them.")
+                                .font(Slate.Typography.footnote)
+                                .foregroundStyle(Slate.Palette.inkTertiary)
+                        }
+                        .padding(Slate.Space.m)
+                        .slateSurface(raised: true, radius: Slate.Radius.small)
+                    }
+                }
+                .padding(Slate.Space.xl)
+                .frame(maxWidth: Slate.Layout.readableWidth, alignment: .leading)
+                .frame(maxWidth: .infinity)
+            }
+            .background(Slate.Palette.paper)
+            .navigationTitle("Draft notes")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Discard", action: discard)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Keep", action: keep)
+                }
+            }
+        }
     }
 }
 #endif
