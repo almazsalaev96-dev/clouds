@@ -28,7 +28,7 @@ cd server && npm install && npm run check
 
 ## Written, reviewed, **not compiled**
 
-The entire `ios/` tree. Roughly 10,700 lines of Swift across 59 files. It has been
+The entire `ios/` tree. Roughly 10,600 lines of Swift across 59 files. It has been
 read back and statically audited — conditional-compilation balance, brace balance,
 access levels on cross-module initialisers, `switch` expressions whose branches have
 different concrete types, and Swift-version-gated syntax such as `@retroactive`. Four
@@ -105,6 +105,8 @@ Stated because finding them in six months is worse.
 
 ## The order to build in next
 
+0. There is exactly one `try!` left in the tree, and it is gone — a device with no
+   space left now gets a sentence explaining itself rather than a launch loop.
 1. Get it compiling and run `GoldenParityTests` on a Mac.
 2. Import a real 20-page worksheet, write on it, force-quit the app mid-stroke, and
    confirm the recovery notice appears and the strokes are there.

@@ -17,6 +17,10 @@ import SlateVoice
 final class AppContainer: ObservableObject {
 
     let clock: Clock = SystemClock()
+    /// Nil when the workspace could not be opened at all — an unwritable container or
+    /// a device with no space left. Reported rather than crashed on: a student with a
+    /// full iPad deserves a sentence, not a launch loop.
+    let startupFailure: String?
     let store: DocumentStore
     let events: EventStore
     let tutor: TutorService
@@ -35,10 +39,19 @@ final class AppContainer: ObservableObject {
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Slate/Documents", isDirectory: true)
 
-        // A store that cannot be created means the device is out of space or the
-        // container is unwritable. Crashing here is honest: nothing below this line
-        // could keep a student's work safe.
-        store = try! DocumentStore(root: documents, clock: clock)
+        do {
+            store = try DocumentStore(root: documents, clock: clock)
+            startupFailure = nil
+        } catch {
+            // Fall back to a temporary store so the app still runs and can explain
+            // itself. Nothing written here is safe, which is exactly what the message
+            // on screen will say.
+            store = (try? DocumentStore(root: FileManager.default.temporaryDirectory
+                .appendingPathComponent("SlateFallback", isDirectory: true), clock: clock))
+                ?? DocumentStore.unavailable
+            startupFailure = "Slate could not open its workspace. Your iPad may be out of "
+                + "space. Nothing you write now will be saved until that is sorted out."
+        }
         events = FileEventStore(
             url: documents.deletingLastPathComponent().appendingPathComponent("events.jsonl")
         )

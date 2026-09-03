@@ -151,6 +151,39 @@ public final class FirstRunTips: ObservableObject {
     }
 }
 
+/// When the app cannot open its own workspace.
+///
+/// Rare, and worth handling properly: the alternative is a launch loop that tells a
+/// student nothing and looks like the app is broken rather than their storage.
+public struct StartupFailureView: View {
+    let message: String
+
+    public init(message: String) { self.message = message }
+
+    public var body: some View {
+        VStack(spacing: Slate.Space.l) {
+            Image(systemName: "externaldrive.badge.exclamationmark")
+                .font(.system(size: 40, weight: .light))
+                .foregroundStyle(Slate.Palette.partial)
+            Text("Slate cannot open your workspace")
+                .font(Slate.Typography.title)
+                .foregroundStyle(Slate.Palette.ink)
+            Text(message)
+                .font(Slate.Typography.body)
+                .foregroundStyle(Slate.Palette.inkSecondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 420)
+            Text("Settings › General › iPad Storage will show what is taking up room.")
+                .font(Slate.Typography.footnote)
+                .foregroundStyle(Slate.Palette.inkTertiary)
+        }
+        .padding(Slate.Space.section)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Slate.Palette.paper)
+        .accessibilityElement(children: .combine)
+    }
+}
+
 /// Whether onboarding has been done. One flag, one place.
 public struct OnboardingState {
     private static let key = "com.slate.onboardingComplete"

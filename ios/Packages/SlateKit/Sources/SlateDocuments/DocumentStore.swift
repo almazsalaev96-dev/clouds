@@ -42,6 +42,18 @@ public final class DocumentStore: @unchecked Sendable {
         try fileManager.createDirectory(at: root, withIntermediateDirectories: true)
     }
 
+    /// A store pointed at a path that cannot be written. Exists so that a failure to
+    /// create the real one is a message on screen rather than a crash on launch; every
+    /// operation on it fails, which is the truth.
+    public static let unavailable = DocumentStore(
+        unavailableAt: URL(fileURLWithPath: "/dev/null/slate")
+    )
+
+    private init(unavailableAt url: URL) {
+        root = url
+        clock = SystemClock()
+    }
+
     public func paths(for id: DocumentID) -> DocumentPaths {
         DocumentPaths(root: root.appendingPathComponent(id.rawValue, isDirectory: true))
     }

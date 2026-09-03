@@ -15,7 +15,9 @@ struct SlateApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if showOnboarding {
+            if let failure = container.startupFailure {
+                StartupFailureView(message: failure)
+            } else if showOnboarding {
                 OnboardingView {
                     OnboardingState.markComplete()
                     showOnboarding = false
