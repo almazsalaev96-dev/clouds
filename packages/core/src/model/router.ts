@@ -27,15 +27,22 @@ export class ModelRouter {
     return this;
   }
 
-  /** Providers that meet the task profile, cheapest first. */
+  /** Providers that meet the task profile, best choice for that task first. */
   candidates(task: ModelTask): ModelProvider[] {
     const profile = TASK_PROFILES[task];
-    return this.providers
-      .filter((p) =>
-        DEPTH_RANK[p.capabilities.reasoning] >= DEPTH_RANK[profile.minReasoning] &&
-        p.capabilities.contextTokens >= profile.minContextTokens &&
-        (!profile.needsMultimodal || p.capabilities.multimodal))
-      .sort((a, b) => a.capabilities.costPerMTokIn - b.capabilities.costPerMTokIn);
+    const qualified = this.providers.filter((p) =>
+      DEPTH_RANK[p.capabilities.reasoning] >= DEPTH_RANK[profile.minReasoning] &&
+      p.capabilities.contextTokens >= profile.minContextTokens &&
+      (!profile.needsMultimodal || p.capabilities.multimodal));
+
+    return qualified.sort((a, b) =>
+      profile.optimiseFor === "quality"
+        // Most capable first; cost breaks ties between equals.
+        ? b.capabilities.qualityRank - a.capabilities.qualityRank ||
+          a.capabilities.costPerMTokIn - b.capabilities.costPerMTokIn
+        // Cheapest first; capability breaks ties.
+        : a.capabilities.costPerMTokIn - b.capabilities.costPerMTokIn ||
+          b.capabilities.qualityRank - a.capabilities.qualityRank);
   }
 
   /**

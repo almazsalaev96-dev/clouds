@@ -33,6 +33,15 @@ export interface TaskProfile {
   needsMultimodal: boolean;
   /** True when a human is waiting on the first token. */
   latencySensitive: boolean;
+  /**
+   * What to optimise for among providers that all meet the requirements.
+   *
+   * Cheapest-that-qualifies is the wrong default for work the user judges:
+   * conversation and reasoning are where quality is the product, so they take
+   * the most capable model available. Titling and classification run
+   * constantly and nobody grades them, so they take the cheapest.
+   */
+  optimiseFor: "quality" | "cost";
 }
 
 /**
@@ -41,14 +50,20 @@ export interface TaskProfile {
  * rationale is legible.
  */
 export const TASK_PROFILES: Record<ModelTask, TaskProfile> = {
-  conversation:   { minReasoning: "high", minContextTokens: 100_000, needsMultimodal: true,  latencySensitive: true },
-  reasoning:      { minReasoning: "high", minContextTokens: 100_000, needsMultimodal: false, latencySensitive: false },
-  extraction:     { minReasoning: "low",  minContextTokens: 32_000,  needsMultimodal: false, latencySensitive: false },
-  classification: { minReasoning: "none", minContextTokens: 8_000,   needsMultimodal: false, latencySensitive: true },
-  titling:        { minReasoning: "none", minContextTokens: 4_000,   needsMultimodal: false, latencySensitive: true },
+  conversation:   { minReasoning: "high", minContextTokens: 100_000, needsMultimodal: true,  latencySensitive: true,  optimiseFor: "quality" },
+  reasoning:      { minReasoning: "high", minContextTokens: 100_000, needsMultimodal: false, latencySensitive: false, optimiseFor: "quality" },
+  extraction:     { minReasoning: "low",  minContextTokens: 32_000,  needsMultimodal: false, latencySensitive: false, optimiseFor: "cost" },
+  classification: { minReasoning: "none", minContextTokens: 8_000,   needsMultimodal: false, latencySensitive: true,  optimiseFor: "cost" },
+  titling:        { minReasoning: "none", minContextTokens: 4_000,   needsMultimodal: false, latencySensitive: true,  optimiseFor: "cost" },
 };
 
 export interface ProviderCapabilities {
+  /**
+   * Relative capability, higher is stronger. Used to pick the best model for
+   * quality-optimised tasks, where "cheapest that clears the bar" would
+   * quietly trade away the thing the user is judging.
+   */
+  qualityRank: number;
   reasoning: ReasoningDepth;
   contextTokens: number;
   multimodal: boolean;

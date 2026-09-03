@@ -39,6 +39,7 @@ export class ScriptedProvider implements ModelProvider {
     this.turns = [...opts.turns];
     this.available = opts.available ?? true;
     this.capabilities = {
+      qualityRank: 100,
       reasoning: "high",
       contextTokens: 1_000_000,
       multimodal: true,
