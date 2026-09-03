@@ -4,6 +4,7 @@ import * as store from "./store.js";
 import * as engine from "../learning/index.js";
 import { WORKSHEETS, CONCEPTS, conceptById, worksheetById } from "./bank.js";
 import { DIAGNOSTICS, diagnosticFor, hypothesisById } from "./diagnostics.js";
+import { clearExample } from "./seed.js";
 
 const STATE_COPY = {
   unseen: "not started",
@@ -34,6 +35,15 @@ export function desk(app) {
     el("h1", { text: "Desk" }),
     el("p", { class: "muted", text: sessionLine(view) }),
   ]));
+
+  if (store.getPref("exampleHistory", false)) {
+    node.appendChild(el("div", { class: "notice" }, [
+      el("p", { text: "Everything below is worked out from three weeks of example history, so there is something to show. It is not your work." }),
+      el("button", {
+        class: "btn ghost", onclick: () => { clearExample(store); app.rerender(); announce("Example history cleared"); },
+      }, "Clear it and start from nothing"),
+    ]));
+  }
 
   const next = view.nextBestAction;
   if (next) {

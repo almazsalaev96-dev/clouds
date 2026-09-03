@@ -53,7 +53,7 @@ export class StudyView {
     }
     this.node.appendChild(this.toolbar());
     this.stage = el("div", { class: "stage" });
-    this.sheetEl = el("div", { class: "sheet" });
+    this.sheetEl = el("div", { class: `sheet ${this.doc.kind === "worksheet" ? "fill" : ""}`.trim() });
     this.contentEl = el("div", { class: "sheet-content" });
     this.inkCanvas = el("canvas", { class: "sheet-ink", "aria-hidden": "true" });
     add(this.sheetEl, this.contentEl, this.inkCanvas);

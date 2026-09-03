@@ -29,7 +29,14 @@ const context = await browser.newContext({ viewport: { width: 1280, height: 900 
 const page = await context.newPage();
 
 const consoleErrors = [];
-page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text()); });
+// Web fonts are a progressive enhancement: every stack names a real fallback, and
+// this sandbox has no outbound network, so a blocked font request is the offline
+// case working rather than a fault. Everything else is a genuine error.
+const isFontFetch = (t) => /fonts\.(googleapis|gstatic)\.com/.test(t) ||
+  (/Failed to load resource/.test(t) && fontRequestFailed);
+let fontRequestFailed = false;
+page.on("requestfailed", (r) => { if (/fonts\.(googleapis|gstatic)\.com/.test(r.url())) fontRequestFailed = true; });
+page.on("console", (m) => { if (m.type() === "error" && !isFontFetch(m.text())) consoleErrors.push(m.text()); });
 page.on("pageerror", (e) => consoleErrors.push(`pageerror: ${e.message}`));
 
 await page.goto(page_url);

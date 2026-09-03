@@ -1,82 +1,96 @@
 /*
  * Calm by construction.
  *
- * No accent colour is used for reward, no animation celebrates anything, and
- * nothing pulses for attention. Colour is used for one thing only: telling you
- * where you are and what a verdict was. The paper is warm, the ink is nearly
- * black rather than black, and the type is set at reading size because this is
- * an application people look at for an hour at a time.
+ * Two neutrals, deliberately different. The application chrome is a cool slate;
+ * the page you write on is a warm cream. Nothing else in the interface is warm,
+ * so the paper reads as paper — an object on a desk rather than another panel.
+ *
+ * The accent is fountain-pen blue, taken from the subject rather than chosen for
+ * contrast, and it is never used to reward anything. Verdict colours are separate
+ * from it, so "this is where you are" and "this is how that answer went" cannot be
+ * confused. No animation celebrates, nothing pulses for attention, and there is no
+ * colour anywhere that means "well done".
+ *
+ * Type is set in three roles: Source Serif on the paper, because mathematics is
+ * read in a text serif everywhere it is taught; IBM Plex Sans for the interface
+ * around it; IBM Plex Mono for anything the student typed, so their notation is
+ * shown back exactly as they wrote it.
  */
 
 :root {
   color-scheme: light;
-  --bg: #f2efe9;
-  --surface: #fffdf9;
-  --paper: #fffdf6;
-  --ink: #1b1a17;
-  --ink-soft: #45423c;
-  --muted: #726c62;
-  --line: #e3ddd0;
-  --line-soft: #eee9de;
-  --accent: #2c6a5a;
-  --accent-soft: #e4efea;
-  --correct: #2f6b4f;
-  --correct-soft: #e6f1e9;
-  --near: #8a6320;
-  --near-soft: #f7efdd;
-  --wrong: #9a3b34;
-  --wrong-soft: #f8e8e5;
-  --shadow: 0 1px 2px rgba(30, 26, 18, .05), 0 8px 24px rgba(30, 26, 18, .06);
+  --bg: #e8ebef;
+  --surface: #f6f7f9;
+  --paper: #fdfaf3;
+  --ink: #171a1e;
+  --ink-soft: #3f454c;
+  --muted: #6b737c;
+  --line: #d7dce2;
+  --line-soft: #e7eaee;
+  --paper-line: #e8e0cf;
+  --accent: #1d5b7c;
+  --accent-soft: #dfeaf1;
+  --correct: #2b6a4e;
+  --correct-soft: #e2efe8;
+  --near: #87611e;
+  --near-soft: #f6eedc;
+  --wrong: #9a3a33;
+  --wrong-soft: #f7e7e4;
+  --on-accent: #ffffff;
+  --shadow: 0 1px 2px rgba(20, 26, 34, .05), 0 8px 24px rgba(20, 26, 34, .07);
   --radius: 14px;
-  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --font: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --serif: "Source Serif 4", "Iowan Old Style", Palatino, Georgia, "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
-:root:not([data-theme="light"]) { }
-
+/* Redefined only as tokens, so an explicit light choice still beats a dark OS. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #131316;
-    --surface: #1c1c21;
-    --paper: #212129;
-    --ink: #eceae4;
-    --ink-soft: #c8c5bd;
-    --muted: #948f86;
-    --line: #2f2f38;
-    --line-soft: #26262e;
-    --accent: #7cc0aa;
-    --accent-soft: #1e3630;
-    --correct: #7fc09b;
-    --correct-soft: #1c3328;
-    --near: #d8ac60;
-    --near-soft: #372d18;
+    --bg: #131519;
+    --surface: #1c1f24;
+    --paper: #24222a;
+    --ink: #ebe9e4;
+    --ink-soft: #c5c2bb;
+    --muted: #8f959d;
+    --line: #2d323a;
+    --line-soft: #24282f;
+    --paper-line: #38343f;
+    --accent: #7cb8d6;
+    --accent-soft: #16303d;
+    --correct: #79bd96;
+    --correct-soft: #17301f;
+    --near: #d5a95d;
+    --near-soft: #332916;
     --wrong: #e08a80;
-    --wrong-soft: #3a2320;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px rgba(0, 0, 0, .35);
+    --wrong-soft: #38211f;
+    --on-accent: #0d1c24;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 10px 30px rgba(0, 0, 0, .4);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #131316;
-  --surface: #1c1c21;
-  --paper: #212129;
-  --ink: #eceae4;
-  --ink-soft: #c8c5bd;
-  --muted: #948f86;
-  --line: #2f2f38;
-  --line-soft: #26262e;
-  --accent: #7cc0aa;
-  --accent-soft: #1e3630;
-  --correct: #7fc09b;
-  --correct-soft: #1c3328;
-  --near: #d8ac60;
-  --near-soft: #372d18;
+  --bg: #131519;
+  --surface: #1c1f24;
+  --paper: #24222a;
+  --ink: #ebe9e4;
+  --ink-soft: #c5c2bb;
+  --muted: #8f959d;
+  --line: #2d323a;
+  --line-soft: #24282f;
+  --paper-line: #38343f;
+  --accent: #7cb8d6;
+  --accent-soft: #16303d;
+  --correct: #79bd96;
+  --correct-soft: #17301f;
+  --near: #d5a95d;
+  --near-soft: #332916;
   --wrong: #e08a80;
-  --wrong-soft: #3a2320;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px rgba(0, 0, 0, .35);
+  --wrong-soft: #38211f;
+  --on-accent: #0d1c24;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 10px 30px rgba(0, 0, 0, .4);
 }
 
 * { box-sizing: border-box; }
@@ -86,6 +100,7 @@ body {
   background: var(--bg);
   color: var(--ink);
   font: 15px/1.55 var(--font);
+  font-synthesis-weight: none;
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
   overscroll-behavior: none;
@@ -109,7 +124,7 @@ body {
 
 .brand { display: flex; align-items: center; gap: 9px; padding: 4px 10px 22px; }
 .brand-mark { font-size: 19px; color: var(--accent); }
-.brand-name { font-weight: 620; letter-spacing: -.01em; font-size: 16px; }
+.brand-name { font-weight: 600; letter-spacing: -.01em; font-size: 16px; }
 
 .nav-item {
   display: flex; align-items: center; gap: 11px; width: 100%;
@@ -118,7 +133,7 @@ body {
   text-align: left; cursor: pointer;
 }
 .nav-item:hover { background: var(--line-soft); }
-.nav-item.on { background: var(--accent-soft); color: var(--accent); font-weight: 580; }
+.nav-item.on { background: var(--accent-soft); color: var(--accent); font-weight: 550; }
 .nav-icon { width: 18px; text-align: center; opacity: .85; }
 
 .main { flex: 1; min-width: 0; overflow-y: auto; height: 100dvh; }
@@ -140,22 +155,30 @@ body {
 
 .screen { max-width: 780px; margin: 0 auto; padding: 34px 22px 80px; }
 .screen-head { margin-bottom: 22px; }
-.screen-head h1 { font-size: 27px; letter-spacing: -.02em; margin: 0 0 6px; font-weight: 640; }
+.screen-head h1 { font-size: 27px; letter-spacing: -.02em; margin: 0 0 6px; font-weight: 600; text-wrap: balance; }
 
 .card {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow);
 }
 .card.thin { padding: 14px 20px; }
-.card h2 { font-size: 17px; margin: 0 0 8px; letter-spacing: -.01em; font-weight: 620; }
+.card h2 { font-size: 17px; margin: 0 0 8px; letter-spacing: -.01em; font-weight: 600; text-wrap: balance; }
 .card h3 { font-size: 15px; margin: 0 0 6px; font-weight: 600; }
 .card-kind {
   display: inline-block; font-size: 11px; text-transform: uppercase; letter-spacing: .07em;
-  color: var(--accent); font-weight: 640; margin-bottom: 7px;
+  color: var(--accent); font-weight: 600; margin-bottom: 7px;
 }
 .card.next { border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
 .card.next.rest { border-color: var(--line); }
 .card-reason { color: var(--ink-soft); margin: 0 0 4px; }
+
+.notice {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+  padding: 11px 14px; margin-bottom: 16px; border-radius: 11px;
+  background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.notice p { margin: 0; font-size: 13px; color: var(--ink-soft); flex: 1 1 260px; }
+.notice .btn { min-height: 32px; padding: 5px 10px; font-size: 13px; color: var(--accent); }
 
 .muted { color: var(--muted); }
 .small { font-size: 13px; }
@@ -170,12 +193,7 @@ body {
 }
 .btn:hover { border-color: var(--muted); }
 .btn:disabled { opacity: .4; cursor: default; }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-:root[data-theme="dark"] .btn.primary, .btn.primary { }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .btn.primary { color: #11201c; }
-}
-:root[data-theme="dark"] .btn.primary { color: #11201c; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
 .btn.ghost:hover { background: var(--line-soft); border-color: transparent; }
 .btn.danger { color: var(--wrong); border-color: color-mix(in srgb, var(--wrong) 40%, var(--line)); }
@@ -187,7 +205,7 @@ body {
   font: inherit; color: inherit; cursor: pointer;
 }
 .tile:hover { border-color: var(--accent); }
-.tile-title { font-weight: 580; }
+.tile-title { font-weight: 550; }
 .tile-sub { font-size: 12.5px; color: var(--muted); }
 
 .list { list-style: none; padding: 0; margin: 0; }
@@ -213,11 +231,11 @@ body {
 
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .table th {
-  text-align: left; font-weight: 560; color: var(--muted); font-size: 12px;
+  text-align: left; font-weight: 550; color: var(--muted); font-size: 12px;
   text-transform: uppercase; letter-spacing: .05em; padding: 0 10px 8px 0;
   border-bottom: 1px solid var(--line);
 }
-.table td { padding: 10px 10px 10px 0; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+.table td { padding: 10px 10px 10px 0; font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
 .table tr:last-child td { border-bottom: 0; }
 
 .strip-bar {
@@ -263,9 +281,13 @@ body {
   background: var(--bg);
 }
 
+/* A worksheet is the page you are writing on, so it fills the desk. A PDF keeps
+   the proportions of the sheet it actually is. */
+.sheet.fill { align-self: stretch; aspect-ratio: auto; min-height: 62vh; }
+
 .sheet {
   position: relative; width: min(100%, 780px); aspect-ratio: 210 / 297;
-  background: var(--paper); border: 1px solid var(--line); border-radius: 4px;
+  background: var(--paper); border: 1px solid var(--paper-line); border-radius: 3px;
   box-shadow: var(--shadow); overflow: hidden;
 }
 .sheet-content { position: absolute; inset: 0; overflow: hidden; }
@@ -274,7 +296,7 @@ body {
 .pdf-page { display: block; width: 100%; height: auto; }
 
 .ws { padding: 34px 38px; height: 100%; overflow: hidden; }
-.ws-head { border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 14px; }
+.ws-head { border-bottom: 1px solid var(--paper-line); padding-bottom: 12px; margin-bottom: 14px; }
 .ws-title { font-family: var(--serif); font-size: 21px; margin: 0 0 4px; font-weight: 600; }
 .ws-sub { font-size: 12px; color: var(--muted); margin: 0; }
 
@@ -290,7 +312,7 @@ body {
   height: 62px; margin-top: 5px;
   background: repeating-linear-gradient(
     to bottom, transparent, transparent 20px,
-    var(--line-soft) 20px, var(--line-soft) 21px);
+    var(--paper-line) 20px, var(--paper-line) 21px);
 }
 .ws-q-mark { position: absolute; top: 9px; right: 10px; font-weight: 700; }
 .ws-q-mark.correct { color: var(--correct); }
@@ -303,7 +325,7 @@ body {
 }
 .side-head { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
 .chip {
-  font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 620;
+  font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600;
   color: var(--accent); background: var(--accent-soft); padding: 3px 8px; border-radius: 20px;
 }
 .chip.alt { color: var(--near); background: var(--near-soft); }
@@ -338,7 +360,7 @@ body {
   background: transparent; border: 0; padding: 10px 0; cursor: pointer; text-align: left; font: inherit;
   color: var(--ink);
 }
-.rung-name { font-weight: 560; }
+.rung-name { font-weight: 550; }
 .rung-cost { font-size: 12px; color: var(--muted); }
 .rung.open .rung-name { color: var(--accent); }
 .rung-body { margin: 0 0 12px; font-size: 14px; color: var(--ink-soft); }
@@ -378,6 +400,12 @@ body {
   border-radius: var(--radius); background: var(--surface); overflow: visible;
 }
 .sheet-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+:where(button, a, input, summary):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }

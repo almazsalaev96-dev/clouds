@@ -13,6 +13,7 @@ import { el, clear, add, icon, announce } from "./ui.js";
 import * as store from "./store.js";
 import { StudyView } from "./study.js";
 import { desk, diagnose, progress, settings } from "./views.js";
+import { seed } from "./seed.js";
 
 const SCREENS = {
   desk: { label: "Desk", icon: "desk", render: (app) => desk(app) },
@@ -33,6 +34,9 @@ class App {
 
   start() {
     store.load();
+    // An app with nothing in it cannot show what it does, so a first run starts
+    // from example history rather than from a blank progress table.
+    if (store.allEvents().length === 0 && store.getPref("exampleHistory", null) === null) seed(store);
     store.subscribe((detail) => {
       if (detail.type === "storageError") {
         announce("This browser refused to save. Your work is still on screen but will not survive a reload.");

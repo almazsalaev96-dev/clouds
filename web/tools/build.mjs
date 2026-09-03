@@ -22,8 +22,18 @@ const DESCRIPTION =
   "A study workspace with a real marker, a real memory model and a real diagnostic. " +
   "Write with a Pencil, get told what specifically went wrong, and watch mastery decay honestly.";
 
+// Google Fonts is the one font host the artifact CSP admits; every stack below
+// names a real fallback so the page is still set correctly if it is opened offline.
+const FONTS = '<link rel="preconnect" href="https://fonts.googleapis.com">' +
+  '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
+  '<link rel="stylesheet" href="https://fonts.googleapis.com/css2' +
+  '?family=IBM+Plex+Mono:wght@400;500' +
+  '&family=IBM+Plex+Sans:wght@400;450;500;600' +
+  '&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">';
+
 const head = `<title>${TITLE}</title>
 <meta name="description" content="${DESCRIPTION}">
+${FONTS}
 <style>
 ${css}</style>`;
 
