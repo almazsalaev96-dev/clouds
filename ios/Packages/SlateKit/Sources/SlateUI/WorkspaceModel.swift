@@ -49,6 +49,7 @@ public final class WorkspaceModel: ObservableObject, Identifiable {
 
     private let store: DocumentStore
     private let ink: InkStore
+    private let layers: AnnotationStore
     private let tutorService: TutorService
     private let events: EventStore
     private let contextEngine = ContextEngine()
@@ -64,17 +65,18 @@ public final class WorkspaceModel: ObservableObject, Identifiable {
     private var conceptNames: [ConceptID: String] = [:]
 
     public init(meta: DocumentMeta, store: DocumentStore, ink: InkStore,
-                tutorService: TutorService, events: EventStore,
+                layers: AnnotationStore, tutorService: TutorService, events: EventStore,
                 clock: Clock = SystemClock()) {
         self.meta = meta
         self.store = store
         self.ink = ink
+        self.layers = layers
         self.tutorService = tutorService
         self.events = events
         self.clock = clock
         page = meta.lastPage
 
-        if let report = ink.recovery, report.recoveredWork {
+        if let report = ink.recovery ?? layers.recovery, report.recoveredWork {
             // Stated after the recovery has already happened, and never phrased as the
             // student's fault. They did nothing wrong; the app stopped.
             recoveryNotice = "Your most recent writing was recovered."
@@ -115,6 +117,38 @@ public final class WorkspaceModel: ObservableObject, Identifiable {
             }
         }
         try? saveMap()
+    }
+
+    // MARK: - Annotations and typed answers
+
+    public func add(_ annotation: Annotation) {
+        do {
+            try layers.add(annotation)
+        } catch {
+            problem = "That mark could not be saved just now. Nothing else has been lost."
+        }
+    }
+
+    public func remove(annotation id: String) {
+        try? layers.remove(id)
+    }
+
+    /// Type an answer instead of writing it. Bound to the question, so checking works
+    /// exactly as it does for handwriting.
+    public func setTypedAnswer(_ text: String, for questionID: QuestionID) {
+        try? layers.setTypedAnswer(text, for: questionID)
+        if let index = map.questions.firstIndex(where: { $0.id == questionID }) {
+            map.questions[index].hasWork = !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        try? saveMap()
+    }
+
+    public func typedAnswer(for questionID: QuestionID) -> String? {
+        layers.typedAnswers[questionID]
+    }
+
+    public func annotations(onPage page: Int) -> [Annotation] {
+        layers.annotations(onPage: page)
     }
 
     // MARK: - Selection
@@ -323,11 +357,12 @@ public final class WorkspaceModel: ObservableObject, Identifiable {
         // Flush first: an export must include the stroke drawn four seconds ago, not
         // the last one that happened to reach the snapshot.
         ink.flush()
+        layers.flush()
         return try Exporter().export(
             originalURL: documentURL,
             inkByPage: ink.drawingsByPage.asDrawings,
-            annotations: [],
-            typedAnswers: []
+            annotations: layers.annotations,
+            typedAnswers: layers.placedTypedAnswers(using: map)
         )
         #else
         throw ExportUnavailable()
@@ -417,6 +452,7 @@ public final class WorkspaceModel: ObservableObject, Identifiable {
     /// terminated process and lost work.
     public func flush() {
         ink.flush()
+        layers.flush()
         var updated = meta
         updated.lastPage = page
         updated.lastOpenedAt = clock.now

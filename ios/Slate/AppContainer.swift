@@ -140,11 +140,13 @@ final class AppContainer: ObservableObject {
     /// Opening a document builds its ink store and workspace. Failing to open one is
     /// reported rather than crashed on: a corrupt journal must not cost the library.
     func workspace(for meta: DocumentMeta) -> WorkspaceModel? {
-        guard let ink = try? InkStore(paths: store.paths(for: meta.id), clock: clock) else {
+        let paths = store.paths(for: meta.id)
+        guard let ink = try? InkStore(paths: paths, clock: clock),
+              let layers = try? AnnotationStore(paths: paths, clock: clock) else {
             return nil
         }
         return WorkspaceModel(
-            meta: meta, store: store, ink: ink,
+            meta: meta, store: store, ink: ink, layers: layers,
             tutorService: tutor, events: events, clock: clock
         )
     }
