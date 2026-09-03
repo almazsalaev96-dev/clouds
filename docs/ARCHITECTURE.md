@@ -214,7 +214,7 @@ testable on any platform.
 4. **Assignments** — finish → review → export → send → history. *(source complete)*
 5. **Assessment** — generate → sit → mark → diagnose → fix. *(source complete, engine golden-tested)*
 6. **Learning engine** — mastery, spacing, transfer, next action, interventions. *(complete + golden-tested)*
-7. **Advanced** — adaptive diagnostics by information gain. *(engine complete + tested; no UI yet)*
+7. **Advanced** — adaptive diagnostics by information gain. *(complete: engine, gateway validation, and UI)*
 
 The loop those close, end to end: import a worksheet → write on it → check an answer →
 get it wrong → get a hint → fix it → finish → export → send. Then: sit a short test →

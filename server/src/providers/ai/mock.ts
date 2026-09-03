@@ -77,6 +77,45 @@ function defaultHandler(request: AIRequest): unknown {
         figures: [], concepts: [{ id: "quadratics", name: "Quadratic equations" }],
       };
     case "generate":
+      // Two contracts share the generate task: the hypothesis list and the questions.
+      // The mock tells them apart the same way the caller does — by what was asked for.
+      if (request.prompt.includes("List the distinct reasons")) {
+        return {
+          hypotheses: [
+            { id: "sign", label: "Drops negative signs when expanding",
+              prior: 0.4, conceptIds: ["expanding-brackets"] },
+            { id: "formula", label: "Reaches for the wrong formula",
+              prior: 0.3, conceptIds: ["quadratics"] },
+            { id: "arithmetic", label: "Method is right, arithmetic slips",
+              prior: 0.3, conceptIds: ["quadratics"] },
+          ],
+        };
+      }
+      if (request.prompt.includes("tell these hypotheses apart")) {
+        return {
+          questions: [{
+            prompt: "Expand -(x - 3)^2",
+            answerShape: "expression",
+            acceptableAnswers: ["-x^2 + 6x - 9", "-(x^2 - 6x + 9)"],
+            workedSolution: ["Square the bracket first", "Then apply the minus to all three terms"],
+            conceptIds: ["expanding-brackets"], difficulty: "medium", marks: 2,
+            discriminates: [
+              { hypothesisId: "sign", responses: [
+                { category: "correct", probability: 0.1 },
+                { category: "signError", probability: 0.8 },
+                { category: "other", probability: 0.1 }] },
+              { hypothesisId: "formula", responses: [
+                { category: "correct", probability: 0.8 },
+                { category: "signError", probability: 0.1 },
+                { category: "other", probability: 0.1 }] },
+              { hypothesisId: "arithmetic", responses: [
+                { category: "correct", probability: 0.6 },
+                { category: "signError", probability: 0.1 },
+                { category: "other", probability: 0.3 }] },
+            ],
+          }],
+        };
+      }
       return {
         questions: [{
           prompt: "Solve x^2 - 7x + 12 = 0",

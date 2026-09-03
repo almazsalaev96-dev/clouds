@@ -16,6 +16,26 @@ public protocol TutorService: Sendable {
     func readHandwriting(_ request: HandwritingRequest) async throws -> HandwritingReading
     func generate(_ request: GenerateRequest) async throws -> [GeneratedQuestion]
     func analyseDocument(_ request: DocumentRequest) async throws -> DocumentAnalysis
+    func diagnose(_ request: DiagnoseRequest) async throws -> DiagnosticSet
+}
+
+public struct DiagnoseRequest: Codable, Sendable {
+    public var conceptIds: [String]
+    public var subject: String?
+    public var recentErrors: [String]?
+    /// What the student actually wrote when they got it wrong. The most useful input
+    /// there is, and the reason the hypotheses are not generic.
+    public var wrongAnswers: [String]?
+    public var count: Int
+
+    public init(conceptIDs: [ConceptID], subject: String? = nil,
+                recentErrors: [ErrorType] = [], wrongAnswers: [String] = [], count: Int = 4) {
+        self.conceptIds = conceptIDs.map(\.rawValue)
+        self.subject = subject
+        self.recentErrors = recentErrors.isEmpty ? nil : recentErrors.map(\.rawValue)
+        self.wrongAnswers = wrongAnswers.isEmpty ? nil : wrongAnswers
+        self.count = count
+    }
 }
 
 public struct DocumentRequest: Codable, Sendable {
@@ -169,6 +189,10 @@ public actor GatewayClient: TutorService {
 
     public func analyseDocument(_ request: DocumentRequest) async throws -> DocumentAnalysis {
         try await post("/v1/document", request, as: AnalysisEnvelope.self).analysis
+    }
+
+    public func diagnose(_ request: DiagnoseRequest) async throws -> DiagnosticSet {
+        try await post("/v1/diagnose", request, as: DiagnosticSet.self)
     }
 
     // MARK: - Transport

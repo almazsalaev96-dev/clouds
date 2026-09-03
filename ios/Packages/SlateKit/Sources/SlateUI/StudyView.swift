@@ -44,6 +44,19 @@ public struct StudyView: View {
                     }
                 }
 
+                if model.shouldOfferDiagnostic {
+                    SlateCard(action: model.diagnose) {
+                        VStack(alignment: .leading, spacing: Slate.Space.xs) {
+                            Text("Not sure what is going wrong")
+                                .font(Slate.Typography.bodyEmphasis)
+                                .foregroundStyle(Slate.Palette.ink)
+                            Text("A few questions, each picked to rule something out. It stops as soon as it knows.")
+                                .font(Slate.Typography.footnote)
+                                .foregroundStyle(Slate.Palette.inkSecondary)
+                        }
+                    }
+                }
+
                 if model.canSitTest {
                     VStack(alignment: .leading, spacing: Slate.Space.m) {
                         SectionHeader("Check where you are")
@@ -179,6 +192,7 @@ public final class StudyModel: ObservableObject {
 
     public var onStart: ((ConceptID) -> Void)?
     public var onSitTest: (([Concept]) -> Void)?
+    public var onDiagnose: (([Concept]) -> Void)?
 
     /// A test needs something to test. Offering one before any work has been marked
     /// would produce eight questions on nothing in particular.
@@ -217,6 +231,19 @@ public final class StudyModel: ObservableObject {
 
     public func start(_ concept: Projection.ConceptView) {
         onStart?(concept.conceptID)
+    }
+
+    /// Offered only when the evidence is genuinely ambiguous — several concepts part
+    /// way up, none clearly the problem. Asking six questions when the answer is
+    /// already obvious would waste the time it was meant to save.
+    public var shouldOfferDiagnostic: Bool {
+        weakest.count >= 2 && weakest.allSatisfy { $0.pUnaided > 0.25 && $0.pUnaided < 0.6 }
+    }
+
+    public func diagnose() {
+        onDiagnose?(concepts.filter { concept in
+            weakest.contains { $0.conceptID == concept.conceptID }
+        })
     }
 
     public func sitTest() {

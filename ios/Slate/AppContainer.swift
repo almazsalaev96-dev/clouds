@@ -114,6 +114,13 @@ final class AppContainer: ObservableObject {
         )
     }
 
+    func diagnostic(for chosen: [Concept]) -> DiagnosticModel {
+        DiagnosticModel(
+            concepts: chosen.isEmpty ? concepts : chosen,
+            tutorService: tutor, events: events, clock: clock
+        )
+    }
+
     func start() async {
         await desk.refresh()
     }

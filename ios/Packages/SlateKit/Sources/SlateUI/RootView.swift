@@ -39,6 +39,7 @@ public struct RootView: View {
     @State private var practising: PracticeModel?
     @State private var sitting: TestSessionModel?
     @State private var working: WorkspaceModel?
+    @State private var diagnosing: DiagnosticModel?
 
     private let desk: DeskModel
     private let library: LibraryModel
@@ -48,12 +49,14 @@ public struct RootView: View {
     private let makePractice: (ConceptID) -> PracticeModel?
     private let makeTest: ([Concept]) -> TestSessionModel
     private let makeWorkspace: (DocumentMeta) -> WorkspaceModel?
+    private let makeDiagnostic: ([Concept]) -> DiagnosticModel
 
     public init(desk: DeskModel, library: LibraryModel,
                 study: StudyModel, mistakes: MistakesModel,
                 makePractice: @escaping (ConceptID) -> PracticeModel?,
                 makeTest: @escaping ([Concept]) -> TestSessionModel,
-                makeWorkspace: @escaping (DocumentMeta) -> WorkspaceModel?) {
+                makeWorkspace: @escaping (DocumentMeta) -> WorkspaceModel?,
+                makeDiagnostic: @escaping ([Concept]) -> DiagnosticModel) {
         self.desk = desk
         self.library = library
         self.study = study
@@ -61,6 +64,7 @@ public struct RootView: View {
         self.makePractice = makePractice
         self.makeTest = makeTest
         self.makeWorkspace = makeWorkspace
+        self.makeDiagnostic = makeDiagnostic
     }
 
     public var body: some View {
@@ -104,6 +108,9 @@ public struct RootView: View {
                     }
             }
         }
+        .sheet(item: $diagnosing) { model in
+            DiagnosticView(model: model)
+        }
         .onAppear(perform: connect)
     }
 
@@ -113,12 +120,25 @@ public struct RootView: View {
             practising = makePractice(concept)
         }
         desk.onStartAction = { recommendation in
+            // The one action that is not an intervention: when the model does not know
+            // what is wrong, it asks rather than teaching the wrong thing.
+            if recommendation.kind == .diagnostic {
+                let model = makeDiagnostic([])
+                model.onFix = practise
+                diagnosing = model
+                return
+            }
             guard let concept = recommendation.conceptIDs.first else { return }
             practise(concept)
         }
         study.onStart = practise
         mistakes.onFix = practise
         study.onSitTest = { concepts in sitting = makeTest(concepts) }
+        study.onDiagnose = { concepts in
+            let model = makeDiagnostic(concepts)
+            model.onFix = practise
+            diagnosing = model
+        }
 
         let open: (DocumentMeta) -> Void = { meta in
             working = makeWorkspace(meta)

@@ -14,8 +14,8 @@ and no macOS**. That divides the repository cleanly.
 |---|---|
 | Learning engine (Python reference) | 57 tests, `python3 -m unittest discover -s tests` |
 | Golden fixture | regenerated and byte-compared against the committed file in CI |
-| Gateway (Node/TypeScript) | 115 tests, `npm test`; `tsc --noEmit` clean |
-| Deterministic grader | 53 of those 115, covering parsing, equivalence, units, sets, near misses, and the notation students actually type |
+| Gateway (Node/TypeScript) | 124 tests, `npm test`; `tsc --noEmit` clean |
+| Deterministic grader | 53 of those 124, covering parsing, equivalence, units, sets, near misses, and the notation students actually type |
 
 Run them yourself:
 
@@ -28,7 +28,7 @@ cd server && npm install && npm run check
 
 ## Written, reviewed, **not compiled**
 
-The entire `ios/` tree. Roughly 9,600 lines of Swift across 55 files. It has been
+The entire `ios/` tree. Roughly 10,200 lines of Swift across 57 files. It has been
 read back and statically audited — conditional-compilation balance, brace balance,
 access levels on cross-module initialisers, `switch` expressions whose branches have
 different concrete types, and Swift-version-gated syntax such as `@retroactive`. Four
@@ -60,7 +60,6 @@ Not oversights. Each was considered and left out, with the reason.
 | Accounts, sign-in, sync | Nothing in the first slice needs an identity. Adding one costs a signup screen, a password reset flow, and a database of children's names, in exchange for nothing a student can feel. |
 | iCloud sync | The architecture is local-first and the file layout is sync-shaped, but shipping sync before the single-device experience is excellent means debugging conflict resolution instead of the product. |
 | Teacher mode | Architected for (`AssignmentID` and submission history exist) and correctly out of a first release. A teacher dashboard changes who the product is for. |
-| Adaptive diagnostics in the UI | The information-gain engine is complete and golden-tested — an uninformative question scores exactly zero bits — but nothing calls it yet. It needs the gateway to return per-hypothesis likelihoods with generated questions, which the `GeneratedQuestion.discriminates` field already provides for. |
 | Curriculum and mark-scheme data | The metadata fields exist and are unpopulated. Inventing an exam board's mark scheme would be worse than having none: a student would trust it. |
 | On-device OCR pass | `HandwritingReading` is the seam. A Vision-framework implementation slots in behind it and would cut both cost and latency; it needs a device to tune against. |
 | Live "AI watches you write" | The hook exists (`onSettled` fires when the pencil stops) and is deliberately wired to nothing. It is the single easiest feature in this product to make unbearable. |

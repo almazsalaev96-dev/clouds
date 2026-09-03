@@ -10,10 +10,13 @@ import type { Config } from "../config.ts";
 import { assemble, ContextTooLarge, type ContextPart } from "../context/budget.ts";
 import { redact } from "../context/redact.ts";
 import {
-  CheckReply, DocumentAnalysis, FinalReviewFindings, HandwritingReading,
-  ImprovementSuggestions, QuestionSet, TutorReply,
+  CheckReply, DiagnosticHypotheses, DocumentAnalysis, FinalReviewFindings,
+  HandwritingReading, ImprovementSuggestions, QuestionSet, TutorReply,
 } from "../domain/contracts.ts";
 import { SYSTEM_PROMPTS } from "../domain/prompts.ts";
+import {
+  validateDiagnostic, type DiagnosticQuestion, type Hypothesis,
+} from "../generation/diagnostic.ts";
 import { validateSet, type GeneratedQuestionValue } from "../generation/validate.ts";
 import { grade, type ExpectedAnswer } from "../grading/grade.ts";
 import { enrich, reconcile, type ModelJudgement } from "../grading/reconcile.ts";
@@ -279,6 +282,93 @@ export function createApp(deps: AppDeps): App {
         questions: accepted,
         rejected: rejected.map((r) => ({ prompt: r.question.prompt, problems: r.problems })),
         usage: result.usage,
+      }, 200, requestId);
+    },
+
+    "POST /v1/diagnose": async (request, requestId) => {
+      const b = await body<{
+        conceptIds?: string[]; subject?: string; recentErrors?: string[];
+        wrongAnswers?: string[]; count?: number;
+      }>(request);
+
+      const concepts = (b.conceptIds ?? []).join(", ");
+      if (!concepts) throw badRequest("conceptIds must name at least one concept");
+      const count = Math.max(2, Math.min(6, Number(b.count) || 4));
+
+      // Two calls, in this order, because the second depends on the first: you cannot
+      // write a question that tells hypotheses apart before you have the hypotheses.
+      const hypothesisContext = buildContext([
+        {
+          kind: "focus", label: "What to explain",
+          text: `A student keeps going wrong on: ${concepts}. List the distinct reasons ` +
+                `this could be happening. Make them mutually exclusive and worth telling ` +
+                `apart — two hypotheses that imply the same lesson are one hypothesis.`,
+        },
+        {
+          kind: "attemptHistory", label: "What they actually wrote",
+          text: (b.wrongAnswers ?? []).join("\n---\n"),
+        },
+        {
+          kind: "masteryHints", label: "Error types already seen",
+          text: (b.recentErrors ?? []).join(", "),
+        },
+        { kind: "pageText", label: "Subject", text: b.subject ?? "" },
+      ]);
+
+      const hypotheses = await ai.complete<{ hypotheses: Hypothesis[] }>({
+        task: "generate", system: SYSTEM_PROMPTS.generate,
+        prompt: hypothesisContext, schema: DiagnosticHypotheses,
+      });
+
+      const questionContext = buildContext([
+        {
+          kind: "focus", label: "What to write",
+          text: `Write ${count} short questions that tell these hypotheses apart. For each ` +
+                `question, give the probability of each response category under each ` +
+                `hypothesis in "discriminates". A question every hypothesis answers the ` +
+                `same way is worthless and will be rejected.`,
+        },
+        {
+          kind: "questionText", label: "The hypotheses",
+          text: JSON.stringify(hypotheses.value.hypotheses, null, 2),
+        },
+        { kind: "pageText", label: "Subject", text: b.subject ?? "" },
+      ]);
+
+      const generated = await ai.complete<{ questions: DiagnosticQuestion[] }>({
+        task: "generate", system: SYSTEM_PROMPTS.generate,
+        prompt: questionContext, schema: QuestionSet,
+      });
+
+      // Two gates. The marker must be able to grade every question, and the questions
+      // must actually discriminate — measured in bits, not asserted.
+      const marked = validateSet(generated.value.questions as unknown as GeneratedQuestionValue[]);
+      const gradeable = generated.value.questions.filter((q) =>
+        marked.accepted.some((a) => a.prompt === q.prompt));
+
+      const result = validateDiagnostic(hypotheses.value.hypotheses, gradeable);
+      if (!result.ok) {
+        log.warn("diagnostic rejected", {
+          rejected: result.rejected.length,
+          codes: result.rejected.flatMap((r) => r.problems.map((p) => p.code)),
+        });
+        throw new HttpError(502, "tutorUnavailable",
+          "Could not write questions that would actually tell the possibilities apart. " +
+          "Nothing that cannot discriminate is shown.");
+      }
+
+      return json({
+        hypotheses: result.hypotheses,
+        questions: result.questions,
+        priorEntropyBits: result.priorEntropyBits,
+        bestQuestionBits: result.bestQuestionBits,
+        rejected: result.rejected,
+        usage: {
+          inputTokens: hypotheses.usage.inputTokens + generated.usage.inputTokens,
+          outputTokens: hypotheses.usage.outputTokens + generated.usage.outputTokens,
+          cacheReadTokens: hypotheses.usage.cacheReadTokens + generated.usage.cacheReadTokens,
+          model: generated.usage.model,
+        },
       }, 200, requestId);
     },
 

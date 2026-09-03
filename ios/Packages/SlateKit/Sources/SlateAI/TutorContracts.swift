@@ -201,3 +201,50 @@ public struct DocumentAnalysis: Codable, Sendable, Hashable {
     /// A page of notes with no questions on it is a correct analysis, not a failed one.
     public var isQuestionPaper: Bool { !questions.isEmpty }
 }
+
+/// A diagnostic the gateway has already checked can discriminate.
+///
+/// `priorEntropyBits` is how uncertain we are before asking anything, and
+/// `bestQuestionBits` is the most any single question in the set could remove. Both are
+/// reported so the interface can say how much was actually learned rather than implying
+/// certainty it did not earn.
+public struct DiagnosticSet: Codable, Sendable, Hashable {
+    public struct Hypothesis: Codable, Sendable, Hashable, Identifiable {
+        public let id: String
+        /// Written to be shown to a student, not to a developer.
+        public let label: String
+        public let prior: Double
+        public let conceptIds: [String]
+
+        public var conceptIDs: [ConceptID] { conceptIds.map(ConceptID.init) }
+    }
+
+    public struct Discrimination: Codable, Sendable, Hashable {
+        public struct Response: Codable, Sendable, Hashable {
+            public let category: String
+            public let probability: Double
+        }
+        public let hypothesisId: String
+        public let responses: [Response]
+    }
+
+    public struct Question: Codable, Sendable, Hashable, Identifiable {
+        public let prompt: String
+        public let answerShape: String
+        public let acceptableAnswers: [String]
+        public let unit: String?
+        public let significantFigures: Int?
+        public let workedSolution: [String]
+        public let conceptIds: [String]
+        public let difficulty: String
+        public let marks: Int
+        public let discriminates: [Discrimination]?
+
+        public var id: String { prompt }
+    }
+
+    public let hypotheses: [Hypothesis]
+    public let questions: [Question]
+    public let priorEntropyBits: Double
+    public let bestQuestionBits: Double
+}

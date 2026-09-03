@@ -5,6 +5,10 @@ import { assemble, clipToBytes, ContextTooLarge } from "../src/context/budget.ts
 import { redact } from "../src/context/redact.ts";
 import { toJSONSchema, validate, S } from "../src/domain/schema.ts";
 import { CheckReply, TutorReply } from "../src/domain/contracts.ts";
+import {
+  entropy, expectedInformationGain, priorMap, validateDiagnostic,
+  type DiagnosticQuestion, type Hypothesis,
+} from "../src/generation/diagnostic.ts";
 import { validateQuestion, validateSet } from "../src/generation/validate.ts";
 import { grade } from "../src/grading/grade.ts";
 import { enrich, reconcile, type ModelJudgement } from "../src/grading/reconcile.ts";
@@ -315,6 +319,102 @@ describe("generated question validation", () => {
       acceptableAnswers: ["9.81"], unit: "m/s^2",
     });
     assert.ok(r.problems.some((p) => p.code === "unitMissing"));
+  });
+});
+
+describe("diagnostic validation", () => {
+  const hypotheses: Hypothesis[] = [
+    { id: "sign", label: "Drops signs", prior: 1, conceptIds: [] },
+    { id: "formula", label: "Wrong formula", prior: 1, conceptIds: [] },
+    { id: "arithmetic", label: "Arithmetic slips", prior: 1, conceptIds: [] },
+    { id: "none", label: "No specific weakness", prior: 1, conceptIds: [] },
+  ];
+
+  const question = (
+    prompt: string,
+    table: Record<string, Record<string, number>>,
+  ): DiagnosticQuestion => ({
+    prompt, answerShape: "expression", acceptableAnswers: ["1"],
+    workedSolution: ["step"], conceptIds: ["c"], difficulty: "medium", marks: 2,
+    discriminates: Object.entries(table).map(([hypothesisId, responses]) => ({
+      hypothesisId,
+      responses: Object.entries(responses).map(([category, probability]) => ({
+        category, probability,
+      })),
+    })),
+  });
+
+  const flat = Object.fromEntries(
+    hypotheses.map((h) => [h.id, { correct: 0.5, other: 0.5 }]),
+  );
+
+  const sharp = {
+    sign: { correct: 0.05, signError: 0.9, other: 0.05 },
+    formula: { correct: 0.85, signError: 0.05, other: 0.1 },
+    arithmetic: { correct: 0.6, signError: 0.1, other: 0.3 },
+    none: { correct: 0.95, signError: 0.03, other: 0.02 },
+  };
+
+  it("measures entropy in bits", () => {
+    assert.equal(entropy([0.5, 0.5]), 1);
+    assert.equal(entropy([0.25, 0.25, 0.25, 0.25]), 2);
+    assert.equal(entropy([1]), 0);
+  });
+
+  it("scores a question every hypothesis answers alike at zero", () => {
+    const prior = priorMap(hypotheses);
+    assert.ok(expectedInformationGain(prior, question("flat", flat)) < 1e-9);
+  });
+
+  it("scores a discriminating question well above zero", () => {
+    const prior = priorMap(hypotheses);
+    assert.ok(expectedInformationGain(prior, question("sharp", sharp)) > 0.5);
+  });
+
+  it("accepts a set that can tell the hypotheses apart", () => {
+    const r = validateDiagnostic(hypotheses, [question("sharp", sharp)]);
+    assert.equal(r.ok, true);
+    assert.equal(r.questions.length, 1);
+    assert.ok(r.priorEntropyBits > 1.9);
+    assert.ok(r.bestQuestionBits > 0.5);
+  });
+
+  it("rejects a question that discriminates nothing", () => {
+    const r = validateDiagnostic(hypotheses, [question("flat", flat)]);
+    assert.equal(r.ok, false);
+    assert.equal(r.rejected[0]!.problems[0]!.code, "uninformative");
+  });
+
+  it("rejects a question that ignores one of the hypotheses", () => {
+    const partial = { sign: sharp.sign, formula: sharp.formula, arithmetic: sharp.arithmetic };
+    const r = validateDiagnostic(hypotheses, [question("partial", partial)]);
+    assert.equal(r.ok, false);
+    assert.ok(r.rejected[0]!.problems.some((p) => p.code === "missingHypothesis"));
+  });
+
+  it("rejects probabilities that do not sum to one", () => {
+    const broken = {
+      ...sharp,
+      sign: { correct: 0.5, signError: 0.9, other: 0.4 },
+    };
+    const r = validateDiagnostic(hypotheses, [question("broken", broken)]);
+    assert.ok(r.rejected[0]!.problems.some((p) => p.code === "probabilitiesDoNotSum"));
+  });
+
+  it("rejects a question with no discrimination table at all", () => {
+    const bare = { ...question("bare", sharp) };
+    delete bare.discriminates;
+    const r = validateDiagnostic(hypotheses, [bare]);
+    assert.equal(r.rejected[0]!.problems[0]!.code, "noDiscrimination");
+  });
+
+  it("keeps the good questions and reports the bad ones", () => {
+    const r = validateDiagnostic(hypotheses, [
+      question("flat", flat), question("sharp", sharp),
+    ]);
+    assert.equal(r.ok, true);
+    assert.equal(r.questions.length, 1);
+    assert.equal(r.rejected.length, 1);
   });
 });
 

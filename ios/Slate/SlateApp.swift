@@ -21,7 +21,8 @@ struct SlateApp: App {
                 mistakes: container.mistakes,
                 makePractice: { container.practice(for: $0) },
                 makeTest: { container.test(for: $0) },
-                makeWorkspace: { container.workspace(for: $0) }
+                makeWorkspace: { container.workspace(for: $0) },
+                makeDiagnostic: { container.diagnostic(for: $0) }
             )
                 .task { await container.start() }
         }
