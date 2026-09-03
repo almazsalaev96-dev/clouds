@@ -126,6 +126,33 @@ export function ingestDocument(
     } as never);
   }
 
+  // Content sitting under a heading is about that heading's concept. Linking
+  // it makes the graph able to answer questions lexical matching cannot: a
+  // paragraph defining "inelastic demand" is reachable from "elasticity" even
+  // though the two share no words. This is read off the document's own
+  // structure, not inferred, so the edge is honest.
+  const conceptByHeadingId = new Map<Id, Id>();
+  for (const edge of store.edges.list(userId, {
+    where: { fromType: "block", kind: "about" } as never,
+  })) {
+    conceptByHeadingId.set(edge.fromId, edge.toId);
+  }
+
+  for (const block of blocks) {
+    if (block.kind === "heading" || !block.parentBlockId) continue;
+    const conceptId = conceptByHeadingId.get(block.parentBlockId);
+    if (!conceptId) continue;
+    store.edges.insert(userId, {
+      fromType: "block", fromId: block.id,
+      toType: "concept", toId: conceptId,
+      kind: "about",
+      // Weaker than the heading itself: the heading names the concept, the
+      // body merely sits under it.
+      weight: 0.6,
+      provenance: `content under heading block ${block.parentBlockId}`,
+    } as never);
+  }
+
   return ok({ document, blocks, newConceptIds });
 }
 

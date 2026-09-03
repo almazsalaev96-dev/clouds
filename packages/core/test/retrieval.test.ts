@@ -86,6 +86,17 @@ test("graph expansion recovers related blocks that share no query words", () => 
   if (firstGraph !== -1) assert.ok(firstGraph > lastLexical - 1);
 });
 
+test("graph expansion reaches body text through its heading's concept", () => {
+  const store = seed();
+  // "elasticity" does not lexically match "Demand is inelastic..." — the two
+  // share no terms. The graph must bridge them via the enclosing heading.
+  const hits = retrieve(store, U, "elasticity", { expandViaGraph: true });
+  assert.ok(
+    hits.some((h) => /Salt and insulin/.test(h.block.text) || /few substitutes/.test(h.block.text)),
+    `expected body text under the Elasticity heading, got: ${hits.map((h) => h.block.text.slice(0, 40)).join(" | ")}`,
+  );
+});
+
 test("retrieval is scoped per user", () => {
   const store = seed();
   assert.deepEqual(retrieve(store, "someone-else", "elasticity"), []);

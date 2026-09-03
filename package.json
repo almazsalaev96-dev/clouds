@@ -4,10 +4,15 @@
   "private": true,
   "type": "module",
   "description": "An AI-native personal knowledge, learning, research and work environment.",
-  "engines": { "node": ">=22.18" },
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "test": "node --test packages/core/test/*.test.ts packages/server/test/*.test.ts",
     "start": "node packages/server/src/main.ts",
     "dev": "node --watch packages/server/src/main.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.123.0"
   }
 }

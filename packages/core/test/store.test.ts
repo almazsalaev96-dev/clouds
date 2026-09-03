@@ -103,6 +103,22 @@ test("snapshot and restore round-trip preserving user partitions", () => {
   assert.equal(restored.documents.list(USER_B)[0].title, "Other");
 });
 
+test("timestamps are strictly increasing, so recency ordering is well-defined", () => {
+  const store = createStore();
+  // Written inside a single millisecond; Date.now() alone would tie them.
+  const rows = Array.from({ length: 50 }, (_, i) =>
+    store.messages.insert(USER_A, {
+      conversationId: "c1", role: "user", text: `m${i}`, citations: [], toolCalls: [],
+    } as never));
+
+  for (let i = 1; i < rows.length; i++) {
+    assert.ok(rows[i].createdAt > rows[i - 1].createdAt,
+      `row ${i} did not get a later timestamp than row ${i - 1}`);
+  }
+  const newestFirst = store.messages.list(USER_A, { sort: (a, b) => b.createdAt - a.createdAt, limit: 3 });
+  assert.deepEqual(newestFirst.map((m) => m.text), ["m49", "m48", "m47"]);
+});
+
 test("onChange fires for mutations", () => {
   let changes = 0;
   const store = createStore({ onChange: () => changes++ });

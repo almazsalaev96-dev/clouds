@@ -35,7 +35,29 @@ import type {
 
 export const newId = (): Id => randomUUID();
 
-export const now = (): number => Date.now();
+let lastIssued = 0;
+
+/**
+ * A strictly monotonic clock for row timestamps.
+ *
+ * `Date.now()` has millisecond resolution, so several rows written in the same
+ * tick share a timestamp — and "the three most recent attempts" then returns
+ * whichever three the sort happened to leave first. That is not a hypothetical:
+ * answering three quiz questions quickly, or a turn writing several edges, both
+ * land inside one millisecond.
+ *
+ * Ordering matters in enough places (recent messages, latest attempts, mistake
+ * recency) that it is worth making "later" well-defined at the source rather
+ * than defending against ties at every call site. The cost is that under a
+ * burst of writes the issued timestamp can run slightly ahead of wall clock; it
+ * re-converges as soon as the clock catches up, and the skew is bounded by the
+ * number of writes in that tick.
+ */
+export const now = (): number => {
+  const t = Math.max(Date.now(), lastIssued + 1);
+  lastIssued = t;
+  return t;
+};
 
 /** Fields the store fills in, so callers never invent timestamps or ids. */
 export type New<T extends Entity> = Omit<T, "id" | "createdAt" | "updatedAt">;
