@@ -53,6 +53,8 @@ public struct RootView: View {
     private let makeDiagnostic: ([Concept]) -> DiagnosticModel
     private let settings: SettingsModel
     private let notes: NotesModel
+    private let assignments: AssignmentsModel
+    private let workspaceStore: DocumentStore
     /// One voice for the whole app, so starting a new utterance anywhere stops the one
     /// already speaking. Two controllers would mean two voices talking over each other.
     @ObservedObject private var voice: VoiceController
@@ -63,7 +65,8 @@ public struct RootView: View {
                 makeTest: @escaping ([Concept]) -> TestSessionModel,
                 makeWorkspace: @escaping (DocumentMeta) -> WorkspaceModel?,
                 makeDiagnostic: @escaping ([Concept]) -> DiagnosticModel,
-                settings: SettingsModel, notes: NotesModel) {
+                settings: SettingsModel, notes: NotesModel,
+                assignments: AssignmentsModel, workspaceStore: DocumentStore) {
         self.desk = desk
         self.library = library
         self.study = study
@@ -75,6 +78,8 @@ public struct RootView: View {
         self.makeDiagnostic = makeDiagnostic
         self.settings = settings
         self.notes = notes
+        self.assignments = assignments
+        self.workspaceStore = workspaceStore
     }
 
     public var body: some View {
@@ -124,6 +129,8 @@ public struct RootView: View {
                     // A kept draft lands in the same store the Knowledge tab reads,
                     // so it is there the moment the student goes looking.
                     notes.accept(draft, from: model.meta.id)
+                } makeFinish: { workspace in
+                    makeFinish(workspace)
                 }
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
@@ -143,7 +150,28 @@ public struct RootView: View {
     }
 
     /// Routes into a session, wired once so every entry point behaves identically.
+    /// The finish flow, built where the assignment store is in scope so a submission
+    /// is recorded against the right assignment rather than vanishing into a share sheet.
+    private func makeFinish(_ workspace: WorkspaceModel) -> FinishModel? {
+        let context = workspace.finishingContext()
+        let model = FinishModel(
+            meta: context.meta, map: context.map, store: workspaceStore,
+            studentName: nil
+        ) {
+            try await workspace.compositeForExport()
+        }
+        model.onSubmitted = { [assignments] record in
+            guard let id = context.meta.assignmentID else { return }
+            assignments.recordSubmission(record, for: id)
+        }
+        model.onJump = { page in workspace.page = page }
+        return model
+    }
+
     private func connect() {
+        // One definition of what is due, read by everything that reasons about time.
+        desk.assignmentSnapshots = { [assignments] in assignments.snapshots() }
+
         let practise: (ConceptID) -> Void = { concept in
             practising = makePractice(concept)
         }
@@ -186,7 +214,9 @@ public struct RootView: View {
         case .desk:
             DeskView(model: desk)
         case .work:
-            LibraryView(model: library)
+            // Two halves: what is due, and everything you have. A deadline the student
+            // has to go looking for is a deadline the app is not helping with.
+            WorkView(library: library, assignments: assignments)
         case .study:
             StudyView(model: study)
         case .knowledge:

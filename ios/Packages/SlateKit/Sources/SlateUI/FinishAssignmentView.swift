@@ -141,7 +141,9 @@ public struct FinishAssignmentView: View {
 
 /// State for finishing.
 @MainActor
-public final class FinishModel: ObservableObject {
+public final class FinishModel: ObservableObject, Identifiable {
+
+    public nonisolated let id = UUID()
 
     @Published public var filename: String
     @Published public private(set) var review = FinalReview(findings: [])
@@ -158,6 +160,8 @@ public final class FinishModel: ObservableObject {
 
     public var onShare: ((Data, String) -> Void)?
     public var onJump: ((Int) -> Void)?
+    /// Called with what was actually sent, so the assignment can keep the record.
+    public var onSubmitted: ((Assignment.SubmissionRecord) -> Void)?
 
     /// Supplied by the workspace, which owns the ink and annotation layers. Keeping the
     /// compositing out of here means this screen cannot accidentally acquire the
@@ -224,8 +228,16 @@ public final class FinishModel: ObservableObject {
     public func send() async {
         guard let data = exportedData else { return }
         // A snapshot of exactly what was sent, so "what did I actually submit?" is
-        // answerable months later without regenerating anything.
-        _ = try? store.snapshot(meta.id, kind: .submitted, label: filename, pdfData: data)
+        // answerable months later without regenerating anything. Compositing the
+        // handwriting again next year would not necessarily produce the same file.
+        let version = try? store.snapshot(meta.id, kind: .submitted,
+                                          label: filename, pdfData: data)
+        if let version {
+            onSubmitted?(Assignment.SubmissionRecord(
+                at: clock.now, filename: filename, byteCount: data.count,
+                pageCount: pageCount, fileURL: version.fileURL
+            ))
+        }
         onShare?(data, filename)
     }
 

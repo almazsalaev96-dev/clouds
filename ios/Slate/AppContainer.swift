@@ -35,6 +35,7 @@ final class AppContainer: ObservableObject {
     let mistakes: MistakesModel
     let settings: SettingsModel
     let notes: NotesModel
+    let assignments: AssignmentsModel
 
     init() {
         let documents = FileManager.default
@@ -100,6 +101,14 @@ final class AppContainer: ObservableObject {
             ?? (try? NoteStore(url: FileManager.default.temporaryDirectory
                 .appendingPathComponent("slate-notes.json"), clock: clock))
         notes = NotesModel(store: noteStore ?? NoteStore.unavailable, clock: clock)
+
+        let assignmentsURL = documents.deletingLastPathComponent()
+            .appendingPathComponent("assignments.json")
+        let assignmentStore = (try? AssignmentStore(url: assignmentsURL, clock: clock))
+            ?? AssignmentStore.unavailable
+        assignments = AssignmentsModel(
+            store: assignmentStore, documentStore: store, clock: clock
+        )
     }
 
     /// Sessions are built here because they need the services, and handed to the UI as

@@ -220,3 +220,36 @@ public enum StrokeAnalysis {
     }
 }
 #endif
+
+#if canImport(PencilKit) && canImport(UIKit)
+import SlateDocuments
+
+/// A stored drawing, in the form the exporter can composite.
+///
+/// `SlateDocuments` must not import PencilKit — it would drag a UI framework into the
+/// layer that owns file safety — so the exporter asks for anything that can render
+/// itself into a rectangle, and this is what actually can.
+public struct PencilDrawing: PKDrawingData {
+    private let drawing: PKDrawing
+
+    public init?(data: Data) {
+        guard let drawing = try? PKDrawing(data: data) else { return nil }
+        self.drawing = drawing
+    }
+
+    public func image(in rect: CGRect) -> UIImage? {
+        guard !drawing.strokes.isEmpty, rect.width > 0, rect.height > 0 else { return nil }
+        // Rendered at the page's own coordinates so strokes land exactly where they
+        // were drawn; the exporter scales the whole overlay once, afterwards.
+        return drawing.image(from: rect, scale: 2)
+    }
+}
+
+public extension Dictionary where Key == Int, Value == Data {
+    /// Every page's ink, ready for export. Pages whose data will not decode are left
+    /// out rather than substituted — a blank page is recoverable, a wrong one is not.
+    var asDrawings: [Int: PKDrawingData] {
+        compactMapValues { PencilDrawing(data: $0) }
+    }
+}
+#endif

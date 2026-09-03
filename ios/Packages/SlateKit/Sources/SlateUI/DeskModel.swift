@@ -52,6 +52,10 @@ public final class DeskModel: ObservableObject {
     private var concepts: [Concept]
     private var dismissed: Set<String> = []
 
+    /// Supplied rather than derived. Deadlines live in one place, and a second
+    /// definition of "how much is left" here would drift from the first within a week.
+    public var assignmentSnapshots: () -> [NextAction.AssignmentSnapshot] = { [] }
+
     public var onOpenDocument: ((DocumentID) -> Void)?
     public var onOpenAssignment: ((AssignmentID) -> Void)?
     public var onStartAction: ((NextAction.Recommendation) -> Void)?
@@ -85,7 +89,7 @@ public final class DeskModel: ObservableObject {
         }
 
         let attempts = (try? events.liveAttempts()) ?? []
-        let assignments = assignmentSnapshots(now: now)
+        let assignments = assignmentSnapshots()
 
         let projection = LearningEngine.project(
             attempts: attempts,
@@ -185,32 +189,6 @@ public final class DeskModel: ObservableObject {
     }
 
     // MARK: - Sources
-
-    /// Assignments come from the documents that belong to one, so a student never has
-    /// to enter an assignment twice.
-    private func assignmentSnapshots(now: Date) -> [NextAction.AssignmentSnapshot] {
-        let documents = (try? store.allDocuments()) ?? []
-        return documents.compactMap { meta -> NextAction.AssignmentSnapshot? in
-            guard let assignmentID = meta.assignmentID else { return nil }
-            let map = (try? loadQuestionMap(meta.id)) ?? QuestionMap()
-            let progress = map.progress
-            return NextAction.AssignmentSnapshot(
-                id: assignmentID,
-                title: meta.title,
-                subject: meta.subject,
-                dueAt: nil,
-                questionsTotal: max(progress.total, 1),
-                questionsDone: progress.done,
-                conceptIDs: map.questions.flatMap(\.conceptIDs)
-            )
-        }
-    }
-
-    private func loadQuestionMap(_ id: DocumentID) throws -> QuestionMap {
-        let url = store.paths(for: id).questions
-        guard let data = try? Data(contentsOf: url) else { return QuestionMap() }
-        return try JSONDecoder().decode(QuestionMap.self, from: data)
-    }
 
     /// Continuous working time, for the fatigue term. Derived from session events, not
     /// from how long the app has been open — a backgrounded app is not studying.

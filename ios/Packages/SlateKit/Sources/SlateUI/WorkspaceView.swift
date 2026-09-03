@@ -19,14 +19,20 @@ public struct WorkspaceView: View {
     /// Supplied by the root so a kept draft lands in the same store the Knowledge tab
     /// reads from.
     let keepNotes: (RevisionNotes) -> Void
+    /// Builds the finish flow. Supplied by the root, which owns the assignment store
+    /// the submission record has to land in.
+    let makeFinish: (WorkspaceModel) -> FinishModel?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pageSize: CGSize = .zero
+    @State private var finishing: FinishModel?
 
     public init(model: WorkspaceModel, voice: VoiceController,
-                keepNotes: @escaping (RevisionNotes) -> Void) {
+                keepNotes: @escaping (RevisionNotes) -> Void,
+                makeFinish: @escaping (WorkspaceModel) -> FinishModel?) {
         self.model = model
         self.voice = voice
         self.keepNotes = keepNotes
+        self.makeFinish = makeFinish
     }
 
     public var body: some View {
@@ -56,6 +62,10 @@ public struct WorkspaceView: View {
         .animation(Slate.Motion.respectful(Slate.Motion.sheet, reduceMotion: reduceMotion),
                    value: model.isTutorOpen)
         .toolbar { toolbarContent }
+        .sheet(item: $finishing) { model in
+            FinishAssignmentView(model: model)
+                .task { await model.prepare() }
+        }
         .sheet(item: $model.notesDraft) { draft in
             NotesDraftReview(draft: draft) {
                 keepNotes(draft)
@@ -119,6 +129,13 @@ public struct WorkspaceView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                finishing = makeFinish(model)
+            } label: {
+                Label("Finish", systemImage: "checkmark.circle")
+            }
+        }
         ToolbarItem(placement: .topBarTrailing) {
             Button {
                 Task { await model.makeRevisionNotes() }

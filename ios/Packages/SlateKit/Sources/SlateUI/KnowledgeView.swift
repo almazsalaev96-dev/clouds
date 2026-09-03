@@ -42,3 +42,44 @@ public struct KnowledgeView: View {
     }
 }
 #endif
+
+#if canImport(SwiftUI)
+/// Work: what is due, and everything you have.
+public struct WorkView: View {
+
+    public enum Half: String, CaseIterable, Identifiable {
+        case due, library
+        public var id: String { rawValue }
+        var label: String { self == .due ? "Due" : "Library" }
+    }
+
+    @State private var half: Half = .due
+    @ObservedObject private var library: LibraryModel
+    @ObservedObject private var assignments: AssignmentsModel
+
+    public init(library: LibraryModel, assignments: AssignmentsModel) {
+        _library = ObservedObject(wrappedValue: library)
+        _assignments = ObservedObject(wrappedValue: assignments)
+    }
+
+    public var body: some View {
+        VStack(spacing: 0) {
+            Picker("", selection: $half) {
+                ForEach(Half.allCases) { Text($0.label).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, Slate.Space.xl)
+            .padding(.vertical, Slate.Space.m)
+
+            switch half {
+            case .due: AssignmentsView(model: assignments)
+            case .library: LibraryView(model: library)
+            }
+        }
+        .background(Slate.Palette.paper)
+        // Land on the library when nothing is due: an empty deadline list is not the
+        // first thing someone opening Work wants to see.
+        .onAppear { if assignments.assignments.isEmpty { half = .library } }
+    }
+}
+#endif

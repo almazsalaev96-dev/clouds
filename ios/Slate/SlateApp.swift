@@ -34,7 +34,9 @@ struct SlateApp: App {
                     makeWorkspace: { container.workspace(for: $0) },
                     makeDiagnostic: { container.diagnostic(for: $0) },
                     settings: container.settings,
-                    notes: container.notes
+                    notes: container.notes,
+                    assignments: container.assignments,
+                    workspaceStore: container.store
                 )
                 .task { await container.start() }
             }

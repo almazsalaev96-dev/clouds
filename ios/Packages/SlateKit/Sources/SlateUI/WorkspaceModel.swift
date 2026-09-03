@@ -45,6 +45,7 @@ public final class WorkspaceModel: ObservableObject, Identifiable {
     @Published public private(set) var isDistractionFree = false
     /// A draft, not a note. It becomes one only if the student keeps it.
     @Published public var notesDraft: RevisionNotes?
+    @Published public var isFinishing = false
 
     private let store: DocumentStore
     private let ink: InkStore
@@ -306,6 +307,36 @@ public final class WorkspaceModel: ObservableObject, Identifiable {
     }
 
     public func discardNotesDraft() { notesDraft = nil }
+
+    /// Everything the finish screen needs, gathered here because this is the only
+    /// object that holds the ink, the map and the document together.
+    public func finishingContext() -> (map: QuestionMap, meta: DocumentMeta) {
+        (map, meta)
+    }
+
+    /// Composite the layers onto a copy of the original. Never touches the source.
+    ///
+    /// The handwriting is the point. An export without it is a copy of the question
+    /// paper, which is the one thing a teacher does not need.
+    public func compositeForExport() async throws -> Data {
+        #if canImport(PDFKit) && canImport(PencilKit)
+        // Flush first: an export must include the stroke drawn four seconds ago, not
+        // the last one that happened to reach the snapshot.
+        ink.flush()
+        return try Exporter().export(
+            originalURL: documentURL,
+            inkByPage: ink.drawingsByPage.asDrawings,
+            annotations: [],
+            typedAnswers: []
+        )
+        #else
+        throw ExportUnavailable()
+        #endif
+    }
+
+    public struct ExportUnavailable: Error, LocalizedError {
+        public var errorDescription: String? { "Exporting is not available on this device." }
+    }
 
     /// Text of the current page. Empty for a scan, which is fine: the questions the
     /// analysis found are enough to make notes from, and sending a picture of a page

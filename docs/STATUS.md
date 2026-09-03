@@ -28,7 +28,7 @@ cd server && npm install && npm run check
 
 ## Written, reviewed, **not compiled**
 
-The entire `ios/` tree. Roughly 11,900 lines of Swift across 66 files. It has been
+The entire `ios/` tree. Roughly 12,700 lines of Swift across 70 files. It has been
 read back and statically audited — conditional-compilation balance, brace balance,
 access levels on cross-module initialisers, `switch` expressions whose branches have
 different concrete types, and Swift-version-gated syntax such as `@retroactive`. Four
@@ -86,24 +86,28 @@ Stated because finding them in six months is worse.
    numbers should move once there is real evidence. That is why the engine is a pure
    function over an append-only log: retuning re-scores history rather than migrating
    opinions.
-5. **`FinalReview.local` is the cheap half.** It finds blank answers and stray marks
+5. **Export composites ink only.** Handwriting reaches the final PDF; highlights,
+   shapes, text boxes and typed answers do not yet. The layers and the compositing code
+   for them exist — `Exporter` takes all four — but nothing passes them in.
+
+6. **`FinalReview.local` is the cheap half.** It finds blank answers and stray marks
    from the question map. Page-order and missing-page detection need the model pass.
-6. **Concept identifiers are strings with no shipped graph.** `Concept.prerequisites`
+7. **Concept identifiers are strings with no shipped graph.** `Concept.prerequisites`
    is honoured by the recommender wherever a graph is supplied; none is supplied. The
    concepts a document analysis returns are the only source, so the graph is flat until
    a curriculum is loaded.
-7. **Document analysis reads the first six pages only.** Enough to identify the document
+8. **Document analysis reads the first six pages only.** Enough to identify the document
    and map the questions a student starts on. The rest is provisional until they reach
    it, and `DocumentAnalyser.Result.isPartial` says so.
-8. **Answer regions are inferred from question order when the layout gives no clue.**
+9. **Answer regions are inferred from question order when the layout gives no clue.**
    A reasonable guess on a worksheet, and the student's own strokes override it the
    moment they write — but on an unusual layout the first "check this" may resolve to
    the wrong question until then.
 
-9. **Notes are typed only.** A note can hold handwriting — `Note.inkPages` exists and
+10. **Notes are typed only.** A note can hold handwriting — `Note.inkPages` exists and
    round-trips — but there is no ink surface in the note editor. Handwriting belongs on
    the page it was written on, and a second, worse canvas here would be a trap.
-10. **Search is substring matching over notes only.** It does what a student expects of
+11. **Search is substring matching over notes only.** It does what a student expects of
    a search box on one screen. The natural-language search across documents, mistakes
    and past tests that the brief describes needs an index, and an index needs a reason.
 
@@ -116,8 +120,10 @@ Stated because finding them in six months is worse.
 1. Get it compiling and run `GoldenParityTests` on a Mac.
 2. Import a real 20-page worksheet, write on it, force-quit the app mid-stroke, and
    confirm the recovery notice appears and the strokes are there.
-3. Wire `Exporter` to the workspace's real ink and annotation layers, and check the
-   exported PDF opens correctly in Preview, Mail and Google Classroom.
+3. Check an exported PDF opens correctly in Preview, Mail and Google Classroom. The
+   ink layer is wired; annotations and typed answers are not yet composited, so a
+   student who only writes with the Pencil gets a complete document and one who uses
+   the highlighter does not.
 4. Point `SlateGatewayURL` at a local gateway and walk one question end to end:
    write, check, wrong, hint, fix, correct.
 5. Then, and only then, the study loop.
