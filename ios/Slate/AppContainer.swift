@@ -3,6 +3,8 @@ import SwiftUI
 import SlateAI
 import SlateDocuments
 import SlateFoundation
+import SlateInk
+import SlateLearning
 import SlateModel
 import SlateUI
 import SlateVoice
@@ -19,6 +21,10 @@ final class AppContainer: ObservableObject {
     let events: EventStore
     let tutor: TutorService
     let voice: VoiceProvider
+    /// Empty until a document has been analysed. Every engine handles that by
+    /// producing nothing rather than by guessing.
+    private(set) var concepts: [Concept] = []
+
     let desk: DeskModel
     let library: LibraryModel
     let study: StudyModel
@@ -51,8 +57,9 @@ final class AppContainer: ObservableObject {
 
         // The concept graph is empty until a document has been analysed; every engine
         // handles that by producing nothing rather than by guessing.
-        let concepts: [Concept] = []
-        desk = DeskModel(store: store, events: events, concepts: concepts, clock: clock)
+        let startingConcepts: [Concept] = []
+        concepts = startingConcepts
+        desk = DeskModel(store: store, events: events, concepts: startingConcepts, clock: clock)
 
         // Analysis is handed in as a closure so the library never learns what a
         // gateway is, and so a test can supply a map without a network.
@@ -65,8 +72,46 @@ final class AppContainer: ObservableObject {
             )
             return result.map
         }
-        study = StudyModel(events: events, concepts: concepts, clock: clock)
-        mistakes = MistakesModel(events: events, concepts: concepts, clock: clock)
+        study = StudyModel(events: events, concepts: startingConcepts, clock: clock)
+        mistakes = MistakesModel(events: events, concepts: startingConcepts, clock: clock)
+    }
+
+    /// Sessions are built here because they need the services, and handed to the UI as
+    /// closures so no screen has to know what a gateway is.
+    func practice(for concept: ConceptID) -> PracticeModel? {
+        guard let subject = concepts.first(where: { $0.conceptID == concept }) else { return nil }
+        let attempts = (try? events.liveAttempts()) ?? []
+        let state = LearningEngine.fold(attempts)[concept] ?? ConceptState(conceptID: concept)
+        return PracticeModel(
+            concept: subject,
+            state: state,
+            plan: Intervention.build(state: state, at: clock.now),
+            tutorService: tutor,
+            events: events,
+            clock: clock
+        )
+    }
+
+    func test(for chosen: [Concept]) -> TestSessionModel {
+        TestSessionModel(
+            title: chosen.first?.subject.isEmpty == false ? chosen[0].subject : "Quick test",
+            concepts: chosen.isEmpty ? concepts : chosen,
+            tutorService: tutor,
+            events: events,
+            clock: clock
+        )
+    }
+
+    /// Opening a document builds its ink store and workspace. Failing to open one is
+    /// reported rather than crashed on: a corrupt journal must not cost the library.
+    func workspace(for meta: DocumentMeta) -> WorkspaceModel? {
+        guard let ink = try? InkStore(paths: store.paths(for: meta.id), clock: clock) else {
+            return nil
+        }
+        return WorkspaceModel(
+            meta: meta, store: store, ink: ink,
+            tutorService: tutor, events: events, clock: clock
+        )
     }
 
     func start() async {

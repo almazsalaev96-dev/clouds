@@ -212,8 +212,13 @@ testable on any platform.
 2. **Tutor** — select → context → check/hint/explain, deterministic grading first. *(source + gateway complete)*
 3. **Voice** — ElevenLabs streaming, barge-in. *(gateway complete, client player complete)*
 4. **Assignments** — finish → review → export → send → history. *(source complete)*
-5. **Assessment** — generate → answer in ink → grade → diagnose. *(gateway + engine complete)*
-6. **Learning engine** — mastery, spacing, transfer, next action. *(complete + golden-tested)*
-7. **Advanced** — adaptive diagnostics by information gain. *(complete + tested)*
+5. **Assessment** — generate → sit → mark → diagnose → fix. *(source complete, engine golden-tested)*
+6. **Learning engine** — mastery, spacing, transfer, next action, interventions. *(complete + golden-tested)*
+7. **Advanced** — adaptive diagnostics by information gain. *(engine complete + tested; no UI yet)*
+
+The loop those close, end to end: import a worksheet → write on it → check an answer →
+get it wrong → get a hint → fix it → finish → export → send. Then: sit a short test →
+read why the score happened → tap Fix → work one intervention → be verified on a
+question you have not seen → have it come back days later to check it stuck.
 
 See `STATUS.md` for what is verified versus what is written but uncompiled.

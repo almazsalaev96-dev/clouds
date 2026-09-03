@@ -18,7 +18,9 @@ import SlateModel
 /// immediately; the model is asked afterwards for the part it is actually better at,
 /// which is explaining what went wrong. If the two disagree, the arithmetic wins.
 @MainActor
-public final class WorkspaceModel: ObservableObject {
+public final class WorkspaceModel: ObservableObject, Identifiable {
+
+    public nonisolated let id = UUID()
 
     public enum Selection: Equatable {
         case none

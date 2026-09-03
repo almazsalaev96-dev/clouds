@@ -44,6 +44,31 @@ public struct StudyView: View {
                     }
                 }
 
+                if model.canSitTest {
+                    VStack(alignment: .leading, spacing: Slate.Space.m) {
+                        SectionHeader("Check where you are")
+                        SlateCard(action: model.sitTest) {
+                            HStack(spacing: Slate.Space.m) {
+                                VStack(alignment: .leading, spacing: Slate.Space.xs) {
+                                    Text("Sit a short test")
+                                        .font(Slate.Typography.bodyEmphasis)
+                                        .foregroundStyle(Slate.Palette.ink)
+                                    // Not a score for its own sake. The report says what
+                                    // went wrong and what to do, and the result changes
+                                    // what this screen recommends tomorrow.
+                                    Text("Eight questions, no hints. You get a breakdown of what went wrong and why.")
+                                        .font(Slate.Typography.footnote)
+                                        .foregroundStyle(Slate.Palette.inkSecondary)
+                                }
+                                Spacer(minLength: 0)
+                                Image(systemName: "chevron.right")
+                                    .font(.footnote)
+                                    .foregroundStyle(Slate.Palette.inkTertiary)
+                            }
+                        }
+                    }
+                }
+
                 if !model.weakest.isEmpty {
                     VStack(alignment: .leading, spacing: Slate.Space.m) {
                         SectionHeader("Where the marks are going")
@@ -153,6 +178,11 @@ public final class StudyModel: ObservableObject {
     }
 
     public var onStart: ((ConceptID) -> Void)?
+    public var onSitTest: (([Concept]) -> Void)?
+
+    /// A test needs something to test. Offering one before any work has been marked
+    /// would produce eight questions on nothing in particular.
+    public var canSitTest: Bool { !weakest.isEmpty || !needsReview.isEmpty }
 
     private let events: EventStore
     private let concepts: [Concept]
@@ -187,6 +217,14 @@ public final class StudyModel: ObservableObject {
 
     public func start(_ concept: Projection.ConceptView) {
         onStart?(concept.conceptID)
+    }
+
+    public func sitTest() {
+        // Weighted towards what is weak and what is fading, because a test over
+        // everything equally spends most of its questions confirming what is known.
+        let targets = Set((weakest + needsReview).prefix(4).map(\.conceptID))
+        let chosen = concepts.filter { targets.contains($0.conceptID) }
+        onSitTest?(chosen.isEmpty ? concepts : chosen)
     }
 }
 #endif

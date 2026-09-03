@@ -2,6 +2,7 @@ import SwiftUI
 import SlateAI
 import SlateDocuments
 import SlateFoundation
+import SlateLearning
 import SlateModel
 import SlateUI
 import SlateVoice
@@ -17,7 +18,10 @@ struct SlateApp: App {
                 desk: container.desk,
                 library: container.library,
                 study: container.study,
-                mistakes: container.mistakes
+                mistakes: container.mistakes,
+                makePractice: { container.practice(for: $0) },
+                makeTest: { container.test(for: $0) },
+                makeWorkspace: { container.workspace(for: $0) }
             )
                 .task { await container.start() }
         }
