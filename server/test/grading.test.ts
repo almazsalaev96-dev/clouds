@@ -112,6 +112,17 @@ describe("algebraic expressions", () => {
   it("does not confuse different variables", () => {
     assert.equal(verdict("2y", "2x"), "incorrect");
   });
+
+  it("abstains rather than marking symbols wrong against a numeric answer", () => {
+    // Sampling `y` at random points and calling it "not 5" would report a
+    // knowledge failure that the evidence does not support.
+    assert.equal(verdict("y", "5"), "abstain");
+    assert.equal(verdict("banana", "5"), "abstain");
+    assert.equal(verdict("x + 1", "5"), "abstain");
+    // Still decidable, and still right, when the answer is a number.
+    assert.equal(verdict("x = 5", "5"), "correct");
+    assert.equal(verdict("6", "5"), "incorrect");
+  });
 });
 
 describe("equations", () => {

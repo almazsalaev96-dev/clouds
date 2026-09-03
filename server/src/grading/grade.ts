@@ -382,6 +382,28 @@ function gradeOne(submitted: string, expected: ExpectedAnswer): GradeResult {
     return abstain(`could not decide: ${result.reason}`, submitted, true);
   }
 
+  // A numeric answer answered with symbols cannot be compared by evaluation: `y`,
+  // or a word typed into the box, gets sampled at random points and reported as a
+  // wrong value, which asserts a knowledge failure on the strength of random
+  // numbers. Abstaining says the true thing instead, and an abstention is not
+  // counted against the student's ability.
+  //
+  // This applies only when the expected answer has no unknowns of its own. `2y`
+  // where `2x` was wanted is a different function, and saying so is correct.
+  if (!result.equivalent) {
+    const wantSide = isRelation(want.node) ? asSolutionSet(want.node) : [want.node];
+    const gotSide = isRelation(got.node) ? asSolutionSet(got.node) : [got.node];
+    const wantVars = new Set(wantSide.flatMap((n) => [...variables(n)]));
+    const strangers = [...new Set(gotSide.flatMap((n) => [...variables(n)]))]
+      .filter((v) => !wantVars.has(v));
+    if (wantVars.size === 0 && strangers.length > 0) {
+      return abstain(
+        `the answer uses ${strangers.length === 1 ? "an unknown" : "unknowns"} the question does not: ${strangers.join(", ")}`,
+        submitted, true,
+      );
+    }
+  }
+
   if (result.equivalent) {
     if (unitNote) {
       return {

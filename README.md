@@ -27,7 +27,37 @@ tools/learning-sim/   the learning engine reference implementation, in Python
 fixtures/             the cross-language oracle both implementations are held to
 server/               the gateway: the only network peer the app talks to
 ios/                  the iPad app — nine SPM modules plus the app target
+web/                  the same product in a browser, built into one HTML file
 ```
+
+---
+
+## Run it right now, in a browser
+
+```bash
+cd web && npm install && npm run build
+open dist/slate.html          # or serve the file; it needs nothing else
+```
+
+One self-contained HTML file, no server, no build step at runtime, no credentials. It
+works offline on an iPad in Safari, with Apple Pencil as a first-class input: pressure
+varies the stroke, coalesced samples keep fast writing smooth, and a resting palm is
+rejected while the finger keeps working the interface.
+
+What is real in it, rather than mocked:
+
+- **the marker** — `server/src/grading/*.ts` itself, type-stripped and bundled, so the
+  browser marks answers with exactly the code the gateway runs. `npm run smoke` proves
+  it by running the same battery through both and comparing;
+- **the learning model** — the same engine held to the golden fixtures above;
+- **the adaptive diagnostic** — questions chosen by expected information gain in bits,
+  which typically names the misconception in three questions;
+- **the graduated help** — written by hand, five rungs, the answer always available.
+
+What is *not* real without a server: the tutor's own words. A model that answers a
+student's own questions needs credentials, and credentials do not belong in a web page.
+Point the app at a gateway in Settings and the tutor appears; leave it blank and the
+written help is what you get, labelled as written help.
 
 ---
 
@@ -45,11 +75,13 @@ fraction, degrees for radians, right number wrong unit — by arithmetic rather 
 asking a model to speculate. That one field turns a generic "incorrect" into a specific
 piece of teaching.
 
-**2. The learning engine exists twice and cannot drift.** Once in Python
-(`tools/learning-sim`, where it was tuned) and once in Swift (`SlateLearning`, which
-ships). The Python side emits `fixtures/learning-golden.json`; the Swift test suite loads
-that exact file and asserts parity to nine decimal places at every step of every
-scenario. CI fails if the committed fixture is stale.
+**2. The learning engine exists three times and cannot drift.** In Python
+(`tools/learning-sim`, where it was tuned), in Swift (`SlateLearning`, which ships on
+iPad), and in JavaScript (`web/src/learning`, which runs in the browser). The Python side
+emits `fixtures/learning-golden.json`; the Swift and JavaScript suites load that exact
+file and assert parity to nine decimal places at every step of every scenario. CI fails
+if the committed fixture is stale. The web build is therefore not a simplified demo of
+the model — it is the model.
 
 **3. Losing a stroke is unforgivable, so saving is journalled.** Every committed change
 is a framed, checksummed record in a write-ahead log before it is anything else.

@@ -14,21 +14,30 @@ and no macOS**. That divides the repository cleanly.
 |---|---|
 | Learning engine (Python reference) | 57 tests, `python3 -m unittest discover -s tests` |
 | Golden fixture | regenerated and byte-compared against the committed file in CI |
-| Gateway (Node/TypeScript) | 131 tests, `npm test`; `tsc --noEmit` clean |
-| Deterministic grader | 53 of those 131, covering parsing, equivalence, units, sets, near misses, and the notation students actually type |
+| Gateway (Node/TypeScript) | 132 tests, `npm test`; `tsc --noEmit` clean |
+| Deterministic grader | 54 of those 132, covering parsing, equivalence, units, sets, near misses, and the notation students actually type |
+| Learning engine (JavaScript) | 16 parity tests against `fixtures/learning-golden.json`, to 9 decimal places |
+| Web content and diagnostics | 8 tests: every worked answer is accepted by the real marker, every likelihood row sums to 1, every seeded misconception is identified within four questions |
+| Web app, in a real browser | 28 checks driven through headless Chromium: import, pen input, marking, the help ladder, an adaptive diagnostic to a conclusion, persistence across reload, dark mode, iPad-portrait layout, and grader parity between the bundled page and the TypeScript source |
 
 Run them yourself:
 
 ```bash
 cd tools/learning-sim && python3 -m unittest discover -s tests -v
 cd server && npm install && npm run check
+cd web    && npm install && npx playwright install chromium && npm run check
 ```
 
 ---
 
 ## Written, reviewed, **not compiled**
 
-The entire `ios/` tree. Roughly 13,000 lines of Swift across 72 files. It has been
+The entire `ios/` tree — and *only* that tree. The web build under `web/` covers the
+same product and has been executed end to end in a browser, so the untested surface is
+now the iPad-specific layer (PencilKit, PDFKit, the journalled document store and the
+SwiftUI screens) rather than the product's reasoning.
+
+Roughly 13,000 lines of Swift across 72 files. It has been
 read back and statically audited — conditional-compilation balance, brace balance,
 access levels on cross-module initialisers, `switch` expressions whose branches have
 different concrete types, and Swift-version-gated syntax such as `@retroactive`. Four
