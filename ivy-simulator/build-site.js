@@ -31,3 +31,14 @@ fs.writeFileSync(path.join(__dirname, "site", "index.html"), head + src + "\n</b
 const bytes = fs.statSync(path.join(__dirname, "site", "index.html")).size;
 console.log("site/index.html  " + (bytes / 1024).toFixed(0) + " KB");
 console.log("site/vendor/anthropic.js  " + (fs.statSync(path.join(__dirname,"site","vendor","anthropic.js")).size/1024).toFixed(0) + " KB");
+
+/* Also emit a single self-contained file: the SDK inlined, nothing to arrange.
+   Drag this one file onto any static host and it works. */
+const sdk = fs.readFileSync(path.join(__dirname, "site", "vendor", "anthropic.js"), "utf8");
+const single = (head + src + "\n</body>\n</html>\n")
+  /* A function replacer — a string one would interpret $& / $' inside the
+     minified bundle as substitution patterns and corrupt the output. */
+  .replace('<script src="vendor/anthropic.js"></script>',
+           () => "<script>\n" + sdk + "\n</script>");
+fs.writeFileSync(path.join(__dirname, "site", "readers-docket.html"), single);
+console.log("site/readers-docket.html  " + (Buffer.byteLength(single)/1024).toFixed(0) + " KB  (single file, no folders)");
