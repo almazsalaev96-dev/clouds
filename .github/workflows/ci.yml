@@ -6,150 +6,38 @@ on:
   pull_request:
 
 jobs:
-  learning-engine:
-    name: Learning engine (reference)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Behavioural tests
-        working-directory: tools/learning-sim
-        run: python3 -m unittest discover -s tests -v
-
-      # The Swift implementation is held to this file. If it is stale, the two
-      # implementations have already drifted and the parity suite on macOS is
-      # asserting against yesterday's model.
-      - name: Golden fixture is not stale
-        working-directory: tools/learning-sim
-        run: |
-          python3 -m slatelearn.golden
-          git diff --exit-code ../../fixtures/learning-golden.json \
-            || { echo "::error::fixtures/learning-golden.json is stale — run 'python3 -m slatelearn.golden' and commit"; exit 1; }
-
-  gateway:
-    name: Gateway
+  recall:
+    name: Recall
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
-          cache-dependency-path: server/package-lock.json
 
       - name: Install
-        working-directory: server
-        run: npm ci
-
-      - name: Typecheck
-        working-directory: server
-        run: npm run typecheck
-
-      - name: Tests
-        working-directory: server
-        run: npm test
-
-      - name: No credentials in the client-facing surface
-        run: |
-          # A key reaching the app would defeat the entire gateway architecture.
-          if grep -rEn 'sk-ant-[A-Za-z0-9]|xi-api-key["'"'"']?\s*[:=]\s*["'"'"'][A-Za-z0-9]' \
-               --include='*.ts' --include='*.js' --include='*.swift' --include='*.plist' \
-               server/src ios/ web/src 2>/dev/null; then
-            echo "::error::a provider credential appears to be committed"
-            exit 1
-          fi
-
-  web:
-    name: Web build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-
-      - name: Install
-        working-directory: web
-        run: npm ci
+        working-directory: recall
+        run: npm install --no-audit --no-fund
 
       - name: Browser
-        working-directory: web
+        working-directory: recall
         run: npx playwright install --with-deps chromium
 
-      - name: Build the single-file app
-        working-directory: web
+      # The gate runs first and fails the build. The previous version of this
+      # project shipped a regular expression that Safari could not parse, which
+      # blanked the page on every older iPad while every Chromium test passed.
+      - name: Build, with the Safari 15 gate
+        working-directory: recall
         run: npm run build
 
-      # The content is checked mechanically because a worked example whose answer
-      # the marker would reject is a bug the student meets, not the build.
-      - name: Content and diagnostics
-        working-directory: web
+      - name: Drive it in a browser
+        working-directory: recall
         run: npm test
 
-      # Three implementations of the learning model, one oracle.
-      - name: Cross-language parity (JavaScript)
-        working-directory: web
-        run: node --test test/parity.test.js
-
-      # The iPad app was written without a compiler and grew three unreachable
-      # code paths. This opens the web build in a real browser so that cannot
-      # happen twice.
-      - name: Drive it in a browser
-        working-directory: web
-        run: npm run smoke
-
-      # Served from a real origin next to a gateway: the deployment's shape, and
-      # the only place the "a pasted API key is refused" claim can be checked.
-      - name: The tutor, over HTTP
-        working-directory: web
-        run: npm run tutor
-
-      - name: Typecheck the deployed gateway function
+      - name: The published file must reach out to nothing
+        working-directory: recall
         run: |
-          npm install --no-audit --no-fund
-          npm run typecheck
-
-      - name: The published file must contain no credential
-        working-directory: web
-        run: |
-          if grep -qE 'sk-ant-[A-Za-z0-9]|xi-api-key' dist/slate.html; then
-            echo "::error::the built page contains something that looks like a credential"
+          if grep -qE 'https?://[^"'"'"' ]*\.(js|css)|<script[^>]+src=|<link[^>]+href=' dist/index.html; then
+            echo "::error::the build pulled in an external resource; it is meant to be self-contained"
             exit 1
           fi
-
-  ios:
-    name: iPad app
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build SlateKit
-        working-directory: ios/Packages/SlateKit
-        run: swift build
-
-      # The one that matters: proves the Swift learning engine reproduces the Python
-      # reference exactly, so the intellectual core is correct on device.
-      - name: Cross-language parity
-        working-directory: ios/Packages/SlateKit
-        run: swift test --filter GoldenParityTests
-
-      - name: All package tests
-        working-directory: ios/Packages/SlateKit
-        run: swift test
-
-      - name: Generate the Xcode project
-        run: |
-          brew install xcodegen
-          cd ios && xcodegen generate
-
-      - name: Build the app
-        working-directory: ios
-        run: |
-          xcodebuild -project Slate.xcodeproj -scheme Slate \
-            -destination 'platform=iOS Simulator,name=iPad Pro 11-inch (M4)' \
-            -quiet build

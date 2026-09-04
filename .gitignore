@@ -12,7 +12,3 @@ ios/Slate.xcodeproj/
 ios/*.xcworkspace/
 .build/
 DerivedData/
-
-# Web build
-web/node_modules/
-web/dist/shot-*.png

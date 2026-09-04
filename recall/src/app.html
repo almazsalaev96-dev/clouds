@@ -1,0 +1,1723 @@
+<title>Recall</title>
+<style>
+/*
+ * Recall.
+ *
+ * A study app built on one idea: you remember what you are asked about, at the
+ * moment you are about to forget it. Everything on screen serves that, and
+ * anything that does not is absent — there are no streaks, no points, no daily
+ * goal, and nothing designed to bring you back tomorrow except work that is
+ * genuinely due.
+ *
+ * The interface is warm paper and dark ink because that is what studying looks
+ * like, with one deep teal for anything you can act on. Card content is set in a
+ * serif: it is material to be read, not interface to be operated, and the change
+ * of voice tells you which is which without a word.
+ *
+ * Nothing here is newer than Safari 15, checked by tools/compat.mjs on every
+ * build. No fonts are fetched, no scripts are loaded, no request is made. The
+ * whole app is this file.
+ */
+
+:root {
+  color-scheme: light;
+  --paper: #f7f5ef;
+  --card: #ffffff;
+  --sunk: #efece4;
+  --ink: #1b1b1e;
+  --ink-2: #55545a;
+  --ink-3: #86848c;
+  --line: #e3ded3;
+  --line-2: #efebe2;
+
+  --teal: #0e6e6e;
+  --teal-soft: #e2efec;
+  --teal-line: #bcdcd6;
+  --on-teal: #ffffff;
+
+  --gold: #8f6414;
+  --gold-soft: #f6eeda;
+  --green: #2e6b4e;
+  --green-soft: #e4efe7;
+  --rose: #a33a3a;
+  --rose-soft: #f7e8e6;
+
+  --shadow-1: 0 1px 2px rgba(35, 30, 20, .05);
+  --shadow-2: 0 2px 10px rgba(35, 30, 20, .07), 0 1px 2px rgba(35, 30, 20, .04);
+  --shadow-3: 0 8px 34px rgba(35, 30, 20, .11), 0 2px 6px rgba(35, 30, 20, .05);
+
+  --r-s: 10px;
+  --r-m: 14px;
+  --r-l: 20px;
+  --r-xl: 26px;
+
+  --fast: 160ms;
+  --slow: 260ms;
+  --ease: cubic-bezier(.2, .7, .3, 1);
+  --ease-out: cubic-bezier(.16, .84, .44, 1);
+
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua",
+           Georgia, "Times New Roman", serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #131314;
+    --card: #1d1d20;
+    --sunk: #0d0d0e;
+    --ink: #efede8;
+    --ink-2: #a8a6a0;
+    --ink-3: #7b7a77;
+    --line: #2f2f33;
+    --line-2: #26262a;
+    --teal: #56b8b0;
+    --teal-soft: #16302f;
+    --teal-line: #27514e;
+    --on-teal: #08201f;
+    --gold: #d0a04a;
+    --gold-soft: #2e2616;
+    --green: #6fbc90;
+    --green-soft: #172c20;
+    --rose: #dd8a84;
+    --rose-soft: #2f1d1c;
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, .4);
+    --shadow-2: 0 2px 10px rgba(0, 0, 0, .45);
+    --shadow-3: 0 8px 34px rgba(0, 0, 0, .55);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #131314;
+  --card: #1d1d20;
+  --sunk: #0d0d0e;
+  --ink: #efede8;
+  --ink-2: #a8a6a0;
+  --ink-3: #7b7a77;
+  --line: #2f2f33;
+  --line-2: #26262a;
+  --teal: #56b8b0;
+  --teal-soft: #16302f;
+  --teal-line: #27514e;
+  --on-teal: #08201f;
+  --gold: #d0a04a;
+  --gold-soft: #2e2616;
+  --green: #6fbc90;
+  --green-soft: #172c20;
+  --rose: #dd8a84;
+  --rose-soft: #2f1d1c;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .4);
+  --shadow-2: 0 2px 10px rgba(0, 0, 0, .45);
+  --shadow-3: 0 8px 34px rgba(0, 0, 0, .55);
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+
+.sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; border-radius: 6px; }
+
+/* ------------------------------------------------------------------- shell */
+
+#app {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.view { flex: 1; display: flex; }
+
+.wrap { width: 100%; max-width: 640px; margin: 0 auto; padding: 26px 20px 44px; }
+
+/* On a big screen the column is centred in the space rather than pinned to the
+   top of it, so a short screen reads as composed instead of unfinished. margin
+   auto on a flex child centres without ever clipping the top when it overflows. */
+@media (min-width: 760px) {
+  .wrap { margin: auto; padding: 44px 24px 56px; }
+  .hero .btn.big { max-width: 300px; }
+}
+
+.tabs {
+  position: sticky; bottom: 0; z-index: 20;
+  display: flex; justify-content: center; gap: 4px;
+  padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
+  background: var(--card);
+  border-top: 1px solid var(--line);
+}
+.tab {
+  flex: 1 1 0; max-width: 132px; min-height: 52px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border: 0; background: transparent; color: var(--ink-3); border-radius: var(--r-s);
+  transition: color var(--fast) var(--ease);
+}
+.tab span { font-size: 11px; font-weight: 600; letter-spacing: .01em; }
+.tab.on { color: var(--teal); }
+.tab .dot {
+  position: absolute; transform: translate(13px, -12px);
+  min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px;
+  background: var(--gold); color: #fff; font-size: 10.5px; font-weight: 700;
+  line-height: 17px; text-align: center;
+}
+
+@media (min-width: 760px) {
+  #app { flex-direction: column-reverse; }
+  .tabs { position: sticky; top: 0; bottom: auto; border-top: 0; border-bottom: 1px solid var(--line); }
+  .tab { flex-direction: row; gap: 8px; max-width: none; padding: 0 16px; min-height: 48px; }
+  .tab span { font-size: 14px; }
+  .tab .dot { position: static; transform: none; }
+}
+
+/* -------------------------------------------------------------- typography */
+
+h1, h2, h3 { margin: 0; letter-spacing: -.02em; }
+h1 { font-size: 30px; line-height: 1.15; font-weight: 700; }
+h2 { font-size: 19px; line-height: 1.25; font-weight: 650; letter-spacing: -.012em; }
+h3 { font-size: 15px; line-height: 1.3; font-weight: 600; letter-spacing: -.006em; }
+p { margin: 0; }
+.lead { font-size: 16px; color: var(--ink-2); }
+.small { font-size: 13.5px; color: var(--ink-2); }
+.tiny { font-size: 12px; color: var(--ink-3); }
+.eyebrow {
+  font-size: 11.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.num { font-variant-numeric: tabular-nums; }
+.serif { font-family: var(--serif); }
+
+.stack { display: flex; flex-direction: column; }
+.g1 { gap: 4px; } .g2 { gap: 8px; } .g3 { gap: 12px; } .g4 { gap: 16px; }
+.g5 { gap: 20px; } .g6 { gap: 26px; } .g7 { gap: 36px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.row.wrap-row { flex-wrap: wrap; }
+.between { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.grow { flex: 1; min-width: 0; }
+.center { text-align: center; }
+
+/* ---------------------------------------------------------------- surfaces */
+
+.panel {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-m);
+  padding: 20px; box-shadow: var(--shadow-1);
+}
+.panel.plain { box-shadow: none; padding: 4px 16px; }
+.panel.quiet { background: transparent; box-shadow: none; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 46px; padding: 0 18px; border-radius: var(--r-s);
+  border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  font-size: 15px; font-weight: 600; white-space: nowrap;
+  transition: transform var(--fast) var(--ease), border-color var(--fast) var(--ease),
+              background var(--fast) var(--ease);
+}
+.btn:active { transform: scale(.98); }
+.btn:disabled { color: var(--ink-3); cursor: default; transform: none; }
+.btn.primary { background: var(--teal); border-color: var(--teal); color: var(--on-teal); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--ink-2); font-weight: 500; }
+.btn.ghost:active { background: var(--sunk); }
+.btn.danger { color: var(--rose); }
+.btn.block { width: 100%; }
+.btn.big { min-height: 56px; font-size: 17px; border-radius: var(--r-m); }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px;
+  border-radius: 13px; font-size: 12.5px; font-weight: 600; background: var(--sunk); color: var(--ink-2);
+}
+.pill.teal { background: var(--teal-soft); color: var(--teal); }
+.pill.gold { background: var(--gold-soft); color: var(--gold); }
+.pill.green { background: var(--green-soft); color: var(--green); }
+.pill.rose { background: var(--rose-soft); color: var(--rose); }
+
+.bar { height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--teal); border-radius: 3px;
+           transition: width var(--slow) var(--ease); }
+.bar.gold > i { background: var(--gold); }
+.bar.green > i { background: var(--green); }
+
+.rule { height: 1px; background: var(--line-2); border: 0; margin: 0; }
+
+.field {
+  width: 100%; min-height: 46px; padding: 11px 14px;
+  border: 1px solid var(--line); border-radius: var(--r-s);
+  background: var(--card); font-size: 16px;
+}
+.field:focus { outline: 2px solid var(--teal); outline-offset: -1px; border-color: transparent; }
+textarea.field { min-height: 200px; resize: vertical; line-height: 1.6; font-family: var(--mono); font-size: 14px; }
+
+/* -------------------------------------------------------------------- home */
+
+.hero { display: flex; flex-direction: column; gap: 20px; }
+.due-figure { display: flex; align-items: baseline; gap: 10px; }
+.due-figure b { font-size: 54px; line-height: 1; font-weight: 700; letter-spacing: -.035em; }
+.due-figure span { font-size: 17px; color: var(--ink-2); }
+
+.split { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line-2);
+         border: 1px solid var(--line-2); border-radius: var(--r-m); overflow: hidden; }
+.split > div { background: var(--card); padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; }
+.split b { font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+
+.deck-row {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+  padding: 14px 4px; border: 0; border-bottom: 1px solid var(--line-2); background: transparent;
+}
+.deck-row:last-child { border-bottom: 0; }
+.deck-name { font-weight: 600; font-size: 15.5px; }
+
+/* ------------------------------------------------------------------ review */
+
+.study { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+.study-top {
+  display: flex; align-items: center; gap: 14px; padding: 12px 18px;
+  border-bottom: 1px solid var(--line-2);
+}
+.study-mid { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px 20px; }
+.study-bottom { padding: 14px 16px calc(16px + env(safe-area-inset-bottom)); }
+
+.face {
+  width: 100%; max-width: 620px; display: flex; flex-direction: column; gap: 22px;
+  align-items: center; text-align: center;
+}
+.prompt { font-family: var(--serif); font-size: 27px; line-height: 1.35; letter-spacing: -.01em; }
+.answer {
+  font-family: var(--serif); font-size: 23px; line-height: 1.45; color: var(--teal);
+  animation: rise var(--slow) var(--ease-out);
+}
+.note { font-size: 14.5px; color: var(--ink-2); max-width: 46ch; }
+@keyframes rise { from { opacity: 0; transform: translateY(7px); } }
+
+.rate { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.rate button {
+  min-height: 62px; border-radius: var(--r-m); border: 1px solid var(--line);
+  background: var(--card); display: flex; flex-direction: column; gap: 2px;
+  align-items: center; justify-content: center;
+}
+.rate button b { font-size: 14.5px; font-weight: 650; }
+.rate button span { font-size: 11.5px; color: var(--ink-3); }
+.rate button.r1 { border-color: var(--rose); color: var(--rose); }
+.rate button.r4 { border-color: var(--teal-line); color: var(--teal); }
+
+.done { display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
+
+/* -------------------------------------------------------------------- make */
+
+.preview-card {
+  border: 1px solid var(--line); border-radius: var(--r-s); padding: 12px 14px;
+  background: var(--card); display: flex; gap: 12px; align-items: flex-start;
+}
+.preview-card.off { opacity: .42; }
+.preview-q { font-family: var(--serif); font-size: 15.5px; line-height: 1.4; }
+.preview-a { font-size: 13.5px; color: var(--teal); margin-top: 3px; }
+.tick {
+  flex: 0 0 auto; width: 26px; height: 26px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--sunk); display: grid; place-items: center; color: transparent;
+}
+.tick.on { background: var(--teal); border-color: var(--teal); color: var(--on-teal); }
+
+.sample { border-left: 2px solid var(--teal-line); padding-left: 12px; }
+
+/* ---------------------------------------------------------------- progress */
+
+.forecast { display: flex; align-items: flex-end; gap: 5px; height: 96px; }
+.forecast > div { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; }
+.forecast i { display: block; background: var(--teal); border-radius: 3px 3px 0 0; min-height: 2px; }
+.forecast small { font-size: 10.5px; color: var(--ink-3); text-align: center; }
+
+.curve { width: 100%; height: 132px; display: block; }
+
+/* ------------------------------------------------------------------- misc */
+
+.empty { display: flex; flex-direction: column; align-items: center; gap: 14px;
+         padding: 46px 20px; text-align: center; }
+.empty p { max-width: 38ch; color: var(--ink-2); }
+
+.sheet-back {
+  position: fixed; inset: 0; z-index: 60; background: rgba(20, 18, 12, .34);
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: fade var(--fast) var(--ease);
+}
+@media (min-width: 620px) { .sheet-back { align-items: center; } }
+@keyframes fade { from { opacity: 0; } }
+.sheet {
+  width: 100%; max-width: 520px; max-height: 86vh; overflow-y: auto;
+  background: var(--card); border-radius: var(--r-xl) var(--r-xl) 0 0;
+  padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+  box-shadow: var(--shadow-3); display: flex; flex-direction: column; gap: 16px;
+  animation: up var(--slow) var(--ease-out);
+}
+@media (min-width: 620px) { .sheet { border-radius: var(--r-l); padding-bottom: 24px; } }
+@keyframes up { from { transform: translateY(24px); opacity: 0; } }
+
+.toast {
+  position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 70;
+  background: var(--ink); color: var(--paper); padding: 11px 18px; border-radius: 22px;
+  font-size: 14px; font-weight: 500; box-shadow: var(--shadow-3);
+  animation: rise var(--fast) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div id="app"></div>
+<noscript><div class="wrap"><h1>Recall</h1><p class="lead">This app needs JavaScript: the scheduling and the card making both run in your browser, and there is no server to do it for you.</p></div></noscript>
+
+<script>
+(function () {
+"use strict";
+
+/* ===========================================================================
+ * Recall
+ *
+ * A study app with one job: ask you about a thing at the moment you are about
+ * to forget it. Everything else is in service of that or absent.
+ *
+ * Three parts, in order of how much they matter:
+ *
+ *   Schedule   when to ask again. An FSRS-shaped memory model: every card has a
+ *              stability (how long the memory lasts) and a difficulty, and both
+ *              move with how the recall actually went, not with a fixed ladder.
+ *
+ *   Make       turning your own notes into cards, without AI and without an
+ *              account. This is the part that kills every flashcard app —
+ *              nobody makes the cards — so it is deterministic, instant, and it
+ *              shows you what it found before it keeps anything.
+ *
+ *   Show       one card, one question, four honest answers about how it went.
+ *
+ * Everything is stored in this browser. Nothing is uploaded, there is no
+ * account, and no request leaves the page.
+ * ======================================================================== */
+
+var DAY = 86400000;
+var MIN = 60000;
+
+/* ---------------------------------------------------------------- storage */
+
+var KEY = "recall.v1";
+var SCHEMA = 1;
+
+function blank() {
+  return { schema: SCHEMA, decks: [], cards: [], prefs: {}, log: [] };
+}
+
+function load() {
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (!raw) return null;
+    var parsed = JSON.parse(raw);
+    if (!parsed || parsed.schema !== SCHEMA) return null;
+    return parsed;
+  } catch (e) {
+    return null;
+  }
+}
+
+var state = load();
+var storageWorks = true;
+
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+  } catch (e) {
+    // A full or blocked store must not be silent: the student would go on
+    // working and lose all of it at the next reload.
+    if (storageWorks) {
+      storageWorks = false;
+      toast("This browser will not save. Your work stays on screen but not after a reload.");
+    }
+  }
+}
+
+var idSeed = 0;
+function uid(prefix) {
+  idSeed += 1;
+  return prefix + "-" + Date.now().toString(36) + "-" + idSeed.toString(36);
+}
+
+/* -------------------------------------------------------------- scheduling
+ *
+ * The memory model. Two numbers describe what you know about a card:
+ *
+ *   stability   how many days until recall falls to 90%. It grows when you
+ *               remember and collapses when you do not.
+ *   difficulty  1 to 10, how hard this particular card is for you. It drifts
+ *               with your ratings and reverts slowly towards the middle, so one
+ *               bad day does not brand a card forever.
+ *
+ * Recall probability decays as a power function of time over stability, which
+ * fits real forgetting far better than the exponential everyone reaches for
+ * first. The interval is then simply "how long until recall reaches the target".
+ */
+
+var TARGET = 0.90;
+var S_MIN = 0.02;
+var S_MAX = 3650;
+var D_MIN = 1;
+var D_MAX = 10;
+
+/* First-review stability and difficulty, by how the first attempt went. */
+var SEED_S = [0.4, 1.0, 2.6, 6.5];
+var SEED_D = [7.4, 6.1, 5.0, 3.7];
+/* Hard is worth less than good; easy is worth more. */
+var GAIN = [0, 0.75, 1.0, 1.35];
+
+function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+
+/** Probability you would recall this card right now. */
+function recall(stability, elapsedDays) {
+  if (!(stability > 0)) return 0;
+  if (elapsedDays <= 0) return 1;
+  return Math.pow(1 + elapsedDays / (9 * stability), -1);
+}
+
+/** Days until recall falls to the target. At 90% this is simply the stability. */
+function interval(stability) {
+  return clamp(9 * stability * (1 / TARGET - 1), 1 / 1440, S_MAX);
+}
+
+function grow(stability, difficulty, r, rating) {
+  var factor = 1 + Math.exp(1.4) * (11 - difficulty) * Math.pow(stability, -0.34)
+                 * (Math.exp(0.9 * (1 - r)) - 1) * GAIN[rating - 1];
+  return clamp(stability * Math.max(factor, 1.02), S_MIN, S_MAX);
+}
+
+function lapse(stability, difficulty, r) {
+  return clamp(
+    2.1 * Math.pow(difficulty, -0.2) * (Math.pow(stability + 1, 0.3) - 1) * Math.exp(0.55 * (1 - r)),
+    S_MIN, Math.max(S_MIN, stability * 0.6)
+  );
+}
+
+/**
+ * Apply one review. Pure: it takes a card and a rating and returns the next
+ * card, so the whole model is testable by calling it.
+ */
+function review(card, rating, now) {
+  var next = {};
+  for (var k in card) { if (Object.prototype.hasOwnProperty.call(card, k)) next[k] = card[k]; }
+
+  var elapsed = card.last ? (now - card.last) / DAY : 0;
+  var r = card.last ? recall(card.s, elapsed) : 0;
+
+  if (!card.last) {
+    next.s = SEED_S[rating - 1];
+    next.d = SEED_D[rating - 1];
+  } else {
+    next.d = clamp(card.d - 0.9 * (rating - 3), D_MIN, D_MAX);
+    next.d = next.d + 0.08 * (5 - next.d);           // slow reversion to the middle
+    next.s = rating === 1 ? lapse(card.s, next.d, r) : grow(card.s, next.d, r, rating);
+  }
+
+  next.reps = (card.reps || 0) + 1;
+  next.lapses = (card.lapses || 0) + (rating === 1 ? 1 : 0);
+  next.last = now;
+  next.rBefore = card.last ? r : null;
+
+  // "Again" comes back inside this session; everything else gets a real date.
+  next.due = rating === 1 ? now + 6 * MIN : now + interval(next.s) * DAY;
+  return next;
+}
+
+function newCard(deck, q, a, note) {
+  return {
+    id: uid("c"), deck: deck, q: q, a: a, note: note || "",
+    s: 0, d: 5, due: Date.now(), last: null, reps: 0, lapses: 0, rBefore: null
+  };
+}
+
+/** Everything due now, hardest-won first: overdue before new, oldest first. */
+function queue(now, deckId) {
+  var out = [];
+  for (var i = 0; i < state.cards.length; i++) {
+    var c = state.cards[i];
+    if (deckId && c.deck !== deckId) continue;
+    if (c.due > now) continue;
+    out.push(c);
+  }
+  out.sort(function (a, b) {
+    if (!a.last !== !b.last) return a.last ? -1 : 1;   // reviews before new cards
+    return a.due - b.due;
+  });
+  return out;
+}
+
+function stats(now) {
+  var due = 0, fresh = 0, learning = 0, known = 0, total = state.cards.length;
+  for (var i = 0; i < state.cards.length; i++) {
+    var c = state.cards[i];
+    if (!c.last) fresh += 1;
+    else if (c.s >= 21) known += 1;
+    else learning += 1;
+    if (c.due <= now) due += 1;
+  }
+  return { due: due, fresh: fresh, learning: learning, known: known, total: total };
+}
+
+/* ------------------------------------------------------------ making cards
+ *
+ * Paste notes, get cards. No model, no account, no waiting — just the shapes
+ * that notes actually come in, recognised in order of how confident each shape
+ * makes it possible to be.
+ *
+ * It shows you everything it found and keeps only what you tick, because a
+ * wrong card is worse than a missing one: you would go on being tested on it.
+ */
+
+var BULLET = /^\s*(?:[-*\u2022\u2013]|\d+[.)])\s+(.*)$/;
+var SEPARATOR = /^(.{2,64}?)\s+(?:\u2014|\u2013|--|-)\s+(.{3,})$/;   /* em dash, en dash, two hyphens, or a spaced hyphen */
+var COLON = /^([^:]{2,64}):\s+(.{3,})$/;
+var EQUALS = /^(.{2,64}?)\s+=\s+(.{3,})$/;
+var QLINE = /^\s*Q[:.]\s*(.+)$/i;
+var ALINE = /^\s*A[:.]\s*(.+)$/i;
+var BOLD = /\*\*([^*]{2,60})\*\*/;
+var DEFINITION = /^(.{2,60}?)\s+(?:is|are)\s+(?:defined as|known as)\s+(.{4,})$/i;
+var MEANS = /^(.{2,60}?)\s+(?:refers to|means)\s+(.{4,})$/i;
+var IS_A = /^([A-Z][^.?!]{1,58}?)\s+(?:is|are)\s+(a|an|the)\s+(.{6,})$/;
+var NUMBER = /(\d[\d,]*(?:\.\d+)?\s*(?:%|per cent|percent|million|billion|bn|m)?)/;
+
+function words(s) { return s.trim().split(/\s+/).length; }
+function tidy(s) { return s.replace(/\s+/g, " ").replace(/^[\s\u2022*-]+/, "").trim(); }
+function stripMarks(s) {
+  // Paired only: a lone __ is punctuation, and the gap marker below must survive.
+  return s.replace(/\*\*([^*]+)\*\*/g, "$1").replace(/__([^_]+)__/g, "$1");
+}
+
+/** A term should look like a term, not like the first half of a sentence. */
+function termLike(s) {
+  var t = tidy(s);
+  if (t.length < 2 || t.length > 64) return false;
+  if (words(t) > 7) return false;
+  if (/[.!?;]$/.test(t)) return false;
+  if (/^(the|a|an|this|that|these|those|it|there|they|we|you|i)\b/i.test(t)) return false;
+  return true;
+}
+
+var GAP = "[ ... ]";
+
+function cloze(sentence, target) {
+  var at = sentence.indexOf(target);
+  if (at === -1) return null;
+  return sentence.slice(0, at) + " " + GAP + " " + sentence.slice(at + target.length);
+}
+
+/**
+ * `text` in, candidate cards out. Every card carries `why`, the rule that made
+ * it, so the preview can explain itself rather than asking for blind trust.
+ */
+function extract(text) {
+  var found = [];
+  var seen = {};
+
+  function add(q, a, why, note) {
+    var question = tidy(stripMarks(q));
+    var answer = tidy(stripMarks(a));
+    if (!question || !answer) return;
+    if (answer.length < 2 || question.length < 4) return;
+    if (question.length > 300 || answer.length > 300) return;
+    var key = question.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (seen[key]) return;
+    seen[key] = true;
+    found.push({ q: question, a: answer, why: why, note: note || "", keep: true });
+  }
+
+  var blocks = String(text || "").replace(/\r/g, "").split(/\n\s*\n/);
+
+  for (var b = 0; b < blocks.length; b++) {
+    var lines = blocks[b].split("\n");
+    var heading = null;
+    var bullets = [];
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      var trimmed = line.trim();
+      if (!trimmed) continue;
+
+      /* 1. An explicit question and answer pair. */
+      var qm = QLINE.exec(trimmed);
+      if (qm) {
+        for (var j = i + 1; j < lines.length; j++) {
+          var am = ALINE.exec(lines[j].trim());
+          if (am) { add(qm[1], am[1], "you wrote it as Q and A"); i = j; break; }
+        }
+        continue;
+      }
+
+      /* 2. A bullet under a heading, collected for rule 5. */
+      var bm = BULLET.exec(line);
+      if (bm) {
+        bullets.push(tidy(bm[1]));
+        trimmed = tidy(bm[1]);
+      } else if (/:$/.test(trimmed) && words(trimmed) <= 9) {
+        heading = trimmed.replace(/:$/, "");
+        continue;
+      }
+
+      /* 3. Term and definition, by whichever separator was used. */
+      var sm = SEPARATOR.exec(trimmed) || EQUALS.exec(trimmed) || COLON.exec(trimmed);
+      if (sm && termLike(sm[1]) && words(sm[2]) >= 2) {
+        add(sm[1], sm[2], "a term and its definition");
+        continue;
+      }
+
+      /* 4. A sentence that defines something. */
+      var dm = DEFINITION.exec(trimmed) || MEANS.exec(trimmed);
+      if (dm && termLike(dm[1])) {
+        add("What is " + tidy(dm[1]) + "?", dm[2], "a defining sentence");
+        continue;
+      }
+      var im = IS_A.exec(trimmed);
+      if (im && termLike(im[1]) && words(im[3]) >= 3) {
+        add("What is " + tidy(im[1]) + "?", im[2] + " " + im[3], "a defining sentence");
+        continue;
+      }
+
+      /* 5. Something emphasised is something worth being asked about. */
+      var em = BOLD.exec(trimmed);
+      if (em) {
+        var gapped = cloze(stripMarks(trimmed), em[1]);
+        if (gapped && words(gapped) >= 4) {
+          add(gapped, em[1], "you emphasised it");
+          continue;
+        }
+      }
+
+      /* 6. A figure in a sentence is the part you will forget. */
+      if (words(trimmed) >= 6 && words(trimmed) <= 40) {
+        var nm = NUMBER.exec(trimmed);
+        if (nm && trimmed.indexOf(nm[1]) > 0) {
+          var withGap = cloze(trimmed, nm[1]);
+          if (withGap) { add(withGap, nm[1], "a figure worth recalling"); continue; }
+        }
+      }
+    }
+
+    /* 7. A heading with a list under it is a "name them all" question. */
+    if (heading && bullets.length >= 2 && bullets.length <= 9) {
+      add(
+        "Name the " + bullets.length + ": " + heading,
+        bullets.join("; "),
+        "a heading with a list under it"
+      );
+    }
+  }
+
+  return found;
+}
+
+/* ------------------------------------------------------------------- view */
+
+function h(tag, attrs, kids) {
+  var node = document.createElement(tag);
+  if (attrs) {
+    for (var k in attrs) {
+      if (!Object.prototype.hasOwnProperty.call(attrs, k)) continue;
+      var v = attrs[k];
+      if (v === null || v === undefined || v === false) continue;
+      if (k === "class") node.className = v;
+      else if (k === "text") node.textContent = v;
+      else if (k === "html") node.innerHTML = v;
+      else if (k === "style") { for (var s in v) { node.style[s] = v[s]; } }
+      else if (k.indexOf("on") === 0 && typeof v === "function") node.addEventListener(k.slice(2), v);
+      else node.setAttribute(k, v === true ? "" : v);
+    }
+  }
+  append(node, kids);
+  return node;
+}
+
+/* Appending through here because appendChild on a null turns it into the word
+ * "null" on the page, and conditional children are everywhere. */
+function append(parent, kids) {
+  if (kids === null || kids === undefined || kids === false) return parent;
+  if (Array.isArray(kids)) {
+    for (var i = 0; i < kids.length; i++) append(parent, kids[i]);
+    return parent;
+  }
+  parent.appendChild(typeof kids === "string" ? document.createTextNode(kids) : kids);
+  return parent;
+}
+
+function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); return node; }
+
+function icon(name, size) {
+  var p = {
+    today: '<path d="M4 6.5h16M4 6.5a1.5 1.5 0 0 1 1.5-1.5h13A1.5 1.5 0 0 1 20 6.5v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5z"/><path d="M8 3v3M16 3v3"/><path d="M8.5 12.5h7"/>',
+    make: '<path d="M12 5v14M5 12h14"/>',
+    decks: '<rect x="3.5" y="6.5" width="17" height="13" rx="2"/><path d="M6.5 3.5h11M8 10.5h7"/>',
+    progress: '<path d="M4 20h16"/><rect x="5.5" y="12" width="3.4" height="6" rx="1"/><rect x="10.3" y="7" width="3.4" height="11" rx="1"/><rect x="15.1" y="14.5" width="3.4" height="3.5" rx="1"/>',
+    back: '<path d="M14.5 5.5 8 12l6.5 6.5"/>',
+    close: '<path d="m6 6 12 12M18 6 6 18"/>',
+    check: '<path d="m5 12.5 4.5 4.5L19 7"/>',
+    undo: '<path d="M4 10h9.5a4.5 4.5 0 0 1 0 9H8"/><path d="M7.5 6 3.5 10l4 4"/>',
+    cards: '<rect x="3.5" y="7.5" width="13" height="12" rx="2"/><path d="M7.5 4.5h10a2 2 0 0 1 2 2v9"/>'
+  }[name] || "";
+  var s = size || 22;
+  return '<svg viewBox="0 0 24 24" width="' + s + '" height="' + s + '" fill="none" stroke="currentColor"' +
+         ' stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>';
+}
+
+var toastTimer = null;
+function toast(message) {
+  var old = document.querySelector(".toast");
+  if (old) old.parentNode.removeChild(old);
+  var node = h("div", { class: "toast", role: "status", text: message });
+  document.body.appendChild(node);
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () {
+    if (node.parentNode) node.parentNode.removeChild(node);
+  }, 2600);
+}
+
+function sheet(title, body, actions) {
+  var previous = document.activeElement;
+  function close() {
+    if (back.parentNode) back.parentNode.removeChild(back);
+    document.removeEventListener("keydown", onKey);
+    if (previous && previous.focus) previous.focus();
+  }
+  function onKey(e) { if (e.key === "Escape") close(); }
+  var panel = h("div", { class: "sheet", role: "dialog", "aria-modal": "true", "aria-label": title }, [
+    h("h2", { text: title }),
+    body,
+    h("div", { class: "stack g2" }, (actions || []).map(function (a) {
+      return h("button", {
+        class: "btn block " + (a.kind || ""),
+        onclick: function () { if (!(a.run && a.run())) close(); }
+      }, a.label);
+    }))
+  ]);
+  var back = h("div", {
+    class: "sheet-back",
+    onclick: function (e) { if (e.target === back) close(); }
+  }, [panel]);
+  document.body.appendChild(back);
+  document.addEventListener("keydown", onKey);
+  var first = panel.querySelector("button, input, textarea");
+  if (first) first.focus();
+  return close;
+}
+
+function plural(n, one, many) { return n + " " + (n === 1 ? one : (many || one + "s")); }
+
+function whenDue(due, now) {
+  var diff = due - now;
+  if (diff <= 0) return "due";
+  var mins = diff / MIN;
+  if (mins < 60) return "in " + Math.round(mins) + " min";
+  var hours = mins / 60;
+  if (hours < 24) return "in " + Math.round(hours) + "h";
+  var days = hours / 24;
+  if (days < 31) return "in " + Math.round(days) + "d";
+  var months = days / 30.4;
+  if (months < 24) return "in " + Math.round(months) + " months";
+  return "in " + (days / 365).toFixed(1) + " years";
+}
+
+/* ----------------------------------------------------------------- router */
+
+var view = "today";
+var params = {};
+var session = null;
+
+function go(next, args) {
+  view = next;
+  params = args || {};
+  render();
+  var scroller = document.querySelector(".view");
+  if (scroller) scroller.scrollTop = 0;
+  window.scrollTo(0, 0);
+}
+
+var TABS = [
+  ["today", "Today", "today"],
+  ["make", "Make", "make"],
+  ["decks", "Decks", "decks"],
+  ["progress", "Progress", "progress"]
+];
+
+function render() {
+  var app = document.getElementById("app");
+  clear(app);
+
+  if (view === "study") { append(app, studyView()); return; }
+
+  var body = h("div", { class: "view" }, [
+    view === "today" ? todayView()
+      : view === "make" ? makeView()
+      : view === "deck" ? deckView()
+      : view === "decks" ? decksView()
+      : progressView()
+  ]);
+
+  var due = stats(Date.now()).due;
+  var tabs = h("nav", { class: "tabs", "aria-label": "Sections" }, TABS.map(function (t) {
+    var on = view === t[0] || (view === "deck" && t[0] === "decks");
+    return h("button", {
+      class: "tab " + (on ? "on" : ""),
+      "aria-current": on ? "page" : "false",
+      onclick: function () { go(t[0]); }
+    }, [
+      h("span", { html: icon(t[2], 22), style: { position: "relative" } },
+        t[0] === "today" && due > 0 ? [h("i", { class: "dot num", text: String(due) })] : null),
+      h("span", { text: t[1] })
+    ]);
+  }));
+
+  append(app, [body, tabs]);
+}
+
+/* ------------------------------------------------------------------ today */
+
+function todayView() {
+  var now = Date.now();
+  var s = stats(now);
+
+  if (s.total === 0) {
+    return h("div", { class: "wrap" }, [
+      h("div", { class: "empty" }, [
+        h("span", { html: icon("cards", 40), style: { color: "var(--ink-3)" } }),
+        h("h1", { text: "Nothing to recall yet" }),
+        h("p", { text: "Paste a page of your notes and Recall turns it into questions. It reads terms, definitions, lists and figures — no account, no waiting." }),
+        h("button", { class: "btn primary big", onclick: function () { go("make"); } }, "Make some cards"),
+        h("button", { class: "btn ghost", onclick: addStarter }, "Or start from a ready-made deck")
+      ])
+    ]);
+  }
+
+  var head = s.due > 0
+    ? h("div", { class: "hero" }, [
+        h("div", { class: "stack g1" }, [
+          h("span", { class: "eyebrow", text: "Ready now" }),
+          h("div", { class: "due-figure" }, [
+            h("b", { class: "num", text: String(s.due) }),
+            h("span", { text: s.due === 1 ? "card to recall" : "cards to recall" })
+          ])
+        ]),
+        h("p", { class: "lead", text: dueLine(s) }),
+        h("button", {
+          class: "btn primary big block",
+          onclick: function () { startSession(null); }
+        }, "Start")
+      ])
+    : h("div", { class: "hero" }, [
+        h("div", { class: "stack g1" }, [
+          h("span", { class: "eyebrow", text: "All caught up" }),
+          h("h1", { text: nextUpLine(now) })
+        ]),
+        h("p", { class: "lead", text: "Nothing is due, so there is nothing worth doing here. Reviewing early does not help you remember — the gap is the part that works." }),
+        h("button", { class: "btn block", onclick: function () { startSession(null, true); } }, "Practise anyway")
+      ]);
+
+  return h("div", { class: "wrap stack g7" }, [
+    head,
+    h("div", { class: "split" }, [
+      h("div", {}, [h("b", { class: "num", text: String(s.fresh) }), h("span", { class: "tiny", text: "never seen" })]),
+      h("div", {}, [h("b", { class: "num", text: String(s.learning) }), h("span", { class: "tiny", text: "still settling" })]),
+      h("div", {}, [h("b", { class: "num", text: String(s.known) }), h("span", { class: "tiny", text: "held for weeks" })])
+    ]),
+    deckList(now)
+  ]);
+}
+
+function dueLine(s) {
+  var minutes = Math.max(1, Math.round(s.due * 8 / 60));
+  return "About " + minutes + (minutes === 1 ? " minute" : " minutes") + ". "
+    + (s.fresh > 0 ? plural(Math.min(s.fresh, s.due), "of them is new", "of them are new") + "." : "All of them you have seen before.");
+}
+
+function nextUpLine(now) {
+  var soonest = null;
+  for (var i = 0; i < state.cards.length; i++) {
+    if (soonest === null || state.cards[i].due < soonest) soonest = state.cards[i].due;
+  }
+  if (soonest === null) return "Nothing scheduled";
+  return "Next " + whenDue(soonest, now);
+}
+
+function deckList(now) {
+  if (!state.decks.length) return null;
+  return h("section", { class: "stack g3" }, [
+    h("h2", { text: "Decks" }),
+    h("div", { class: "panel plain stack" }, state.decks.map(function (d) {
+      var counts = deckCounts(d.id, now);
+      return h("button", { class: "deck-row", onclick: function () { go("deck", { id: d.id }); } }, [
+        h("div", { class: "grow stack g1" }, [
+          h("span", { class: "deck-name", text: d.name }),
+          h("span", { class: "tiny", text: plural(counts.total, "card") + (counts.due ? " · " + counts.due + " due" : "") })
+        ]),
+        counts.due
+          ? h("span", { class: "pill gold num", text: String(counts.due) })
+          : h("span", { class: "tiny", text: counts.total ? whenDue(counts.next, now) : "empty" })
+      ]);
+    }))
+  ]);
+}
+
+function deckCounts(deckId, now) {
+  var total = 0, due = 0, next = Infinity, known = 0;
+  for (var i = 0; i < state.cards.length; i++) {
+    var c = state.cards[i];
+    if (c.deck !== deckId) continue;
+    total += 1;
+    if (c.due <= now) due += 1;
+    if (c.due < next) next = c.due;
+    if (c.last && c.s >= 21) known += 1;
+  }
+  return { total: total, due: due, next: next, known: known };
+}
+
+/* ------------------------------------------------------------------ decks */
+
+function decksView() {
+  var now = Date.now();
+  return h("div", { class: "wrap stack g6" }, [
+    h("div", { class: "between" }, [
+      h("h1", { text: "Decks" }),
+      h("button", { class: "btn", onclick: function () { go("make"); } }, "New")
+    ]),
+    state.decks.length
+      ? h("div", { class: "panel plain stack" }, state.decks.map(function (d) {
+          var counts = deckCounts(d.id, now);
+          return h("button", { class: "deck-row", onclick: function () { go("deck", { id: d.id }); } }, [
+            h("div", { class: "grow stack g1" }, [
+              h("span", { class: "deck-name", text: d.name }),
+              h("span", { class: "tiny", text: plural(counts.total, "card") + " · " + counts.known + " held for weeks" })
+            ]),
+            h("div", { style: { width: "64px" } }, [
+              h("div", { class: "bar green" }, [
+                h("i", { style: { width: (counts.total ? Math.round(counts.known / counts.total * 100) : 0) + "%" } })
+              ])
+            ])
+          ]);
+        }))
+      : h("div", { class: "empty" }, [
+          h("p", { text: "No decks yet." }),
+          h("button", { class: "btn primary", onclick: addStarter }, "Add a ready-made deck")
+        ]),
+    h("div", { class: "stack g2" }, [
+      h("button", { class: "btn block", onclick: addStarter }, "Add a ready-made deck"),
+      h("button", { class: "btn ghost block", onclick: dataSheet }, "Export, import or erase")
+    ])
+  ]);
+}
+
+function deckView() {
+  var now = Date.now();
+  var deck = null;
+  for (var i = 0; i < state.decks.length; i++) if (state.decks[i].id === params.id) deck = state.decks[i];
+  if (!deck) { go("decks"); return h("div"); }
+
+  var cards = state.cards.filter(function (c) { return c.deck === deck.id; });
+  var counts = deckCounts(deck.id, now);
+
+  return h("div", { class: "wrap stack g5" }, [
+    h("div", { class: "row" }, [
+      h("button", { class: "btn ghost", "aria-label": "Back", onclick: function () { go("decks"); }, html: icon("back", 20) }),
+      h("h1", { class: "grow", text: deck.name })
+    ]),
+    h("div", { class: "row wrap-row" }, [
+      h("span", { class: "pill", text: plural(counts.total, "card") }),
+      counts.due ? h("span", { class: "pill gold", text: counts.due + " due" }) : null,
+      h("span", { class: "pill green", text: counts.known + " held" })
+    ]),
+    counts.due
+      ? h("button", { class: "btn primary block", onclick: function () { startSession(deck.id); } },
+          "Recall " + counts.due + " now")
+      : h("button", { class: "btn block", onclick: function () { startSession(deck.id, true); } }, "Practise this deck"),
+    h("div", { class: "panel plain stack" }, cards.map(function (c) {
+      return h("button", { class: "deck-row", onclick: function () { editCard(c); } }, [
+        h("div", { class: "grow stack g1" }, [
+          h("span", { class: "serif", style: { fontSize: "15px" }, text: c.q }),
+          h("span", { class: "tiny", text: c.a })
+        ]),
+        h("span", { class: "tiny num", text: c.last ? whenDue(c.due, now) : "new" })
+      ]);
+    })),
+    h("button", { class: "btn ghost block danger", onclick: function () { confirmDeleteDeck(deck); } },
+      "Delete this deck")
+  ]);
+}
+
+function editCard(card) {
+  var q = h("textarea", { class: "field", style: { minHeight: "80px", fontFamily: "var(--serif)", fontSize: "16px" } });
+  q.value = card.q;
+  var a = h("textarea", { class: "field", style: { minHeight: "80px", fontFamily: "var(--serif)", fontSize: "16px" } });
+  a.value = card.a;
+  sheet("Edit card", h("div", { class: "stack g3" }, [
+    h("label", { class: "tiny", text: "Question" }), q,
+    h("label", { class: "tiny", text: "Answer" }), a,
+    h("p", { class: "tiny", text: card.last
+      ? "Seen " + plural(card.reps, "time") + ", " + plural(card.lapses, "lapse") + ". Stability " + card.s.toFixed(1) + " days."
+      : "Not seen yet." })
+  ]), [
+    { label: "Save", kind: "primary", run: function () {
+        card.q = q.value.trim() || card.q;
+        card.a = a.value.trim() || card.a;
+        save(); render();
+      } },
+    { label: "Delete this card", kind: "ghost danger", run: function () {
+        state.cards = state.cards.filter(function (c) { return c.id !== card.id; });
+        save(); render(); toast("Card deleted");
+      } },
+    { label: "Cancel", kind: "ghost" }
+  ]);
+}
+
+function confirmDeleteDeck(deck) {
+  var n = state.cards.filter(function (c) { return c.deck === deck.id; }).length;
+  sheet("Delete " + deck.name + "?", h("p", {
+    text: plural(n, "card") + " and everything Recall has learned about how you remember them will go. This cannot be undone."
+  }), [
+    { label: "Delete", kind: "danger", run: function () {
+        state.cards = state.cards.filter(function (c) { return c.deck !== deck.id; });
+        state.decks = state.decks.filter(function (d) { return d.id !== deck.id; });
+        save(); go("decks"); toast("Deleted");
+      } },
+    { label: "Keep it", kind: "ghost" }
+  ]);
+}
+
+/* ----------------------------------------------------------------- recall
+ *
+ * One card at a time. The four ratings are the only input, and they are
+ * questions about what happened in your head, not scores: the schedule is only
+ * as good as your honesty about whether you actually knew it.
+ */
+
+function startSession(deckId, ahead) {
+  var now = Date.now();
+  var cards = ahead ? aheadQueue(deckId) : queue(now, deckId);
+  if (!cards.length) { toast("Nothing due in that deck"); return; }
+  session = {
+    deck: deckId, queue: cards.slice(0, 60), index: 0, shown: false,
+    done: 0, total: Math.min(cards.length, 60), history: [], ahead: !!ahead
+  };
+  go("study");
+}
+
+/** Practising ahead of schedule: weakest recall first, since that is where it helps. */
+function aheadQueue(deckId) {
+  var now = Date.now();
+  var pool = state.cards.filter(function (c) { return !deckId || c.deck === deckId; });
+  pool.sort(function (a, b) {
+    var ra = a.last ? recall(a.s, (now - a.last) / DAY) : 0;
+    var rb = b.last ? recall(b.s, (now - b.last) / DAY) : 0;
+    return ra - rb;
+  });
+  return pool.slice(0, 20);
+}
+
+var RATINGS = [
+  { n: 1, label: "Again", hint: "no idea", cls: "r1" },
+  { n: 2, label: "Hard", hint: "just about", cls: "r2" },
+  { n: 3, label: "Good", hint: "knew it", cls: "r3" },
+  { n: 4, label: "Easy", hint: "instantly", cls: "r4" }
+];
+
+function studyView() {
+  if (!session) { go("today"); return h("div"); }
+
+  if (session.index >= session.queue.length) return finishedView();
+
+  var card = session.queue[session.index];
+  var progress = session.total ? Math.round(session.done / session.total * 100) : 0;
+
+  var face = h("div", { class: "face" }, [
+    h("p", { class: "prompt", text: card.q }),
+    session.shown ? h("hr", { class: "rule", style: { width: "56px" } }) : null,
+    session.shown ? h("p", { class: "answer", text: card.a }) : null,
+    session.shown && card.note ? h("p", { class: "note", text: card.note }) : null
+  ]);
+
+  var bottom = session.shown
+    ? h("div", { class: "rate" }, RATINGS.map(function (r) {
+        return h("button", {
+          class: r.cls,
+          onclick: function () { rate(r.n); },
+          "aria-label": r.label + ", " + r.hint
+        }, [
+          h("b", { text: r.label }),
+          h("span", { text: nextFor(card, r.n) })
+        ]);
+      }))
+    : h("button", { class: "btn primary big block", onclick: reveal }, "Show answer");
+
+  return h("div", { class: "study" }, [
+    h("div", { class: "study-top" }, [
+      h("button", { class: "btn ghost", "aria-label": "Stop", onclick: stopSession, html: icon("close", 20) }),
+      h("div", { class: "grow" }, [h("div", { class: "bar" }, [h("i", { style: { width: progress + "%" } })])]),
+      h("span", { class: "tiny num", text: session.done + " / " + session.total }),
+      session.history.length
+        ? h("button", { class: "btn ghost", "aria-label": "Undo", onclick: undo, html: icon("undo", 20) })
+        : null
+    ]),
+    h("div", {
+      class: "study-mid",
+      onclick: function (e) { if (!session.shown && e.target.tagName !== "BUTTON") reveal(); }
+    }, [face]),
+    h("div", { class: "study-bottom" }, [bottom])
+  ]);
+}
+
+/** What each button would actually do, shown on the button. */
+function nextFor(card, rating) {
+  var next = review(card, rating, Date.now());
+  return whenDue(next.due, Date.now()).replace(/^in /, "");
+}
+
+function reveal() {
+  if (!session || session.shown) return;
+  session.shown = true;
+  render();
+}
+
+function rate(n) {
+  if (!session || !session.shown) return;
+  var card = session.queue[session.index];
+  var before = {};
+  for (var k in card) { if (Object.prototype.hasOwnProperty.call(card, k)) before[k] = card[k]; }
+
+  var updated = review(card, n, Date.now());
+  for (var j in updated) { if (Object.prototype.hasOwnProperty.call(updated, j)) card[j] = updated[j]; }
+
+  session.history.push({ card: card, before: before, index: session.index });
+  state.log.push({ at: Date.now(), card: card.id, rating: n });
+  if (state.log.length > 4000) state.log = state.log.slice(-3000);
+  save();
+
+  // "Again" means it comes back before the session ends, which is the whole
+  // point of a session rather than a list.
+  if (n === 1) {
+    var at = Math.min(session.queue.length, session.index + 4);
+    session.queue.splice(at, 0, card);
+  } else {
+    session.done += 1;
+  }
+  session.index += 1;
+  session.shown = false;
+  render();
+}
+
+function undo() {
+  if (!session || !session.history.length) return;
+  var last = session.history.pop();
+  for (var k in last.before) {
+    if (Object.prototype.hasOwnProperty.call(last.before, k)) last.card[k] = last.before[k];
+  }
+  session.index = last.index;
+  session.shown = true;
+  if (session.done > 0) session.done -= 1;
+  save();
+  render();
+}
+
+function stopSession() { session = null; go("today"); }
+
+function finishedView() {
+  var now = Date.now();
+  var s = stats(now);
+  var reviewed = session.total;
+  session = null;
+  return h("div", { class: "study" }, [
+    h("div", { class: "study-mid" }, [
+      h("div", { class: "done" }, [
+        h("span", { html: icon("check", 34), style: { color: "var(--teal)" } }),
+        h("h1", { text: plural(reviewed, "card") + " done" }),
+        h("p", { class: "lead", style: { maxWidth: "34ch" },
+          text: s.due > 0
+            ? plural(s.due, "card") + " still due. Stopping here is fine — recall improves with the gap, not with the grind."
+            : "Nothing else is due. " + nextUpLine(now) + "." }),
+        h("div", { class: "row" }, [
+          s.due > 0 ? h("button", { class: "btn primary", onclick: function () { startSession(null); } }, "Keep going") : null,
+          h("button", { class: "btn ghost", onclick: function () { go("today"); } }, "Done")
+        ])
+      ])
+    ])
+  ]);
+}
+
+document.addEventListener("keydown", function (e) {
+  if (view !== "study" || !session) return;
+  if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if (!session.shown && (e.key === " " || e.key === "Enter")) { e.preventDefault(); reveal(); return; }
+  if (session.shown && e.key >= "1" && e.key <= "4") { e.preventDefault(); rate(Number(e.key)); return; }
+  if (e.key === "z") { e.preventDefault(); undo(); }
+});
+
+/* ------------------------------------------------------------------- make */
+
+var SAMPLE = [
+  "Liquidity — how easily an asset can be turned into cash without losing value",
+  "Working capital = current assets minus current liabilities",
+  "",
+  "Sources of finance:",
+  "- Retained profit",
+  "- Share capital",
+  "- Bank loan",
+  "",
+  "A business breaks even when total revenue equals total costs.",
+  "Amazon spent **$1.3 billion** on research in its first profitable year."
+].join("\n");
+
+var draft = { text: "", cards: [], deckName: "" };
+
+function makeView() {
+  var input = h("textarea", {
+    class: "field",
+    placeholder: "Paste your notes here — definitions, bullet lists, anything.",
+    "aria-label": "Your notes",
+    oninput: function () {
+      draft.text = input.value;
+      draft.cards = extract(draft.text);
+      paintPreview();
+    }
+  });
+  input.value = draft.text;
+
+  var preview = h("div", { class: "stack g2" });
+
+  function paintPreview() {
+    clear(preview);
+    if (!draft.text.trim()) {
+      append(preview, h("div", { class: "sample stack g2" }, [
+        h("span", { class: "eyebrow", text: "What it reads" }),
+        h("p", { class: "small", text: "Terms with a dash, colon or equals. Headings with lists under them. Sentences that define something. Anything you put in **bold**. Figures inside a sentence." }),
+        h("button", {
+          class: "btn ghost",
+          onclick: function () {
+            input.value = SAMPLE; draft.text = SAMPLE;
+            draft.cards = extract(SAMPLE); paintPreview();
+          }
+        }, "Try it with an example")
+      ]));
+      return;
+    }
+    if (!draft.cards.length) {
+      append(preview, h("p", { class: "small", text: "Nothing recognisable yet. A line like “Liquidity — how easily an asset becomes cash” becomes a card; so does a heading with bullets under it." }));
+      return;
+    }
+    var kept = draft.cards.filter(function (c) { return c.keep; }).length;
+    append(preview, [
+      h("div", { class: "between" }, [
+        h("span", { class: "eyebrow", text: kept + " of " + draft.cards.length + " selected" }),
+        h("button", {
+          class: "btn ghost",
+          onclick: function () {
+            var all = kept < draft.cards.length;
+            draft.cards.forEach(function (c) { c.keep = all; });
+            paintPreview();
+          }
+        }, kept < draft.cards.length ? "Select all" : "Clear all")
+      ]),
+      draft.cards.map(function (c) {
+        var row = h("div", { class: "preview-card " + (c.keep ? "" : "off"), onclick: function () {
+          c.keep = !c.keep; paintPreview();
+        } }, [
+          h("span", { class: "tick " + (c.keep ? "on" : ""), html: icon("check", 15) }),
+          h("div", { class: "grow" }, [
+            h("div", { class: "preview-q", text: c.q }),
+            h("div", { class: "preview-a", text: c.a }),
+            h("div", { class: "tiny", text: c.why })
+          ])
+        ]);
+        return row;
+      })
+    ]);
+  }
+
+  var name = h("input", { class: "field", placeholder: "Deck name", "aria-label": "Deck name" });
+  name.value = draft.deckName;
+  name.addEventListener("input", function () { draft.deckName = name.value; });
+
+  paintPreview();
+
+  return h("div", { class: "wrap stack g5" }, [
+    h("div", { class: "stack g1" }, [
+      h("h1", { text: "Make cards" }),
+      h("p", { class: "lead", text: "Paste notes. Recall finds the questions in them, shows you what it found, and keeps only what you tick." })
+    ]),
+    input,
+    preview,
+    h("div", { class: "stack g2" }, [
+      name,
+      h("button", {
+        class: "btn primary block",
+        onclick: function () { saveDraft(name.value); }
+      }, "Add to my decks")
+    ]),
+    h("p", { class: "tiny", text: "Everything stays in this browser. Nothing is uploaded and there is no account." })
+  ]);
+}
+
+function saveDraft(deckName) {
+  var kept = draft.cards.filter(function (c) { return c.keep; });
+  if (!kept.length) { toast("Tick at least one card first"); return; }
+  var name = (deckName || "").trim() || "Notes " + new Date().toLocaleDateString();
+  var deck = { id: uid("d"), name: name, made: Date.now() };
+  state.decks.push(deck);
+  for (var i = 0; i < kept.length; i++) {
+    state.cards.push(newCard(deck.id, kept[i].q, kept[i].a, kept[i].why));
+  }
+  save();
+  draft = { text: "", cards: [], deckName: "" };
+  go("deck", { id: deck.id });
+  toast(plural(kept.length, "card") + " added");
+}
+
+/* --------------------------------------------------------------- progress
+ *
+ * Not a scoreboard. Two questions, answered honestly: how much of this would
+ * you still have if you stopped today, and what is coming back to you when.
+ */
+
+function progressView() {
+  var now = Date.now();
+  var s = stats(now);
+  var reviewed = 0;
+  for (var i = 0; i < state.cards.length; i++) if (state.cards[i].last) reviewed += 1;
+
+  // Cards you have never answered say nothing about your memory, so there is
+  // nothing to draw. A flat line at zero would look like a broken chart.
+  if (!reviewed) {
+    return h("div", { class: "wrap" }, [
+      h("div", { class: "empty" }, [
+        h("h1", { text: "Nothing measured yet" }),
+        h("p", { text: s.total
+          ? "You have " + plural(s.total, "card") + " waiting. Answer a few and this shows how much you would still remember in a week, a month, and beyond."
+          : "Once you have answered a few cards this shows how much you would still remember in a week, a month, and beyond." }),
+        s.total ? h("button", { class: "btn primary", onclick: function () { go("today"); } }, "Start recalling") : null
+      ])
+    ]);
+  }
+
+  return h("div", { class: "wrap stack g7" }, [
+    h("h1", { text: "Progress" }),
+
+    h("section", { class: "stack g3" }, [
+      h("div", { class: "stack g1" }, [
+        h("h2", { text: "If you stopped today" }),
+        h("p", { class: "small", text: "What the model expects you to still recall, unprompted, as the weeks pass. It falls because memory falls." })
+      ]),
+      retentionCurve(now)
+    ]),
+
+    h("section", { class: "stack g3" }, [
+      h("div", { class: "stack g1" }, [
+        h("h2", { text: "Coming back to you" }),
+        h("p", { class: "small", text: "Cards scheduled over the next week." })
+      ]),
+      forecast(now)
+    ]),
+
+    h("section", { class: "stack g3" }, [
+      h("h2", { text: "Where things stand" }),
+      h("div", { class: "panel plain stack g4" }, [
+        standing("Held for weeks", s.known, s.total, "green"),
+        standing("Still settling", s.learning, s.total, ""),
+        standing("Never seen", s.fresh, s.total, "gold")
+      ])
+    ]),
+
+    h("section", { class: "stack g3" }, [
+      h("h2", { text: "How this works" }),
+      h("ul", { class: "small", style: { margin: "0", paddingLeft: "18px", lineHeight: "1.6" } }, [
+        h("li", { text: "Every card carries a stability — how long the memory lasts — and a difficulty. Both move with how the recall actually went." }),
+        h("li", { text: "Recall decays as a power curve, not a straight line: the drop is steep at first and then very slow." }),
+        h("li", { text: "A card returns when the model expects you to be at about 90% — late enough to be work, early enough to still land." }),
+        h("li", { text: "Rating honestly matters more than rating well. “Good” on a card you guessed will schedule it for a day you will not be ready." }),
+        h("li", { text: "There are no streaks, points or targets here, and there never will be. The only reason to open this app is that something is due." })
+      ])
+    ])
+  ]);
+}
+
+function standing(label, n, total, tone) {
+  var pct = total ? Math.round(n / total * 100) : 0;
+  return h("div", { class: "stack g2" }, [
+    h("div", { class: "between" }, [
+      h("span", { class: "small", style: { color: "var(--ink)" }, text: label }),
+      h("span", { class: "tiny num", text: n + " of " + total })
+    ]),
+    h("div", { class: "bar " + tone }, [h("i", { style: { width: pct + "%" } })])
+  ]);
+}
+
+/** Mean predicted recall across everything seen, day by day, for a month. */
+function retentionCurve(now) {
+  var seen = state.cards.filter(function (c) { return c.last; });
+  var points = [];
+  var days = 30;
+  for (var d = 0; d <= days; d++) {
+    var total = 0;
+    for (var i = 0; i < seen.length; i++) {
+      total += recall(seen[i].s, (now - seen[i].last) / DAY + d);
+    }
+    points.push(seen.length ? total / seen.length : 0);
+  }
+
+  var W = 300, H = 100, pad = 4;
+  var path = "";
+  for (var p = 0; p < points.length; p++) {
+    var x = pad + (p / days) * (W - pad * 2);
+    var y = pad + (1 - points[p]) * (H - pad * 2);
+    path += (p === 0 ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1) + " ";
+  }
+  var area = path + "L" + (W - pad) + " " + (H - pad) + " L" + pad + " " + (H - pad) + " Z";
+
+  var svg =
+    '<svg class="curve" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" role="img" ' +
+    'aria-label="Predicted recall over the next thirty days">' +
+    '<line x1="' + pad + '" y1="' + (pad + (H - pad * 2) * 0.1).toFixed(1) + '" x2="' + (W - pad) +
+    '" y2="' + (pad + (H - pad * 2) * 0.1).toFixed(1) + '" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 3"/>' +
+    '<path d="' + area + '" fill="var(--teal-soft)"/>' +
+    '<path d="' + path + '" fill="none" stroke="var(--teal)" stroke-width="2" ' +
+    'stroke-linecap="round" vector-effect="non-scaling-stroke"/>' +
+    "</svg>";
+
+  return h("div", { class: "panel plain stack g2" }, [
+    h("div", { html: svg }),
+    h("div", { class: "between" }, [
+      h("span", { class: "tiny num", text: "now " + Math.round(points[0] * 100) + "%" }),
+      h("span", { class: "tiny num", text: "in a week " + Math.round(points[7] * 100) + "%" }),
+      h("span", { class: "tiny num", text: "in a month " + Math.round(points[30] * 100) + "%" })
+    ])
+  ]);
+}
+
+function forecast(now) {
+  var start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  var buckets = [0, 0, 0, 0, 0, 0, 0];
+  for (var i = 0; i < state.cards.length; i++) {
+    var d = Math.floor((state.cards[i].due - start.getTime()) / DAY);
+    if (d < 0) d = 0;
+    if (d < 7) buckets[d] += 1;
+  }
+  var peak = Math.max(1, Math.max.apply(null, buckets));
+  var names = ["today", "", "", "", "", "", ""];
+  for (var n = 1; n < 7; n++) {
+    var day = new Date(start.getTime() + n * DAY);
+    names[n] = day.toLocaleDateString(undefined, { weekday: "short" });
+  }
+
+  return h("div", { class: "panel plain stack g3" }, [
+    h("div", { class: "forecast" }, buckets.map(function (count, idx) {
+      return h("div", {}, [
+        h("small", { class: "num", text: count ? String(count) : "" }),
+        h("i", {
+          style: {
+            height: Math.max(2, Math.round(count / peak * 66)) + "px",
+            background: idx === 0 ? "var(--gold)" : "var(--teal)"
+          }
+        }),
+        h("small", { text: names[idx] })
+      ]);
+    }))
+  ]);
+}
+
+/* ------------------------------------------------------------------- data */
+
+function dataSheet() {
+  var body = h("div", { class: "stack g3" }, [
+    h("p", { class: "small", text: "Everything lives in this browser and nowhere else. Clearing your browser data clears this too, so take a copy if it matters." })
+  ]);
+  sheet("Your cards", body, [
+    { label: "Copy everything to the clipboard", kind: "primary", run: function () {
+        var text = JSON.stringify(state);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            toast("Copied. Paste it somewhere safe.");
+          }, function () { toast("This browser would not allow copying."); });
+        } else {
+          toast("This browser has no clipboard access.");
+        }
+      } },
+    { label: "Paste a copy back in", kind: "", run: function () { importSheet(); } },
+    { label: "Erase everything", kind: "danger", run: function () { confirmErase(); } },
+    { label: "Close", kind: "ghost" }
+  ]);
+}
+
+function importSheet() {
+  var box = h("textarea", { class: "field", placeholder: "Paste the copy here", "aria-label": "Backup to restore" });
+  sheet("Restore a copy", h("div", { class: "stack g3" }, [
+    h("p", { class: "small", text: "This replaces everything currently on this device." }),
+    box
+  ]), [
+    { label: "Restore", kind: "primary", run: function () {
+        try {
+          var parsed = JSON.parse(box.value);
+          if (!parsed || !Array.isArray(parsed.cards) || !Array.isArray(parsed.decks)) throw new Error("shape");
+          state = { schema: SCHEMA, decks: parsed.decks, cards: parsed.cards,
+                    prefs: parsed.prefs || {}, log: parsed.log || [] };
+          save(); go("today"); toast("Restored");
+        } catch (e) {
+          toast("That did not look like a Recall copy.");
+          return true;
+        }
+      } },
+    { label: "Cancel", kind: "ghost" }
+  ]);
+}
+
+function confirmErase() {
+  sheet("Erase everything?", h("p", {
+    text: "Every deck, every card, and everything Recall has learned about how you remember them. There is no copy anywhere else."
+  }), [
+    { label: "Erase it all", kind: "danger", run: function () {
+        state = blank(); save(); go("today"); toast("Erased");
+      } },
+    { label: "Keep it", kind: "ghost" }
+  ]);
+}
+
+/* -------------------------------------------------------- ready-made decks
+ *
+ * Enough real material to make the app worth opening before you have written
+ * anything, chosen because the definitions are the part people actually lose
+ * marks on. Every one of these is a term you either recall under pressure or
+ * you do not — which is exactly what this app is for.
+ */
+
+var STARTERS = [
+  {
+    name: "Business: key terms",
+    note: "Definitions that carry marks in their own right.",
+    cards: [
+      ["Added value", "The difference between the price of a product and the cost of its inputs"],
+      ["Opportunity cost", "The next best alternative given up when a choice is made"],
+      ["Liquidity", "How easily an asset can be turned into cash without losing value"],
+      ["Working capital", "Current assets minus current liabilities: what funds day-to-day operations"],
+      ["Break-even output", "The level of output at which total revenue equals total cost"],
+      ["Contribution per unit", "Selling price per unit minus variable cost per unit"],
+      ["Margin of safety", "The amount by which current output exceeds break-even output"],
+      ["Economies of scale", "The fall in average cost per unit as output rises"],
+      ["Diseconomies of scale", "The rise in average cost per unit when a firm grows too large to coordinate"],
+      ["Cash flow forecast", "A prediction of the timing and size of money entering and leaving a business"],
+      ["Gross profit margin", "Gross profit as a percentage of revenue"],
+      ["Return on capital employed", "Operating profit as a percentage of the capital invested in the business"],
+      ["Capital expenditure", "Spending on assets that will be used for more than one year"],
+      ["Revenue expenditure", "Spending on the day-to-day running of the business"],
+      ["Market share", "One firm's sales as a percentage of total sales in that market"],
+      ["Primary research", "Data collected first-hand for a specific purpose"],
+      ["Secondary research", "Data that already exists, collected by someone else for another purpose"],
+      ["Price elasticity of demand", "The responsiveness of quantity demanded to a change in price"],
+      ["Span of control", "The number of subordinates reporting directly to one manager"],
+      ["Delayering", "Removing one or more levels of hierarchy from an organisation"],
+      ["Labour turnover", "The proportion of the workforce leaving over a period, usually a year"],
+      ["Just-in-time", "Holding minimal stock and receiving inputs exactly when production needs them"],
+      ["Capacity utilisation", "Current output as a percentage of the maximum possible output"],
+      ["Kaizen", "Continuous improvement through many small changes suggested by workers"],
+      ["Herzberg's hygiene factors", "Things whose absence causes dissatisfaction but whose presence does not motivate"],
+      ["Stakeholder", "Any individual or group with an interest in the activities of a business"]
+    ]
+  },
+  {
+    name: "Economics: microeconomics",
+    note: "The mechanisms, not just the words.",
+    cards: [
+      ["Law of demand", "As price rises, quantity demanded falls, all else held equal"],
+      ["Movement along a demand curve", "A change in quantity demanded caused by a change in that good's own price"],
+      ["Shift of a demand curve", "A change in demand at every price, caused by anything other than that good's own price"],
+      ["Price elasticity of supply", "The responsiveness of quantity supplied to a change in price"],
+      ["Income elasticity of demand", "The responsiveness of demand to a change in consumer income"],
+      ["Inferior good", "A good whose demand falls as income rises: negative income elasticity"],
+      ["Cross elasticity of demand", "The responsiveness of demand for one good to a change in the price of another"],
+      ["Consumer surplus", "The difference between what consumers would pay and what they actually pay"],
+      ["Producer surplus", "The difference between the price received and the minimum a producer would accept"],
+      ["Market failure", "When the free market allocates resources inefficiently"],
+      ["Negative externality", "A cost of production or consumption falling on a third party"],
+      ["Merit good", "A good under-consumed in a free market because its private benefit is undervalued"],
+      ["Public good", "A good that is non-rival and non-excludable, so the market will not supply it"],
+      ["Free rider problem", "People consume a public good without paying, so no firm can profit from providing it"],
+      ["Maximum price", "A legal ceiling below the equilibrium price, causing excess demand"],
+      ["Minimum price", "A legal floor above the equilibrium price, causing excess supply"],
+      ["Indirect tax", "A tax on spending, which shifts the supply curve upward by the amount of the tax"],
+      ["Tax incidence", "How the burden of a tax is split between producer and consumer"],
+      ["Subsidy", "A payment to producers that shifts supply outward and lowers the market price"],
+      ["Allocative efficiency", "Resources are allocated so that price equals marginal cost"]
+    ]
+  }
+];
+
+function addStarter() {
+  var body = h("div", { class: "stack g3" },
+    STARTERS.map(function (starter) {
+      var exists = state.decks.some(function (d) { return d.name === starter.name; });
+      return h("button", {
+        class: "deck-row",
+        disabled: exists,
+        onclick: function () { installStarter(starter); }
+      }, [
+        h("div", { class: "grow stack g1" }, [
+          h("span", { class: "deck-name", text: starter.name }),
+          h("span", { class: "tiny", text: exists ? "already added" : plural(starter.cards.length, "card") + " - " + starter.note })
+        ])
+      ]);
+    })
+  );
+  var close = sheet("Ready-made decks", body, [{ label: "Close", kind: "ghost" }]);
+  installStarter.close = close;
+}
+
+function installStarter(starter) {
+  var deck = { id: uid("d"), name: starter.name, made: Date.now() };
+  state.decks.push(deck);
+  for (var i = 0; i < starter.cards.length; i++) {
+    state.cards.push(newCard(deck.id, starter.cards[i][0], starter.cards[i][1], ""));
+  }
+  save();
+  if (installStarter.close) installStarter.close();
+  go("deck", { id: deck.id });
+  toast(plural(starter.cards.length, "card") + " added");
+}
+
+/* ------------------------------------------------------------------- boot */
+
+if (!state) {
+  state = blank();
+  save();
+}
+if (!state.log) state.log = [];
+
+render();
+
+/* The model and the extractor are pure functions, so the tests call them
+ * directly in the browser they will actually run in. */
+window.Recall = {
+  recall: recall,
+  interval: interval,
+  review: review,
+  extract: extract,
+  state: function () { return state; },
+  go: go,
+  reset: function () { state = blank(); save(); go("today"); },
+  installStarter: installStarter,
+  starters: STARTERS
+};
+
+})();
+</script>
