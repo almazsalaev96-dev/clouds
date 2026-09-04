@@ -19,9 +19,10 @@ await mkdir(`${OUT}/static`, { recursive: true });
 await mkdir(FN, { recursive: true });
 
 // ── the API, as one bundled function ────────────────────────────────────────
-await build({
+const serverBuild = await build({
   entryPoints: ["packages/server/src/vercel.ts"],
   outfile: `${FN}/index.mjs`,
+  metafile: true,
   bundle: true,
   platform: "node",
   // ESM rather than CJS: the codebase uses `import.meta`, which a CJS bundle
@@ -33,20 +34,27 @@ await build({
   lineLimit: 500,
   legalComments: "none",
   logLevel: "warning",
-  // Installed by the platform rather than inlined: it triples the bundle, and
-  // the platform's own install handles the SDK's CommonJS interop.
-  external: ["@anthropic-ai/sdk"],
+  // Everything is bundled, including the SDK. A Build Output `.func` directory
+  // is self-contained — there is no node_modules beside it — so a bare import
+  // left unbundled resolves fine locally against the repo root and then fails
+  // at runtime with ERR_MODULE_NOT_FOUND on the first request.
 });
 
-await writeFile(`${FN}/.vc-config.json`, `${JSON.stringify({
-  runtime: "nodejs22.x",
-  handler: "index.mjs",
-  launcherType: "Nodejs",
-  shouldAddHelpers: false,
-  // Long enough for a full streamed answer. The platform default would cut
-  // one off partway through, which reads as the product being broken.
-  maxDuration: 60,
-}, null, 2)}\n`);
+// Guard for exactly that. esbuild's metafile reports what it left unresolved,
+// which is exact — scanning the minified output for `from "..."` matches string
+// literals and regexes too, and reports imports that do not exist.
+const unresolved = Object.entries(serverBuild.metafile.outputs)
+  .flatMap(([, out]) => out.imports ?? [])
+  .filter((imp) => imp.external && !imp.path.startsWith("node:"))
+  .map((imp) => imp.path);
+
+if (unresolved.length > 0) {
+  throw new Error(
+    "The function bundle still imports packages that will not exist at runtime: " +
+    `${[...new Set(unresolved)].join(", ")}. A Build Output .func directory has no ` +
+    "node_modules beside it, so these must be bundled.",
+  );
+}
 
 // ── the client, served statically ───────────────────────────────────────────
 await build({
