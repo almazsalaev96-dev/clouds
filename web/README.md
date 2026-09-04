@@ -38,6 +38,17 @@ So the app ships written help instead — five rungs, authored per question, ava
 offline — and says so in plain words rather than pretending. Point Settings at a gateway
 and `/v1/tutor` is called for real.
 
+## Deploying
+
+`vercel.json` builds with `node tools/build.mjs` and serves `dist/` as static
+files — there is no server, so there is nothing to run and nothing to keep secret.
+
+One header is worth explaining. The Content-Security-Policy is tight everywhere
+except `connect-src`, which is `*`. That is not laziness: the student chooses their
+own tutor gateway in Settings, and its origin cannot be known when the page is
+built. Every other directive is closed — scripts come from this origin and cdnjs
+(pdf.js) only, the page cannot be framed, and there are no form actions.
+
 ## Layout
 
 ```
