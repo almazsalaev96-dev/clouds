@@ -17,7 +17,7 @@
  * across devices and lets the whole study history be replayed from the log.
  */
 
-import { CardState, MS_PER_DAY, Rating, type MemoryState } from './types.js';
+import { CardState, MS_PER_DAY, Rating, type MemoryState } from './types';
 
 /** FSRS-6 default weights, w[0..20]. w[20] is the forgetting-curve decay. */
 export const DEFAULT_PARAMETERS: readonly number[] = [

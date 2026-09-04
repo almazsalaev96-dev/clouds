@@ -62,8 +62,10 @@ export function prioritise(
 
       // Neglect: an objective untouched for a long time is riskier than its
       // probability suggests, because that probability is stale.
-      const daysSince =
-        o.lastPractised == null ? 30 : Math.max(0, (options.now - o.lastPractised) / 86_400_000);
+      const neverPractised = o.lastPractised == null;
+      const daysSince = neverPractised
+        ? 30
+        : Math.max(0, (options.now - (o.lastPractised as number)) / 86_400_000);
       const neglect = 1 + Math.min(daysSince, 60) / 60;
 
       // Confident-but-wrong: the learner will not revise this on their own.
@@ -73,7 +75,12 @@ export function prioritise(
       const urgency = examUrgency(options.now, options.examAt);
       const score = (marksAtRisk * neglect * blindSpot * urgency) / hours;
 
-      return { ...o, marksAtRisk, score, why: explain(o, marksAtRisk, blindSpot > 1, daysSince) };
+      return {
+        ...o,
+        marksAtRisk,
+        score,
+        why: explain(o, marksAtRisk, blindSpot > 1, neverPractised ? null : daysSince),
+      };
     })
     .sort((a, b) => b.score - a.score);
 }
@@ -99,10 +106,11 @@ function explain(
   o: ObjectiveSnapshot,
   marksAtRisk: number,
   blindSpot: boolean,
-  daysSince: number,
+  daysSince: number | null,
 ): string {
   const marks = `${marksAtRisk.toFixed(1)} marks at risk`;
   if (blindSpot) return `${marks} — you rate yourself higher here than you score`;
+  if (daysSince === null) return `${marks} — not started yet`;
   if (daysSince >= 21) return `${marks} — not practised in ${Math.round(daysSince)} days`;
   if (o.probability < 0.5) return `${marks} — weakest area`;
   return `${marks}`;

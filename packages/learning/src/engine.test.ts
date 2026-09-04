@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { adjacentRepeats, buildSession, interleave, type SchedulableCard } from './session.js';
-import { assessMastery, newMastery, probabilityCorrect, updateMastery } from './mastery.js';
-import { calibration } from './calibration.js';
-import { examUrgency, prioritise } from './priority.js';
-import { CardState, MS_PER_DAY, type MemoryState } from './types.js';
+import { adjacentRepeats, buildSession, interleave, type SchedulableCard } from './session';
+import { assessMastery, newMastery, probabilityCorrect, updateMastery } from './mastery';
+import { calibration } from './calibration';
+import { examUrgency, prioritise } from './priority';
+import { CardState, MS_PER_DAY, type MemoryState } from './types';
 
 const T0 = Date.UTC(2026, 0, 1, 9, 0, 0);
 const day = (n: number) => T0 + n * MS_PER_DAY;

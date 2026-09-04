@@ -6,9 +6,9 @@
  * model API. See MASTER-PROMPT.md §4.
  */
 
-export * from './types.js';
-export * from './fsrs.js';
-export * from './session.js';
-export * from './mastery.js';
-export * from './calibration.js';
-export * from './priority.js';
+export * from './types';
+export * from './fsrs';
+export * from './session';
+export * from './mastery';
+export * from './calibration';
+export * from './priority';

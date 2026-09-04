@@ -9,7 +9,7 @@
  * Every number the planner shows ("18 marks at risk") traces back to here.
  */
 
-import type { AssessmentObjective, Paper, Syllabus, SyllabusNode } from './schema.js';
+import type { AssessmentObjective, Paper, Syllabus, SyllabusNode } from './schema';
 
 export interface AoMarkTotals {
   /** Raw marks per assessment objective across the whole qualification. */

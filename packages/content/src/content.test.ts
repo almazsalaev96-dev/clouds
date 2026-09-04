@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { business9609 } from './seed/business-9609.syllabus.js';
-import { business9609Items } from './seed/business-9609.items.js';
-import { Item, parseItems, parseSyllabus } from './schema.js';
-import { aoMarkTotals, marksPerGradeBand, marksPerObjective, minutesPerMark } from './marks.js';
+import { business9609 } from './seed/business-9609.syllabus';
+import { business9609Items } from './seed/business-9609.items';
+import { Item, parseItems, parseSyllabus } from './schema';
+import { aoMarkTotals, marksPerGradeBand, marksPerObjective, minutesPerMark } from './marks';
 
 describe('9609 syllabus', () => {
   it('validates against the schema', () => {

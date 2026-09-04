@@ -10,7 +10,7 @@
  *    first, because a card that is already leaking is worth more than a new one.
  */
 
-import type { MemoryState } from './types.js';
+import type { MemoryState } from './types';
 
 export interface SchedulableCard {
   id: string;

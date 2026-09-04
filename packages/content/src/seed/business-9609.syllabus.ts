@@ -12,7 +12,7 @@
  * theirs.
  */
 
-import type { Syllabus, SyllabusNode } from '../schema.js';
+import type { Syllabus, SyllabusNode } from '../schema';
 
 const section = (
   id: string,

@@ -10,7 +10,7 @@
  * of the plan is to spend time where the marks are.
  */
 
-import type { Item } from '../schema.js';
+import type { Item } from '../schema';
 
 type Draft = Omit<Item, 'provenance' | 'licence' | 'difficulty' | 'tags'> &
   Partial<Pick<Item, 'difficulty' | 'tags'>>;

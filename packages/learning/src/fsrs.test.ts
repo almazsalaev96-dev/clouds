@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_PARAMETERS, FsrsScheduler } from './fsrs.js';
-import { CardState, MS_PER_DAY, Rating, type MemoryState } from './types.js';
+import { DEFAULT_PARAMETERS, FsrsScheduler } from './fsrs';
+import { CardState, MS_PER_DAY, Rating, type MemoryState } from './types';
 
 const T0 = Date.UTC(2026, 0, 1, 9, 0, 0);
 const day = (n: number) => T0 + n * MS_PER_DAY;
