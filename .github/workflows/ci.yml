@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  recall:
+    name: Recall
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install
+        working-directory: recall
+        run: npm install --no-audit --no-fund
+
+      - name: Browser
+        working-directory: recall
+        run: npx playwright install --with-deps chromium
+
+      # The gate runs first and fails the build. The previous version of this
+      # project shipped a regular expression that Safari could not parse, which
+      # blanked the page on every older iPad while every Chromium test passed.
+      - name: Build, with the Safari 15 gate
+        working-directory: recall
+        run: npm run build
+
+      - name: Drive it in a browser
+        working-directory: recall
+        run: npm test
+
+      - name: The published file must reach out to nothing
+        working-directory: recall
+        run: |
+          if grep -qE 'https?://[^"'"'"' ]*\.(js|css)|<script[^>]+src=|<link[^>]+href=' dist/index.html; then
+            echo "::error::the build pulled in an external resource; it is meant to be self-contained"
+            exit 1
+          fi

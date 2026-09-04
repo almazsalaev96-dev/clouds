@@ -1,0 +1,14 @@
+{
+  "name": "recall",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Recall: paste your notes, get questions, and be asked again at the moment you are about to forget. One file, no dependencies, no account.",
+  "engines": { "node": "22.x" },
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "test": "node tools/test.mjs",
+    "check": "npm run build && npm test"
+  },
+  "devDependencies": { "playwright": "1.48.2" }
+}

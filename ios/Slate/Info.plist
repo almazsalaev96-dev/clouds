@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDisplayName</key>
+  <string>Slate</string>
+  <key>CFBundleShortVersionString</key>
+  <string>1.0</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>UILaunchScreen</key>
+  <dict/>
+  <key>UISupportedInterfaceOrientations~ipad</key>
+  <array>
+    <string>UIInterfaceOrientationPortrait</string>
+    <string>UIInterfaceOrientationPortraitUpsideDown</string>
+    <string>UIInterfaceOrientationLandscapeLeft</string>
+    <string>UIInterfaceOrientationLandscapeRight</string>
+  </array>
+  <key>UIRequiresFullScreen</key>
+  <false/>
+
+  <!-- Where the gateway lives. Never a provider key: the app holds no credentials
+       for Anthropic or ElevenLabs, and cannot, because it never talks to them. -->
+  <key>SlateGatewayURL</key>
+  <string>http://localhost:8787</string>
+  <key>SlateGatewayToken</key>
+  <string></string>
+
+  <!-- Open worksheets from Files, Mail and other apps. -->
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeName</key>
+      <string>PDF</string>
+      <key>LSHandlerRank</key>
+      <string>Alternate</string>
+      <key>LSItemContentTypes</key>
+      <array>
+        <string>com.adobe.pdf</string>
+        <string>public.image</string>
+      </array>
+    </dict>
+  </array>
+  <key>UISupportsDocumentBrowser</key>
+  <true/>
+  <key>UIFileSharingEnabled</key>
+  <true/>
+  <key>LSSupportsOpeningDocumentsInPlace</key>
+  <false/>
+
+  <!-- Scanning a paper worksheet is the fastest way to get one in. -->
+  <key>NSCameraUsageDescription</key>
+  <string>To photograph a worksheet or a page of your notes and turn it into a document you can write on.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>To let you talk to the tutor instead of typing.</string>
+
+  <!-- Local HTTP is permitted only for a gateway on this machine during development.
+       Anything off-device must be HTTPS. -->
+  <key>NSAppTransportSecurity</key>
+  <dict>
+    <key>NSAllowsArbitraryLoads</key>
+    <false/>
+    <key>NSAllowsLocalNetworking</key>
+    <true/>
+  </dict>
+</dict>
+</plist>

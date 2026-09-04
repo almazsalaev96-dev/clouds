@@ -1,0 +1,8 @@
+{
+  "name": "recall",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Recall: paste your notes, get questions, and be asked again at the moment you are about to forget.",
+  "engines": { "node": "22.x" }
+}
