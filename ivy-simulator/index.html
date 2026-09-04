@@ -311,6 +311,43 @@ td.np{color:var(--faint)}
   padding:18px;font-family:var(--sans);font-size:12.5px;line-height:1.6;
   white-space:pre-wrap;color:var(--ink-soft);max-height:280px;overflow:auto;
 }
+/* in-page Claude read */
+.ai{margin-top:18px;border:1px solid var(--rule-strong);background:var(--panel);padding:20px}
+.ai-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.ai-status{
+  font-family:var(--sans);font-size:12.5px;color:var(--muted);margin-top:12px;
+  display:flex;align-items:center;gap:8px;min-height:18px;
+}
+.ai-status.err{color:var(--crimson)}
+.dots::after{content:"";animation:dots 1.4s steps(4,end) infinite}
+@keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+.ai-out{margin-top:16px;max-width:74ch}
+.ai-out:empty{display:none}
+.ai-out h3{
+  font-size:13px;font-family:var(--sans);font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ivy);margin:26px 0 8px;
+}
+.ai-out h3:first-child{margin-top:0}
+.ai-out h4{font-size:16px;margin:18px 0 6px}
+.ai-out p{font-size:15.5px;line-height:1.68;color:var(--ink-soft);margin-bottom:12px}
+.ai-out ul{margin:0 0 14px;padding-left:20px;font-size:15.5px;line-height:1.65;color:var(--ink-soft)}
+.ai-out li{margin-bottom:7px}
+.ai-out blockquote{
+  margin:0 0 14px;padding:2px 0 2px 16px;border-left:2px solid var(--rule-strong);
+  font-style:italic;color:var(--ink);font-size:15.5px;line-height:1.6;
+}
+.ai-out strong{color:var(--ink);font-weight:600}
+.ai-out .cursor{
+  display:inline-block;width:7px;height:16px;background:var(--ivy);
+  vertical-align:-2px;animation:blink 1s steps(2,start) infinite;
+}
+@keyframes blink{50%{opacity:0}}
+details.fallback{margin-top:20px;border-top:1px solid var(--rule);padding-top:14px}
+details.fallback summary{
+  font-family:var(--sans);font-size:12.5px;font-weight:600;color:var(--muted);
+  cursor:pointer;letter-spacing:.02em;
+}
+details.fallback summary:hover{color:var(--ivy)}
 .toast{
   position:fixed;left:50%;bottom:28px;transform:translateX(-50%);
   background:var(--ink);color:var(--ground);font-family:var(--sans);font-size:13px;font-weight:500;
@@ -631,9 +668,21 @@ td.np{color:var(--faint)}
 
   <div class="sect" style="border-top:1px solid var(--rule)">
     <div class="sect-head"><span class="sect-num">§</span><h2>Deep read</h2></div>
-    <p class="sect-note">The diagnostic above counts things. It cannot tell you whether your essay sounds like you, whether the story earns its ending, or whether the reader will remember it an hour later. Copy the block below into Claude and you will get that read.</p>
-    <div class="btnrow" style="margin-top:0"><button class="btn primary" id="copyPack">Copy the deep-read prompt</button></div>
-    <div class="pack" id="pack"></div>
+    <p class="sect-note">The diagnostic above counts things. It cannot tell you whether your essay sounds like you, whether the story earns its ending, or whether a reader will remember it an hour later. This part can &mdash; it asks Claude to read the whole file and answer properly.</p>
+    <div class="ai">
+      <div class="ai-actions">
+        <button class="btn primary" id="askEssay">Read my essay</button>
+        <button class="btn" id="askFile">Read my whole file</button>
+        <button class="btn" id="askStop" hidden>Stop</button>
+      </div>
+      <div class="ai-status" id="aiStatus"></div>
+      <div class="ai-out" id="aiOut"></div>
+    </div>
+    <details class="fallback">
+      <summary>Or copy the prompt and paste it into Claude yourself</summary>
+      <div class="btnrow"><button class="btn" id="copyPack">Copy the deep-read prompt</button></div>
+      <div class="pack" id="pack"></div>
+    </details>
   </div>
 </section>
 
@@ -1311,6 +1360,167 @@ $("copyPack").addEventListener("click",()=>{
     navigator.clipboard.writeText(t).then(()=>toast("Copied — paste it into Claude"),()=>toast("Select the text below and copy it"));
   } else toast("Select the text below and copy it");
 });
+
+/* ============================================================
+   In-page read. The published page asks Claude directly through
+   the `sample` capability — no API key, and nothing to paste.
+   The call runs on the viewer's own Claude account, so the first
+   one asks their permission.
+   ============================================================ */
+
+/* A small markdown renderer — enough for the structure we ask for. */
+function md(src){
+  const esc = t => t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const inline = t => esc(t)
+    .replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")
+    .replace(/(^|[\s(])\*([^*\n]+)\*/g,"$1<em>$2</em>")
+    .replace(/(^|[\s(])_([^_\n]+)_/g,"$1<em>$2</em>");
+  const out=[]; let list=null;
+  const closeList=()=>{ if(list){ out.push("</ul>"); list=null; } };
+  src.split(/\n/).forEach(raw=>{
+    const l = raw.trim();
+    if(!l){ closeList(); return; }
+    let m;
+    if((m=l.match(/^###\s+(.*)/))){ closeList(); out.push("<h4>"+inline(m[1])+"</h4>"); }
+    else if((m=l.match(/^##\s+(.*)/))){ closeList(); out.push("<h3>"+inline(m[1])+"</h3>"); }
+    else if((m=l.match(/^#\s+(.*)/))){ closeList(); out.push("<h3>"+inline(m[1])+"</h3>"); }
+    else if((m=l.match(/^>\s?(.*)/))){ closeList(); out.push("<blockquote>"+inline(m[1])+"</blockquote>"); }
+    else if((m=l.match(/^[-*•]\s+(.*)/))||(m=l.match(/^\d+[.)]\s+(.*)/))){
+      if(!list){ out.push("<ul>"); list=true; }
+      out.push("<li>"+inline(m[1])+"</li>");
+    }
+    else { closeList(); out.push("<p>"+inline(l)+"</p>"); }
+  });
+  closeList();
+  return out.join("");
+}
+
+/* The file summary both prompts share. */
+function fileBrief(){
+  const o = readInputs(), R = evaluate(o), S = R.S;
+  return "APPLICANT FILE\n"+
+"- Applying to "+S.n+", "+({rd:"Regular Decision",ed:"Early Decision",rea:"Early Action"})[o.round]+
+  ", intending to study "+$("major").options[$("major").selectedIndex].text.toLowerCase()+
+  (o.citizen==="intl"?", international applicant":"")+"\n"+
+"- Unweighted GPA "+o.gpa+(o.rank!==null?", top "+o.rank+"% of class":"")+"; "+
+  (o.testtype==="none"?"applying test-optional":o.testtype.toUpperCase()+" "+o.score)+
+  "; curriculum rigour "+["average","demanding","very demanding","most demanding available"][o.rigor-1]+
+  "; "+o.advanced+" advanced courses"+
+  ([o.research?"published/presented research":"",o.olympiad?"national olympiad distinction":"",o.isef?"ISEF/Regeneron finalist":""].filter(Boolean).length
+    ? "; "+[o.research?"published/presented research":"",o.olympiad?"national olympiad distinction":"",o.isef?"ISEF/Regeneron finalist":""].filter(Boolean).join(", ") : "")+"\n"+
+"- Activities: "+(o.acts.length?o.acts.map(a=>(a.name||"unnamed")+" ("+TIERS[a.tier].lbl+", "+["member","officer","founded/led"][a.role]+")").join("; "):"none listed")+"\n"+
+"- Profile coherence: "+["scattered","broad, no clear centre","two connected threads","a sharp single spike"][o.spike]+
+  "; depth in top activity: "+["started this year","one year","2-3 years","4+ years"][o.depth]+"\n"+
+"- Letters: strongest teacher "+["","lukewarm","positive but general","very strong and specific","superlative"][o.rec1]+
+  ", second teacher "+["","adequate","positive but general","very strong"][o.rec2]+
+  ", counsellor "+["","barely knows them","knows them somewhat","knows them well and advocates"][o.counselor]+"\n"+
+"- Supplements: "+["not written yet","generic","solid with some specifics","deeply researched and school-specific"][o.supps]+"\n"+
+"- Context: "+["under-resourced school with few advanced courses","typical public school","strong public or magnet school","competitive private or feeder school"][o.schooltype]+
+  ", "+["common applicant region","ordinary US region","rural or under-represented state"][o.geo-1]+
+  (o.firstgen?", first-generation to university":"")+(o.aid==2?", applying for substantial financial aid":"")+
+  ([o.athlete?"recruited athlete":"",o.legacy?"legacy":"",o.dean?"development interest":"",o.faculty?"faculty child":"",o.qb?"QuestBridge finalist":""].filter(Boolean).length
+    ? "; institutional factors: "+[o.athlete?"recruited athlete":"",o.legacy?"legacy":"",o.dean?"development interest":"",o.faculty?"faculty child":"",o.qb?"QuestBridge finalist":""].filter(Boolean).join(", ") : "; no institutional factors")+"\n"+
+"- A rubric-based simulator (built on the Harvard reader scale) rated this file: academic "+R.rAcad.r+R.rAcad.mod+
+  ", extracurricular "+R.rEc.r+R.rEc.mod+", personal "+R.rPers.r+R.rPers.mod+", school support "+R.rSup.r+R.rSup.mod+
+  ", overall "+R.rOverall.r+R.rOverall.mod+" (1 is best, 6 is worst). Estimated admit probability "+(R.p*100).toFixed(1)+"%.\n";
+}
+
+const ESSAY_PROMPT = () => {
+  const o = readInputs(), E = analyseEssay(o.essay);
+  return "You are reading a Common Application personal statement the way an experienced admissions officer reads their fortieth file of the day. Be honest and specific. Do not be encouraging by default: this student asked for a real read, and vague praise wastes their time. Do not rewrite the essay for them — they have to write it.\n\n"+
+fileBrief()+"\n"+
+"THE PERSONAL STATEMENT ("+E.words+" words, 650 limit)\n---\n"+o.essay+"\n---\n\n"+
+"Write your read using exactly these headings, in this order, as markdown '## ' headings.\n\n"+
+"## The fifteen-second verdict\nWould you remember this essay an hour later? Answer in two or three sentences. Then say what the essay is actually about — not its topic, but the claim it makes about this person.\n\n"+
+"## What is doing real work\nQuote two or three exact sentences that earn their place. After each quote, say in one line what it accomplishes.\n\n"+
+"## What is decoration\nQuote two or three exact sentences that could be cut with no loss. After each, say why it is decoration.\n\n"+
+"## The claim, against the file\nThe essay makes an implicit claim about who this person is. Does the rest of the file above support that claim, contradict it, or say nothing either way? Be concrete.\n\n"+
+"## Cut this, expand that\nName the one paragraph to cut and the one moment to expand. Say what expanding that moment would have to show.\n\n"+
+"## Three questions\nAsk exactly three questions whose answers would make the next draft better. Ask about the specific scene and the specific facts, never about feelings in general. Then stop — do not answer them yourself.";
+};
+
+const FILE_PROMPT = () => "You are an experienced college counsellor giving a student a straight assessment of where their application stands. Be honest rather than encouraging, be specific rather than general, and prioritise ruthlessly: they have limited time and most advice they have read is worth nothing.\n\n"+
+fileBrief()+"\n"+
+"Write your assessment using exactly these headings, in this order, as markdown '## ' headings.\n\n"+
+"## Where this file actually stands\nTwo or three sentences. Say plainly what a reader would think of this file, and what kind of applicant it reads as.\n\n"+
+"## The one thing to do next\nThe single highest-return action available to this student, and why it beats the alternatives. Be concrete enough to start tomorrow.\n\n"+
+"## What to stop doing\nName something this student is probably spending effort on that will not change the outcome.\n\n"+
+"## The next four weeks\nA short ordered list of what to do, week by week. Real tasks, not categories.\n\n"+
+"## What I would push back on\nAnything in this file that looks like a mistake, a misread of how admissions works, or a strategy that will not do what the student thinks it does. If the school list implied here is unrealistic, say so directly.";
+
+const ERRCOPY = {
+  not_granted:"You declined the request, so the read did not run. Reload the page to be asked again.",
+  rate_limited:"Too many requests just now. Wait a minute and try again.",
+  prompt_too_large:"Your essay plus the file is too long to send. Trim the essay and try again.",
+  cancelled:"Stopped.",
+  refused:"Claude declined to answer that. Try rephrasing what is in the essay box.",
+  empty_completion:"The answer came back empty. Try again.",
+  session_expired:"Your Claude session expired. Reload the page and try again.",
+  sampling_disabled:"Asking Claude is turned off for this page.",
+  not_declared:"This page is not set up to ask Claude.",
+  capability_disabled:"Asking Claude is unavailable right now.",
+  capability_removed:"Asking Claude is no longer available on this page.",
+  upstream_error:"Claude could not be reached. Try again in a moment.",
+  invalid_request:"Something in the request was malformed. Reload the page and try again."
+};
+
+let SAMPLE = null, ctl = null;
+const aiStatus = $("aiStatus"), aiOut = $("aiOut");
+const askBtns = [$("askEssay"),$("askFile")];
+
+function setStatus(t,err){ aiStatus.textContent = t||""; aiStatus.classList.toggle("err",!!err); }
+function busy(on){
+  askBtns.forEach(b=>b.disabled=on);
+  $("askStop").hidden = !on;
+}
+
+askBtns.forEach(b=>b.disabled=true);
+setStatus("Connecting to Claude…");
+
+(async ()=>{
+  try{ SAMPLE = (window.claude && claude.use) ? await claude.use("sample") : null; }
+  catch(e){ SAMPLE = null; }
+  if(SAMPLE){
+    askBtns.forEach(b=>b.disabled=false);
+    setStatus("The first read will ask your permission. It runs on your own Claude account.");
+  } else {
+    document.querySelector(".ai-actions").hidden = true;
+    setStatus("Asking Claude is not available in this view — use the copy-the-prompt option below instead.");
+    const f = document.querySelector("details.fallback"); if(f) f.open = true;
+  }
+})();
+
+async function ask(buildPrompt,label){
+  const o = readInputs();
+  if(buildPrompt===ESSAY_PROMPT && !o.essay.trim()){
+    setStatus("Paste your personal statement in section IV first.",true); return;
+  }
+  ctl = new AbortController();
+  busy(true); aiOut.innerHTML = "";
+  setStatus("Claude is reading" + (label?" "+label:"") + " — this usually takes 20 to 60 seconds");
+  aiStatus.insertAdjacentHTML("beforeend",'<span class="dots"></span>');
+  let first = true;
+  try{
+    const {text,truncated} = await SAMPLE(buildPrompt(),{
+      modelTier:"complex",
+      signal:ctl.signal,
+      onText:({text})=>{
+        if(first){ setStatus("Writing…"); first=false; }
+        aiOut.innerHTML = md(text)+'<span class="cursor"></span>';
+      }
+    });
+    aiOut.innerHTML = md(text);
+    setStatus(truncated ? "Cut short — the answer hit its length limit." : "Done.");
+  }catch(e){
+    if(e && e.text){ aiOut.innerHTML = md(e.text); }
+    setStatus(ERRCOPY[e && e.code] || "The read did not finish. Try again.", e && e.code!=="cancelled");
+  }finally{
+    busy(false); ctl = null;
+  }
+}
+$("askEssay").addEventListener("click",()=>ask(ESSAY_PROMPT,"your essay"));
+$("askFile").addEventListener("click",()=>ask(FILE_PROMPT,"your file"));
+$("askStop").addEventListener("click",()=>{ ctl && ctl.abort(); });
 let tT;
 function toast(m){
   const t=$("toast"); t.textContent=m; t.classList.add("show");
