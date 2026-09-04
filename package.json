@@ -1,0 +1,20 @@
+{
+  "name": "atlas",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Atlas — an every-subject learning platform. See MASTER-PROMPT.md.",
+  "packageManager": "pnpm@10.33.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "build": "pnpm -r --if-present build",
+    "lint": "pnpm -r --if-present lint",
+    "dev": "pnpm --filter @atlas/web dev",
+    "check": "pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.0"
+  }
+}
