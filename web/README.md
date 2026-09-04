@@ -40,8 +40,19 @@ and `/v1/tutor` is called for real.
 
 ## Deploying
 
-`vercel.json` builds with `node tools/build.mjs` and serves `dist/` as static
-files — there is no server, so there is nothing to run and nothing to keep secret.
+There is no server component: the build produces static files and that is the
+whole deployment. Two configurations exist because the Vercel project for this
+repository has its Root Directory at the repository root:
+
+- `vercel.json` **at the repository root** is the one that runs. It builds
+  `web/` and serves `web/dist`.
+- `web/vercel.json` is the same configuration for a project whose Root Directory
+  is set to `web`.
+
+Both are needed only because a `vercel.json` is read from the Root Directory and
+nowhere else — a build against a root with no config reports success in about
+twenty milliseconds and serves an empty site, which is easy to mistake for a
+working deployment.
 
 One header is worth explaining. The Content-Security-Policy is tight everywhere
 except `connect-src`, which is `*`. That is not laziness: the student chooses their
