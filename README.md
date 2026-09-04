@@ -124,6 +124,27 @@ alone builds an empty site.
 
 Then set `ANTHROPIC_API_KEY` in the project's environment variables.
 
+### If the deployed site is empty
+
+Check **Settings → Git → Production Branch** first. Vercel defaults it to the
+repository's default branch, which for this repo is not where the application
+lives. A build against the wrong branch still reports `READY` — it simply has
+nothing to do, which shows up in the log as a suspiciously fast build:
+
+```
+Cloning ... Branch: <wrong-branch>
+Running "vercel build"
+Build Completed in /vercel/output [18ms]
+```
+
+An 18 ms build means no `vercel.json` was found. A real build of this project
+installs dependencies and runs `tools/build-vercel.mjs`.
+
+Note also that **Vercel Authentication** is enabled by default on Hobby, so a
+deployment opens only for the account owner. Anyone else gets a login page.
+Turn it off under **Settings → Deployment Protection** if the link needs to be
+shareable.
+
 ### Two things deployment does not change, and one that it does
 
 Reading, structure extraction, search, artifacts, mastery and memory work
