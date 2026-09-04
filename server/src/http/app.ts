@@ -498,6 +498,10 @@ export function createApp(deps: AppDeps): App {
             ai: ai.name,
             voice: voice.available ? voice.name : "unavailable",
             environment: config.environment,
+            // Whether a caller needs an access code is not a secret — it is the one
+            // thing a client must know before it can ask anything, and hiding it
+            // only turns a solvable setup step into an unexplained 401.
+            requiresToken: config.appToken !== null,
           }, 200, requestId);
         }
 

@@ -14,6 +14,7 @@ import { el, add, clear, icon, aiMark, pretty, announce, plural, modal } from ".
 import { InkSurface } from "./ink.js";
 import * as store from "./store.js";
 import * as ai from "./ai.js";
+import * as tutor from "./tutor.js";
 import * as mastery from "../learning/mastery.js";
 import { questionById, conceptById, worksheetById } from "./bank.js";
 import { diagnose } from "./help.js";
@@ -487,12 +488,17 @@ export class Workspace {
     this.busy = true;
     this.renderPanel();
 
-    const gateway = store.getPref("gatewayUrl", "");
     const shown = q && this.results[q.id];
+    const written = () => ai.localAnswer(intent, ctx, {
+      result: shown && shown.result, diagnosis: shown && shown.diagnosis,
+      submitted: shown && shown.submitted,
+    });
+
     try {
-      if (gateway) {
+      if (tutor.available()) {
         pending.pending = "Asking the tutor…";
-        const reply = await ai.askGateway(gateway, {
+        this.renderPanel();
+        const reply = await tutor.ask({
           ask: asked,
           mode: intent,
           questionText: q ? q.prompt : "",
@@ -501,24 +507,15 @@ export class Workspace {
           masteryHints: this.masteryHint(q),
           subject: "mathematics",
         });
-        Object.assign(pending, { pending: null, answer: reply });
+        Object.assign(pending, { pending: null, answer: tutor.toAnswer(reply) });
       } else {
-        Object.assign(pending, {
-          pending: null,
-          answer: ai.localAnswer(intent, ctx, {
-            result: shown && shown.result, diagnosis: shown && shown.diagnosis,
-            submitted: shown && shown.submitted,
-          }),
-        });
+        Object.assign(pending, { pending: null, answer: written() });
       }
     } catch (err) {
-      Object.assign(pending, { pending: null, error: `${err.message}. Written help is still available below.` });
-      this.thread.push({
-        who: "ai", answer: ai.localAnswer(intent, ctx, {
-          result: shown && shown.result, diagnosis: shown && shown.diagnosis,
-          submitted: shown && shown.submitted,
-        }),
-      });
+      // A tutor that cannot answer is not a dead end: the written help is the same
+      // help it would have started from, and the student still gets it.
+      Object.assign(pending, { pending: null, error: `The tutor could not answer — ${err.message}.` });
+      this.thread.push({ who: "ai", answer: written() });
     }
     this.busy = false;
     this.renderPanel();

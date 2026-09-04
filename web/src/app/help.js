@@ -147,30 +147,3 @@ export function localRung(question, rung) {
 
 export const nextRung = (current) =>
   current === null ? "nudge" : RUNGS[Math.min(RUNGS.indexOf(current) + 1, RUNGS.length - 1)];
-
-/**
- * The tutor, when one is configured.
- *
- * There is no fallback that invents a reply: without a gateway the ladder above is
- * what you get, and it is honest about being written rather than generated. No
- * credential ever reaches this file — the gateway holds them, which is the whole
- * reason it exists.
- */
-export async function askGateway(baseUrl, payload, signal) {
-  const url = `${baseUrl.replace(/\/+$/, "")}/v1/tutor`;
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(payload),
-    signal,
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(`gateway returned ${response.status}${text ? `: ${text.slice(0, 200)}` : ""}`);
-  }
-  const data = await response.json();
-  if (!data || !data.reply || typeof data.reply.message !== "string") {
-    throw new Error("gateway reply did not match the expected shape");
-  }
-  return data.reply;
-}

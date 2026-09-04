@@ -224,7 +224,7 @@ export function intentOf(text) {
   return "explain";
 }
 
-const WRITTEN = "Written help — no tutor server connected, so this is drawn from this worksheet's own explanation and from your record, not generated.";
+const WRITTEN = "Written help — no tutor server connected, so this is drawn from this worksheet's own explanation, from what the marker found in your answer, and from your record. It is not generated.";
 
 /**
  * The honest local answer. Everything it states is either authored alongside the
@@ -356,32 +356,4 @@ function siblingQuestion(question) {
   const done = new Set(store.allEvents().filter((e) => e.type === "attempt" && e.outcome === "correct")
     .map((e) => e.questionId));
   return family.find((x) => !done.has(x.id)) || family[0];
-}
-
-// ------------------------------------------------------------- the gateway
-
-export async function askGateway(baseUrl, payload, signal) {
-  const response = await fetch(`${baseUrl.replace(/\/+$/, "")}/v1/tutor`, {
-    method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify(payload), signal,
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(`the tutor server answered ${response.status}${text ? `: ${text.slice(0, 160)}` : ""}`);
-  }
-  const data = await response.json();
-  if (!data || !data.reply || typeof data.reply.message !== "string") {
-    throw new Error("the tutor server's reply did not match the expected shape");
-  }
-  const reply = data.reply;
-  const blocks = [{ title: "", kind: "text", text: reply.message }];
-  if (reply.steps && reply.steps.length) {
-    blocks.push({ title: "Working", kind: "steps", items: reply.steps.filter((s) => !s.isHidden).map((s) => s.text) });
-  }
-  if (reply.uncertainty) blocks.push({ title: "What I am unsure about", kind: "note", text: reply.uncertainty });
-  return {
-    blocks, followUps: [],
-    source: `Tutor · confidence ${reply.confidence.toFixed(2)}`,
-    mode: reply.mode,
-  };
 }

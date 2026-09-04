@@ -103,6 +103,17 @@ jobs:
         working-directory: web
         run: npm run smoke
 
+      # Served from a real origin next to a gateway: the deployment's shape, and
+      # the only place the "a pasted API key is refused" claim can be checked.
+      - name: The tutor, over HTTP
+        working-directory: web
+        run: npm run tutor
+
+      - name: Typecheck the deployed gateway function
+        run: |
+          npm install --no-audit --no-fund
+          npm run typecheck
+
       - name: The published file must contain no credential
         working-directory: web
         run: |

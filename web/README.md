@@ -32,11 +32,20 @@ suite can prove the selection is doing work.
 
 ## What needs a server, and why
 
-The tutor's words. A model that answers a student's own questions in their own context
-needs provider credentials, and a credential in a web page is a credential published.
-So the app ships written help instead — five rungs, authored per question, available
-offline — and says so in plain words rather than pretending. Point Settings at a gateway
-and `/v1/tutor` is called for real.
+The tutor's words. A model that answers a student's own questions in their own
+context needs an API key, and a key in a web page is a key published — readable in
+the page source, in browser storage and in the network tab.
+
+So the key lives in the deployment's environment (`ANTHROPIC_API_KEY`), read only
+by `api/gateway.ts`, and the page calls `/v1/tutor` on its own origin. There is no
+field in this app that accepts a provider credential; `tutor.js` recognises one and
+refuses it, and `tools/tutor.test.mjs` asserts that refusal. What the page may hold
+is an *access code* — the `SLATE_APP_TOKEN` the operator chooses — which is
+worthless anywhere else and revocable by redeploying.
+
+Without a key the app ships written help instead: five rungs, authored per
+question, available offline, and labelled as written help rather than passed off as
+a tutor. See `docs/DEPLOY.md`.
 
 ## Deploying
 

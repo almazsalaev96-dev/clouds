@@ -12,6 +12,7 @@ import { grade } from "../../../server/src/grading/grade.ts";
 import { el, add, clear, icon, announce } from "./ui.js";
 import * as store from "./store.js";
 import { seed } from "./seed.js";
+import * as tutor from "./tutor.js";
 import { Workspace } from "./workspace.js";
 import { home } from "./home.js";
 import { documents, analysing } from "./documents.js";
@@ -70,6 +71,14 @@ class App {
     });
 
     this.mount();
+
+    // Ask the deployment whether it has a tutor. Where the gateway runs on this
+    // origin — the Vercel deployment in this repository — there is nothing to
+    // configure: the page finds it, and the API key stays on the server.
+    tutor.probe().then(() => {
+      if (this.screen === "settings" || this.screen === "ai") this.rerender();
+    });
+
     const last = store.getPref("lastDocument", null);
     if (last && last.kind === "worksheet") this.workspace.open(last);
 

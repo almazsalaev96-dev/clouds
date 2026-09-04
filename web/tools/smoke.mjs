@@ -306,6 +306,9 @@ const mismatch = battery.map((c, i) => [c, local[i], remote[i]])
 check(`the bundled grader matches the source on all ${battery.length} cases`, mismatch.length === 0,
   mismatch.map(([c, a, b]) => `${c[0]}|${c[1]}: ${a.verdict} vs ${b.verdict}`).join("; "));
 
+check("the offline build looks for no tutor it could not reach",
+  (await page.evaluate(() => window.__slate.store.getPref("gatewayUrl", ""))) === "");
+
 check("no console errors", consoleErrors.length === 0, consoleErrors.slice(0, 3).join(" | "));
 
 await browser.close();
