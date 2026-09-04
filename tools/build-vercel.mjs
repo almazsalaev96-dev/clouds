@@ -9,6 +9,7 @@
  */
 
 import { build } from "esbuild";
+import { existsSync } from "node:fs";
 import { cp, mkdir, rm, writeFile } from "node:fs/promises";
 
 const OUT = ".vercel/output";
@@ -56,6 +57,16 @@ if (unresolved.length > 0) {
   );
 }
 
+await writeFile(`${FN}/.vc-config.json`, `${JSON.stringify({
+  runtime: "nodejs22.x",
+  handler: "index.mjs",
+  launcherType: "Nodejs",
+  shouldAddHelpers: false,
+  // Long enough for a full streamed answer. The platform default would cut
+  // one off partway through, which reads as the product being broken.
+  maxDuration: 60,
+}, null, 2)}\n`);
+
 // ── the client, served statically ───────────────────────────────────────────
 await build({
   entryPoints: ["apps/web/app.js"],
@@ -90,5 +101,27 @@ await writeFile(`${OUT}/config.json`, `${JSON.stringify({
     { src: "/(.*)", dest: "/index.html" },
   ],
 }, null, 2)}\n`);
+
+// ── verify the output tree is complete ──────────────────────────────────────
+//
+// The deploy step reads these paths by name, and a missing one fails *after* a
+// successful build with "Could not load function config" — which reads like a
+// platform fault rather than a missing file. Cheap to assert, expensive to
+// diagnose from a deployment log.
+const required = [
+  `${OUT}/config.json`,
+  `${FN}/index.mjs`,
+  `${FN}/.vc-config.json`,
+  `${OUT}/static/index.html`,
+  `${OUT}/static/app.js`,
+  `${OUT}/static/styles.css`,
+];
+const missing = [];
+for (const file of required) {
+  if (!existsSync(file)) missing.push(file);
+}
+if (missing.length > 0) {
+  throw new Error(`Build output is incomplete, missing: ${missing.join(", ")}`);
+}
 
 console.log(`built ${OUT}`);
