@@ -13,7 +13,7 @@
  * teaches nothing about what to do tomorrow.
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useContent, useStore } from "@/store/provider";
 import { buildSubjectView, type SubjectView } from "@/view/derive";
@@ -133,9 +133,15 @@ export function Practice({
     interleave: state.settings.interleave && filters.topicIds.length !== 1,
   };
 
+  // Guards against scheduling two selections for the same slot when React
+  // re-renders between an answer being recorded and the next question landing.
+  const picking = useRef(false);
+
   const pickNext = (exclude: string[] = []) => {
+    picking.current = true;
     const decision = decideNextMove(ctx);
     if (decision.move === "stop") {
+      picking.current = false;
       setFinished(true);
       setCurrent(null);
       return;
@@ -153,6 +159,7 @@ export function Practice({
       });
     const result = selectNext(candidates, decision, ctx);
     setLastReason(result.because);
+    picking.current = false;
     if (!result.chosen) {
       setFinished(true);
       setCurrent(null);
@@ -161,12 +168,28 @@ export function Practice({
     setCurrent(result.chosen.question as Question);
   };
 
+  /**
+   * Advance the loop.
+   *
+   * This runs in an effect rather than during render. It was originally a
+   * `queueMicrotask` scheduled from the render body, which worked most of the
+   * time and then silently stalled the session: a re-render between recording
+   * an answer and the next question arriving could leave the loop with no
+   * pending selection and nothing to trigger another. An effect keyed on the
+   * answer count has one clear trigger and cannot be lost.
+   */
+  useEffect(() => {
+    if (!running || finished || current || picking.current) return;
+    pickNext(answered.map((a) => a.question.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, finished, current, answered.length]);
+
   const start = () => {
     setRunning(true);
     setFinished(false);
     setAnswered([]);
     setStreaks({ right: 0, wrong: 0 });
-    pickNext();
+    setCurrent(null); // the effect picks the first question
   };
 
   const onComplete = (result: AnsweredResult) => {
@@ -312,9 +335,7 @@ export function Practice({
   }
 
   if (!current) {
-    // First question of a session, or after an answer — pick synchronously on
-    // the next paint so the loop stays a simple state machine.
-    queueMicrotask(() => pickNext(answered.map((a) => a.question.id)));
+    // The effect above is selecting the next question.
     return <p className="muted small">Choosing your next question…</p>;
   }
 

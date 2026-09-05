@@ -39,45 +39,14 @@ export default function ProgressPage() {
     [state, bundle],
   );
 
-  if (!ready) return <p className="muted small">Loading…</p>;
-  const view = views[Math.min(idx, views.length - 1)];
-  if (!view) return <Empty title="No subjects yet">Add a subject first.</Empty>;
-
-  const rollups = rollupByDay(state.events);
-  const streak = studyStreak(rollups, now.slice(0, 10));
-  const calib = calibration(state.events);
-  const efficiency = timeEfficiency(state.events);
-  const answered = ofType(state.events, "question_answered");
-
-  if (answered.length === 0) {
-    return (
-      <div className="stack loose">
-        <header>
-          <p className="eyebrow">Progress</p>
-          <h1>Nothing measured yet</h1>
-        </header>
-        <Empty title="Answer some questions and this fills in">
-          Every statistic here is derived from your own recorded work. There is no placeholder data,
-          and nothing is shown that has not been measured.
-        </Empty>
-      </div>
-    );
-  }
-
-  // Accuracy trajectory, with a 7-day rolling mean so single bad days do not
-  // read as a trend.
-  const daily = rollups.map((r) => ({
-    x: r.date,
-    y: r.marksAvailable ? r.marksEarned / r.marksAvailable : 0,
-  }));
-  const rolling = daily.map((_, i) => {
-    const window = daily.slice(Math.max(0, i - 6), i + 1);
-    return { x: daily[i]!.x, y: window.reduce((s, d) => s + d.y, 0) / window.length };
-  });
-
-  // Heatmap: leaf topics × skill types, from real ledger data.
-  const leaves = view.syllabus.topics.filter((t) => childTopics(view.syllabus, t.id).length === 0);
-  const skillColumns = view.syllabus.assessmentObjectives.map((ao) => ({ id: ao.code, label: ao.code }));
+  /**
+   * Heatmap cells: leaf topics × assessment objectives, from real ledger data.
+   *
+   * Declared here, above the early returns, because hooks must run in the same
+   * order on every render. It previously sat lower down next to the chart it
+   * feeds, which read better and crashed the page the moment a student had
+   * enough attempts to get past the empty state.
+   */
   const cellData = useMemo(() => {
     const map = new Map<string, { earned: number; available: number; n: number }>();
     const byId = new Map(bundle.questions.map((q) => [q.id, q]));
@@ -114,6 +83,46 @@ export default function ProgressPage() {
     }
     return map;
   }, [state.attempts, bundle.questions]);
+
+  if (!ready) return <p className="muted small">Loading…</p>;
+  const view = views[Math.min(idx, views.length - 1)];
+  if (!view) return <Empty title="No subjects yet">Add a subject first.</Empty>;
+
+  const rollups = rollupByDay(state.events);
+  const streak = studyStreak(rollups, now.slice(0, 10));
+  const calib = calibration(state.events);
+  const efficiency = timeEfficiency(state.events);
+  const answered = ofType(state.events, "question_answered");
+
+  if (answered.length === 0) {
+    return (
+      <div className="stack loose">
+        <header>
+          <p className="eyebrow">Progress</p>
+          <h1>Nothing measured yet</h1>
+        </header>
+        <Empty title="Answer some questions and this fills in">
+          Every statistic here is derived from your own recorded work. There is no placeholder data,
+          and nothing is shown that has not been measured.
+        </Empty>
+      </div>
+    );
+  }
+
+  // Accuracy trajectory, with a 7-day rolling mean so single bad days do not
+  // read as a trend.
+  const daily = rollups.map((r) => ({
+    x: r.date,
+    y: r.marksAvailable ? r.marksEarned / r.marksAvailable : 0,
+  }));
+  const rolling = daily.map((_, i) => {
+    const window = daily.slice(Math.max(0, i - 6), i + 1);
+    return { x: daily[i]!.x, y: window.reduce((s, d) => s + d.y, 0) / window.length };
+  });
+
+  const leaves = view.syllabus.topics.filter((t) => childTopics(view.syllabus, t.id).length === 0);
+  const skillColumns = view.syllabus.assessmentObjectives.map((ao) => ({ id: ao.code, label: ao.code }));
+
 
   const lossEvents = ofType(state.events, "mark_lost");
   const lossByCategory = new Map<string, number>();

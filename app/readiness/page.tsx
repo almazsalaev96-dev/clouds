@@ -95,8 +95,21 @@ export default function ReadinessPage() {
               }
             />
             <div className="stack tight">
-              <Stat label="Projected grade" value={view.forecast.central} note={`Plausible range ${view.forecast.range[1]}–${view.forecast.range[0]}`} />
-              <Stat label="Target" value={view.enrolment.targetGrade} note={`${Math.round(view.forecast.targetProbability.value * 100)}% chance on current evidence`} small />
+              <Stat
+                label="Projected grade"
+                value={view.forecast.sufficient ? view.forecast.central : "—"}
+                note={
+                  view.forecast.sufficient
+                    ? `Plausible range ${view.forecast.range[1]}–${view.forecast.range[0]}`
+                    : "Too little recorded work to project from"
+                }
+              />
+              <Stat
+                label="Target"
+                value={view.enrolment.targetGrade}
+                note={view.forecast.sufficient ? `${Math.round(view.forecast.targetProbability.value * 100)}% chance on current evidence` : "No estimate yet"}
+                small
+              />
               <Stat label="Exam" value={view.daysToExam !== undefined ? relativeDays(view.daysToExam) : "Not set"} small />
             </div>
           </div>

@@ -523,11 +523,20 @@ describe("readiness and forecasting", () => {
     expect(f.caveats.join(" ")).toContain("not a prediction");
   });
 
-  it("widens the interval when evidence is thin", () => {
+  it("widens the interval when evidence is thin but sufficient", () => {
     const syllabus = { gradeThresholds: [], papers: [], assessmentObjectives: [] } as unknown as Syllabus;
-    const thin = { ...input, mocks: [], syllabusCoverage: 0.1, topicMastery: [{ topicId: "t", examWeight: 1, mastery: computeMastery(evidence([1]), { now: NOW }) }] };
+    // Just past the forecast threshold, with poor coverage and no mocks.
+    const thin = {
+      ...input,
+      mocks: [],
+      syllabusCoverage: 0.1,
+      topicMastery: [
+        { topicId: "t", examWeight: 1, mastery: computeMastery(evidence(Array(9).fill(0.8)), { now: NOW }) },
+      ],
+    };
     const wide = forecastGrade(computeReadiness(thin), thin, syllabus, "A");
     const narrow = forecastGrade(computeReadiness(input), input, syllabus, "A");
+    expect(wide.sufficient).toBe(true);
     expect(wide.percentage.high - wide.percentage.low).toBeGreaterThan(narrow.percentage.high - narrow.percentage.low);
   });
 
@@ -732,5 +741,47 @@ describe("absolute exam weight", () => {
       ],
     } as unknown as Syllabus;
     expect(() => absoluteExamWeight(cyclic, cyclic.topics[0]!)).not.toThrow();
+  });
+});
+
+describe("forecast honesty", () => {
+  const syllabus = { gradeThresholds: [], papers: [], assessmentObjectives: [] } as unknown as Syllabus;
+
+  const inputWith = (attempts: number, mocks: { at: string; fraction: number }[] = []) => ({
+    topicMastery: [
+      { topicId: "t", examWeight: 1, mastery: computeMastery(evidence(Array(attempts).fill(0.7)), { now: NOW }) },
+    ],
+    syllabusCoverage: 0.5,
+    meanRetention: 0.7,
+    mocks,
+    totalObjectives: 10,
+  });
+
+  it("refuses to project a grade from no evidence at all", () => {
+    const input = inputWith(0);
+    const f = forecastGrade(computeReadiness(input), input, syllabus, "A*");
+    expect(f.sufficient).toBe(false);
+    expect(f.central).toBe("—");
+    expect(f.targetProbability.because.join(" ")).toContain("nothing to project from");
+  });
+
+  it("refuses to project from a handful of questions", () => {
+    const input = inputWith(3);
+    const f = forecastGrade(computeReadiness(input), input, syllabus, "A");
+    expect(f.sufficient).toBe(false);
+  });
+
+  it("projects once there is enough evidence", () => {
+    const input = inputWith(12);
+    const f = forecastGrade(computeReadiness(input), input, syllabus, "A");
+    expect(f.sufficient).toBe(true);
+    expect(f.central).not.toBe("—");
+    expect(f.percentage.low).toBeLessThan(f.percentage.high);
+  });
+
+  it("projects from a single mock even with few questions", () => {
+    const input = inputWith(2, [{ at: NOW, fraction: 0.62 }]);
+    const f = forecastGrade(computeReadiness(input), input, syllabus, "A");
+    expect(f.sufficient).toBe(true);
   });
 });

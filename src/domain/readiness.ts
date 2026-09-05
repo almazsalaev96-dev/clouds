@@ -245,7 +245,20 @@ export const VERDICT_COPY: Record<ReadinessVerdict, { label: string; meaning: st
 // ---------------------------------------------------------------------------
 
 export interface GradeForecast {
-  /** Most likely grade, given current evidence. */
+  /**
+   * False when there is not yet enough evidence to project anything. The UI
+   * must render "not enough evidence yet" rather than a grade in that case.
+   *
+   * This flag exists because of a real failure: with no attempts recorded, the
+   * mastery model correctly reports a low score — it starts from a sceptical
+   * prior — and mapping that through grade thresholds produced a confident
+   * "projected U" for a student who had not yet answered a single question.
+   * That is not a cautious estimate, it is a false statement, and it is exactly
+   * the kind of number that makes a student stop trusting everything else on
+   * the page.
+   */
+  sufficient: boolean;
+  /** Most likely grade given current evidence, or "—" when insufficient. */
   central: string;
   /** Plausible range, e.g. ["A","A*"]. Never a single number. */
   range: [string, string];
@@ -270,6 +283,9 @@ export interface GradeForecast {
  *   4. Map the interval onto published grade thresholds where the pack has
  *      them; otherwise report percentages only and say so.
  */
+/** Minimum evidence before any grade is projected at all. */
+export const MIN_OBSERVATIONS_FOR_FORECAST = 8;
+
 export function forecastGrade(
   readiness: Readiness,
   input: ReadinessInput,
@@ -278,6 +294,35 @@ export function forecastGrade(
 ): GradeForecast {
   const masteryDim = readiness.dimensions.find((d) => d.key === "mastery")!;
   const caveats = [...readiness.caveats];
+
+  // Refuse to project from nothing. A prior is not a measurement, and
+  // presenting one as a predicted grade is worse than showing no grade.
+  const observations = masteryDim.observations;
+  if (observations < MIN_OBSERVATIONS_FOR_FORECAST && input.mocks.length === 0) {
+    const need = MIN_OBSERVATIONS_FOR_FORECAST - observations;
+    return {
+      sufficient: false,
+      central: "—",
+      range: ["—", "—"],
+      targetProbability: estimate(
+        0,
+        0,
+        [
+          observations === 0
+            ? "No questions have been answered yet, so there is nothing to project from."
+            : `Only ${observations} question${observations === 1 ? " has" : "s have"} been answered. About ${need} more will produce a first estimate.`,
+          "Lodestar will not turn a starting assumption into a predicted grade — that would be a statement about your future made from no evidence.",
+        ],
+        observations,
+      ),
+      percentage: { central: 0, low: 0, high: 0 },
+      method: "Not enough evidence to forecast.",
+      caveats: [
+        "No grade is being projected because too little work has been recorded.",
+        "Answer and self-mark a handful of questions, and a projection with a range will appear.",
+      ],
+    };
+  }
 
   const mocks = input.mocks.slice(-3);
   const mockMean = mocks.length ? mocks.reduce((s, m) => s + m.fraction, 0) / mocks.length : null;
@@ -330,6 +375,7 @@ export function forecastGrade(
   caveats.push("This is a projection from your recorded work, not a prediction of your result.");
 
   return {
+    sufficient: true,
     central: centralGrade,
     range: [lowGrade, highGrade],
     targetProbability: estimate(

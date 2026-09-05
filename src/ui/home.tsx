@@ -128,10 +128,17 @@ export function CommandCentre() {
         <Card>
           <Stat
             label="Projected"
-            value={view.forecast.central}
-            note={`Range ${view.forecast.range[1]}–${view.forecast.range[0]} · target ${view.enrolment.targetGrade}`}
+            value={view.forecast.sufficient ? view.forecast.central : "—"}
+            note={
+              view.forecast.sufficient
+                ? `Range ${view.forecast.range[1]}–${view.forecast.range[0]} · target ${view.enrolment.targetGrade}`
+                : `Not enough evidence yet · target ${view.enrolment.targetGrade}`
+            }
           />
-          <Why because={view.forecast.targetProbability.because} label="How is this calculated?" />
+          <Why
+            because={view.forecast.targetProbability.because}
+            label={view.forecast.sufficient ? "How is this calculated?" : "Why no projection?"}
+          />
         </Card>
         <Card>
           <Stat label="Due for review" value={view.dueCards.length} note={view.dueCards.length ? "Decaying now" : "Nothing due"} tone={view.dueCards.length > 20 ? "fading" : undefined} />

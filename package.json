@@ -2,7 +2,7 @@
   "name": "lodestar",
   "version": "0.1.0",
   "private": true,
-  "description": "Lodestar — an adaptive exam-learning operating system for Cambridge IGCSE, AS and A Level.",
+  "description": "Lodestar \u2014 an adaptive exam-learning operating system for Cambridge IGCSE, AS and A Level.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "content:check": "tsx scripts/check-content.ts"
+    "content:check": "tsx scripts/check-content.ts",
+    "test:e2e": "node e2e/smoke.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",
@@ -28,6 +29,7 @@
     "@types/node": "^22.15.3",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "playwright": "^1.63.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
