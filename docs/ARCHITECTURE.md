@@ -157,6 +157,11 @@ point that was not supplied — a model that resolves points it was never given
 has hallucinated a scheme, and those entries are dropped rather than shown as
 marks.
 
+In the interface, AI marking appears as a *proposal*: it pre-fills the ledger,
+surfaces its own uncertainty flag rather than swallowing it, and leaves every
+row editable. The mark that is saved is the one the student agrees with, and the
+attempt records `markedBy: "ai"` so the evidence model knows the difference.
+
 ---
 
 ## Board-agnosticism

@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "content:check": "tsx scripts/check-content.ts",
-    "test:e2e": "node e2e/smoke.mjs"
+    "test:e2e": "node e2e/smoke.mjs",
+    "pack:new": "tsx scripts/new-pack.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",

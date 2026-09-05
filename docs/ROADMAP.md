@@ -23,7 +23,7 @@ running app.
 | 10 | Micro-lessons | ✅ | Authored and displayed; per-unit mastery scoring not separated yet. |
 | 11 | Active recall engine | ✅ | 16 question types; format varied deliberately across a session. |
 | 12 | Question engine | ✅ | Universal metadata model powering every filter and the whole personalisation engine. |
-| 16 | AI marking engine | ◐ | Route, prompts and structured schema built and constrained; not yet wired into the answer UI, which currently uses the ledger. |
+| 16 | AI marking engine | ✅ | Wired into the ledger as an *editable proposal*: it pre-fills each point, surfaces its own uncertainty, and the saved mark is the one the student agrees with. Entries referencing mark points that were not supplied are discarded. |
 | 17 | Mark-loss analytics | ✅ | 20-category taxonomy, technique-versus-knowledge split, prescriptions. |
 | 18 | Mistake Lab | ✅ | Every lost mark is an object with cause, repair ladder, and auto-minted review card. |
 | 19 | Wrong-answers mode | ✅ | Practice filter, plus the dedicated re-attempt queue. |
@@ -103,7 +103,7 @@ running app.
 | 134–135 | Generation pipeline / review dashboard | ◐ | Validation is built and the Library page is a read-only version of the review dashboard. |
 | 154 | Monitoring | ○ | Deployment concern. |
 | 156–158 | AI evaluation harness | ○ | Benchmark sets for marking agreement and question quality. Important before AI marking is trusted by default — which is part of why the ledger is the default today. |
-| 170–174 | Admin panel and visual authoring | ○ | Content is file-based and version-controlled, which is better for a small team and worse for a large one. |
+| 170–174 | Admin panel and visual authoring | ◐ | Content is file-based and version-controlled, which is better for a small team and worse for a large one. `npm run pack:new` scaffolds a valid pack skeleton; the Library page is a read-only review dashboard. No visual editor. |
 
 ---
 

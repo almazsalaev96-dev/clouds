@@ -57,6 +57,7 @@ all until there is enough recorded work to justify one.
 | `npm run content:check` | Validate every content pack; non-zero exit on errors |
 | `npm run typecheck` | Strict TypeScript, no emit |
 | `npm run test:e2e` | Drive a real browser through the whole loop |
+| `npm run pack:new -- --board … --level … --subject … --code …` | Scaffold a new content pack |
 
 `npm run test:e2e` expects a server on `:3111`
 (`npx next start -p 3111`) and honours `CHROMIUM_PATH` when a browser is already
@@ -71,7 +72,18 @@ a manifest and a list of topic titles loads and is useful; questions, lessons,
 cards and glossary are added incrementally, and everything degrades gracefully
 until they exist.
 
-**Start here: [`docs/AUTHORING.md`](docs/AUTHORING.md).**
+To start a new subject:
+
+```bash
+npm run pack:new -- --board cambridge --level igcse --subject Chemistry --code 0620
+```
+
+That writes a complete pack skeleton. Every field is a placeholder marked
+`TODO`, and the pack deliberately fails validation until the syllabus is filled
+in — it will not invent assessment-objective weightings or paper structures,
+because a plausible guess for those is worse than an obvious blank.
+
+**Format reference: [`docs/AUTHORING.md`](docs/AUTHORING.md).**
 
 Open `/library` in the running app to see what loaded, every validation error
 with its file and path, and exactly which topics have no questions yet.

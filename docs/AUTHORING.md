@@ -15,6 +15,20 @@ with its file and path, and which topics still have no questions.
 
 ---
 
+## Starting a pack
+
+```bash
+npm run pack:new -- --board cambridge --level igcse --subject Chemistry --code 0620
+```
+
+This writes the whole directory structure with commented placeholders. It does
+**not** guess assessment-objective weightings, paper structures or command-word
+definitions: those are factual properties of a qualification that differ between
+syllabus versions, and a plausible guess would get shipped. The pack fails
+validation until you fill them in, on purpose.
+
+---
+
 ## Directory shape
 
 ```

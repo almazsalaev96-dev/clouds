@@ -32,6 +32,19 @@ import {
 import { SELF_MARK_REASONS } from "@/store/types";
 import { Callout, Card, Chip, Timer, useTicker, Marks, round1 } from "./components";
 
+/** Shape returned by POST /api/ai/mark. */
+interface AIMarking {
+  ledger: { pointId: string; outcome: PointOutcome; lossReason?: string; evidence?: string; note?: string }[];
+  totalAwarded: number;
+  whatYouDidWell?: string;
+  theDecisiveGap: string;
+  improvedAnswer: string;
+  skillToPractise: string;
+  uncertain: boolean;
+  uncertaintyReason?: string;
+  warnings?: string[];
+}
+
 export interface AnsweredResult {
   attempt: Omit<Attempt, "id">;
   question: Question;
@@ -198,9 +211,9 @@ export function QuestionView({
           <LedgerMarking
             question={question}
             response={response}
-            onDone={(score, ledger) => {
+            onDone={(score, ledger, markedBy) => {
               onComplete(
-                buildResult(question, response, startedAt, elapsed, score, question.markScheme.totalMarks, "self", confidence, mode, ledger),
+                buildResult(question, response, startedAt, elapsed, score, question.markScheme.totalMarks, markedBy, confidence, mode, ledger),
               );
               setPhase("done");
             }}
@@ -475,11 +488,26 @@ function LedgerMarking({
 }: {
   question: Question;
   response: AttemptResponse;
-  onDone: (score: number, ledger: LedgerEntry[]) => void;
+  onDone: (score: number, ledger: LedgerEntry[], markedBy: Attempt["markedBy"]) => void;
 }) {
   const points = question.markScheme.points ?? [];
   const [entries, setEntries] = useState<Record<string, LedgerEntry>>({});
   const [revealed, setRevealed] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState(false);
+  const [aiState, setAiState] = useState<"idle" | "working" | "done" | "failed">("idle");
+  const [aiProposal, setAiProposal] = useState<AIMarking | null>(null);
+  const [aiError, setAiError] = useState<{ message: string; fallback: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/ai/status")
+      .then((r) => r.json())
+      .then((d: { available: boolean }) => !cancelled && setAiAvailable(Boolean(d.available)))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const answerText = response.kind === "text" ? response.text : response.kind === "numeric" ? String(response.value ?? "") : "";
   const score = useMemo(() => scoreLedger(question.markScheme, Object.values(entries)), [entries, question.markScheme]);
@@ -499,6 +527,72 @@ function LedgerMarking({
 
   const setReason = (pointId: string, reason: MarkLossCategory) => {
     setEntries((prev) => ({ ...prev, [pointId]: { ...prev[pointId]!, lossReason: reason } }));
+  };
+
+  /**
+   * Ask the model to propose a marking.
+   *
+   * Deliberately a *proposal*: it pre-fills the ledger and every row stays
+   * editable, because the student applying the scheme themselves is where most
+   * of the learning is. The AI is a first pass that saves time on the obvious
+   * points, not a verdict — and where it says it is unsure, that is surfaced
+   * rather than swallowed.
+   */
+  const askAI = async () => {
+    setAiState("working");
+    setAiError(null);
+    try {
+      const res = await fetch("/api/ai/mark", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          questionPrompt: question.prompt,
+          stimulus: question.stimulus?.body,
+          commandWord: question.commandWord,
+          marks: question.marks,
+          markSchemePoints: points.map((p) => ({
+            id: p.id,
+            text: p.text,
+            marks: p.marks,
+            aoCode: p.aoCode,
+            alternatives: p.alternatives,
+            rejects: p.rejects,
+          })),
+          markSchemeLevels: question.markScheme.levels,
+          studentAnswer: answerText,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAiError({ message: data.error ?? "The AI could not mark this.", fallback: data.fallback ?? "" });
+        setAiState("failed");
+        return;
+      }
+      const proposal = data as AIMarking;
+      setAiProposal(proposal);
+      setEntries((prev) => {
+        const next = { ...prev };
+        for (const row of proposal.ledger) {
+          const point = points.find((p) => p.id === row.pointId);
+          if (!point) continue;
+          next[row.pointId] = {
+            pointId: row.pointId,
+            outcome: row.outcome,
+            awarded: row.outcome === "hit" ? point.marks : row.outcome === "partial" ? point.marks / 2 : 0,
+            lossReason: row.outcome === "hit" ? undefined : (row.lossReason as MarkLossCategory | undefined),
+            note: row.evidence,
+          };
+        }
+        return next;
+      });
+      setAiState("done");
+    } catch {
+      setAiError({
+        message: "The request did not reach the server.",
+        fallback: "Mark it yourself against the scheme — your answer is saved either way.",
+      });
+      setAiState("failed");
+    }
   };
 
   if (!revealed) {
@@ -528,6 +622,49 @@ function LedgerMarking({
           {answerText || <span className="muted">(no answer written)</span>}
         </div>
       </Card>
+
+      {aiAvailable && (
+        <Card title="Marking assistance">
+          {aiState === "idle" && (
+            <div className="row between">
+              <p className="small muted" style={{ margin: 0, maxWidth: "56ch" }}>
+                The AI can propose a marking against this scheme. It pre-fills the ledger and every row
+                stays editable — applying the scheme yourself is where most of the learning is.
+              </p>
+              <button className="btn" onClick={() => void askAI()}>Propose a marking</button>
+            </div>
+          )}
+          {aiState === "working" && <p className="small muted">Marking against the scheme…</p>}
+          {aiState === "failed" && aiError && (
+            <Callout kind="warn" title={aiError.message}>{aiError.fallback}</Callout>
+          )}
+          {aiState === "done" && aiProposal && (
+            <div className="stack tight">
+              {aiProposal.uncertain && (
+                <Callout kind="warn" title="The AI flagged this marking as uncertain">
+                  {aiProposal.uncertaintyReason ?? "Check it carefully against the scheme yourself."}
+                </Callout>
+              )}
+              {aiProposal.warnings?.length ? (
+                <Callout kind="warn" title="Discarded">{aiProposal.warnings.join(" ")}</Callout>
+              ) : null}
+              <Callout kind="info" title="The decisive gap">{aiProposal.theDecisiveGap}</Callout>
+              {aiProposal.whatYouDidWell && <p className="small">{aiProposal.whatYouDidWell}</p>}
+              <div>
+                <p className="eyebrow" style={{ marginBottom: 4 }}>Your answer, minimally repaired</p>
+                <p className="small" style={{ whiteSpace: "pre-wrap", padding: "10px 12px", background: "var(--secure-wash)", borderRadius: "var(--radius-sm)", lineHeight: 1.65 }}>
+                  {aiProposal.improvedAnswer}
+                </p>
+              </div>
+              <p className="small"><strong>Practise next:</strong> {aiProposal.skillToPractise}</p>
+              <p className="tiny muted">
+                Proposal only. Every row below is still yours to change, and the mark that is saved is
+                the one you agree with.
+              </p>
+            </div>
+          )}
+        </Card>
+      )}
 
       <Card
         title="Mark scheme"
@@ -624,7 +761,7 @@ function LedgerMarking({
           <button
             className="btn primary"
             disabled={points.length > 0 && !allResolved}
-            onClick={() => onDone(score, Object.values(entries))}
+            onClick={() => onDone(score, Object.values(entries), aiProposal ? "ai" : "self")}
           >
             {points.length > 0 && !allResolved ? "Resolve every point first" : "Save and continue"}
           </button>
