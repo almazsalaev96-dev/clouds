@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IGCSE Business Studies 0450 — Revision Engine</title>
+<meta name="description" content="A complete revision engine for Cambridge IGCSE and O Level Business Studies (0450 / 0986 / 7115): full chapter notes, flashcards, quizzes, exam technique, calculators and an AI examiner.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-code">0450 · 0986 · 7115</span>
+      <span class="brand-name">Business Studies</span>
+      <span class="brand-sub">Cambridge IGCSE &amp; O Level · revision engine</span>
+    </div>
+
+    <nav class="nav" id="nav">
+      <div class="nav-group">
+        <a class="nav-item" href="#/" data-route="/"><span class="ic">◈</span> Dashboard</a>
+        <a class="nav-item" href="#/exam" data-route="/exam"><span class="ic">✎</span> Exam technique</a>
+        <a class="nav-item" href="#/flashcards" data-route="/flashcards"><span class="ic">▤</span> Flashcards <span class="badge" id="nbDefs"></span></a>
+        <a class="nav-item" href="#/quiz" data-route="/quiz"><span class="ic">◎</span> Quiz <span class="badge" id="nbMcq"></span></a>
+        <a class="nav-item" href="#/practice" data-route="/practice"><span class="ic">✍</span> Exam questions <span class="badge" id="nbExam"></span></a>
+        <a class="nav-item" href="#/tools" data-route="/tools"><span class="ic">∑</span> Calculators</a>
+        <a class="nav-item" href="#/glossary" data-route="/glossary"><span class="ic">A</span> Glossary</a>
+        <a class="nav-item" href="#/tutor" data-route="/tutor"><span class="ic">✦</span> AI examiner</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Syllabus</div>
+        <div id="navSections"></div>
+      </div>
+    </nav>
+
+    <div class="side-foot">
+      <button class="btn sm gh" id="themeBtn" title="Toggle theme" aria-label="Toggle colour theme">◐</button>
+      <button class="btn sm gh" id="settingsBtn" title="Settings">⚙ Settings</button>
+      <button class="btn sm gh" id="printBtn" title="Print this page">⎙</button>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <header class="topbar">
+      <button class="btn icon gh menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
+      <div class="crumb" id="crumb"></div>
+      <div class="topbar-sp"></div>
+      <div class="search-wrap">
+        <span class="search-ic">⌕</span>
+        <input class="search" id="search" type="search" placeholder="Search notes, definitions, questions…"
+               autocomplete="off" spellcheck="false" aria-label="Search the whole course">
+        <div class="search-res" id="searchRes" hidden></div>
+      </div>
+    </header>
+
+    <main class="view" id="view" tabindex="-1"></main>
+  </div>
+</div>
+
+<!-- data -->
+<script src="assets/data/syllabus.js"></script>
+<script src="assets/data/exam.js"></script>
+<script src="assets/data/ch-s1.js"></script>
+<script src="assets/data/ch-s2.js"></script>
+<script src="assets/data/ch-s3.js"></script>
+<script src="assets/data/ch-s4.js"></script>
+<script src="assets/data/ch-s5.js"></script>
+<script src="assets/data/ch-s6.js"></script>
+<!-- app -->
+<script src="assets/js/store.js"></script>
+<script src="assets/js/render.js"></script>
+<script src="assets/js/tools.js"></script>
+<script src="assets/js/study.js"></script>
+<script src="assets/js/ai.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
