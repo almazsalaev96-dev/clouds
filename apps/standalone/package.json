@@ -1,0 +1,19 @@
+{
+  "name": "@atlas/standalone",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Single-file build of the Atlas app — same engine, same pages, no server.",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@atlas/content": "workspace:*",
+    "@atlas/learning": "workspace:*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

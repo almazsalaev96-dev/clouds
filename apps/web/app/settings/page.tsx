@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { useStudy } from '@/lib/study';
+import { saveFile, type SaveOutcome } from '@/lib/save-file';
 
 export default function SettingsPage() {
   const study = useStudy();
   const { settings, update } = study;
   const [confirmingReset, setConfirmingReset] = useState(false);
+  const [exportState, setExportState] = useState<SaveOutcome | 'working' | null>(null);
 
   if (!study.ready) return <div className="empty">Loading…</div>;
 
@@ -14,14 +16,13 @@ export default function SettingsPage() {
     ? new Date(settings.examAt).toISOString().slice(0, 10)
     : '';
 
-  const download = () => {
-    const blob = new Blob([study.exportJson()], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `atlas-export-${new Date().toISOString().slice(0, 10)}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+  const download = async () => {
+    setExportState('working');
+    const outcome = await saveFile(
+      `atlas-export-${new Date().toISOString().slice(0, 10)}.json`,
+      study.exportJson(),
+    );
+    setExportState(outcome);
   };
 
   const setTheme = (theme: 'system' | 'light' | 'dark') => {
@@ -182,8 +183,13 @@ export default function SettingsPage() {
           it, so the export below really is everything.
         </p>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button type="button" className="btn" onClick={download}>
-            Export everything (JSON)
+          <button
+            type="button"
+            className="btn"
+            onClick={() => void download()}
+            disabled={exportState === 'working'}
+          >
+            {exportState === 'working' ? 'Preparing…' : 'Export everything (JSON)'}
           </button>
           {confirmingReset ? (
             <>
@@ -208,6 +214,22 @@ export default function SettingsPage() {
             </button>
           )}
         </div>
+        {exportState === 'saved' && (
+          <p style={{ fontSize: '0.8rem', color: 'var(--good)', marginTop: '0.7rem' }}>
+            Exported {study.events.length} events.
+          </p>
+        )}
+        {exportState === 'declined' && (
+          <p style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '0.7rem' }}>
+            Export cancelled — nothing left this device.
+          </p>
+        )}
+        {exportState === 'unavailable' && (
+          <p style={{ fontSize: '0.8rem', color: 'var(--warn)', marginTop: '0.7rem' }}>
+            This viewer will not let the page save a file. Open Atlas in its own tab to
+            export.
+          </p>
+        )}
         {study.ephemeral && (
           <p style={{ fontSize: '0.8rem', color: 'var(--warn)', marginTop: '0.7rem' }}>
             This browser is blocking local storage, so this session will not be saved.
