@@ -1,0 +1,355 @@
+syllabusId: "9609"
+defaults:
+  source:
+    kind: original
+    licence: owned
+    attribution: Written for Lodestar in the style of Cambridge 9609. Not a past-paper question.
+  quality: { reviewStatus: human-reviewed, confidence: 0.88 }
+
+questions:
+  # ------------------------------------------------------------ 1.1 enterprise
+  - id: b-1_1-mcq-1
+    type: mcq
+    topicIds: [b1_1]
+    marks: 1
+    prompt: A carpenter buys timber for $40 and sells a finished table for $260. The $220 difference is best described as which of the following?
+    difficulty: { knowledge: 0.25, reasoning: 0.3, calculation: 0.1, language: 0.2, steps: 0.15, unfamiliarContext: 0.15 }
+    response:
+      choices:
+        - { id: a, text: Profit, misconception: "Profit is what remains after ALL costs — labour, tools, premises, marketing — not just materials. The $220 still has to pay for those." }
+        - { id: b, text: Added value, correct: true }
+        - { id: c, text: Revenue, misconception: "Revenue is the full $260 selling price, not the difference." }
+        - { id: d, text: Contribution, misconception: "Contribution is price minus ALL variable costs per unit; timber is only one of them, and the term belongs to break-even analysis." }
+    markScheme:
+      totalMarks: 1
+      style: points
+      modelAnswer: >
+        Added value is the difference between the selling price and the cost of bought-in materials
+        and components. It is not profit, because the other costs of production have not yet been
+        deducted from it.
+
+  - id: b-1_2-match-1
+    type: match
+    topicIds: [b1_2]
+    marks: 4
+    prompt: Match each form of business organisation to its defining feature.
+    difficulty: { knowledge: 0.35, reasoning: 0.3, calculation: 0, language: 0.3, steps: 0.25, unfamiliarContext: 0.15 }
+    response:
+      pairs:
+        - { leftId: l1, left: Sole trader, rightId: r1, right: Unlimited liability and no legal distinction between owner and business }
+        - { leftId: l2, left: Private limited company, rightId: r2, right: Shares transferable only with the agreement of other shareholders }
+        - { leftId: l3, left: Public limited company, rightId: r3, right: Shares tradeable on a stock exchange by the general public }
+        - { leftId: l4, left: Partnership, rightId: r4, right: Two or more owners, typically sharing unlimited liability under an agreement }
+    markScheme:
+      totalMarks: 4
+      style: points
+      modelAnswer: >
+        The axis that separates these forms is liability and share transferability: sole traders and
+        ordinary partnerships expose owners' personal assets; limited companies do not, and the
+        private/public distinction is about who may buy the shares.
+
+  - id: b-1_4-short-1
+    type: short-answer
+    topicIds: [b1_4]
+    commandWord: Explain
+    marks: 5
+    paperId: 9609-p1
+    timeSeconds: 420
+    prompt: >
+      A 30-year-old family bakery states its objective as "survival". A venture-capital-backed
+      delivery startup in the same city states its objective as "maximum market share within three
+      years". Explain why these two businesses might pursue such different objectives.
+    response: { suggestedWords: 140 }
+    difficulty: { knowledge: 0.4, reasoning: 0.55, calculation: 0.05, language: 0.4, steps: 0.45, unfamiliarContext: 0.35 }
+    markScheme:
+      totalMarks: 5
+      style: points
+      points:
+        - { id: p1, text: "Recognises that objectives reflect circumstances — ownership, finance, stage in life cycle — rather than being universal.", marks: 1, aoCode: AO1 }
+        - { id: p2, text: "Applies to the bakery: family ownership means the owners' income and legacy depend on continuity, so risk-taking threatens the thing they most value.", marks: 1, aoCode: AO2, skillId: sk-application }
+        - { id: p3, text: "Develops the bakery chain: with no external investors demanding growth, survival protects what the objective-setter actually wants.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p4, text: "Applies to the startup: venture capital requires a return within a fund's time horizon, which only rapid growth can deliver.", marks: 1, aoCode: AO2, skillId: sk-application }
+        - { id: p5, text: "Develops the startup chain: in a network/delivery market, share captured early compounds, so growth now is worth more than profit now.", marks: 1, aoCode: AO3, skillId: sk-chain }
+      modelAnswer: >
+        Objectives are set by whoever controls the business and reflect their circumstances. The
+        bakery's owners depend on it for family income and identity; with no outside investors to
+        satisfy, the rational objective is to protect that continuity, and risk-taking for growth
+        endangers exactly what they value. The startup's venture investors need a large return inside
+        a fund's limited horizon, and in a delivery market early share compounds through network and
+        habit effects — so growth now is worth more to them than profit now, and market share is the
+        objective that serves it.
+      nearMissAnswer: >
+        Different businesses have different objectives. Small businesses often want survival and big
+        businesses want growth. The bakery is small so it wants to survive and the startup wants to
+        grow fast.
+      examinerNotes: >
+        The near-miss restates the question as if size alone explained it, earning the AO1 mark only.
+        The creditable content is WHY: ownership and financing create the difference, not size.
+    commonErrors:
+      - { label: "Size as explanation", description: "Asserting small firms survive and large firms grow, without the ownership/finance mechanism.", errorType: no-chain }
+
+  # -------------------------------------------------- 3.2 market research
+  - id: b-3_2-mcq-1
+    type: mcq
+    topicIds: [b3_2]
+    marks: 1
+    prompt: A cafe owner interviews 40 of her regular customers about a proposed menu change. The main weakness of this research is that it —
+    difficulty: { knowledge: 0.3, reasoning: 0.45, calculation: 0.05, language: 0.3, steps: 0.25, unfamiliarContext: 0.25 }
+    response:
+      choices:
+        - { id: a, text: is secondary research, and therefore out of date, misconception: "Interviews she conducts herself are primary research, not secondary." }
+        - { id: b, text: uses a biased sample — regulars are the customers least likely to want change, correct: true }
+        - { id: c, text: is qualitative, and qualitative data is unusable, misconception: "Qualitative data is not unusable; it answers 'why' questions that numbers cannot." }
+        - { id: d, text: is too expensive relative to a postal survey, misconception: "Interviewing her own customers costs almost nothing; expense is not the issue here." }
+    markScheme:
+      totalMarks: 1
+      style: points
+      modelAnswer: >
+        Regular customers self-selected into liking the current offer, so sampling only them biases
+        the result against change — and tells her nothing about the non-customers a new menu might win.
+
+  - id: b-3_3-cloze-1
+    type: cloze
+    topicIds: [b3_3]
+    marks: 4
+    prompt: Complete the statement about the marketing mix.
+    difficulty: { knowledge: 0.3, reasoning: 0.25, calculation: 0, language: 0.3, steps: 0.2, unfamiliarContext: 0.1 }
+    stimulus:
+      body: >
+        The four traditional elements of the marketing mix are product, price, promotion and {{b1}}.
+        For services, the extended mix adds people, process and {{b2}} evidence. A mix is internally
+        consistent when each element supports the same {{b3}} — a premium product priced cheaply and
+        sold through discount channels sends a contradictory message to the target {{b4}}.
+    response:
+      blanks:
+        - { id: b1, accepted: [place, distribution] }
+        - { id: b2, accepted: [physical] }
+        - { id: b3, accepted: [positioning, position, brand image, image, strategy] }
+        - { id: b4, accepted: [market, segment, customer, customers, audience] }
+    markScheme:
+      totalMarks: 4
+      style: points
+      modelAnswer: >
+        Place; physical; positioning; market. The examinable idea is coherence — the elements must
+        pull in the same direction for the chosen positioning.
+
+  # -------------------------------------------------- 4.2 / 4.3 operations
+  - id: b-4_3-calc-1
+    type: numeric
+    topicIds: [b4_3]
+    commandWord: Calculate
+    marks: 2
+    timeSeconds: 150
+    prompt: >
+      A factory can produce a maximum of 12,500 units per month. Last month it produced 9,750 units.
+      Calculate its capacity utilisation, to one decimal place.
+    response: { unit: "%", workingSpace: true }
+    difficulty: { knowledge: 0.25, reasoning: 0.3, calculation: 0.35, language: 0.2, steps: 0.3, unfamiliarContext: 0.1 }
+    markScheme:
+      totalMarks: 2
+      style: points
+      acceptedValues: [{ value: 78, tolerance: 0.05, unit: "%" }]
+      points:
+        - { id: p1, text: "Correct formula: actual output ÷ maximum output × 100", marks: 1, aoCode: AO1, skillId: sk-calculation }
+        - { id: p2, text: "Answer 78.0%, expressed as a percentage", marks: 1, aoCode: AO2 }
+      modelAnswer: "Capacity utilisation = (9,750 ÷ 12,500) × 100 = 78.0%"
+    commonErrors:
+      - { label: "Inverted", description: "12,500 ÷ 9,750 gives 128% — a utilisation above 100% from below-capacity output should trigger a sanity check.", errorType: formula-error }
+
+  - id: b-4_2-short-1
+    type: short-answer
+    topicIds: [b4_2]
+    commandWord: Analyse
+    marks: 6
+    paperId: 9609-p2
+    timeSeconds: 480
+    prompt: >
+      A supermarket chain holding 40 days of inventory is considering moving to a just-in-time (JIT)
+      system with its main suppliers. Analyse the likely effects on the business.
+    response: { suggestedWords: 180 }
+    difficulty: { knowledge: 0.45, reasoning: 0.6, calculation: 0.1, language: 0.45, steps: 0.55, unfamiliarContext: 0.35 }
+    markScheme:
+      totalMarks: 6
+      style: points
+      points:
+        - { id: p1, text: "JIT correctly understood: inventory arrives as needed rather than being held in advance.", marks: 1, aoCode: AO1 }
+        - { id: p2, text: "Working-capital chain: 40 days of stock is cash sitting on shelves; releasing it funds other uses.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p3, text: "Cost chain developed: less warehousing, less spoilage/obsolescence — significant for a food retailer specifically.", marks: 1, aoCode: AO3, skillId: sk-application }
+        - { id: p4, text: "Dependency chain: JIT transfers the buffer to suppliers, so a single delivery failure now empties shelves.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p5, text: "Bargaining/relationship consequence: needs reliable suppliers and integrated ordering; supplier power may rise.", marks: 1, aoCode: AO3 }
+        - { id: p6, text: "Consequence tied to the specific business: for a supermarket, an empty shelf loses the whole basket, not just the missing item.", marks: 1, aoCode: AO3, skillId: sk-application }
+      modelAnswer: >
+        JIT means inventory arrives when needed instead of being held. Forty days of stock is forty
+        days of cash on shelves, so the immediate effect is a large one-off release of working capital,
+        plus lower warehousing and — for a food retailer particularly — less spoilage. The cost is that
+        the buffer disappears: the chain becomes only as reliable as its least reliable supplier, and a
+        single failed delivery now produces empty shelves rather than a drawn-down warehouse. That
+        matters disproportionately in a supermarket, because a customer who cannot find one item often
+        abandons the whole basket, so a small availability failure has an outsized revenue effect.
+      examinerNotes: "Analyse — no AO4 marks. A recommendation about whether to adopt JIT earns nothing here."
+    commonErrors:
+      - { label: "Listed pros and cons", description: "Effects named but not developed into consequences for this supermarket.", errorType: no-chain }
+      - { label: "Recommended", description: "Concluded 'they should adopt JIT'. No judgement marks exist on an Analyse question.", errorType: command-word-misread }
+
+  # -------------------------------------------------- 5.5 cash flow
+  - id: b-5_5-tf-1
+    type: true-false
+    topicIds: [b5_5]
+    marks: 1
+    prompt: "True or false: a business that is profitable cannot fail."
+    difficulty: { knowledge: 0.25, reasoning: 0.35, calculation: 0, language: 0.2, steps: 0.15, unfamiliarContext: 0.1 }
+    response:
+      choices:
+        - { id: t, text: "True", misconception: "Profit is an accounting result over a period; bills are paid with cash on a date. A profitable firm whose cash is tied up in inventory and unpaid invoices can still be unable to pay wages — and insolvency, not unprofitability, is what closes businesses." }
+        - { id: f, text: "False", correct: true }
+    markScheme:
+      totalMarks: 1
+      style: points
+      modelAnswer: >
+        False. Profitable businesses fail through cash-flow insolvency: revenue is earned on paper
+        while the cash sits in receivables and stock, and creditors are paid in cash, not in profit.
+
+  - id: b-5_4-short-1
+    type: short-answer
+    topicIds: [b5_4]
+    commandWord: Explain
+    marks: 4
+    paperId: 9609-p1
+    timeSeconds: 340
+    prompt: >
+      A sales manager consistently beats his budget by 15%, and it emerges that he deliberately
+      negotiated a low sales budget at the start of the year. Explain one problem this creates for
+      the business.
+    response: { suggestedWords: 110 }
+    difficulty: { knowledge: 0.35, reasoning: 0.5, calculation: 0.05, language: 0.4, steps: 0.4, unfamiliarContext: 0.35 }
+    markScheme:
+      totalMarks: 4
+      style: points
+      points:
+        - { id: p1, text: "Identifies budgetary slack / deliberately easy targets as the issue.", marks: 1, aoCode: AO1 }
+        - { id: p2, text: "Explains the planning consequence: other budgets (production, purchasing, staffing) are built on the false figure.", marks: 1, aoCode: AO2 }
+        - { id: p3, text: "Develops the chain: the firm under-resources for real demand, or misallocates capacity and cash.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p4, text: "Develops a control/motivation consequence: variances stop meaning anything, or rewards flow to negotiating skill rather than performance.", marks: 1, aoCode: AO3, skillId: sk-chain }
+      modelAnswer: >
+        This is budgetary slack. Budgets are coordination tools, so the false sales figure propagates:
+        production and purchasing plan for the low number, which means the firm systematically
+        under-resources for the demand that actually arrives. It also corrupts control — a 15%
+        favourable variance now signals negotiation skill rather than performance, so management can no
+        longer read variances as information, and bonuses reward the wrong behaviour.
+    commonErrors:
+      - { label: "'It's unfair' only", description: "A fairness complaint with no business consequence developed.", errorType: insufficient-development }
+
+  # -------------------------------------------------- 5.6 / 5.1 finance
+  - id: b-5_1-match-1
+    type: match
+    topicIds: [b5_1]
+    marks: 4
+    prompt: Match each situation to the most appropriate source of finance.
+    difficulty: { knowledge: 0.4, reasoning: 0.5, calculation: 0.05, language: 0.35, steps: 0.3, unfamiliarContext: 0.3 }
+    response:
+      pairs:
+        - { leftId: l1, left: "A retailer needs to cover a two-week gap between paying suppliers and receiving till receipts", rightId: r1, right: Bank overdraft }
+        - { leftId: l2, left: "A profitable private company wants to fund a five-year expansion without new owners or fixed repayments", rightId: r2, right: Retained profit }
+        - { leftId: l3, left: "A manufacturer wants new machinery but must preserve cash and expects to replace it in four years", rightId: r3, right: Leasing }
+        - { leftId: l4, left: "A growing plc needs very large permanent capital and accepts wider ownership", rightId: r4, right: Share issue }
+    markScheme:
+      totalMarks: 4
+      style: points
+      modelAnswer: >
+        Match duration and character of the need to the source: short-term gaps to flexible short-term
+        finance, long-term permanent needs to permanent capital, asset use without ownership to leasing.
+
+  # -------------------------------------------------- 7.1 structure
+  - id: b-7_1-mcq-1
+    type: mcq
+    topicIds: [b7_1]
+    marks: 1
+    prompt: A firm removes two layers of middle management. Which pair of consequences is most likely to follow?
+    difficulty: { knowledge: 0.4, reasoning: 0.5, calculation: 0, language: 0.4, steps: 0.3, unfamiliarContext: 0.25 }
+    response:
+      choices:
+        - { id: a, text: Wider spans of control and faster vertical communication, correct: true }
+        - { id: b, text: Narrower spans of control and slower communication, misconception: "Delayering is the opposite: fewer layers means each remaining manager supervises more people." }
+        - { id: c, text: A longer chain of command and more delegation, misconception: "Removing layers shortens the chain of command; it does not lengthen it." }
+        - { id: d, text: Lower labour costs and narrower spans of control, misconception: "Costs do fall, but spans widen — the two halves of this option contradict each other." }
+    markScheme:
+      totalMarks: 1
+      style: points
+      modelAnswer: >
+        Delayering widens spans of control (the same staff report to fewer managers) and shortens the
+        chain of command, so vertical communication is faster — at the cost of heavier managerial
+        workloads and less close supervision.
+
+  - id: b-7_3-short-1
+    type: short-answer
+    topicIds: [b7_3]
+    commandWord: Discuss
+    marks: 8
+    paperId: 9609-p2
+    timeSeconds: 640
+    prompt: >
+      A software company's founder makes every significant decision herself. The company has grown
+      from 5 to 120 employees in three years, and senior staff have begun to leave, citing "no room
+      to lead". Discuss whether she should change her leadership style.
+    response: { suggestedWords: 260 }
+    difficulty: { knowledge: 0.45, reasoning: 0.7, calculation: 0, language: 0.5, steps: 0.6, unfamiliarContext: 0.4 }
+    markScheme:
+      totalMarks: 8
+      style: points
+      points:
+        - { id: p1, text: "Autocratic style correctly identified, and at least one alternative (democratic, laissez-faire, situational) accurately described.", marks: 2, aoCode: AO1 }
+        - { id: p2, text: "Applied to the case: 120 employees, senior departures, the stated reason for leaving.", marks: 1, aoCode: AO2, skillId: sk-application }
+        - { id: p3, text: "Chain for change: decision load at 120 staff exceeds one person; departures drain the expertise the growth depends on.", marks: 2, aoCode: AO3, skillId: sk-chain }
+        - { id: p4, text: "Chain against / caution: her judgement may be the firm's core asset; sudden delegation without structures can create drift.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p5, text: "Judgement: commits to an answer and names the decisive factor (e.g. retention of senior staff is the binding constraint).", marks: 1, aoCode: AO4, skillId: sk-judgement }
+        - { id: p6, text: "Condition attached: e.g. delegate operational decisions first while retaining product direction; revisit if quality slips.", marks: 1, aoCode: AO4, skillId: sk-judgement }
+      modelAnswer: >
+        A strong answer identifies the style as autocratic, shows why it worked at 5 employees and
+        fails at 120 — the decision queue through one person becomes the binding constraint, and the
+        seniors now leaving are exactly the capacity the firm hired to relieve it — and weighs the real
+        counter-argument that her judgement built the product. It commits: she should move toward
+        delegation for operational decisions while keeping product direction, because losing senior
+        staff destroys more value than any single decision she could make better herself; and it
+        conditions the judgement — if delegated decisions produce quality failures, tighten the scope
+        rather than reverting entirely.
+      examinerNotes: >
+        Discuss: both sides then a judgement. Answers that describe three leadership styles from the
+        textbook without using the case's numbers stall at half marks.
+    commonErrors:
+      - { label: "Style catalogue", description: "Describing autocratic/democratic/laissez-faire in general, with the case appearing only in the first sentence.", errorType: no-application }
+      - { label: "No commitment", description: "'She should consider changing' — consider is not a judgement.", errorType: no-judgement }
+
+  # -------------------------------------------------- 6.1 external influences
+  - id: b-6_1-short-1
+    type: short-answer
+    topicIds: [b6_1]
+    commandWord: Analyse
+    marks: 6
+    paperId: 9609-p3
+    timeSeconds: 480
+    prompt: >
+      A country's central bank raises interest rates from 3% to 6% over one year. Analyse the likely
+      effects on a house-building firm with gearing of 65% that sells mainly to first-time buyers.
+    response: { suggestedWords: 180 }
+    difficulty: { knowledge: 0.45, reasoning: 0.7, calculation: 0.15, language: 0.45, steps: 0.6, unfamiliarContext: 0.4 }
+    markScheme:
+      totalMarks: 6
+      style: points
+      points:
+        - { id: p1, text: "Identifies the two transmission channels: the firm's own borrowing cost, and customers' mortgage affordability.", marks: 1, aoCode: AO1 }
+        - { id: p2, text: "Cost chain using the gearing figure: at 65% gearing, doubling rates sharply raises interest payments on a large debt base.", marks: 1, aoCode: AO2, skillId: sk-application }
+        - { id: p3, text: "Develops: higher interest cost squeezes margins and cash available for land purchases and builds in progress.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p4, text: "Demand chain using the customer profile: first-time buyers are the most mortgage-dependent, price-sensitive segment.", marks: 1, aoCode: AO2, skillId: sk-application }
+        - { id: p5, text: "Develops: monthly affordability falls, so demand falls exactly where this firm sells; completed stock sits unsold.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p6, text: "Combines the two: the squeeze arrives on both sides at once — costs rise as revenue falls — which is the analytical point.", marks: 1, aoCode: AO3, skillId: sk-chain }
+      modelAnswer: >
+        Rate rises hit this firm through two channels simultaneously. With 65% gearing, doubling rates
+        roughly doubles the interest bill on a large debt base, squeezing margin and the cash that
+        funds land and work in progress. On the demand side, first-time buyers are the most
+        mortgage-dependent segment in the market, so monthly affordability falls precisely where this
+        firm sells, leaving completed houses unsold. The analytical point is the combination: costs
+        rise while revenue falls, so the firm is squeezed from both ends at once — a position a
+        low-geared builder selling to cash-rich downsizers would not share.
+      examinerNotes: "Analyse — the sixth mark rewards connecting the two channels, not adding a recommendation."
+    commonErrors:
+      - { label: "One channel only", description: "Cost effect or demand effect analysed, not both, and never combined.", errorType: insufficient-development }

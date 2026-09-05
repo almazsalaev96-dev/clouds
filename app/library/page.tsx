@@ -13,6 +13,7 @@
 
 import Link from "next/link";
 import { getBundle, getDiagnostics } from "@/content/bundle";
+import { ReportedIssues } from "@/ui/reported-issues";
 import { childTopics } from "@/domain/curriculum";
 
 export const dynamic = "force-dynamic";
@@ -164,6 +165,8 @@ export default function LibraryPage() {
           </div>
         </section>
       )}
+
+      <ReportedIssues />
 
       <section className="card">
         <div className="card-head"><h2 className="card-title">Adding material</h2></div>

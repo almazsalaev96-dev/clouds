@@ -44,6 +44,8 @@ export interface SubjectView {
   openMistakes: number;
   coverage: number;
   attemptCount: number;
+  /** Topics the student declined for today; they return tomorrow. */
+  dismissedToday: number;
 }
 
 /** Attempts joined to their questions, restricted to one syllabus. */
@@ -201,7 +203,21 @@ export function buildSubjectView(
   const lossProfile = buildLossProfile(mistakes);
   const lossByTopic = new Map(lossProfile.byTopic.map((r) => [r.topicId, r.marks]));
 
-  const priorities = buildPriorities(syllabus, enrolment, topicMastery, topicRetention, lossByTopic, now);
+  // "Not today" is a real control, not a sentiment survey: a topic the student
+  // dismissed today is moved out of today's ranking entirely and returns
+  // tomorrow. Advice that cannot be declined is nagging, and nagging gets the
+  // whole page ignored.
+  const today = now.slice(0, 10);
+  const dismissedToday = new Set(
+    state.feedback
+      .filter((f) => f.kind === "priority-dismiss" && f.at.slice(0, 10) === today)
+      .map((f) => f.subject)
+      // Scope to this syllabus, or a dismissal in one subject would inflate
+      // the "n dismissed today" count shown in every other subject's view.
+      .filter((topicId) => syllabusTopicIds.has(topicId)),
+  );
+  const rankedAll = buildPriorities(syllabus, enrolment, topicMastery, topicRetention, lossByTopic, now);
+  const priorities = rankedAll.filter((p) => !dismissedToday.has(p.topicId));
 
   // --- readiness ----------------------------------------------------------
   const leaves = syllabus.topics.filter((t) => childTopics(syllabus, t.id).length === 0);
@@ -267,6 +283,7 @@ export function buildSubjectView(
     openMistakes: dueForRedo(mistakes, now, 999).length,
     coverage,
     attemptCount: joined.length,
+    dismissedToday: dismissedToday.size,
   };
 }
 

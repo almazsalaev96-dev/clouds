@@ -1,0 +1,371 @@
+# One well-made question per previously-uncovered topic, so every leaf topic in
+# the syllabus is practisable and measurable. Depth per topic grows from here;
+# an untested topic is treated as unlearned by every engine, so breadth first.
+syllabusId: "9609"
+defaults:
+  source:
+    kind: original
+    licence: owned
+    attribution: Written for Lodestar in the style of Cambridge 9609. Not a past-paper question.
+  quality: { reviewStatus: human-reviewed, confidence: 0.85 }
+
+questions:
+  - id: b-1_3-calc-1
+    type: numeric
+    topicIds: [b1_3]
+    commandWord: Calculate
+    marks: 2
+    timeSeconds: 150
+    prompt: >
+      A firm's revenue is $4.6 million in a market with total sales of $23 million.
+      Calculate its market share.
+    response: { unit: "%", workingSpace: true }
+    difficulty: { knowledge: 0.2, reasoning: 0.25, calculation: 0.3, language: 0.2, steps: 0.25, unfamiliarContext: 0.1 }
+    markScheme:
+      totalMarks: 2
+      style: points
+      acceptedValues: [{ value: 20, tolerance: 0.05, unit: "%" }]
+      points:
+        - { id: p1, text: "Correct formula: firm's sales ÷ total market sales × 100", marks: 1, aoCode: AO1, skillId: sk-calculation }
+        - { id: p2, text: "Answer 20%, expressed as a percentage", marks: 1, aoCode: AO2 }
+      modelAnswer: "Market share = (4.6 ÷ 23) × 100 = 20%"
+    commonErrors:
+      - { label: "Forgot ×100", description: "0.2 is a ratio; the question asks for a share, expressed as a percentage.", errorType: rounding-error }
+
+  - id: b-2_1-mcq-1
+    type: mcq
+    topicIds: [b2_1]
+    marks: 1
+    prompt: A hotel's annual labour turnover is 45%, against an industry average of 28%. Which of the following is a genuine COST of this high turnover, rather than a possible benefit?
+    difficulty: { knowledge: 0.35, reasoning: 0.45, calculation: 0.05, language: 0.35, steps: 0.25, unfamiliarContext: 0.2 }
+    response:
+      choices:
+        - { id: a, text: New employees may bring fresh ideas into the hotel, misconception: "That is the standard BENEFIT of some turnover — the question asks for a cost." }
+        - { id: b, text: Repeated recruitment, induction and training expenditure, correct: true }
+        - { id: c, text: The hotel can restructure roles as people leave, misconception: "Vacancies creating restructuring flexibility is a benefit of turnover, not a cost." }
+        - { id: d, text: Average wage costs may fall as long-serving staff are replaced, misconception: "Replacing senior staff with cheaper juniors reduces the wage bill — a benefit in cash terms, whatever it does to quality." }
+    markScheme:
+      totalMarks: 1
+      style: points
+      modelAnswer: >
+        Turnover has real benefits (new ideas, flexibility, lower wages) and real costs (recruitment,
+        induction, lost experience, service inconsistency). At 45% versus an industry 28%, the costs
+        recur constantly — and in a service business the lost experience shows up directly in
+        customer-facing quality.
+
+  - id: b-3_1-tf-1
+    type: true-false
+    topicIds: [b3_1]
+    marks: 1
+    prompt: "True or false: a market-orientated business decides what it can make first, then tries to persuade customers to buy it."
+    difficulty: { knowledge: 0.25, reasoning: 0.3, calculation: 0, language: 0.3, steps: 0.15, unfamiliarContext: 0.1 }
+    response:
+      choices:
+        - { id: t, text: "True", misconception: "That describes PRODUCT orientation. Market orientation starts from researched customer needs and builds the product to meet them." }
+        - { id: f, text: "False", correct: true }
+    markScheme:
+      totalMarks: 1
+      style: points
+      modelAnswer: >
+        False — that is product orientation. A market-orientated business identifies customer needs
+        through research first and develops products to satisfy them, reducing the risk of making
+        something nobody wants.
+
+  - id: b-4_1-mcq-1
+    type: mcq
+    topicIds: [b4_1]
+    marks: 1
+    prompt: A furniture maker switches from producing unique made-to-order pieces to producing standard bookcases in groups of 200. This is a move from —
+    difficulty: { knowledge: 0.3, reasoning: 0.3, calculation: 0, language: 0.3, steps: 0.2, unfamiliarContext: 0.15 }
+    response:
+      choices:
+        - { id: a, text: job production to batch production, correct: true }
+        - { id: b, text: batch production to flow production, misconception: "Unique made-to-order pieces are job production, not batch; and groups of 200 with changeovers between them are batches, not continuous flow." }
+        - { id: c, text: flow production to job production, misconception: "This is backwards on both ends." }
+        - { id: d, text: job production to flow production, misconception: "Flow is continuous production of identical items with no distinct groups; producing in groups of 200 is batch." }
+    markScheme:
+      totalMarks: 1
+      style: points
+      modelAnswer: >
+        Job → batch. Job production makes one-off items to order; batch moves groups of identical
+        items through each stage together; flow produces continuously. The trade-off runs from
+        flexibility (job) to unit cost (flow).
+
+  - id: b-4_4-short-1
+    type: short-answer
+    topicIds: [b4_4]
+    commandWord: Explain
+    marks: 4
+    paperId: 9609-p1
+    timeSeconds: 340
+    prompt: >
+      A clothing manufacturer relies on inspecting finished garments and discarding faulty ones,
+      rejecting about 8% of output. Explain one advantage to this business of moving toward quality
+      assurance instead.
+    response: { suggestedWords: 110 }
+    difficulty: { knowledge: 0.35, reasoning: 0.5, calculation: 0.1, language: 0.4, steps: 0.4, unfamiliarContext: 0.3 }
+    markScheme:
+      totalMarks: 4
+      style: points
+      points:
+        - { id: p1, text: "Distinction shown: quality control inspects output at the end; quality assurance builds checking into every stage to prevent faults.", marks: 1, aoCode: AO1 }
+        - { id: p2, text: "Applied: the 8% rejection means materials, labour and machine time are fully spent on garments that are then thrown away.", marks: 1, aoCode: AO2, skillId: sk-application }
+        - { id: p3, text: "Chain: catching defects at the stage they occur means less value has been added to a faulty item before it is caught.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p4, text: "Consequence: waste cost falls and the causes of faults become visible and fixable, so the 8% itself shrinks over time.", marks: 1, aoCode: AO3, skillId: sk-chain }
+      modelAnswer: >
+        Inspection at the end is quality control: every rejected garment has already consumed its full
+        materials, labour and machine time. Quality assurance builds checks into each stage, so a
+        fault is caught when only part of that value has been added — and because each stage owns its
+        own quality, the causes of the 8% become visible and fixable rather than merely filtered out.
+        The advantage is that waste cost falls now and the defect rate itself falls over time.
+
+  - id: b-5_6-mcq-1
+    type: mcq
+    topicIds: [b5_6]
+    marks: 1
+    prompt: Which of the following appears on a statement of financial position (balance sheet), rather than on an income statement?
+    difficulty: { knowledge: 0.3, reasoning: 0.3, calculation: 0, language: 0.35, steps: 0.2, unfamiliarContext: 0.15 }
+    response:
+      choices:
+        - { id: a, text: Revenue for the year, misconception: "Revenue is a flow over a period — income statement." }
+        - { id: b, text: Non-current liabilities, correct: true }
+        - { id: c, text: Cost of sales, misconception: "Cost of sales is deducted from revenue on the income statement." }
+        - { id: d, text: Operating profit, misconception: "Profit is the income statement's result. The balance sheet shows position at a date, not performance over a period." }
+    markScheme:
+      totalMarks: 1
+      style: points
+      modelAnswer: >
+        The test is flow versus position: the income statement reports flows over a period (revenue,
+        costs, profit); the statement of financial position reports what is owned and owed at one
+        date (assets, liabilities, equity). Non-current liabilities are a position item.
+
+  - id: b-6_3-short-1
+    type: short-answer
+    topicIds: [b6_3]
+    commandWord: Explain
+    marks: 4
+    paperId: 9609-p4
+    timeSeconds: 340
+    prompt: >
+      A retailer's board approved a five-year corporate plan last year. Since then, a major
+      competitor has collapsed and inflation has doubled. Explain why the business should treat its
+      corporate plan as a working document rather than a fixed commitment.
+    response: { suggestedWords: 110 }
+    difficulty: { knowledge: 0.35, reasoning: 0.55, calculation: 0, language: 0.4, steps: 0.4, unfamiliarContext: 0.35 }
+    markScheme:
+      totalMarks: 4
+      style: points
+      points:
+        - { id: p1, text: "Corporate plan correctly understood: long-term objectives plus the strategy and resources to achieve them.", marks: 1, aoCode: AO1 }
+        - { id: p2, text: "Applied: both named changes alter the plan's premises — a collapsed rival changes the competitive map; doubled inflation changes cost and pricing assumptions.", marks: 1, aoCode: AO2, skillId: sk-application }
+        - { id: p3, text: "Chain: executing a plan whose assumptions have failed means resourcing yesterday's strategy — e.g. missing the chance to capture the rival's customers.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p4, text: "Balance retained: the plan still provides direction and coordination; the point is scheduled review, not abandonment.", marks: 1, aoCode: AO3 }
+      modelAnswer: >
+        A corporate plan sets long-term objectives and the strategy and resources to achieve them —
+        built on assumptions about the environment. Both named events break those assumptions: the
+        rival's collapse creates a customer-capture opportunity the plan never priced in, and doubled
+        inflation invalidates its cost and margin arithmetic. Executing it unchanged means resourcing
+        yesterday's strategy. The plan should still anchor direction and coordination; the discipline
+        is scheduled review against reality, not abandonment.
+
+  - id: b-7_2-mcq-1
+    type: mcq
+    topicIds: [b7_2]
+    marks: 1
+    prompt: A factory manager emails a safety procedure to 300 staff. Later checks show most did not read it. In communication terms, the failure is best described as —
+    difficulty: { knowledge: 0.3, reasoning: 0.4, calculation: 0, language: 0.35, steps: 0.25, unfamiliarContext: 0.2 }
+    response:
+      choices:
+        - { id: a, text: noise in the channel, misconception: "Noise is interference that distorts a message in transit. The email arrived intact; it was never engaged with." }
+        - { id: b, text: a poorly chosen medium with no feedback loop, correct: true }
+        - { id: c, text: a failure of upward communication, misconception: "This is downward communication (manager to staff). The failure is in how it was sent, not its direction." }
+        - { id: d, text: information overload caused by the grapevine, misconception: "The grapevine is informal communication between staff; it plays no role here." }
+    markScheme:
+      totalMarks: 1
+      style: points
+      modelAnswer: >
+        Effective communication needs the right medium for the message and a feedback mechanism that
+        confirms receipt and understanding. A mass email for a safety-critical procedure provides
+        neither — a briefing with confirmation, or training with sign-off, matches the stakes.
+
+  - id: b-7_4-mcq-1
+    type: mcq
+    topicIds: [b7_4]
+    marks: 1
+    prompt: A supermarket keeps a small core of full-time managers and meets weekend peaks with part-time and agency staff. This workforce design is best described as —
+    difficulty: { knowledge: 0.35, reasoning: 0.35, calculation: 0, language: 0.35, steps: 0.2, unfamiliarContext: 0.2 }
+    response:
+      choices:
+        - { id: a, text: hard HRM only — treating all labour as a cost to minimise, misconception: "The core staff are developed and retained, which is soft HRM; the design mixes approaches by group." }
+        - { id: b, text: a core and peripheral workforce (workforce flexibility), correct: true }
+        - { id: c, text: delayering, misconception: "Delayering removes management layers; it says nothing about part-time and agency staffing." }
+        - { id: d, text: workforce planning failure, misconception: "This IS workforce planning — matching labour supply to a predictably uneven demand pattern." }
+    markScheme:
+      totalMarks: 1
+      style: points
+      modelAnswer: >
+        A core of permanent, developed staff surrounded by a flexible periphery of part-time,
+        temporary and agency labour. It matches capacity to demand peaks at low cost, at the price of
+        lower commitment and higher training burden at the edges.
+
+  - id: b-8_2-order-1
+    type: order
+    topicIds: [b8_2]
+    marks: 4
+    prompt: Put the stages of the product life cycle in order, from launch onward.
+    difficulty: { knowledge: 0.25, reasoning: 0.25, calculation: 0, language: 0.2, steps: 0.3, unfamiliarContext: 0.1 }
+    response:
+      sequence:
+        - { id: s1, text: "Introduction — low sales, heavy promotion, usually loss-making" }
+        - { id: s2, text: "Growth — sales accelerate, competitors enter, first profits" }
+        - { id: s3, text: "Maturity — sales peak and flatten, competition on price and differentiation" }
+        - { id: s4, text: "Decline — sales fall; extension strategies or withdrawal" }
+    markScheme:
+      totalMarks: 4
+      style: points
+      modelAnswer: >
+        Introduction → growth → maturity → decline. The exam value is what each stage implies for the
+        mix: pricing, promotion spend and cash flow all change stage by stage, and extension
+        strategies are attempts to hold maturity.
+
+  - id: b-8_3-mcq-1
+    type: mcq
+    topicIds: [b8_3]
+    marks: 1
+    prompt: An ice-cream producer uses a four-quarter moving average on its sales data. The main purpose of doing this is to —
+    difficulty: { knowledge: 0.35, reasoning: 0.45, calculation: 0.15, language: 0.4, steps: 0.3, unfamiliarContext: 0.2 }
+    response:
+      choices:
+        - { id: a, text: remove the seasonal pattern so the underlying trend is visible, correct: true }
+        - { id: b, text: make the forecast exact, misconception: "No smoothing technique makes a forecast exact; it reveals a trend that still has to be extrapolated with judgement." }
+        - { id: c, text: exaggerate seasonal peaks so capacity can be planned, misconception: "A moving average does the opposite — averaging across four quarters cancels the seasonal swings." }
+        - { id: d, text: increase this year's sales, misconception: "Analysis describes sales; it cannot change them." }
+    markScheme:
+      totalMarks: 1
+      style: points
+      modelAnswer: >
+        Averaging across a full year of quarters cancels the within-year seasonal swings, exposing the
+        underlying trend, which can then be extrapolated. The seasonal variation is calculated
+        separately and re-applied to trend forecasts for specific quarters.
+
+  - id: b-8_4-short-1
+    type: short-answer
+    topicIds: [b8_4]
+    commandWord: Explain
+    marks: 4
+    paperId: 9609-p3
+    timeSeconds: 340
+    prompt: >
+      A snack brand successful in its home market plans to enter an overseas market by selling
+      exactly the same product with the same advertising. Explain one risk of this approach.
+    response: { suggestedWords: 110 }
+    difficulty: { knowledge: 0.35, reasoning: 0.5, calculation: 0, language: 0.4, steps: 0.4, unfamiliarContext: 0.4 }
+    markScheme:
+      totalMarks: 4
+      style: points
+      points:
+        - { id: p1, text: "Identifies this as an undifferentiated / pan-global approach versus adapting the mix to local markets.", marks: 1, aoCode: AO1 }
+        - { id: p2, text: "Names a concrete dimension of difference: taste preferences, dietary or religious norms, language of the advertising, local regulation.", marks: 1, aoCode: AO2, skillId: sk-application }
+        - { id: p3, text: "Chain: a mix tuned to home preferences can misfire abroad — the message may not translate, or the product may not fit local usage.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p4, text: "Consequence: weak sales AND damage to the brand's first impression, which is expensive to reverse in a new market.", marks: 1, aoCode: AO3, skillId: sk-chain }
+      modelAnswer: >
+        Selling an unchanged mix abroad assumes home preferences travel. A snack tuned to home tastes
+        may conflict with local flavour preferences, dietary norms or labelling law, and advertising
+        built on home idiom can translate badly or cause offence. The risk is not just weak initial
+        sales: a failed first impression defines the brand in the new market, and repositioning after
+        a bad launch costs far more than adapting the mix beforehand would have.
+
+  - id: b-9_1-short-1
+    type: short-answer
+    topicIds: [b9_1]
+    commandWord: Explain
+    marks: 4
+    paperId: 9609-p3
+    timeSeconds: 340
+    prompt: >
+      A drinks manufacturer doubles the size of its bottling plant and finds its unit costs fall
+      from $0.31 to $0.24. Explain how economies of scale produce this effect.
+    response: { suggestedWords: 110 }
+    difficulty: { knowledge: 0.35, reasoning: 0.45, calculation: 0.15, language: 0.35, steps: 0.35, unfamiliarContext: 0.2 }
+    markScheme:
+      totalMarks: 4
+      style: points
+      points:
+        - { id: p1, text: "Economies of scale correctly defined: unit costs falling as the scale of output rises.", marks: 1, aoCode: AO1 }
+        - { id: p2, text: "One internal economy named and applied: technical (larger, more efficient machinery), purchasing (bulk discounts on inputs), managerial, or financial.", marks: 1, aoCode: AO2 }
+        - { id: p3, text: "Chain: fixed costs spread over more units, and/or variable cost per unit falls through the named economy.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p4, text: "Balance or limit: the effect is not unlimited — diseconomies (coordination, communication) eventually reverse it.", marks: 1, aoCode: AO3 }
+      modelAnswer: >
+        Economies of scale are falls in unit cost as output rises. Doubling the plant lets fixed costs
+        — the building, the bottling line, management — spread across twice the output, and brings
+        purchasing economies as bottle and ingredient orders double, earning bulk discounts. Both
+        push the cost per bottle from $0.31 toward $0.24. The effect has a limit: beyond some scale,
+        coordination and communication costs grow faster than the savings, and unit costs turn up
+        again.
+
+  - id: b-9_2-mcq-1
+    type: mcq
+    topicIds: [b9_2]
+    marks: 1
+    prompt: The essential difference between Total Quality Management (TQM) and traditional quality inspection is that TQM —
+    difficulty: { knowledge: 0.35, reasoning: 0.4, calculation: 0, language: 0.4, steps: 0.25, unfamiliarContext: 0.2 }
+    response:
+      choices:
+        - { id: a, text: makes quality every employee's responsibility at every stage, correct: true }
+        - { id: b, text: uses more inspectors at the end of the line, misconception: "TQM aims to make end-of-line inspection nearly redundant, not to expand it." }
+        - { id: c, text: applies only to manufacturing businesses, misconception: "TQM originated in manufacturing but applies at least as strongly to services." }
+        - { id: d, text: guarantees zero defects immediately, misconception: "Zero defects is the aspiration of a continuous-improvement culture, not a guarantee TQM delivers on day one." }
+    markScheme:
+      totalMarks: 1
+      style: points
+      modelAnswer: >
+        TQM is a culture in which every employee treats the next stage of the process as their
+        customer and owns the quality of their own output — as against a system where quality is one
+        department's job, applied at the end.
+
+  - id: b-9_3-tf-1
+    type: true-false
+    topicIds: [b9_3]
+    marks: 1
+    prompt: "True or false: the purpose of lean production is to produce as much output as possible."
+    difficulty: { knowledge: 0.3, reasoning: 0.35, calculation: 0, language: 0.3, steps: 0.2, unfamiliarContext: 0.15 }
+    response:
+      choices:
+        - { id: t, text: "True", misconception: "Lean is about eliminating WASTE — excess inventory, waiting, defects, over-production. Over-production is itself one of the wastes lean removes." }
+        - { id: f, text: "False", correct: true }
+    markScheme:
+      totalMarks: 1
+      style: points
+      modelAnswer: >
+        False. Lean production minimises waste in all its forms — inventory, waiting time, transport,
+        defects, and over-production itself. Producing more than demand requires is exactly the
+        failure mode lean exists to remove.
+
+  - id: b-10_3-short-1
+    type: short-answer
+    topicIds: [b10_3]
+    commandWord: Explain
+    marks: 4
+    paperId: 9609-p4
+    timeSeconds: 340
+    prompt: >
+      A family-controlled company needs $5 million for a ten-year expansion. The board is split
+      between a ten-year bank loan and issuing new shares to outside investors. Explain one factor
+      the board should consider when choosing between them.
+    response: { suggestedWords: 110 }
+    difficulty: { knowledge: 0.4, reasoning: 0.55, calculation: 0.1, language: 0.4, steps: 0.4, unfamiliarContext: 0.35 }
+    markScheme:
+      totalMarks: 4
+      style: points
+      points:
+        - { id: p1, text: "A relevant factor identified: control dilution, gearing/interest burden, repayment obligation versus dividend expectations, or matching duration to the asset.", marks: 1, aoCode: AO1 }
+        - { id: p2, text: "Applied to this firm: family control makes dilution unusually costly here; or existing gearing determines how much debt is safe.", marks: 1, aoCode: AO2, skillId: sk-application }
+        - { id: p3, text: "Chain developed: e.g. debt preserves control but commits fixed interest and repayment whatever trading conditions are.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p4, text: "Counter-consequence acknowledged: equity has no repayment but permanently shares ownership and future profits.", marks: 1, aoCode: AO3, skillId: sk-chain }
+      modelAnswer: >
+        The decisive factor for this firm is control. A share issue brings in $5m with no repayment
+        obligation, but outside shareholders permanently dilute the family's ownership and share in
+        every future profit — the thing a family-controlled board typically most wants to avoid. The
+        loan preserves control entirely, at the cost of fixed interest and repayment that must be met
+        in bad years as well as good, so the safe choice depends on how stable the expansion's cash
+        flows are and how much gearing the balance sheet already carries.

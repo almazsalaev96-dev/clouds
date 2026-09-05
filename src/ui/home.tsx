@@ -24,12 +24,14 @@ import { generateSession } from "@/domain/planner";
 import { ACTION_COPY } from "@/domain/priority";
 import { VERDICT_COPY } from "@/domain/readiness";
 import { retentionState } from "@/domain/mastery";
+import { cramFocus } from "@/domain/planner";
+import { minutesPerMark } from "@/domain/curriculum";
 import { rollupByDay, studyStreak } from "@/domain/events";
 import { Card, Callout, Chip, Meter, Stat, Why, Empty, relativeDays, Pct } from "./components";
 import { Ring, Sparkline } from "./charts";
 
 export function CommandCentre() {
-  const { state } = useStore();
+  const { state, update, record } = useStore();
   const bundle = useContent();
   const now = new Date().toISOString();
 
@@ -110,6 +112,10 @@ export function CommandCentre() {
           </p>
         )}
       </header>
+
+      {view.daysToExam !== undefined && view.daysToExam <= 1 && view.daysToExam >= -1 && (
+        <ExamDayPanel view={view} />
+      )}
 
       {/* ------------------------------------------------------- the numbers */}
       <div className="grid four">
@@ -214,6 +220,21 @@ export function CommandCentre() {
                     <span className="row" style={{ gap: 6 }}>
                       <Chip tone="accent">{ACTION_COPY[p.action].verb}</Chip>
                       <span className="num tiny muted">{p.marksPerHour.toFixed(1)} m/h</span>
+                      <button
+                        className="btn ghost small"
+                        title="Not today — removes this from today's ranking; it returns tomorrow"
+                        aria-label={`Dismiss ${topic.title} for today`}
+                        onClick={() => {
+                          const at = new Date().toISOString();
+                          update((prev) => ({
+                            ...prev,
+                            feedback: [...prev.feedback, { at, kind: "priority-dismiss", subject: p.topicId, useful: false }],
+                          }));
+                          record({ type: "recommendation_dismissed", at, kind: "priority", subject: p.topicId });
+                        }}
+                      >
+                        ✕
+                      </button>
                     </span>
                   </div>
                   <Meter value={m?.score ?? 0} target={0.88} tone={retentionState(view.topicRetention.get(p.topicId) ?? 0)} label={`${topic.title} mastery`} />
@@ -224,6 +245,26 @@ export function CommandCentre() {
           </div>
           <p className="tiny muted" style={{ marginTop: 10 }}>
             Ranked by expected marks gained per hour of study — not by how incomplete each topic looks.
+            {view.dismissedToday > 0 && (
+              <>
+                {" "}{view.dismissedToday} topic{view.dismissedToday === 1 ? "" : "s"} dismissed for today —{" "}
+                <button
+                  className="btn ghost small"
+                  style={{ padding: "0 4px", fontSize: "0.76rem" }}
+                  onClick={() => {
+                    const today = new Date().toISOString().slice(0, 10);
+                    update((prev) => ({
+                      ...prev,
+                      feedback: prev.feedback.filter(
+                        (f) => !(f.kind === "priority-dismiss" && f.at.slice(0, 10) === today),
+                      ),
+                    }));
+                  }}
+                >
+                  undo
+                </button>
+              </>
+            )}
           </p>
         </Card>
 
@@ -287,4 +328,59 @@ function greeting(): string {
   if (h < 12) return "Morning";
   if (h < 18) return "Afternoon";
   return "Evening";
+}
+
+
+/**
+ * Exam-day panel.
+ *
+ * Appears only in the final 24 hours and on the day itself, and shows only what
+ * is useful then: the paper's own timing arithmetic, the pre-committed if–then
+ * rules that survive panic when good intentions do not, and nothing that could
+ * start a new line of study. A calm surface, deliberately — the worst thing a
+ * revision product can do on exam morning is look busy.
+ */
+function ExamDayPanel({ view }: { view: SubjectView }) {
+  const focus = cramFocus(Math.max(0, view.daysToExam ?? 0));
+  return (
+    <Card lift>
+      <div className="stack tight">
+        <div className="row between">
+          <h2>{focus.title} — {view.syllabus.subject}</h2>
+          <Chip tone="accent">{view.daysToExam === 0 ? "today" : "tomorrow"}</Chip>
+        </div>
+
+        <div className="scroll-x">
+          <table className="table">
+            <thead>
+              <tr><th>Paper</th><th className="num">Time</th><th className="num">Marks</th><th className="num">Min / mark</th><th>Sections</th></tr>
+            </thead>
+            <tbody>
+              {view.syllabus.papers.map((p) => (
+                <tr key={p.id}>
+                  <td className="small"><strong>P{p.code}</strong> {p.name}</td>
+                  <td className="num">{p.durationMinutes}m</td>
+                  <td className="num">{p.rawMarks}</td>
+                  <td className="num">{minutesPerMark(p).toFixed(1)}</td>
+                  <td className="small muted">
+                    {p.sections.map((sec) => `${sec.code}: ${sec.marks} marks`).join(" · ") || "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <ul className="small" style={{ paddingLeft: 18, margin: 0 }}>
+          {focus.points.map((pt, i) => <li key={i} style={{ marginBottom: 4 }}>{pt}</li>)}
+        </ul>
+
+        <Callout kind="info" title="Pre-commit these if–then rules — they survive panic; intentions don't">
+          If I don&rsquo;t know an answer, then I write the definition and move on. If a question&rsquo;s time is
+          up, then I stop mid-sentence. If my heart races, then that is my body getting ready — fuel,
+          not a warning.
+        </Callout>
+      </div>
+    </Card>
+  );
 }

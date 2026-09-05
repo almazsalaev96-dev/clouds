@@ -31,6 +31,7 @@ import { buildLossProfile, mistakeStatus, repairLadder, dueForRedo, type Mistake
 import { markObjectively, scoreLedger, overallDifficulty, EVEN_DIFFICULTY, type Question, type Attempt } from "./question";
 import { aoMarkSplit, aoTotals, minutesPerMark, effectiveExamWeight, absoluteExamWeight, type Syllabus } from "./curriculum";
 import { calibration, rollupByDay, studyStreak, type LearningEvent } from "./events";
+import { buildPeriodReport, consistency } from "./review-report";
 import { addDays, id } from "./types";
 
 const NOW = "2026-03-01T09:00:00.000Z";
@@ -783,5 +784,50 @@ describe("forecast honesty", () => {
     const input = inputWith(2, [{ at: NOW, fraction: 0.62 }]);
     const f = forecastGrade(computeReadiness(input), input, syllabus, "A");
     expect(f.sufficient).toBe(true);
+  });
+});
+
+describe("period reports", () => {
+  const day = (n: number) => addDays(NOW, -n);
+  const answer = (at: string, score: number, max: number, topic = "t1"): LearningEvent => ({
+    type: "question_answered", at, questionId: `q-${at}-${score}`, topicIds: [topic],
+    score, maxScore: max, timeSpent: 120, mode: "practice",
+  });
+  const loss = (at: string, category: string, marks: number): LearningEvent => ({
+    type: "mark_lost", at, questionId: "q", topicIds: ["t1"], category: category as never, marks,
+  });
+
+  it("refuses to draw conclusions from a quiet week", () => {
+    const r = buildPeriodReport([answer(day(2), 3, 4)], NOW, 7, "This week");
+    expect(r.quiet).toBe(true);
+    expect(r.instruction).toContain("Too little to draw conclusions");
+  });
+
+  it("identifies an entrenched failure across two periods", () => {
+    const events: LearningEvent[] = [];
+    for (let i = 0; i < 8; i++) events.push(answer(day(i % 6), 2, 4));
+    for (let i = 0; i < 8; i++) events.push(answer(day(8 + (i % 6)), 2, 4));
+    for (let i = 0; i < 4; i++) events.push(loss(day(i), "no-chain", 2));
+    for (let i = 0; i < 4; i++) events.push(loss(day(9 + i), "no-chain", 2));
+    const r = buildPeriodReport(events, NOW, 7, "This week");
+    expect(r.recurringLoss?.category).toBe("no-chain");
+    expect(r.headline).toContain("did last period too");
+    expect(r.instruction).toContain("entrenched");
+  });
+
+  it("does not report topic movement from thin evidence", () => {
+    const events = [answer(day(1), 4, 4, "t1"), answer(day(9), 0, 4, "t1")];
+    const r = buildPeriodReport(events, NOW, 7, "This week");
+    expect(r.topicsImproved).toHaveLength(0);
+    expect(r.topicsSlipped).toHaveLength(0);
+  });
+
+  it("reads a fall in accuracy as possible difficulty increase, not decline", () => {
+    const events: LearningEvent[] = [];
+    for (let i = 0; i < 6; i++) events.push(answer(day(i), 1, 4));
+    for (let i = 0; i < 6; i++) events.push(answer(day(8 + i), 4, 4));
+    const r = buildPeriodReport(events, NOW, 7, "This week");
+    expect(r.accuracyChange).toBeLessThan(0);
+    expect(r.instruction).toContain("difficulty rose");
   });
 });

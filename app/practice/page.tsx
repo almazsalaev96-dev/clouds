@@ -10,8 +10,9 @@ function Inner() {
   const { ready } = useStore();
   if (!ready) return <p className="muted small">Loading…</p>;
   const topic = params.get("topic") ?? undefined;
+  const command = params.get("command") ?? undefined;
   const mode = (params.get("mode") as AttemptMode | null) ?? "adaptive";
-  return <Practice initialTopicId={topic} mode={mode} />;
+  return <Practice initialTopicId={topic} initialCommandWord={command} mode={mode} />;
 }
 
 export default function PracticePage() {

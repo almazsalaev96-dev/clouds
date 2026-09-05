@@ -30,6 +30,8 @@ import {
   MARK_LOSS_LABELS,
 } from "@/domain/question";
 import { SELF_MARK_REASONS } from "@/store/types";
+import { useContent, useStore } from "@/store/provider";
+import { aoSplitForQuestion, findCommandWord } from "@/domain/curriculum";
 import { Callout, Card, Chip, Timer, useTicker, Marks, round1 } from "./components";
 
 /** Shape returned by POST /api/ai/mark. */
@@ -106,7 +108,10 @@ export function QuestionView({
             <Chip>{question.marks} mark{question.marks === 1 ? "" : "s"}</Chip>
             {question.source.kind === "ai-generated" && <Chip tone="fading">AI-generated</Chip>}
           </div>
-          <Timer seconds={elapsed} budgetSeconds={question.timeSeconds} running={phase === "answering"} />
+          <div className="row" style={{ gap: 8 }}>
+            <ReportProblem questionId={question.id} />
+            <Timer seconds={elapsed} budgetSeconds={question.timeSeconds} running={phase === "answering"} />
+          </div>
         </div>
 
         {question.stimulus && (
@@ -130,9 +135,11 @@ export function QuestionView({
           </div>
         )}
 
-        <p style={{ fontFamily: "var(--serif)", fontSize: "1.14rem", lineHeight: 1.55, marginBottom: 18 }}>
+        <p style={{ fontFamily: "var(--serif)", fontSize: "1.14rem", lineHeight: 1.55, marginBottom: 8 }}>
           {question.prompt}
         </p>
+
+        <Deconstruction question={question} />
 
         <ResponseInput
           question={question}
@@ -844,4 +851,113 @@ function buildResult(
       mode,
     },
   };
+}
+
+
+/**
+ * One-click content-quality feedback. A question bank rots quietly — a wrong
+ * accepted value or an ambiguous prompt survives for months unless the person
+ * who hits it can flag it in two seconds, from the question itself, without
+ * breaking their session. Reports land in the event log and surface on the
+ * Library page.
+ */
+function ReportProblem({ questionId }: { questionId: string }) {
+  const { record } = useStore();
+  const [open, setOpen] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  if (sent) return <span className="tiny muted">Reported — thank you</span>;
+
+  if (!open) {
+    return (
+      <button className="btn ghost small" onClick={() => setOpen(true)} title="Report a problem with this question">
+        ⚑
+      </button>
+    );
+  }
+
+  const report = (issue: string) => {
+    record({ type: "content_reported", at: new Date().toISOString(), questionId, issue });
+    setSent(true);
+    setOpen(false);
+  };
+
+  return (
+    <span className="row" style={{ gap: 4 }}>
+      {["Wrong answer", "Ambiguous", "Marks don't add up", "Wrong topic", "Other"].map((issue) => (
+        <button key={issue} className="btn small" onClick={() => report(issue)}>
+          {issue}
+        </button>
+      ))}
+      <button className="btn ghost small" onClick={() => setOpen(false)}>✕</button>
+    </span>
+  );
+}
+
+
+/**
+ * Question deconstruction.
+ *
+ * Teaches the reading of exams, not just the answering of them: what the
+ * command word licenses, where this question's marks sit by assessment
+ * objective, and what the time budget implies. Collapsed by default — the goal
+ * is that the student internalises the habit, not that they lean on the panel —
+ * and everything in it is derived from the pack's own command-word definitions
+ * and published AO weightings, never invented per question.
+ */
+function Deconstruction({ question }: { question: Question }) {
+  const bundle = useContent();
+  const syllabus = bundle.syllabuses.find((x) => x.id === question.syllabusId);
+  if (!syllabus) return null;
+
+  const cw = question.commandWord ? findCommandWord(syllabus, question.commandWord) : undefined;
+  const split = question.aoMarks
+    ? Object.entries(question.aoMarks).map(([aoCode, marks]) => ({ aoCode, marks }))
+    : question.paperId
+      ? aoSplitForQuestion(syllabus, question.paperId, question.marks).filter((r) => r.marks > 0)
+      : [];
+
+  if (!cw && split.length === 0) return null;
+
+  const higher = split.filter((r) => /3|4/.test(r.aoCode)).reduce((t, r) => t + r.marks, 0);
+  const minutes = Math.round(question.timeSeconds / 60);
+
+  return (
+    <details className="why" style={{ borderTop: "none", marginTop: 0, marginBottom: 14, paddingTop: 0 }}>
+      <summary>How to read this question</summary>
+      <div className="stack tight" style={{ marginTop: 10 }}>
+        {cw && (
+          <div className="callout" style={{ padding: "9px 12px" }}>
+            <span className="small">
+              <strong>{cw.word}</strong> — {cw.definition}{" "}
+              {cw.aoCeiling.length > 0 && (
+                <span className="muted">
+                  Highest AO reachable: {cw.aoCeiling[cw.aoCeiling.length - 1]}.
+                </span>
+              )}{" "}
+              {cw.expects}
+            </span>
+            {cw.trap && (
+              <p className="tiny" style={{ margin: "5px 0 0", color: "var(--lost)" }}>Trap: {cw.trap}</p>
+            )}
+          </div>
+        )}
+        {split.length > 0 && (
+          <p className="small" style={{ margin: 0 }}>
+            <strong>Where the marks sit:</strong>{" "}
+            {split.map((r) => `${r.aoCode} ≈ ${r.marks}`).join(" · ")}
+            {higher > 0 && higher >= question.marks / 2 && (
+              <span className="muted">
+                {" "}— {higher} of the {question.marks} marks are analysis and judgement, so developed
+                chains and a committed conclusion earn more here than extra knowledge.
+              </span>
+            )}
+          </p>
+        )}
+        <p className="tiny muted" style={{ margin: 0 }}>
+          Budget: about {minutes} minute{minutes === 1 ? "" : "s"}. Plan {question.marks >= 6 ? "the shape before writing — count the marks, plan that many developed points" : "one precise answer; padding earns nothing"}.
+        </p>
+      </div>
+    </details>
+  );
 }

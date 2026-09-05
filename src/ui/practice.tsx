@@ -49,10 +49,13 @@ const EMPTY_FILTERS: PracticeFilters = {
 
 export function Practice({
   initialTopicId,
+  initialCommandWord,
   mode = "adaptive",
   minutes,
 }: {
   initialTopicId?: string;
+  /** Restrict the pool to one command word — the Technique trainer links here. */
+  initialCommandWord?: string;
   mode?: AttemptMode;
   minutes?: number;
 }) {
@@ -74,9 +77,11 @@ export function Practice({
   const [subjectIdx, setSubjectIdx] = useState(0);
   const view = views[Math.min(subjectIdx, views.length - 1)];
 
-  const [filters, setFilters] = useState<PracticeFilters>(
-    initialTopicId ? { ...EMPTY_FILTERS, topicIds: [initialTopicId] } : EMPTY_FILTERS,
-  );
+  const [filters, setFilters] = useState<PracticeFilters>({
+    ...EMPTY_FILTERS,
+    ...(initialTopicId ? { topicIds: [initialTopicId] } : {}),
+    ...(initialCommandWord ? { commandWord: initialCommandWord } : {}),
+  });
   const [sessionId] = useState(() => uid("sess"));
   const [running, setRunning] = useState(Boolean(initialTopicId));
   const [answered, setAnswered] = useState<AnsweredResult[]>([]);
@@ -254,6 +259,18 @@ export function Practice({
                   })}
                 </div>
               </div>
+
+              {filters.commandWord && (
+                <div className="field">
+                  <label>Command word</label>
+                  <div className="row" style={{ gap: 5 }}>
+                    <span className="chip accent">{filters.commandWord}</span>
+                    <button className="btn ghost small" onClick={() => setFilters((f) => ({ ...f, commandWord: undefined }))}>
+                      clear
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="field">
                 <label>Restrict to</label>

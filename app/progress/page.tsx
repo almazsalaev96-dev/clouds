@@ -14,13 +14,14 @@ import { useMemo, useState } from "react";
 import { useContent, useStore } from "@/store/provider";
 import { buildSubjectView, type SubjectView } from "@/view/derive";
 import { calibration, rollupByDay, studyStreak, timeEfficiency, ofType } from "@/domain/events";
+import { buildPeriodReport, consistency } from "@/domain/review-report";
 import { childTopics } from "@/domain/curriculum";
 import { retentionState } from "@/domain/mastery";
 import { MARK_LOSS_LABELS, TECHNIQUE_LOSSES } from "@/domain/question";
 import { Card, Callout, Chip, Empty, Stat, Tabs, Why, Pct, round1 } from "@/ui/components";
 import { LineChart, BarChart, Heatmap } from "@/ui/charts";
 
-type Tab = "trajectory" | "heatmap" | "calibration" | "time";
+type Tab = "trajectory" | "review" | "heatmap" | "calibration" | "time";
 
 export default function ProgressPage() {
   const { state, ready } = useStore();
@@ -158,6 +159,7 @@ export default function ProgressPage() {
         onChange={setTab}
         tabs={[
           { id: "trajectory", label: "Trajectory" },
+          { id: "review", label: "This week" },
           { id: "heatmap", label: "Knowledge heatmap" },
           { id: "calibration", label: "Confidence" },
           { id: "time", label: "Time" },
@@ -218,6 +220,8 @@ export default function ProgressPage() {
           </div>
         </div>
       )}
+
+      {tab === "review" && <PeriodReviews events={state.events} topicTitle={(id) => view.syllabus.topics.find((t) => t.id === id)?.title ?? id} now={now} />}
 
       {tab === "heatmap" && (
         <Card title="Topics × assessment objectives">
@@ -302,6 +306,103 @@ export default function ProgressPage() {
           </p>
         </Card>
       )}
+    </div>
+  );
+}
+
+
+/**
+ * Weekly and monthly reviews.
+ *
+ * Each is one falsifiable headline and one instruction, not a scroll of
+ * congratulation. The engine refuses to draw conclusions from a quiet week,
+ * flags a loss category that dominated two periods running as entrenched, and
+ * reads an accuracy fall against rising adaptive difficulty before calling it
+ * decline.
+ */
+function PeriodReviews({
+  events,
+  topicTitle,
+  now,
+}: {
+  events: Parameters<typeof buildPeriodReport>[0];
+  topicTitle: (id: string) => string;
+  now: string;
+}) {
+  const week = buildPeriodReport(events, now, 7, "Last 7 days");
+  const month = buildPeriodReport(events, now, 30, "Last 30 days");
+  const weekConsistency = consistency(events, now, 7);
+
+  return (
+    <div className="stack">
+      {[week, month].map((r) => (
+        <Card key={r.label} title={r.label}>
+          <div className="stack">
+            <div>
+              <h3 style={{ marginBottom: 4 }}>{r.headline}</h3>
+              <p className="small" style={{ margin: 0, color: "var(--accent)" }}>→ {r.instruction}</p>
+            </div>
+
+            {!r.quiet && (
+              <>
+                <div className="grid four" style={{ gap: 10 }}>
+                  <Stat label="Questions" value={r.questionsAnswered} small note={`${r.activeDays} active day${r.activeDays === 1 ? "" : "s"}`} />
+                  <Stat
+                    label="Accuracy"
+                    value={<Pct value={r.accuracy} />}
+                    small
+                    note={
+                      r.accuracyChange === null
+                        ? "No previous period to compare"
+                        : `${r.accuracyChange >= 0 ? "+" : ""}${Math.round(r.accuracyChange * 100)} pts vs previous`
+                    }
+                  />
+                  <Stat label="Marks" value={`${round1(r.marksEarned)}/${Math.round(r.marksAvailable)}`} small />
+                  <Stat
+                    label="Mistakes"
+                    value={`${r.mistakesEliminated} fixed`}
+                    small
+                    note={`${r.mistakesCreated} new`}
+                    tone={r.mistakesEliminated >= r.mistakesCreated ? "secure" : "fading"}
+                  />
+                </div>
+
+                {(r.topicsImproved.length > 0 || r.topicsSlipped.length > 0) && (
+                  <div className="grid two" style={{ gap: 10 }}>
+                    {r.topicsImproved.length > 0 && (
+                      <div>
+                        <p className="eyebrow" style={{ marginBottom: 5, color: "var(--secure)" }}>Moved up</p>
+                        {r.topicsImproved.map((t) => (
+                          <p key={t.topicId} className="small" style={{ margin: "0 0 3px" }}>
+                            {topicTitle(t.topicId)} <span className="num muted">+{Math.round(t.delta * 100)} pts</span>
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    {r.topicsSlipped.length > 0 && (
+                      <div>
+                        <p className="eyebrow" style={{ marginBottom: 5, color: "var(--risk)" }}>Slipped</p>
+                        {r.topicsSlipped.map((t) => (
+                          <p key={t.topicId} className="small" style={{ margin: "0 0 3px" }}>
+                            {topicTitle(t.topicId)} <span className="num muted">{Math.round(t.delta * 100)} pts</span>
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {r.label === "Last 7 days" && !r.quiet && (
+              <p className="tiny muted" style={{ margin: 0 }}>
+                Consistency: active on {Math.round(weekConsistency * 100)}% of days. Consistency predicts
+                outcomes better than total hours — five short sessions beat one marathon.
+              </p>
+            )}
+          </div>
+        </Card>
+      ))}
     </div>
   );
 }

@@ -13,7 +13,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useContent, useStore } from "@/store/provider";
 import { buildSubjectView, type SubjectView } from "@/view/derive";
-import { VERDICT_COPY } from "@/domain/readiness";
+import { VERDICT_COPY, gradeFromPercentage } from "@/domain/readiness";
 import { cramFocus } from "@/domain/planner";
 import { Card, Callout, Chip, Empty, Meter, Stat, Why, Pct, relativeDays } from "@/ui/components";
 import { Ring, BarChart } from "@/ui/charts";
@@ -164,10 +164,80 @@ export default function ReadinessPage() {
         </div>
       </Card>
 
+      <ScoreSimulator view={view} />
+
       <div className="row">
         <Link href="/mock" className="btn primary">Sit a mock</Link>
         <Link href="/practice" className="btn">Practise the weakest area</Link>
       </div>
     </div>
+  );
+}
+
+
+/**
+ * "What if" score simulator.
+ *
+ * Enter hypothetical percentages per paper; the overall figure is combined
+ * using each paper's published weighting, and mapped through loaded grade
+ * thresholds where the pack has them. Everything on this card is explicitly
+ * hypothetical — it changes no stored state and feeds no engine, and the copy
+ * distinguishes score, percentage and grade estimate because conflating those
+ * three is how students misread their own standing.
+ */
+function ScoreSimulator({ view }: { view: SubjectView }) {
+  const papers = view.syllabus.papers;
+  const [scores, setScores] = useState<Record<string, number>>(
+    () => Object.fromEntries(papers.map((p) => [p.id, 70])),
+  );
+
+  if (papers.length === 0) return null;
+
+  const totalWeight = papers.reduce((s, p) => s + p.weightOfQualification, 0) || 1;
+  const overall = papers.reduce(
+    (s, p) => s + ((scores[p.id] ?? 0) / 100) * (p.weightOfQualification / totalWeight),
+    0,
+  );
+  const thresholds = view.syllabus.gradeThresholds ?? [];
+  const grade = gradeFromPercentage(overall, thresholds, view.syllabus);
+
+  return (
+    <Card title="Score simulator — hypothetical only">
+      <p className="small muted" style={{ marginBottom: 14 }}>
+        What overall result would a given set of paper scores produce? Combined with each paper&rsquo;s
+        published weighting. This changes nothing in your record and predicts nothing — it is
+        arithmetic, not a forecast.
+      </p>
+      <div className="grid two" style={{ alignItems: "start" }}>
+        <div className="stack tight">
+          {papers.map((p) => (
+            <div key={p.id} style={{ display: "grid", gridTemplateColumns: "minmax(120px,1fr) 1fr 52px", gap: 12, alignItems: "center" }}>
+              <span className="small">
+                Paper {p.code}
+                <span className="tiny muted"> · {Math.round((p.weightOfQualification / totalWeight) * 100)}% weight</span>
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={scores[p.id] ?? 0}
+                aria-label={`Hypothetical score on Paper ${p.code}`}
+                onChange={(e) => setScores((prev) => ({ ...prev, [p.id]: Number(e.target.value) }))}
+              />
+              <span className="num small" style={{ textAlign: "right" }}>{scores[p.id]}%</span>
+            </div>
+          ))}
+        </div>
+        <div className="stack tight" style={{ alignItems: "center", padding: "8px 0" }}>
+          <Stat label="Weighted overall" value={`${Math.round(overall * 100)}%`} />
+          <Stat label="Grade at that overall" value={grade} small note={thresholds.length ? "Using loaded historical thresholds" : "Approximate bands — no thresholds loaded"} />
+        </div>
+      </div>
+      <p className="tiny muted" style={{ marginTop: 12 }}>
+        {thresholds.length
+          ? "Thresholds move every session; a historical boundary is a guide, never a promise."
+          : "No official grade thresholds are loaded for this syllabus, so the grade uses approximate bands. Add real thresholds to the pack for a sharper mapping."}
+      </p>
+    </Card>
   );
 }

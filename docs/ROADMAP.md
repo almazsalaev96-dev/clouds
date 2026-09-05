@@ -55,7 +55,7 @@ running app.
 | 101–103 | Analytics / student analytics / heatmap | ✅ | Event-derived; heatmap encodes evidence volume as opacity. |
 | 108 | Post-session review | ✅ | What improved, what is still weak, what next. |
 | 140–143 | Architecture, provider abstraction, cost control, cache | ✅ | Server-only, task-routed, budgeted, cached. |
-| 147–150 | Event model, personalisation, recommendation, "why am I seeing this" | ✅ | Explainability is a hard contract, not a feature. |
+| 147–150 | Event model, personalisation, recommendation, "why am I seeing this" | ✅ | Explainability is a hard contract, not a feature. Recommendations can also be declined: "not today" removes a topic from today's ranking and it returns tomorrow — advice that cannot be refused is nagging. |
 | 155 | Testing | ✅ | 75 unit tests, content validation CLI, 21-check browser suite. |
 | 159–162 | Design system, hierarchy, micro-interactions, command centre | ✅ | Hand-authored; no UI framework. |
 | 163–164 | Core differentiator and the main loop | ✅ | Diagnose → learn → recall → practise → mark → understand → adapt → review → mock → analyse. |
@@ -71,17 +71,17 @@ running app.
 | 9 | Concept maps | ○ | `conceptEdges` exist in the lesson schema; needs a force-directed SVG view. |
 | 13 | Question generator UI | ◐ | Prompts and validation schema exist; needs a review-and-approve surface so generated questions enter the bank only after a human pass. |
 | 14 | Past-paper browser | ◐ | Filtering works inside practice; a dedicated browse-by-year/session/paper view is not built. |
-| 15 | Question deconstruction | ◐ | Command word, AO split and common errors are shown; the full "what is this question asking" breakdown is not. |
+| 15 | Question deconstruction | ✅ | "How to read this question" on every question: the command word's licence and trap, where the marks sit by AO, and what the time budget implies — all derived from the pack's own definitions, collapsed by default so the habit is internalised rather than leaned on. |
 | 29 | Knowledge graph | ◐ | Prerequisite edges are a real graph driving real behaviour; there is no visualisation of it. |
-| 42–43 | Score simulator / grade boundaries | ◐ | Schema and threshold mapping are built and used by the forecaster; no historical threshold data is loaded and no what-if UI exists. |
+| 42–43 | Score simulator / grade boundaries | ◐ | What-if simulator on the Readiness page combines hypothetical paper scores through published weightings and maps through thresholds where loaded. Historical threshold data itself still needs loading into the pack. |
 | 47–49 | Transfer / hard / easy-win modes | ◐ | Transfer is measured and difficulty is filterable; they are not packaged as named modes. |
 | 52–53 | Essay lab / calculation lab | ◐ | Essay review is a tutor mode; numeric diagnostics catch the classic errors. Neither is a dedicated workspace. |
 | 56 | Personalised formula sheet | ◐ | Formulas are authored per lesson; not aggregated into a personal sheet. |
-| 68–69 | Weekly / monthly review | ○ | All the data exists in the event log; needs the two report surfaces. |
-| 72–73 | Exam day centre / post-exam analysis | ○ | Small and high-value. |
+| 68–69 | Weekly / monthly review | ✅ | "This week" tab on Progress: one falsifiable headline and one instruction per period. Refuses conclusions from a quiet week, flags a loss category that dominated two periods running as entrenched, and reads an accuracy fall against rising adaptive difficulty before calling it decline. |
+| 72–73 | Exam day centre / post-exam analysis | ◐ | Exam-day panel appears on the command centre in the final 24 hours: paper timing arithmetic, the final-day rules, pre-committed if–then intentions, nothing that could start new study. Post-exam reflection capture not built. |
 | 78 | AI persistent memory | ◐ | Context is built per request from real state; nothing is remembered between conversations. |
 | 105–107 | Persona and exam strategy | ◐ | The limiting-signal and recommended-action machinery is the substance of this; the persona framing is not surfaced. |
-| 136 | Error reporting | ○ | Students cannot yet report a bad question from inside the app. |
+| 136 | Error reporting | ✅ | One-click flag on every question (wrong answer / ambiguous / marks don't add up / wrong topic); reports surface on the Library page with the fix instructions. |
 | 144 | Feature flags | ○ | Not needed at this size; will be before multi-user. |
 | 145–146 | Postgres schema and REST API | ◐ | The state shape is designed for it and the seam is documented; no SQL is written. |
 | 152–153 | Offline / PWA | ◐ | Local-first means it already works offline once loaded; no service worker or manifest. |
@@ -124,9 +124,10 @@ running app.
 > correction, personalised planning, realistic exam simulation, progress
 > visibility and intelligent feedback?
 
-**Today:** every one of those exists as working machinery, and the binding
-constraint is content, not code. With one subject's material loaded properly,
-the answer is yes for that subject.
+**Today:** every one of those exists as working machinery, and the shipped 9609
+pack now has a question on every leaf topic in the syllabus — 44 questions
+across 167 marks — so the whole loop runs end to end on real material. The
+binding constraint is depth of content per topic, not code.
 
 The honest gap is breadth of material, which is exactly the division of labour
 agreed: the engine is here, and it improves the moment you pour subjects into
