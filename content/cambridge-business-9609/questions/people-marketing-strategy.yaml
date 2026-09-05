@@ -1,0 +1,238 @@
+syllabusId: "9609"
+defaults:
+  source:
+    kind: original
+    licence: owned
+    attribution: Written for Lodestar in the style of Cambridge 9609. Not a past-paper question.
+  quality: { reviewStatus: human-reviewed, confidence: 0.88 }
+
+questions:
+  # ------------------------------------------------------------ 2.2 motivation
+  - id: b-2_2-mcq-1
+    type: mcq
+    topicIds: [b2_2]
+    marks: 1
+    prompt: According to Herzberg, improving pay and working conditions is most likely to have which effect?
+    difficulty: { knowledge: 0.35, reasoning: 0.4, calculation: 0, language: 0.3, steps: 0.2, unfamiliarContext: 0.2 }
+    response:
+      choices:
+        - { id: a, text: Increase motivation, because pay is the strongest motivator., misconception: "This is Taylor's position, not Herzberg's. Herzberg placed pay among hygiene factors." }
+        - { id: b, text: Remove dissatisfaction, without itself creating motivation., correct: true }
+        - { id: c, text: Have no effect on either satisfaction or dissatisfaction., misconception: "Hygiene factors do matter — their absence causes dissatisfaction. They just do not motivate." }
+        - { id: d, text: Increase motivation only for staff low in Maslow's hierarchy., misconception: "This mixes Maslow's framework into Herzberg's. Keep the two models distinct." }
+    markScheme:
+      totalMarks: 1
+      style: points
+      modelAnswer: >
+        Herzberg separated hygiene factors (pay, conditions, supervision, job security) from motivators
+        (achievement, recognition, responsibility, advancement). Fixing hygiene removes dissatisfaction;
+        only motivators produce motivation.
+
+  - id: b-2_2-explain-1
+    type: short-answer
+    topicIds: [b2_2, b2_3]
+    commandWord: Explain
+    marks: 5
+    paperId: 9609-p1
+    timeSeconds: 420
+    prompt: >
+      A call centre has annual labour turnover of 34%, concentrated among supervisors, and reports
+      recruitment costs of $18,000 a year. It is considering delegating shift-scheduling to
+      supervisors. Explain how this might affect motivation.
+    response: { suggestedWords: 150 }
+    difficulty: { knowledge: 0.4, reasoning: 0.55, calculation: 0.15, language: 0.4, steps: 0.45, unfamiliarContext: 0.4 }
+    markScheme:
+      totalMarks: 5
+      style: points
+      points:
+        - { id: p1, text: "Delegation correctly understood as passing authority for a decision down the hierarchy.", marks: 1, aoCode: AO1 }
+        - { id: p2, text: "Links delegation to a named motivational theory — e.g. Herzberg's responsibility as a motivator, or Maslow's esteem needs.", marks: 1, aoCode: AO1 }
+        - { id: p3, text: "Applies to this business specifically, using the 34% turnover or the supervisor concentration.", marks: 1, aoCode: AO2, skillId: sk-application }
+        - { id: p4, text: "Develops the mechanism: control over a decision that visibly affects their own shift satisfies esteem/responsibility needs.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p5, text: "Develops the consequence: retaining supervisors reduces the $18,000 recruitment cost and the loss of experience.", marks: 1, aoCode: AO3, skillId: sk-chain }
+      modelAnswer: >
+        Delegation means passing authority for a decision to a subordinate. Herzberg identified
+        responsibility as a motivator rather than a hygiene factor, so giving supervisors control over
+        scheduling should raise motivation rather than merely remove dissatisfaction. That matters
+        particularly here because the 34% turnover is concentrated in exactly the supervisory grade
+        being given the responsibility: scheduling is a decision whose effects those supervisors see
+        directly in their own shifts, which makes the added responsibility feel real rather than
+        nominal. If it retains even a portion of that group, the business recovers part of the $18,000
+        recruitment cost and, more significantly, keeps experience that takes months to rebuild.
+      nearMissAnswer: >
+        Delegation gives employees more responsibility which motivates them. Herzberg said
+        responsibility is a motivator. This would help the call centre because motivated staff work
+        harder and turnover would fall.
+      examinerNotes: >
+        The near-miss answer earns the two AO1 marks. It fails AO2 because nothing in it is only true
+        of this call centre — cover the words "call centre" and it works for any firm. It fails the AO3
+        marks because "motivated staff work harder" is an assertion, not a developed consequence.
+    commonErrors:
+      - { label: "Named but not applied", description: "Naming the business without using any of its specifics. Naming is not application.", errorType: no-application }
+      - { label: "Theory listed", description: "Listing Maslow, Herzberg and Taylor without using any of them to explain this case.", errorType: no-chain }
+
+  # ------------------------------------------------------------- 3.3 / 8.1 mix
+  - id: b-8_1-calc-1
+    type: numeric
+    topicIds: [b8_1]
+    commandWord: Calculate
+    marks: 3
+    paperId: 9609-p3
+    timeSeconds: 210
+    prompt: >
+      A firm raises its price from $20 to $22. Weekly sales fall from 5,000 units to 4,400 units.
+      Calculate the price elasticity of demand, to one decimal place.
+    response: { workingSpace: true }
+    difficulty: { knowledge: 0.4, reasoning: 0.5, calculation: 0.55, language: 0.3, steps: 0.5, unfamiliarContext: 0.25 }
+    markScheme:
+      totalMarks: 3
+      style: points
+      acceptedValues: [{ value: -1.2, tolerance: 0.05 }, { value: 1.2, tolerance: 0.05 }]
+      points:
+        - { id: p1, text: "Percentage change in quantity: (4,400 − 5,000) ÷ 5,000 = −12%", marks: 1, aoCode: AO2 }
+        - { id: p2, text: "Percentage change in price: (22 − 20) ÷ 20 = +10%", marks: 1, aoCode: AO2 }
+        - { id: p3, text: "PED = −12 ÷ 10 = −1.2 (elastic)", marks: 1, aoCode: AO2 }
+      modelAnswer: |
+        % change in quantity = −600 ÷ 5,000 = −12%
+        % change in price = +2 ÷ 20 = +10%
+        PED = −12% ÷ +10% = −1.2, so demand is price elastic.
+      examinerNotes: >
+        Accept either −1.2 or 1.2, provided the answer is interpreted correctly. A value above 1 in
+        magnitude means elastic, so the price rise reduced total revenue.
+    hints:
+      - Percentage change in quantity divided by percentage change in price — in that order.
+      - Work out each percentage change from the original value, not the new one.
+    commonErrors:
+      - { label: "Inverted", description: "Dividing price change by quantity change, giving −0.83.", errorType: formula-error }
+      - { label: "Absolute changes", description: "Dividing −600 by 2, using absolute changes instead of percentages.", errorType: formula-error }
+
+  - id: b-8_1-apply-1
+    type: short-answer
+    topicIds: [b8_1]
+    commandWord: Analyse
+    marks: 6
+    paperId: 9609-p3
+    timeSeconds: 480
+    prompt: >
+      A supermarket chain has calculated price elasticity of demand of −0.4 for its own-label bread
+      and −2.3 for its premium coffee. Analyse how these figures should influence its pricing.
+    response: { suggestedWords: 180 }
+    difficulty: { knowledge: 0.45, reasoning: 0.7, calculation: 0.35, language: 0.45, steps: 0.6, unfamiliarContext: 0.4 }
+    markScheme:
+      totalMarks: 6
+      style: points
+      points:
+        - { id: p1, text: "Correctly identifies bread as price inelastic and coffee as price elastic.", marks: 1, aoCode: AO1 }
+        - { id: p2, text: "States the revenue rule: raising price on an inelastic good raises total revenue.", marks: 1, aoCode: AO1 }
+        - { id: p3, text: "Applies to bread: a price rise loses proportionally fewer sales than the price gained, so revenue rises.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p4, text: "Applies to coffee: a price rise loses more than twice as much volume proportionally, so revenue falls — the opposite policy is indicated.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p5, text: "Develops a consequence for the chain: differentiated pricing across the range rather than a uniform policy.", marks: 1, aoCode: AO3, skillId: sk-application }
+        - { id: p6, text: "Develops a limitation of acting on the figures — e.g. bread as a loss leader driving store traffic, or elasticity changing with competitor response.", marks: 1, aoCode: AO3, skillId: sk-quality-evidence }
+      modelAnswer: >
+        Bread at −0.4 is price inelastic and coffee at −2.3 is price elastic. For an inelastic good a
+        price rise loses proportionally less volume than the price gained, so raising bread prices
+        raises total revenue; for coffee the same rise loses more than twice the volume proportionally,
+        so revenue falls and the indicated move is a price cut. This points the chain away from a
+        uniform pricing policy toward a differentiated one across the range. The figures should not be
+        applied mechanically, though: bread is a traffic-driving staple, so a price rise that raises
+        bread revenue may reduce store visits and therefore total basket spend — an effect elasticity
+        of a single line cannot capture.
+      examinerNotes: "Analyse: no AO4 marks. The sixth mark rewards analytical scepticism about the data, not a recommendation."
+
+  # -------------------------------------------------------- 1.5 stakeholders
+  - id: b-1_5-cloze-1
+    type: cloze
+    topicIds: [b1_5]
+    marks: 3
+    prompt: "Complete the statement about stakeholder mapping."
+    difficulty: { knowledge: 0.3, reasoning: 0.3, calculation: 0, language: 0.3, steps: 0.25, unfamiliarContext: 0.15 }
+    response:
+      blanks:
+        - { id: b1, accepted: ["power", "influence"] }
+        - { id: b2, accepted: ["interest"] }
+        - { id: b3, accepted: ["manage closely", "manage-closely", "key players", "closely"] }
+    markScheme:
+      totalMarks: 3
+      style: points
+      modelAnswer: >
+        Mendelow's matrix maps stakeholders by power and interest. Those high in both should be
+        managed closely; those low in both need only minimal monitoring.
+    stimulus:
+      body: >
+        Mendelow's matrix maps stakeholders on two axes: their {{b1}} to affect the business, and
+        their level of {{b2}} in what it does. Stakeholders scoring high on both axes should be
+        {{b3}}.
+
+  # ------------------------------------------------------------ 6.2 strategy
+  - id: b-6_2-eval-1
+    type: essay
+    topicIds: [b6_2, b6_1]
+    commandWord: Discuss
+    marks: 20
+    paperId: 9609-p4
+    timeSeconds: 1800
+    prompt: >
+      A family-owned manufacturer with no access to share capital is considering entering an
+      overseas market for the first time. Discuss whether a SWOT analysis is sufficient basis for
+      this decision.
+    response: { suggestedWords: 600 }
+    difficulty: { knowledge: 0.5, reasoning: 0.85, calculation: 0.15, language: 0.7, steps: 0.75, unfamiliarContext: 0.65 }
+    markScheme:
+      totalMarks: 20
+      style: hybrid
+      levels:
+        - { level: 1, name: "Limited", marksFrom: 1, marksTo: 5, descriptor: "SWOT described; little application; no developed analysis or judgement." }
+        - { level: 2, name: "Some", marksFrom: 6, marksTo: 10, descriptor: "SWOT explained with some application; analysis begun; assertion rather than judgement." }
+        - { level: 3, name: "Good", marksFrom: 11, marksTo: 15, descriptor: "Developed analysis applied to a family-owned firm without share capital; a judgement reached but partly substantiated." }
+        - { level: 4, name: "Strong", marksFrom: 16, marksTo: 20, descriptor: "Sustained contextualised analysis; decisive judgement weighing the alternatives, with a condition attached." }
+      points:
+        - { id: s1, text: "AO1: SWOT accurately explained, and at least one alternative framework accurately identified (PESTLE, Porter's five forces, Ansoff).", marks: 3, aoCode: AO1 }
+        - { id: s2, text: "AO2: argument tied to this firm's specific constraints — family ownership, no share capital, first overseas entry.", marks: 2, aoCode: AO2, skillId: sk-application }
+        - { id: s3, text: "AO3: developed chain for SWOT's usefulness — it forces internal capability to be assessed before external opportunity, which matters when finance is capped.", marks: 3, aoCode: AO3, skillId: sk-chain }
+        - { id: s4, text: "AO3: developed chain against — SWOT is a snapshot, is subjective, and does not weigh or rank the items it lists.", marks: 3, aoCode: AO3, skillId: sk-chain }
+        - { id: s5, text: "AO3: developed chain that SWOT says nothing about the specific overseas market's structure, which PESTLE or five forces would address.", marks: 2, aoCode: AO3, skillId: sk-chain }
+        - { id: s6, text: "AO4: clear judgement on sufficiency — not merely on usefulness.", marks: 3, aoCode: AO4, skillId: sk-judgement }
+        - { id: s7, text: "AO4: says why the decisive factor outweighs the strongest counter-argument.", marks: 2, aoCode: AO4, skillId: sk-judgement }
+        - { id: s8, text: "AO4: attaches a condition drawn from the firm's circumstances.", marks: 2, aoCode: AO4, skillId: sk-judgement }
+      modelAnswer: >
+        A full-mark answer takes a position early — SWOT is a necessary starting point and an
+        insufficient basis — and earns AO2 throughout by keeping the firm's financing constraint in
+        view: with no access to share capital, a mistake here is not recoverable by issuing equity, so
+        the cost of a wrong decision is far higher than for a listed competitor. It develops SWOT's
+        genuine value (forcing an honest internal audit before chasing an opportunity), then develops
+        the decisive weaknesses: it produces an unranked list, it is a snapshot of a market the firm
+        has never operated in, and its "opportunities" quadrant is exactly where an inexperienced
+        entrant's optimism is least disciplined. It closes by weighing these — arguing that the
+        irreversibility created by the financing constraint is what makes SWOT alone insufficient,
+        rather than any defect in the tool itself — and conditions the judgement: if entry could be
+        staged cheaply enough to be abandoned, the analysis requirement falls.
+      examinerNotes: >
+        The word is "sufficient". Answers that evaluate whether SWOT is useful have answered a
+        different, easier question and cannot access the top AO4 band.
+    commonErrors:
+      - { label: "Described SWOT", description: "Explaining what each letter stands for at length. That is 1-2 AO1 marks out of 20.", errorType: insufficient-development }
+      - { label: "Ignored the constraint", description: "No use of family ownership or the absence of share capital, which is where the AO2 marks live.", errorType: no-application }
+      - { label: "Sat on the fence", description: "'SWOT has strengths and weaknesses.' No judgement, so most of the 7 AO4 marks are unreachable.", errorType: no-judgement }
+
+  # ------------------------------------------------- 9.4 critical path analysis
+  - id: b-9_4-order-1
+    type: order
+    topicIds: [b9_4]
+    marks: 4
+    prompt: Put the steps of constructing and using a network diagram into the correct order.
+    difficulty: { knowledge: 0.4, reasoning: 0.45, calculation: 0.3, language: 0.25, steps: 0.5, unfamiliarContext: 0.2 }
+    response:
+      sequence:
+        - { id: s1, text: List all activities with their durations and immediate predecessors. }
+        - { id: s2, text: Draw the network showing the logical sequence of activities. }
+        - { id: s3, text: Complete a forward pass to find each node's earliest start time. }
+        - { id: s4, text: Complete a backward pass to find each node's latest finish time. }
+        - { id: s5, text: Calculate float for each activity and identify the critical path. }
+    markScheme:
+      totalMarks: 4
+      style: points
+      modelAnswer: >
+        Activities and dependencies first, then the network, then the forward pass for earliest start
+        times, then the backward pass for latest finish times, and finally float — activities with zero
+        float form the critical path.
+      examinerNotes: "The forward pass must precede the backward pass; latest finish times cannot be computed without the project duration the forward pass establishes."

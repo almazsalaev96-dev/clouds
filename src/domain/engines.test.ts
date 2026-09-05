@@ -29,7 +29,7 @@ import { computeReadiness, forecastGrade, normalCdf, gradeFromPercentage } from 
 import { generateSession, generatePlan, planPhases } from "./planner";
 import { buildLossProfile, mistakeStatus, repairLadder, dueForRedo, type Mistake } from "./mistakes";
 import { markObjectively, scoreLedger, overallDifficulty, EVEN_DIFFICULTY, type Question, type Attempt } from "./question";
-import { aoMarkSplit, aoTotals, minutesPerMark, effectiveExamWeight, type Syllabus } from "./curriculum";
+import { aoMarkSplit, aoTotals, minutesPerMark, effectiveExamWeight, absoluteExamWeight, type Syllabus } from "./curriculum";
 import { calibration, rollupByDay, studyStreak, type LearningEvent } from "./events";
 import { addDays, id } from "./types";
 
@@ -693,5 +693,44 @@ describe("difficulty", () => {
 
   it("respects an explicit overall override", () => {
     expect(overallDifficulty({ ...EVEN_DIFFICULTY, overall: 0.123 })).toBe(0.123);
+  });
+});
+
+describe("absolute exam weight", () => {
+  const syllabus = {
+    id: "s", code: "0", title: "T", subject: "S", qualificationId: "q", examBoardId: "b",
+    version: { label: "v", firstExamYear: 2026, lastExamYear: 2028 },
+    papers: [], assessmentObjectives: [], commandWords: [], objectives: [], skills: [],
+    topics: [
+      { id: "sec1", syllabusId: "s", code: "1", title: "Section 1", examWeight: 0.5 },
+      { id: "sec2", syllabusId: "s", code: "2", title: "Section 2", examWeight: 0.5 },
+      { id: "a", syllabusId: "s", code: "1.1", title: "A", parentId: "sec1" },
+      { id: "b", syllabusId: "s", code: "1.2", title: "B", parentId: "sec1" },
+      { id: "c", syllabusId: "s", code: "2.1", title: "C", parentId: "sec2" },
+    ],
+  } as unknown as Syllabus;
+
+  it("multiplies through the ancestor chain", () => {
+    // A is half of Section 1, which is half of the qualification ⇒ 25%.
+    expect(absoluteExamWeight(syllabus, syllabus.topics[2]!)).toBeCloseTo(0.25, 5);
+    // C is the only child of Section 2 ⇒ the whole 50%.
+    expect(absoluteExamWeight(syllabus, syllabus.topics[4]!)).toBeCloseTo(0.5, 5);
+  });
+
+  it("leaf weights across the syllabus sum to one", () => {
+    const leaves = syllabus.topics.filter((t) => !syllabus.topics.some((c) => c.parentId === t.id));
+    const total = leaves.reduce((s, t) => s + absoluteExamWeight(syllabus, t), 0);
+    expect(total).toBeCloseTo(1, 5);
+  });
+
+  it("survives a malformed pack that describes a cycle", () => {
+    const cyclic = {
+      ...syllabus,
+      topics: [
+        { id: "x", syllabusId: "s", code: "x", title: "X", parentId: "y" },
+        { id: "y", syllabusId: "s", code: "y", title: "Y", parentId: "x" },
+      ],
+    } as unknown as Syllabus;
+    expect(() => absoluteExamWeight(cyclic, cyclic.topics[0]!)).not.toThrow();
   });
 });

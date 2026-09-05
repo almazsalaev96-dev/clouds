@@ -1,0 +1,33 @@
+id: cambridge-business-9609
+name: Cambridge International AS & A Level Business (9609)
+description: >
+  Syllabus structure, assessment objectives, command words, exam technique and
+  an original question bank for Cambridge 9609, 2026-2028 syllabus.
+version: 0.2.0
+
+qualification:
+  id: cambridge-as-a-level
+  level: a-level
+  title: Cambridge International AS & A Level
+  awardingDescription: Cambridge Assessment International Education
+  gradeScale: ["A*", "A", "B", "C", "D", "E", "U"]
+
+examBoard:
+  id: cambridge
+  name: Cambridge Assessment International Education
+  shortName: Cambridge
+  country: United Kingdom
+  website: https://www.cambridgeinternational.org
+
+rights:
+  summary: >
+    All questions in this pack are ORIGINAL, written for Lodestar in the style of
+    the qualification. No past-paper question, mark scheme or examiner report is
+    reproduced. Official materials are linked to their source on the awarding
+    body's own site and are never republished here. Syllabus structure,
+    assessment-objective weightings and command-word lists are factual
+    descriptions of the qualification, cited to the published syllabus.
+  defaultLicence: owned
+
+maintainer: Lodestar
+lastVerified: "2026-09-05"

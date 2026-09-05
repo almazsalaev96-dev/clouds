@@ -1,0 +1,25 @@
+syllabusId: "9609"
+cards:
+  - { id: c-contribution, kind: formula, topicIds: [b5_3], front: "Contribution per unit", back: "Selling price per unit − variable cost per unit" }
+  - { id: c-breakeven, kind: formula, topicIds: [b5_3], front: "Break-even output", back: "Fixed costs ÷ contribution per unit" }
+  - { id: c-mos, kind: formula, topicIds: [b5_3], front: "Margin of safety", back: "Current output − break-even output. As a %, divide by current output." }
+  - { id: c-roce, kind: formula, topicIds: [b10_1], front: "ROCE", back: "(Operating profit ÷ capital employed) × 100. Always ×100 — a ratio is not a percentage." }
+  - { id: c-gearing, kind: formula, topicIds: [b10_1], front: "Gearing", back: "(Non-current liabilities ÷ capital employed) × 100" }
+  - { id: c-current-ratio, kind: formula, topicIds: [b10_1], front: "Current ratio", back: "Current assets ÷ current liabilities" }
+  - { id: c-acid, kind: formula, topicIds: [b10_1], front: "Acid-test ratio", back: "(Current assets − inventory) ÷ current liabilities" }
+  - { id: c-ped, kind: formula, topicIds: [b8_1], front: "Price elasticity of demand", back: "% change in quantity demanded ÷ % change in price. Negative; |PED| > 1 is elastic." }
+  - { id: c-margin-markup, kind: comparison, topicIds: [b5_2], front: "Mark-up versus margin", back: "Mark-up is profit as a % of COST. Margin is profit as a % of REVENUE. A 50% mark-up is a 33.3% margin." }
+  - { id: c-payback, kind: definition, topicIds: [b10_2], front: "Payback period", back: "The time taken for cumulative net cash inflows to equal the initial outlay. Ignores everything after payback, and the time value of money." }
+  - { id: c-arr, kind: formula, topicIds: [b10_2], front: "Average rate of return (ARR)", back: "(Average annual profit ÷ initial investment) × 100" }
+  - { id: c-npv, kind: definition, topicIds: [b10_2], front: "Net present value", back: "The sum of discounted future net cash flows minus the initial outlay. Positive NPV means the project beats the discount rate." }
+  - { id: c-herzberg, kind: comparison, topicIds: [b2_2], front: "Herzberg: hygiene versus motivators", back: "Hygiene (pay, conditions, supervision, security) removes dissatisfaction but does not motivate. Motivators (achievement, recognition, responsibility, advancement) motivate." }
+  - { id: c-maslow, kind: process, topicIds: [b2_2], front: "Maslow's hierarchy, bottom to top", back: "Physiological → safety → social → esteem → self-actualisation. Each level must be substantially met before the next motivates." }
+  - { id: c-mcgregor, kind: comparison, topicIds: [b2_3], front: "McGregor Theory X versus Theory Y", back: "X assumes people dislike work and need control. Y assumes people seek responsibility and self-direct. They are assumptions held by managers, not types of worker." }
+  - { id: c-ansoff, kind: process, topicIds: [b6_2], front: "Ansoff matrix, in ascending risk", back: "Market penetration → product development → market development → diversification." }
+  - { id: c-bcg, kind: process, topicIds: [b8_2], front: "Boston matrix quadrants", back: "Star (high share, high growth), cash cow (high share, low growth), question mark (low share, high growth), dog (low share, low growth)." }
+  - { id: c-porter5, kind: process, topicIds: [b6_1], front: "Porter's five forces", back: "Rivalry among existing firms, threat of new entrants, threat of substitutes, bargaining power of buyers, bargaining power of suppliers." }
+  - { id: c-command-analyse, kind: definition, topicIds: [b6_2], front: "Command word: Analyse", back: "AO1–AO3 only. Build chains: cause → mechanism → effect → consequence here. Evaluation earns NOTHING and costs minutes." }
+  - { id: c-command-evaluate, kind: definition, topicIds: [b6_2], front: "Command word: Evaluate", back: "AO1–AO4, judgement dominant. Front-load the judgement; say why the decisive factor outweighs the counter-argument; attach a condition." }
+  - { id: c-application-test, kind: basic, topicIds: [b6_2], front: "The application test", back: "Cover the business name in your sentence. If it still works for any other company, it is not application and earns no AO2." }
+  - { id: c-chain-words, kind: basic, topicIds: [b6_2], front: "Words that signal a chain of analysis", back: "which means · so · therefore · as a result · this leads to · consequently · which in turn. A paragraph containing none of these contains no analysis." }
+  - { id: c-p4-split, kind: basic, topicIds: [b6_2], front: "Paper 4 mark split per 20-mark essay", back: "AO1 3 · AO2 2 · AO3 8 · AO4 7. Knowledge and application together are 5 of 20. Analysis and evaluation are 15." }

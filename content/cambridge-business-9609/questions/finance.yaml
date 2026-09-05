@@ -1,0 +1,269 @@
+syllabusId: "9609"
+defaults:
+  source:
+    kind: original
+    licence: owned
+    attribution: Written for Lodestar in the style of Cambridge 9609. Not a past-paper question.
+  quality:
+    reviewStatus: human-reviewed
+    confidence: 0.9
+
+questions:
+  # ---------------------------------------------------------------- 5.2 costs
+  - id: b-5_2-mcq-1
+    type: mcq
+    topicIds: [b5_2]
+    marks: 1
+    prompt: A bakery pays $4,000 rent each month regardless of output. In cost terms, this is best classified as which of the following?
+    difficulty: { knowledge: 0.2, reasoning: 0.15, calculation: 0, language: 0.15, steps: 0.1, unfamiliarContext: 0.1 }
+    response:
+      choices:
+        - { id: a, text: A variable cost, because it is paid every month. , misconception: "Regularity is not what makes a cost variable. Variable costs change with output; rent does not." }
+        - { id: b, text: A fixed cost, because it does not change with the level of output., correct: true }
+        - { id: c, text: A semi-variable cost, because rent can be renegotiated., misconception: "The possibility of renegotiation in future does not make a cost vary with output now." }
+        - { id: d, text: A direct cost, because it is paid to run the bakery., misconception: "Direct/indirect is a different axis from fixed/variable. Rent is indirect and fixed." }
+    markScheme:
+      totalMarks: 1
+      style: points
+      modelAnswer: Fixed costs do not vary with output in the short run. Rent is the standard example.
+
+  - id: b-5_2-calc-1
+    type: numeric
+    topicIds: [b5_2]
+    commandWord: Calculate
+    marks: 2
+    timeSeconds: 150
+    prompt: >
+      A firm's fixed costs are $48,000 per month. It produces 6,000 units per month at a variable
+      cost of $9 per unit. Calculate the total cost per unit, to the nearest cent.
+    response: { unit: "$", workingSpace: true }
+    difficulty: { knowledge: 0.25, reasoning: 0.3, calculation: 0.4, language: 0.2, steps: 0.35, unfamiliarContext: 0.15 }
+    markScheme:
+      totalMarks: 2
+      style: points
+      acceptedValues: [{ value: 17, tolerance: 0.01, unit: "$" }]
+      points:
+        - { id: p1, text: "Total cost calculated: 48,000 + (6,000 × 9) = $102,000", marks: 1, aoCode: AO2 }
+        - { id: p2, text: "Divided by output and unit stated: 102,000 ÷ 6,000 = $17.00 per unit", marks: 1, aoCode: AO2 }
+      modelAnswer: |
+        Total variable cost = 6,000 × $9 = $54,000
+        Total cost = $48,000 + $54,000 = $102,000
+        Cost per unit = $102,000 ÷ 6,000 = $17.00
+      examinerNotes: The most common error is dividing fixed costs alone by output and reporting $8.
+    commonErrors:
+      - { label: "Fixed cost only", description: "Dividing $48,000 by 6,000 and answering $8, forgetting variable cost entirely.", errorType: formula-error }
+      - { label: "No unit", description: "Answering 17 with no dollar sign. The unit is part of the mark.", errorType: unit-error }
+
+  # -------------------------------------------------------- 5.3 break-even
+  - id: b-5_3-calc-1
+    type: numeric
+    topicIds: [b5_3]
+    commandWord: Calculate
+    marks: 3
+    timeSeconds: 210
+    prompt: >
+      A company sells a product for $25. Variable cost per unit is $15 and fixed costs are $80,000
+      per year. Calculate the break-even output in units.
+    response: { unit: units, workingSpace: true }
+    difficulty: { knowledge: 0.3, reasoning: 0.35, calculation: 0.4, language: 0.2, steps: 0.4, unfamiliarContext: 0.15 }
+    markScheme:
+      totalMarks: 3
+      style: points
+      acceptedValues: [{ value: 8000, tolerance: 1, unit: units }]
+      points:
+        - { id: p1, text: "Contribution per unit identified: $25 − $15 = $10", marks: 1, aoCode: AO1, skillId: sk-calculation }
+        - { id: p2, text: "Correct formula applied: fixed costs ÷ contribution per unit", marks: 1, aoCode: AO2, skillId: sk-calculation }
+        - { id: p3, text: "Answer 8,000 units, correctly stated", marks: 1, aoCode: AO2 }
+      modelAnswer: |
+        Contribution per unit = $25 − $15 = $10
+        Break-even output = fixed costs ÷ contribution per unit = $80,000 ÷ $10 = 8,000 units
+    commonErrors:
+      - { label: "Divided by price", description: "Using $80,000 ÷ $25 = 3,200. Break-even uses contribution, not price.", errorType: formula-error }
+      - { label: "Inverted", description: "Calculating contribution ÷ fixed costs.", errorType: formula-error }
+
+  - id: b-5_3-explain-1
+    type: short-answer
+    topicIds: [b5_3]
+    commandWord: Explain
+    marks: 5
+    paperId: 9609-p1
+    timeSeconds: 420
+    prompt: >
+      A furniture manufacturer has a margin of safety of 12% and its main competitor has 41%.
+      Explain two implications of this difference for the manufacturer.
+    response: { suggestedWords: 140 }
+    difficulty: { knowledge: 0.4, reasoning: 0.55, calculation: 0.2, language: 0.4, steps: 0.45, unfamiliarContext: 0.35 }
+    markScheme:
+      totalMarks: 5
+      style: points
+      points:
+        - { id: p1, text: "Margin of safety correctly understood as the amount by which current output exceeds break-even output.", marks: 1, aoCode: AO1 }
+        - { id: p2, text: "First implication identified — e.g. greater vulnerability to a fall in demand.", marks: 1, aoCode: AO2, skillId: sk-application }
+        - { id: p3, text: "First implication developed into a consequence for this manufacturer — e.g. a 12% sales fall alone pushes it into loss, so it cannot absorb a downturn the competitor can survive.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p4, text: "Second implication identified — e.g. reduced ability to cut price competitively, or difficulty raising finance.", marks: 1, aoCode: AO2 }
+        - { id: p5, text: "Second implication developed into a consequence, using the 12% / 41% contrast.", marks: 1, aoCode: AO3, skillId: sk-chain }
+      modelAnswer: >
+        Margin of safety is the amount by which current output exceeds break-even output. At 12%, this
+        manufacturer only has to lose an eighth of its sales before it makes a loss, whereas its
+        competitor could lose over 40% and still break even — so a recession that both firms face
+        equally would push this manufacturer into loss while leaving the competitor profitable.
+        Second, the narrow margin removes any room to compete on price: a price cut lowers contribution
+        per unit, which raises break-even output and eats the remaining 12% almost immediately, so the
+        competitor can start a price war this manufacturer cannot answer.
+      nearMissAnswer: >
+        A low margin of safety is bad because the business is closer to break-even and might make a
+        loss. It also means less profit. The competitor is in a better position.
+      examinerNotes: >
+        The near-miss answer earns the AO1 mark and little else: both points are stated but neither is
+        developed into a consequence, and neither uses the 12% and 41% figures. This is the single most
+        common shape of a mid-band answer.
+    commonErrors:
+      - { label: "No development", description: "Both implications stated, neither developed into a consequence. Costs the two AO3 marks.", errorType: no-chain }
+      - { label: "Figures unused", description: "The 12% and 41% never appear in the answer, so nothing is specific to this firm.", errorType: no-application }
+
+  # --------------------------------------------------------- 10.1 ratios
+  - id: b-10_1-calc-1
+    type: numeric
+    topicIds: [b10_1]
+    commandWord: Calculate
+    marks: 3
+    paperId: 9609-p3
+    timeSeconds: 210
+    prompt: >
+      A business has capital employed of $2,400,000 and operating profit of $312,000.
+      Calculate its return on capital employed (ROCE), to one decimal place.
+    response: { unit: "%", workingSpace: true }
+    difficulty: { knowledge: 0.35, reasoning: 0.35, calculation: 0.45, language: 0.25, steps: 0.35, unfamiliarContext: 0.2 }
+    markScheme:
+      totalMarks: 3
+      style: points
+      acceptedValues: [{ value: 13, tolerance: 0.05, unit: "%" }]
+      points:
+        - { id: p1, text: "Correct formula: operating profit ÷ capital employed × 100", marks: 1, aoCode: AO1, skillId: sk-calculation }
+        - { id: p2, text: "Correct substitution: 312,000 ÷ 2,400,000", marks: 1, aoCode: AO2 }
+        - { id: p3, text: "Answer 13.0%, expressed as a percentage", marks: 1, aoCode: AO2 }
+      modelAnswer: ROCE = (312,000 ÷ 2,400,000) × 100 = 13.0%
+    commonErrors:
+      - { label: "Forgot ×100", description: "Answering 0.13. A ratio is not a percentage — this is the most frequent numerical error in the whole subject.", errorType: rounding-error }
+      - { label: "Inverted", description: "Calculating capital employed ÷ profit.", errorType: formula-error }
+
+  - id: b-10_1-interpret-1
+    type: short-answer
+    topicIds: [b10_1]
+    commandWord: Analyse
+    marks: 6
+    paperId: 9609-p3
+    timeSeconds: 480
+    prompt: >
+      A retailer's gearing has risen from 38% to 67% over three years, while its ROCE has fallen
+      from 15% to 9%. Analyse the significance of these two changes taken together.
+    response: { suggestedWords: 180 }
+    difficulty: { knowledge: 0.45, reasoning: 0.7, calculation: 0.3, language: 0.5, steps: 0.6, unfamiliarContext: 0.45 }
+    markScheme:
+      totalMarks: 6
+      style: points
+      points:
+        - { id: p1, text: "Gearing correctly understood as the proportion of capital employed financed by long-term debt.", marks: 1, aoCode: AO1 }
+        - { id: p2, text: "ROCE correctly understood as the return generated on all capital employed.", marks: 1, aoCode: AO1 }
+        - { id: p3, text: "Recognises that the two moving in opposite directions is the significant point, not either figure alone.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p4, text: "Develops the interest burden: more debt means higher fixed interest obligations.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p5, text: "Develops the consequence: falling returns on a rising debt base means interest cover is being squeezed from both sides.", marks: 1, aoCode: AO3, skillId: sk-chain }
+        - { id: p6, text: "Consequence for the retailer: reduced capacity to borrow further, and vulnerability to an interest-rate rise.", marks: 1, aoCode: AO3, skillId: sk-application }
+      modelAnswer: >
+        Gearing measures the share of capital employed funded by long-term debt, and ROCE measures the
+        return generated on all capital employed. Individually neither figure is alarming; together
+        they are, because they move in opposite directions. Rising gearing to 67% means a substantially
+        larger fixed interest obligation that must be met whatever trading conditions are like. At the
+        same time ROCE falling to 9% means the capital that debt is funding is generating less. The
+        retailer is therefore paying more for capital that is earning less, so interest cover is
+        compressed from both ends — and if the return on new borrowing is below its cost, further debt
+        actively destroys value. Practically, this makes additional borrowing harder to obtain and
+        leaves the business exposed to any rise in interest rates.
+      examinerNotes: >
+        This is an Analyse question: there are no AO4 marks. A judgement about whether the retailer
+        should be worried earns nothing and costs minutes.
+    commonErrors:
+      - { label: "Two separate answers", description: "Discussing gearing, then discussing ROCE, without connecting them. The connection is the question.", errorType: no-chain }
+      - { label: "Evaluated an Analyse question", description: "Adding a recommendation. No AO4 marks are available here.", errorType: command-word-misread }
+
+  # -------------------------------------------------- 10.2 investment appraisal
+  - id: b-10_2-calc-1
+    type: numeric
+    topicIds: [b10_2]
+    commandWord: Calculate
+    marks: 3
+    paperId: 9609-p3
+    timeSeconds: 240
+    prompt: >
+      A machine costs $180,000. It is expected to generate net cash inflows of $50,000 in year 1,
+      $60,000 in year 2, $70,000 in year 3 and $70,000 in year 4. Calculate the payback period,
+      in years and months.
+    response: { unit: years, workingSpace: true }
+    difficulty: { knowledge: 0.35, reasoning: 0.45, calculation: 0.5, language: 0.3, steps: 0.55, unfamiliarContext: 0.25 }
+    markScheme:
+      totalMarks: 3
+      style: points
+      acceptedValues: [{ value: 3, tolerance: 0.001, unit: years }]
+      points:
+        - { id: p1, text: "Cumulative cash flow calculated: 50,000 / 110,000 / 180,000 by end of year 3.", marks: 2, aoCode: AO2, skillId: sk-calculation }
+        - { id: p2, text: "Payback identified as exactly 3 years (0 months), since cumulative inflow equals the outlay at that point.", marks: 1, aoCode: AO2 }
+      modelAnswer: |
+        End of year 1: $50,000
+        End of year 2: $110,000
+        End of year 3: $180,000 — equal to the initial outlay
+        Payback period = exactly 3 years.
+      ownFigureRule: true
+    hints:
+      - Build a cumulative column before doing anything else.
+      - Payback is reached when cumulative inflow first equals the initial outlay.
+    commonErrors:
+      - { label: "Averaged the inflows", description: "Dividing 180,000 by the average annual inflow. Payback is cumulative, not averaged.", errorType: formula-error }
+
+  - id: b-10_2-eval-1
+    type: essay
+    topicIds: [b10_2, b6_2]
+    commandWord: Evaluate
+    marks: 20
+    paperId: 9609-p4
+    timeSeconds: 1800
+    prompt: >
+      Evaluate the usefulness of payback period as the main criterion for an investment decision
+      by a business operating in a rapidly changing technology market.
+    response: { suggestedWords: 600 }
+    difficulty: { knowledge: 0.5, reasoning: 0.85, calculation: 0.2, language: 0.7, steps: 0.75, unfamiliarContext: 0.6 }
+    markScheme:
+      totalMarks: 20
+      style: hybrid
+      levels:
+        - { level: 1, name: "Limited", marksFrom: 1, marksTo: 5, descriptor: "Knowledge of payback with little or no application; no developed analysis; no judgement.", aoCode: AO1 }
+        - { level: 2, name: "Some", marksFrom: 6, marksTo: 10, descriptor: "Payback explained and some application to a technology context; analysis begun but not developed; assertion rather than judgement.", aoCode: AO3 }
+        - { level: 3, name: "Good", marksFrom: 11, marksTo: 15, descriptor: "Developed chains of analysis, clearly applied to a fast-changing market; a judgement is reached but is only partly substantiated.", aoCode: AO3 }
+        - { level: 4, name: "Strong", marksFrom: 16, marksTo: 20, descriptor: "Sustained analysis, consistently contextualised; a decisive, substantiated judgement that weighs the factors against each other and attaches a condition.", aoCode: AO4 }
+      points:
+        - { id: e1, text: "AO1: payback defined accurately, and at least one alternative method (ARR, NPV, IRR) accurately identified.", marks: 3, aoCode: AO1 }
+        - { id: e2, text: "AO2: argument tied specifically to a rapidly changing technology market — short product life cycles, obsolescence risk, uncertain later cash flows.", marks: 2, aoCode: AO2, skillId: sk-application }
+        - { id: e3, text: "AO3: developed chain — rapid obsolescence makes distant cash flows unreliable, so a method that ignores them may actually suit this market.", marks: 3, aoCode: AO3, skillId: sk-chain }
+        - { id: e4, text: "AO3: developed counter-chain — payback ignores total profitability and the time value of money, so a project paying back fast but earning little is preferred over a better one.", marks: 3, aoCode: AO3, skillId: sk-chain }
+        - { id: e5, text: "AO3: liquidity argument developed — fast payback protects cash position, which matters more where financing is constrained.", marks: 2, aoCode: AO3, skillId: sk-chain }
+        - { id: e6, text: "AO4: explicit judgement on whether payback should be the MAIN criterion, not merely whether it is useful.", marks: 3, aoCode: AO4, skillId: sk-judgement }
+        - { id: e7, text: "AO4: states why the decisive factor outweighs the strongest counter-argument.", marks: 2, aoCode: AO4, skillId: sk-judgement }
+        - { id: e8, text: "AO4: attaches a condition under which the judgement would change (e.g. project scale, availability of reliable forecasts).", marks: 2, aoCode: AO4, skillId: sk-judgement }
+      modelAnswer: >
+        A full-mark answer commits early: payback is a legitimate primary screen in this market but
+        cannot be the sole criterion. It develops why obsolescence makes years four and five of any
+        forecast close to fiction, which removes much of NPV's theoretical advantage here; it then
+        develops the counter-case that payback is blind to total returns, so a firm using it alone will
+        systematically prefer small, fast, low-value projects and starve itself of the one large bet
+        that defines a technology market. It weighs these explicitly — arguing that the risk of
+        under-investing in a winner outweighs the forecasting problem for large projects, while for
+        small routine investments payback's simplicity is worth more than NPV's precision — and closes
+        with a condition: if the firm's financing is constrained enough that a cash shortfall would be
+        terminal, liquidity dominates and payback should lead.
+      examinerNotes: >
+        The AO split on a Paper 4 essay is approximately AO1 3, AO2 2, AO3 8, AO4 7. Knowledge and
+        application together are 5 of the 20 marks. A perfectly defined, well-contextualised essay with
+        no developed chains and no judgement scores around 5.
+    commonErrors:
+      - { label: "Answered 'is payback useful'", description: "The question asks whether it should be the MAIN criterion. Answering the easier question loses most of the AO4 marks.", errorType: command-word-misread }
+      - { label: "Balanced non-conclusion", description: "'Both methods have advantages and it depends on the situation.' Names no decisive factor, so earns almost no AO4.", errorType: no-judgement }
+      - { label: "Generic market", description: "Nothing in the essay is specific to rapid technological change.", errorType: no-application }

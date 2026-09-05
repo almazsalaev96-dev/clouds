@@ -1,0 +1,51 @@
+syllabusId: "9609"
+entries:
+  - term: Contribution
+    definition: Selling price per unit minus variable cost per unit; what each unit contributes towards fixed costs and then profit.
+    topicIds: [b5_3]
+    confusedWith: [Profit]
+    examUsage: "Contribution per unit is $10, so 8,000 units are needed to cover $80,000 of fixed costs."
+  - term: Profit
+    definition: What remains after all costs, fixed and variable, have been deducted from revenue.
+    topicIds: [b5_2]
+    confusedWith: [Contribution, Revenue, Cash flow]
+  - term: Cash flow
+    definition: The movement of cash into and out of a business over a period. A profitable business can still fail if cash runs out.
+    topicIds: [b5_5]
+    confusedWith: [Profit]
+  - term: Capital employed
+    definition: Total equity plus non-current liabilities; the long-term capital financing the business.
+    topicIds: [b10_1]
+  - term: Gearing
+    definition: The proportion of capital employed that is financed by long-term debt.
+    topicIds: [b10_1]
+    examUsage: "Gearing of 67% means two-thirds of long-term capital is borrowed, so interest obligations are large and fixed."
+  - term: Margin of safety
+    definition: The amount by which current output exceeds break-even output, showing how far demand could fall before a loss is made.
+    topicIds: [b5_3]
+  - term: Price elasticity of demand
+    definition: The responsiveness of quantity demanded to a change in price, measured as the percentage change in quantity divided by the percentage change in price.
+    topicIds: [b8_1]
+    confusedWith: [Income elasticity of demand]
+  - term: Delegation
+    definition: Passing authority for a decision down the hierarchy while retaining overall accountability.
+    topicIds: [b2_3, b7_1]
+    confusedWith: [Empowerment, Decentralisation]
+  - term: Span of control
+    definition: The number of subordinates directly answerable to one manager.
+    topicIds: [b7_1]
+    confusedWith: [Chain of command]
+  - term: Stakeholder
+    definition: Any individual or group with an interest in, or affected by, the activities of a business.
+    topicIds: [b1_5]
+    confusedWith: [Shareholder]
+  - term: Added value
+    definition: The difference between the price of a product and the cost of the bought-in materials and components used to make it.
+    topicIds: [b1_1, b4_1]
+  - term: Capacity utilisation
+    definition: Actual output as a percentage of maximum possible output.
+    topicIds: [b4_3]
+  - term: Opportunity cost
+    definition: The value of the next best alternative forgone when a choice is made.
+    topicIds: [b1_1]
+    examUsage: "Using retained profit for the expansion has an opportunity cost: the same funds cannot also refit the existing plant."

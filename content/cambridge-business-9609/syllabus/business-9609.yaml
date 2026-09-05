@@ -1,0 +1,730 @@
+id: '9609'
+code: '9609'
+title: Cambridge International AS & A Level Business
+subject: Business
+qualificationId: cambridge-as-a-level
+examBoardId: cambridge
+version:
+  label: 2026-2028
+  firstExamYear: 2026
+  lastExamYear: 2028
+  changes:
+  - Syllabus code 9609 is Business. 9708 is Economics — a common and costly mix-up when searching for
+    past papers.
+papers:
+- id: 9609-p1
+  code: '1'
+  name: Business Concepts 1
+  durationMinutes: 75
+  rawMarks: 40
+  weightOfQualification: 0.2
+  stage: as
+  sections:
+  - code: A
+    name: Short answers
+    marks: 20
+    questionCount: 4
+    description: Four compulsory questions, 5 marks each.
+  - code: B
+    name: Essay
+    marks: 20
+    questionCount: 1
+    choice: one from a choice of two
+  notes: 40% of the AS Level. 1.9 minutes per mark.
+- id: 9609-p2
+  code: '2'
+  name: Business Concepts 2
+  durationMinutes: 90
+  rawMarks: 60
+  weightOfQualification: 0.3
+  stage: as
+  sections:
+  - code: A
+    name: Data response
+    marks: 60
+    questionCount: 2
+    description: Two compulsory data-response questions on a case-study insert.
+  materials:
+  - Case study insert
+  notes: 60% of the AS Level. 1.5 minutes per mark — the tightest paper in the qualification.
+- id: 9609-p3
+  code: '3'
+  name: Business Decision-Making
+  durationMinutes: 105
+  rawMarks: 60
+  weightOfQualification: 0.3
+  stage: a2
+  sections:
+  - code: A
+    name: Case study and data
+    marks: 60
+    description: Decision-focused questions on a case study with quantitative data.
+  materials:
+  - Case study insert
+  - Calculator
+  notes: Carries the highest AO4 weighting of the AS papers plus quantitative demand.
+- id: 9609-p4
+  code: '4'
+  name: Business Strategy
+  durationMinutes: 75
+  rawMarks: 40
+  weightOfQualification: 0.2
+  stage: a2
+  sections:
+  - code: A
+    name: Essays
+    marks: 40
+    questionCount: 2
+    description: Two compulsory 20-mark essays on a case study.
+  materials:
+  - Case study insert
+  notes: 75% of this paper is AO3+AO4. Two well-built essays are worth 30 skill marks — the densest A*
+    lever in the qualification.
+assessmentObjectives:
+- id: ao1
+  code: AO1
+  name: Knowledge and understanding
+  description: Demonstrate knowledge and understanding of business concepts, terms and theories.
+  weightByPaper:
+    9609-p1: 0.35
+    9609-p2: 0.3
+    9609-p3: 0.2
+    9609-p4: 0.15
+- id: ao2
+  code: AO2
+  name: Application
+  description: Apply knowledge and understanding of business concepts, terms and theories to problems
+    and issues in a range of familiar and unfamiliar business situations and contexts.
+  weightByPaper:
+    9609-p1: 0.3
+    9609-p2: 0.3
+    9609-p3: 0.27
+    9609-p4: 0.1
+- id: ao3
+  code: AO3
+  name: Analysis
+  description: Analyse business problems, issues and situations using appropriate methods; work with quantitative
+    and qualitative information; find causes, impacts and consequences; distinguish between fact and opinion;
+    draw valid inferences.
+  weightByPaper:
+    9609-p1: 0.2
+    9609-p2: 0.2
+    9609-p3: 0.23
+    9609-p4: 0.4
+- id: ao4
+  code: AO4
+  name: Evaluation
+  description: Evaluate evidence in order to make reasoned judgements, present substantiated conclusions
+    and, where appropriate, recommend courses of action.
+  weightByPaper:
+    9609-p1: 0.15
+    9609-p2: 0.2
+    9609-p3: 0.3
+    9609-p4: 0.35
+topics:
+- id: b1
+  code: '1'
+  title: Business and its environment
+  stage: as
+  examWeight: 0.1
+  paperIds:
+  - 9609-p1
+  - 9609-p2
+- id: b1_1
+  code: '1.1'
+  title: Enterprise
+  parentId: b1
+  stage: as
+- id: b1_2
+  code: '1.2'
+  title: Business structure
+  parentId: b1
+  stage: as
+- id: b1_3
+  code: '1.3'
+  title: Size of business
+  parentId: b1
+  stage: as
+- id: b1_4
+  code: '1.4'
+  title: Business objectives
+  parentId: b1
+  stage: as
+- id: b1_5
+  code: '1.5'
+  title: Stakeholders in a business
+  parentId: b1
+  stage: as
+  prerequisites:
+  - b1_4
+- id: b2
+  code: '2'
+  title: People in organisations
+  stage: as
+  examWeight: 0.1
+  paperIds:
+  - 9609-p1
+  - 9609-p2
+- id: b2_1
+  code: '2.1'
+  title: Human resource management
+  parentId: b2
+  stage: as
+- id: b2_2
+  code: '2.2'
+  title: Motivation
+  parentId: b2
+  stage: as
+- id: b2_3
+  code: '2.3'
+  title: Management
+  parentId: b2
+  stage: as
+- id: b3
+  code: '3'
+  title: Marketing
+  stage: as
+  examWeight: 0.1
+  paperIds:
+  - 9609-p1
+  - 9609-p2
+- id: b3_1
+  code: '3.1'
+  title: The nature of marketing
+  parentId: b3
+  stage: as
+- id: b3_2
+  code: '3.2'
+  title: Market research
+  parentId: b3
+  stage: as
+- id: b3_3
+  code: '3.3'
+  title: The marketing mix
+  parentId: b3
+  stage: as
+- id: b4
+  code: '4'
+  title: Operations management
+  stage: as
+  examWeight: 0.1
+  paperIds:
+  - 9609-p1
+  - 9609-p2
+- id: b4_1
+  code: '4.1'
+  title: The nature of operations
+  parentId: b4
+  stage: as
+- id: b4_2
+  code: '4.2'
+  title: Inventory management
+  parentId: b4
+  stage: as
+- id: b4_3
+  code: '4.3'
+  title: Capacity utilisation
+  parentId: b4
+  stage: as
+- id: b4_4
+  code: '4.4'
+  title: Quality management
+  parentId: b4
+  stage: as
+- id: b5
+  code: '5'
+  title: Finance and accounting
+  stage: as
+  examWeight: 0.1
+  paperIds:
+  - 9609-p1
+  - 9609-p2
+- id: b5_1
+  code: '5.1'
+  title: Business finance
+  parentId: b5
+  stage: as
+- id: b5_2
+  code: '5.2'
+  title: Costs
+  parentId: b5
+  stage: as
+- id: b5_3
+  code: '5.3'
+  title: Break-even analysis
+  parentId: b5
+  stage: as
+  prerequisites:
+  - b5_2
+- id: b5_4
+  code: '5.4'
+  title: Budgets
+  parentId: b5
+  stage: as
+  prerequisites:
+  - b5_2
+- id: b5_5
+  code: '5.5'
+  title: Cash flow forecasting and working capital
+  parentId: b5
+  stage: as
+  prerequisites:
+  - b5_1
+- id: b5_6
+  code: '5.6'
+  title: Financial statements
+  parentId: b5
+  stage: as
+  prerequisites:
+  - b5_2
+- id: b6
+  code: '6'
+  title: Business and its environment (A Level)
+  stage: a2
+  examWeight: 0.1
+  paperIds:
+  - 9609-p3
+  - 9609-p4
+- id: b6_1
+  code: '6.1'
+  title: External influences on business activity
+  parentId: b6
+  stage: a2
+- id: b6_2
+  code: '6.2'
+  title: Business strategy
+  parentId: b6
+  stage: a2
+  prerequisites:
+  - b1_4
+  - b6_1
+- id: b6_3
+  code: '6.3'
+  title: Corporate planning and implementation
+  parentId: b6
+  stage: a2
+  prerequisites:
+  - b6_2
+- id: b7
+  code: '7'
+  title: People in organisations (A Level)
+  stage: a2
+  examWeight: 0.1
+  paperIds:
+  - 9609-p3
+  - 9609-p4
+- id: b7_1
+  code: '7.1'
+  title: Organisational structure
+  parentId: b7
+  stage: a2
+  prerequisites:
+  - b2_3
+- id: b7_2
+  code: '7.2'
+  title: Business communication
+  parentId: b7
+  stage: a2
+- id: b7_3
+  code: '7.3'
+  title: Leadership
+  parentId: b7
+  stage: a2
+  prerequisites:
+  - b2_2
+  - b2_3
+- id: b7_4
+  code: '7.4'
+  title: Human resource management strategy
+  parentId: b7
+  stage: a2
+  prerequisites:
+  - b2_1
+- id: b8
+  code: '8'
+  title: Marketing (A Level)
+  stage: a2
+  examWeight: 0.1
+  paperIds:
+  - 9609-p3
+  - 9609-p4
+- id: b8_1
+  code: '8.1'
+  title: Marketing analysis and elasticity
+  parentId: b8
+  stage: a2
+  prerequisites:
+  - b3_3
+- id: b8_2
+  code: '8.2'
+  title: Product development and the product life cycle
+  parentId: b8
+  stage: a2
+  prerequisites:
+  - b3_3
+- id: b8_3
+  code: '8.3'
+  title: Sales forecasting
+  parentId: b8
+  stage: a2
+- id: b8_4
+  code: '8.4'
+  title: Marketing planning and international marketing
+  parentId: b8
+  stage: a2
+  prerequisites:
+  - b3_1
+  - b8_1
+- id: b9
+  code: '9'
+  title: Operations and project management
+  stage: a2
+  examWeight: 0.1
+  paperIds:
+  - 9609-p3
+  - 9609-p4
+- id: b9_1
+  code: '9.1'
+  title: Location and scale
+  parentId: b9
+  stage: a2
+- id: b9_2
+  code: '9.2'
+  title: Quality management systems
+  parentId: b9
+  stage: a2
+  prerequisites:
+  - b4_4
+- id: b9_3
+  code: '9.3'
+  title: Lean production and enterprise resource planning
+  parentId: b9
+  stage: a2
+  prerequisites:
+  - b4_1
+  - b4_2
+- id: b9_4
+  code: '9.4'
+  title: Project management and critical path analysis
+  parentId: b9
+  stage: a2
+  prerequisites:
+  - b4_1
+- id: b10
+  code: '10'
+  title: Finance and accounting (A Level)
+  stage: a2
+  examWeight: 0.1
+  paperIds:
+  - 9609-p3
+  - 9609-p4
+- id: b10_1
+  code: '10.1'
+  title: Financial statements and ratio analysis
+  parentId: b10
+  stage: a2
+  prerequisites:
+  - b5_6
+- id: b10_2
+  code: '10.2'
+  title: Investment appraisal
+  parentId: b10
+  stage: a2
+  prerequisites:
+  - b5_1
+  - b5_6
+- id: b10_3
+  code: '10.3'
+  title: Long-term financing strategy
+  parentId: b10
+  stage: a2
+  prerequisites:
+  - b5_1
+  - b10_1
+objectives: []
+skills:
+- id: sk-chain
+  name: Causal chain
+  aoCode: AO3
+  description: 'Developing a point into a consequence for this specific business: cause → mechanism →
+    effect → consequence here.'
+  drill: Take any concept and write a three-link chain into a given context. Twenty a week, five minutes
+    each.
+- id: sk-application
+  name: Contextual application
+  aoCode: AO2
+  description: 'Using something only true of this business: a figure, a market condition, a stated objective,
+    a constraint.'
+  drill: Cover the business name in your sentence. If it still works for any company, rewrite it.
+- id: sk-judgement
+  name: Substantiated judgement
+  aoCode: AO4
+  description: Committing to an answer, saying why that factor outweighed the others, and attaching a
+    condition from the case.
+  drill: Write conclusions only — ten of them, no essays — using the four-sentence template.
+- id: sk-quality-evidence
+  name: Evaluating evidence quality
+  aoCode: AO4
+  description: Questioning sample size, age of data, opinion presented as fact, and forecast assumptions.
+  drill: For every number in a case study, write one sentence on why it might mislead.
+- id: sk-calculation
+  name: Calculation and interpretation
+  aoCode: AO2
+  description: Selecting the formula, substituting correctly, stating units, and writing one sentence
+    on what the number means.
+  drill: Every formula in the toolkit to blank recall, including the interpreting sentence.
+- id: sk-structure
+  name: Answer structure
+  aoCode: AO3
+  description: One developed point per paragraph, so a marker can find every mark you earned.
+  drill: Rewrite a wall-of-text answer as separate paragraphs and count how many points become visible.
+officialResources:
+- label: Syllabus 2026-2028 (PDF)
+  kind: syllabus
+  url: https://www.cambridgeinternational.org/Images/697371-2026-2028-syllabus.pdf
+- label: 9609 subject page
+  kind: subject
+  url: https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-international-as-and-a-level-business-9609/
+- label: Past papers and mark schemes
+  kind: past-papers
+  url: https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-international-as-and-a-level-business-9609/past-papers/
+- label: Grade thresholds, June 2025 (PDF)
+  kind: thresholds
+  url: https://www.cambridgeinternational.org/Images/740287-business-9609-june-2025-grade-threshold-table.pdf
+commandWords:
+- word: Define
+  definition: Give the precise meaning of a term.
+  aoCeiling:
+  - AO1
+  expects: One accurate sentence. Nothing else is creditable, and explanation here spends time you need
+    elsewhere.
+  answerStructure:
+  - A single precise sentence carrying the defining feature.
+  weakExample: Cash flow is money in a business.
+  strongExample: Cash flow is the movement of cash into and out of a business over a period of time.
+  trap: Padding a definition with examples and explanation that earn nothing.
+- word: State
+  definition: Give a fact, a name or a short answer without explanation.
+  aoCeiling:
+  - AO1
+  expects: The fact alone. No development required or rewarded.
+  answerStructure:
+  - The fact, in as few words as are accurate.
+  trap: Writing a paragraph where a phrase was asked for.
+- word: Identify
+  definition: Name or select something.
+  aoCeiling:
+  - AO1
+  expects: The item named. Where a number is asked for, give exactly that many.
+  answerStructure:
+  - The named item or items.
+  trap: Giving four when two were asked for; only the first are usually marked.
+- word: Outline
+  definition: Set out the main points.
+  aoCeiling:
+  - AO1
+  - AO2
+  expects: The main points briefly, without development into consequences.
+  answerStructure:
+  - Point one, in a sentence.
+  - Point two, in a sentence.
+  trap: Turning an outline into an essay.
+- word: Describe
+  definition: State the features of something.
+  aoCeiling:
+  - AO1
+  - AO2
+  expects: Features stated clearly, applied to the context where one is given.
+  answerStructure:
+  - Feature.
+  - How it appears in this business.
+  trap: Describing where the question actually asked you to explain why.
+- word: Explain
+  definition: Set out the purposes or reasons, making the relationships between things clear.
+  aoCeiling:
+  - AO1
+  - AO2
+  expects: Definition plus how it applies here, with the reason made explicit. No judgement needed.
+  answerStructure:
+  - What it is.
+  - How it works.
+  - Why that matters in this specific business.
+  weakExample: Delegation improves motivation.
+  strongExample: Delegating stock ordering gives branch managers control over a decision that visibly
+    affects their branch's results, which meets the esteem needs above security in Maslow's hierarchy
+    — and since this firm's 34% turnover is concentrated in supervisory grades, retaining those managers
+    directly reduces its stated $18,000 recruitment cost.
+  trap: Stating a point and stopping, so no reason is ever given.
+- word: Calculate
+  definition: Work out a numerical answer, showing the steps.
+  aoCeiling:
+  - AO1
+  - AO2
+  expects: Working shown, the correct figure, the unit stated, and one sentence saying what it means.
+  answerStructure:
+  - Formula.
+  - Substitution.
+  - Answer with unit.
+  - One sentence of interpretation.
+  trap: Inverting the formula, forgetting to multiply by 100, confusing mark-up with margin, or omitting
+    the unit.
+- word: Analyse
+  definition: Examine in detail to show meaning and identify elements and relationships.
+  aoCeiling:
+  - AO1
+  - AO2
+  - AO3
+  expects: 'Developed chains: cause, mechanism, effect, and consequence for this business. There are no
+    evaluation marks available.'
+  answerStructure:
+  - Point.
+  - Which means…
+  - So…
+  - Consequence for this specific business.
+  trap: Writing evaluation into an Analyse question. There are no AO4 marks to earn, so the judgement
+    earns nothing and costs real minutes.
+- word: Compare
+  definition: Identify similarities and differences.
+  aoCeiling:
+  - AO1
+  - AO2
+  - AO3
+  expects: Explicit comparison in the same sentence, not two separate descriptions.
+  answerStructure:
+  - Whereas X does A, Y does B, which means…
+  trap: Describing both things separately and leaving the comparison to the marker.
+- word: Contrast
+  definition: Identify and set out the differences.
+  aoCeiling:
+  - AO1
+  - AO2
+  - AO3
+  expects: Differences made explicit, with the significance of each.
+  answerStructure:
+  - Difference.
+  - Why that difference matters here.
+  trap: Listing differences with no consequence attached.
+- word: Discuss
+  definition: Write about an issue in depth, considering different points of view.
+  aoCeiling:
+  - AO1
+  - AO2
+  - AO3
+  - AO4
+  expects: Both sides developed, then a judgement between them.
+  answerStructure:
+  - The case for.
+  - The case against.
+  - Which is stronger here, and why.
+  trap: Balanced coverage with no judgement at the end — the AO4 marks stay unearned.
+- word: Evaluate
+  definition: Judge or calculate the quality, importance or condition of something.
+  aoCeiling:
+  - AO1
+  - AO2
+  - AO3
+  - AO4
+  expects: Judgement dominant. Front-load it rather than saving it for a final sentence.
+  answerStructure:
+  - The judgement, stated early.
+  - Why this factor outweighs the others.
+  - The condition under which it would change.
+  weakExample: In conclusion, it depends on the situation.
+  strongExample: On balance the firm should delay the expansion, because its gearing of 68% leaves no
+    capacity to absorb a further downturn — which outweighs the first-mover advantage, given that the
+    case's own forecast rests on a 4% growth assumption that has already been missed twice.
+  trap: A summary instead of a judgement. Restating your paragraphs is not evaluation.
+- word: Assess
+  definition: Make an informed judgement.
+  aoCeiling:
+  - AO1
+  - AO2
+  - AO3
+  - AO4
+  expects: Weighing of factors leading to a clear position, with the reasoning visible.
+  answerStructure:
+  - Factors weighed against each other.
+  - Which matters most here, and why.
+  trap: Assessing everything equally, so nothing is actually judged.
+- word: Justify
+  definition: Support a case with evidence and argument.
+  aoCeiling:
+  - AO1
+  - AO2
+  - AO3
+  - AO4
+  expects: A position plus the evidence that supports it, and why the counter-argument is weaker.
+  answerStructure:
+  - The position.
+  - Evidence from the case.
+  - Why the alternative is weaker.
+  trap: Asserting a position with no evidence attached.
+- word: Recommend
+  definition: Suggest a course of action, with reasons.
+  aoCeiling:
+  - AO1
+  - AO2
+  - AO3
+  - AO4
+  expects: A specific action, justified, ideally with timing and a condition.
+  answerStructure:
+  - What to do.
+  - Why, given this business's circumstances.
+  - When, and what would change the advice.
+  trap: Ending with 'it depends' instead of committing to a course of action.
+- word: Advise
+  definition: Write about the issues and give a recommended course of action.
+  aoCeiling:
+  - AO1
+  - AO2
+  - AO3
+  - AO4
+  expects: Issues covered, then a clear recommendation the client could act on.
+  answerStructure:
+  - The issues.
+  - The recommendation.
+  - The condition attached to it.
+  trap: Advice that is not actionable.
+- word: Suggest
+  definition: Apply knowledge and understanding to a situation where there are a range of valid responses.
+  aoCeiling:
+  - AO1
+  - AO2
+  - AO3
+  expects: A plausible response tied to this context, with a reason.
+  answerStructure:
+  - The suggestion.
+  - Why it fits this business specifically.
+  trap: A generic suggestion that would fit any firm.
+- word: Predict
+  definition: Suggest what may happen based on available information.
+  aoCeiling:
+  - AO1
+  - AO2
+  - AO3
+  expects: A stated outcome with the reasoning that leads to it.
+  answerStructure:
+  - The predicted outcome.
+  - The mechanism that produces it.
+  trap: A prediction with no mechanism behind it.
+- word: Consider
+  definition: Review and respond to given information.
+  aoCeiling:
+  - AO1
+  - AO2
+  - AO3
+  expects: Engagement with the specific information supplied, not with the topic in general.
+  answerStructure:
+  - What the information shows.
+  - What follows from it here.
+  trap: Ignoring the data supplied and writing from memory.
+- word: Summarise
+  definition: Select and present the main points, without detail.
+  aoCeiling:
+  - AO1
+  - AO2
+  expects: The main points only, compressed.
+  answerStructure:
+  - Main point, one line each.
+  trap: Reproducing the source at length instead of compressing it.
+gradeThresholds: []

@@ -7,22 +7,30 @@
  * depend on the domain; the domain depends on nothing.
  */
 
-/** Branded ids so a TopicId can never be passed where a QuestionId is wanted. */
-export type Brand<T, B extends string> = T & { readonly __brand: B };
+/**
+ * Named id aliases.
+ *
+ * These were nominal (branded) types initially. They were relaxed to plain
+ * string aliases deliberately: ids cross a filesystem boundary on every load
+ * (packs are authored as YAML, where every id is a string) and a boundary into
+ * persisted student state, so branding bought a little compile-time safety in
+ * the engines at the cost of a cast on essentially every join. The names are
+ * kept because they carry the documentation value, which was most of the point.
+ */
+export type SyllabusId = string;
+export type PaperId = string;
+export type TopicId = string;
+export type ObjectiveId = string;
+export type SkillId = string;
+export type QuestionId = string;
+export type AttemptId = string;
+export type CardId = string;
+export type MistakeId = string;
+export type NoteId = string;
+export type SessionId = string;
+export type UserId = string;
 
-export type SyllabusId = Brand<string, "SyllabusId">;
-export type PaperId = Brand<string, "PaperId">;
-export type TopicId = Brand<string, "TopicId">;
-export type ObjectiveId = Brand<string, "ObjectiveId">;
-export type SkillId = Brand<string, "SkillId">;
-export type QuestionId = Brand<string, "QuestionId">;
-export type AttemptId = Brand<string, "AttemptId">;
-export type CardId = Brand<string, "CardId">;
-export type MistakeId = Brand<string, "MistakeId">;
-export type NoteId = Brand<string, "NoteId">;
-export type SessionId = Brand<string, "SessionId">;
-export type UserId = Brand<string, "UserId">;
-
+/** Kept as explicit constructors so intent stays readable at call sites. */
 export const id = {
   syllabus: (s: string) => s as SyllabusId,
   paper: (s: string) => s as PaperId,

@@ -282,6 +282,31 @@ export function effectiveExamWeight(syllabus: Syllabus, topic: Topic): Unit {
   return unweighted.length ? remaining / unweighted.length : 0;
 }
 
+/**
+ * Exam weight of a topic as a share of the WHOLE qualification.
+ *
+ * `effectiveExamWeight` is relative to a topic's siblings, which is the natural
+ * way to author content ("these four subtopics split their parent evenly") but
+ * the wrong number for ranking: a leaf that is half of a small section is not
+ * half of the paper. This walks the ancestor chain and multiplies, so a leaf
+ * three levels down reports its true share of the marks.
+ */
+export function absoluteExamWeight(syllabus: Syllabus, topic: Topic): Unit {
+  let weight = effectiveExamWeight(syllabus, topic);
+  let current = topic;
+  const guard = new Set<TopicId>([topic.id]);
+  while (current.parentId) {
+    const parent = syllabus.topics.find((t) => t.id === current.parentId);
+    // Defensive: a malformed pack could describe a cycle, and an infinite loop
+    // in a ranking function would take the whole page down.
+    if (!parent || guard.has(parent.id)) break;
+    guard.add(parent.id);
+    weight *= effectiveExamWeight(syllabus, parent);
+    current = parent;
+  }
+  return weight;
+}
+
 export function findCommandWord(syllabus: Syllabus, word: string): CommandWord | undefined {
   const needle = word.trim().toLowerCase();
   return syllabus.commandWords.find((c) => c.word.toLowerCase() === needle);
