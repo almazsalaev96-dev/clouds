@@ -108,3 +108,22 @@ published syllabus. They follow the same topic sequence as the standard course t
 which is how the syllabus itself is ordered — but the wording, the practice questions and
 every model answer are original. Use them alongside your textbook and past papers, not
 instead of them.
+
+## One-file build
+
+`build-single-file.py` inlines the stylesheet and every script into a single
+HTML file, so the whole course travels as one document — a USB stick, an email
+attachment, any static host:
+
+    python3 build-single-file.py                  # business-studies-0450.html
+    python3 build-single-file.py --body out.html  # body only, no document wrapper
+
+The output is ignored by git; rebuild it whenever the source changes.
+
+## The AI examiner without a key
+
+The examiner asks the page's host for an answer before it falls back to an API
+key. Where the host offers that (a published page on claude.ai), the reader's
+own Claude account answers and no key is needed; the reader is asked to allow
+it on the first question. Opened from a file or served yourself, nothing
+changes: add a key in Settings and it calls the API directly.
