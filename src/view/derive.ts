@@ -221,9 +221,25 @@ export function buildSubjectView(
 
   // --- readiness ----------------------------------------------------------
   const leaves = syllabus.topics.filter((t) => childTopics(syllabus, t.id).length === 0);
-  const testedObjectives = new Set(joined.flatMap(({ question }) => question.objectiveIds ?? []));
-  const totalObjectives = syllabus.objectives.length || leaves.length;
-  const coverage = totalObjectives ? testedObjectives.size / totalObjectives : 0;
+  const leafIds = new Set(leaves.map((t) => t.id));
+
+  /**
+   * Syllabus coverage — what fraction of the syllabus has any evidence at all.
+   *
+   * Measured against learning objectives where a pack authors them, and against
+   * leaf topics where it does not. The fallback matters: objective-level detail
+   * is the last thing a pack author writes, and without it this previously
+   * measured tested-objectives against a leaf-topic denominator — a set that is
+   * always empty over a count that never is. It reported 0% to a student who
+   * had answered questions across a dozen topics, and dragged their readiness
+   * and grade projection down with it.
+   */
+  const hasAuthoredObjectives = syllabus.objectives.length > 0;
+  const totalObjectives = hasAuthoredObjectives ? syllabus.objectives.length : leaves.length;
+  const testedUnits = hasAuthoredObjectives
+    ? new Set(joined.flatMap(({ question }) => question.objectiveIds ?? []))
+    : new Set(joined.flatMap(({ question }) => question.topicIds.filter((t) => leafIds.has(t))));
+  const coverage = totalObjectives ? Math.min(1, testedUnits.size / totalObjectives) : 0;
 
   const withEvidence = [...topicMastery.entries()].filter(([, m]) => m.observations > 0);
   const meanRetention = withEvidence.length

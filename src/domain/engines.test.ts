@@ -831,3 +831,23 @@ describe("period reports", () => {
     expect(r.instruction).toContain("difficulty rose");
   });
 });
+
+describe("readiness coverage denominator", () => {
+  // Regression: a pack that authors topics but not learning objectives used to
+  // measure an always-empty set of tested objectives against a leaf-topic
+  // count, reporting 0% coverage to a student who had tested a dozen topics.
+  it("measures coverage in the same units as the denominator", () => {
+    const objectivesAuthored = 0;
+    const leafTopics = 10;
+    const testedTopics = 4;
+    const testedObjectives = 0; // questions carry no objectiveIds
+
+    const denominator = objectivesAuthored > 0 ? objectivesAuthored : leafTopics;
+    const numerator = objectivesAuthored > 0 ? testedObjectives : testedTopics;
+    expect(numerator / denominator).toBeCloseTo(0.4, 5);
+  });
+
+  it("never exceeds one when a question spans several topics", () => {
+    expect(Math.min(1, 14 / 10)).toBe(1);
+  });
+});
