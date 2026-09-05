@@ -38,6 +38,12 @@ export interface SubjectEnrolment {
 
 export interface StudentProfile {
   displayName?: string;
+  /**
+   * True when this state was seeded as an example rather than earned. Drives a
+   * persistent banner, so example figures can never be read as a record of the
+   * reader's own work.
+   */
+  isExample?: boolean;
   /** Minutes available per weekday, index 0 = Sunday. */
   weeklyMinutes: number[];
   preferredStudyTimes?: string[];

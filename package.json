@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "content:check": "tsx scripts/check-content.ts",
     "test:e2e": "node e2e/smoke.mjs",
-    "pack:new": "tsx scripts/new-pack.ts"
+    "pack:new": "tsx scripts/new-pack.ts",
+    "artifact": "tsx artifact/build.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",
@@ -30,6 +31,7 @@
     "@types/node": "^22.15.3",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "esbuild": "^0.28.2",
     "playwright": "^1.63.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",

@@ -179,6 +179,7 @@ function Frame({ children }: { children: ReactNode }) {
           <div className="spacer" />
           {onboarded && <QuickSession />}
         </header>
+        {state.profile.isExample && <ExampleBanner />}
         <main id="main" className="content">
           {children}
         </main>
@@ -212,6 +213,44 @@ function QuickSession() {
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+
+/**
+ * Example-data banner.
+ *
+ * Deliberately a thin strip rather than a card: it must be impossible to miss
+ * and impossible to mistake for content. It states plainly which part is
+ * fabricated (the answers) and which is not (everything derived from them),
+ * and offers the one action that matters.
+ */
+function ExampleBanner() {
+  const { reset } = useStore();
+  return (
+    <div
+      role="status"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        flexWrap: "wrap",
+        padding: "8px 30px",
+        background: "var(--fading-wash)",
+        borderBottom: "1px solid color-mix(in srgb, var(--fading) 30%, transparent)",
+        color: "var(--ink-soft)",
+        fontSize: "0.82rem",
+      }}
+    >
+      <strong style={{ color: "var(--fading)" }}>Example data</strong>
+      <span>
+        These answers are made up, so the figures are not your progress. The analysis of them is real
+        — the same engines, on these attempts.
+      </span>
+      <button className="btn small ghost" style={{ marginLeft: "auto" }} onClick={() => void reset()}>
+        Clear and start properly
+      </button>
     </div>
   );
 }

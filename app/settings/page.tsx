@@ -22,6 +22,7 @@ export default function SettingsPage() {
   const { state, update, ready, exportJson, importJson, reset } = useStore();
   const fileRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [exported, setExported] = useState<string | null>(null);
 
   if (!ready) return <p className="muted small">Loading…</p>;
   const s = state.settings;
@@ -29,14 +30,41 @@ export default function SettingsPage() {
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     update((prev) => ({ ...prev, settings: { ...prev.settings, [key]: value } }));
 
-  const download = () => {
-    const blob = new Blob([exportJson()], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `lodestar-export-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  /**
+   * Export.
+   *
+   * A file download is the right affordance where the page can offer one, but
+   * embedded viewers block page-initiated saves outright — the link fires and
+   * nothing happens, which is the worst possible outcome for the one control
+   * standing between a student and losing a term of work. So the JSON is always
+   * also shown for copying, and the copy is what the text points at when the
+   * download cannot be trusted to arrive.
+   */
+  const exportNow = () => {
+    const json = exportJson();
+    setExported(json);
+    try {
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `lodestar-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // Blocked or unsupported. The copy panel below is the path that works.
+    }
+  };
+
+  const copyExport = async () => {
+    const json = exported ?? exportJson();
+    setExported(json);
+    try {
+      await navigator.clipboard.writeText(json);
+      setMessage("Export copied to the clipboard. Paste it into a file and keep it somewhere safe.");
+    } catch {
+      setMessage("Copying was blocked. Select the text below and copy it manually.");
+    }
   };
 
   return (
@@ -138,7 +166,8 @@ export default function SettingsPage() {
           {message && <Callout kind="good">{message}</Callout>}
 
           <div className="row">
-            <button className="btn" onClick={download}>Export everything</button>
+            <button className="btn" onClick={exportNow}>Export everything</button>
+            <button className="btn" onClick={() => void copyExport()}>Copy export</button>
             <button className="btn" onClick={() => fileRef.current?.click()}>Import a backup</button>
             <input
               ref={fileRef}
@@ -161,12 +190,32 @@ export default function SettingsPage() {
               confirmLabel="Delete everything — sure?"
               onConfirm={() => {
                 void reset();
+                setExported(null);
                 setMessage("All local data deleted.");
               }}
             >
               Delete all my data
             </ConfirmButton>
           </div>
+
+          {exported && (
+            <div className="field">
+              <label htmlFor="export-json">
+                Your export — {(exported.length / 1024).toFixed(0)} KB
+              </label>
+              <p className="hint">
+                If the download did not arrive, your browser blocked it. Copy this and save it as a
+                <code> .json</code> file; importing it later restores everything exactly.
+              </p>
+              <textarea
+                id="export-json"
+                readOnly
+                value={exported}
+                onFocus={(e) => e.currentTarget.select()}
+                style={{ fontFamily: "var(--mono)", fontSize: "0.72rem", minHeight: 120 }}
+              />
+            </div>
+          )}
         </div>
       </Card>
 

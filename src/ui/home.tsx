@@ -24,6 +24,7 @@ import { generateSession } from "@/domain/planner";
 import { ACTION_COPY } from "@/domain/priority";
 import { VERDICT_COPY } from "@/domain/readiness";
 import { retentionState } from "@/domain/mastery";
+import { daysBetween } from "@/domain/types";
 import { cramFocus } from "@/domain/planner";
 import { minutesPerMark } from "@/domain/curriculum";
 import { rollupByDay, studyStreak } from "@/domain/events";
@@ -79,7 +80,13 @@ export function CommandCentre() {
     .sort((a, b) => a.r - b.r)
     .slice(0, 5);
 
-  const accuracyTrend = rollups.slice(-14).map((r) => (r.marksAvailable ? r.marksEarned / r.marksAvailable : 0));
+  const recent = rollups.slice(-14);
+  const accuracyTrend = recent.map((r) => (r.marksAvailable ? r.marksEarned / r.marksAvailable : 0));
+  // Aggregate the window rather than reading its last point: the tile is
+  // labelled "14 days", and one strong day is not a fortnight's accuracy.
+  const windowEarned = recent.reduce((t, r) => t + r.marksEarned, 0);
+  const windowAvailable = recent.reduce((t, r) => t + r.marksAvailable, 0);
+  const windowAccuracy = windowAvailable ? windowEarned / windowAvailable : null;
 
   return (
     <div className="stack loose">
@@ -274,16 +281,24 @@ export function CommandCentre() {
               <p className="small muted">Nothing is decaying yet. This fills in as evidence accumulates.</p>
             ) : (
               <div className="stack tight">
-                {fading.map(({ topic, r }) => (
-                  <div key={topic!.id} className="row between">
-                    <Link href={`/topics/${encodeURIComponent(topic!.id)}`} className="small" style={{ color: "var(--ink)", textDecoration: "none" }}>
-                      {topic!.title}
-                    </Link>
-                    <Chip tone={retentionState(r)}>
-                      <Pct value={r} /> recall
-                    </Chip>
-                  </div>
-                ))}
+                {fading.map(({ topic, r, mastery: m }) => {
+                  const daysSince = m?.lastEvidenceAt
+                    ? Math.max(0, Math.round(daysBetween(m.lastEvidenceAt, now)))
+                    : null;
+                  return (
+                    <div key={topic!.id} className="row between">
+                      <Link href={`/topics/${encodeURIComponent(topic!.id)}`} className="small" style={{ color: "var(--ink)", textDecoration: "none" }}>
+                        {topic!.title}
+                        {daysSince !== null && (
+                          <span className="tiny muted"> · last seen {daysSince}d ago</span>
+                        )}
+                      </Link>
+                      <Chip tone={retentionState(r)}>
+                        {r > 0 && r < 0.01 ? "<1%" : <Pct value={r} />} recall
+                      </Chip>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </Card>
@@ -314,7 +329,12 @@ export function CommandCentre() {
         </Card>
         <Card>
           <div className="row between">
-            <Stat label="Accuracy, 14 days" value={accuracyTrend.length ? <Pct value={accuracyTrend[accuracyTrend.length - 1] ?? 0} /> : "—"} small />
+            <Stat
+              label="Accuracy, 14 days"
+              value={windowAccuracy === null ? "—" : <Pct value={windowAccuracy} />}
+              note={windowAvailable ? `${Math.round(windowEarned)}/${Math.round(windowAvailable)} marks` : undefined}
+              small
+            />
             <Sparkline values={accuracyTrend} />
           </div>
         </Card>

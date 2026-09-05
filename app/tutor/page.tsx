@@ -40,6 +40,12 @@ export default function TutorPage() {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // No server means no provider, by definition. Probing anyway logs a CORS
+    // failure that reads like a fault rather than the expected state.
+    if (!/^https?:$/.test(window.location.protocol)) {
+      setAvailable(false);
+      return;
+    }
     fetch("/api/ai/status")
       .then((r) => r.json())
       .then((d: { available: boolean }) => setAvailable(d.available))

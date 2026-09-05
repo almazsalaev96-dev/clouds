@@ -47,6 +47,9 @@ interface AIMarking {
   warnings?: string[];
 }
 
+const canReachServer = () =>
+  typeof window !== "undefined" && /^https?:$/.test(window.location.protocol);
+
 export interface AnsweredResult {
   attempt: Omit<Attempt, "id">;
   question: Question;
@@ -506,6 +509,7 @@ function LedgerMarking({
   const [aiError, setAiError] = useState<{ message: string; fallback: string } | null>(null);
 
   useEffect(() => {
+    if (!canReachServer()) return;
     let cancelled = false;
     fetch("/api/ai/status")
       .then((r) => r.json())

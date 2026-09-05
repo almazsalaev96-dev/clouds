@@ -14,6 +14,7 @@
 
 import { useMemo, useState } from "react";
 import { useContent, useStore } from "@/store/provider";
+import { buildExampleState } from "@/store/demo";
 import { Callout, Card } from "./components";
 import type { SubjectEnrolment } from "@/store/types";
 
@@ -85,6 +86,12 @@ export function Onboarding() {
       <div>
         <p className="eyebrow">Setting up · step {step + 1} of 4</p>
         <h1>{["What are you studying?", "How far are you going?", "When is the exam?", "How much time do you have?"][step]}</h1>
+        {step === 0 && (
+          <p className="lede" style={{ marginTop: 8 }}>
+            Four questions, then a working plan. Lodestar works out what you should study next, why,
+            and how close you are to your target grade — from your own recorded work.
+          </p>
+        )}
       </div>
 
       {step === 0 && (
@@ -207,6 +214,36 @@ export function Onboarding() {
               That is <strong className="num">{weeklyHours}</strong> hours a week. Days set to zero are
               treated as rest, not as failure.
             </p>
+          </div>
+        </Card>
+      )}
+
+      {step === 0 && syllabus && (
+        <Card>
+          <div className="row between" style={{ gap: 14, alignItems: "flex-start" }}>
+            <div style={{ maxWidth: "56ch" }}>
+              <strong style={{ fontSize: "0.94rem" }}>Just looking?</strong>
+              <p className="small muted" style={{ margin: "3px 0 0" }}>
+                Load a fortnight of example study for {syllabus.subject}. The answers are made up; the
+                analysis is not — every figure is computed by the same engines from those attempts.
+                It is labelled throughout and clears in one click.
+              </p>
+            </div>
+            <button
+              className="btn"
+              onClick={() =>
+                update(() =>
+                  buildExampleState({
+                    syllabusId: syllabus.id,
+                    packId: (syllabus as { packId?: string }).packId ?? "",
+                    questions: bundle.questions,
+                    now: new Date().toISOString(),
+                  }),
+                )
+              }
+            >
+              Explore with example data
+            </button>
           </div>
         </Card>
       )}
