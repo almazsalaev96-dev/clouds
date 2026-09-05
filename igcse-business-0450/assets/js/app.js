@@ -9,6 +9,16 @@
   var view = $('#view');
 
   function esc(s) { return R.esc(s); }
+  /* plain text for search results and other places markup must not leak */
+  function plain(s) {
+    return String(s == null ? '' : s)
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*\n]+)\*/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/\[\[([^\]]+)\]\]/g, '$1')
+      .replace(/&[a-z]+;/gi, ' ')
+      .replace(/\s+/g, ' ').trim();
+  }
   function secColor(s) { return 'var(--s' + s + ')'; }
   function secWash(s)  { return 'var(--s' + s + 'w)'; }
 
@@ -706,6 +716,20 @@
     var ctx = {};
     var preload = '';
     if (params.ch) ctx.ch = params.ch;
+    if (params.p2 != null && window.PAPER2) {
+      var pp = PAPER2[0], pq = pp.questions[Number(params.p2)];
+      if (pq) {
+        var mineP = Store.answer('p2-' + pp.id + '-' + Number(params.p2));
+        preload = 'Mark my answer to this Paper 2 question.\n\n' +
+          'CASE STUDY: ' + pp.title + ' — ' + pp.sub + '. ' +
+          'KE assembles two electric motorbikes (the Danko, mass market, $900; the Aburi Pro, premium, $2,000). ' +
+          'It uses batch production, pays a time rate, has 31% labour turnover, imports batteries from abroad, ' +
+          'gives dealers 90 days credit while paying suppliers in 30, and is close to its overdraft limit. ' +
+          'Revenue rose from $4.2m to $5.6m but net profit fell from $420k to $336k and the acid test fell from 1.02 to 0.73.\n\n' +
+          'QUESTION ' + pq.n + ' (' + pq.cmd + ', ' + pq.m + ' marks): ' + pq.q + '\n\n' +
+          'MY ANSWER:\n' + (mineP || '(I have not written an answer yet — please give me a plan instead.)');
+      }
+    }
     if (params.mark) {
       var m = params.mark.match(/^e(\d+)-(\d+)$/);
       if (m) {
@@ -813,6 +837,122 @@
           body.innerHTML = R.call('trap', esc(err.message), 'Could not get a reply');
         });
     }
+  }
+
+
+  /* ============================================================
+     VIEW: PAPER 2 CASE STUDY
+     ============================================================ */
+  var examTimer = { id: null, left: 90 * 60, running: false };
+
+  function vPaper2(params) {
+    var paper = PAPER2[0];
+    var showing = params.q || null;
+
+    var h = '<div class="hero"><div class="eyebrow">' + esc(paper.code) + ' · ' + paper.marks +
+      ' marks · ' + esc(paper.time) + '</div>' +
+      '<h1>' + esc(paper.title) + '</h1>' +
+      '<p class="lede">' + esc(paper.sub) + '. A complete Paper 2 in the real format: one case study, ' +
+      'four appendices and four questions, each split into an 8-mark part (a) and a 12-mark part (b).</p></div>';
+
+    // timer
+    h += '<div class="card tight timer-bar no-print" id="timerBar">' +
+      '<div><div class="eyebrow" style="margin-bottom:2px">Exam timer</div>' +
+      '<div class="timer-clock" id="timerClock">90:00</div></div>' +
+      '<div style="display:flex;gap:7px;flex-wrap:wrap">' +
+      '<button class="btn sm pri" id="tStart">Start</button>' +
+      '<button class="btn sm" id="tPause">Pause</button>' +
+      '<button class="btn sm gh" id="tReset">Reset</button></div></div>';
+
+    h += '<div class="call tip"><span class="lb">Before you start</span>' +
+      R.ul(paper.instructions) + '</div>';
+
+    // the insert
+    h += '<section class="block" id="insert"><h2>The case study</h2>' +
+      '<div class="insert-body">' + R.blocks(paper.insert) + '</div></section>';
+
+    // appendices
+    h += '<section class="block"><h2>Appendices</h2>' + paper.appendices.map(function (a) {
+      return '<div class="appx"><div class="appx-h">Appendix ' + a.n + ' — ' + esc(a.title) + '</div>' +
+        '<div class="appx-b">' + R.blocks(a.blocks) + '</div></div>';
+    }).join('') + '</section>';
+
+    // questions
+    h += '<section class="block"><h2>Questions</h2>' +
+      '<p class="small muted">Write your answer first, in full. Only then open the plan and the model — ' +
+      'reading the model before you write teaches you nothing.</p>' +
+      paper.questions.map(function (q, i) {
+        var id = 'p2-' + paper.id + '-' + i;
+        return '<div class="eq" data-id="' + id + '">' +
+          '<div class="eq-h"><div class="qt">' +
+            '<div class="eq-cmd">Question ' + esc(q.n) + ' · ' + esc(q.cmd) + '</div>' +
+            '<div>' + R.inline(q.q) + '</div></div>' +
+            '<span class="mk">' + q.m + ' marks</span></div>' +
+          '<div class="eq-body">' +
+            '<h5>Your answer</h5>' +
+            '<textarea class="ans-area" data-ans="' + id + '" style="min-height:' + (q.m > 8 ? 260 : 170) + 'px" ' +
+            'placeholder="Write your answer here. It is saved in this browser as you type.">' +
+            esc(Store.answer(id)) + '</textarea>' +
+            '<div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap" class="no-print">' +
+            '<button class="btn sm" data-toggle="plan">Show plan</button>' +
+            '<button class="btn sm" data-toggle="model">Show model answer</button>' +
+            '<a class="btn sm" href="#/tutor?p2=' + i + '">✦ Mark my answer</a></div>' +
+            '<div data-panel="plan" hidden><h5>How to plan it</h5>' + R.ol(q.plan) + '</div>' +
+            '<div data-panel="model" hidden><h5>Model answer</h5>' +
+            q.model.map(function (p) {
+              return '<p style="font-size:.87rem;color:var(--ink-soft)">' + R.inline(p) + '</p>';
+            }).join('') +
+            '<h5>Where the marks are</h5><p style="font-size:.85rem;color:var(--ink-soft)">' +
+            R.inline(q.marker) + '</p></div>' +
+          '</div></div>';
+      }).join('') + '</section>';
+
+    view.innerHTML = h;
+    crumb([{ t: 'Paper 2 case study' }]);
+    wireExamCards();
+    wireTimer();
+
+    if (showing) {
+      var el = $$('.eq')[Number(showing)];
+      if (el) el.scrollIntoView({ block: 'start' });
+    }
+  }
+
+  function fmtClock(s) {
+    var m = Math.floor(Math.abs(s) / 60), ss = Math.abs(s) % 60;
+    return (s < 0 ? '-' : '') + m + ':' + (ss < 10 ? '0' : '') + ss;
+  }
+
+  function wireTimer() {
+    var clock = $('#timerClock'), bar = $('#timerBar');
+    if (!clock) return;
+    paint();
+    function paint() {
+      clock.textContent = fmtClock(examTimer.left);
+      bar.classList.toggle('warn', examTimer.left <= 600 && examTimer.left > 0);
+      bar.classList.toggle('over', examTimer.left <= 0);
+    }
+    function tick() {
+      examTimer.left--;
+      paint();
+      if (examTimer.left === 0) toast('Time is up — 90 minutes gone');
+    }
+    $('#tStart').addEventListener('click', function () {
+      if (examTimer.running) return;
+      examTimer.running = true;
+      examTimer.id = setInterval(tick, 1000);
+      toast('Timer started — 90 minutes');
+    });
+    $('#tPause').addEventListener('click', function () {
+      examTimer.running = false;
+      clearInterval(examTimer.id);
+    });
+    $('#tReset').addEventListener('click', function () {
+      examTimer.running = false;
+      clearInterval(examTimer.id);
+      examTimer.left = 90 * 60;
+      paint();
+    });
   }
 
   function vNotFound() {
@@ -948,6 +1088,14 @@
       idx.push({ kind: 'Command word', title: c.w, sub: c.means, href: '#/exam',
                  hay: (c.w + ' ' + c.means).toLowerCase() });
     });
+    if (window.PAPER2) PAPER2.forEach(function (pp) {
+      idx.push({ kind: 'Case study', title: pp.code + ' — ' + pp.title, sub: pp.sub,
+                 href: '#/paper2', hay: (pp.code + ' ' + pp.title + ' ' + pp.sub + ' case study paper 2').toLowerCase() });
+      pp.questions.forEach(function (q, i) {
+        idx.push({ kind: 'Paper 2 · ' + q.m + ' marks', title: 'Q' + q.n + ' ' + q.q,
+                   sub: pp.title, href: '#/paper2?q=' + i, hay: q.q.toLowerCase() });
+      });
+    });
     TOOLS.forEach(function (t) {
       idx.push({ kind: 'Calculator', title: t.name, sub: t.blurb, href: '#/tools?t=' + t.id,
                  hay: (t.name + ' ' + t.blurb).toLowerCase() });
@@ -975,8 +1123,8 @@
         box.innerHTML = results.map(function (r, i) {
           return '<a class="sr-item" href="' + r.href + '" data-i="' + i + '">' +
             '<div class="sr-kind">' + esc(r.kind) + '</div>' +
-            '<div class="sr-title">' + esc(r.title) + '</div>' +
-            '<div class="sr-sub">' + esc(r.sub || '') + '</div></a>';
+            '<div class="sr-title">' + esc(plain(r.title)) + '</div>' +
+            '<div class="sr-sub">' + esc(plain(r.sub || '')) + '</div></a>';
         }).join('');
       }
       box.hidden = false; sel = -1;
@@ -1036,6 +1184,7 @@
     else if (p === '/tools') vTools(r.params);
     else if (p === '/glossary') vGlossary(r.params);
     else if (p === '/tutor') vTutor(r.params);
+    else if (p === '/paper2') vPaper2(r.params);
     else if (/^\/s\/\d+$/.test(p)) vSection(p.split('/')[2]);
     else if (/^\/ch\/\d+$/.test(p)) vChapter(p.split('/')[2]);
     else vNotFound();

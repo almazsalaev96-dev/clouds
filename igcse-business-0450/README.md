@@ -11,6 +11,7 @@ A complete, self-contained revision site for **Cambridge IGCSE & O Level Busines
 | **309 definitions** | Every "definition to learn", available as a glossary and as a spaced-repetition flashcard deck |
 | **239 quiz questions** | Multiple choice with a written explanation for every option — including the ones you get right |
 | **116 exam questions** | Real command words, real mark tariffs, with a **plan**, a **full model answer** and a **mark-scheme note** telling you where each mark sits |
+| **A full Paper 2** | A complete 80-mark case study in the real format — insert, four appendices, four questions each split into 8 and 12 marks — with a 90-minute exam timer. Every figure in the appendices reconciles, so the ratio and break-even answers are checkable |
 | **6 calculators** | Break-even (with a chart), ratio analysis, cash flow forecast, costs/added value, productivity, exchange rates — each with the *interpretation* an examiner wants, not just a number |
 | **Exam technique** | All eight command words, what each demands, what full marks looks like, timing for both papers, and the phrase banks for analysis and evaluation |
 | **AI examiner** | Paste an answer, get a mark out of the tariff, what earned credit, what was missing, and one paragraph rewritten to full-mark standard |
@@ -56,6 +57,7 @@ assets/data/
   syllabus.js              sections, papers, assessment objectives
   exam.js                  command words, timing, technique rules
   ch-s1.js … ch-s6.js      all 29 chapters: notes, definitions, MCQs, exam questions
+  paper2.js                the full Paper 2 case study, appendices and model answers
 assets/js/
   store.js                 localStorage: progress, Leitner boxes, saved answers
   render.js                content-block renderer (escapes all content)
@@ -84,6 +86,20 @@ device. Clearing site data wipes it, so export before you do.
 | `1` / `2` | Grade a flashcard wrong / right |
 | `A` `B` `C` `D` | Answer a quiz question |
 | `Enter` | Next question |
+
+## The Paper 2 case study
+
+**Ketu Electric Ltd** assembles electric motorbikes in a fictional Country N. The case is
+built to span the whole syllabus — motivation and leadership, the marketing mix, break-even,
+ratio analysis, sources of finance, exchange rates and a final expansion decision.
+
+The numbers are the point. Appendix 2's unit sales and costs multiply out exactly to
+Appendix 1's revenue, cost of sales and expenses; the ratios tell a coherent story of
+overtrading (revenue up a third, every ratio down, acid test 1.02 → 0.73); and the
+expansion decision in Question 4(b) reverses if you work it at current sales volumes
+rather than at full capacity. You can check every figure the model answers quote.
+
+Start the timer, write all eight answers properly, then open the models.
 
 ## A note on the content
 

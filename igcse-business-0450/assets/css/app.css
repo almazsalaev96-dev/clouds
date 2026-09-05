@@ -538,3 +538,34 @@ select.inp{font-family:var(--sans)}
 .msg .bd .call{margin:10px 0}
 .worked li strong{color:var(--ink)}
 #toolChart:not(:empty){margin-top:20px; padding-top:18px; border-top:1px solid var(--rule)}
+
+/* ---------- Paper 2 case study ---------- */
+.timer-bar{display:flex; align-items:center; justify-content:space-between; gap:14px;
+  flex-wrap:wrap; margin-bottom:20px; position:sticky; top:66px; z-index:30}
+.timer-clock{font-family:var(--mono); font-size:1.65rem; font-weight:600; line-height:1;
+  font-variant-numeric:tabular-nums; color:var(--ink)}
+.timer-bar.warn{border-color:var(--warn); background:var(--warn-w)}
+.timer-bar.warn .timer-clock{color:var(--warn)}
+.timer-bar.over{border-color:var(--bad); background:var(--bad-w)}
+.timer-bar.over .timer-clock{color:var(--bad)}
+
+.insert-body{background:var(--panel); border:1px solid var(--rule); border-left:3px solid var(--brand);
+  border-radius:var(--r); padding:20px 24px}
+.insert-body h3{font-family:var(--serif); font-size:1.12rem; margin:20px 0 8px}
+.insert-body h3:first-child{margin-top:0}
+.insert-body p{color:var(--ink-soft)}
+.insert-body p:last-child{margin-bottom:0}
+.insert-body ul{color:var(--ink-soft)}
+
+.appx{border:1px solid var(--rule); border-radius:var(--r); overflow:hidden; margin-bottom:14px}
+.appx-h{background:var(--panel-2); padding:10px 15px; font-size:.76rem; font-family:var(--mono);
+  letter-spacing:.09em; text-transform:uppercase; color:var(--ink-soft);
+  border-bottom:1px solid var(--rule)}
+.appx-b{padding:15px; background:var(--panel)}
+.appx-b .tbl-wrap{margin:0; border:0}
+.appx-b .tbl-wrap + p{margin-top:12px; margin-bottom:0; font-size:.86rem; color:var(--ink-soft)}
+.appx-b h4{margin:16px 0 7px; font-size:.95rem}
+.appx-b h4:first-child{margin-top:0}
+.appx-b ul{margin-bottom:0; font-size:.87rem; color:var(--ink-soft)}
+@media (max-width:820px){ .timer-bar{position:static} }
+.timer-bar{box-shadow:var(--shadow); background:var(--panel)}
