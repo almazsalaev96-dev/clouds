@@ -61,6 +61,12 @@
     history: [],
     busy: false,
 
+    /* When this page runs as a published Claude Artifact, the viewer's own
+       Claude account can answer — no API key needed. Resolved asynchronously
+       at load; stays null everywhere else. */
+    sample: null,
+    hostChecked: false,
+
     cfg: function () {
       var s = Store.state.settings;
       var p = s.provider || 'anthropic';
@@ -71,7 +77,8 @@
         base: s.baseUrl || PROVIDERS[p].base
       };
     },
-    ready: function () { return !!this.cfg().key; },
+    ready: function () { return !!this.sample || !!this.cfg().key; },
+    hosted: function () { return !!this.sample; },
 
     /* Build a system prompt that includes what the student is currently studying */
     systemFor: function (ctx) {
@@ -93,6 +100,7 @@
     /* ---- the call ---- */
     send: function (text, ctx, onDelta, onDone, onError) {
       var c = this.cfg();
+      if (this.sample) { this.sendHosted(text, ctx, onDelta, onDone, onError); return; }
       if (!c.key) { onError(new Error('No API key set. Open Settings to add one.')); return; }
       var self = this;
       this.history.push({ role: 'user', content: text });
@@ -181,6 +189,64 @@
         });
     },
 
+    /* ---- the same call, answered by the viewer's own Claude account ---- */
+    sendHosted: function (text, ctx, onDelta, onDone, onError) {
+      var self = this;
+      this.history.push({ role: 'user', content: text });
+      this.busy = true;
+
+      /* sample() is memory-less, so the examiner brief is carried in the turns. */
+      var turns = [
+        { role: 'user', content: this.systemFor(ctx) + '\n\nReply "Ready." and nothing else.' },
+        { role: 'assistant', content: 'Ready.' }
+      ].concat(this.history.slice(-16));
+
+      var acc = '';
+      this.sample(turns, {
+        cache: false,
+        modelTier: 'default',
+        onText: function (ev) {
+          var whole = (ev && ev.text) || '';
+          var piece = (ev && typeof ev.delta === 'string') ? ev.delta : whole.slice(acc.length);
+          if (!piece) return;
+          acc = whole || (acc + piece);
+          onDelta(piece);
+        }
+      }).then(function (res) {
+        self.busy = false;
+        var full = (res && res.text) || acc;
+        if (full && full.length > acc.length) onDelta(full.slice(acc.length));
+        acc = full;
+        if (acc) self.history.push({ role: 'assistant', content: acc });
+        onDone(acc);
+      }).catch(function (e) {
+        self.busy = false;
+        self.history.pop();
+        var code = e && e.code, m = (e && e.message) || String(e);
+        if (code === 'not_granted') m = 'This page does not have permission to ask Claude. Add your own API key in Settings instead.';
+        else if (code === 'rate_limited') m = 'Too many requests in a row. Wait about a minute, then try again.';
+        else if (code === 'cancelled') m = 'The request was cancelled.';
+        else if (code === 'too_large') m = 'That message is too long. Shorten the answer you pasted and try again.';
+        onError(new Error(m));
+      });
+    },
+
+    /* Resolve the artifact runtime capability, if this page is running inside one. */
+    initHost: function () {
+      var self = this;
+      function done() {
+        self.hostChecked = true;
+        try { window.dispatchEvent(new CustomEvent('ai-host-ready')); } catch (e) {}
+      }
+      if (!window.claude || typeof window.claude.use !== 'function') { done(); return; }
+      try {
+        Promise.resolve(window.claude.use('sample')).then(function (fn) {
+          if (typeof fn === 'function') self.sample = fn;
+          done();
+        }, done);
+      } catch (e) { done(); }
+    },
+
     extractDelta: function (j, provider) {
       if (provider === 'anthropic') {
         if (j.type === 'content_block_delta' && j.delta && j.delta.type === 'text_delta') return j.delta.text;
@@ -249,4 +315,5 @@
 
   AI.md = md;
   window.AI = AI;
+  AI.initHost();
 })();

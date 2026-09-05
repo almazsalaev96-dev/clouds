@@ -750,7 +750,12 @@
       '<p class="lede">Paste an answer and it will be marked the way a Cambridge examiner marks it: ' +
       'a mark out of the total, what earned credit, what was missing, and one paragraph rewritten to full-mark standard.</p></div>';
 
-    if (!AI.ready()) {
+    if (AI.hosted()) {
+      h += '<div class="card" style="margin-bottom:18px">' +
+        '<h3 style="margin-bottom:8px">Ready — no API key needed</h3>' +
+        '<p class="small muted">This page is running inside Claude, so your own Claude account answers. ' +
+        'The first question will ask you to allow it.</p></div>';
+    } else if (AI.hostChecked && !AI.ready()) {
       h += '<div class="card" style="margin-bottom:18px">' +
         '<h3 style="margin-bottom:8px">Add an API key to switch this on</h3>' +
         '<p class="small muted" style="margin-bottom:14px">The key is stored only in this browser and is sent only ' +
@@ -1033,11 +1038,27 @@
       close(); toast('Settings saved'); route();
     });
     wrap.querySelector('#sExport').addEventListener('click', function () {
-      var blob = new Blob([Store.exportJSON()], { type: 'application/json' });
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'business-studies-progress.json';
-      a.click(); URL.revokeObjectURL(a.href);
+      var json = Store.exportJSON(), name = 'business-studies-progress.json';
+      /* Inside a published Claude Artifact a plain download link does nothing,
+         so the save goes through the host when it is available. */
+      if (window.claude && typeof window.claude.use === 'function') {
+        Promise.resolve(window.claude.use('downloads')).then(function (dl) {
+          if (dl && typeof dl.save === 'function') {
+            return dl.save({ filename: name, data: json })
+              .then(function () { toast('Progress file saved'); },
+                    function () { toast('Save cancelled'); });
+          }
+          saveViaLink();
+        }, saveViaLink);
+      } else { saveViaLink(); }
+
+      function saveViaLink() {
+        var blob = new Blob([json], { type: 'application/json' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        a.click(); URL.revokeObjectURL(a.href);
+      }
     });
     wrap.querySelector('#sImport').addEventListener('click', function () {
       var f = document.createElement('input');
@@ -1245,6 +1266,11 @@
     });
 
     window.addEventListener('hashchange', route);
+    /* If the AI capability resolves after the tutor view has already drawn,
+       redraw it so the right panel is shown. */
+    window.addEventListener('ai-host-ready', function () {
+      if (/^#\/tutor/.test(location.hash)) route();
+    });
     route();
   }
 
