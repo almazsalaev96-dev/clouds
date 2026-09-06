@@ -33,3 +33,21 @@ I. Copy to repo, commit, push. Optional artifact.
 13 Quality bar & evaluation: pedagogy evals, marking-accuracy eval vs real mark schemes (QWK targets), RAG evals, design QA checklist, performance budgets, release gates
 14 Roadmap: MVP (Cambridge-first) -> v1 -> v2; milestones; metrics that matter; risks
 15 Appendices: system prompts per mode, marking rubric templates, question-tagging schema, prompt templates, glossary, open questions for the founder
+
+## Revised agent plan (usage-window economy; ~20 agents total from here)
+B. Index: research/INDEX.md ............................................ done (7.3k words)
+C. Visions: designs/vision-{pedagogy,craft,platform}.md ................. running
+D. Judge+synthesis (1 agent): designs/JUDGING.md + designs/SYNTHESIS.md
+E. Section writers (7 agents, parallel 2 workflows), each 3–6k words, write skeleton first:
+   W1  draft/00-01-02.md  How to use · Mission/positioning · Users/personas/scenarios
+   W2  draft/03-08.md     Table-stakes parity checklist · Model orchestration
+   W3  draft/04-07.md     Learning core (pedagogy engine) · Learner memory & knowledge graph
+   W4  draft/05-06.md     Exam engine · Library/content/licensing
+   W5  draft/09-10.md     Design system & UX spec · Screen-by-screen spec
+   W6  draft/11-12.md     Technical architecture · Safety/integrity/wellbeing
+   W7  draft/13-14-15.md  Quality bar & evals · Roadmap/metrics/risks · Appendices (prompts, rubric templates, schemas, glossary, founder questions)
+F. Editor (1): stitch → final/MASTER-PROMPT.md v1 (TOC, numbering, cross-refs, dedupe, consistent terms)
+G. Critics (4, parallel): learning-scientist+examiner · designer+student · CTO+lawyer/privacy · "why ChatGPT still wins"+completeness → critiques/*.md (structured findings: severity, section, issue, fix)
+H. Revise (2 agents split by section) + final polish (1) → final/MASTER-PROMPT.md v2
+I. Deliver: edu-ai/MASTER-PROMPT.md + edu-ai/designs/ + edu-ai/research/ ; commit; push; Russian summary to founder
+Rule for every agent: create output file with headings first, append as you go.
