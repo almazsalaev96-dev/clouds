@@ -18,7 +18,8 @@ import { ACTION_COPY } from "@/domain/priority";
 import { MASTERY_BANDS, retentionState, explainMastery } from "@/domain/mastery";
 import { MARK_LOSS_LABELS } from "@/domain/question";
 import { DEPTH_LABELS, type ExplanationDepth } from "@/ai/prompts";
-import { Card, Callout, Chip, Empty, Meter, Stat, Tabs, Why, Pct, round1 } from "./components";
+import { Card, Callout, Chip, Empty, Meter, Stat, Why, Pct, round1 } from "./components";
+import { Breadcrumbs, MaterialTabs, WithNavigator, topicTrail } from "./navigator";
 import { Practice } from "./practice";
 import { Review } from "./review";
 
@@ -76,13 +77,14 @@ export function TopicPage({ topicId }: { topicId: string }) {
   const weakPrereqs = prereqs.filter((p) => (p.mastery?.observations ?? 0) > 0 && (p.mastery?.score ?? 0) < 0.45);
 
   return (
-    <div className="stack loose">
+    <WithNavigator view={view} activeTopicId={topic.id}>
       <header className="stack tight">
-        <p className="eyebrow">
-          <Link href={`/subjects/${view.syllabus.id}`}>{view.syllabus.subject}</Link> · {topic.code}
-          {topic.stage === "a2" ? " · A Level extension" : ""}
-        </p>
-        <h1>{topic.title}</h1>
+        <Breadcrumbs trail={topicTrail(view.syllabus, topic)} />
+        <div className="row" style={{ gap: 10, alignItems: "baseline" }}>
+          <span className="eyebrow num">{topic.code}</span>
+          <h1>{topic.title}</h1>
+          {topic.stage === "a2" && <Chip>A Level extension</Chip>}
+        </div>
         {topic.summary && <p className="lede">{topic.summary}</p>}
       </header>
 
@@ -121,15 +123,33 @@ export function TopicPage({ topicId }: { topicId: string }) {
         </Callout>
       )}
 
-      <Tabs
+      <MaterialTabs
         active={tab}
         onChange={setTab}
-        tabs={[
-          { id: "understand", label: "Understand" },
-          { id: "practise", label: "Practise", count: questions.length },
-          { id: "recall", label: "Recall", count: cards.length },
-          { id: "exam", label: "Exam" },
-          { id: "mistakes", label: "Mistakes", count: mistakes.length },
+        items={[
+          {
+            id: "understand",
+            name: "Revision notes",
+            meta: lesson ? `${Object.keys(lesson.explanations ?? {}).length} depths` : "none loaded",
+          },
+          {
+            id: "practise",
+            name: "Topic questions",
+            meta: questions.length ? `${questions.length} · ${questions.reduce((s, q) => s + q.marks, 0)} marks` : "none loaded",
+            disabled: questions.length === 0,
+          },
+          {
+            id: "recall",
+            name: "Flashcards",
+            meta: cards.length ? `${cards.length} cards` : "none yet",
+            disabled: cards.length === 0,
+          },
+          { id: "exam", name: "Exam focus", meta: "How this is examined" },
+          {
+            id: "mistakes",
+            name: "Your mistakes",
+            meta: mistakes.length ? `${mistakes.length} recorded` : "none recorded",
+          },
         ]}
       />
 
@@ -173,7 +193,7 @@ export function TopicPage({ topicId }: { topicId: string }) {
             <Link href="/mistakes" className="btn">Open the Mistake Lab</Link>
           </div>
         ))}
-    </div>
+    </WithNavigator>
   );
 }
 

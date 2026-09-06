@@ -33,6 +33,8 @@ import NotesPage from "@app/notes/page";
 import GlossaryPage from "@app/glossary/page";
 import SettingsPage from "@app/settings/page";
 import MockPage from "@app/mock/page";
+import QuestionsPage from "@app/questions/page";
+import PapersPage from "@app/papers/page";
 import SessionPage from "@app/session/page";
 
 import { SubjectPage } from "@/ui/subject";
@@ -47,6 +49,8 @@ const STATIC_ROUTES: Record<string, () => ReactElement> = {
   "/review": ReviewPage,
   "/mistakes": MistakesPage,
   "/subjects": SubjectsPage,
+  "/questions": QuestionsPage,
+  "/papers": PapersPage,
   "/readiness": ReadinessPage,
   "/progress": ProgressPage,
   "/plan": PlanPage,

@@ -17,6 +17,7 @@ import { absoluteExamWeight, childTopics, minutesPerMark, rootTopics, aoMarkSpli
 import { ACTION_COPY, chooseAction, masteryForGrade } from "@/domain/priority";
 import { retentionState, MASTERY_BANDS } from "@/domain/mastery";
 import { Card, Chip, Empty, Meter, Stat, Tabs, Why, Pct, relativeDays } from "./components";
+import { Breadcrumbs, WithNavigator } from "./navigator";
 import { Ring } from "./charts";
 
 export function SubjectPage({ syllabusId }: { syllabusId?: string }) {
@@ -44,8 +45,11 @@ export function SubjectPage({ syllabusId }: { syllabusId?: string }) {
   );
 
   return (
-    <div className="stack loose">
+    <WithNavigator view={view}>
       <header className="stack tight">
+        <Breadcrumbs
+          trail={[{ label: "Subjects", href: "/subjects" }, { label: view.syllabus.subject }]}
+        />
         <div className="row between">
           <p className="eyebrow">
             {view.syllabus.code} · {view.syllabus.version.label} ·{" "}
@@ -75,6 +79,29 @@ export function SubjectPage({ syllabusId }: { syllabusId?: string }) {
         <Card><Stat label="Syllabus tested" value={<Pct value={view.coverage} />} note={`${view.attemptCount} attempts`} /></Card>
         <Card><Stat label="Exam" value={view.daysToExam !== undefined ? relativeDays(view.daysToExam) : "Not set"} note={view.enrolment.examSession} /></Card>
         <Card><Stat label="Questions available" value={view.questions.length} note={`${view.questions.reduce((s, q) => s + q.marks, 0)} marks`} /></Card>
+      </div>
+
+      <div className="materials">
+        <Link className="material" href={`/questions`}>
+          <span className="material-name">Topic questions</span>
+          <span className="material-meta">
+            {view.questions.length} questions · {view.questions.reduce((s, q) => s + q.marks, 0)} marks
+          </span>
+        </Link>
+        <Link className="material" href="/papers">
+          <span className="material-name">Past papers</span>
+          <span className="material-meta">{view.syllabus.papers.length} papers · official links</span>
+        </Link>
+        <Link className="material" href="/review">
+          <span className="material-name">Flashcards</span>
+          <span className="material-meta">
+            {view.dueCards.length ? `${view.dueCards.length} due now` : "nothing due"}
+          </span>
+        </Link>
+        <Link className="material" href="/technique">
+          <span className="material-name">Exam technique</span>
+          <span className="material-meta">{view.syllabus.commandWords.length} command words</span>
+        </Link>
       </div>
 
       <Tabs
@@ -271,6 +298,6 @@ export function SubjectPage({ syllabusId }: { syllabusId?: string }) {
           ) : null}
         </div>
       )}
-    </div>
+    </WithNavigator>
   );
 }

@@ -79,22 +79,37 @@ function Frame({ children }: { children: ReactNode }) {
 
   const onboarded = state.profile.subjects.length > 0;
 
+  /**
+   * Navigation is grouped by intent, and the second group is the browse layer:
+   * the four kinds of material a student goes looking for by name. Everything
+   * the recommendation engine can surface is also reachable by clicking, which
+   * matters because a product that can only be used the way it thinks best is a
+   * product people stop opening.
+   */
   const groups: { label: string; items: NavItem[] }[] = [
     {
       label: "Now",
       items: [
         { href: "/", label: "Command centre", icon: "◈" },
-        { href: "/practice", label: "Practise", icon: "◐" },
+        { href: "/practice", label: "Adaptive practice", icon: "◐" },
         { href: "/review", label: "Review", icon: "↻", count: counts.due },
         { href: "/mistakes", label: "Mistake lab", icon: "△", count: counts.mistakes },
       ],
     },
     {
-      label: "Learn",
+      label: "Study materials",
       items: [
-        { href: "/subjects", label: "Subjects", icon: "▤" },
+        { href: "/subjects", label: "Revision notes", icon: "▤" },
+        { href: "/questions", label: "Topic questions", icon: "◇" },
+        { href: "/papers", label: "Past papers", icon: "▢" },
+        { href: "/glossary", label: "Flashcards & terms", icon: "◫" },
+      ],
+    },
+    {
+      label: "Skills",
+      items: [
+        { href: "/technique", label: "Exam technique", icon: "✎" },
         { href: "/tutor", label: "Tutor", icon: "✦" },
-        { href: "/technique", label: "Technique", icon: "✎" },
       ],
     },
     {

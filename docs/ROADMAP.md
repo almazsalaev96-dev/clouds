@@ -14,7 +14,7 @@ running app.
 |---|---|---|---|
 | 1 | Product philosophy | ✅ | Optimises marks-per-hour, not time-on-site. No engagement metrics anywhere. |
 | 2 | Personal academic profile | ✅ | Six mastery signals, retention, error patterns, response time, confidence calibration, command-word performance, mark-loss patterns — all derived from the attempt log. |
-| 3 | Information architecture | ◐ | 15 areas, grouped by intent (Now / Learn / Prove / Organise) rather than a flat list of 20. Skills, Challenges, Groups not built. |
+| 3 | Information architecture | ✅ | Two complementary layers. Adaptive-first (Now) leads, because that is the thesis; a materials-first browse layer (Revision notes / Topic questions / Past papers / Flashcards) sits beside it with a persistent course navigator and breadcrumbs, so everything the engine can recommend is also reachable by clicking. Challenges and Groups remain out of scope. |
 | 4 | Home dashboard | ✅ | Answers all five questions above the fold. Every metric leads to an action. |
 | 5 | Exam board + syllabus engine | ✅ | Full hierarchy, syllabus versions, per-paper AO weightings converted to raw marks, command words, grade-threshold schema. Board is configuration, not code. |
 | 6 | Subject page | ✅ | Topic map, mastery vs target, paper structures, AO mark tables. |
@@ -46,6 +46,7 @@ running app.
 | 61–63 | Mastery / decay / prerequisites | ✅ | All three, with prerequisite failure surfaced on the topic page. |
 | 67 | Daily mission | ✅ | Generated from priorities, review load and open mistakes. |
 | 70–71 | Readiness centre / preparation checklist | ✅ | Eight dimensions, limiting factor named, explicit "what this does not know". |
+| 12b | Question browser | ✅ | The whole bank, filterable by topic, command word, length, type and attempt status, with difficulty, marks and last score on every row. Choosing your own questions records identical evidence to being served them. |
 | 75 | Global search | ✅ | Command bar over topics, command words, glossary; reads a number as a session length. |
 | 85 | Accessibility | ✅ | Dark mode, font scale, high contrast, dyslexia-friendly, reduced motion, keyboard nav, focus never removed, SVG text alternatives. |
 | 86–87 | Responsive / UI principles | ✅ | Editorial, calm, progressive disclosure. Colour carries meaning only. |
@@ -70,7 +71,7 @@ running app.
 |---|---|---|---|
 | 9 | Concept maps | ○ | `conceptEdges` exist in the lesson schema; needs a force-directed SVG view. |
 | 13 | Question generator UI | ◐ | Prompts and validation schema exist; needs a review-and-approve surface so generated questions enter the bank only after a human pass. |
-| 14 | Past-paper browser | ◐ | Filtering works inside practice; a dedicated browse-by-year/session/paper view is not built. |
+| 14 | Past-paper browser | ✅ | A Papers page per paper: real structure, timing arithmetic, AO mark split, bank coverage and mock record — plus official links out. Past papers themselves are not hosted, by rights policy, and the page says so rather than implying a gap. |
 | 15 | Question deconstruction | ✅ | "How to read this question" on every question: the command word's licence and trap, where the marks sit by AO, and what the time budget implies — all derived from the pack's own definitions, collapsed by default so the habit is internalised rather than leaned on. |
 | 29 | Knowledge graph | ◐ | Prerequisite edges are a real graph driving real behaviour; there is no visualisation of it. |
 | 42–43 | Score simulator / grade boundaries | ◐ | What-if simulator on the Readiness page combines hypothetical paper scores through published weightings and maps through thresholds where loaded. Historical threshold data itself still needs loading into the pack. |
