@@ -111,7 +111,16 @@ async function runTurn({ stream, started, course, item, sessionId, text, intent,
   const budget = safeNumber(item ? rungBudget(item.kind) : 5, 5, 1, 5)
   const scheme = loadScheme(item)
 
-  if (!gate.open) {
+  // Rungs 1–3 stay reachable through a closed gate (04-GATE-003). The gate withholds
+  // solution content, not explanation: a student who asks to be taught gets taught,
+  // and the gate's own cap (never above rung 3 while shut) is what keeps the answer
+  // back. Only an unasked-for turn gets the gate prompt instead, because that prompt
+  // is what elicits the first commitment.
+  const teachThroughGate = !gate.open
+    && intent !== 'answer'
+    && (body.studentRequested === true || Number(body.requestedRung) >= 1)
+
+  if (!gate.open && !teachThroughGate) {
     // A closed gate is a real Turn: it names what to try, and when the student asked
     // for the answer it names the deal in one honest sentence (04-GATE-005).
     const message = gateMessage(gate, intent)
@@ -398,12 +407,14 @@ function safeGate(args) {
   try {
     const g = evaluateGate(args)
     if (!g || typeof g !== 'object') throw new Error('gate returned nothing')
-    return { open: !!g.open, reason: g.reason, message: g.message, kind: g.kind }
+    // maxRung travels with the verdict: it is what stops a student who has
+    // committed nothing from being handed a worked step (04-GATE-008).
+    return { open: !!g.open, reason: g.reason, message: g.message, kind: g.kind, maxRung: g.maxRung }
   } catch (err) {
     // The gate is a guard, not a wall: if it cannot decide, the student is not
     // blocked, and the failure is recorded rather than swallowed.
     console.error('[gate]', err)
-    return { open: true, reason: 'gate_unavailable', message: null, kind: 'none' }
+    return { open: true, reason: 'gate_unavailable', message: null, kind: 'none', maxRung: 4 }
   }
 }
 
