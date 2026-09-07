@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { get, streamTurn } from '../lib/api'
 import type { Item, SyllabusPoint, TurnRecord } from '../lib/api'
-import { useStore } from '../lib/state'
+import { setSession, useStore } from '../lib/state'
 import { Composer } from '../components/Composer'
 import type { Intent, Mode } from '../components/Composer'
 import { TurnCard } from '../components/TurnCard'
@@ -438,7 +438,12 @@ export function Session() {
   }))
   const [fallbackCourse, setFallbackCourse] = useState<string | null>(null)
   const courseId = route.courseId ?? app.courseId ?? fallbackCourse
+  // One session id, kept across reloads. Without this every visit minted a new one
+  // and the conversation the server had stored became unreachable: the tutor forgot
+  // you between page loads while its own record of the turns sat in the database.
   const [sessionId] = useState(() => app.sessionId ?? newSessionId())
+  useEffect(() => { if (app.sessionId !== sessionId) setSession(sessionId) }, [app.sessionId, sessionId])
+  const [resumed, setResumed] = useState(false)
 
   const [item, setItem] = useState<ItemView | null>(null)
   const [itemError, setItemError] = useState<string | null>(null)
@@ -471,6 +476,30 @@ export function Session() {
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
+
+  // Rejoin the session: the turns are on the server, so a reload picks the
+  // conversation back up instead of opening on an empty page.
+  useEffect(() => {
+    if (resumed) return
+    let live = true
+    get(`/api/session/${encodeURIComponent(sessionId)}`)
+      .then((data: unknown) => {
+        if (!live) return
+        const stored = asList(field(data, 'turns'))
+          .map((t, i) => readTurn(t, `restored-${i}`))
+          .filter(t => t.text.trim().length > 0)
+        if (stored.length) {
+          setTurns(stored)
+          const last = stored[stored.length - 1]
+          if (typeof last.rung === 'number') setLadder(l => ({ ...l, rung: last.rung ?? 0, waiting: false }))
+        }
+        const itemId = asText(field(data, 'itemId'))
+        if (itemId && !route.itemId) setRoute(r => ({ ...r, itemId }))
+      })
+      .catch(() => { /* Nothing stored, or the server is unreachable: start fresh. */ })
+      .finally(() => { if (live) setResumed(true) })
+    return () => { live = false }
+  }, [resumed, sessionId, route.itemId, setTurns, setLadder])
 
   useEffect(() => {
     if (courseId) return
@@ -619,9 +648,13 @@ export function Session() {
                 <h1 className="session__title">Learn</h1>
                 <p className="session__lede">
                   {itemError
-                    ?? 'Nothing is pinned yet. Start on one of these, or type the question you have.'}
+                    ?? (turns.length > 0
+                      ? 'No question is pinned. Pick one to work through, or keep asking.'
+                      : 'Nothing is pinned yet. Start on one of these, or type the question you have.')}
                 </p>
-                {points.length > 0 && (
+                {/* Starters are for a blank page. Once there is a conversation they push
+                    it below the fold, so they collapse to the lede above. */}
+                {turns.length === 0 && points.length > 0 && (
                   <ul className="session__suggestions">
                     {points.map(point => (
                       <li key={point.code}>

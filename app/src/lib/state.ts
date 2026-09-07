@@ -71,9 +71,11 @@ interface Prefs {
   font: FontChoice
   density: Density
   courseId: string | null
+  /** The Learn session to rejoin. A reload should not lose the conversation. */
+  sessionId: string | null
 }
 
-const DEFAULT_PREFS: Prefs = { theme: 'system', font: 'default', density: 'default', courseId: null }
+const DEFAULT_PREFS: Prefs = { theme: 'system', font: 'default', density: 'default', courseId: null, sessionId: null }
 
 /** localStorage throws outright in some privacy modes, so every touch is guarded. */
 function readPrefs(): Prefs {
@@ -86,6 +88,7 @@ function readPrefs(): Prefs {
       font: saved.font === 'dyslexic' ? 'dyslexic' : 'default',
       density: saved.density === 'roomy' ? 'roomy' : 'default',
       courseId: typeof saved.courseId === 'string' ? saved.courseId : null,
+      sessionId: typeof saved.sessionId === 'string' ? saved.sessionId : null,
     }
   } catch {
     return DEFAULT_PREFS
@@ -95,7 +98,8 @@ function readPrefs(): Prefs {
 function writePrefs(state: AppState): void {
   try {
     window.localStorage.setItem(PREFS_KEY, JSON.stringify({
-      theme: state.theme, font: state.font, density: state.density, courseId: state.courseId,
+      theme: state.theme, font: state.font, density: state.density,
+      courseId: state.courseId, sessionId: state.sessionId,
     }))
   } catch {
     /* No storage: preferences last for this tab only. Nothing else changes. */
@@ -128,7 +132,7 @@ const prefs = readPrefs()
 
 export const store = createStore<AppState>({
   courseId: prefs.courseId,
-  sessionId: null,
+  sessionId: prefs.sessionId,
   theme: prefs.theme,
   font: prefs.font,
   density: prefs.density,
@@ -149,6 +153,7 @@ export function setCourse(courseId: string | null): void {
 
 export function setSession(sessionId: string | null): void {
   store.set({ sessionId })
+  writePrefs(store.get())
 }
 
 export function setTheme(theme: Theme): void {
