@@ -35,8 +35,10 @@
 .cards__panel { gap: var(--s3); font-size: var(--t-md); color: var(--ink-2); }
 .cards__done-heading { font-size: var(--t-lg); color: var(--ink); }
 
-.cards__face { font-size: var(--t-xl); line-height: var(--lh-read); color: var(--ink); }
-.cards__back { font-size: var(--t-lg); line-height: var(--lh-read); color: var(--ink); }
+/* A card is written with its prompt on its own line. Collapsing the break ran the
+   question and the prompt together into one sentence that asked two things. */
+.cards__face { font-size: var(--t-xl); line-height: var(--lh-read); color: var(--ink); white-space: pre-wrap; }
+.cards__back { font-size: var(--t-lg); line-height: var(--lh-read); color: var(--ink); white-space: pre-wrap; }
 .cards__rule { width: 100%; border: 0; border-top: 1px solid var(--line); margin: 0; }
 .cards__provenance { font-size: var(--t-xs); color: var(--ink-3); }
 

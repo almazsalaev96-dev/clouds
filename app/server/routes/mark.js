@@ -275,10 +275,14 @@ function cardsFromMark({ mark, item, course, markId }) {
   if (!missed.length) return []
   const existing = new Set(all('SELECT front FROM cards WHERE user_id = ? AND course_id = ? AND syllabus_point = ?',
     USER, course.id, item.syllabus_point).map(r => r.front))
-  const stem = shorten(String(item.stem).replace(/\s+/g, ' '), 140)
+  // The stem carries its own tariff bracket — "… [2]" — so repeating it as
+  // "(2 marks)" said the same thing twice, and prefixing the command word turned
+  // "Define the term…" into "Define (2 marks): Define the term…". The syllabus code
+  // is on the card's own provenance line and does not belong in the prompt.
+  const stem = shorten(String(item.stem).replace(/\s+/g, ' ').replace(/\s*\[\d+\]\s*$/, ''), 140)
   const made = []
   for (const m of missed) {
-    const front = `${item.syllabus_point} · ${item.command_word} (${item.tariff} marks): ${stem}\n\nWhich point did your answer miss${m.ao ? ` on ${m.ao}` : ''}?`
+    const front = `${item.command_word} · ${item.tariff} ${item.tariff === 1 ? 'mark' : 'marks'}\n${stem}\n\nWhich point did your answer miss${m.ao ? ` on ${m.ao}` : ''}?`
     if (existing.has(front)) continue
     const id = uid('card')
     run('INSERT INTO cards (id,user_id,course_id,syllabus_point,front,back,source,stability,difficulty,due,reps,lapses,last_review,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
