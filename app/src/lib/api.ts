@@ -24,6 +24,15 @@ export type ReasonCode = Open<
 >
 
 /** GET /api/courses — the row plus the countdown the server computes for it. */
+/** How much of a course's record the learner actually made (see `historyOf`). */
+export interface CourseHistory {
+  claimed: number
+  yours: number
+  sample: number
+  borrowed: boolean
+  line: string | null
+}
+
 export interface Course {
   id: string
   title: string
@@ -38,6 +47,7 @@ export interface Course {
   phase: Phase
   phaseLabel: string
   countdown: string
+  history?: CourseHistory
 }
 
 /** An exam item as the client may see it: never the mark scheme. */
@@ -286,7 +296,10 @@ export interface PlanBlock {
   reason?: string
   reasons?: string[]
   count?: number
+  /** Syllabus codes, for anything that indexes by them. */
   points?: string[]
+  /** The same points named, for anything a student reads. */
+  topics?: { code: string; title: string }[]
   cardIds?: string[]
   items?: Item[]
   done?: boolean

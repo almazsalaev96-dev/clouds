@@ -20,6 +20,8 @@ interface CourseView {
   phase: string
   phaseLabel: string
   countdown: string
+  /** How much of this course's record the learner actually made. */
+  history?: { claimed: number; yours: number; sample: number; borrowed: boolean; line: string | null }
 }
 
 interface PointRow {
@@ -288,6 +290,9 @@ export function CourseHome({ courseId }: CourseHomeProps) {
             ) : (
               <p className="course-home__note">This pack lists no papers, so there is no readiness figure to show.</p>
             )}
+            {data.course.history?.borrowed && data.course.history.line ? (
+              <p className="course-home__note course-home__note--borrowed">{data.course.history.line}</p>
+            ) : null}
           </header>
 
           <section className="course-home__filters">

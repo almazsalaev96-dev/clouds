@@ -9,6 +9,7 @@
 import { all, get, run, now, uid, logEvent } from '../db.js'
 import { json as sendJson, readJson } from '../http.js'
 import { phaseFor } from '../engine/fsrs.js'
+import { masteryState } from '../engine/markyield.js'
 import { loadPack } from '../packs/seed.js'
 
 /** One name for the two http helpers, so every route file imports them from here. */
@@ -42,18 +43,8 @@ export function phaseOf(course) {
   return phaseFor(d == null ? 999 : d)
 }
 
-/**
- * Five mastery states, named the same way the pip in the interface names them.
- * A point with no attempts is `unseen` however high a seeded mastery reads.
- */
-export function masteryState(mastery, attempts) {
-  if (!attempts) return 'unseen'
-  const m = Number(mastery) || 0
-  if (m < 0.35) return 'weak'
-  if (m < 0.6) return 'developing'
-  if (m < 0.85) return 'secure'
-  return 'strong'
-}
+/** The mastery ladder lives with the ranking that reads it; re-exported for the API layer. */
+export { masteryState }
 
 /** Rule of thumb for Cambridge written papers: a little over a minute a mark, never under two. */
 export function expectedMinutes(item) {
@@ -100,6 +91,7 @@ export function courseView(c) {
         : days < 0 ? `${Math.abs(days)} days since the paper`
           : days === 0 ? 'Paper today'
             : `${days} days to the paper`,
+    history: historyOf(c),
   }
 }
 
@@ -108,9 +100,28 @@ export function courseView(c) {
  * items that sit on it. This is the row shape the ranking, the planner and the
  * progress screen all read.
  */
+/**
+ * Syllabus codes are dotted numbers, not words. Sorted as text, "10" lands between
+ * "1" and "2" and the contents page reads 1, 10, 2, 3 — so they are compared segment
+ * by segment, numerically where both sides are numbers.
+ */
+export function compareCode(a, b) {
+  const left = String(a || '').split('.')
+  const right = String(b || '').split('.')
+  for (let i = 0; i < Math.max(left.length, right.length); i++) {
+    const x = left[i], y = right[i]
+    if (x === undefined) return -1
+    if (y === undefined) return 1
+    const nx = Number(x), ny = Number(y)
+    if (Number.isFinite(nx) && Number.isFinite(ny)) { if (nx !== ny) return nx - ny }
+    else if (x !== y) return x < y ? -1 : 1
+  }
+  return 0
+}
+
 export function pointsWithState(course) {
   const pack = course.syllabus
-  const rows = all('SELECT * FROM syllabus WHERE pack = ? ORDER BY code', pack)
+  const rows = all('SELECT * FROM syllabus WHERE pack = ?', pack).sort((a, b) => compareCode(a.code, b.code))
   const state = all('SELECT * FROM learner_state WHERE user_id = ? AND course_id = ?', USER, course.id)
   const byPoint = new Map(state.map(s => [s.syllabus_point, s]))
   const counts = new Map(all(
@@ -154,6 +165,10 @@ export function pointsWithState(course) {
       itemCount: c ? Number(c.n) || 0 : 0,
       marksAvailable: c ? Number(c.marks) || 0 : 0,
       topTariff: c ? Number(c.top) || 0 : 0,
+      // What this topic is worth when it comes up — the biggest question set on it.
+      // Without this the ranker fell back to one constant for every point, so a
+      // 20-mark essay topic and a 2-mark definition scored the same marks on offer.
+      marksOnOffer: c ? Number(c.top) || 0 : 0,
       minutes: c ? Math.max(3, Math.round((Number(c.top) || 4) * 1.2)) : 5,
     }
   })
@@ -164,6 +179,34 @@ export function pointsWithState(course) {
  * sample size is reported beside it and never folded into it: a readiness figure
  * from four attempts is not the same claim as one from forty.
  */
+/**
+ * How much of the record on this course the learner actually made.
+ *
+ * The demo course ships a study history so the app is not empty on first run. That
+ * history feeds readiness, and readiness is a claim about evidence — so where the
+ * state asserts more attempts than this course has actually stored, the interface
+ * says so rather than presenting borrowed numbers as the student's own work.
+ */
+export function historyOf(course) {
+  const claimed = Number(get(
+    'SELECT COALESCE(SUM(attempts), 0) AS n FROM learner_state WHERE user_id = ? AND course_id = ?',
+    USER, course.id)?.n) || 0
+  const yours = Number(get(
+    'SELECT COUNT(*) AS n FROM attempts WHERE user_id = ? AND course_id = ?',
+    USER, course.id)?.n) || 0
+  const sample = Math.max(0, claimed - yours)
+  return {
+    claimed,
+    yours,
+    sample,
+    // One attempt of slack: rounding in the state should not raise a banner.
+    borrowed: sample > 1,
+    line: sample > 1
+      ? `Readiness includes a sample study history that came with this demo course. ${yours} of these ${claimed} attempts ${yours === 1 ? 'is' : 'are'} yours.`
+      : null,
+  }
+}
+
 export function readinessByPaper(points) {
   const byPaper = new Map()
   for (const p of points) {
@@ -202,6 +245,8 @@ export function nestPoints(points) {
     if (parent && parent.code !== p.code) nodes.get(parent.code).children.push(nodes.get(p.code))
     else roots.push(nodes.get(p.code))
   }
+  const order = (list) => { list.sort((a, b) => compareCode(a.code, b.code)); list.forEach(n => order(n.children)) }
+  order(roots)
   return roots
 }
 
@@ -266,6 +311,32 @@ export default function register(router) {
       str(body.targetGrade) || null, packVersion, now())
     logEvent('course.created', { title, syllabus }, USER, id)
     return jsonOk(res, courseView(mustCourse(id)), 201)
+  })
+
+  /**
+   * What this account has actually spent — turns taken, answers marked, dollars.
+   * The top bar reads it on every load; without it the meter shows zero however
+   * much work has been done, which reads as "nothing here is real".
+   */
+  router.get('/api/usage', ({ res, query }) => {
+    const course = query.courseId ? mustCourse(query.courseId) : null
+    const scope = course ? ' AND course_id = ?' : ''
+    const args = course ? [USER, course.id] : [USER]
+    const turns = get(`SELECT COUNT(*) AS n, COALESCE(SUM(cost), 0) AS cost FROM turns WHERE role = 'tutor'${course ? ' AND course_id = ?' : ''}`,
+      ...(course ? [course.id] : []))
+    const marks = get(`SELECT COUNT(*) AS n FROM marks WHERE 1 = 1${course ? ' AND course_id = ?' : ''}`,
+      ...(course ? [course.id] : []))
+    const cards = get(`SELECT COUNT(*) AS n FROM cards WHERE user_id = ?${scope}`, ...args)
+    const first = get(`SELECT MIN(created_at) AS at FROM turns WHERE 1 = 1${course ? ' AND course_id = ?' : ''}`,
+      ...(course ? [course.id] : []))
+    return jsonOk(res, {
+      turns: Number(turns?.n) || 0,
+      marks: Number(marks?.n) || 0,
+      cards: Number(cards?.n) || 0,
+      // Rounded to the cent the meter prints, not to a float that renders as 0.30000000000000004.
+      cost_usd: Math.round((Number(turns?.cost) || 0) * 10000) / 10000,
+      since: first?.at || null,
+    })
   })
 
   /** The syllabus for a course, flat and nested, with mastery on every point. */

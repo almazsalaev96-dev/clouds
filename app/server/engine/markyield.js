@@ -186,6 +186,20 @@ export function score(point, opts = {}) {
 }
 
 /**
+ * Five mastery states, named the way the interface names them. A point with no
+ * attempts is `unseen` however high a seeded figure reads. Defined here, beside the
+ * ranking that reads it, so the API layer and the ranker cannot drift apart.
+ */
+export function masteryState(mastery, attempts) {
+  if (!attempts) return 'unseen'
+  const m = Number(mastery) || 0
+  if (m < 0.35) return 'weak'
+  if (m < 0.6) return 'developing'
+  if (m < 0.85) return 'secure'
+  return 'strong'
+}
+
+/**
  * A one-line human reason, in the student's terms. Never the formula, never a decimal
  * of Y: "Paper 2 carries 30%, you are at 0.35 on a 6-mark topic, last seen 12 days ago".
  *
@@ -200,7 +214,9 @@ export function explain(point, opts = {}) {
   else if (pt.paper) parts.push(`Paper ${pt.paper}`)
   const tariff = `${Math.round(pt.marksOnOffer)}-mark topic`
   if (pt.attempts === 0) parts.push(`you have not attempted this ${tariff}`)
-  else parts.push(`you are at ${pt.mastery.toFixed(2)} on a ${tariff}`)
+  // A student cannot act on "0.13". The word is the same one the pip beside the
+  // point uses, so the two never disagree.
+  else parts.push(`you are ${masteryState(pt.mastery, pt.attempts)} on a ${tariff}`)
   if (pt.attempts > 0 && Number.isFinite(pt.lastSeenDays)) {
     const d = Math.round(pt.lastSeenDays)
     parts.push(d <= 0 ? 'last seen today' : `last seen ${d} day${d === 1 ? '' : 's'} ago`)

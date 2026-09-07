@@ -250,6 +250,14 @@ function composeDay(course, at, { deep }) {
   }
   const total = blocks.reduce((n, b) => n + b.minutes, 0)
 
+  // A block names its topics, not their codes. "3.2 · 1.5 · 9.3" tells a student
+  // nothing; "Marketing mix · Business structure" tells them what the next 20
+  // minutes are about. The codes stay on the object for anything that indexes by them.
+  const titleOf = new Map(pointsWithState(course).map(p => [p.code, p.title]))
+  for (const block of blocks) {
+    block.topics = (block.points || []).map(code => ({ code, title: titleOf.get(code) || code }))
+  }
+
   return {
     date: startOfDay(at).toISOString().slice(0, 10),
     phase,

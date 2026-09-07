@@ -32,6 +32,8 @@ interface PlanBlockView {
   reason: string
   reasons?: string[]
   points?: string[]
+  /** The same syllabus points, named — codes are not something a student reads. */
+  topics?: { code: string; title: string }[]
   cardIds?: string[]
   items?: PlanItem[]
   timed?: boolean
@@ -240,8 +242,10 @@ export function Today({ courseId }: TodayProps) {
             </p>
             <h2 className="today__block-title">{block.title}</h2>
             <p className="today__why">{block.reason}</p>
-            {block.points && block.points.length > 0 ? (
-              <p className="today__points mono">{block.points.join(' · ')}</p>
+            {block.topics && block.topics.length > 0 ? (
+              <p className="today__points">
+                {block.topics.map(t => t.title).join(' · ')}
+              </p>
             ) : null}
             <div className="today__block-actions">
               <a className="today__go" href={hrefFor(block)}>
