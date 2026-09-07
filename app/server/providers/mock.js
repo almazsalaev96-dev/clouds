@@ -253,9 +253,22 @@ function clausesOf(sent) {
     if (text) parts.push({ text, start: sent.start + from + lead, end: sent.start + from + lead + text.length })
     from = cut
   }
-  // Fragments are not claims: if any piece is too thin, the sentence stands whole.
-  if (parts.length < 2 || parts.some(x => terms(x.text).length < 3)) return [sent]
-  return parts
+  // A thin piece joins the one before it rather than cancelling the whole split.
+  // "…, so sales can rise" carries two content words; refusing to split on that left
+  // the consequent inside the claim, where its vocabulary anchored the wrong things.
+  const merged = []
+  for (const part of parts) {
+    const thin = terms(part.text).length < 2
+    if (thin && merged.length) {
+      const last = merged[merged.length - 1]
+      last.end = part.end
+      last.text = sent.text.slice(last.start - sent.start, part.end - sent.start)
+    } else {
+      merged.push({ ...part })
+    }
+  }
+  if (merged.length < 2) return [sent]
+  return merged
 }
 
 /**
@@ -452,6 +465,10 @@ function readPoints(scheme, system) {
         alternatives: readList(p.alternatives).concat(readList(p.accept)),
         dependsOn: p.depends_on || p.dependsOn || null,
         ao: String(p.ao || ''),
+        type: String(p.type || p.kind || ''),
+        cao: p.cao === true,
+        ecf: p.ecf_allowed === true || p.ecfAllowed === true,
+        reject: readList(p.reject),
       })
     }
   }
@@ -472,8 +489,12 @@ function readPoints(scheme, system) {
       marks: Number(m[2] || m[4] || 1) || 1,
       atoms: text.split(/\s+and\s+/i).length > 1 && /\band\b/i.test(text) ? text.split(/\s+and\s+/i).map(s => s.trim()) : [],
       alternatives: [],
+      reject: [],
       dependsOn: null,
       ao: '',
+      type: '',
+      cao: false,
+      ecf: false,
     })
   }
   return out
@@ -498,8 +519,12 @@ function readPointsBracket(system) {
       text: m[3].trim(),
       marks: Number((meta.match(/(\d+)\s*marks?/) || [])[1] || 1) || 1,
       ao: (meta.match(/AO\d/i) || [''])[0].toUpperCase(),
+      type: (meta.match(/\b([A-Z]{1,2})\b/) || [''])[1] || '',
+      cao: /\bcao\b/i.test(meta),
+      ecf: false,
       atoms: [],
       alternatives: [],
+      reject: [],
       dependsOn: null,
     }
     for (let j = i + 1; j < lines.length; j++) {
@@ -507,7 +532,10 @@ function readPointsBracket(system) {
       const atoms = lines[j].match(/every part required:\s*(.+)$/i)
       const alts = lines[j].match(/alternatives[^:]*:\s*(.+)$/i)
       const accept = lines[j].match(/accept:\s*(.+)$/i)
+      const reject = lines[j].match(/reject:\s*(.+)$/i)
       const depends = lines[j].match(/depends on\s+(\S+)/i)
+      if (reject) point.reject.push(...reject[1].split(';').map(t => t.trim()).filter(Boolean))
+      if (/error carried forward:\s*allowed/i.test(lines[j])) point.ecf = true
       if (atoms) point.atoms = atoms[1].split(/\s+AND\s+/).map(t => t.trim()).filter(Boolean)
       if (alts) point.alternatives.push(...alts[1].split('//').map(t => t.trim()).filter(Boolean))
       if (accept) point.alternatives.push(...accept[1].split(';').map(t => t.trim()).filter(Boolean))
@@ -742,55 +770,166 @@ function analyse(answer, material) {
   const set = termSet(answer)
   const sents = sentences(answer)
   const words = norm ? norm.split(' ').length : 0
-  // Application is credited from the case's own detail, never from echoing the
-  // question: a fact counts on its distinctive terms, and a figure counts when
-  // the student quotes it back.
-  const caseHits = material.caseFacts.filter(f => {
-    const want = terms(f)
-    const key = want.filter(t => t.length >= 4)
-    const pool = key.length ? key : want
-    const hit = pool.filter(t => set.has(t)).length
-    return pool.length > 0 && hit >= Math.min(2, pool.length) && hit / pool.length >= 0.6
-  }).length
-  const figureHits = (material.figures || []).filter(f => norm.includes(f)).length
-
-  // The units a marker credits: clauses that say something specific about this
-  // question. A clause that shares nothing with the stem is off-topic; one that
-  // adds nothing to the stem is a restatement. Neither earns a mark. Clauses,
-  // not sentences, because "the budget shows the overspend, so it is caught
-  // early" states a point and a consequence, and those are two different marks
-  // on two different spans — a whole-sentence quote would collide with itself.
   const stemSet = termSet(material.stem || '')
-  const props = sents.flatMap(clausesOf).map((span, index) => {
+
+  // What counts as this case's own detail: a figure the question supplied, and the
+  // terms of a case fact that the question does not itself use. A fact's stem
+  // vocabulary is worthless as evidence — quoting the question back is not applying
+  // anything to it, and crediting it is how "seven layers of management" came to
+  // pass the cover-the-name test on an answer that named nothing.
+  const figures = new Set(material.figures || [])
+  // A case fact is an anchor when the clause carries the fact, not when it happens
+  // to share one common noun with it. "customers in different countries" borrows
+  // "countries" from "sells through pharmacies in three countries" and is true of
+  // any exporter; crediting it is how a generic essay passed the cover-the-name test.
+  const caseFacts = (material.caseFacts || []).map(fact => {
+    const key = terms(fact).filter(t => t.length >= 4 && !stemSet.has(t))
+    return { text: fact, key }
+  }).filter(f => f.key.length)
+  const nameTerms = new Set(terms(material.businessName || '').filter(t => t.length >= 4))
+
+  const props = sents.flatMap((sent, si) => clausesOf(sent).map(c => ({ ...c, sentence: si })))
+    .map((span, index) => {
     const spanSet = termSet(span.text)
+    const spanNorm = normalise(span.text)
     const onTopic = [...spanSet].filter(t => stemSet.has(t)).length
     const beyond = [...spanSet].filter(t => !stemSet.has(t) && !RUBRIC.has(t)).length
+    // On-topic OR anchored: "British Airways lost almost all of its bookings in 2020"
+    // shares no vocabulary with the question and is exactly what it asked for.
+    const anchorsHere = anchorsIn(span.text, spanSet, spanNorm, figures, caseFacts, nameTerms, stemSet)
+    const specific = (onTopic >= 1 || anchorsHere.length > 0 || stemSet.size === 0) && beyond >= 3
+
+    // Cover-the-name: what in this clause would be false about a different firm.
+    // Three kinds of anchor count — a figure the case gave, a detail from the case
+    // the question does not repeat, and, on a "refer to businesses you have
+    // studied" essay with no case at all, a business the candidate names.
+    const anchors = anchorsHere
+    // An anchor with nothing said about it is a mention, not an application. And a
+    // capitalised word is only a business the candidate chose if the clause is also
+    // about the question — otherwise "My cat is called Biscuit" reads as context.
+    const grounded = anchors.some(a => a.kind !== 'named') || onTopic >= 1
+    const applies = specific && anchors.length > 0 && grounded && beyond >= 3
+
+    const chain = chainIn(span, spanSet, stemSet)
+    const judges = JUDGEMENT_WORDS.some(w => spanNorm.includes(w)) && beyond >= 2
+    const weighs = WEIGH_WORDS.some(w => spanNorm.includes(w)) && beyond >= 2
+    const conditional = CONDITION_WORDS.some(w => spanNorm.includes(w)) && beyond >= 2
+
     return {
-      index,
-      text: span.text,
-      start: span.start,
-      end: span.end,
-      set: spanSet,
-      norm: normalise(span.text),
-      onTopic,
-      beyond,
-      specific: (onTopic >= 1 || stemSet.size === 0) && beyond >= 3,
+      index, sentence: span.sentence, text: span.text, start: span.start, end: span.end,
+      set: spanSet, norm: spanNorm,
+      onTopic, beyond, specific,
+      anchors, applies, chain, judges, weighs, conditional,
     }
   })
 
+  // The clause splitter cuts at the connective, so a two-step chain arrives as two
+  // clauses. A chain is developed when the clause after it is also a chain and picks
+  // up its terms — cause, effect, and then what that effect causes.
+  for (let i = 0; i < props.length; i++) {
+    const here = props[i], next = props[i + 1]
+    if (!here.chain.links || !next || !next.chain.links) continue
+    // Two connectives inside one sentence are one chain carried a step further;
+    // across a sentence boundary the second step has to pick the first one up.
+    const same = here.sentence === next.sentence
+    const shared = [...next.set].some(t => here.set.has(t) && !RUBRIC.has(t))
+    if (same || shared) { here.chain.developed = true; here.chain.links = 2 }
+  }
+  const applied = props.filter(p => p.applies)
+  const chains = props.filter(p => p.chain.links > 0)
+  const developed = chains.filter(p => p.chain.developed)
+
   return {
+    text: String(answer || ''),
     norm,
     set,
     sents,
     props,
     words,
-    links: Math.min(6, countAny(norm, LINK_WORDS)),
-    judgement: countAny(norm, JUDGEMENT_WORDS) > 0,
-    weighing: Math.min(4, countAny(norm, WEIGH_WORDS)),
-    conditions: Math.min(3, countAny(norm, CONDITION_WORDS)),
-    context: caseHits + figureHits,
+    applied,
+    chains,
+    developed,
+    // The scalars other code still reads, now counted from evidence rather than
+    // from substrings anywhere in the script.
+    links: Math.min(6, chains.length + developed.length),
+    judgement: props.some(p => p.judges),
+    weighing: Math.min(4, props.filter(p => p.weighs).length),
+    conditions: Math.min(3, props.filter(p => p.conditional).length),
+    context: applied.length,
     numbers: (answer.match(/\d[\d,.]*/g) || []).length,
   }
+}
+
+/**
+ * What in this clause would be false about a different firm: a figure the case gave,
+ * a detail from the case the question does not itself repeat, or a business the
+ * candidate named. Stem vocabulary is excluded on purpose — quoting the question
+ * back is not applying anything to it.
+ */
+function anchorsIn(text, spanSet, spanNorm, figures, caseFacts, nameTerms, stemSet) {
+  const out = []
+  // A figure and a proper noun are specific on their own; a case fact is not, until
+  // enough of it is here to be that fact rather than its vocabulary.
+  for (const f of figures) if (spanNorm.includes(f)) out.push({ kind: 'figure', text: f })
+  for (const fact of caseFacts) {
+    const hit = fact.key.filter(t => spanSet.has(t)).length
+    if (hit >= 2 && hit / fact.key.length >= 0.6) out.push({ kind: 'case', text: fact.text })
+  }
+  for (const t of nameTerms) if (spanSet.has(t)) out.push({ kind: 'name', text: t })
+  for (const name of namesIn(text, stemSet)) out.push({ kind: 'named', text: name })
+  return out
+}
+
+/**
+ * Businesses the candidate names. A Paper 1 essay carries no case — "refer to
+ * businesses you have studied" makes the candidate supply one, and the application
+ * mark is credited against that. Capitalised words that are not the first word of
+ * the clause and are not the question's own vocabulary are the available signal.
+ */
+function namesIn(text, stemSet) {
+  const out = []
+  const words = String(text || '').split(/\s+/)
+  for (let i = 0; i < words.length; i++) {
+    const raw = words[i].replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, '')
+    if (raw.length < 3 || !/^[A-Z][a-z]/.test(raw)) continue
+    if (i === 0) continue                                   // a sentence opener is not a name
+    const stem = stemWord(raw)
+    if (stemSet.has(SYNONYM.get(stem) || stem)) continue     // the question's own word
+    if (SENTENCE_OPENERS.has(raw.toLowerCase())) continue
+    out.push(raw)
+  }
+  return [...new Set(out)]
+}
+
+const SENTENCE_OPENERS = new Set([
+  'the', 'this', 'that', 'these', 'those', 'however', 'although', 'overall', 'because',
+  'when', 'where', 'while', 'therefore', 'first', 'second', 'third', 'finally', 'both',
+  'monday', 'january', 'level', 'paper',
+])
+
+/**
+ * A causal chain inside one clause: a connective, and a consequent that says
+ * something the antecedent did not. Counting connectives instead of chains is why a
+ * generic paragraph stuffed with "because" reached full marks on analysis — the word
+ * is not the argument.
+ */
+function chainIn(span, spanSet, stemSet) {
+  const norm = span.norm || normalise(span.text)
+  let at = -1, word = null
+  for (const w of LINK_WORDS) {
+    const found = norm.indexOf(w)
+    if (found >= 0 && (at < 0 || found < at)) { at = found; word = w }
+  }
+  if (at < 0) return { links: 0, developed: false, word: null }
+  const after = norm.slice(at + word.length)
+  const before = norm.slice(0, at)
+  const beforeSet = new Set(terms(before))
+  // The consequent has to add content — new to the clause, and not the question's.
+  const fresh = [...new Set(terms(after))].filter(t => !beforeSet.has(t) && !stemSet.has(t) && !RUBRIC.has(t))
+  if (fresh.length < 2) return { links: 0, developed: false, word }
+  // A second connective inside the consequent carries the chain a step further.
+  const second = LINK_WORDS.some(w => after.includes(w))
+  return { links: second ? 2 : 1, developed: second, word }
 }
 
 /** Best verbatim sentence for a phrase, with offsets. */
@@ -802,6 +941,64 @@ function bestQuote(phrase, view) {
   }
   return best && best.score > 0 ? best : null
 }
+
+/**
+ * The numbers in a piece of text, as comparable values. Exam scripts group digits
+ * with spaces — "2 100 000" — and carry units the value does not depend on, so the
+ * groups are joined and the decoration dropped before anything is compared.
+ */
+function numbersIn(text) {
+  // Join a grouped figure — "2 100 000", "1,400,000" — into the one number it is.
+  // The group has to start on its own: without the guard, "0.90 480 000 432 000"
+  // ran together into a single meaningless value.
+  const joined = String(text || '')
+    .replace(/(?<![\d.])\d{1,3}(?:[\s,\u00a0]\d{3})+(?:\.\d+)?/g, m => m.replace(/[\s,\u00a0]/g, ''))
+  const out = []
+  for (const m of joined.matchAll(/\d+(?:\.\d+)?/g)) {
+    const value = Number(m[0])
+    if (Number.isFinite(value)) out.push(value)
+  }
+  return out
+}
+
+/** Is `want` present in `have`, allowing the rounding a marked script is allowed? */
+function valueMet(want, have) {
+  return have.some(v => Math.abs(v - want) <= Math.max(0.05, Math.abs(want) * 0.005))
+}
+
+/**
+ * An accuracy mark is for the value, and the value is not one more word in the bag.
+ * "current ratio = 1.6 : 1" and "current ratio = 0.94 : 1" share every term but the
+ * one that decides the mark, so term coverage credits a wrong answer. A point that
+ * states a value is credited only when the script carries that value.
+ */
+function accuracyValues(point) {
+  // The result is what follows the last "=" — everything before it is the working.
+  // A point with no result stated (a pure method mark) has no value to check.
+  const resultOf = (text) => {
+    const src = String(text || '')
+    const at = Math.max(src.lastIndexOf('='), src.lastIndexOf('≈'))
+    return at >= 0 ? numbersIn(src.slice(at + 1)) : []
+  }
+  const out = []
+  const fromText = resultOf(point.text)
+  if (fromText.length) out.push(fromText)
+  for (const alt of point.alternatives) {
+    // "372 000 ÷ 480 000 × 100" is the method written out, not the answer to it.
+    if (/[÷×*+/]|−|--/.test(alt) && !alt.includes('=')) continue
+    const vs = numbersIn(alt)
+    // An alternative is an answer, not working: it counts only if it is mostly value.
+    if (vs.length && terms(alt).length <= vs.length + 2) out.push(vs)
+  }
+  return out
+}
+
+/**
+ * Every value of one branch has to be there: "1.6 : 1" is not satisfied by the "1"
+ * in "0.94 : 1". Branches are alternatives, so any one of them suffices.
+ */
+const valuesMet = (branches, said) =>
+  branches.some(branch => branch.every(v => valueMet(v, said)))
 
 /**
  * Points marking.
@@ -839,20 +1036,44 @@ function markPoints(material, view) {
     let score = 0
     for (const b of branches) score = Math.max(score, coverage(b, view.set, view.norm, w))
 
+    // From the script as written: normalising drops the ÷ and × that keep one figure
+    // apart from the next, and "372 000 ÷ 480 000" then reads as a single number.
+    const said = numbersIn(view.text || view.norm)
+
     let failedAtom = null
     if (p.atoms.length > 1) {
-      const atomScores = p.atoms.map(a => ({ atom: a, score: coverage(a, view.set, view.norm) }))
+      // An atom names a quantity — "long-term loans included". A script that writes
+      // the figure has included it; demanding the scheme's own label as well failed
+      // a fully correct calculation for using numbers instead of words.
+      const atomScores = p.atoms.map(a => ({ atom: a, score: Math.max(coverage(a, view.set, view.norm), atomByValue(a, material, said) ? 1 : 0) }))
       const worst = atomScores.reduce((a, b) => (a.score <= b.score ? a : b))
       score = Math.min(score, worst.score + 0.15)
       if (worst.score < 0.5) failedAtom = worst.atom
     }
 
-    const blockedBy = p.dependsOn && !credited.includes(p.dependsOn) ? p.dependsOn : null
-    const eligible = !failedAtom && !blockedBy
+    // The scheme names the errors it will not credit. Consulting them is the whole
+    // point of writing them down.
+    const rejected = (p.reject || []).find(r => rejects(r, p, view)) || null
+
+    // A point that states a result stands or falls on that result.
+    const wanted = accuracyValues(p)
+    const wrongValue = wanted.length > 0 && !valuesMet(wanted, said)
+    // A script that writes "420 000 ÷ 3 500 000 × 100" has shown the method the
+    // scheme spells out in words. Demanding the scheme's labels as well failed a
+    // fully correct calculation for using numbers.
+    const byFigures = !wanted.length && methodByValue(p, material, said, view)
+    // A ratio is its order. "maximum ÷ actual" is the error this scheme names, and
+    // an unordered bag of words cannot tell it from "actual ÷ maximum".
+    const inverted = orderBroken(p, view)
+
+    // Error carried forward: a scheme that allows it says the dependent mark survives
+    // its method mark, and zeroing it here left marker.js's ECF nothing to work with.
+    const blockedBy = p.dependsOn && !credited.includes(p.dependsOn) && !p.ecf ? p.dependsOn : null
+    const eligible = !failedAtom && !blockedBy && !rejected && !wrongValue && !inverted
     const topical = score >= 0.4 || view.props.some(x => onPointTopic(x, core, p.alternatives, w))
 
     // The scheme's own words, wherever the student used them.
-    let met = score >= CREDIT_AT && eligible
+    let met = (score >= CREDIT_AT || byFigures) && eligible
     let source = null
 
     if (!met && eligible && relation) {
@@ -890,7 +1111,7 @@ function markPoints(material, view) {
       awarded: met ? p.marks : 0,
       score: Math.round(score * 100) / 100,
       class: met ? 'credited' : partial ? 'partial' : 'uncredited',
-      reason_code: met ? null : reasonCode({ failedAtom, blockedBy, view, partial, relation, topical }),
+      reason_code: met ? null : reasonCode({ failedAtom, blockedBy, view, partial, relation, topical, wrongValue, rejected: rejected || inverted }),
       links_counted: view.links,
       atoms: p.atoms.map(a => ({ text: a, met: coverage(a, view.set, view.norm) >= 0.5 })),
       quote: usable ? quote.text ?? quote.quote : null,
@@ -900,7 +1121,13 @@ function markPoints(material, view) {
         ? source
           ? `Credited: "${trimPhrase(source.text, 62)}" is ${keyPhrase(p.text)}.`
           : `Credited: your answer carries "${keyPhrase(p.text)}".`
-        : blockedBy
+        : inverted
+          ? `Not credited: the fraction is the wrong way up — ${trimPhrase(p.text, 70)}.`
+          : wrongValue
+            ? `Not credited: this mark is for the value, and the value is ${wanted[0].map(fmt).join(' : ')}. The method can still earn its own mark.`
+            : rejected
+            ? `Not credited: the scheme names this as an error — ${trimPhrase(rejected, 70)}.`
+            : blockedBy
           ? `Not credited: this point depends on ${blockedBy}, and ${blockedBy} is not evidenced.`
           : failedAtom
             ? `Not credited: "${trimPhrase(failedAtom)}" is missing, and this point needs every part of it.`
@@ -915,6 +1142,90 @@ function markPoints(material, view) {
   }
   return results
 }
+
+/**
+ * Does the script actually make the error the scheme names?
+ *
+ * A reject clause restates the point it rejects and changes one thing — "(184 000 −
+ * 76 000) ÷ 115 000, which is the acid test" is the current ratio with inventory
+ * taken out. Matching it on shared words condemns the correct answer, so what counts
+ * is the part of the reject clause the point itself does not contain.
+ */
+function rejects(reject, point, view) {
+  const mine = new Set([point.text, ...point.alternatives].flatMap(t => terms(t)))
+  const distinctive = [...new Set(terms(reject))].filter(t => !mine.has(t))
+  if (!distinctive.length) return false
+  const hit = distinctive.filter(t => view.set.has(t)).length
+  return hit / distinctive.length >= 0.6
+}
+
+/**
+ * A division is its order. The scheme writes "actual output ÷ maximum output"; an
+ * unordered match cannot tell that from the inversion the scheme names as the
+ * commonest error, so the two sides are compared where the script divides.
+ */
+function orderBroken(point, view) {
+  const src = String(point.text || '')
+  const split = src.split(/[÷/]/)
+  if (split.length !== 2) return false
+  const left = terms(split[0]).filter(t => t.length >= 4)
+  const right = terms(split[1]).filter(t => t.length >= 4)
+  // Only the words that tell the two sides apart can decide the order.
+  const l = left.filter(t => !right.includes(t))
+  const r = right.filter(t => !left.includes(t))
+  if (!l.length || !r.length) return false
+  // Judged where the script actually divides, not across the whole answer: a line
+  // that defines capital employed before using it is not an inverted fraction.
+  const at = (text, list) => {
+    let best = -1
+    for (const t of list) {
+      const i = text.indexOf(t)
+      if (i >= 0 && (best < 0 || i < best)) best = i
+    }
+    return best
+  }
+  for (const prop of view.props) {
+    const li = at(prop.norm, l), ri = at(prop.norm, r)
+    if (li < 0 || ri < 0) continue
+    if (ri < li) return true
+  }
+  return false
+}
+
+/**
+ * Is this method shown in figures? Every quantity the point names that the case puts
+ * a number on has to be in the script, and the script has to be doing arithmetic
+ * with them rather than merely mentioning them.
+ */
+function methodByValue(point, material, said, view) {
+  const want = terms(point.text).filter(t => t.length >= 4)
+  if (!want.length) return false
+  let named = 0
+  for (const fact of material.caseFacts || []) {
+    const key = terms(fact)
+    if (!want.some(t => key.includes(t))) continue
+    const figures = numbersIn(fact)
+    if (!figures.length) continue
+    named++
+    if (!figures.some(v => valueMet(v, said))) return false
+  }
+  return named > 0 && /\d\s*(?:[÷×*/+]|−|-)\s*\d/.test(view.text || '')
+}
+
+/** A number the case supplies for the quantity this atom names. */
+function atomByValue(atom, material, said) {
+  const want = terms(atom).filter(t => t.length >= 4)
+  if (!want.length) return false
+  for (const fact of material.caseFacts || []) {
+    const key = terms(fact)
+    if (!want.some(t => key.includes(t))) continue
+    for (const v of numbersIn(fact)) if (valueMet(v, said)) return true
+  }
+  return false
+}
+
+/** A value as a script would write it: no trailing zeros it did not have. */
+const fmt = (v) => (Number.isInteger(v) ? String(v) : String(Math.round(v * 100) / 100))
 
 /**
  * Is this sentence about what the point is about? Either it uses one of the
@@ -963,7 +1274,10 @@ function relationCredit(relation, point, view, credited, w) {
  * renderer knows; anything it does not recognise it drops, so an honest null is
  * better than a guess.
  */
-function reasonCode({ failedAtom, blockedBy, view, partial, relation, topical }) {
+function reasonCode({ failedAtom, blockedBy, view, partial, relation, topical, wrongValue, rejected }) {
+  // The value is wrong, or the scheme names this working as an error. Both are
+  // "no working the scheme can credit", which is the code the renderer knows.
+  if (wrongValue || rejected) return 'NO_WORKING'
   if (failedAtom) return 'ATOM_NOT_MET'
   if (blockedBy) return 'NO_WORKING'
   // Nothing in the answer is about this point at all: say that, rather than
@@ -977,12 +1291,20 @@ function reasonCode({ failedAtom, blockedBy, view, partial, relation, topical })
   return 'OUT_OF_SCOPE'
 }
 
-/** Levels marking: a driver metric per AO, mapped onto the grid's own bands. */
+/**
+ * Levels marking.
+ *
+ * Each objective is judged on its own evidence and quotes its own spans. It used to
+ * key every band to a whole-answer counter — connectives for AO3, matched case facts
+ * for AO2 — and then quote the same three sentences under all four objectives. A
+ * paragraph with four "because"s scored full marks for analysis; an essay that named
+ * Microsoft and British Airways scored zero for application because the scheme
+ * carried no case facts of its own. Both are counted from the spans now.
+ */
 function markLevels(material, view) {
   const w = weighting(material.indicative.map(c => c.text))
   const threads = material.indicative.map(c => ({ ...c, score: coverage(c.text, view.set, view.norm, w) }))
   const touched = threads.filter(t => t.score >= 0.5)
-  const perAo = []
 
   const grids = material.levels.length
     ? material.levels
@@ -990,22 +1312,26 @@ function markLevels(material, view) {
       ? [{ ao: 'AO', max: material.tariff, bands: syntheticBands(material.tariff) }]
       : []
 
+  const perAo = []
   for (const grid of grids) {
     const ao = grid.ao.toUpperCase()
-    let metric
-    if (ao.includes('AO1')) metric = touched.length + (view.words > 40 ? 1 : 0)
-    else if (ao.includes('AO2')) metric = view.context
-    else if (ao.includes('AO3')) metric = view.links
-    else if (ao.includes('AO4')) metric = (view.judgement ? 1 : 0) + Math.min(2, view.weighing) + view.conditions
-    else metric = touched.length + view.links + (view.judgement ? 1 : 0) + view.context
+    const { metric, spans, missing, ceiling } = evidenceFor(ao, material, view, threads, touched)
 
     const bands = grid.bands
     const need = bands.map((_, i) => (i === 0 ? 0 : i === 1 ? 1 : i === 2 ? 2 : 2 + (i - 2) * 2))
     let idx = 0
     for (let i = 0; i < bands.length; i++) if (metric >= need[i]) idx = i
+    // A grid's upper bands name the evidence they want — a developed chain, a
+    // decision, a fact belonging to this business. Without it the band is not
+    // available however much of the weaker evidence there is, which is what let a
+    // paragraph of connectives reach the top of the analysis grid.
+    if (Number.isInteger(ceiling)) idx = Math.min(idx, Math.max(0, ceiling))
     const band = bands[idx]
-    const span = (need[idx + 1] ?? need[idx] + 2) - need[idx]
-    const within = span > 0 ? Math.min(1, Math.max(0, (metric - need[idx]) / span)) : 1
+    // A band four marks wide is not reached at its top by the same evidence that
+    // entered it. The step scales with the band's own range, so eight marks for
+    // analysis takes more than the two chains that opened the band.
+    const step = Math.max((need[idx + 1] ?? need[idx] + 2) - need[idx], band.hi - band.lo)
+    const within = step > 0 ? Math.min(1, Math.max(0, (metric - need[idx]) / step)) : 1
     const marks = Math.max(band.lo, Math.min(band.hi, band.lo + Math.round(within * (band.hi - band.lo))))
 
     const above = bands[idx + 1] || null
@@ -1017,28 +1343,118 @@ function markLevels(material, view) {
       marks,
       metric,
       descriptor: band.descriptor,
-      confidence: Math.round((0.6 + Math.min(0.3, metric * 0.05)) * 100) / 100,
+      // Confidence follows the evidence: a band awarded on nothing quoted is a guess,
+      // and saying so is better than a high number beside an empty list.
+      confidence: Math.round((spans.length ? 0.6 + Math.min(0.3, metric * 0.05) : 0.45) * 100) / 100,
       reason: levelReason(ao, view, touched.length, band),
       within_band_reason: `${marks} of ${band.hi}: ${trimPhrase(band.evidence || band.descriptor, 80)}.`,
-      quotes: quotesFor(ao, view, touched),
-      spans: quotesFor(ao, view, touched).map(q => ({
-        quote: q.quote,
+      quotes: spans.map(q => ({ quote: q.text, start: q.start, end: q.end, ref: grid.ao })),
+      spans: spans.map(q => ({
+        quote: q.text,
         start: q.start,
         end: q.end,
         char_start: q.start,
         char_end: q.end,
         class: 'credited',
         evidence_kind: evidenceKind(ao),
-        links_counted: ao.includes('AO3') ? view.links : 0,
+        links_counted: ao.includes('AO3') ? q.chain.links : 0,
         reason: `Counted for ${grid.ao}: ${trimPhrase(band.descriptor, 50)}.`,
         reason_code: null,
       })),
-      missing: missingFor(ao, view, threads),
-      reason_code: aoReasonCode(ao, view),
+      missing,
+      reason_code: marks > 0 ? null : aoReasonCode(ao, view),
     })
   }
 
   return { perAo, threads, touched }
+}
+
+/**
+ * The spans that earn one objective, and what its band is counted from. Nothing here
+ * reads the whole answer: an objective is worth what its own evidence is worth.
+ */
+function evidenceFor(ao, material, view, threads, touched) {
+  const cap = (list) => list.slice(0, 3)
+
+  if (ao.includes('AO2')) {
+    const spans = cap(view.applied)
+    return {
+      metric: view.applied.length,
+      // One applied point is application; the top band asks for two or more.
+      ceiling: view.applied.length >= 2 ? undefined : view.applied.length,
+      spans,
+      missing: spans.length
+        ? []
+        : [material.caseFacts?.length
+            ? 'no case detail: nothing here is true of this business alone'
+            : 'no business named: the question asks you to work from one you have studied'],
+    }
+  }
+
+  if (ao.includes('AO3')) {
+    const spans = cap([...view.developed, ...view.chains.filter(c => !c.chain.developed)])
+    return {
+      metric: view.developed.length * 2 + (view.chains.length - view.developed.length),
+      // Assertion earns nothing; single links stop below the developed band; and the
+      // top band asks the chain to run through to a consequence for the business in
+      // the question, so it needs at least one point actually applied to it.
+      ceiling: !view.developed.length
+        ? (view.chains.length ? 1 : 0)
+        : (view.applied.length ? undefined : 1),
+      spans,
+      missing: view.developed.length
+        ? []
+        : [view.chains.length
+            ? 'no second step: each chain stops at its first effect'
+            : 'no causal step: the answer asserts without saying what follows'],
+    }
+  }
+
+  if (ao.includes('AO4')) {
+    const judged = view.props.filter(p => p.judges)
+    const weighed = view.props.filter(p => p.weighs)
+    const held = view.props.filter(p => p.conditional)
+    const spans = cap([...judged, ...weighed, ...held])
+    const missing = []
+    if (!judged.length) missing.push('no judgement: the answer stops before deciding')
+    if (!weighed.length) missing.push('no weighing: only one side is put')
+    if (!held.length) missing.push('no condition: the decision rests on nothing stated')
+    return {
+      metric: (judged.length ? 1 : 0) + Math.min(2, weighed.length) + Math.min(1, held.length),
+      // No decision is Level 0 on an evaluation grid, whatever else is there; a
+      // decision with nothing weighed against it does not reach the top band.
+      ceiling: !judged.length ? 0 : (weighed.length && held.length ? undefined : 1),
+      spans,
+      missing: missing.slice(0, 3),
+    }
+  }
+
+  // AO1 — the scheme's own content, stated accurately. A thread counts once, and
+  // only where a clause of the answer actually carries it; length earns nothing.
+  const mine = threads.filter(t => !t.ao || t.ao.toUpperCase().includes('AO1'))
+  const pool = mine.length ? mine : threads
+  const hits = []
+  const used = new Set()
+  for (const thread of pool) {
+    const core = contentCore(thread.text)
+    if (!core.length) continue
+    if (coverTerms(core, view.set) < 0.45) continue
+    // The mark is for the concept; the span is where the student stated it.
+    let best = null
+    for (const prop of view.props) {
+      if (used.has(prop.index) || !prop.specific) continue
+      const fit = coverTerms(core, prop.set)
+      if (!best || fit > best.fit) best = { prop, fit }
+    }
+    if (!best || best.fit < 0.25) continue
+    used.add(best.prop.index)
+    hits.push({ thread, prop: best.prop })
+  }
+  return {
+    metric: hits.length,
+    spans: cap(hits.map(h => h.prop)),
+    missing: pool.filter(t => !hits.some(h => h.thread.id === t.id)).slice(0, 3).map(t => t.text),
+  }
 }
 
 function syntheticBands(total) {

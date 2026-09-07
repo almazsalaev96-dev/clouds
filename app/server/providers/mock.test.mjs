@@ -199,3 +199,94 @@ test('a decimal point is not the end of a sentence', async () => {
     }
   }
 })
+
+/* ------------------------------------------------------------------------- *
+ * What the marking audit found: an objective scored by counting keywords, and
+ * an accuracy mark that never looked at the value. Each of these fails against
+ * the code as it was before the audit.
+ * ------------------------------------------------------------------------- */
+
+const totalOf = (m) =>
+  (m.per_point || []).reduce((s, p) => s + p.awarded, 0) +
+  (m.per_ao || []).reduce((s, a) => s + a.marks, 0)
+
+const aoOf = (m, ao) => (m.per_ao || []).find(r => r.ao === ao)
+
+test('an accuracy mark is refused when the value is wrong', async () => {
+  const item = itemById('itm_9609_p2_02')
+  const right = 'Gross profit = 960 000 - 624 000 = 336 000, so the gross profit margin = 336 000 / 960 000 x 100 = 35%.\n'
+    + 'Current ratio = current assets / current liabilities = 184 000 / 115 000 = 1.6 : 1.'
+  const wrong = 'Gross profit = 960 000 - 624 000 = 336 000, so the gross profit margin = 336 000 / 960 000 x 100 = 88%.\n'
+    + 'Current ratio = current assets / current liabilities = 184 000 / 115 000 = 12 : 1.'
+  const good = await markWith(item, right)
+  const bad = await markWith(item, wrong)
+  assert.equal(totalOf(good), 4, 'the correct calculation is worth every mark')
+  assert.ok(totalOf(bad) < totalOf(good), 'wrong values must cost marks')
+  const a1 = (bad.per_point || []).find(p => p.marking_point_id === 'A1')
+  const a2 = (bad.per_point || []).find(p => p.marking_point_id === 'A2')
+  assert.equal(a1.awarded, 0, '88% is not 35%')
+  assert.equal(a2.awarded, 0, '12 : 1 is not 1.6 : 1')
+})
+
+test('a calculation written in figures earns its method marks', async () => {
+  const m = await markWith(itemById('itm_9609_p3_06'),
+    'Capital employed = 2 100 000 + 1 400 000 = 3 500 000.\n'
+    + 'Gearing = 2 100 000 / 3 500 000 x 100 = 60%.\n'
+    + 'ROCE = 420 000 / 3 500 000 x 100 = 12%.')
+  assert.ok(totalOf(m) >= 3, `a correct calculation scored ${totalOf(m)} of 4`)
+})
+
+test('the fraction the scheme names as the common error is not credited', async () => {
+  const item = itemById('itm_9609_p2_06')
+  const right = await markWith(item, 'Capacity utilisation = actual output / maximum output x 100 = 372 000 / 480 000 x 100 = 77.5%.\nOutput for 90% utilisation = 0.90 x 480 000 = 432 000 litres.')
+  const upsideDown = await markWith(item, 'Capacity utilisation = maximum output / actual output x 100 = 480 000 / 372 000 x 100 = 129%.\nOutput for 90% utilisation = 0.90 x 480 000 = 432 000 litres.')
+  assert.equal(totalOf(right), 3)
+  assert.ok(totalOf(upsideDown) <= 1, `the inverted fraction scored ${totalOf(upsideDown)} of 3`)
+})
+
+test('analysis is not a count of connectives', async () => {
+  // Four "because"s and a "so", about nothing in particular.
+  const m = await markWith(itemById('itm_9609_p4_04'),
+    'Adapting products is often a good idea because customers in different countries have different tastes, '
+    + 'so sales can rise. However, standardising is cheaper because one production run serves everyone, so unit '
+    + 'costs fall. Adaptation also takes time, therefore the firm may miss the market. Overall it depends on the market.')
+  const ao3 = aoOf(m, 'AO3')
+  assert.ok(ao3.marks <= ao3.max / 2, `a generic paragraph scored ${ao3.marks} of ${ao3.max} for analysis`)
+  assert.equal(aoOf(m, 'AO2').marks, 0, 'it names no fact belonging to this business')
+})
+
+test('an essay that names its own businesses can earn the application marks', async () => {
+  // Paper 1 carries no case: the question says "refer to businesses you have studied",
+  // so the cover-the-name test has to run against the business the candidate names.
+  const m = await markWith(itemById('itm_9609_p1_07'),
+    'When Satya Nadella took over at Microsoft the business had to move from selling boxed software to selling '
+    + 'cloud services, and he consulted engineers widely because the technical judgement sat with them, so the '
+    + 'shift to Azure carried the people who had to build it. When British Airways lost almost all of its bookings '
+    + 'in 2020 its cash was draining away in weeks, so there was no time to consult 40 000 staff about redundancies, '
+    + 'and a directive decision preserved the airline. Overall a democratic style suits change that needs expertise, '
+    + 'although a cash crisis rewards speed, so the right style depends on how fast the money runs out.')
+  const ao2 = aoOf(m, 'AO2')
+  assert.ok(ao2.marks > 0, 'AO2 was structurally unreachable: no answer could earn it')
+  assert.ok(totalOf(m) >= 12, `a strong essay scored ${totalOf(m)} of 20`)
+})
+
+test('stripping the businesses out of an essay costs it the application marks', async () => {
+  const named = 'When Satya Nadella took over at Microsoft the business had to move from selling boxed software to '
+    + 'selling cloud services, and he consulted engineers widely because the technical judgement sat with them.'
+  const stripped = 'When the new chief executive took over at a large software firm the business had to move from '
+    + 'selling boxed software to selling cloud services, and they consulted engineers widely because the technical '
+    + 'judgement sat with them.'
+  const item = itemById('itm_9609_p1_07')
+  const a = aoOf(await markWith(item, named), 'AO2').marks
+  const b = aoOf(await markWith(item, stripped), 'AO2').marks
+  assert.ok(a > b, `naming the business must be worth more than not naming it (${a} vs ${b})`)
+})
+
+test('an evaluation that decides nothing does not reach the top band', async () => {
+  const m = await markWith(itemById('itm_9609_p4_01'),
+    'A low-cost strategy can raise volume because price attracts buyers, so revenue may grow. A differentiation '
+    + 'strategy can raise margin because buyers pay for a difference, so profit may grow. Both have advantages '
+    + 'and disadvantages and it really depends on the situation.')
+  const ao4 = (m.per_ao || []).find(r => r.ao === 'AO4')
+  if (ao4) assert.ok(ao4.marks <= ao4.max / 2, `an undecided answer scored ${ao4.marks} of ${ao4.max} for evaluation`)
+})

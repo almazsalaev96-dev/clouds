@@ -397,6 +397,10 @@ function pointsText(scheme, order) {
     if (p.accept.length) bits.push(`  accept: ${p.accept.join('; ')}`)
     if (p.reject.length) bits.push(`  reject: ${p.reject.join('; ')}`)
     if (p.dependsOn) bits.push(`  depends on ${p.dependsOn}`)
+    // The scheme says this mark survives a wrong figure upstream. Not telling the
+    // marker so left it zeroing the dependent mark and the ECF rule with nothing to
+    // carry forward.
+    if (p.ecf) bits.push('  error carried forward: allowed')
     return bits.join('\n')
   }).join('\n')
 }
