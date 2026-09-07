@@ -1,0 +1,54 @@
+.span-text {
+  font-size: var(--t-lg);
+  line-height: var(--lh-read);
+  color: var(--ink);
+  max-width: var(--measure-read);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.span-text__plain { color: inherit; }
+
+/* One shape per class, so the reading survives with no colour: solid, dashed, dotted. */
+.span-text__span {
+  background: transparent;
+  color: inherit;
+  border-radius: var(--r-sm);
+  padding: 1px 2px;
+  cursor: pointer;
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  transition: background-color var(--d-2) var(--ease), box-shadow var(--d-2) var(--ease);
+}
+
+.span-text__span--credited {
+  background: var(--span-credit);
+  text-decoration-style: solid;
+  text-decoration-color: var(--ok);
+}
+
+.span-text__span--partial {
+  background: var(--span-partial);
+  text-decoration-style: dashed;
+  text-decoration-color: var(--warn);
+}
+
+.span-text__span--uncredited {
+  background: var(--span-miss);
+  text-decoration-style: dotted;
+  text-decoration-color: var(--bad);
+}
+
+.span-text__span.is-linked {
+  box-shadow: 0 0 0 2px var(--accent-line);
+}
+
+.span-text__glyph {
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  color: var(--ink-2);
+  padding-left: 2px;
+  vertical-align: super;
+  line-height: 1;
+}

@@ -1,0 +1,293 @@
+.mark-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s5);
+  padding: var(--s5) var(--s5) var(--s8);
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.mark-view--compact { padding: var(--s4) 0 var(--s5); gap: var(--s4); }
+
+/* header */
+.mark-view__header { display: flex; flex-direction: column; gap: var(--s2); }
+
+.mark-view__ident { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s3); }
+
+.mark-view__ref { font-size: var(--t-sm); color: var(--ink-2); }
+.mark-view__point { font-size: var(--t-sm); color: var(--ink-2); }
+.mark-view__split { font-size: var(--t-xs); color: var(--ink-3); }
+.mark-view__provenance { font-size: var(--t-xs); color: var(--ink-3); }
+
+.mark-view__degraded {
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  border-left: 2px solid var(--line-strong);
+  padding-left: var(--s3);
+}
+
+/* result */
+.mark-view__result {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--paper-raised);
+  padding: var(--s4);
+  box-shadow: var(--shadow-1);
+}
+
+.mark-view__total { line-height: var(--lh-tight); }
+.mark-view__total-number { font-size: var(--t-3xl); font-weight: 500; color: var(--ink); }
+.mark-view__total-of { font-size: var(--t-xl); color: var(--ink-2); }
+.mark-view__exact { font-size: var(--t-sm); color: var(--ink-2); }
+
+.mark-view__tolerance, .mark-view__no-number {
+  margin-top: var(--s2);
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  max-width: var(--measure-read);
+}
+
+.mark-view__no-number { font-size: var(--t-md); color: var(--ink); }
+
+.mark-view__badge {
+  margin-top: var(--s3);
+  font-size: var(--t-xs);
+  color: var(--ink-2);
+  border-top: 1px solid var(--line);
+  padding-top: var(--s2);
+}
+
+.mark-view__badge--soft { color: var(--warn); }
+.mark-view__vendor { color: var(--ink-3); }
+
+.mark-view__badge-why {
+  margin-top: var(--s1);
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  max-width: var(--measure-read);
+}
+
+/* command-word check */
+.mark-view__command {
+  display: flex;
+  gap: var(--s2);
+  font-size: var(--t-md);
+  color: var(--ink);
+  border-left: 2px solid var(--line-strong);
+  padding-left: var(--s3);
+  max-width: var(--measure-read);
+}
+
+.mark-view__command--unmet { border-left-color: var(--warn); }
+.mark-view__command-flag { color: var(--ink-2); }
+
+.mark-view__status { font-size: var(--t-sm); color: var(--ink-2); }
+
+/* error */
+.mark-view__error {
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--bad);
+  border-radius: var(--r-md);
+  background: var(--paper-raised);
+  padding: var(--s3) var(--s4);
+}
+
+.mark-view__error-line { font-size: var(--t-md); color: var(--ink); }
+.mark-view__error-note { margin-top: var(--s1); font-size: var(--t-sm); color: var(--ink-2); }
+
+.mark-view__retry, .mark-view__text-button {
+  margin-top: var(--s3);
+  background: var(--paper-sunk);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  padding: var(--s2) var(--s3);
+  cursor: pointer;
+}
+
+/* body: cards and the answer */
+.mark-view__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s5);
+  align-items: start;
+}
+
+.mark-view__cards { display: grid; gap: var(--s4); }
+
+.mark-view__answer {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--paper-raised);
+  padding: var(--s4);
+}
+
+.mark-view__answer-title, .mark-view__check-title {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.mark-view__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  margin: var(--s2) 0 var(--s3);
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+
+.mark-view__legend-item { white-space: nowrap; }
+
+@media (min-width: 1100px) {
+  .mark-view__body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .mark-view__answer { order: -1; position: sticky; top: var(--s4); }
+}
+
+/* checks */
+.mark-view__check {
+  border-top: 1px solid var(--line);
+  padding-top: var(--s3);
+}
+
+.mark-view__check-line { margin-top: var(--s2); font-size: var(--t-md); color: var(--ink); max-width: var(--measure-read); }
+
+.mark-view__check-list {
+  list-style: none;
+  margin: var(--s2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s2);
+  font-size: var(--t-sm);
+  color: var(--ink);
+  max-width: var(--measure-read);
+}
+
+.mark-view__check-why { color: var(--ink-2); }
+.mark-view__series { color: var(--ink-3); font-size: var(--t-xs); }
+
+/* the one next action */
+.mark-view__next {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--accent-soft);
+  padding: var(--s4);
+}
+
+.mark-view__next-text { margin: var(--s2) 0 var(--s3); font-size: var(--t-md); line-height: var(--lh-read); max-width: var(--measure-read); }
+
+.mark-view__primary {
+  background: var(--accent);
+  color: var(--paper);
+  border: 1px solid var(--accent-ink);
+  border-radius: var(--r-md);
+  padding: var(--s2) var(--s4);
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.mark-view__primary:disabled { opacity: 0.7; cursor: default; }
+
+.mark-view__next-gain { margin-top: var(--s2); font-size: var(--t-xs); color: var(--ink-2); }
+
+/* challenge */
+.mark-view__challenge { border-top: 1px solid var(--line); padding-top: var(--s3); }
+
+.mark-view__challenge-invite {
+  margin-top: var(--s2);
+  font-size: var(--t-md);
+  color: var(--ink);
+  max-width: var(--measure-read);
+}
+
+.mark-view__challenge-open {
+  margin-top: var(--s3);
+  background: var(--paper-sunk);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  padding: var(--s2) var(--s3);
+  cursor: pointer;
+}
+
+.mark-view__challenge-form { margin-top: var(--s3); display: grid; gap: var(--s2); max-width: var(--measure-read); }
+
+.mark-view__label { font-size: var(--t-sm); color: var(--ink-2); }
+
+.mark-view__reason {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  padding: var(--s2) var(--s3);
+  min-height: 36px;
+}
+
+.mark-view__ao-picker {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.mark-view__ao-picker .mark-view__label { flex-basis: 100%; padding: 0; }
+
+.mark-view__chip {
+  background: var(--paper-sunk);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: var(--s1) var(--s3);
+  font-size: var(--t-sm);
+  cursor: pointer;
+  min-height: 28px;
+}
+
+.mark-view__chip.is-on { border-color: var(--accent-line); background: var(--accent-soft); font-weight: 500; }
+
+.mark-view__challenge-actions { display: flex; gap: var(--s3); align-items: center; flex-wrap: wrap; }
+.mark-view__challenge-actions .mark-view__text-button { margin-top: 0; background: none; border: 0; color: var(--accent-ink); }
+
+.mark-view__compare { margin-top: var(--s4); display: grid; gap: var(--s3); }
+
+.mark-view__compare-outcome { font-size: var(--t-md); color: var(--ink); max-width: var(--measure-read); }
+.mark-view__compare-word { font-size: var(--t-sm); text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); }
+
+.mark-view__table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--t-sm);
+}
+
+.mark-view__table th, .mark-view__table td {
+  text-align: left;
+  padding: var(--s2) var(--s3);
+  border-bottom: 1px solid var(--line);
+}
+
+.mark-view__table thead th { color: var(--ink-2); font-weight: 500; font-size: var(--t-xs); }
+
+.mark-view__table tbody tr.is-changed { background: var(--accent-soft); }
+.mark-view__table tbody tr.is-changed th { border-left: 3px solid var(--accent); }
+
+.mark-view__deciding { font-size: var(--t-sm); color: var(--ink); max-width: var(--measure-read); }
+
+.mark-view__rationales { display: grid; gap: var(--s3); }
+
+@media (min-width: 900px) { .mark-view__rationales { grid-template-columns: 1fr 1fr; } }
+
+.mark-view__rationale {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--s3);
+  background: var(--paper-raised);
+  font-size: var(--t-sm);
+  line-height: var(--lh-read);
+}
+
+.mark-view__rationale-title { font-size: var(--t-xs); color: var(--ink-2); font-weight: 600; margin-bottom: var(--s1); }
+
+.mark-view__notes {
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  max-width: var(--measure-read);
+}

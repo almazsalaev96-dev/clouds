@@ -1,0 +1,81 @@
+.progress {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--s6) var(--s4) var(--s8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s6);
+}
+
+.progress__head { display: flex; flex-direction: column; gap: var(--s2); }
+.progress__heading { font-size: var(--t-xl); }
+.progress__sub { font-size: var(--t-sm); color: var(--ink-2); max-width: 64ch; }
+.progress__note { font-size: var(--t-sm); color: var(--ink-2); max-width: 64ch; }
+
+.progress__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s3);
+  font-size: var(--t-md);
+  color: var(--ink-2);
+}
+.progress__retry {
+  min-height: 32px;
+  padding: 0 var(--s3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--paper-raised);
+  cursor: pointer;
+}
+
+.progress__section { display: flex; flex-direction: column; gap: var(--s3); }
+.progress__section-heading { font-size: var(--t-lg); }
+
+.progress__heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  overflow-x: auto;
+}
+.progress__heat-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 240px) minmax(0, 1fr);
+  grid-template-areas: 'label cells' 'label counts';
+  gap: var(--s1) var(--s4);
+  align-items: start;
+  padding-bottom: var(--s3);
+  border-bottom: 1px solid var(--line);
+}
+.progress__heat-label { grid-area: label; font-size: var(--t-sm); color: var(--ink); }
+.progress__heat-label .mono { color: var(--ink-3); margin-right: var(--s1); }
+.progress__cells { grid-area: cells; display: flex; flex-wrap: wrap; gap: var(--s2) var(--s3); }
+.progress__cell { display: inline-flex; align-items: center; gap: var(--s1); }
+.progress__cell-code { font-size: var(--t-xs); color: var(--ink-3); }
+.progress__heat-counts { grid-area: counts; font-size: var(--t-xs); color: var(--ink-3); }
+
+.progress__rings { display: flex; flex-wrap: wrap; gap: var(--s5); }
+
+.progress__figure-line { font-size: var(--t-md); color: var(--ink); max-width: 64ch; }
+
+.progress__figure { margin: 0; display: flex; flex-direction: column; gap: var(--s2); }
+.progress__chart { width: 100%; max-width: 420px; height: auto; }
+.progress__axis { stroke: var(--line-strong); stroke-width: 1; }
+.progress__grid { stroke: var(--line); stroke-width: 1; }
+.progress__diagonal { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 4 4; }
+.progress__dot { fill: var(--accent); stroke: var(--paper); stroke-width: 1.5; }
+.progress__drop { stroke: var(--accent-line); stroke-width: 1; stroke-dasharray: 2 3; }
+
+.progress__tick { fill: var(--ink-3); font-size: var(--t-xs); font-family: var(--mono); }
+.progress__axis-label { fill: var(--ink-2); font-size: var(--t-xs); font-family: var(--ui); }
+.progress__diagonal-label { fill: var(--ink-3); font-size: var(--t-xs); font-family: var(--ui); }
+.progress__point-label { fill: var(--ink); font-size: var(--t-xs); font-family: var(--ui); }
+
+.progress__caption { font-size: var(--t-sm); color: var(--ink-2); max-width: 64ch; }
+
+@media (max-width: 640px) {
+  .progress__heat-row {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'label' 'cells' 'counts';
+  }
+}

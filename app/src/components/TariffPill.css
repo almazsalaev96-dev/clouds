@@ -1,0 +1,32 @@
+.tariff-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 2px var(--s2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--paper-sunk);
+  color: var(--ink-2);
+  font-size: var(--t-xs);
+  line-height: var(--lh-ui);
+  white-space: nowrap;
+}
+
+.tariff-pill--small { padding: 1px var(--s2); }
+
+.tariff-pill__marks {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.tariff-pill__rule {
+  width: 1px;
+  align-self: stretch;
+  background: var(--line);
+}
+
+.tariff-pill__command {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}

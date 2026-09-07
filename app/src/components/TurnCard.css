@@ -1,0 +1,136 @@
+.turn-card {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s3) var(--s4);
+  border-radius: var(--r-md);
+}
+
+/* The student's words: reading serif on a sunken ground. Not a bubble — a block of their writing. */
+.turn-card--user {
+  background: var(--paper-sunk);
+  border: 1px solid var(--line);
+}
+.turn-card--user .turn-card__body,
+.turn-card--user .turn-card__stream {
+  font-family: var(--read);
+  font-size: var(--t-md);
+  line-height: var(--lh-read);
+  color: var(--ink);
+}
+
+/* The tutor's words: on paper, no border, with a left rule once the ladder is above rung 1. */
+.turn-card--assistant {
+  padding-left: var(--s4);
+  background: var(--paper);
+}
+.turn-card--assistant.turn-card--ruled {
+  border-left: 2px solid var(--accent-line);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+
+.turn-card__body,
+.turn-card__stream {
+  max-width: var(--measure);
+  font-size: var(--t-md);
+  line-height: var(--lh-read);
+}
+.turn-card__p { margin: 0 0 var(--s2); }
+.turn-card__p:last-child { margin-bottom: 0; }
+.turn-card__body + .turn-card__stream .turn-card__p:first-child { margin-top: 0; }
+
+.turn-card__list { margin: 0 0 var(--s2); padding-left: var(--s5); }
+.turn-card__list li { margin-bottom: var(--s1); }
+
+.turn-card__code {
+  margin: 0 0 var(--s2);
+  padding: var(--s3);
+  overflow-x: auto;
+  font-size: var(--t-sm);
+  line-height: var(--lh-ui);
+  background: var(--paper-sunk);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+.turn-card__body code, .turn-card__stream code {
+  padding: 0 var(--s1);
+  font-size: 0.92em;
+  background: var(--paper-sunk);
+  border-radius: var(--r-sm);
+}
+.turn-card__code code { padding: 0; background: none; }
+
+.turn-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+.turn-card__badge {
+  padding: 2px var(--s2);
+  font-size: var(--t-xs);
+  color: var(--ink-2);
+  background: var(--paper-sunk);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+}
+.turn-card__badge--gate {
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+.turn-card__badge--seen {
+  color: var(--warn);
+  background: var(--warn-soft);
+  border-color: var(--warn);
+}
+
+.turn-card__status {
+  margin: 0;
+  font-size: var(--t-sm);
+  color: var(--ink-3);
+}
+.turn-card__status--dots { letter-spacing: 0.2em; }
+
+.turn-card__error {
+  display: grid;
+  gap: var(--s2);
+  justify-items: start;
+  padding: var(--s3);
+  background: var(--bad-soft);
+  border: 1px solid var(--bad);
+  border-radius: var(--r-sm);
+}
+.turn-card__errorline { font-size: var(--t-sm); color: var(--ink); }
+.turn-card__retry {
+  min-height: 28px;
+  padding: var(--s1) var(--s3);
+  font-size: var(--t-sm);
+  background: var(--paper-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+.turn-card__cites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.turn-card__cite {
+  min-height: 26px;
+  padding: 2px var(--s2);
+  font-size: var(--t-xs);
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+}
+
+.turn-card__foot {
+  margin: 0;
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}

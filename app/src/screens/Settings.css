@@ -1,0 +1,123 @@
+.settings {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--s6) var(--s4) var(--s8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s6);
+}
+
+.settings__head { display: flex; flex-direction: column; gap: var(--s2); }
+.settings__heading { font-size: var(--t-xl); }
+.settings__sub { font-size: var(--t-sm); color: var(--ink-2); max-width: 62ch; }
+
+.settings__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  border-top: 1px solid var(--line);
+  padding-top: var(--s5);
+}
+.settings__section-heading { font-size: var(--t-lg); }
+.settings__sub-heading { font-size: var(--t-ui); font-weight: 600; margin-top: var(--s2); }
+
+.settings__field { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s2); }
+.settings__legend { font-size: var(--t-ui); font-weight: 600; padding: 0 0 var(--s1); }
+
+.settings__radio,
+.settings__check {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: 'input label' '. note';
+  gap: var(--s1) var(--s3);
+  align-items: baseline;
+  padding: var(--s1) 0;
+  cursor: pointer;
+}
+.settings__radio input,
+.settings__check input { grid-area: input; width: 16px; height: 16px; min-height: 16px; margin: 0; accent-color: var(--accent); }
+.settings__radio-label { grid-area: label; font-size: var(--t-ui); }
+.settings__consequence { grid-area: note; font-size: var(--t-xs); color: var(--ink-2); max-width: 62ch; }
+
+.settings__section > .settings__consequence { grid-area: auto; }
+
+.settings__note { font-size: var(--t-sm); color: var(--ink-2); max-width: 62ch; }
+
+.settings__memory { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s3); }
+.settings__memory-row {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--paper-raised);
+  padding: var(--s3) var(--s4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+.settings__memory-text { font-size: var(--t-md); }
+.settings__memory-meta { font-size: var(--t-xs); color: var(--ink-3); }
+.settings__memory-actions { display: flex; gap: var(--s2); flex-wrap: wrap; }
+
+.settings__row { display: flex; gap: var(--s3); align-items: center; flex-wrap: wrap; }
+
+.settings__button {
+  min-height: 32px;
+  padding: 0 var(--s3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--paper-raised);
+  font-size: var(--t-sm);
+  cursor: pointer;
+}
+.settings__button:hover { background: var(--paper-sunk); }
+.settings__button--danger { border-color: var(--bad); color: var(--bad); align-self: flex-start; }
+.settings__button--danger:hover { background: var(--bad-soft); }
+.settings__link { font-size: var(--t-sm); }
+
+.settings__input {
+  min-height: 32px;
+  padding: 0 var(--s2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--paper);
+  font-size: var(--t-ui);
+  width: 100%;
+  max-width: 42ch;
+}
+.settings__input--time { width: 8em; }
+.settings__input--number { width: 5em; }
+.settings__input--word { width: 12em; }
+
+.settings__time { display: inline-flex; align-items: center; gap: var(--s2); font-size: var(--t-ui); }
+
+.settings__undo {
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  border-left: 2px solid var(--line-strong);
+  padding: var(--s1) var(--s3);
+  display: flex;
+  gap: var(--s2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.settings__usage { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s2); }
+.settings__usage-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s4);
+  font-size: var(--t-ui);
+  padding-bottom: var(--s2);
+  border-bottom: 1px solid var(--line);
+}
+.settings__usage-label { color: var(--ink); }
+.settings__usage-value { color: var(--ink-2); }
+
+/* The one place that owns the reduce-motion choice: Settings writes data-motion on <html>. */
+:root[data-motion='reduce'] *,
+:root[data-motion='reduce'] *::before,
+:root[data-motion='reduce'] *::after {
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+  scroll-behavior: auto !important;
+}

@@ -1,0 +1,83 @@
+.ladder { display: grid; gap: var(--s2); justify-items: center; }
+
+.ladder__rungs {
+  display: grid;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  justify-items: center;
+}
+
+.ladder__rung { position: relative; display: grid; justify-items: center; }
+
+/* The rung itself: outlined by default, filled once the ladder has reached it. */
+.ladder__pip {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  min-height: 26px;
+  padding: 0;
+  color: var(--ink-3);
+  background: var(--paper);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: background var(--d-1) var(--ease), border-color var(--d-1) var(--ease);
+}
+.ladder__pip:hover { border-color: var(--accent-line); color: var(--ink); }
+
+.ladder__pip--filled {
+  color: var(--paper);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Out of reach: visibly so, and it says why — never silently absent. */
+.ladder__pip--locked {
+  color: var(--ink-3);
+  background: repeating-linear-gradient(
+    -45deg, transparent, transparent 3px, var(--line) 3px, var(--line) 4px
+  );
+  border-style: dashed;
+  cursor: not-allowed;
+}
+.ladder__pip[aria-disabled='true']:not(.ladder__pip--locked) { cursor: default; opacity: 0.85; }
+
+.ladder__num { font-size: var(--t-xs); font-weight: 600; }
+
+/* The rung's name, on hover and on focus. */
+.ladder__name {
+  position: absolute;
+  left: calc(100% + var(--s2));
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
+  padding: 2px var(--s2);
+  font-size: var(--t-xs);
+  white-space: nowrap;
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-1);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--d-1) var(--ease);
+}
+.ladder__rung:hover .ladder__name,
+.ladder__pip:focus-visible + .ladder__name { opacity: 1; }
+
+.ladder__reason {
+  max-width: 22ch;
+  margin: 0;
+  font-size: var(--t-xs);
+  line-height: var(--lh-ui);
+  color: var(--ink-3);
+  text-align: center;
+}
+
+@media (pointer: coarse) {
+  .ladder__pip { width: 44px; height: 44px; min-height: 44px; }
+}

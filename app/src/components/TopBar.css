@@ -1,0 +1,127 @@
+/* The top bar: who you are working on, how long is left, what it has cost. */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  min-height: var(--topbar);
+  padding: var(--s2) var(--s4);
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar__menu {
+  display: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.topbar__menu:hover { background: var(--paper-sunk); color: var(--ink); }
+
+.topbar__wordmark {
+  font-size: var(--t-ui);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.topbar__course {
+  max-width: 280px;
+  height: 30px;
+  padding: 0 var(--s2);
+  background: var(--paper-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  font-size: var(--t-sm);
+  color: var(--ink);
+}
+
+.topbar__course:disabled { color: var(--ink-3); }
+
+.topbar__exam,
+.topbar__usage {
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.topbar__usage { color: var(--ink-3); }
+
+.topbar__exam-none { color: var(--ink-3); }
+
+.topbar__degraded {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s1) var(--s3);
+  background: var(--warn-soft);
+  border: 1px solid var(--warn);
+  border-radius: var(--r-pill);
+  font-size: var(--t-sm);
+  color: var(--ink);
+}
+
+.topbar__degraded-glyph {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--r-pill);
+  background: var(--warn);
+  color: var(--paper);
+  font-size: var(--t-xs);
+  font-weight: 600;
+  flex: none;
+}
+
+.topbar__theme {
+  display: flex;
+  margin-left: auto;
+  padding: 2px;
+  background: var(--paper-sunk);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+}
+
+.topbar__theme-btn {
+  min-height: 24px;
+  padding: 2px var(--s3);
+  background: none;
+  border: 0;
+  border-radius: var(--r-pill);
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.topbar__theme-btn:hover { color: var(--ink); }
+
+.topbar__theme-btn[aria-pressed='true'] {
+  background: var(--paper-raised);
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+@media (max-width: 1100px) {
+  .topbar__usage { display: none; }
+}
+
+@media (max-width: 820px) {
+  .topbar { padding: var(--s2) var(--s3); gap: var(--s2); }
+  .topbar__menu { display: grid; }
+  .topbar__wordmark { display: none; }
+  .topbar__course { max-width: 40vw; }
+  .topbar__theme { order: 3; }
+  /* The degraded notice is never hidden: on a narrow screen it takes its own row. */
+  .topbar__degraded { order: 4; flex-basis: 100%; border-radius: var(--r-md); }
+}

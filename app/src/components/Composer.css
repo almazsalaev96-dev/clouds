@@ -1,0 +1,117 @@
+.composer {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s3) var(--s4) var(--s4);
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+}
+
+.composer__modes,
+.composer__intents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.composer__chip {
+  min-height: 32px;
+  padding: var(--s1) var(--s3);
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  background: var(--paper-sunk);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: background var(--d-1) var(--ease), color var(--d-1) var(--ease),
+    border-color var(--d-1) var(--ease);
+}
+.composer__chip:hover { border-color: var(--line-strong); color: var(--ink); }
+
+.composer__chip--mode[aria-checked='true'],
+.composer__chip--intent[aria-pressed='true'] {
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  font-weight: 600;
+}
+/* State is never colour alone: the selected chip also carries a mark. */
+.composer__chip--mode[aria-checked='true']::before,
+.composer__chip--intent[aria-pressed='true']::before {
+  content: '\2713\00a0';
+}
+
+.composer__box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--s3);
+  padding: var(--s3);
+  background: var(--paper-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+}
+.composer__box:focus-within { border-color: var(--accent-line); }
+
+.composer__input {
+  width: 100%;
+  min-height: calc(var(--t-md) * var(--lh-read));
+  /* Eight lines, then it scrolls. */
+  max-height: calc(8 * var(--t-md) * var(--lh-read));
+  padding: 0;
+  overflow-y: auto;
+  font-size: var(--t-md);
+  line-height: var(--lh-read);
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  resize: none;
+}
+.composer__input:focus { outline: none; }
+.composer__input::placeholder { color: var(--ink-3); font-family: var(--ui); font-size: var(--t-ui); }
+.composer__input:disabled { color: var(--ink-3); cursor: not-allowed; }
+
+.composer__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.composer__count {
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.composer__send {
+  min-height: 36px;
+  padding: var(--s2) var(--s4);
+  font-size: var(--t-ui);
+  font-weight: 600;
+  color: var(--paper);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+.composer__send:hover { background: var(--accent-ink); border-color: var(--accent-ink); }
+.composer__send:disabled {
+  color: var(--ink-3);
+  background: var(--paper-sunk);
+  border-color: var(--line);
+  cursor: not-allowed;
+}
+
+.composer__reason,
+.composer__note {
+  margin: 0;
+  font-size: var(--t-xs);
+  line-height: var(--lh-ui);
+  color: var(--ink-3);
+  max-width: var(--measure);
+}
+.composer__reason { color: var(--ink-2); }
+
+@media (max-width: 820px) {
+  .composer { padding: var(--s2) var(--s3) var(--s3); }
+}

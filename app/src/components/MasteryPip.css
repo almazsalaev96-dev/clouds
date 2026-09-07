@@ -1,0 +1,21 @@
+.mastery-pip {
+  display: inline-flex;
+  flex: none;
+  width: 12px;
+  height: 12px;
+  vertical-align: -1px;
+}
+.mastery-pip svg { width: 100%; height: 100%; overflow: visible; }
+
+.mastery-pip__ring { fill: none; stroke: var(--line-strong); stroke-width: 2.5; }
+.mastery-pip__fill { fill: var(--ink-3); stroke: none; }
+
+.mastery-pip--unseen .mastery-pip__ring { stroke: var(--line-strong); }
+.mastery-pip--weak .mastery-pip__ring { stroke: var(--bad); }
+.mastery-pip--weak .mastery-pip__fill { fill: var(--bad); }
+.mastery-pip--developing .mastery-pip__ring { stroke: var(--warn); }
+.mastery-pip--developing .mastery-pip__fill { fill: var(--warn); }
+.mastery-pip--secure .mastery-pip__ring { stroke: var(--ok); }
+.mastery-pip--secure .mastery-pip__fill { fill: var(--ok); }
+.mastery-pip--strong .mastery-pip__ring { stroke: var(--ink); }
+.mastery-pip--strong .mastery-pip__fill { fill: var(--ok); }
