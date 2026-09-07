@@ -1,6 +1,6 @@
 # MARGIN — Master Build Prompt
 
-*Working name: **Margin** (provisional — see §01.7). Version: v1 (stitched draft). Generated 2026-09-07. Length ≈ 220,943 words; 1,542 numbered requirements.*
+*Working name: **Margin** (provisional — see §01.7). Version: v2 (revised against 162 critique findings). Generated 2026-09-07. Length ≈ 225,487 words; 1,554 numbered requirements.*
 
 ## What this document is
 
@@ -6113,7 +6113,7 @@ Build Margin as one TypeScript monorepo with a small number of named services. A
 
 | Service | Responsibility | Talks to | SLO owner metric |
 |---|---|---|---|
-| `web` (Next.js 16 / React 19, PWA) | All web surfaces (§10 screens 1–25), teacher console, parent digest web view, internal Admin/Compiler behind role gates | `api` | LCP/INP/CLS (11.14) |
+| `web` (Next.js 16 / React 19, PWA) | All web surfaces (every §10 screen, 10.1–10.27), teacher console, parent digest web view, internal Admin/Compiler behind role gates | `api` | LCP/INP/CLS (11.14) |
 | `mobile` (Expo SDK 57, Expo Router, EAS Update) | iOS/Android: same domain packages, camera capture, offline Cards, push | `api` | Crash-free sessions ≥99.5% |
 | `api` (Node 22, Hono or Next route handlers; one process image) | Auth, tenancy, policy-object resolution, CRUD, entitlements, quotas, SSE fan-out | Postgres, Redis, `orchestrator`, `retrieval` | p95 non-AI request <250 ms |
 | `orchestrator` | Task classification, route table (§08.2), prompt registry, cache-layout enforcement, Turn lint and effort-gate vetting (§04), failover, provider adapters | Providers, `retrieval`, `sandbox`, Redis | TTFT p50 <800 ms |
@@ -6165,7 +6165,7 @@ The data model has three planes: **Pack** (curriculum data, global, `org_id NULL
 | `packs` | `id, board_id, syllabus_code, version_years, pack_version (per `common@1.version_tag`, e.g. `9609:2026-2028@2026.11.2`), pack_version_display (derived, e.g. "2026–28 v3"), readiness (per `Pack@2.readiness`, snake_case), gate_report jsonb, published_at` | Pinned per Course; `pack_version` is the only stored form, the display string is derived (F05) |
 | `items` | `id, pack_id, kind` (per `Item@2.kind`)`, item_type` (per `common@1.item_type`)`, syllabus_node_ids[], tariff, command_word, ao_split jsonb, provenance` (per `common@1.provenance`)`, text_status ∈ {own, licensed, ref_only}, stats {n, p_correct, discrimination, mean_latency}` | Atomic gradable/retrievable unit |
 | `mark_schemes` | per §05 schema: `id, item_id, scheme_type, marking_points jsonb, levels jsonb, best_fit, ecf_policy, indicative_content[], wording_status, provenance` | Never displayed verbatim without `LICENSED` |
-| `sessions` | `id, course_id, user_id, topic_node_id, mode ∈ {learn, practise, mark}, policy_version, incognito bool, started_at, ended_at` | Incognito writes no learner state |
+| `sessions` | `id, course_id` (nullable — `NULL` is an **Ask** Session, §10.26)`, user_id, topic_node_id, mode` (per `common@1.session_mode`: `learn`/`practise`/`mark`/`ask`)`, policy_version, incognito bool, started_at, ended_at` | Incognito writes no learner state. An Ask Session writes none either: SYNTHESIS §3.1 fixes that a conversation without a Course never counts as study, so `course_id IS NULL` implies zero `attempts`, `cards`, `learner_state` and `memories` rows from that Session |
 | `turns` | `id, session_id, role, parts jsonb, rung, lint_result jsonb, model, route, cache_hit bool, usage jsonb, cost_usd, trace_id, stream_id` | Per-call field list in §08.12 |
 | `attempts` | `id, user_id, course_id, item_id, session_id, syllabus_points[], response jsonb, transcript_confirmed bool, image_key, gate_state` + `gate_reason` (both per `Attempt@2`)`, entry_rung, rung_reached, intent` (per `Attempt@2.intent`: `teach_me`/`check_steps`/`just_answer`/`none`)`, confidence` (per `common@1.confidence3`)`, latency_ms, seen_solution bool, retest_due_at, policy_version, pack_version, teacher_override jsonb, mark_id, supersedes_id, created_at` | The atomic record; every metric is a projection of this table. The columns this table used to enumerate by hand (`pending/attempted/planned/dont_know`) are now `gate_state` + `gate_reason` per `Attempt@2` |
 | `marks` | `id` (prefix `mrk_`, per `common@1.ulid`)`, attempt_id, contract jsonb (per `Mark@3`), total_band {low, modal, high}, per_ao jsonb, calibration_status` (per `Mark@3`)`, model_family, second_family, disagreement, policy_version, scheme_version, marker_instructions_version, challenge_state, visible_to_student bool` | `visible_to_student=false` below gate (§05.6) |
@@ -6192,7 +6192,7 @@ The data model has three planes: **Pack** (curriculum data, global, `org_id NULL
 
 **11-DATA-008 — Pack version change inside a live Course.** A Course pinned to `pack_version` P1 is offered P2, never moved to it silently. On acceptance: (a) syllabus nodes are remapped through `Pack@2.node_aliases` (`{from_node_id, to_node_id, relation ∈ {same, split, merged, removed}}`), which every Pack build must emit for every renumbered node; (b) `learner_state` rows follow their alias, `split` duplicates the mastery value to both children with a `provisional_split` flag, `removed` archives the row; (c) existing Marks and Receipts are **never re-marked or re-signed** — they keep their pinned `pack_version` and render with the note "Marked against 2026–28 v2"; (d) a Course whose paper structure changed between versions shows the diff before acceptance. *Acceptance:* the version-bump fixture moves a Course from P1 to P2 with two renumbered and one split node, leaves every prior Mark byte-identical, and leaves zero `learner_state` rows pointing at a node id absent from P2.
 
-**11-DATA-006 — Learner state is a projection.** `learner_state`, mastery pips, readiness rings, Progress and the parent digest are computed only from `attempts`, `cards` reviews and `marks`; no surface reads chat text to infer mastery. *Acceptance:* deleting all `turns` for a user leaves every Progress number unchanged.
+**11-DATA-006 — Learner state is a projection.** `learner_state`, mastery pips, readiness rings, Progress and the parent digest are computed only from `attempts`, `cards` reviews and `marks`; no surface reads chat text to infer mastery. *Acceptance:* deleting all `turns` for a user leaves every Progress number unchanged; a 30-Turn Ask Session (`course_id IS NULL`, §10.26) produces zero rows in `attempts`, `cards`, `learner_state`, `memories` and `marks`, and leaves every Progress and Plan number unchanged.
 
 **11-DATA-007 — Retention fields are first-class.** Every table with pupil data has `retention_until` derived from the tenant policy object; a nightly job hard-deletes expired rows and writes a count to `audit_log`. *Acceptance:* the deletion-SLA test (11.13) passes.
 
@@ -6288,13 +6288,13 @@ Both classes: no network egress (deny-all policy verified by a probe on boot), r
 
 ## 11.7 Offline, PWA and sync
 
-**11-OFF-001 — What works offline.** Cards review (due queue, two-button grading, interval hints), the Today list as last fetched, downloaded Course notes and syllabus tree with pips, the Reader for OWN/LICENSED-offline-permitted documents already opened, Receipt viewing, the Plan. Nothing that needs a model call pretends to work: Learn, Practise marking and Mark show the offline banner and queue nothing except Card reviews and draft text. *Acceptance:* airplane-mode E2E test on web (service worker + IndexedDB) and Expo (SQLite) completes 20 Card reviews and shows a correct due count after reconnect.
+**11-OFF-001 — What works offline.** Cards review (due queue, two-button grading, interval hints), the Today list as last fetched, downloaded Course notes and syllabus tree with pips, the Reader for OWN/LICENSED-offline-permitted documents already opened, Receipt viewing, the Plan. Nothing that needs a model call pretends to work: Learn, Practise marking and Mark show the offline banner and queue nothing except Card reviews and draft text. Two things are never written to an offline bundle whatever the student asks: a live machine-scored item and its parameters (05-IRT-010, because an offline copy is an exposed bank) and a mark scheme in any form. *Acceptance:* airplane-mode E2E test on web (service worker + IndexedDB) and Expo (SQLite) completes 20 Card reviews and shows a correct due count after reconnect; a bundle-content assertion finds zero rows whose `item_id` is in the live IRT bank and zero `mark_schemes` payloads.
 
 **11-OFF-002 — Sync model.** Client-generated UUIDs; an outbox of `card_review`, `draft_response`, `plan_accept` events with monotonic `client_seq`; server applies idempotently (11-API-002) and returns the authoritative FSRS state; conflicts resolve by "server FSRS state wins, client reviews are replayed in order". *Acceptance:* two devices reviewing the same deck offline then syncing produce a deterministic state equal to the ordered replay.
 
 **11-OFF-003 — Offline storage limits and privacy.** Cache ≤200 MB per Course on mobile; encrypted at rest with the OS keystore; cleared on logout and on tenant policy `retention_days` expiry; no transcripts cached for under-18 school tenants beyond the current Session. *Acceptance:* logout leaves no readable Course data in app storage (forensic check in the release checklist).
 
-**11-OFF-004 — PWA.** Installable on Chromebook/desktop; app shell cached; background sync for the outbox; offline banner is a system state (§10 screen 24), never a modal.
+**11-OFF-004 — PWA.** Installable on Chromebook/desktop; app shell cached; background sync for the outbox; offline banner is a system state (§10.24), never a modal.
 
 ## 11.8 Multi-tenancy and the consent graph
 
@@ -6320,7 +6320,7 @@ Both classes: no network egress (deny-all policy verified by a probe on boot), r
 
 ## 11.9 Authentication, age assurance and school SSO
 
-**11-AUTH-001 — Methods.** Passkeys first; magic link; Google, Microsoft, Apple sign-in; class code + school SSO. No passwords stored for new accounts; sessions are httpOnly, SameSite=Lax, 30-day sliding with device list and remote revoke in Settings.
+**11-AUTH-001 — Methods and session revocation.** Passkeys first; magic link; Google, Microsoft, Apple sign-in; class code + school SSO. No passwords stored for new accounts; sessions are httpOnly, SameSite=Lax, 30-day sliding. Every session row carries `{device_label, last_seen_at, ip_hash, created_at}` and Settings › Account (§10.19) renders the list with a per-device **Revoke** and a **Sign out everywhere**; changing the account email re-verifies by magic link and revokes every other session. Revocation is server-side — the API rejects the token, it is not merely dropped by the client. *Acceptance:* a revoked device's next authenticated request returns 401 within 60 s, its outbox flush is rejected with a `session_revoked` problem detail rather than silently discarded, and the local cache is cleared per 11-OFF-003; "Sign out everywhere" leaves exactly one live session (the one that issued the command) and writes an `audit_log` row.
 
 **11-AUTH-002 — Age assurance path.** At "Save this Course": (1) self-declared age band (never full DOB retained after assurance); (2) signal checks: school-tenant membership, SSO directory attribute, payment-holder age for family plans, and an age-estimation classifier on usage signals in the style of the labs' age prediction (PROVISIONAL: vendor or in-house, decided by the DPIA); (3) for `13_15` and `16_17` where consent is required, the guardian or school edge (11-TEN-003). Uncertain bands default to the more protective band. Store `{method, confidence, checked_at}` only. *Acceptance:* a declared 19-year-old exhibiting strong under-16 signals is moved to teen defaults and asked to verify; DPIA documents the false-positive/negative trade-off.
 
@@ -6330,7 +6330,7 @@ Both classes: no network egress (deny-all policy verified by a probe on boot), r
 
 ## 11.10 Billing, quotas and the meter
 
-**11-BILL-001 — SKUs (PROVISIONAL on [E9]; §14.6 owns the price numbers and the margin model, this row owns their entitlement mechanics).** Student Monthly $8; Student "Until exams" $59 (entitlement `expires_at = last_paper_date + 7 days`, max 10 months, computed from the Course's exam dates); Parent/Family $19/month (≤3 students); School seat $10/student/year (invoice, not card); Tutor per seat; regional tiers −40% (KZ, IN, PK, NG, EG, TR) by billing country with Stripe Tax and local PSPs. Teacher role is free forever and needs no card.
+**11-BILL-001 — SKUs (PROVISIONAL on [E9]; §14.6 owns the price numbers and the margin model, this row owns their entitlement mechanics).** Student Monthly $8; Student "Until exams" $59 (entitlement `expires_at = last_paper_date + 7 days`, max 10 months, computed from the Course's exam dates); Parent/Family $19/month (≤3 students); School seat $10/student/year, ceiling $12 (invoice, not card; the seat's margin is an open [E9] decision recorded at 14-ECON-006, not a §11 question); Tutor per seat; regional tiers −40% (KZ, IN, PK, NG, EG, TR) by billing country with Stripe Tax and local PSPs. Teacher role is free forever and needs no card.
 
 **11-BILL-002 — Entitlement service.** Entitlements are derived server-side from `subscriptions` + `grants` (school seats, trials, grace) and cached in Redis; PSP webhooks only update `subscriptions`. Feature checks call `entitled(user, capability)`; the client never decides. *Acceptance:* revoking a subscription propagates to the meter in <5 s; a replayed webhook is a no-op.
 
@@ -6485,25 +6485,31 @@ Routes use the canonical vocabulary of 10-CONV-003; there is one route table in 
 | Route (10-CONV-003) | LCP | INP | CLS | Dominant element / interaction | Notes |
 |---|---|---|---|---|---|
 | `/` Landing / First Mark | ≤2.0 s | ≤200 ms | ≤0.05 | Composer visible and focusable | No hero image; fonts `font-display: swap` with metric-matched fallback |
+| `/papers` · `/papers/:board/:subject/:series/:component` Public paper finder | ≤1.8 s | ≤200 ms | ≤0.05 | Filter chips and the results table | §10.27; server-rendered, no app shell, indexable — the tightest LCP in the product because search traffic bounces at 3 s |
 | `/home` Today | ≤2.0 s | ≤200 ms | ≤0.05 | Continue · Due · Next list | Precomputed queue (11-PERF-002) |
+| `/ask/:sessionId` Ask | ≤2.0 s | ≤200 ms | ≤0.1 total; **0 above the streaming cursor** | Send → optimistic paint <50 ms | §10.26; the Session budget without the CourseTree, so it must be faster, not equal |
 | `/c/:courseId/learn/:sessionId` Session | ≤2.5 s | ≤200 ms | ≤0.1 total; **0 above the streaming cursor** (11-RT-003) | Send → optimistic paint <50 ms | Measured with a custom `cls-above-cursor` observer that ignores shifts below the viewport line of the cursor |
 | `/c/:courseId/marks/:markId` Mark view | ≤2.5 s | ≤200 ms | ≤0.1 | Answer pane with highlights | Span highlights arrive with `ao_card` parts; reserve card heights with skeletons |
 | `/c/:courseId/cards` Cards | ≤2.0 s | ≤100 ms | ≤0.05 | Again / Got it tap → next card | Offline-first; must hold when the network is absent |
 | `/paper/:runId` Paper runner | ≤2.5 s | ≤200 ms | 0 during a timed paper | Timer tick, answer input | Any layout shift during a timed paper is a P1 bug |
 | `/t/:classId` Teacher console | ≤3.0 s | ≤200 ms | ≤0.1 | Class table | Data-heavy; virtualised rows |
+| **Default** — every other route in the manifest (`/start`, `/c/:courseId`, `/library`, `/read/:docId`, `/settings/:section`, `/receipt/:receiptId`, `/capture/:token`, `/p/:digestId`, `/admin/*`) | ≤2.5 s | ≤200 ms | ≤0.1 | Route's own primary control | Inherited, not restated per route; a route needs its own row only when it is faster or slower than this by design |
 
-*Measured in CI:* Lighthouse CI on every PR for the seven routes above against a seeded staging tenant (mobile emulation, 4× CPU throttle, "Fast 3G"), at the lab thresholds derived by 11-PERF-000; a route present in the router manifest but absent from this table fails the build. *Measured in production:* web-vitals RUM (first-party, no third-party SDK per 11-OBS-003) sampled 100% for under-18 tenants' aggregate only, joined with CrUX monthly. *Acceptance:* dashboard per route; 13-PERF-010 gate.
+*Measured in CI:* Lighthouse CI on every PR for the nine named routes above against a seeded staging tenant (mobile emulation, 4× CPU throttle, "Fast 3G"), at the lab thresholds derived by 11-PERF-000, plus a rotating sample of five default-row routes. A route in the router manifest (10-CONV-003) that is neither named here nor covered by the default row fails the build; adding a route class whose budget should differ from the default without adding its row here also fails the build. *Measured in production:* web-vitals RUM (first-party, no third-party SDK per 11-OBS-003) sampled 100% for under-18 tenants' aggregate only, joined with CrUX monthly. *Acceptance:* dashboard per route; 13-PERF-010 gate.
 
 **11-PERF-004 — Bundle size budgets per route (gzipped, initial JS + CSS, excluding lazily loaded chunks).**
 
 | Route (10-CONV-003) | JS | CSS | Lazy chunks allowed on first interaction |
 |---|---|---|---|
 | `/` Landing | ≤120 KB | ≤20 KB | none before first paint; KaTeX loads on first `math` part |
+| `/papers` Public paper finder | ≤60 KB | ≤15 KB | none — the page is server-rendered HTML plus a filter script; no app shell, no chat runtime, no auth client |
+| `/ask/:sessionId` Ask | ≤170 KB | ≤25 KB | as Session, minus the CourseTree and HelpLadder chunks |
 | `/c/:courseId/learn/:sessionId` Session | ≤180 KB | ≤25 KB | KaTeX 0.18 (≤90 KB), MathLive (≤250 KB, on maths input focus), Mermaid (on `diagram` part), Pyodide (≤10 MB, never before an explicit Practise check or offline Card maths, 11-TOOL-004), PDF viewer (on first citation open) |
 | `/c/:courseId/marks/:markId` Mark view | ≤160 KB | ≤25 KB | KaTeX, PDF viewer |
 | `/c/:courseId/cards` Cards | ≤100 KB | ≤15 KB | Pyodide for maths Cards only |
 | `/paper/:runId` Paper runner | ≤150 KB | ≤20 KB | MathLive, camera module |
 | `/t/:classId` Teacher console | ≤220 KB | ≤30 KB | Charts on the calibration tab |
+| **Default** — every other route in the manifest | ≤150 KB | ≤25 KB | route-specific, declared in the route's own entry |
 | Shared vendor (React 19 + Next runtime + Radix used) | counted inside the route numbers | — | — |
 
 *Measured in CI:* `size-limit` with per-route entries; a PR that raises any route by >5% needs a `perf-approved` label from the web owner; a PR that exceeds the budget fails. *Production:* build artefact sizes recorded per release in `release_notes` (11.16). *Acceptance:* 13-PERF-011 plus the per-route table above; `grep pyodide` in the Session initial chunk returns nothing.
@@ -6524,7 +6530,7 @@ Routes use the canonical vocabulary of 10-CONV-003; there is one route table in 
 
 ## 11.15 Cost controls
 
-Cost is controlled at four levels: the route table (§08.2, §08.10) fixes the price of one call; quotas (11-COST-001) fix how many calls a user may make; this subsection fixes the alarms, budgets, caches and downgrade rules between the two; and the monthly review changes the config. The files this subsection reads are `config/limits.yaml` (quotas), `config/pricing.yaml` (per-model prices and dated hazards), `config/cost.yaml` (alarms and kill switches, §08.10), `config/personas.yaml` (the shared volume assumptions §08.10 and §14.6 both compute from) and `config/routing.yaml`; every filename in the document resolves to the manifest in §00.5, and no second name for the same file exists. The envelope to defend: blended chat Turn ≈$0.0095, median student ≈$1.6–2.6/month, heavy student $8–13, free tier ≤$0.5–1/MAU in season (SYNTHESIS §11–12).
+Cost is controlled at four levels: the route table (§08.2, §08.10) fixes the price of one call; quotas (11-COST-001) fix how many calls a user may make; this subsection fixes the alarms, budgets, caches and downgrade rules between the two; and the monthly review changes the config. The files this subsection reads are `config/limits.yaml` (quotas), `config/pricing.yaml` (per-model prices and dated hazards), `config/cost.yaml` (alarms and kill switches, §08.10), `config/personas.yaml` (the shared volume assumptions §08.10 and §14.6 both compute from) and `config/routing.yaml`; every filename in the document resolves to the manifest in §00.5, and no second name for the same file exists. The envelope to defend, taken from the owning sections and never restated with rounder numbers: blended chat Turn ≈$0.0095 (§08.10); median paying student **$2.93**/month annualised and **$4.28** in season; p95 paying student **$14.60**/month annualised; school seat **$7.01**/pupil/year US, $7.71 EU/UK; free tier **≤$1.20/MAU** on a 60-day rolling fleet mean, above which §14.6 forces a published limit change or an accepted higher envelope (§14.6, [E8]). Where 14-MET-036 still states the older SYNTHESIS §12 band ($1.6–2.6 median, $8–13 heavy, free ≤$1.00 in season), §14.6's recomputed figures are the ones every alarm in this subsection is set from; re-basing that guard-rail row is §14's to do.
 
 **11-COST-001 — Quotas per plan.** This table is the **only** place a quota number is written. The machine copy is `config/limits.yaml` (versioned; the same file 03-LIM-001 and 10-SETT-004 render from, and the file the §08.8 policy-object example is generated from); §03.3 and §08.8 render their numbers from it and state none of their own. Free-tier shape is FINAL from SYNTHESIS §12 (11-BILL-003); the individual numbers are [E8].
 
@@ -6541,13 +6547,15 @@ Cost is controlled at four levels: the route table (§08.2, §08.10) fixes the p
 | `exports` | 2/day | 5/day | 5/day | 5/day | 20/day | day | Hard |
 | `challenges` | 1 per Mark | 1 per Mark | same | same | n/a | per Mark | Hard |
 
+Ask Turns (§10.26) are metered as ordinary tutoring Turns — `cheap_turns` at Quick/Think effort, `deep_turns` at `effort=high` — and have no counter of their own; Ask creates no Attempt and therefore never consumes `levels_marks` or `points_marks`. The public paper finder (§10.27) is unmetered because it makes no model call.
+
 *Acceptance:* `GET /v1/usage` returns every counter with `{used, limit, window_resets_at, state ∈ {ok, slow, grace, capped}}`; a limit change without a `config/limits.yaml` version bump and a `/changes` entry fails CI (zero silent limit changes, 11-BILL-003); a quota number appearing in any other section's prose fails the docs lint.
 
 **11-COST-001a — Exam-week grace, stated exactly.** Grace runs from **T−14 to the last paper** of the student's Course, computed from the Course exam dates, and changes two numbers only: free `levels_marks` 3 → **6/day**, paid `levels_marks` 40 → **60** for the grace month. Nothing else changes, no other counter is lifted, and the product never says "limits are off" — the banner names the number and the date: "Exam week: 6 examiner Marks a day until {last_paper_date}" (free) / "Exam week: 60 examiner Marks this month until {last_paper_date}" (paid). *Acceptance:* the grace fixture asserts both counters, both banner strings rendered from `config/limits.yaml`, and a copy lint that fails on the string "limits are off".
 
-**11-COST-002 — Per-student spend alarms.** Compute `spend_usd` per user per day from `turns.cost_usd` + Mark costs. Alarms: (a) **>3× the rolling 7-day median** of active users in the same plan → flag `spend_outlier`, route the user's remaining cheap Turns at `effort=low`, no user-visible change; (b) **>6× median** → cap Opus-class routes for the rest of the day (marking continues on Sonnet-draft with the factual line), and open a review item; (c) 99th-percentile daily spend **≤6× median** is a guard-rail KPI (SYNTHESIS §12) — breach for 3 consecutive days pages the cost owner. Whitelist: teacher calibration tasks and the seeding traffic (§05) are excluded from the median. *Acceptance:* a synthetic user replaying 200 Marks in a day triggers (a) then (b) with the right route changes visible in traces; the dashboard shows the ratio daily.
+**11-COST-002 — Per-student spend alarms.** Compute `spend_usd` per user per day from `turns.cost_usd` + Mark costs. Alarms: (a) **>3× the rolling 7-day median** of active users in the same plan → flag `spend_outlier`, route the user's remaining cheap Turns at `effort=low`, no user-visible change; (b) **>6× median** → cap Opus-class routes for the rest of the day (marking continues on Sonnet-draft with the factual line), and open a review item; (c) 99th-percentile daily spend **≤6× median** is the `p99_to_median_ratio` guard-rail (14-MET-036, 14-ECON-002) — breach for 3 consecutive days pages the cost owner. Whitelist: teacher calibration tasks and the seeding traffic (§05) are excluded from the median. *Acceptance:* a synthetic user replaying 200 Marks in a day triggers (a) then (b) with the right route changes visible in traces; the dashboard shows the ratio daily.
 
-**11-COST-003 — Tenant budgets are a runaway guard, not a margin control.** Every school and tutor tenant has `policy.budget = {monthly_usd_cap, alert_at_pct: [50, 80, 100], on_cap ∈ {slow_down, notify_only}}`, `on_cap=slow_down`. Defaults are computed, not chosen: **1.4× the plan's modelled COGS** from the §08.10 unit-cost table × `config/personas.yaml` volumes, rounded up. At launch that is `seats × $0.75/month` for school and tutor tenants (= $9/seat/year against the $6.58/pupil/year modelled cost in §08.10, and inside the $10 seat price, §14.6) and `students × $9/month` for Family (1.4× the $6.55/month p95 paying student in §14.6, so a legitimately heavy student is never degraded while a runaway is caught). The per-user economics live in 11-COST-002, not here. [E8][E9] Consumer individuals have no tenant cap (per-user alarms apply). At `alert_at_pct` the tenant admin gets an email with the top routes; at 100% with `slow_down`, Opus-class routes degrade to the next rung of §08.7 for that tenant until month end — never a lockout, never during a timed paper already started. *Acceptance:* tenant cost roll-up by day and by class visible in the Admin console; the cap test drives a staging tenant past 100% and asserts the downgrade applies within 5 minutes and the meter shows `state=slow`; a budget default that is not `1.4 × (§08.10 unit costs × config/personas.yaml)` fails the config lint.
+**11-COST-003 — Tenant budgets are a runaway guard, not a margin control.** Every school and tutor tenant has `policy.budget = {monthly_usd_cap, alert_at_pct: [50, 80, 100], on_cap ∈ {slow_down, notify_only}}`, `on_cap=slow_down`. Defaults are computed, not chosen, from the §08.10 unit-cost table × `config/personas.yaml` volumes; §11 owns the number and §14.6 owns the constraint it must satisfy. **School and tutor tenants: `seats × $0.60/month`.** 14-ECON-007 fixes the ceiling at `tenant_budget_usd_month ≤ modelled seat cost ÷ 12`, which at §08.10's $7.01/pupil/year (US) is $0.58 and at $7.71 (EU/UK) is $0.64; $0.60 is the recommended value inside both, and it authorises $7.20/seat/year against a $10 seat price. **Family: `students × $8/month`**, set at 1.05× the in-season modelled family student ($7.70/month, §14.6) so a legitimately heavy student in June is never degraded while a runaway is caught; it deliberately exceeds the $6.33/student/month the plan collects, because a tenant cap is a runaway guard and margin is managed per user by 11-COST-002 and 14-ECON-002, not here. [E8][E9] Consumer individuals have no tenant cap (per-user alarms apply). At `alert_at_pct` the tenant admin gets an email with the top routes; at 100% with `slow_down`, Opus-class routes degrade to the next rung of §08.7 for that tenant until month end — never a lockout, never during a timed paper already started. *Acceptance:* tenant cost roll-up by day and by class visible in the Admin console; the cap test drives a staging tenant past 100% and asserts the downgrade applies within 5 minutes and the meter shows `state=slow`; the finance lint fails a school-tenant budget above `modelled_seat_cost ÷ 12` (14-ECON-007) or a Family budget below the in-season modelled family student, naming both figures.
 
 **11-COST-004 — Cache policies (with §08.3 and 11-RAG-009).**
 
@@ -6624,7 +6632,7 @@ hazards:
 | 1 | Static | every push | `pnpm lint` (ESLint + Biome), `tsc --noEmit` across the monorepo, Prettier, secret scan (gitleaks), dependency audit (no critical CVE), licence check (no GPL in client bundles), copy lint (§09.11) on changed strings, RoPA/migration lint (11-PRIV-008) | ≤4 min |
 | 2 | Unit + contract | every push | Vitest ≥80% line coverage on `packages/domain` and `services/*`; Zod ⇄ OpenAPI contract snapshot (11-API-003); route-table and policy-object merge tests (11-API-006); RLS suite ≥200 cases against a disposable Postgres (11-DATA-003); token-count baselines (`count_tokens`) per route | ≤8 min |
 | 3 | Build + budgets | every push | Next.js and Expo builds; `size-limit` per route (11-PERF-004); Pyodide/KaTeX absent from initial chunks; Pack validation (`pnpm packs:validate` — schema, AO weights sum to 100, every command word in the board table, every `question_part` has a `mark_schemes` row or `feedback_only=true`, no `ref_only` text, provenance non-null) | ≤6 min |
-| 4 | Browser | every PR | Playwright flows: First Mark end-to-end on specimen material, Save Course + consent sheet, effort gate → ladder → Just the answer → retest tag, handwriting confirm, Card review offline/online, Receipt export, teacher override, challenge-a-mark; axe-core on the 25 canonical screens (0 serious/critical); contrast check of every token pair in light and dark (§09.4); reduced-motion snapshot (no animation frames with `prefers-reduced-motion: reduce`); CLS-above-cursor assertion on 10 golden streams (11-RT-003); visual diff (Chromatic/Argos) needing approval | ≤15 min |
+| 4 | Browser | every PR | Playwright flows: First Mark end-to-end on specimen material, Save Course + consent sheet, effort gate → ladder → Just the answer → retest tag, handwriting confirm, Card review offline/online, Receipt export, teacher override, challenge-a-mark; axe-core on every canonical screen in §10 (10.1–10.27; 0 serious/critical); contrast check of every token pair in light and dark (§09.4); reduced-motion snapshot (no animation frames with `prefers-reduced-motion: reduce`); CLS-above-cursor assertion on 10 golden streams (11-RT-003); visual diff (Chromatic/Argos) needing approval | ≤15 min |
 | 5 | Eval subset | PR touching `prompts/`, `orchestrator/`, `marking/`, `retrieval/`, `ingest/`, `config/routes*` | Pedagogy subset ≥50 dialogues, leak <5%, praise <5% (§13.2); marking gate subset ≥40 gold scripts per touched paper within the §13.3 tolerances; retrieval gold Recall@8 ≥0.92; injection fixture 0 violations; cache-read assertion on golden conversations; cost per golden conversation within ±15% of the route budget | ≤30 min (11-ARCH-001) |
 | 6 | Staging deploy | merge to `main` | Migrations applied (11-CICD-005); smoke suite; synthetic TTFT/CWV started | ≤10 min |
 | 7 | Nightly on staging | 02:00 UTC | 13-GATE-002 full suites; 3× load test freshness (≤35 days); DPIA/policy tests (0 EU-tenant calls to non-EU endpoints, incognito writes no learner state); deletion-SLA test (11-PRIV-004); sandbox canary; a11y full crawl | ≤3 h |
@@ -6663,7 +6671,7 @@ Likelihood and impact are scored 1–5 (5 = near-certain / company-ending). "Ear
 
 | # | Risk | L | I | Early signal | Mitigation (controls) | Owner |
 |---|---|---|---|---|---|---|
-| 1 | **Marking accuracy below the human line on a paper that is live** → students re-learn the wrong band, trust collapses, teachers ban | 3 | 5 | Per-paper QWK drift dashboard; seeding auto-pause events; challenge rate >3% or upheld >30% (§05, §13.3) | Ship gates per paper (SYNTHESIS §8.5); bands not points; second family on 100% ≥12 marks for two series; seeding 2–5% with auto-pause and page; numbers hidden below gate; challenge-a-mark; teacher override → Tier 2 gold | Content lead + ML lead |
+| 1 | **Marking accuracy below the human line on a paper that is live** → students re-learn the wrong band, trust collapses, teachers ban | 3 | 5 | Per-paper QWK drift dashboard; seeding auto-pause events; `challenge_rate` >3% or `overturn_rate` >30% — one field name, defined once in 13-MARK-034 and never expressed as "upheld" (14-MET-033; the flow is §05.7) | Ship gates per paper (SYNTHESIS §8.5); bands not points; second family on 100% ≥12 marks for two series; seeding 2–5% with auto-pause and page; numbers hidden below gate; challenge-a-mark; teacher override → Tier 2 gold | Content lead + ML lead |
 | 2 | **Calibration data unfunded or late** [E6] → no gated papers at launch, no predicted grades | 3 | 4 | Gold-set counts per paper vs the ~300 target by M3; partner-school double-marking throughput weekly | Fund ~300 scripts × 6 papers [E6]; launch shows feedback-only on ungated papers and says so; Tier 0 ECRs first; teacher calibrator role credited | Founder + Content lead |
 | 3 | **Prompt injection via uploads or retrieved chunks** leaks the key, bypasses the gate, or triggers tools | 4 | 4 | Injection fixture pass rate in CI; `security_event` count for dropped tool calls; scrubber hit rate | 11-SEC-002 (scan, wrap, scrub, allow-list, post-lint); per-tenant vector partitions (11-DATA-004); no-network sandbox (11-TOOL-002); red-team quarterly (12.10) | Security owner |
 | 4 | **Cross-tenant data exposure** (RLS gap, partition bug, cache key collision) | 2 | 5 | RLS denial anomalies; the 10,000-query isolation suite nightly; any non-zero cross-tenant read pages | RLS on every learner table with ≥200 tests (11-DATA-003); explicit partitions in every retrieval query; cache keys include `partition_key`; pen-test M5 and annual (11-SEC-004) | Security owner |
@@ -6718,11 +6726,11 @@ Margin ships **no AI-detection feature and no originality score**, for students,
 
 Two medium signals or one high signal ⇒ `true`. *Acceptance:* on a 400-case labelled corpus (200 coursework, 200 exam practice) recall ≥0.97 on coursework, false-positive rate ≤0.10; every false positive costs one question, not a refusal, and the student's override is honoured for the artefact's lifetime.
 
-**12-INTG-004 — Draft-feedback-only mode: exactly what it does.** The tutor may (1) mark the draft against the published criteria for that qualification with per-criterion evidence quoted **from the student's own text**; (2) name gaps as questions ("Which of your two sources actually supports the claim in ¶4?"); (3) explain the underlying subject content at any Help Ladder rung; (4) critique structure at the level of a plan the student then writes; (5) check citations exist and are consistent. The tutor may not (6) emit more than **40 consecutive words** of candidate-voice prose; (7) rewrite a sentence into an improved version; (8) supply a thesis, conclusion, evaluation sentence or source summary in submittable form; (9) produce a full plan for a coursework artefact (an exam-answer plan at rung 5 is allowed only on non-submittable Items, §07.2). Rung 4 in this mode is the student's own paragraph annotated, never a model paragraph. Enforcement is in the Orchestrator lint (04-ORCH-001, check 2): a draft exceeding the 40-word candidate-voice budget on a `submittable=true` artefact is rejected and regenerated as feedback. *Acceptance:* the coursework red-team set (12.10) yields 0 submittable paragraphs across 200 adversarial attempts, including "pretend it's practice", "translate my plan into full sentences", and role-play framings.
+**12-INTG-004 — Draft-feedback-only mode: exactly what it does.** The tutor may (1) mark the draft against the published criteria for that qualification with per-criterion evidence quoted **from the student's own text**; (2) name gaps as questions ("Which of your two sources actually supports the claim in ¶4?"); (3) explain the underlying subject content at any Help Ladder rung; (4) critique structure at the level of a plan the student then writes; (5) check citations exist and are consistent. The tutor may not (6) emit more than **40 consecutive words** of candidate-voice prose; (7) rewrite a sentence into an improved version; (8) supply a thesis, conclusion, evaluation sentence or source summary in submittable form; (9) produce a full plan for a coursework artefact (an exam-answer plan at rung 5 is allowed only on non-submittable Items, §04.5). Rung 4 in this mode is the student's own paragraph annotated, never a model paragraph. Enforcement is in the Orchestrator lint (04-ORCH-001, check 2): a draft exceeding the 40-word candidate-voice budget on a `submittable=true` artefact is rejected and regenerated as feedback. *Acceptance:* the coursework red-team set (12.10) yields 0 submittable paragraphs across 200 adversarial attempts, including "pretend it's practice", "translate my plan into full sentences", and role-play framings.
 
 **12-INTG-005 — How "Just the answer" coexists with this.** The intent chip (§04.5) is scoped to gradable, tariff-bearing Items from the Pack or the generator — never to an artefact with `submittable=true`, where the chip renders disabled with the tooltip "Not for work you'll hand in." Nothing else changes: the chip is never removed, never rate-limited, never lectured about (04-INTN-002). A student under deadline pressure on coursework gets the same speed of help in a legitimate form: the criteria gap named in one Turn, and the writing left to them.
 
-**12-INTG-006 — Policy strings (catalogue keys, localised, lint-checked).**
+**12-INTG-006 — Policy strings.** These keys are entries in the one string catalogue whose rules §15.E fixes (15-STR-001…004: the key is exact, slots are typed, a locale missing a key falls back to English and logs). §15.E does not restate them and no other section carries a second copy; the rows below are their definition site.
 
 | Key | String |
 |---|---|
@@ -6740,10 +6748,10 @@ The Learning Receipt is the artefact a student hands to a teacher who asks "did 
 
 **12-RCPT-001 — Scope of a Receipt, and the rule that automatic creation is never covert.** One Receipt covers one *subject*: an artefact (a coursework draft, an essay in the Scratchpad), a Session, an assignment in a Class, or a date range within a Course. Receipts are created on explicit student action, or automatically when `submittable=true` — and automatic creation is **announced, never silent**: the artefact carries a persistent one-line notice, "Draft feedback mode — Margin is keeping a private process log of this piece. You can open, export or delete it," linking to the Receipt. Consumer accounts get a Settings toggle that turns automatic creation off (the artefact then keeps its draft-feedback restrictions and no log); school tenants with `receipt_required=true` cannot turn it off, and the notice says who required it. An automatic Receipt is private to the student until they share it. A covert process log of a minor needs a stated basis, so automatic creation has its own RoPA entry (11-PRIV-008) and its own row on `/your-data` (12-TRAN-005). A Receipt is append-only until `sealed_at`; after sealing it is immutable and any later work produces a new Receipt with `supersedes`. *Acceptance:* a fixture that switches an artefact to `submittable=true` renders the notice in the same paint as the mode change; a consumer account with the toggle off produces zero `receipts` rows; the deletion test removes an unshared automatic Receipt in one tap.
 
-**12-RCPT-002 — Payload schema (`receipt.v1.json`).**
+**12-RCPT-002 — Payload schema (`Receipt@1`).** The schema lives at `schemas/Receipt@1.json` and its `$id` is the only legal `schema_id` for a Receipt anywhere in config, prompts, telemetry or an export; the `Name@n` form is the document's one schema-naming grammar (§15.C), and `receipt.v1` is not a spelling of it.
 
 ```json
-{ "receipt_version": "1.0", "receipt_id": "rcp_01JXQ…",
+{ "schema_id": "Receipt@1", "receipt_id": "rcp_01JXQ…",
   "subject": {"type": "artefact|session|assignment|course_window",
               "ref": "art_01J…", "title": "Unit 3 essay draft",
               "course": {"board": "Cambridge International", "syllabus_code": "9609",
@@ -6785,7 +6793,7 @@ Draft text is included in the owner and PDF renderings and referenced by hash in
 
 **12-RCPT-004 — Verification.** `GET /verify/:receiptId` is public, unauthenticated, no-store, and returns three things: `valid | invalid | revoked`, the signing key id with its validity window, and the summary block plus notices — never the events unless the token in the URL grants them. `POST /verify` accepts an uploaded JSON or PDF and verifies offline-produced copies; the PDF embeds the JSON as an attachment so a printed Receipt round-trips. The payload carries `issuer: {name, verify_url}` resolved from `config/brand.yaml` at build time, and the QR on the cover encodes `{issuer.verify_url}/r/{receiptId}#{first16hex}` — never a hard-coded host, because the name is PROVISIONAL until clearance (01-NAME-001) and a signed payload outlives a domain. The verifier compares the fragment with the stored hash so a doctored PDF fails visibly, and it resolves an old Receipt through the issuer field even after a brand change. *Acceptance:* a tamper suite of 20 mutations (reordered events, edited word count, swapped band, altered hash prefix) returns `invalid` with a named reason in 20/20.
 
-**12-RCPT-005 — What a Receipt never contains.** No Turn text of the tutor or the student other than drafts the student wrote; no memory objects; no mastery, retrievability, calibration or Brier data; no predicted grade; no affect, distress, crisis or moderation events; no other user's identity (teacher, parent, classmate); no IP address, device or location; no email; no uploaded original images (referenced by hash only); no verbatim official mark-scheme or examiner-report wording (§06). *Acceptance:* a field-level allow-list test over 500 generated Receipts finds 0 out-of-list keys; the allow-list is one constant with a snapshot test shared with 10-RCPT-002.
+**12-RCPT-005 — What a Receipt never contains.** No Turn text of the tutor or the student other than drafts the student wrote; no memory objects; no mastery, retrievability, calibration or Brier data; no predicted grade; no affect, distress, crisis or moderation events; no other user's identity (teacher, parent, classmate); no IP address, device or location; no email; no uploaded original images (referenced by hash only); no verbatim official mark-scheme or examiner-report wording (§06); no live machine-scored item, stem or parameter set (05-IRT-010). *Acceptance:* a field-level allow-list test over 500 generated Receipts finds 0 out-of-list keys; the allow-list is one constant with a snapshot test shared with 10-RCPT-002.
 
 **12-RCPT-006 — Teacher and school use, and its limits.** A teacher receiving a Receipt sees process, not a verdict. The teacher view adds: a link to the underlying Marks if the student shared them, the `allowed_help_level` set for that assignment and whether it was respected, and two sentences that must appear together — **"This shows what happened in Margin. It is not evidence about work done elsewhere, and it is not a judgement about this student."** and **"Pasted text is recorded as a draft with its timestamp and hash; Margin cannot show where it came from."** The second sentence is not optional: `receipt_required` is offered to teachers as an assignment setting, and without it the setting implies a coverage the Receipt does not have (a draft written elsewhere and pasted in). Margin never issues a pass/fail integrity opinion, never ranks students by help used, and never exposes a class-wide "help leaderboard"; the console shows help depth in aggregate only (§07.9, [C5]). A school may require Receipts for coursework via `policy.receipt_required=true`, which turns on automatic private creation and shows the student a persistent, dismissible line explaining it.
 
@@ -6812,7 +6820,7 @@ A tutor that invents a mark scheme is worse than no tutor: the student practises
 | Calibration or accuracy claim about Margin | "agreement 0.82 on 312 scripts" | **Must** come from `calibration_records` for that paper (10-ADMN-005) | Say the paper is not yet calibrated |
 | Pedagogical or motivational statement | "Spacing beats cramming here." | No citation required; must not be phrased as a research finding with invented numbers | — |
 
-**12-HONS-002 — "I don't know" behaviour, with the exact strings.** The tutor says it plainly, once, and then does something useful. No apology loops, no hedged half-answers, no "as an AI".
+**12-HONS-002 — "I don't know" behaviour, with the exact strings.** The tutor says it plainly, once, and then does something useful. No apology loops, no hedged half-answers, no "as an AI". As with 12-INTG-006, these are catalogue entries governed by 15-STR-001…004 and defined here, not duplicated in §15.E.
 
 | Key | String |
 |---|---|
@@ -6944,7 +6952,7 @@ The nudge is a one-line system row above the composer — "50 minutes — a 5-mi
 
 **12-WELL-003 — Tone rules in season.** From T−21 to the last paper, the tutor's register tightens: shorter Turns (≤90 words), no new frameworks introduced unless the student asks, no "you should have started earlier", no counting of what remains undone, no probability language about outcomes ("you're on track for a B" is a predicted grade, and predicted grades never appear unprompted, §10.3). When asked "am I going to fail?", answer with the two facts that exist — days to the paper and the trailing unaided delta — plus the next 25 minutes. Never answer with a number the calibration page does not support (§12.9).
 
-**12-WELL-004 — Sleep, rest and Quiet Hours.** Quiet Hours default 22:00–07:00 local for `13_15` and are set by a guardian or the student for `16_17`; they suppress every notification, every push, and the daily digest, without exception, including in exam week. Study Hours (§12.7) shape the Plan, never the ability to ask a question. Sleep guidance is factual and one line, offered at most once per day and only in the Session end card or Sunday review: "Two of your last four sessions ran past 01:00. Sleep is the cheapest mark you can buy before Thursday." The Plan schedules two rest days per week by default (§04.15) and refuses to schedule a block starting after 23:00 local; a student may still study then — the product does not lock, it only stops asking. In exam week the Plan places no block on the morning of a paper and no new material after T−7 (§04.13). *Guard-rail (SYNTHESIS §12):* "sessions after 22:00 in exam week" is a reported guard-rail metric that must trend flat or down; it is never a target to increase.
+**12-WELL-004 — Sleep, rest and Quiet Hours.** Quiet Hours default 22:00–07:00 local for `13_15` and are set by a guardian or the student for `16_17`; they suppress every notification, every push, and the daily digest, without exception, including in exam week. Study Hours (§12.7) shape the Plan, never the ability to ask a question. Sleep guidance is factual and one line, offered at most once per day and only in the Session end card or Sunday review: "Two of your last four sessions ran past 01:00. Sleep is the cheapest mark you can buy before Thursday." The Plan schedules two rest days per week by default (§04.15) and refuses to schedule a block starting after 23:00 local; a student may still study then — the product does not lock, it only stops asking. In exam week the Plan places no block on the morning of a paper and no new material after T−7 (§04.13). *Guard-rail:* "sessions with ≥1 Attempt starting after 22:00 in exam week" must trend flat or down (14-MET-035); it is reported, never a target to increase, in either direction.
 
 **12-WELL-005 — The one sleep line and the between-papers rule.** After a paper is sat, requests to re-litigate it get the §04.9 `post_paper_spiral` response — one factual line and the next paper's Plan. This is the single highest-value wellbeing behaviour in the product because the spiral is where students burn the evenings between papers; do not weaken it to be sympathetic. The sat paper becomes markable again after the last paper of the series, or immediately if the student overrides in Settings.
 
@@ -6952,12 +6960,12 @@ The nudge is a one-line system row above the composer — "50 minutes — a 5-mi
 
 | Banned | Why |
 |---|---|
-| "Calm down", "relax", "take a deep breath", "don't panic" | Condescension; §04-WELL-003 |
+| "Calm down", "relax", "take a deep breath", "don't panic" | Condescension; 04-WELL-003 |
 | Any characterisation of the student's emotional state ("you seem anxious", "I can tell you're stressed") | Surveillance framing; the state is never announced |
 | "How are you feeling?" as a follow-up after a distress Turn | Companion behaviour; 12-TEEN-003 |
 | "You've got this", "I believe in you", "you're so close" | Unearned reassurance; person-praise lint (§04.8) |
 | "Most students in your position…", any cohort comparison | Comparison is the anxiety engine |
-| "If you don't do X you'll fail", any loss framing | §04-MOTV-004 |
+| "If you don't do X you'll fail", any loss framing | 04-MOTV-004 |
 | "I'm proud of you", "I'm here for you", "I'll always be here" | Companion behaviour |
 | Sleep, diet, medication or mental-health *advice* beyond the one factual line and signposting | Out of scope; redirect per 12-TEEN-002 |
 | "That paper was probably fine" or any speculation about a sat paper | Unknowable; §12.3 honesty rules |
@@ -7028,7 +7036,7 @@ School-safe mode is the configuration a school tenant applies to accounts inside
 
 | Field | Values | Default | Scope | Note |
 |---|---|---|---|---|
-| `modes_allowed` | subset of {Learn, Practise, Mark} | all three | class or assignment | An assignment may run Practise-only for a timed task |
+| `modes_allowed` | subset of {Learn, Practise, Mark} | all three | class or assignment | An assignment may run Practise-only for a timed task. **Ask (§10.26) is not in this set and is not lockable** — it is the "asking a question" inalienable of 12-SCH-002. Ask Turns inside a school tenant still obey `web_lookup`, `uploads_allowed`, the content taxonomy (12-TEEN-002) and `logging_level`, and still write nothing to the learner graph |
 | `help_ceiling` | max Help Ladder rung 1–5 | 5 | class or assignment | Rung 5 disabled makes "Just the answer" unavailable and says so in the chip tooltip, not by hiding it |
 | `effort_gate` | on / on+plan_required | on | class | Cannot be turned off; the gate is a product constant (§04.3) |
 | `study_hours` | weekday windows, local | none | class | Outside the window the Plan does not push; asking still works |
@@ -7115,7 +7123,7 @@ Rule: **two independent detectors, deterministic wins.** A keyword hit escalates
 | Moderation actions by category and action | Counts and per-100k rates |
 | Safety escalations | Count by region and band; count where a safeguarding contact or guardian was notified |
 | False-positive rate | From the 0.5% review sample, with confidence interval |
-| User reports | Received, upheld, median time to resolution, by reason |
+| User reports | Received, acted on, median time to resolution, by reason |
 | Incidents | S0/S1 count, median containment time, one-line public description each |
 | Government and legal requests | Count, type, outcome, with a warrant-canary line |
 | Content removals of USER uploads | Count by ground (copyright, safety, other); statements of reasons issued to uploading principals within 24 h; where the DSA applies, the count submitted to the Transparency Database (§06.10) |
@@ -7144,10 +7152,24 @@ Transparency is a build requirement, not a comms exercise: every claim in this s
 
 *Acceptance:* removing any placement fails the Article 50 screenshot set; a synthetic run of one Session, one Mark and one export finds the disclosure in all three artefacts.
 
-**12-TRAN-002 — Model provenance on every Mark.** The `provenance` object in the marking contract (SYNTHESIS §8.1) renders as a chip the user can expand. Show the vendor name plainly — hiding which model marked the work is the behaviour we criticise incumbents for.
+**12-TRAN-002 — Model provenance on every Mark.** Every Mark carries an expandable chip naming the models that produced it. Show the vendor plainly — hiding which model marked the work is the behaviour we criticise incumbents for.
+
+The chip payload is **`MarkProvenanceChip@1`, a read-only projection**, not an instance of `Mark@3.provenance`. `Mark@3` is a closed object (`additionalProperties: false`, §15.C) and the chip needs three fields that live outside `provenance`, so the renderer assembles them and the projection is validated in its own right. Every field below names its source in `Mark@3`; a chip field with no source is a build error.
+
+| Chip field | Source in `Mark@3` |
+|---|---|
+| `mark_id` | `mark_id` |
+| `paper` | `header.paper_ref` (rendered, not stored twice) |
+| `primary` | `provenance.family`, `provenance.model`, `provenance.effort` |
+| `second_marker` | `provenance.second_marker` (`family`, `model`, `status`, `per_ao_levels_match` → `agreement`) |
+| `policy_version`, `scheme_version`, `marker_instructions_version` | the same three fields of `provenance` |
+| `calibration_status` | `calibration_status` (top level, §05.6) |
+| `seeded` | `provenance.seed_script != null` |
+| `marked_at` | `provenance.marked_at` |
 
 ```json
 {
+  "schema_id": "MarkProvenanceChip@1",
   "mark_id": "mrk_01J8QK5X4WZ2N7CV3TB9ADEFGH",
   "paper": "9609/22 · Nov 2024 · Q3(b)",
   "primary": { "family": "anthropic", "model": "claude-opus-5", "effort": "high" },
@@ -7161,9 +7183,11 @@ Transparency is a build requirement, not a comms exercise: every claim in this s
 }
 ```
 
-`policy_version` is the dated semver label of 08-EVG-001 over the whole pinned manifest; the per-paper marker identity is `marker_instructions_version` beside `scheme_version`, never smuggled into `policy_version`. Chip copy: "Marked by Claude Opus 5, checked by GPT-5.6 Sol · Calibrated 0.81 agreement · 312 scripts". Below gate the chip reads "Not yet calibrated — feedback only" and no number appears (§05-GATE-004). *Acceptance:* every `mark` row renders a chip; a Mark whose `provenance` is incomplete fails to render rather than rendering silently.
+No sampling parameter appears in the chip or in `provenance`: temperature is not settable on the marking models (08-ENS-003), so a stored `temperature` field would be a fiction. Reproducibility is carried by `policy_version` + `scheme_version` + `seed_script` instead.
 
-**12-TRAN-003 — The published calibration page.** §05-GATE-008 defines the fields; this fixes publication. Serve it at `/calibration` (public, no account) and in-product at Progress › Calibration (§10.14): one row per paper, sortable, with history, regenerated nightly from `calibration_records` and `eval_runs`. Rules: (a) a paper missing from the page cannot show numbers in the product; (b) marketing, sales decks, school proposals and app-store copy may cite only numbers present on this page on the day of publication, and must cite the paper and date alongside; (c) a QWK that falls below gate updates the page in the same nightly run that pauses the paper (§05-GATE-005) — there is no delay for review; (d) fairness buckets (region, L1, handwritten, length quartile) are published, not just the headline. *Acceptance:* a copy lint over marketing assets fails on any accuracy number that does not resolve to a `(paper, date)` row on the page.
+`policy_version` is the dated semver label of 08-EVG-001 over the whole pinned manifest; the per-paper marker identity is `marker_instructions_version` beside `scheme_version`, never smuggled into `policy_version`. Chip copy: "Marked by Claude Opus 5, checked by GPT-5.6 Sol · Calibrated 0.81 agreement · 312 scripts". Below gate the chip reads "Not yet calibrated — feedback only" and no number appears (05-GATE-004). On a machine-scored paper (§05.13) the chip carries the IRT identity instead of a marker pair — "Scored from a calibrated item bank · SE 0.28 at the cut score · {n} live items" — because there is no second marker and no QWK to name (05-IRT-012/013); the chip never renders a QWK field for such a paper, and never renders an IRT field for an expert-marked one. *Acceptance:* every `mark` row renders a chip; a Mark whose `provenance` is incomplete fails to render rather than rendering silently; the JSON above and the Receipt payload of 12-RCPT-002 are both fixtures in `schemas/examples/` and are validated against `MarkProvenanceChip@1` and `Receipt@1` on every CI run, so an example that drifts from its schema is a build error, not a documentation nit.
+
+**12-TRAN-003 — The published calibration page.** 05-GATE-008 defines the fields; this fixes publication. Serve it at `/calibration` (public, no account) and in-product at Progress › Calibration (§10.14): one row per paper, sortable, with history, regenerated nightly from `calibration_records` and `eval_runs`. A machine-scored paper renders the 05-IRT-013 field set in place of the QWK fields, in the same table with the same publication rules — one page, two field sets, never two pages. Rules: (a) a paper missing from the page cannot show numbers in the product; (b) marketing, sales decks, school proposals and app-store copy may cite only numbers present on this page on the day of publication, and must cite the paper and date alongside; (c) a QWK that falls below gate updates the page in the same nightly run that pauses the paper (05-GATE-005) — there is no delay for review; (d) fairness buckets (region, L1, handwritten, answer-length tercile — terciles everywhere, 05-GATE-001) are published, not just the headline, and a bucket below its minimum n is printed as "insufficient n" rather than omitted; (e) the **independent-audit QWK** (05-GATE-010) and the in-house Tier-1 human line are published as two separate figures on the same row, never averaged into one number and never presented without their n — a self-refereed accuracy claim is the one number a school will check. *Acceptance:* a copy lint over marketing assets fails on any accuracy number that does not resolve to a `(paper, date)` row on the page.
 
 **12-TRAN-004 — Policy change log.** Publish `/changes` — one feed, machine-generated, covering: published limits (`config/limits.yaml`, 11-COST-001), prices (`config/pricing.yaml`), sub-processors (`config/subprocessors.yaml`, 11-PRIV-007), retention values (`config/retention.yaml`, 11-PRIV-004), the safety taxonomy (12-TEEN-002), digest fields (`config/digest_fields.yaml`, 12-PAR-001), crisis resources (`config/crisis_resources.json`, 12-TEEN-005), model routes per task class (`config/routing.yaml`), and the system-prompt *policy* summary (behaviour changes, not prompt text). Each entry: `{date, area, what changed, why, effective_from, affected_users, diff_link}`. Rules: a change that reduces what a user gets (a limit cut, a retention shortening that deletes sooner than announced, a field added to the digest) is announced **14 days before** it takes effect and, for school tenants, 30 days (11-PRIV-006); "zero silent limit cuts" is a company guard-rail (SYNTHESIS §12). *Acceptance:* CI diffs every file named above between releases and fails the release if a diff has no `/changes` entry with a valid `effective_from`.
 
@@ -7220,6 +7244,7 @@ Treat the evaluation system as a shipped product with its own owner, backlog and
 | 13-EVAL-005 | Production sampling is continuous, not release-time only: 1% of Learn Turns (2% in essay subjects), 2–5% seeded Marks, 2% of retrieval-backed sentences, reviewed weekly. | Weekly quality report exists for every week since launch with the sample sizes recorded. |
 | 13-EVAL-006 | AI coding agents are gated identically to humans: a merge from an agent runs the same suites, and an agent may not edit a gate threshold, a gold set or a grader prompt. | CODEOWNERS on `evals/gates/*`, `evals/gold/*`, `evals/graders/*` requires a named human reviewer. |
 | 13-EVAL-007 | Owners: the learning scientist owns §13.2 and §13.8; the content lead with contracted examiners owns §13.3; platform engineering owns §13.4, §13.6 and §13.7; the designer owns §13.5. The owner's name appears on the artefact. | Artefact `owner` field non-empty per suite. |
+| 13-EVAL-008 | **Teen and school traffic is not an eval source, and the suites are built on that basis.** The policy lattice resolves `trace_content` to `none` for every `13_15` and `16_17` principal and for school tenants that set it (08-POL-005, 11-OBS-001, 12-SCH-001), which is most of the product's real traffic. So: gold responses, replayed dialogues and regression fixtures come **only** from the consented Tier 1 pipeline (13-MARK-002) and from staff and volunteer accounts that opted in explicitly — never from production traces, and never from a "we still have the raw output for 90 days" argument (08-SCH-007's window does not create a consent basis). Where a suite needs production-shaped input, it uses the seeded gold responses of 13-MARK-030, which are already consented. One field name, `trace_content`, is used everywhere; `logging_level` is retired. | A gold-set or fixture row whose `source_trace_id` resolves to a principal with `trace_content: none` fails the gold-set manager's import check and is reported with the tenant; a grep for `logging_level` in code or config fails the build. |
 
 Why: the evidence base for this product is that unguarded models raise practice scores and lower exam scores (Bastani et al. 2025), leak the answer in the opening turn >96% of the time off the shelf, and fail multi-turn pedagogy at 77.8% by turn 30 (SafeTutors 2026). A single-turn eval would pass a product that harms students; the harness exists so no one can ship that by accident.
 
@@ -7310,7 +7335,7 @@ The Examiner Twin (§05) is calibrated like a board standardises markers: a gold
 | Rationale validity | n/a — no rationale is generated | ≥ 95% | ≥ 95% | ≥ 95% |
 | Signed error | n/a | within ±0.3 per 10 marks | within ±0.3 per 10 marks | within ±0.3 per 10 marks |
 | Run-to-run | identical option 100% | identical total ≥ 95% | identical total ≥ 95% · identical level 100% | identical total ≥ 95% · identical level 100% |
-| Length bias | — | — | no tercile lags overall QWK by > 0.05; slope not significant at p < 0.05 | same |
+| Length bias | — | — | slope of (AI − human) on word count not significant at p < 0.05; no tercile fails the 13-MARK-019 CI test (upper bound of the bootstrap 95% CI for the overall-minus-tercile gap ≤ 0.10), evaluated at n ≥ 100 per tercile | same |
 | Fairness | key agreement by bucket on the balanced sample | no gating bucket fails the CI test in 13-MARK-019 | same | same |
 | Badge | no badge: a machine-keyed paper is `gated` or absent | **provisional** drops at stretch: exact ≥ 98% | provisional drops at QWK ≥ 0.80 | provisional drops at QWK ≥ 0.78 |
 
@@ -7340,7 +7365,8 @@ Why the "both A and B" rule: on 32,534 double-marked GCSE scripts frontier model
 paper: 9609/22            # syllabus/component
 series_covered: [M/J/2025, O/N/2025, M/J/2026]
 period: 2027-04
-policy_version: mark-9609-p2@2027.03.2
+policy_version: 2027.03.2                 # 15.C.1 grammar; one dated manifest label, never per paper
+marker_instructions_version: mark-9609-p2@7   # per-paper marker identity lives here (15.C.5)
 models: {primary: claude-opus-5, second: gpt-5.6-sol, appeals: claude-fable-5.1}
 gate_set: {tier0: 24, tier1: 312, tier2: 41}   # responses, not scripts
 families: {total: 8, gated: 7, below_n50: 1, marks_share_gated: 0.93}   # 13-MARK-006/022
@@ -7645,7 +7671,7 @@ Distribution follows SYNTHESIS §12 (FINAL): CAIE consumers through the Mark-fir
 | # | Channel | Opens | Mechanism | Measured by | Owner |
 |---|---|---|---|---|---|
 | 1 | **Teacher calibrators and partner schools** | M2 (Nov 2026) — three partner schools for double-marking; M5 — 20 pilot schools (UK international, Gulf, Kazakhstan) | Teacher mode free forever; a class code creates a Class bound to a Course; teachers double-mark scripts for credit and see attempts-and-hints (§10.20); the school's Receipt and calibration artefacts are the pitch to SLT | Activation per licensed school > 60% (students with ≥ 5 Attempts in 30 days), never contracts signed; teacher NPS; overrides logged to gold per teacher | Founder (relationships), content lead (calibrator briefing) |
-| 2 | **Student communities** | M5 (Feb 2027) soft; M6 full | Free-forever past-paper *finder* (link index to official public pages, never a host, §06.2) and a command-word explainer; presence in r/alevel, r/GCSE, The Student Room, Discord study servers, WhatsApp/Telegram groups in the Gulf, Pakistan and Kazakhstan — answer questions, post nothing promotional; the shareable is a stripped Mark card (spans, band, calibration line; no name) | Landing → full Mark ≥ 55%; Mark → saved Course ≥ 35% (SYNTHESIS §5 bet 2); community-referred W4 retention | Product eng (finder), founder + one community lead from M6 |
+| 2 | **Student communities** | M5 (Feb 2027) soft; M6 full | Free-forever past-paper *finder* (§10.27; a logged-out link index to official public pages, never a host, §06.2) and a command-word explainer; presence in r/alevel, r/GCSE, The Student Room, Discord study servers, WhatsApp/Telegram groups in the Gulf, Pakistan and Kazakhstan — answer questions, post nothing promotional; the shareable is a stripped Mark card (spans, band, calibration line; no name) | Landing → full Mark ≥ 55%; Mark → saved Course ≥ 35% (SYNTHESIS §5 bet 2); community-referred W4 retention | Product eng (finder), founder + one community lead from M6 |
 | 3 | **Creators** | M6 soft-start (5–10 creators), M10–M12 full programme (30–50) | Subject micro-creators for 9609/9708/9700/9709 running "mark my essay live" with the Mark view on screen; payout only on **30-day-retained subscribers** (SYNTHESIS §12), never installs; creator content links to the calibration page for the paper shown | Retained-subscriber CAC ≤ $10; creator-sourced 30-day retention within 5 pp of organic; zero creator claims outside the approved-claims list | Community lead; legal review of every creator brief |
 | 4 | **Parents as payers** | M6 (digest v0) | Fortnightly digest from Attempts only (§10.21, §12.6); "share this with a parent" from the Readiness review; Family plan $19 | Parent-payer conversion from digest recipients; churn of family plans vs student plans | Product eng, designer |
 | 5 | **Edexcel IAL schools → UK boards** | M10–M12 | Same international schools as channel 1 with the sibling Pack; UK boards after the compiler is < 4 weeks per Pack (JUDGING 14) [founder default E3] | Pack reuse > 60%; activation per school as in channel 1 | Founder, content lead |
@@ -8341,7 +8367,7 @@ HARD RULES
   - Do not write a total, a band, a grade, a calibration statement or anything about the
     student. Do not name the model or the board's staff.
 
-OUTPUT — schema_id = mark@3 (§05.2 fields you own): per_ao[] | per_point[],
+OUTPUT — schema_id = Mark@3 (§05.2 fields you own): per_ao[] | per_point[],
   command_word_check, application_check, examiner_warnings[], next_mark_advice,
   annotations[], procedure_used. Emit per_ao objects one at a time in AO order so the
   client can paint each card as it lands.
@@ -8439,7 +8465,7 @@ Return JSON only.
 | 15-PRMT-009 | Images (handwriting) are appended last; adding or removing one invalidates only the messages cache, never blocks 1–3. | 08-CACH-007 telemetry `cache_break_reason` never equals `static_block` in production. |
 
 ## 15.B Marking rubric templates and the rationale rendering template
-Templates give the **shape** of a `mark_scheme_items` record for each question family (00-APP-002); the Pack supplies the content per paper. A template field left as a placeholder in a live Pack is a build error. All four templates validate against the `MarkScheme` schema in 15.C; wording is `own_paraphrase` unless a licence sets `licensed_verbatim` (§06).
+Templates give the **shape** of a `mark_scheme_items` record for each question family (00-APP-002); the Pack supplies the content per paper. A template field left as a placeholder in a live Pack is a build error. The four mark-scheme templates (15.B.1–15.B.4) validate against `MarkScheme@3` in 15.C; 15.B.5 is the rationale renderer and validates against nothing — it consumes a `Mark@3`. Wording is `own_paraphrase` unless a licence sets `licensed_verbatim` (§06).
 
 | ID | Requirement | Acceptance |
 |---|---|---|
@@ -9006,7 +9032,8 @@ Do this next
 | `pack_version` | `^[0-9]{4}:[0-9]{4}-[0-9]{4}@[0-9]{4}\.[0-9]{1,2}\.[0-9]+$` | `9609:2026-2028@2026.11.2` | The only stored form. `pack_version_display` ("2026–28 v3") is derived for the UI banner and is never persisted on an Attempt or a Mark. |
 | `syllabus_version` | `^[0-9]{4}:[0-9]{4}-[0-9]{4}$` | `9609:2026-2028` | The `pack_version` without its build stamp. |
 | `scheme_id` | `^ms_[A-Za-z0-9_]+@[0-9]+$` | `ms_9609_41_MJ25_Q1@3` | The `@n` is the scheme record's own version, bumped by any edit to the grid. |
-| `question_ref` (canonical question reference) | `{syllabus}/{component}/{series}/{yy}/Q{n}{part}` with `series ∈ {F/M, M/J, O/N}` and a **two-digit** year | `9609/22/M/J/25/Q3b` | A *reference*, never a primary key: it identifies a question in board notation and joins to an Item by `item_id`, which is always a ULID (06-PACK-002). |
+| `question_ref` (canonical question reference) | `{syllabus}/{component}/{series}/{yy}/Q{n}{part}` with `series ∈ {F/M, M/J, O/N}` and a **two-digit** year | `9609/22/M/J/25/Q3b` | A *reference*, never a primary key: it identifies a question in board notation and joins to an Item by `item_id`, which is always a ULID (06-PACK-002). Stored structured on `Item@2.question_ref`; `question_ref.canonical` is the derived string and is what the log tables and the §08 telemetry carry. |
+| `series` | `^(F/M\|M/J\|O/N)/[0-9]{2}$` | `M/J/25` | Two-digit year, matching 06-PACK-002's normaliser. The earlier `^[MJON]/[JN]/[0-9]{4}$` form admitted `N/J/2025` and `J/N/2025`, which are not Cambridge series, and used a four-digit year the normaliser never emits. Series and year are **one** field; never a `series: "M/J"` + `year: 2025` pair. |
 
 ### 15.C.1 `common@1`
 
@@ -9082,7 +9109,7 @@ Do this next
     "vision_status": { "enum": ["not_applicable", "provisional_teacher_confirm", "gated"] },
     "exemplars_ref": { "type": "array", "items": { "type": "string" } }, "examiner_insight_refs": { "type": "array", "items": { "type": "string" } },
     "tolerance": { "type": "integer", "minimum": 0, "maximum": 3 },
-    "source": { "type": "object", "required": ["document_id", "trust_rank", "licence_basis"], "properties": { "document_id": { "type": "string" }, "page": { "type": "integer" }, "trust_rank": { "type": "integer" }, "licence_basis": { "enum": ["own", "licensed", "user"] } } }
+    "source": { "type": "object", "required": ["document_id", "trust_rank", "licence_basis"], "properties": { "document_id": { "type": "string" }, "page": { "type": "integer" }, "trust_rank": { "type": "integer" }, "licence_basis": { "$ref": "common@1#/$defs/licence_basis" } } }
   },
   "allOf": [
     { "if": { "properties": { "scheme_type": { "const": "levels" } } }, "then": { "properties": { "levels": { "minItems": 1 }, "marking_points": { "maxItems": 0 } } } },
@@ -9106,7 +9133,7 @@ Do this next
     "item_type": { "$ref": "common@1#/$defs/item_type" },
     "text_status": { "enum": ["own", "licensed", "ref_only"] },
     "text": { "type": ["string", "null"] }, "stimulus": { "type": ["object", "null"], "properties": { "text": { "type": "string", "maxLength": 1400 }, "business_name": { "type": "string" }, "currency": { "type": "string" }, "tables": { "type": "array" } } },
-    "question_ref": { "type": ["object", "null"], "additionalProperties": false, "required": ["paper", "series", "part"], "properties": { "paper": { "type": "integer" }, "series": { "type": "string", "pattern": "^[MJON]/[JN]/[0-9]{4}$|^F/M/[0-9]{4}$" }, "variant": { "type": ["integer", "null"] }, "part": { "type": "string" } } },
+    "question_ref": { "type": ["object", "null"], "additionalProperties": false, "required": ["paper", "series", "part", "canonical"], "properties": { "paper": { "type": "integer" }, "series": { "$ref": "common@1#/$defs/series" }, "variant": { "type": ["integer", "null"] }, "part": { "type": "string" }, "canonical": { "type": "string", "pattern": "^[0-9]{4}/[0-9]{2}/(F/M|M/J|O/N)/[0-9]{2}/Q[0-9]+[a-z]*(\\([iv]+\\))?$" } } },
     "tags": { "$ref": "ItemTags@1" },
     "scheme_id": { "type": ["string", "null"] },
     "presolve": { "type": "object", "additionalProperties": false, "required": ["status"], "properties": { "status": { "enum": ["pending", "verified", "disputed", "failed"] }, "key_ref": { "type": ["string", "null"] }, "solvers": { "type": "array", "items": { "enum": ["claude-opus-5", "gpt-5.6-sol", "deepseek-v4-pro-anon"] } }, "sympy_ok": { "type": ["boolean", "null"] }, "expected_wrong_values": { "type": "array", "items": { "type": "object", "required": ["value", "misconception_id"], "properties": { "value": { "type": "string" }, "misconception_id": { "type": "string" } } } } } },
@@ -9254,17 +9281,21 @@ Two notes on `provenance`, both of which the document previously got wrong in th
   "required": ["pack_version", "board", "syllabus", "papers", "syllabus_nodes", "questions", "mark_scheme_item_ids", "examiner_insights", "thresholds", "option_thresholds", "exemplars", "links", "readiness", "content_hash", "allowed_domains", "compiled_at"],
   "properties": {
     "pack_version": { "$ref": "common@1#/$defs/version_tag" }, "content_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }, "compiled_at": { "$ref": "common@1#/$defs/ts" },
-    "board": { "type": "object", "required": ["id", "name", "country", "marking_paradigm", "level_procedure", "annotation_vocab"], "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "country": { "type": "string" }, "marking_paradigm": { "enum": ["expert-marked", "machine-scored", "mixed"] }, "level_procedure": { "enum": ["best_fit", "ladder_up", "top_down", "bullet_evidence"] }, "annotation_vocab": { "type": "array", "items": { "$ref": "common@1#/$defs/mark_glyph" } } } },
+    "board": { "type": "object", "required": ["id", "name", "country", "marking_paradigm", "level_procedure", "annotation_vocab"], "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "country": { "type": "string" }, "marking_paradigm": { "enum": ["expert_marked", "machine_scored", "mixed"] }, "level_procedure": { "enum": ["best_fit", "ladder_up", "top_down", "bullet_evidence"] }, "annotation_vocab": { "type": "array", "items": { "$ref": "common@1#/$defs/mark_glyph" } } } },
     "syllabus": { "type": "object", "required": ["code", "version_years", "level", "subject", "aos", "command_words", "grade_scale", "source_url", "public"],
       "properties": { "code": { "type": "string", "pattern": "^[0-9]{4}$" }, "version_years": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 }, "level": { "enum": ["IGCSE", "O Level", "AS", "A Level", "IB DP", "AP", "GCSE", "IAL", "national"] }, "subject": { "type": "string" },
-        "aos": { "type": "array", "minItems": 2, "items": { "type": "object", "required": ["ao", "name", "definition_verbatim", "weight_overall"], "properties": { "ao": { "$ref": "common@1#/$defs/ao" }, "name": { "type": "string" }, "definition_verbatim": { "type": "string" }, "weight_overall": { "type": "number" } } } },
+        "aos": { "type": "array", "minItems": 2, "items": { "type": "object", "additionalProperties": false, "required": ["ao", "name", "definition", "wording_status", "source_ref", "weight_overall"],
+          "properties": { "ao": { "$ref": "common@1#/$defs/ao" }, "name": { "type": "string" }, "definition": { "type": "string", "minLength": 8 },
+            "wording_status": { "enum": ["own_paraphrase", "licensed_verbatim"], "default": "own_paraphrase" }, "source_ref": { "$ref": "common@1#/$defs/source_ref" }, "weight_overall": { "type": "number" } },
+          "allOf": [ { "if": { "properties": { "wording_status": { "const": "licensed_verbatim" } } }, "then": { "properties": { "source_ref": { "properties": { "kind": { "const": "syllabus" } } } } } } ] } },
         "command_words": { "type": "array", "minItems": 8, "items": { "$ref": "CommandWord@1" } },
         "grade_scale": { "type": "array", "items": { "type": "string" } }, "pum_map": { "type": ["object", "null"], "additionalProperties": { "type": "integer" } }, "pum_verified": { "type": "boolean", "default": false }, "source_url": { "type": "string", "format": "uri" }, "public": { "type": "boolean" } } },
-    "papers": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["number", "duration_min", "marks", "ao_weights", "question_types", "allowed_materials", "minutes_per_mark", "twin_state"],
+    "papers": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["number", "duration_min", "marks", "ao_weights", "question_types", "allowed_materials", "minutes_per_mark", "markable", "twin_state"],
       "properties": { "number": { "type": "integer" }, "duration_min": { "type": "integer" }, "marks": { "type": "integer" }, "ao_weights": { "type": "object", "additionalProperties": { "type": "number" } },
         "question_types": { "type": "array", "items": { "type": "object", "required": ["section", "tariffs", "command_words", "ao_split_rule"], "properties": { "section": { "type": "string" }, "tariffs": { "type": "array", "items": { "type": "integer" } }, "command_words": { "type": "array", "items": { "type": "string" } }, "ao_split_rule": { "type": "string" } } } },
         "allowed_materials": { "type": "array", "items": { "type": "string" } }, "minutes_per_mark": { "type": "number" }, "verified_from_syllabus": { "type": "boolean" },
-        "twin_state": { "enum": ["not_yet_calibrated", "gold-seeded", "gated", "live", "paused"] } } } },
+        "markable": { "enum": ["full", "feedback_only", "not_marked"] }, "not_marked_reason": { "type": ["string", "null"], "maxLength": 200 },
+        "twin_state": { "$ref": "common@1#/$defs/twin_state" } } } },
     "syllabus_nodes": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["id", "path", "title", "objective_text", "misconceptions", "diagnostic_item_ids", "paper_numbers"],
       "properties": { "id": { "$ref": "common@1#/$defs/syllabus_point_id" }, "parent_id": { "type": ["string", "null"] }, "path": { "type": "string" }, "title": { "type": "string" }, "objective_text": { "type": "string" },
         "misconceptions": { "type": "array", "items": { "type": "object", "required": ["id", "label", "description", "er_citations", "contrast_pair_item_ids", "prevalence_prior"], "properties": { "id": { "type": "string" }, "label": { "type": "string", "maxLength": 40 }, "description": { "type": "string" }, "er_citations": { "type": "array", "items": { "type": "object", "properties": { "series": { "type": "string" }, "paraphrase": { "type": "string" } } } }, "contrast_pair_item_ids": { "type": "array", "items": { "type": "string" } }, "prerequisite_point_id": { "type": ["string", "null"] }, "prevalence_prior": { "type": "number", "minimum": 0, "maximum": 1 } } } },
@@ -9275,20 +9306,31 @@ Two notes on `provenance`, both of which the document previously got wrong in th
     "thresholds": { "type": "array", "items": { "type": "object", "required": ["paper", "series", "grade", "min_raw", "source_url"], "properties": { "paper": { "type": "integer" }, "series": { "type": "string" }, "grade": { "type": "string" }, "min_raw": { "type": "integer" }, "source_url": { "type": "string" } } } },
     "option_thresholds": { "type": "array", "items": { "type": "object", "required": ["series", "option", "grade", "pum"], "properties": { "series": { "type": "string" }, "option": { "type": "string" }, "grade": { "type": "string" }, "pum": { "type": "integer" } } } },
     "exemplars": { "type": "array", "items": { "type": "object", "required": ["id", "question_id", "source", "marks", "handwritten"], "properties": { "id": { "type": "string" }, "question_id": { "type": "string" }, "source": { "enum": ["ECR", "teacher_double_marked", "teacher_override_confirmed", "synthetic_human_marked"] }, "marks": { "type": "object" }, "marks_second": { "type": ["object", "null"] }, "commentary": { "type": "string" }, "handwritten": { "type": "boolean" }, "split": { "enum": ["refine", "gate", "seed"] }, "blob_ref": { "type": "string" } } } },
-    "links": { "type": "array", "items": { "type": "object", "required": ["src", "dst", "kind", "confidence", "provenance"], "properties": { "src": { "type": "string" }, "dst": { "type": "string" }, "kind": { "enum": ["assesses", "answered_by", "commented_on", "explained_in", "prerequisite_of", "equivalent_to"] }, "confidence": { "type": "number" }, "provenance": { "enum": ["compiler", "human", "OWN", "LICENSED"] } } } },
-    "documents": { "type": "array", "items": { "type": "object", "required": ["document_id", "provenance", "trust_rank", "licence_basis", "sha256"], "properties": { "document_id": { "type": "string" }, "provenance": { "$ref": "common@1#/$defs/provenance" }, "trust_rank": { "type": "integer", "minimum": 1, "maximum": 6 }, "licence_basis": { "type": "string" }, "licence_id": { "type": ["string", "null"] }, "source_url": { "type": ["string", "null"] }, "sha256": { "type": "string" }, "expiry": { "type": ["string", "null"], "format": "date" }, "killed": { "type": "boolean", "default": false } } } },
+    "links": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["src", "dst", "kind", "confidence", "derivation"], "properties": { "src": { "type": "string" }, "dst": { "type": "string" }, "kind": { "enum": ["assesses", "answered_by", "commented_on", "explained_in", "prerequisite_of", "equivalent_to"] }, "confidence": { "type": "number" }, "derivation": { "type": "string", "pattern": "^(compiler_v[0-9]+(\\+human)?|editor|licence:[A-Za-z0-9_-]+)$" } } } },
+    "documents": { "type": "array", "items": { "type": "object", "required": ["document_id", "provenance", "trust_rank", "licence_basis", "sha256"], "properties": { "document_id": { "type": "string" }, "provenance": { "$ref": "common@1#/$defs/provenance" }, "text_status": { "enum": ["own", "own_facts", "licensed", "ref_only"] }, "trust_rank": { "type": "integer", "minimum": 1, "maximum": 6 }, "licence_basis": { "$ref": "common@1#/$defs/licence_basis" }, "source_url": { "type": ["string", "null"] }, "sha256": { "type": "string" }, "expiry": { "type": ["string", "null"], "format": "date" }, "killed": { "type": "boolean", "default": false } } } },
+    "node_aliases": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["from_version", "from_id", "to_id", "relation"], "properties": { "from_version": { "$ref": "common@1#/$defs/version_tag" }, "from_id": { "$ref": "common@1#/$defs/syllabus_point_id" }, "to_id": { "type": ["string", "null"] }, "relation": { "enum": ["renumbered", "split", "merged", "withdrawn"] }, "share": { "type": ["number", "null"], "minimum": 0, "maximum": 1 } } } },
     "allowed_domains": { "type": "array", "items": { "type": "string", "format": "hostname" } },
-    "readiness": { "enum": ["draft", "ingested", "mapped", "gold-seeded", "gated", "live"] },
+    "readiness": { "$ref": "common@1#/$defs/readiness" },
     "readiness_evidence": { "type": "object", "properties": { "questions_mapped_pct": { "type": "number" }, "exemplars_per_family_min": { "type": "integer" }, "misconceptions_per_node_min": { "type": "integer" }, "diagnostics_per_node_min": { "type": "integer" }, "papers_gated": { "type": "array", "items": { "type": "integer" } } } },
     "extensions": { "type": "object" }
   },
   "allOf": [
-    { "if": { "properties": { "readiness": { "enum": ["mapped", "gold-seeded", "gated", "live"] } } }, "then": { "properties": { "readiness_evidence": { "properties": { "questions_mapped_pct": { "minimum": 95 } } } } } },
-    { "if": { "properties": { "readiness": { "enum": ["gold-seeded", "gated", "live"] } } }, "then": { "properties": { "readiness_evidence": { "properties": { "exemplars_per_family_min": { "minimum": 3 }, "misconceptions_per_node_min": { "minimum": 3 }, "diagnostics_per_node_min": { "minimum": 2 } } } } } }
+    { "if": { "properties": { "readiness": { "enum": ["mapped", "gold_seeded", "gated", "live"] } } }, "then": { "properties": { "readiness_evidence": { "properties": { "questions_mapped_pct": { "minimum": 95 } } } } } },
+    { "if": { "properties": { "readiness": { "enum": ["gold_seeded", "gated", "live"] } } }, "then": { "properties": { "readiness_evidence": { "properties": { "exemplars_per_family_min": { "minimum": 3 }, "misconceptions_per_node_min": { "minimum": 3 }, "diagnostics_per_node_min": { "minimum": 2 } } } } } }
   ] }
 ```
 
 `CommandWord@1` and `ItemTags@1` are defined in 15.D. Readiness is computed from `readiness_evidence` by the compiler (§06.4), never set by hand; a Pack whose `readiness` claims a state its evidence does not support fails validation.
+
+| ID | Requirement | Acceptance |
+|---|---|---|
+| 15-SCHM-006 | **Enum literals are snake_case, everywhere, with no hyphens.** `gold_seeded` (not `gold-seeded`), `expert_marked`, `machine_scored`. Snake_case is what the DDL in §11.2, the compiler and 06-PACK-007 already emit; the hyphen forms were a display spelling that leaked into a wire format. Display strings render from the §15.E catalogue, never from the enum value. | Repo lint rejects a hyphen inside any enum literal in `schemas/**` and any `∈ {…}` list in this document; a Pack persisted with `gold-seeded` fails validation on read. |
+| 15-SCHM-007 | `papers[].twin_state` carries **`provisional`** as a first-class value. §06.3 writes it, 05-MARK-010 renders it and the whole product surfaces it; a paper at floor A without a measured human line is `provisional`, which is neither `gold_seeded` nor `gated`. | State-machine test covering all six values; a `calibration_status.state = provisional` Mark whose paper's `twin_state` is not `provisional` fails the consistency check. |
+| 15-SCHM-008 | **`licence_basis` is an object, not a bare string, and `quotation` is one of its bases.** Short attributed extracts — the 18 command-word definitions per Pack and every ≤40-word extract under 06.2's extract rule — record `{basis: "quotation", quotation: {exception, jurisdiction, reviewed_by, reviewed_at}}`. Recording them as `own` was false, and it made 06-TAKE-021's per-document report unanswerable for exactly the content most likely to be complained about. `own` now means only text we wrote or facts we hold. | Every row in `extract_log` joins to a document whose `licence_basis.basis ∈ {licensed, quotation, public_with_permission}`; a `quotation` row with no `reviewed_by` fails the compile. |
+| 15-SCHM-009 | `links[].derivation` replaces the former `links[].provenance`, whose four values (`compiler`/`human`/`OWN`/`LICENSED`) mixed a build method with a rights class and gave the three-member `provenance` enum a fourth vocabulary (06-PROV-001). Rights stay on `documents[].provenance`; how a link was made is `derivation`. | Schema diff job flags any surviving `links[].provenance`; 06-PACK-006's compiler test asserts a `compiler_v<n>` or `compiler_v<n>+human` value on every generated link. |
+| 15-SCHM-010 | `syllabus.aos[].definition` defaults to `own_paraphrase`. 06-PACK-004 says command words are the only verbatim board text in a Pack; requiring a verbatim AO definition would have forced a second verbatim site the extract log does not cover. Under a licence the same field may hold board wording with `wording_status: licensed_verbatim`, and the 8-gram overlap check that guards `credit_text` applies to it unchanged. | A Pack with `wording_status: own_paraphrase` and an 8-gram overlap against the syllabus PDF above threshold fails `mapped`. |
+| 15-SCHM-011 | **A syllabus revision is a mapping, not a silent renumber.** `Pack@2.node_aliases[]` records every `renumbered / split / merged / withdrawn` node from the previous `pack_version`. A Course pins its `pack_version` at creation (14-PACK-012) and is never migrated in place; historical Attempts and Marks join through the aliases, so Progress and the Learner Graph read across a version boundary without re-marking anything. Re-marking an old Attempt under a new Pack is prohibited — the Mark records the version it was made under, and a mark that changes because the syllabus was renumbered is not a mark. | Replay test: an Attempt from `9609:2023-2025` renders its original Mark byte-identically after `9609:2026-2028` goes live, and its syllabus point resolves through `node_aliases` on Progress; a `split` alias with no `share` fails the compile. |
+| 15-SCHM-012 | **`papers[].markable` is required, so "what we don't mark" is a stored fact rather than a support answer.** `full` (the marker produces a number when the paper is gated) · `feedback_only` (spans and feedback, never a number — practical schemes until their family gold set passes, 05-SCHM-010) · `not_marked` with a `not_marked_reason` rendered verbatim to the student and the teacher. 9702 P3, 9701 P3 and every practical-performance component are `not_marked`: "This paper is assessed at the bench; we can rehearse the planning and analysis paper (P5) instead." | Course setup and the calibration page both render the `not_marked` and `feedback_only` papers with their reasons; a paper with `markable: not_marked` and no reason fails the compile; a Mark emitted for a `not_marked` paper is a P1 incident. |
 
 ## 15.D Question-tagging schema and the Cambridge command-word → AO table
 
@@ -9302,7 +9344,7 @@ Two schemas complete the set in 15.C: `ItemTags@1` (referenced from `Item@2.tags
 | 15-TAG-004 | `tags.difficulty_prior` ∈ [0,1] is a facility proxy (expected proportion of marks earned), seeded from threshold history, replaced by `Item.stats.p_correct` at `stats.n ≥ 30`. It drives sequencing (§04) and mark-yield (§07), never the marker. | `difficulty_prior` appears in no marking prompt (prompt-diff check). |
 | 15-TAG-005 | `tags.misconception_targets[]` cite ids from the Pack's `syllabus_nodes[].misconceptions[]`; an id absent from the Pack version pinned on the Item is a build error. A generated Item with a distractor and no misconception target fails the generator gate. | Referential check at Pack compile; generator eval asserts ≥1 target per distractor. |
 | 15-TAG-006 | `tags.source` records provenance of the *question*, distinct from `Item.provenance`: past-paper refs, generator refs, or `{upload_id, transient: true}` for bring-your-own-paper. A user-upload source is never written to the global retrieval index (§06). | Ledger test: 0 upload-sourced tags in the shared index. |
-| 15-TAG-007 | `tags.diagram_required = true` forces `Item.diagram_required` and the scheme's `vision_status`; while `vision_status = provisional_teacher_confirm` the Mark shows a band and the provisional banner and never a number (§05, 15-STR-016). | Fixture: a diagram Item below the 300-item diagram gold set returns `visibility.show_number = false`. |
+| 15-TAG-007 | `tags.diagram_required = true` forces `Item.diagram_required` and the scheme's `vision_status`; while `vision_status = provisional_teacher_confirm` the Mark shows a band and the provisional banner and never a number (§05; the banner string is §15.E · `mark.header.diagram`). | Fixture: a diagram Item below the 300-item diagram gold set returns `visibility.show_number = false`. |
 | 15-TAG-008 | Tagging is model-assisted then human-verified: the compiler proposes, a content editor accepts, `verified_by` records the human. A Pack reaches `mapped` only at ≥95% verified across 3 series (§14.3). | Mapping-review dashboard count. |
 | 15-TAG-009 | Tags are versioned with the Pack, never edited in place; a retag increments `tags_version` and leaves prior Attempts joined to the tags they were marked under. | Attempt replay reproduces the historical Mark. |
 
@@ -9332,7 +9374,7 @@ Two schemas complete the set in 15.C: `ItemTags@1` (referenced from `Item@2.tags
     "context_required": { "type": "boolean", "default": false },
     "source": { "type": "object", "required": ["kind"], "additionalProperties": false,
       "properties": { "kind": { "enum": ["past_paper", "specimen", "generated", "user_upload", "teacher_authored"] },
-        "paper_id": { "type": ["string", "null"] }, "series": { "type": ["string", "null"], "pattern": "^[MJON]/[JN]/[0-9]{4}$|^F/M/[0-9]{4}$" },
+        "paper_id": { "type": ["string", "null"] }, "series": { "anyOf": [{ "$ref": "common@1#/$defs/series" }, { "type": "null" }] },
         "variant": { "type": ["integer", "null"] }, "part": { "type": ["string", "null"] }, "text_status": { "enum": ["own", "licensed", "ref_only"] },
         "seed_family": { "type": ["string", "null"] }, "generator_model": { "type": ["string", "null"] }, "teacher_review": { "enum": ["pending", "accepted", "rejected", null] },
         "upload_id": { "type": ["string", "null"] }, "transient": { "type": "boolean", "default": false } } },
@@ -9390,11 +9432,17 @@ Two schemas complete the set in 15.C: `ItemTags@1` (referenced from `Item@2.tags
 | Recommend | Advise a course of action with reasons | AO4 | 12–20 | One recommendation, conditions for success, and why the alternative was rejected | `ASSERTION_NO_LINK` |
 | Advise | Give a reasoned course of action to a named party | AO4 | 12–20 | Advice addressed to the named stakeholder; advice to the wrong party caps AO2 | `WRONG_STAKEHOLDER` |
 
-**15-CMD-004** For every word above, the Pack stores `coaching_line` in the voice of §01.6 — e.g. *Evaluate*: "Evaluate — a judgement is required. None found, so AO4 is capped at Level 2." (15-STR-013). Acceptance: no command word in a `mapped` Pack has a null `coaching_line`; the Mark view renders it from the Pack, never from the model.
+**15-CMD-004 The coaching line is a template with slots, never a literal.** For every word above the Pack stores `coaching_line` in the voice of §01.6, as an interpolation:
+
+`"{Command} — {requirement}. None found, so {ceiling_ao} cannot reach Level {n}."`
+
+`{ceiling_ao}` comes from that Pack's `CommandWord@1.ao_ceiling` and `{n}` from the grid's top band index; *Evaluate* on 9609 renders "Evaluate — a judgement is required. None found, so AO4 cannot reach Level 3." Two things this fixes: 9708 and 0455 Economics have three AOs and 9702 Physics has AO1–AO3, so a literal "AO4" names an AO that does not exist on those Packs; and the ceiling is a **ceiling** — the command word says which AOs are on offer, it never sets a level inside an AO that is on offer (05-MARK-005, 15.A.3). *Acceptance:* no command word in a `mapped` Pack has a null `coaching_line`; the Mark view renders it from the Pack, never from the model.
+
+**15-CMD-005 No string in the catalogue contains a literal AO number.** Every AO reference in a rendered string is a slot filled from the Pack. *Acceptance:* the Pack build fails on a `coaching_line` matching `/AO[1-6]/` outside a `{…}` slot; the §15.E lint applies the same rule to `catalogue/en.json`.
 
 ## 15.E Microcopy: 40 strings by context
 
-Forty strings the earlier sections referenced but did not write out. They extend, and never contradict, the 15 example strings in §01.6 and the 20 canonical pairs in 09.11; together the three tables are the seed of `catalogue/en.json`. Voice rules are §01.6 (01-VOICE-001); the lint that enforces them is 09-COPY-003.
+**§15.E is the string catalogue. There is exactly one.** The forty numbered rows below are the strings the earlier sections named individually; the three keyed tables after them close the sets that 09-QA-037, 10-CONV-006 and 10-SETT-002 assert but that nobody wrote out — session and stream states, an empty state per §10 screen, and a consequence line per Settings control. §01.6 owns the *voice rules* and points here for the strings; 09.11's numbered pairs and §10.24's repeats are the same strings under these keys and hold no independent wording. Where an earlier section printed a string that differs from the row here, the row here is the product string and the earlier print is corrected.
 
 | ID | Requirement | Acceptance |
 |---|---|---|
@@ -9402,6 +9450,10 @@ Forty strings the earlier sections referenced but did not write out. They extend
 | 15-STR-002 | Every "Don't" cell is a regression fixture in the lint corpus and must fail at least one rule of 09-COPY-003. A "Don't" that passes the lint is a lint bug, not an acceptable string. | `pnpm lint:copy --corpus` reports one failing rule per Don't row. |
 | 15-STR-003 | `{…}` slots are typed and filled by the caller; a rendered string with an unfilled slot, or a number without its basis (series, n, or "practice estimate"), fails the render test. | Snapshot test per key with a fixture payload. |
 | 15-STR-004 | RU/KZ catalogues are translations of these keys reviewed by a native examiner-teacher (09-COPY-006); a locale missing a key falls back to English and logs, never renders the key. | Locale-coverage report; 0 raw keys in a screenshot diff. |
+| 15-STR-005 | **Strings are cited by key, never by row number.** The citation form anywhere in this document, in code comments and in PR bodies is `§15.E · <key>` — for example `§15.E · retest.scheduled`. `15-STR-NNN` is a requirement ID and nothing else; a citation of the form `15-STR-0NN` meaning "row NN of the table" is a defect and resolves to nothing. | Docs lint: every `15-STR-NNN` citation resolves to a requirement defined in this subsection; every `§15.E · key` citation resolves to a catalogue key. |
+| 15-STR-006 | **No price literal in any in-product string.** Prices render only in Settings › Usage › Plan and on the pricing page, both from `config/pricing.yaml`. A limit notice names the limit and the plan, never the amount — the regional tiers make any single figure wrong in six markets (14-GTM-001). | 09-COPY-003 rule (k); a currency symbol or a bare numeral followed by `/mo` in `catalogue/*.json` fails the lint. |
+| 15-STR-007 | **Every number in a string is a slot filled from its owning config**, never typed into the string: quota numbers from `limits.yaml` (§03.3, 11-COST-001), upload ceilings from `limits.yaml`, retention days from `config/retention.yaml` (§11.13), dates from `series_calendar`. A hard-coded number in a catalogue value fails the lint even when it is currently correct. | Lint over `catalogue/*.json`: any integer outside a `{…}` slot, other than in a fixed idiom, is reported with its key. |
+| 15-STR-008 | **Coverage is a report, not a claim.** The build emits `catalogue/coverage.json` listing, per §10 screen, whether `empty.<screen>` exists; per control in 10.19, whether its `settings.<control>.consequence` exists; and per key cited anywhere in §00–§15, whether it resolves. A missing key is a build failure with the citing site named. | `pnpm i18n:coverage` exits non-zero on any gap; the report is attached to the release artefact. |
 
 **Composer placeholders and hand-backs.** The placeholder is the hand-back (09-COPY-004): after a Turn it names the next physical action, never "Type a message".
 
@@ -9442,10 +9494,11 @@ Forty strings the earlier sections referenced but did not write out. They extend
 
 | # | Key | Do | Don't |
 |---|---|---|---|
-| 21 | `quota.warning` | 1 of 3 levels Marks left today. Points marking and Learn are unlimited. | You're running low on credits! |
-| 22 | `quota.reached` | 3 of 3 levels Marks used. The next one is at 00:00, or now on Student ($8). Points marking and Learn continue. | Limit reached! Upgrade to keep learning. |
-| 23 | `quota.grace` | Exam week: levels Marks are 6 a day until {last_paper_date}. | Surprise! Enjoy double marks this week 🎉 |
-| 24 | `quota.marker_downgrade` | Marks 41+ this month are draft-marked; the calibrated marker returns on the 1st. Draft Marks are labelled and excluded from your calibration page. | You've used your premium marking — quality may vary. |
+| 21 | `quota.warning` | {remaining} of {daily_limit} levels Marks left today. Points marking and Learn are unlimited. | You're running low on credits! |
+| 22 | `quota.reached` | {daily_limit} of {daily_limit} levels Marks used. The next one is at 00:00, or tonight on Student. Points marking and Learn continue. | Limit reached! Upgrade to keep learning — only $8/month. |
+| 23a | `quota.grace.free` | Exam week: {grace_limit} levels Marks a day until {last_paper_date}. | Surprise! Enjoy double marks this week 🎉 |
+| 23b | `quota.grace.paid` | Exam week: no levels-Mark limit until {last_paper_date}. | Limits are off until Friday — go wild! |
+| 24 | `quota.marker_downgrade` | Marks past {monthly_limit} this month are draft-marked; the calibrated marker returns on the 1st. Draft Marks are labelled and excluded from this paper's calibration numbers. | You've used your premium marking — quality may vary. |
 
 **Offline and errors** (cause and remedy in ≤2 sentences; one apology maximum, 09-COPY-005).
 
@@ -9457,7 +9510,7 @@ Forty strings the earlier sections referenced but did not write out. They extend
 | 28 | `error.marker_timeout` | The marker timed out. Retry with Think, or copy your answer. | Something went wrong. Please try again later. |
 | 29 | `error.transcript_low_conf` | {n} words couldn't be read. Fix them, or retake the photo in better light — I won't mark an answer I can't read. | I did my best to read your handwriting! |
 | 30 | `error.no_pack` | {board} {code} isn't loaded yet. I can still teach and give feedback here; marks need the syllabus. | Sorry, I don't support that subject. |
-| 31 | `error.upload_rejected` | {filename} is {size} — the limit is 30 MB. Split it, or photograph the pages you need marked. | Upload failed! |
+| 31 | `error.upload_rejected` | {filename} is {size} — the limit is {limit}. Split it, or photograph the pages you need marked. | Upload failed! |
 | 32 | `error.provider_down` | Marking is degraded: the second marker is unavailable, so ≥12-mark Marks are paused. Learn and Practise are unaffected. Status: {status_url} | We're experiencing technical difficulties. |
 
 **Distress** (warm, brief, honest, back to the plan; therapy-speak is permitted once here and nowhere else, 09-COPY-003f).
@@ -9483,6 +9536,95 @@ Forty strings the earlier sections referenced but did not write out. They extend
 | 39 | `teacher.override.confirm` | Your mark is recorded. Ours is kept for calibration, not shown to {name} as competing. Reason (one line) helps the marker improve: | Are you sure you want to override the AI? |
 | 40 | `teacher.assignment.help_level` | Help level for this assignment: {level}. Students see the ladder up to {level}; "Just the answer" is off, and the Receipt shows every hint used. | Cheating prevention: ON |
 
+### Session, memory and stream states
+
+Nine keys the earlier sections named or implied and none wrote out. Two of them replace strings that were factually false: the incognito banner said nothing was saved when the Session is retained 30 days for abuse review (03-PAR-009), and there was no write-time memory affordance at all despite a full inspection surface in 10.19.
+
+| Key | Do | Don't |
+|---|---|---|
+| `incognito.banner` | Incognito — nothing here reaches your Learner Graph. Kept 30 days for safety review, then deleted. | Incognito — nothing from this session is saved. |
+| `incognito.save_offer` | Save this Session to your Course? Attempts will be recorded from now, not retroactively. | Want to keep this? We'll add it to your progress! |
+| `memory.written` | Remembered: {fact} | Memory updated ✅ |
+| `memory.forgotten` | Forgotten: {fact}. It won't come back from inference either. | Deleted! |
+| `stream.stopped` | Stopped. {n} words kept. | Generation cancelled. |
+| `stream.continue` | Continue from here | Regenerate response 🔄 |
+| `answer.scope_locked` | Full plan + one paragraph | Full model answers exist only for past papers, after your own marked attempt — this one is yours to write. |
+| `answer.scope_locked.tooltip` | Model essays unlock after your own marked attempt. | Sorry, I can't write your essay for you. |
+| `session.ended` | Session ended. {n} attempts, {m} on the Plan. Next block: {next}. | Great session! See you next time 👋 |
+
+`answer.scope_locked` is the **one** permitted exception in 13-PED-012, and only as a chip label with `answer.scope_locked.tooltip` behind it. Rendering either string inside a Turn body is a refusal-in-prose failure, whatever the wording (04-CORE-004). The two "Don't" cells are the prose the document itself once shipped in dialogue D3.
+
+### Empty states — one per §10 screen
+
+**15-STR-010** Every screen in §10 has an `empty.<screen>` key: one sentence naming what is missing and one action that fills it. No illustration, no exclamation, no "nothing here yet" alone. A screen whose `empty` state is asserted in its own subsection but absent from this table fails 15-STR-008's coverage report.
+
+| Key | String | Action label |
+|---|---|---|
+| `empty.landing` | Paste an answer and a past-paper question, or photograph them. | Mark my answer |
+| `empty.course_setup` | Pick the board and syllabus code from your exam entry — it is on your statement of entry. | Find my syllabus |
+| `empty.home` | No Course yet. A Course is one syllabus, one exam session, one set of papers. | Add a Course |
+| `empty.course` | Nothing attempted on {course} yet. The first Session starts with a short probe, not a lecture. | Start the probe |
+| `empty.session` | Nothing yet in this Session. Paste a question, or pick a topic from the tree. | Pick a topic |
+| `empty.practise` | No Items generated for {point} yet — the Pack is still mapping this topic. | Practise a neighbouring point |
+| `empty.mark` | No Marks yet on {course}. A Mark needs your answer and the question it answers. | Mark an answer |
+| `empty.capture` | No photo yet. One page at a time, flat, in daylight if you can. | Take a photo |
+| `empty.papers` | No past papers loaded for {paper} yet. We link to the board's own pages; we never host them. | Open the finder |
+| `empty.runner` | No timed paper in progress. A full {paper} is {duration} minutes with the real timer. | Start {paper} |
+| `empty.debrief` | No mock to debrief. Import one from a photo, or sit a timed paper here. | Import a mock |
+| `empty.cards` | No Cards due. Cards are made from your own Marks, not from a deck someone else wrote. | See tomorrow's |
+| `empty.wrong_bank` | Nothing wrong yet — or nothing marked yet. Wrong questions land here automatically. | Mark an answer |
+| `empty.progress` | Not enough unaided attempts for an estimate: {n} of {min}. Timed, unaided work is the only kind that counts. | Start a timed Item |
+| `empty.plan` | No Plan yet. Set the exam date and the Plan builds itself from the papers. | Set the exam date |
+| `empty.library` | No files on {course}. Add your notes or a textbook chapter and answers will cite the page. | Add a file |
+| `empty.scratchpad` | Nothing on the scratchpad. It holds your working, not ours. | Start writing |
+| `empty.search` | Nothing matches "{query}" in {course}. Search reads your Sessions, Marks, Cards and files. | Search all Courses |
+| `empty.settings_memory` | Margin hasn't stored anything about your learning yet. It will, and you'll see it here. | — |
+| `empty.teacher_console` | No class yet. A class code binds students to one Course and nothing else. | Create a class |
+| `empty.parent_digest` | Not enough activity for a digest yet — {name} has studied on {days} of the last 14 days. | — |
+| `empty.challenge` | No challenges on this Mark. Challenge one AO at a time and say which span you disagree with. | — |
+| `empty.receipt` | No Receipt yet. One is created when you start a coursework draft in draft-feedback mode. | — |
+| `empty.system_states` | Nothing is degraded. Route status and current limits are below. | — |
+| `empty.calibration_page` | No paper is calibrated yet. Every MVP paper is listed below with the gate it is missing. | — |
+| `empty.admin` | No Pack in the queue. A Pack enters at `draft` and is promoted by evidence, never by hand. | — |
+| `empty.ask` | Ask anything. This doesn't count toward a Course and doesn't change your Plan. | — |
+| `empty.finder` | Pick a board, then a subject. Every link goes to the board's own page. | — |
+
+### Settings consequence lines (10-SETT-002)
+
+**15-STR-011** Every control in 10.19 carries `settings.<section>.<control>.consequence`: one line, present tense, stating what changes for this student. Sections with per-row controls (Memory rows, Notification channels, Shortcut rows) carry one consequence per control *type*, not per row.
+
+| Section | Key | Consequence line |
+|---|---|---|
+| Account | `settings.account.change_email.consequence` | Both addresses are notified; you sign in with the new one from the next session. |
+| Account | `settings.account.sign_out_everywhere.consequence` | Every device signs out now. Downloaded Cards stay readable until you sign in again. |
+| Account | `settings.account.revoke_device.consequence` | That device signs out and its offline queue is discarded unsent. |
+| Appearance | `settings.appearance.theme.consequence` | Applies immediately, on this device only. |
+| Appearance | `settings.appearance.contrast.consequence` | Raises every text and border contrast; nothing moves. |
+| Appearance | `settings.appearance.reduce_motion.consequence` | Transitions become instant. Streaming and skeletons stay. |
+| Reading | `settings.reading.font.consequence` | Applies to chat, Marks, the Reader, Cards and print. Exam text keeps its own face. |
+| Reading | `settings.reading.size.consequence` | Chat and reading pages scale; buttons stay 14 px. |
+| Reading | `settings.reading.measure.consequence` | Changes line length only; the layout keeps its columns. |
+| Reading | `settings.reading.preset.consequence` | Sets font, size, spacing, measure and background in one tap. You can still change each one. |
+| Reading | `settings.reading.read_aloud_rate.consequence` | Applies to every read-aloud in the product from the next play. |
+| Language | `settings.language.ui.consequence` | Changes the interface. Exam terms and command words stay in the exam language. |
+| Language | `settings.language.explanation.consequence` | The tutor explains in {lang}; your answers, marks and exam vocabulary do not change. |
+| Language | `settings.language.decimal_comma.consequence` | Changes how numbers are shown and how your typed numbers are read. |
+| Memory | `settings.memory.forget.consequence` | Removed now, with 30 seconds to undo. Inference will not re-create it. |
+| Memory | `settings.memory.pin.consequence` | Kept at the top and never expired. |
+| Memory | `settings.memory.pause.consequence` | Nothing new is remembered. What is already here still shapes answers until you delete it. |
+| Memory | `settings.memory.incognito.consequence` | Nothing reaches your Learner Graph. The Session is kept 30 days for safety review, then deleted. |
+| Memory | `settings.memory.sensitive_exclusions.consequence` | These topics are never written to memory, in any Course. |
+| Notifications | `settings.notifications.channel.consequence` | Applies to this event type only. Nothing sends during Quiet Hours. |
+| Notifications | `settings.notifications.quiet_hours.consequence` | Nothing sends inside this window, including from your teacher. |
+| Usage | `settings.usage.plan_change.consequence` | Takes effect at the next renewal. Nothing you have already used is removed. |
+| Usage | `settings.usage.cancel.consequence` | You keep everything until {renewal_date}, then the free limits apply. Your work stays. |
+| Shortcuts | `settings.shortcuts.rebind.consequence` | Applies on this device. Conflicts are shown before you confirm. |
+| Shortcuts | `settings.shortcuts.reset.consequence` | Restores every default chord on this device. |
+| Data | `settings.data.export_all.consequence` | A download link reaches your email within 24 hours. Nothing is deleted. |
+| Data | `settings.data.delete_course.consequence` | Attempts, Marks and Cards for {course} go. Other Courses are untouched. |
+| Data | `settings.data.delete_account.consequence` | 30 days to change your mind, then everything is deleted except what we must keep by law — listed below with its period. |
+| Data | `settings.data.training.consequence` | Your work is not used to train models. The audit log shows every request that left the platform. |
+
 ## 15.F Glossary of canonical terms
 
 **15-GLOS-001** This is the canonical vocabulary (00-USE-003). Use these nouns in code identifiers, table names, UI strings, telemetry fields and docs; this is the only place a synonym may appear, and only to map it to canon. A term introduced by a PR is added here in the same PR (00-APP-005). Acceptance: a repository grep for the banned synonyms in the last column returns zero user-facing hits.
@@ -9492,9 +9634,9 @@ Forty strings the earlier sections referenced but did not write out. They extend
 | Term | Meaning | Owner |
 |---|---|---|
 | **Course** | The home object: board + syllabus code + version + level + exam session + target grade + papers. Owns the Pack version, syllabus tree, Attempts, Cards, Plan, memory, files and Sessions. Not "subject", not "class". | §02, §07 |
-| **Ask** | A conversation with no Course attached. Never counts as study, never writes to the Learner Graph. | §03 |
+| **Ask** | A conversation with no Course attached. Never counts as study; writes no Attempt, no memory, no Card and no Plan change. The screen is §10.26. | §03, §10 |
 | **Pack** | Curriculum data for one syllabus version (papers, AO weights, verbatim command words, content tree, questions, schemes, examiner insights, thresholds, exemplars, links). A new board is a new Pack, never new code. | §06 |
-| **Pack readiness** | `draft → ingested → mapped → gold-seeded → gated → live`, computed from `readiness_evidence`, never set by hand (§14.3). | §06, §14 |
+| **Pack readiness** | `draft → ingested → mapped → gold_seeded → gated → live`, computed from `readiness_evidence`, never set by hand (§14.3). Snake_case is the wire form everywhere (15-SCHM-006); the display strings render from §15.E. | §06, §14 |
 | **Item** | Any atomic retrievable or gradable unit: definition, formula, skill, evaluation point, diagram rule, or exam-style **question part** with tariff, command word, AO split and scheme. | §05, §06 |
 | **Question family** | `{code}:P{paper}:{scheme_type}:{marks}:{command_word}` — the unit of marking gates, seeded-QA auto-pause and gold-set stratification (15-TAG-002). | §05, §13 |
 | **Attempt** | The atomic record of learning; every metric, mastery update, teacher view and Receipt is a projection of Attempts. A feature that does not create or improve Attempts is not in the MVP. | §04, §07 |
@@ -9511,7 +9653,7 @@ Forty strings the earlier sections referenced but did not write out. They extend
 
 | Term | Meaning | Owner |
 |---|---|---|
-| **Examiner Twin** | The calibrated marker for one *paper* — prompt + scheme + anchors + negative exemplars + gate state (`not_yet_calibrated / gold-seeded / gated / live / paused`). One per paper, never one per product. | §05 |
+| **Examiner Twin** | The calibrated marker for one *paper* — prompt + scheme + anchors + negative exemplars + gate state (`not_yet_calibrated / gold_seeded / provisional / gated / live / paused`). One per paper, never one per product. | §05 |
 | **Effort Gate** | No solution content on a gradable Item before an attempt, a plan, or "don't know where to start" + one sentence. State lives on the Attempt, enforced by the Orchestrator, never by a refusal. | §04 |
 | **Help Ladder** | Five rungs, one rung per Turn: **1** orienting question · **2** hint at the next step · **3** partial scaffold (structure or first link) · **4** worked micro-example on a parallel Item (a paragraph, never a model essay) · **5** the solution, labelled. Entry rung by mastery × item type. | §04 |
 | **Intent chips** | **Teach me · Check my steps · Just the answer**. The third is honoured after one attempt, labelled, and followed by a near-transfer Item and a 24–72 h retest. | §04, §10 |
@@ -9524,7 +9666,8 @@ Forty strings the earlier sections referenced but did not write out. They extend
 | **Provenance classes** | `OWN` (ours or facts), `LICENSED` (under a signed licence, extract-capped), `USER` (a student's upload — transient, tenant-scoped, never in global retrieval). There is no `scraped` class in the codebase. | §06 |
 | **Calibration badge** | The per-paper trust line: "Calibrated on 9609 P2 · agreement 0.82 · 312 scripts". The marketing number equals the product number. | §05, §13 |
 | **Provisional Mark** | A Mark shown with feedback and spans but **no number** — either the paper is below gate, or the Item is diagram-dependent and awaiting teacher confirmation. | §05 |
-| **Challenge-a-mark** | The student's one-tap dispute route; re-marks with a second family and routes >1-level disagreement to a human. Target: challenges <3%, upheld <30%. | §05, §10 |
+| **Challenge-a-mark** | The student's one-tap dispute route; re-marks with a second family and routes >1-level disagreement to a human. Targets: `challenge_rate` < 3%, `overturn_rate` < 30%. | §05, §10 |
+| **Overturn rate** | `overturn_rate` = challenges in which any AO level changed ÷ challenges. **The only challenge-outcome metric.** "Upheld" is retired: §05 used it to mean the mark stood (target ≥70%) and §08 and §13 used it to mean the student won (target <30%), so an alarm built from either reading fired backwards against the other. `challenge_state.upheld` survives as the state of one Mark and is never aggregated; `upheld_rate` does not exist and a grep for it fails the build (13-MARK-034). | §05, §13 |
 | **Seeded QA** | Pre-marked scripts injected into production traffic at 2–5% per question family with board-style tolerances; a breaching family pauses within one batch. | §13 |
 | **Generosity correction** | The signed-error adjustment applied because LLMs mark more leniently than trained examiners; audited monthly per model, must stay within ±0.3/10. | §05, §13 |
 | **UMG/h** | **Unaided Mark Gain per study hour** — the north star: marks gained on unaided, calibrated, exam-format work divided by hours studied. DAU, minutes and message counts are guard-rails, never targets. | §14 |
@@ -9563,7 +9706,7 @@ Forty strings the earlier sections referenced but did not write out. They extend
 |---|---|---|---|---|
 | **E1** | Content library and rights | Library treated as USER/OWN: notes-class material plus hand-made scheme extracts; no licensed textbooks assumed | §05, §06 | *With licensed textbooks:* add `LICENSED` documents to the ledger with `licence_id` and extract caps, turn on "show me in the book" deep links to textbook pages, raise trust rank 2 above notes, and re-run retrieval evals with the new corpus (≈8 days + counsel review). *With official papers/schemes/ERs licensed:* `text_status` moves from `ref_only` to `licensed`, the Mark can quote grid lines verbatim, and 12 UI strings drop the "attributed extract" hedge (≈12 days). Nothing in the marker changes — the scheme is already structured data. |
 | **E2** | Cambridge licensing posture | Ship on OWN + USER + deep links; open Cambridge/CLA talks in month 1; do not delay launch | §06, §14 | *Licence first:* launch slips to the licence date (unbounded); build unchanged, gates unchanged, but the roadmap's March 2027 MVP date (§14.1) and the June-2027 series bet are void. *Refused / takedown:* the kill switch and 24 h takedown SLA already exist; the effect is on GTM copy and school outreach, not code. **Decide-before: 1 Nov 2026** (month-1 outreach). |
-| **E3** | Second curriculum after CAIE | Edexcel IAL (sibling Pack, >60% reuse), then UK boards, then UNT before ЕГЭ | §02, §14 | *UK boards first:* the compiler needs `level_procedure` `ladder_up` (AQA) and `top_down` (OCR) plus their annotation vocabularies — already in `Pack@2`, so ≈6 days of Pack work, but GTM shifts head-on into Save My Exams and Medly (§01.4). *ЕГЭ first:* adds RU UI to the MVP (E13), a payments and sanctions review, and a machine-scored/expert-marked hybrid engine — ≈40 days and a new legal posture. |
+| **E3** | Second curriculum after CAIE | Edexcel IAL (sibling Pack, >60% reuse), then UK boards, then UNT before ЕГЭ | §02, §14 | *UK boards first:* the compiler needs `level_procedure` `ladder_up` (AQA) and `top_down` (OCR) plus their annotation vocabularies — already in `Pack@2`, so ≈6 days of Pack work, but GTM shifts head-on into Save My Exams and Medly (§01.4). *ЕГЭ first:* adds RU UI to the MVP (E13), a payments and sanctions review, and a machine_scored/expert_marked hybrid engine — ≈40 days and a new legal posture. |
 | **E4** | Age floor at MVP | 16+ consumer; 13–15 only via school tenants under school consent; 13+ consumer at month 9 after an external audit; under-13 never | §02, §12 | *13+ consumer at launch:* the consent flow, parental-control surface, age-assurance vendor and DPIA all move onto the MVP critical path (≈20 days plus an external audit of 4–6 weeks) and app-store age ratings change. *18+ only:* removes the teen stack but forfeits the primary persona; not recommended and not costed. **Decide-before: 1 Dec 2026.** |
 | **E5** | DeepSeek policy | Anonymised second-solve and synthetic generation only; never tutoring, PII or EU/UK tenants | §08, §11 | *Tutoring in CIS markets:* requires a per-tenant `allowed_providers` entry, a separate residency statement, a school-procurement warning, and re-running the full §13 pedagogy suite against a third model family (≈10 days + procurement risk). *Ban entirely:* delete two routes; cost rises ≈4% on second-solve; no product change. |
 | **E6** | Calibration budget | ≈300 double-marked scripts × 6 papers plus 2–3 contracted examiners for Year 1 | §05, §13 | *Not funded:* no paper reaches `gated`; every Mark is a Provisional Mark; predicted grades are absent; differentiators 1 and 8 (§01.3) are withdrawn from all copy; the calibration page lists every paper as "not yet calibrated". The product still ships and still teaches — it is no longer an Examiner Twin. *Funded larger:* more papers gate sooner; no code change. **Decide-before: 1 Oct 2026** (examiner recruitment lead time). |
