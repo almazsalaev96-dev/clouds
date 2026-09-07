@@ -1,0 +1,134 @@
+/* Margin design tokens (§09).
+   Colour is OKLCH. Light is the base; dark redefines only the tokens, guarded so an
+   explicit light choice beats a dark OS. Contrast values are chosen to pass the §09.12
+   gates: body text ≥4.5:1, UI boundaries and large text ≥3:1. */
+:root {
+  /* Ground and ink — warm neutrals, biased a few degrees toward the accent so the
+     greys read as chosen rather than inherited. */
+  --paper:        oklch(99.0% 0.003 70);
+  --paper-sunk:   oklch(97.0% 0.005 70);
+  --paper-raised: oklch(100% 0 0);
+  --ink:          oklch(21% 0.012 65);
+  --ink-2:        oklch(43% 0.011 65);
+  --ink-3:        oklch(56% 0.010 65);   /* 4.6:1 on --paper: the floor for body text */
+  --line:         oklch(90% 0.006 70);   /* hairlines between rows, decorative only */
+  --line-strong:  oklch(62% 0.010 70);   /* 3.2:1 — control boundaries, focus, span underlines */
+
+  /* One accent: the examiner's pen. Spent only on marks, attention and the active state. */
+  --accent:       oklch(52% 0.170 30);
+  --accent-ink:   oklch(45% 0.165 30);
+  --accent-soft:  oklch(95.5% 0.022 30);
+  --accent-line:  oklch(62% 0.150 30);
+
+  /* Semantic — mastery and marking. Never colour alone: every state also carries a shape or label. */
+  --ok:           oklch(52% 0.115 155);
+  --ok-soft:      oklch(95% 0.030 155);
+  --warn:         oklch(52% 0.130 75);   /* 4.6:1 on paper — safe for text, not just fills */
+  --warn-soft:    oklch(96% 0.045 85);
+  --bad:          oklch(51% 0.170 25);
+  --bad-soft:     oklch(95.5% 0.030 25);
+  --info:         oklch(50% 0.110 250);
+  --info-soft:    oklch(96% 0.028 250);
+
+  /* Marking spans, drawn on the student's own text. */
+  --span-credit:  oklch(90% 0.075 155 / 0.55);
+  --span-partial: oklch(90% 0.090 85 / 0.55);
+  --span-miss:    oklch(90% 0.070 25 / 0.45);
+
+  /* Type */
+  --ui:     'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --read:   'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --mono:   'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --dyslexic: 'OpenDyslexic', 'Atkinson Hyperlegible Next', var(--ui);
+
+  --t-xs:  12px;  --t-sm: 13px;  --t-ui: 14px;  --t-md: 15px;
+  --t-lg:  17px;  --t-xl: 20px;  --t-2xl: 25px; --t-3xl: 31px;
+  --lh-tight: 1.22; --lh-ui: 1.45; --lh-read: 1.6;
+  --measure: 68ch;          /* chat */
+  --measure-read: 66ch;     /* reader and question stems */
+
+  /* Space — 4/8pt */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px; --s8: 64px;
+
+  --r-sm: 5px; --r-md: 8px; --r-lg: 12px; --r-pill: 999px;
+
+  --shadow-1: 0 1px 0 oklch(21% 0.012 65 / 0.04);
+  --shadow-2: 0 1px 0 oklch(21% 0.012 65 / 0.04), 0 10px 26px -20px oklch(21% 0.012 65 / 0.5);
+
+  /* Motion — four durations, one easing family. Nothing animates that carries meaning. */
+  --d-1: 120ms; --d-2: 150ms; --d-3: 220ms; --d-4: 320ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Shell geometry (§10.0) */
+  --rail: 48px; --nav: 280px; --side: 480px; --topbar: 52px;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper:        oklch(17.5% 0.010 65);
+    --paper-sunk:   oklch(15% 0.009 65);
+    --paper-raised: oklch(21% 0.011 65);
+    --ink:          oklch(93% 0.006 70);
+    --ink-2:        oklch(76% 0.008 70);
+    --ink-3:        oklch(63% 0.009 70);
+    --line:         oklch(28% 0.010 65);
+    --line-strong:  oklch(48% 0.012 65);
+
+    --accent:       oklch(70% 0.145 32);
+    --accent-ink:   oklch(78% 0.135 32);
+    --accent-soft:  oklch(27% 0.055 30);
+    --accent-line:  oklch(58% 0.130 30);
+
+    --ok:           oklch(72% 0.120 155);
+    --ok-soft:      oklch(26% 0.045 155);
+    --warn:         oklch(76% 0.120 80);
+    --warn-soft:    oklch(27% 0.050 80);
+    --bad:          oklch(70% 0.145 25);
+    --bad-soft:     oklch(26% 0.050 25);
+    --info:         oklch(72% 0.105 250);
+    --info-soft:    oklch(25% 0.045 250);
+
+    --span-credit:  oklch(45% 0.090 155 / 0.5);
+    --span-partial: oklch(46% 0.095 85 / 0.5);
+    --span-miss:    oklch(45% 0.085 25 / 0.45);
+
+    --shadow-1: 0 1px 0 oklch(0% 0 0 / 0.3);
+    --shadow-2: 0 1px 0 oklch(0% 0 0 / 0.3), 0 10px 26px -20px oklch(0% 0 0 / 0.9);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --paper:        oklch(17.5% 0.010 65);
+  --paper-sunk:   oklch(15% 0.009 65);
+  --paper-raised: oklch(21% 0.011 65);
+  --ink:          oklch(93% 0.006 70);
+  --ink-2:        oklch(76% 0.008 70);
+  --ink-3:        oklch(63% 0.009 70);
+  --line:         oklch(28% 0.010 65);
+  --line-strong:  oklch(48% 0.012 65);
+  --accent:       oklch(70% 0.145 32);
+  --accent-ink:   oklch(78% 0.135 32);
+  --accent-soft:  oklch(27% 0.055 30);
+  --accent-line:  oklch(58% 0.130 30);
+  --ok:           oklch(72% 0.120 155);
+  --ok-soft:      oklch(26% 0.045 155);
+  --warn:         oklch(76% 0.120 80);
+  --warn-soft:    oklch(27% 0.050 80);
+  --bad:          oklch(70% 0.145 25);
+  --bad-soft:     oklch(26% 0.050 25);
+  --info:         oklch(72% 0.105 250);
+  --info-soft:    oklch(25% 0.045 250);
+  --span-credit:  oklch(45% 0.090 155 / 0.5);
+  --span-partial: oklch(46% 0.095 85 / 0.5);
+  --span-miss:    oklch(45% 0.085 25 / 0.45);
+  --shadow-1: 0 1px 0 oklch(0% 0 0 / 0.3);
+  --shadow-2: 0 1px 0 oklch(0% 0 0 / 0.3), 0 10px 26px -20px oklch(0% 0 0 / 0.9);
+  color-scheme: dark;
+}
+
+/* Reading comfort (§09.9) — set on <html> by Settings. */
+:root[data-font='dyslexic'] { --ui: var(--dyslexic); --read: var(--dyslexic); }
+:root[data-density='roomy'] { --lh-ui: 1.6; --lh-read: 1.75; }
