@@ -4,3 +4,5 @@ dist
 *.db-journal
 .env
 .workflows
+*.db-shm
+*.db-wal

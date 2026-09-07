@@ -2462,7 +2462,40 @@
           "fixed costs $18 000 per month",
           "output last month 30 000 packs"
         ],
-        "data_series": []
+        "data_series": [
+          {
+            "label": "selling price per pack",
+            "unit": "$",
+            "values": [
+              2.5
+            ],
+            "period": "current"
+          },
+          {
+            "label": "variable cost per pack",
+            "unit": "$",
+            "values": [
+              1.6
+            ],
+            "period": "current"
+          },
+          {
+            "label": "fixed costs",
+            "unit": "$ per month",
+            "values": [
+              18000
+            ],
+            "period": "last month"
+          },
+          {
+            "label": "output",
+            "unit": "packs per month",
+            "values": [
+              30000
+            ],
+            "period": "last month"
+          }
+        ]
       },
       "marking_points": [
         {
@@ -2607,7 +2640,48 @@
           "inventory $76 000",
           "current liabilities $115 000"
         ],
-        "data_series": []
+        "data_series": [
+          {
+            "label": "revenue",
+            "unit": "$",
+            "values": [
+              960000
+            ],
+            "period": "last year"
+          },
+          {
+            "label": "cost of sales",
+            "unit": "$",
+            "values": [
+              624000
+            ],
+            "period": "last year"
+          },
+          {
+            "label": "current assets",
+            "unit": "$",
+            "values": [
+              184000
+            ],
+            "period": "year end"
+          },
+          {
+            "label": "inventory",
+            "unit": "$",
+            "values": [
+              76000
+            ],
+            "period": "year end"
+          },
+          {
+            "label": "current liabilities",
+            "unit": "$",
+            "values": [
+              115000
+            ],
+            "period": "year end"
+          }
+        ]
       },
       "marking_points": [
         {
@@ -3189,7 +3263,24 @@
           "maximum output 480 000 litres a month",
           "output last month 372 000 litres"
         ],
-        "data_series": []
+        "data_series": [
+          {
+            "label": "maximum output",
+            "unit": "litres per month",
+            "values": [
+              480000
+            ],
+            "period": "current"
+          },
+          {
+            "label": "actual output",
+            "unit": "litres per month",
+            "values": [
+              372000
+            ],
+            "period": "last month"
+          }
+        ]
       },
       "marking_points": [
         {
@@ -4239,7 +4330,20 @@
           "D 3 days, follows B",
           "E 4 days, follows C and D"
         ],
-        "data_series": []
+        "data_series": [
+          {
+            "label": "activity durations A, B, C, D, E",
+            "unit": "days",
+            "values": [
+              4,
+              5,
+              5,
+              3,
+              4
+            ],
+            "period": "project"
+          }
+        ]
       },
       "marking_points": [
         {
@@ -4373,7 +4477,26 @@
           "price rose from $400 to $440",
           "weekly sales fell from 250 to 215 units"
         ],
-        "data_series": []
+        "data_series": [
+          {
+            "label": "price",
+            "unit": "$",
+            "values": [
+              400,
+              440
+            ],
+            "period": "before and after"
+          },
+          {
+            "label": "weekly sales",
+            "unit": "units",
+            "values": [
+              250,
+              215
+            ],
+            "period": "before and after"
+          }
+        ]
       },
       "marking_points": [
         {
@@ -4968,7 +5091,32 @@
           "shareholders’ equity $1 400 000",
           "operating profit $420 000"
         ],
-        "data_series": []
+        "data_series": [
+          {
+            "label": "long-term loans",
+            "unit": "$",
+            "values": [
+              2100000
+            ],
+            "period": "year end"
+          },
+          {
+            "label": "shareholders’ equity",
+            "unit": "$",
+            "values": [
+              1400000
+            ],
+            "period": "year end"
+          },
+          {
+            "label": "operating profit",
+            "unit": "$",
+            "values": [
+              420000
+            ],
+            "period": "last year"
+          }
+        ]
       },
       "marking_points": [
         {

@@ -118,7 +118,8 @@ function normalise(text) {
     .toLowerCase()
     .replace(/[‘’]/g, "'")
     .replace(/[“”]/g, '"')
-    .replace(/[^a-z0-9%$£€.\-+/' ]+/g, ' ')
+    .replace(/[-–—]+/g, ' ')
+    .replace(/[^a-z0-9%$£€.+/' ]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -127,9 +128,9 @@ function normalise(text) {
 function terms(text) {
   const out = []
   for (const raw of normalise(text).split(' ')) {
-    const word = raw.replace(/^['.\-+/]+|['.\-+/]+$/g, '')
+    const word = raw.replace(/^['.+/]+|['.+/]+$/g, '')
     if (!word || STOP.has(word)) continue
-    if (/^[\d.$£€%\-+/]+$/.test(word)) { out.push(word.replace(/[^0-9.]/g, '')); continue }
+    if (/^[\d.$£€%+/]+$/.test(word)) { out.push(word.replace(/[^0-9.]/g, '')); continue }
     const s = stemWord(word)
     out.push(SYNONYM.get(s) || s)
   }
@@ -137,6 +138,64 @@ function terms(text) {
 }
 
 const termSet = (text) => new Set(terms(text))
+
+/* ------------------------------------------------------------------ *
+ * Reading a mark scheme's own idiom
+ * ------------------------------------------------------------------ */
+
+/**
+ * Words a scheme uses to describe *the act of crediting* rather than the thing
+ * being credited. "a relevant benefit of budgeting identified" is one idea —
+ * "benefit of budgeting" — wrapped in four words of rubric, and a matcher that
+ * demands the wrapper scores a correct answer zero.
+ */
+const RUBRIC = new Set((
+  'relevant appropriate suitable valid correct sensible reasonable acceptable clear accurate ' +
+  'named identified identify identifies stated state states given mention mentioned describe described ' +
+  'explained shown show shows made makes offered candidate answer response script credit credited ' +
+  'mark marks marked award awarded point points idea ideas reference references example examples ' +
+  'way ways further additional extra second third fourth fifth another different distinct separate ' +
+  'either both must required require needs allow allowed accept'
+).split(' ').map(stemWord))
+
+/** The point's terms with its rubric wrapper removed: what it is actually about. */
+function contentCore(text) {
+  return terms(text).filter(t => !RUBRIC.has(t))
+}
+
+/**
+ * A point that credits the n-th instance of something rather than naming new
+ * content: "a second, different benefit identified" → 2. Such a point is met by
+ * a further distinct idea, not by different words.
+ */
+const ORDINAL = { second: 2, third: 3, fourth: 4, fifth: 5, another: 2, further: 2, additional: 2, extra: 2 }
+function repeatIndex(text) {
+  for (const word of normalise(text).split(' ')) if (ORDINAL[word]) return ORDINAL[word]
+  return 0
+}
+
+/**
+ * A point that credits a *relation* — the idea applied to this case, or a
+ * consequence drawn from it — rather than a fact. Matching its wording is
+ * meaningless; what matters is whether the relation is present in the answer,
+ * so the relation's object is separated from its head.
+ */
+const RELATIONS = [
+  { kind: 'application', re: /\b(?:tied to|linked to|applied to|related to|with reference to|refers? to|specific to|in the context of|in context)\b/i },
+  { kind: 'consequence', re: /\b(?:consequence|follows? from|leads? to|results? in|so that|therefore)\b/i },
+]
+
+function relationOf(text) {
+  const src = String(text || '')
+  for (const rel of RELATIONS) {
+    const m = rel.re.exec(src)
+    if (!m) continue
+    const object = src.slice(m.index + m[0].length).trim()
+    const branches = object.split(/\s+or\s+/i).map(t => t.trim()).filter(Boolean)
+    return { kind: rel.kind, object, branches: branches.length ? branches : [object] }
+  }
+  return null
+}
 
 /** Split into sentences, keeping exact offsets so quotes stay verbatim. */
 function sentences(text) {
@@ -153,6 +212,33 @@ function sentences(text) {
     }
   }
   return out
+}
+
+/**
+ * A sentence split where a consequence begins, offsets preserved so every span
+ * stays a verbatim slice of the answer. The connective stays with the clause it
+ * introduces: that is the clause the link mark is awarded for. A split that
+ * leaves either side too thin to be a claim is not made.
+ */
+const CLAUSE_BREAK = /(?:,\s*|\s)(?=(?:so|because|since|therefore|thus|hence|consequently|which|whereas|although|meaning|allowing|enabling)\b)/gi
+
+function clausesOf(sent) {
+  const cuts = []
+  for (const m of sent.text.matchAll(CLAUSE_BREAK)) cuts.push(m.index + m[0].length)
+  if (!cuts.length) return [sent]
+  const parts = []
+  let from = 0
+  for (const cut of [...cuts, sent.text.length]) {
+    const body = sent.text.slice(from, cut)
+    const lead = body.length - body.trimStart().length
+    // The comma belongs to the join, not to either claim.
+    const text = body.trim().replace(/[,;:]+$/, '')
+    if (text) parts.push({ text, start: sent.start + from + lead, end: sent.start + from + lead + text.length })
+    from = cut
+  }
+  // Fragments are not claims: if any piece is too thin, the sentence stands whole.
+  if (parts.length < 2 || parts.some(x => terms(x.text).length < 3)) return [sent]
+  return parts
 }
 
 /**
@@ -182,16 +268,22 @@ function coverage(needle, haySet, hayNormalised, w = FLAT) {
   if (!want.length) return 0
   const phrase = normalise(needle)
   if (phrase.length > 8 && hayNormalised.includes(phrase)) return 1
+  const score = coverTerms(want, haySet, w)
+  const keyTerms = w.distinctive(needle)
+  if (keyTerms.length && keyTerms.every(t => !haySet.has(t))) return Math.min(score, 0.5)
+  return score
+}
+
+/** The same weighted proportion, for a term list that has already been prepared. */
+function coverTerms(want, haySet, w = FLAT) {
+  if (!want.length) return 0
   let hit = 0, total = 0
   for (const t of want) {
     const weight = w.weight(t)
     total += weight
     if (haySet.has(t)) hit += weight
   }
-  const score = total > 0 ? hit / total : 0
-  const keyTerms = w.distinctive(needle)
-  if (keyTerms.length && keyTerms.every(t => !haySet.has(t))) return Math.min(score, 0.5)
-  return score
+  return total > 0 ? hit / total : 0
 }
 
 /* ------------------------------------------------------------------ *
@@ -294,7 +386,29 @@ function readMaterial(req) {
     caseFacts: readList(scheme?.context?.case_facts || scheme?.context?.caseFacts).length
       ? readList(scheme?.context?.case_facts || scheme?.context?.caseFacts)
       : bulletsUnder(system, ['case facts']),
+    businessName: String(scheme?.context?.business_name || scheme?.context?.businessName || '').trim(),
+    figures: readFigures(item, scheme, system),
   }
+}
+
+/**
+ * The numbers the case gives the student: "$18", "12%", "7". Quoting one back is
+ * the plainest evidence that an answer is about *this* business and not any
+ * business, so application credit turns on it.
+ */
+function readFigures(item, scheme, system) {
+  const source = [
+    String(item?.stimulus || item?.context || ''),
+    readList(scheme?.context?.case_facts || scheme?.context?.caseFacts).join(' '),
+    bulletsUnder(system, ['case facts', 'stimulus']).join(' '),
+  ].join(' ')
+  const out = new Set()
+  for (const m of source.matchAll(/[$£€]?\d[\d,]*(?:\.\d+)?%?/g)) {
+    const raw = m[0].replace(/,/g, '')
+    if (/^\d{1,4}$/.test(raw) && Number(raw) <= 3) continue // "three" as a count is in the question already
+    out.add(raw.toLowerCase())
+  }
+  return [...out]
 }
 
 /** The bullet list under a heading, as the marking prompt writes case facts. */
@@ -611,24 +725,53 @@ function analyse(answer, material) {
   const set = termSet(answer)
   const sents = sentences(answer)
   const words = norm ? norm.split(' ').length : 0
-  // Application is credited from the case's own facts, never from echoing the
-  // question: a fact counts only when most of it, and at least two of its
-  // content terms, are actually in the student's text.
+  // Application is credited from the case's own detail, never from echoing the
+  // question: a fact counts on its distinctive terms, and a figure counts when
+  // the student quotes it back.
   const caseHits = material.caseFacts.filter(f => {
     const want = terms(f)
-    const hit = want.filter(t => set.has(t)).length
-    return want.length > 0 && hit >= Math.min(2, want.length) && hit / want.length >= 0.7
+    const key = want.filter(t => t.length >= 4)
+    const pool = key.length ? key : want
+    const hit = pool.filter(t => set.has(t)).length
+    return pool.length > 0 && hit >= Math.min(2, pool.length) && hit / pool.length >= 0.6
   }).length
+  const figureHits = (material.figures || []).filter(f => norm.includes(f)).length
+
+  // The units a marker credits: clauses that say something specific about this
+  // question. A clause that shares nothing with the stem is off-topic; one that
+  // adds nothing to the stem is a restatement. Neither earns a mark. Clauses,
+  // not sentences, because "the budget shows the overspend, so it is caught
+  // early" states a point and a consequence, and those are two different marks
+  // on two different spans — a whole-sentence quote would collide with itself.
+  const stemSet = termSet(material.stem || '')
+  const props = sents.flatMap(clausesOf).map((span, index) => {
+    const spanSet = termSet(span.text)
+    const onTopic = [...spanSet].filter(t => stemSet.has(t)).length
+    const beyond = [...spanSet].filter(t => !stemSet.has(t) && !RUBRIC.has(t)).length
+    return {
+      index,
+      text: span.text,
+      start: span.start,
+      end: span.end,
+      set: spanSet,
+      norm: normalise(span.text),
+      onTopic,
+      beyond,
+      specific: (onTopic >= 1 || stemSet.size === 0) && beyond >= 3,
+    }
+  })
+
   return {
     norm,
     set,
     sents,
+    props,
     words,
     links: Math.min(6, countAny(norm, LINK_WORDS)),
     judgement: countAny(norm, JUDGEMENT_WORDS) > 0,
     weighing: Math.min(4, countAny(norm, WEIGH_WORDS)),
     conditions: Math.min(3, countAny(norm, CONDITION_WORDS)),
-    context: caseHits,
+    context: caseHits + figureHits,
     numbers: (answer.match(/\d[\d,.]*/g) || []).length,
   }
 }
@@ -644,16 +787,38 @@ function bestQuote(phrase, view) {
 }
 
 /**
- * Points marking. Every atom of a conjunctive point must be evidenced; a point
- * with alternatives is credited on its best branch; a dependent point cannot be
+ * Points marking.
+ *
+ * A mark scheme is not written in the student's language, and matching its words
+ * is not marking. Three kinds of line appear, and each is judged differently:
+ *
+ *   content   "variance analysis identifies where performance departs from plan"
+ *             — real subject content, credited on weighted term coverage.
+ *   predicate "a relevant benefit of budgeting identified" — rubric wrapped
+ *             around a topic, credited when the answer states something specific
+ *             on that topic. Each such point claims the sentence that earned it,
+ *             so "a second, different benefit" needs a genuinely second idea.
+ *   relation  "the benefit is tied to Solara's three-country structure" — credited
+ *             on whether the relation holds, judged against the relation's object.
+ *
+ * Every atom of a conjunctive point must still be evidenced, a point with
+ * alternatives is credited on its best branch, and a dependent point cannot be
  * credited unless the point it depends on is.
  */
 function markPoints(material, view) {
   const w = weighting(material.points.map(p => p.text))
   const credited = []
+  const claimed = new Set()
   const results = []
   for (const p of material.points) {
     const branches = [p.text, ...p.alternatives].filter(Boolean)
+    const core = contentCore(p.text)
+    const relation = relationOf(p.text)
+    const repeat = repeatIndex(p.text)
+    // A predicate is a line that lost words to the rubric and has little left:
+    // there is nothing there for term coverage to match, so it must be read.
+    const predicate = !relation && terms(p.text).length > core.length && core.length <= 3
+
     let score = 0
     for (const b of branches) score = Math.max(score, coverage(b, view.set, view.norm, w))
 
@@ -666,12 +831,36 @@ function markPoints(material, view) {
     }
 
     const blockedBy = p.dependsOn && !credited.includes(p.dependsOn) ? p.dependsOn : null
-    const met = score >= CREDIT_AT && !failedAtom && !blockedBy
+    const eligible = !failedAtom && !blockedBy
+    const topical = score >= 0.4 || view.props.some(x => onPointTopic(x, core, p.alternatives, w))
+
+    // The scheme's own words, wherever the student used them.
+    let met = score >= CREDIT_AT && eligible
+    let source = null
+
+    if (!met && eligible && relation) {
+      source = relationCredit(relation, p, view, credited, w)
+      met = !!source
+    } else if (!met && eligible && predicate) {
+      // "a second benefit" needs a first one credited before it can be a second.
+      const enoughAlready = repeat < 2 || credited.length >= repeat - 1
+      if (enoughAlready) {
+        source = view.props.find(x => x.specific && !claimed.has(x.index) && onPointTopic(x, core, p.alternatives, w)) || null
+        met = !!source
+      }
+    }
+
+    // A point credited by reading rather than by wording still scored low against
+    // the scheme's phrasing; showing that number would read as a bug, so the
+    // displayed score is the threshold it actually cleared.
+    if (met && source) score = Math.max(score, CREDIT_AT)
+    if (met && source) claimed.add(source.index)
+
     const partial = !met && score >= 0.4
     if (met) credited.push(p.id)
 
-    const quote = met || partial ? bestQuote(branches[0], view) : null
-    const usable = quote && quote.score >= 0.25
+    const quote = source || (met || partial ? bestQuote(branches[0], view) : null)
+    const usable = !!quote && (!!source || quote.score >= 0.25)
     results.push({
       id: p.id,
       text: p.text,
@@ -684,24 +873,72 @@ function markPoints(material, view) {
       awarded: met ? p.marks : 0,
       score: Math.round(score * 100) / 100,
       class: met ? 'credited' : partial ? 'partial' : 'uncredited',
-      reason_code: met ? null : reasonCode({ failedAtom, blockedBy, view, partial }),
+      reason_code: met ? null : reasonCode({ failedAtom, blockedBy, view, partial, relation, topical }),
       links_counted: view.links,
       atoms: p.atoms.map(a => ({ text: a, met: coverage(a, view.set, view.norm) >= 0.5 })),
-      quote: usable ? quote.quote : null,
+      quote: usable ? quote.text ?? quote.quote : null,
       start: usable ? quote.start : null,
       end: usable ? quote.end : null,
       reason: met
-        ? `Credited: your answer carries "${keyPhrase(p.text)}".`
+        ? source
+          ? `Credited: "${trimPhrase(source.text, 62)}" is ${keyPhrase(p.text)}.`
+          : `Credited: your answer carries "${keyPhrase(p.text)}".`
         : blockedBy
           ? `Not credited: this point depends on ${blockedBy}, and ${blockedBy} is not evidenced.`
           : failedAtom
             ? `Not credited: "${trimPhrase(failedAtom)}" is missing, and this point needs every part of it.`
-            : partial
-              ? `Part-way: you touch "${keyPhrase(p.text)}" but not in the terms the scheme credits.`
-              : `Not credited: nothing in your answer states "${keyPhrase(p.text)}".`,
+            : relation && relation.kind === 'application'
+              ? `Not credited: nothing here ties the point to this case — the answer would read the same about any business.`
+              : relation
+                ? `Not credited: the answer states the point but never carries it through to a consequence.`
+                : partial
+                  ? `Part-way: you touch "${keyPhrase(p.text)}" but not in the terms the scheme credits.`
+                  : `Not credited: nothing in your answer states "${keyPhrase(p.text)}".`,
     })
   }
   return results
+}
+
+/**
+ * Is this sentence about what the point is about? Either it uses one of the
+ * point's own content terms, or it matches an exemplar the scheme accepts.
+ */
+function onPointTopic(prop, core, exemplars, w) {
+  if (core.some(t => prop.set.has(t))) return true
+  return exemplars.some(e => coverage(e, prop.set, prop.norm, w) >= 0.5)
+}
+
+/**
+ * A relation point is credited on whether the relation holds in the answer.
+ * Application asks whether a sentence reaches the relation's object — this
+ * firm's structure, its figures, its position — rather than any firm's.
+ * Consequence asks whether a credited idea is carried through a causal step to
+ * something the question did not already say. Returns the sentence that earned
+ * it, so the mark can quote the student's own words.
+ */
+function relationCredit(relation, point, view, credited, w) {
+  if (relation.kind === 'application') {
+    const object = contentCore(relation.object)
+    const branches = relation.branches.map(contentCore).filter(b => b.length)
+    for (const prop of view.props) {
+      if (!prop.specific) continue
+      const fit = Math.max(
+        coverTerms(object, prop.set, w),
+        ...branches.map(b => coverTerms(b, prop.set, w)),
+        ...point.alternatives.map(a => coverage(a, prop.set, prop.norm, w)),
+      )
+      if (fit >= 0.5) return prop
+    }
+    return null
+  }
+  // A consequence needs something to follow from.
+  if (!credited.length) return null
+  for (const prop of view.props) {
+    if (!prop.specific) continue
+    if (!countAny(prop.norm, LINK_WORDS)) continue
+    if (prop.beyond >= 3) return prop
+  }
+  return null
 }
 
 /**
@@ -709,9 +946,14 @@ function markPoints(material, view) {
  * renderer knows; anything it does not recognise it drops, so an honest null is
  * better than a guess.
  */
-function reasonCode({ failedAtom, blockedBy, view, partial }) {
+function reasonCode({ failedAtom, blockedBy, view, partial, relation, topical }) {
   if (failedAtom) return 'ATOM_NOT_MET'
   if (blockedBy) return 'NO_WORKING'
+  // Nothing in the answer is about this point at all: say that, rather than
+  // diagnosing a missing link in an argument that was never made.
+  if (topical === false) return 'OUT_OF_SCOPE'
+  if (relation && relation.kind === 'application') return 'GENERIC_NOT_CONTEXT'
+  if (relation) return view.links === 0 ? 'ASSERTION_NO_LINK' : 'SINGLE_LINK'
   if (partial && view.context === 0) return 'GENERIC_NOT_CONTEXT'
   if (view.links === 0) return 'ASSERTION_NO_LINK'
   if (view.links === 1) return 'SINGLE_LINK'
@@ -849,6 +1091,18 @@ function trimPhrase(text, limit = 70) {
 /** A short, quotable fragment of a marking point, for feedback prose. */
 const keyPhrase = (text) => trimPhrase(text, 52)
 
+const AO_RANK = ['AO1', 'AO2', 'AO3', 'AO4']
+
+/** The uncredited point worth naming: the objective losing most, higher AO on a tie. */
+function worstMissed(missed) {
+  if (!missed.length) return null
+  const deficit = new Map()
+  for (const p of missed) deficit.set(p.ao, (deficit.get(p.ao) || 0) + p.max)
+  const ao = [...deficit.entries()]
+    .sort((a, b) => b[1] - a[1] || AO_RANK.indexOf(b[0]) - AO_RANK.indexOf(a[0]))[0][0]
+  return missed.find(p => p.ao === ao) || missed[0]
+}
+
 /** The full marking judgement: points, levels, totals and prose. */
 function judge(req, material) {
   const answer = readAnswer(req)
@@ -876,14 +1130,19 @@ function judge(req, material) {
       ? perAo.map(a => `${a.ao} level ${a.level} (${a.marks}/${a.max})`).join('; ') + '.'
       : 'No grid was supplied, so this is a description rather than a mark.'
 
+  // The point to name is chosen the way the mark screen chooses the objective to
+  // headline — the biggest deficit, a tie to the higher objective — so the advice
+  // and the objective beside it are about the same thing.
+  const nextPoint = usePoints ? worstMissed(missed) : null
+
   const nextStep = usePoints
-    ? missed.length
-      ? `Next: write the line that earns ${missed[0].id} — ${keyPhrase(missed[0].text)}.`
+    ? nextPoint
+      ? `Next: write the line that earns ${nextPoint.id} — ${keyPhrase(nextPoint.text)}.`
       : 'Next: take the near-transfer version of this question unaided.'
     : nextStepForLevels(perAo, view)
 
   const gapLine = usePoints
-    ? missed.length ? `The gap is ${keyPhrase(missed[0].text)}.` : 'Nothing in the scheme is left unevidenced.'
+    ? nextPoint ? `The gap is ${keyPhrase(nextPoint.text)}.` : 'Nothing in the scheme is left unevidenced.'
     : perAo.length && perAo[0].missing.length ? `The gap is ${keyPhrase(perAo[0].missing[0])}.` : ''
   const summary = [strengths, gapLine].filter(Boolean).join(' ')
 
@@ -1019,10 +1278,40 @@ function workedStep(target, thread, material, view) {
       handback: 'Fill the blank in one sentence.',
     }
   }
-  const words = source.replace(/\s+/g, ' ').trim().split(' ')
+  // A scheme line that describes the credit — "a relevant benefit identified" —
+  // teaches nothing when it is quoted back at the student. Teach from the
+  // scheme's own concrete alternative where it has one, from the relation where
+  // the line describes a relation, and half-quote only a real content line.
+  const exemplar = (target?.alternatives || []).find(a => terms(a).length >= 4)
+  const relation = relationOf(source)
+  const core = contentCore(source)
+  const predicate = !relation && terms(source).length > core.length && core.length <= 3
+
+  if (relation && relation.kind === 'application') {
+    const named = material.businessName || 'this business'
+    return {
+      text: `The point is there; the mark is for tying it to ${named}. Finish this line: "…, which matters to ${named} because ___". The blank has to be a fact from the case, not the name.`,
+      handback: 'Write that one line.',
+    }
+  }
+  if (relation) {
+    return {
+      text: 'Take your strongest point and carry it one step further: "… so ___". The blank is the effect on this business, and the mark is in the blank.',
+      handback: 'Write the "so" clause.',
+    }
+  }
+  if (predicate && !exemplar) {
+    return {
+      text: `The mark is for ${keyPhrase(source)}. Give the mechanism rather than the label — one line, then say what it does here.`,
+      handback: 'Write that line.',
+    }
+  }
+
+  const teach = exemplar || source
+  const words = teach.replace(/\s+/g, ' ').trim().split(' ')
   const keep = Math.max(3, Math.ceil(words.length * 0.6))
   const given = words.slice(0, keep).join(' ')
-  const numeric = view.numbers > 0 && /calculat|=|\d/.test(source + material.stem)
+  const numeric = view.numbers > 0 && /calculat|=|\d/.test(teach + material.stem)
   return {
     text: numeric
       ? `Set it out like this: ${given} = ___ . The scheme gives the method mark for the line above and the accuracy mark for what goes in the blank.`
@@ -1034,7 +1323,9 @@ function workedStep(target, thread, material, view) {
 /** Rung 5: the full answer, then the near-transfer instruction. */
 function fullSolution(material, marked, view) {
   const lines = (material.points.length ? material.points : material.indicative).slice(0, 4)
-    .map((p, i) => `${i + 1}. ${trimPhrase(p.text)}.`)
+    // The scheme's concrete wording where it has any: a numbered list of what to
+    // do is not a solution.
+    .map((p, i) => `${i + 1}. ${trimPhrase(p.alternatives?.[0] || p.text)}.`)
   const body = lines.length
     ? `Full answer: ${lines.join(' ')}`
     : `Full answer: state the principle the command word names, apply it to the case in one sentence, then say what follows from it${view.judgement ? ' and hold your judgement' : ' and commit to a judgement'}.`
@@ -1144,7 +1435,8 @@ const LIST_KEYS = [
   ['atoms', ['atoms', 'conditions', 'conjunctiveconditions', 'parts']],
   ['perAo', ['perao', 'aos', 'objectives', 'levels', 'aomarks', 'bands', 'grid']],
   ['spans', ['spans', 'creditedspans', 'quotes', 'evidence', 'citations']],
-  ['missing', ['missing', 'missingpoints', 'gaps', 'notcredited', 'uncredited', 'improvements', 'nextsteps', 'advice']],
+  ['missing', ['missing', 'missingpoints', 'gaps', 'improvements', 'nextsteps', 'advice']],
+  ['uncredited', ['uncredited', 'notcredited', 'uncreditedattempts', 'discounted']],
   ['cards', ['cards', 'flashcards']],
   ['items', ['items', 'questions', 'followups']],
   ['misconceptions', ['misconceptions', 'errors', 'diagnoses']],
@@ -1185,7 +1477,11 @@ function synth(schema, name, ctx, r, depth = 0) {
     const items = schema.items || { type: 'string' }
     const list = listFor(name, ctx)
     const min = Number(schema.minItems || 0)
-    if (list && list.length) {
+    // A list the engine decided is empty stays empty. Inventing a marking point,
+    // an uncredited span or a card that the judgement never made is the one kind
+    // of output a marking product cannot absorb — it puts words in the student's
+    // mouth. Only a schema that demands entries gets invented ones.
+    if (list && (list.length || min === 0)) {
       const capped = schema.maxItems ? list.slice(0, Number(schema.maxItems)) : list
       return capped.map(el => synth(items, singular(name), { ...ctx, element: el }, r, depth + 1))
     }
@@ -1405,6 +1701,7 @@ function buildContext(req, material, kind, r) {
         perAo: [],
         spans: [],
         missing: turn.missed.map(p => ({ id: p.id, text: p.text })),
+        uncredited: [],
         cards: gen.cards,
         items: gen.items,
         misconceptions: turn.mis ? [{ id: turn.mis.id, text: turn.mis.text }] : gen.misconceptions,
@@ -1426,7 +1723,7 @@ function buildContext(req, material, kind, r) {
     const text = plainAnswer(req, material, r)
     return {
       text,
-      lists: { points: [], perAo: [], spans: [], missing: [], cards: [], items: [], misconceptions: [] },
+      lists: { points: [], perAo: [], spans: [], missing: [], uncredited: [], cards: [], items: [], misconceptions: [] },
       numbers: { total: 0, max: 0, confidence: 0.5, tolerance: 1, level: 0, rung: 0, low: 0, high: 0 },
       strings: { feedback: text, next: 'Paste the question and your attempt.', reason: 'No scheme is loaded for this.', status: 'unknown', id: '', title: '' },
       booleans: {},
@@ -1461,6 +1758,10 @@ function buildContext(req, material, kind, r) {
       })),
       spans,
       missing: verdict.missing.map((t, i) => ({ id: 'MISS' + (i + 1), text: t, quote: null })),
+      // Writing a student off for something they did not write is worse than
+      // saying nothing, so an uncredited attempt is reported only where a real
+      // span of their own answer is behind it.
+      uncredited: spans.filter(sp => sp.class !== 'credited' && sp.quote),
       cards: gen.cards,
       items: gen.items,
       misconceptions: gen.misconceptions,

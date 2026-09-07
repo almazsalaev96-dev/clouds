@@ -10,6 +10,7 @@ own words back as evidence.
 ```
 npm install
 npm run dev      # API on :8787, web on :5173 with hot reload
+npm test         # the marking tests, no dependencies beyond node:test
 ```
 
 Or build once and serve everything from the API process:
@@ -37,6 +38,7 @@ misconception library, all written for this repository; no board material is rep
 | `server/db.js` | Schema and queries. Course, Item, MarkScheme, Attempt, Turn, Mark, LearnerState, Card. |
 | `server/engine/` | The pedagogy: Effort Gate, Help Ladder, the turn lint, FSRS-6 scheduling, Mark-Yield ranking. |
 | `server/marking/` | The exam engine: scheme model, the marker, and the renderer that turns a Mark into what the screen draws. |
+| `server/providers/mock.js` | The built-in provider. It reads a scheme the way a marker does — telling a content line from a rubric predicate ("a relevant benefit identified") from a relation ("tied to this business") — and judges each differently. |
 | `server/providers/` | The vendor abstraction, four real adapters, the built-in provider, and the routing policy. |
 | `server/routes/` | The API. `session.js` is the streaming Learn loop and the heart of it. |
 | `server/packs/` | The seed curriculum and the loader. |
@@ -53,6 +55,10 @@ These are the parts that would be easy to fake and are not:
   The label and the retest are the price; there is no lecture.
 - **Quoted evidence is verified.** Every span the marker quotes is checked against your answer at the
   offset given, and dropped if it does not match. A fabricated quote is the fastest way to lose trust.
+- **Nothing is invented to fill a slot.** When the judgement has no uncredited attempt, no missing
+  point, no card, the field comes back empty rather than plausible. `server/providers/mock.test.mjs`
+  holds this, along with the marking itself: a good answer credited, a generic one losing the
+  application mark, an off-topic one scoring zero, and every quote verbatim at its stated offsets.
 - **No streaks.** Weekly goals include rest days. There is one celebration at most, and only for
   something you did.
 - **The degraded state is visible.** When no provider is configured the top bar says so.
