@@ -445,7 +445,7 @@ export function Practise({ courseId, onMarked }: PractiseProps) {
           </section>
 
           <MarkView
-            mark={payload}
+            mark={payload ?? { item }}
             answer={submitted.current}
             status={phase === 'marking' ? 'streaming' : markError ? 'error' : 'ready'}
             statusLine={phase === 'marking' ? `${stage} · ${markSeconds}s` : null}

@@ -670,6 +670,9 @@ export function MarkView({
   const calibration = mark ? calibrationLines(mark.calibration) : null
   const showNumber = !!band && !!mark?.show_number && mark.calibration.state !== 'uncalibrated'
   const streaming = status === 'streaming' || status === 'loading'
+  // While the first objective is still coming there is no total to show, and a zero
+  // in the total's place would be a lie about the mark.
+  const marking = streaming && perAo.length === 0
   const action = mark?.next_action ?? null
 
   const runAction = (next: NextActionView) => {
@@ -722,7 +725,7 @@ export function MarkView({
         ) : null}
       </header>
 
-      <div className="mark-view__result">
+      <div className="mark-view__result" hidden={marking}>
         {showNumber && band ? (
           <>
             <p className="mark-view__total mono">
