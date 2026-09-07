@@ -114,6 +114,9 @@
 
 .mark-view__cards { display: grid; gap: var(--s4); }
 
+/* The scroll target for "one thing next" when it names an objective. */
+.mark-view__card-slot { scroll-margin-block: var(--s5); }
+
 .mark-view__answer {
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
@@ -220,29 +223,6 @@
   padding: var(--s2) var(--s3);
   min-height: 36px;
 }
-
-.mark-view__ao-picker {
-  border: 0;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s2);
-}
-
-.mark-view__ao-picker .mark-view__label { flex-basis: 100%; padding: 0; }
-
-.mark-view__chip {
-  background: var(--paper-sunk);
-  border: 1px solid var(--line);
-  border-radius: var(--r-pill);
-  padding: var(--s1) var(--s3);
-  font-size: var(--t-sm);
-  cursor: pointer;
-  min-height: 28px;
-}
-
-.mark-view__chip.is-on { border-color: var(--accent-line); background: var(--accent-soft); font-weight: 500; }
 
 .mark-view__challenge-actions { display: flex; gap: var(--s3); align-items: center; flex-wrap: wrap; }
 .mark-view__challenge-actions .mark-view__text-button { margin-top: 0; background: none; border: 0; color: var(--accent-ink); }

@@ -11,7 +11,6 @@
 
 .practise__ident { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s3); }
 
-.practise__aos { font-size: var(--t-xs); color: var(--ink-3); }
 .practise__point { font-size: var(--t-sm); color: var(--ink-2); }
 .practise__provenance { font-size: var(--t-xs); color: var(--ink-3); }
 

@@ -32,7 +32,7 @@ interface PointRow {
   unaidedMarks: number
   unaidedMax: number
   unaidedRate: number | null
-  misconceptions: string[]
+  misconceptions: unknown[]
   lastSeen: string | null
   daysSince: number | null
   neverAttempted: boolean
@@ -71,6 +71,18 @@ const paperName = (paper: string): string =>
 const STATES: MasteryState[] = ['unseen', 'weak', 'developing', 'secure', 'strong']
 const stateOf = (row: PointRow): MasteryState =>
   (STATES as string[]).includes(row.state) ? (row.state as MasteryState) : 'unseen'
+
+/** A misconception row can be a sentence, or the pack's {wrong, right} pair. */
+function misconceptionText(raw: unknown): string | null {
+  if (typeof raw === 'string') return raw.trim() || null
+  if (typeof raw !== 'object' || raw === null) return null
+  const record = raw as Record<string, unknown>
+  for (const key of ['right', 'text', 'wrong', 'title', 'id']) {
+    const value = record[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return null
+}
 
 function reasonFor(row: PointRow): string {
   if (row.attempts === 0) return `No attempt yet · ${row.itemCount} ${row.itemCount === 1 ? 'question' : 'questions'} waiting`
@@ -172,9 +184,13 @@ export function CourseHome({ courseId }: CourseHomeProps) {
         </p>
         {row.misconceptions.length > 0 ? (
           <ul className="course-home__misconceptions">
-            {row.misconceptions.slice(0, 3).map((m, i) => (
-              <li key={`${row.code}-m${i}`}>{typeof m === 'string' ? m : JSON.stringify(m)}</li>
-            ))}
+            {row.misconceptions
+              .map(misconceptionText)
+              .filter((text): text is string => text !== null)
+              .slice(0, 3)
+              .map((text, i) => (
+                <li key={`${row.code}-m${i}`}>{text}</li>
+              ))}
           </ul>
         ) : null}
         <div className="course-home__point-actions">
@@ -182,7 +198,7 @@ export function CourseHome({ courseId }: CourseHomeProps) {
             Practise this point
           </a>
           <a className="course-home__link" href="#/session">
-            Ask about it
+            Open a session on it
           </a>
           <a className="course-home__link" href="#/cards">
             Cards
@@ -222,13 +238,18 @@ export function CourseHome({ courseId }: CourseHomeProps) {
 
   return (
     <main className="course-home" aria-labelledby="course-heading">
+      {status !== 'ready' ? (
+        <header className="course-home__head">
+          <h1 id="course-heading" className="course-home__title">
+            Course
+          </h1>
+        </header>
+      ) : null}
+
       {status === 'loading' ? <p className="course-home__loading">Loading the syllabus.</p> : null}
 
       {status === 'error' ? (
         <section className="course-home__error" role="alert">
-          <h1 id="course-heading" className="course-home__title">
-            Course
-          </h1>
           <p>{problem}</p>
           <button type="button" className="course-home__retry" onClick={() => setReloads((n) => n + 1)}>
             Try again

@@ -347,21 +347,25 @@ export function normaliseMark(input: MarkPayload, answer = ''): Mark {
   const checks = record(payload.checks)
   const bandView = record(payload.band)
 
+  // Either the rendered payload, or the Mark object itself handed straight in.
+  const source = body ?? payload
   const cards = list(payload, ['cards'])
+  const objectives = [...list(source, ['per_ao', 'aos', 'aoCards']), ...list(source, ['per_point'])]
   const aoRaw = cards.length
     ? cards
-    : list(body, ['per_ao', 'per_point', 'aos', 'aoCards']).length
-      ? [...list(body, ['per_ao', 'aos', 'aoCards']), ...list(body, ['per_point'])]
+    : objectives.length
+      ? objectives
       : Array.isArray(payload.aos) ? payload.aos : []
   const perAo = aoRaw.map(toAo).filter((ao): ao is AoResult => ao !== null)
 
   const aoSplit: Record<string, number> = {}
   for (const ao of perAo) if (ao.max > 0) aoSplit[ao.ao] = ao.max
 
-  const totalBandRaw = record(body?.total_band) ?? (bandView && bandView.show !== false ? bandView : null)
+  const header = record(source.header)
+  const totalBandRaw = record(source.total_band) ?? (bandView && bandView.show !== false ? bandView : null)
   const total = num(payload, ['total']) ?? perAo.reduce((sum, ao) => sum + ao.marks, 0)
   const max = num(payload, ['max']) ?? num(bandView, ['max']) ?? num(item, ['maxMarks', 'tariff'])
-    ?? perAo.reduce((sum, ao) => sum + ao.max, 0)
+    ?? num(header, ['tariff']) ?? perAo.reduce((sum, ao) => sum + ao.max, 0)
   const tolerance = num(totalBandRaw, ['tolerance']) ?? 0
   const totalBand: TotalBand = {
     low: num(totalBandRaw, ['low']) ?? total,
@@ -374,11 +378,11 @@ export function normaliseMark(input: MarkPayload, answer = ''): Mark {
   }
   const toleranceLine = text(bandView, ['tolerance_line'])
 
-  const commandRaw = record(checks?.command_word ?? body?.command_word_check ?? payload.command_word_check)
-  const applicationRaw = record(checks?.application ?? body?.application_check ?? payload.application_check)
-  const adviceRaw = record(body?.next_mark_advice ?? payload.next_mark_advice)
+  const commandRaw = record(checks?.command_word ?? source.command_word_check)
+  const applicationRaw = record(checks?.application ?? source.application_check)
+  const adviceRaw = record(source.next_mark_advice)
   const primaryRaw = record(payload.next_action ?? adviceRaw?.primary_action ?? adviceRaw?.primaryAction)
-  const visibility = record(body?.visibility)
+  const visibility = record(source.visibility)
 
   // The renderer hangs most examiner warnings on their card and passes the rest as
   // lines; the Mark object carries them all. One list, no repeats.
@@ -397,7 +401,7 @@ export function normaliseMark(input: MarkPayload, answer = ''): Mark {
       matched_line_ref: text(source, ['matched_line_ref', 'matchedLineRef', 'line_ref']),
     })
   }
-  for (const entry of list(body, ['examiner_warnings'])) addWarning(entry)
+  for (const entry of list(source, ['examiner_warnings'])) addWarning(entry)
   for (const card of cards) addWarning(record(card)?.warning)
   for (const entry of list(payload, ['examiner_warnings', 'examinerWarnings'])) addWarning(entry)
 
@@ -414,22 +418,26 @@ export function normaliseMark(input: MarkPayload, answer = ''): Mark {
 
   const answerText = answer || text(payload, ['answer', 'response'])
     || text(record(payload.attempt), ['body', 'answer'])
-    || text(record(body?.transcript), ['text']) || ''
+    || text(record(source.transcript), ['text']) || ''
 
   const badge = record(payload.badge)
-  const calibration = calibrationOf(payload, body, badge)
+  const calibration = calibrationOf(payload, source, badge)
 
   return {
     mark_id: text(payload, ['id', 'markId', 'mark_id']),
     attempt_id: text(payload, ['attemptId', 'attempt_id']),
     header: {
-      question_ref: text(item, ['paper']) ?? text(payload, ['question_ref']),
+      question_ref: text(item, ['paper']) ?? text(header, ['question_ref', 'paper']) ?? text(payload, ['question_ref']),
       tariff: max,
-      command_word: text(item, ['commandWord']) ?? text(commandRaw, ['command_word', 'commandWord']),
-      ao_split: Object.keys(aoSplit).length ? aoSplit : null,
-      syllabus_point: text(item, ['pointTitle', 'syllabusPoint']),
-      scheme_id: text(body, ['scheme_id', 'schemeId']),
-      pack_version: text(item, ['pack']) ?? text(body, ['pack_version']),
+      command_word: text(item, ['commandWord'])
+        ?? text(header, ['command_word'])
+        ?? text(commandRaw, ['command_word', 'commandWord']),
+      ao_split: Object.keys(aoSplit).length
+        ? aoSplit
+        : (record(header?.ao_split) as Record<string, number> | null),
+      syllabus_point: text(item, ['pointTitle', 'syllabusPoint']) ?? text(header, ['syllabus_point']),
+      scheme_id: text(source, ['scheme_id', 'schemeId']) ?? text(header, ['scheme_id']),
+      pack_version: text(item, ['pack']) ?? text(source, ['pack_version']) ?? text(header, ['pack_version']),
     },
     total_band: totalBand,
     tolerance_line: toleranceLine,
@@ -469,7 +477,7 @@ export function normaliseMark(input: MarkPayload, answer = ''): Mark {
       && (bandView ? bandView.show !== false : true)
       && calibration.state !== 'uncalibrated',
     answer: answerText,
-    model: text(payload, ['model']) ?? text(record(body?.provenance), ['model']),
+    model: text(payload, ['model']) ?? text(record(source.provenance), ['model']),
     degraded: payload.degraded === true,
     summary: text(payload, ['summary']),
   }
@@ -948,6 +956,20 @@ export function MarkView({
                   ))}
                 </tbody>
               </table>
+              {comparison.rows
+                .filter((row) => (row.delta !== 0 || row.levelChanged) && row.original?.descriptor && row.remark?.descriptor)
+                .map((row) => (
+                  <div className="mark-view__rationales" key={`rationale-${row.ao}`}>
+                    <div className="mark-view__rationale">
+                      <h3 className="mark-view__rationale-title">{row.ao} · first marker</h3>
+                      <p className="read">{row.original?.descriptor}</p>
+                    </div>
+                    <div className="mark-view__rationale">
+                      <h3 className="mark-view__rationale-title">{row.ao} · second marker</h3>
+                      <p className="read">{row.remark?.descriptor}</p>
+                    </div>
+                  </div>
+                ))}
               {comparison.rows.filter((row) => row.deciding).map((row) => (
                 <p className="mark-view__deciding" key={`deciding-${row.ao}`}>
                   <span className="mono">{row.ao}{row.deciding?.line_ref ? ` · ${row.deciding.line_ref}` : ''} </span>

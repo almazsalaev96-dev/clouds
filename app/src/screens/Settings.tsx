@@ -142,6 +142,18 @@ interface Noticed {
   where: string
 }
 
+/** A misconception row can be a sentence, or the pack's {wrong, right} pair. */
+function misconceptionText(raw: unknown): string | null {
+  if (typeof raw === 'string') return raw.trim() || null
+  if (typeof raw !== 'object' || raw === null) return null
+  const record = raw as Record<string, unknown>
+  for (const key of ['right', 'text', 'wrong', 'title']) {
+    const value = record[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return null
+}
+
 function noticedFrom(payload: CourseResponse | null): Noticed[] {
   if (!payload) return []
   const rows: Noticed[] = []
@@ -153,12 +165,7 @@ function noticedFrom(payload: CourseResponse | null): Noticed[] {
   }
   for (const point of payload.points) {
     for (const [index, raw] of point.misconceptions.entries()) {
-      const text =
-        typeof raw === 'string'
-          ? raw
-          : typeof raw === 'object' && raw !== null && typeof (raw as { text?: unknown }).text === 'string'
-            ? ((raw as { text: string }).text)
-            : null
+      const text = misconceptionText(raw)
       if (!text) continue
       rows.push({ key: `${point.code}-${index}`, text, where: `noticed while marking ${point.code} ${point.title}` })
     }
