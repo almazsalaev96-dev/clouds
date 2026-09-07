@@ -30,7 +30,13 @@ const pointById = (m, id) => (m.per_point || []).find((p) => p.marking_point_id 
 function spansOf(m) {
   const out = []
   for (const p of m.per_point || []) if (p.quote) out.push(p)
-  for (const a of m.per_ao || []) for (const s of a.spans || []) if (s.quote) out.push(s)
+  // A levels Mark files its spans by class, not in one `spans` array. Reading only
+  // the latter silently skipped every essay item — the tests passed on nothing.
+  for (const a of m.per_ao || []) {
+    for (const key of ['credited_spans', 'partial_spans', 'uncredited_attempts', 'spans']) {
+      for (const s of a[key] || []) if (s.quote) out.push(s)
+    }
+  }
   return out
 }
 
@@ -158,4 +164,38 @@ test('a scheme-faithful answer scores well and a cheese answer scores nothing, o
     if (total(good) === 0) thin.push(item.id)
   }
   assert.deepEqual(thin, [], 'these items score zero on an answer made of their own mark scheme')
+})
+
+// A quantitative answer is the common case on Paper 2 and 3, and a span that cuts a
+// figure in half misquotes the student's own arithmetic while still passing the
+// verbatim check — the failure the offsets test cannot see.
+const FIGURES =
+  'Contribution per jar rises from $11.00 to $13.70 once the price moves from $18.00 to $20.70. ' +
+  'Solara could sell roughly a fifth fewer jars and hold the same total contribution. ' +
+  'The gap to the rivals widens from $3.00 to $5.70, which is 38% above their shelf price.'
+
+/** Every number in the answer, as {start, end, text}. */
+function figuresIn(text) {
+  const out = []
+  for (const m of text.matchAll(/\$?\d[\d,]*(?:\.\d+)?%?/g)) {
+    out.push({ start: m.index, end: m.index + m[0].length, text: m[0] })
+  }
+  return out
+}
+
+test('a decimal point is not the end of a sentence', async () => {
+  const m = await markWith(itemById('itm_9609_p2_05'), FIGURES)
+  const spans = spansOf(m)
+  assert.ok(spans.length, 'this answer should be credited something to quote')
+  const numbers = figuresIn(FIGURES)
+  for (const span of spans) {
+    assert.equal(FIGURES.slice(span.char_start, span.char_end), span.quote)
+    // No boundary may fall inside a number the student wrote.
+    for (const n of numbers) {
+      assert.ok(!(span.char_start > n.start && span.char_start < n.end),
+        `a span starts inside "${n.text}": ${JSON.stringify(span.quote.slice(0, 40))}`)
+      assert.ok(!(span.char_end > n.start && span.char_end < n.end),
+        `a span ends inside "${n.text}": ${JSON.stringify(span.quote.slice(-40))}`)
+    }
+  }
 })

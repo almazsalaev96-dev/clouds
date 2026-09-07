@@ -197,20 +197,37 @@ function relationOf(text) {
   return null
 }
 
-/** Split into sentences, keeping exact offsets so quotes stay verbatim. */
+/**
+ * Split into sentences, keeping exact offsets so quotes stay verbatim.
+ *
+ * A full stop between two digits is a decimal point, not the end of a sentence.
+ * Splitting on it cuts "$2.70" in half and the evidence quoted back at the student
+ * then reads "the gap widens from $3 to $5." — verbatim, and wrong about their own
+ * arithmetic. On a quantitative answer almost every credited span is affected.
+ */
 function sentences(text) {
-  const out = []
-  const re = /[^\n.!?]+[.!?]*/g
   const src = String(text || '')
-  let m
-  while ((m = re.exec(src))) {
-    const raw = m[0]
+  const out = []
+  const push = (from, to) => {
+    const raw = src.slice(from, to)
     const lead = raw.length - raw.trimStart().length
     const body = raw.trim()
     if (body.replace(/[^a-zA-Z0-9]/g, '').length > 2) {
-      out.push({ text: body, start: m.index + lead, end: m.index + lead + body.length })
+      out.push({ text: body, start: from + lead, end: from + lead + body.length })
     }
   }
+  let start = 0
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i]
+    if (ch === '\n') { push(start, i); start = i + 1; continue }
+    if (ch !== '.' && ch !== '!' && ch !== '?') continue
+    if (ch === '.' && /\d/.test(src[i - 1] || '') && /\d/.test(src[i + 1] || '')) continue
+    let end = i + 1
+    while (end < src.length && '.!?'.includes(src[end])) end++
+    push(start, end)
+    start = end
+  }
+  push(start, src.length)
   return out
 }
 
