@@ -1,6 +1,6 @@
 # MARGIN — Master Build Prompt
 
-*Working name: **Margin** (provisional — see §01.7). Version: v1 (stitched draft). Generated 2026-09-07. Length ≈ 174,296 words; 1,374 numbered requirements.*
+*Working name: **Margin** (provisional — see §01.7). Version: v1 (stitched draft). Generated 2026-09-07. Length ≈ 182,667 words; 1,422 numbered requirements.*
 
 ## What this document is
 
@@ -238,7 +238,7 @@ These hold for every release, every tenant, every model swap, every "quick fix".
 | ID | Non-negotiable | Enforced by |
 |---|---|---|
 | 00-NON-001 | **The Effort Gate.** No solution content on a gradable Item before an Attempt, a plan, or "don't know where to start" plus one sentence of what the student does know. The gate is a state on the Attempt, never a refusal in prose, never rate-limited. | §04; 30-turn adversarial suite, leak <5% (§13) |
-| 00-NON-002 | **No Mark without a mark scheme in context; no number below gate.** If no structured scheme record exists, the product gives feedback and spans only. Below the §05 ship gate a paper shows spans and feedback, never a mark or a predicted grade. | §05.5; CI asserts 0 marks emitted without `mark_scheme_items` |
+| 00-NON-002 | **No Mark without a mark scheme in context; no number below gate.** If no structured scheme record exists, the product gives feedback and spans only. Below the §05 ship gate a paper shows spans and feedback, never a mark or a predicted grade. | §05.6; CI asserts 0 marks emitted without `mark_scheme_items` |
 | 00-NON-003 | **No sycophancy.** No person-praise, unearned praise, agreement with an incorrect claim, softened mark, exclamation mark, emoji, "Great question" or therapy-speak in any Turn or Mark. | Praise lint before paint, regenerate once, template fallback; weekly audit <5% (§04, §13) |
 | 00-NON-004 | **No streaks, no shame, no engagement optimisation.** No daily streaks, loss animations, confetti, overdue counters, mascots, or loss-framed notifications. DAU and minutes are guard-rails, never targets. | Lint on string table and motion tokens (§09); KPI tree (§14) |
 | 00-NON-005 | **No submittable coursework.** NEA/IA/EE/personal-statement requests switch to draft-feedback mode; every assignment produces a Learning Receipt. | §12; eval set of coursework prompts, 0 submittable outputs |
@@ -301,14 +301,14 @@ Why the list is this long: each item corresponds to a documented failure of a co
 | Parity | Every "M" row of the §03 checklist passes its acceptance line | §03 checklist run, attached to the release PR |
 | First Mark | Anonymous landing → full per-AO Mark, median ≤90 s; landing → full Mark ≥55% in beta; Mark → saved Course ≥35% | Product analytics from the 500-student closed beta (M5) |
 | Learning core | Effort Gate, five-rung ladder, intent chips, Turn governor, misconception router, cold-open probes, FSRS-6 exam-anchored, mastery pips, debt-guard signals + L1, planner v1 | 30-turn adversarial suite: leak <5%; praise <5%; 100% of first-topic sessions begin with a probe |
-| Exam engine | Levels marker for 9609, 0450, 9708 and points marker for 9709, 0580 with ≥3 papers above the §05.5 gate; seeding and auto-pause live; challenge-a-mark; generator solvability ≥98%; paper runner and debrief; handwriting confirm | Per-paper gate report: QWK ≥ floor **and** ≥ measured human line where measured; run-to-run identical level 100% |
+| Exam engine | Levels marker for 9609, 0450, 9708 and points marker for 9709, 0580 with ≥3 papers above the §05.6 gate; seeding and auto-pause live; challenge-a-mark; generator solvability ≥98%; paper runner and debrief; handwriting confirm | Per-paper gate report: QWK ≥ floor **and** ≥ measured human line where measured; run-to-run identical level 100% |
 | Content | 9609, 0450, 9708, 9709, 0580 Packs at `gated` or `live`; 0450 and 9708 produced by the compiler; provenance ledger complete; zero `USER` documents in global retrieval | Pack readiness dashboard; ledger export |
 | Trust | Teen-safety parity item-for-item; consent 100% for under-16 school users; Article 50 disclosure; DPIA filed; usage meter with grace; Receipt export; parent digest v0; teacher calibrator scope | §12 audit; screenshot pack |
 | Design | §09 pixel checklist as a blocking CI job; WCAG 2.2 AA gates green; dark mode; reading-comfort set; Cyrillic/Kazakh glyph test | CI logs; axe/Playwright reports |
 | Performance and cost | TTFT p50 <800 ms, p95 <1.5 s; first AO card <8 s, full Mark ≤45 s; citation open ≤400 ms p95; cached input share ≥60%; median student ≤$2.6/month | Langfuse dashboards over the beta month |
 | Efficacy plumbing | Layer 1 in-product RCT framework live; Layer 3 pre-registration filed | Registry receipt |
 
-**00-DONE-002 v1 (months 7–12).** MVP plus: sciences 9701/9702/9700 with practical rules and 9618; IGCSE 0455/0620/0625/0610; Edexcel IAL Pack via the compiler at <4 weeks per sibling Pack; full teacher console with SSO/roster and LMS connectors; debt-guard L2–L3 default-on only if the A/B holds (≤2 pp 30-day retention cost); planner v2 with per-user learnability; share by link; code interpreter in a no-network sandbox; voice + camera pilot behind a flag; 13+ consumer after the consent audit; regional tiers; RU/KZ UI strings; creator programme paid on 30-day-retained subscribers. Done means: each new paper passes the same §05.5 gate; school onboarding <1 day; ≥8 papers above gate; June 2027 predicted-vs-actual analysis published.
+**00-DONE-002 v1 (months 7–12).** MVP plus: sciences 9701/9702/9700 with practical rules and 9618; IGCSE 0455/0620/0625/0610; Edexcel IAL Pack via the compiler at <4 weeks per sibling Pack; full teacher console with SSO/roster and LMS connectors; debt-guard L2–L3 default-on only if the A/B holds (≤2 pp 30-day retention cost); planner v2 with per-user learnability; share by link; code interpreter in a no-network sandbox; voice + camera pilot behind a flag; 13+ consumer after the consent audit; regional tiers; RU/KZ UI strings; creator programme paid on 30-day-retained subscribers. Done means: each new paper passes the same §05.6 gate; school onboarding <1 day; ≥8 papers above gate; June 2027 predicted-vs-actual analysis published.
 
 **00-DONE-003 v2 (months 13–18).** IB criteria coaching (teacher marks first); AP FRQ marking; the IRT engine for one machine-scored national exam (UNT by default, [founder default E3]) from ≥300–500 responses per item; public curriculum compiler; cross-board graph at >60% reuse; Annex III technical file complete before 2 December 2027; marker API pilot; voice GA. Done means: the Layer 3 cluster RCT is in the field across the 2027–28 session with its analysis plan public before the first data point.
 
@@ -394,7 +394,7 @@ Use these ten **verbatim** (bold clause) as the spine of positioning copy, in th
 
 | ID | Differentiator (final wording) | Made true by | Beats |
 |---|---|---|---|
-| 01-DIFF-001 | **A marker as consistent as a second examiner — with the number published per paper.** | Gold sets from Example Candidate Responses and teacher double-marking; board-style production seeding with auto-pause; cross-family ensembles; the public calibration page ("Calibrated on 9609 P2 · agreement 0.82 · 312 scripts") — §05.5, §13 | Every lab study mode and every "AI marking" incumbent (Save My Exams, Medly, Seneca, Paperstack, ExamPal): none publishes accuracy |
+| 01-DIFF-001 | **A marker as consistent as a second examiner — with the number published per paper.** | Gold sets from Example Candidate Responses and teacher double-marking; board-style production seeding with auto-pause; cross-family ensembles; the public calibration page ("Calibrated on 9609 P2 · agreement 0.82 · 312 scripts") — §05.6, §13 | Every lab study mode and every "AI marking" incumbent (Save My Exams, Medly, Seneca, Paperstack, ExamPal): none publishes accuracy |
 | 01-DIFF-002 | **Marks per Assessment Objective with quoted spans, following the board's own procedure.** | Cambridge best-fit per AO grid; "developed" = ≥2 causal links; the cover-the-business-name test; a credited point without a quoted span fails the eval — §05.3 | ChatGPT's holistic mark from imagination; Save My Exams' short-answer-only marking |
 | 01-DIFF-003 | **Feedback in the examiner's own language, highest-yield lost mark first.** | Feedback template task → process → self-regulation; ER phrases cited with series; praise lint <5% — §04.11 | Every chat product; sycophancy is students' second-most-hated trait |
 | 01-DIFF-004 | **A Course, not a chat.** | Course = board + syllabus code + version + session; Pack carried on every request; mode chip always visible; no study toggle — §03, §10 | ChatGPT Study Mode (cannot run inside Projects; "So they've removed study mode?"), Gemini's six separate learning surfaces |
@@ -799,7 +799,7 @@ Priority: **MVP** = March 2027 launch gate · **v1** = months 7–12 · **v2** =
 | 03-PAR-004 | Interrupt and add information mid-generation | ChatGPT (Nov 2025); Gemini agent pause | Typing while streaming shows "Send now to redirect"; sending cancels the current part, appends the new message with the partial answer kept and marked "interrupted" | v1 | Interrupt at 40% of a stream; partial content retained; next Turn references the added information |
 | 03-PAR-005 | Effort / model control in the composer | ChatGPT Instant/Medium/High/Extra High/Pro with auto-escalate toggle; Gemini Fast/Thinking/Pro; Claude model dropdown + effort | One effort dial **Quick · Think · Deep** (no model picker); Think is the default in Learn; maths/proof classifier auto-escalates Quick→Think and Think→Deep on proofs and ≥8-mark numericals with a visible "Escalated to Deep — proof" chip; Deep is quota-metered (§03.3); mapping to models in §08.2; vendor name shown only as a chip on Mark cards and in Settings › Advanced | MVP | ≥95% of Turns hit the route the dial implies (telemetry); <2% of users open the model settings; the escalation chip appears on 100% of escalated Turns; no string in the UI names a vendor outside Mark cards and Settings |
 | 03-PAR-006 | Visible reasoning summary ("show working") | DeepSeek full chain of thought; ChatGPT/Gemini/Claude summaries | Collapsed, non-animated "Thought for 6 s ▸" line using the provider's summarised thinking; expanded view shows the summary only; in Learn mode the final line of a solution never appears before the scaffold the Help Ladder allows (§04) | MVP (summary), v1 (STEM step trace) | 100% of Deep Turns show the collapsed line; expanding never reveals a rung-5 solution on a gated Item |
-| 03-PAR-007 | Tone/length presets and persistent custom instructions | ChatGPT 8 presets + sliders, 5,000-char instructions; Claude Styles; Gemini saved info | Voice presets **Examiner · Coach · Plain** (one dropdown, Settings and Course); custom instructions ≥5,000 chars at account and Course level (Course overrides); every preset passes the praise lint (§04.7.11); no warmth/enthusiasm sliders | MVP | Praise audit <5% for all three presets; a 5,000-char instruction persists and applies in a new Session; Course instruction overrides account instruction in a golden test |
+| 03-PAR-007 | Tone/length presets and persistent custom instructions | ChatGPT 8 presets + sliders, 5,000-char instructions; Claude Styles; Gemini saved info | Voice presets **Examiner · Coach · Plain** (one dropdown, Settings and Course); custom instructions ≥5,000 chars at account and Course level (Course overrides); every preset passes the praise lint (§04.8); no warmth/enthusiasm sliders | MVP | Praise audit <5% for all three presets; a 5,000-char instruction persists and applies in a new Session; Course instruction overrides account instruction in a golden test |
 | 03-PAR-008 | Memory: auto-synthesised, inspectable, editable, per-project, sensitive-topic exclusion, export/import | ChatGPT memory summary + per-answer "sources"; Claude editable Topics, per-project, sensitive exclusion, import/export; Gemini imports from other assistants | Two layers (§07): **Saved memory** (account: preferences, language, accessibility, target grades) and **Course memory** (per Course: goals, teacher, misconceptions, exam dates) — both as a single list of facts, each with source Turn, edit, delete; sensitive categories (health, religion, politics, sexuality, family conflict) excluded by default with opt-in; per-answer "What shaped this" popover listing memories, files and Pack items used; import from ChatGPT/Claude/Gemini export formats | MVP | 100% of stored facts visible and deletable in one screen; deleting a fact removes it from the next Turn's context (golden test); import succeeds on the three vendors' current export formats; sensitive classifier recall ≥0.95 on the fixture set |
 | 03-PAR-009 | Temporary / incognito chat | ChatGPT Temporary Chat (optionally personalised, saveable); Gemini Temporary; Claude ghost-icon incognito | Incognito toggle in the composer's **+** menu, ghost icon on the Session; reads Course memory only if the student ticks "use my memory"; writes no memory, no Attempts, no Cards, no Learner Graph updates; retained 30 days for abuse review then purged; can be "Saved" into the Course (writes Attempts retroactively only with explicit confirmation) | MVP | DB assertion: an incognito Session produces zero rows in `attempts`, `memories`, `cards`; purge job verified at day 30 |
 | 03-PAR-010 | Projects / folders with files, instructions and project-only memory | ChatGPT Projects (5/25/40 files); Claude Projects with cached knowledge; Gemini Notebooks | **Course = project** (§03.4). Owns files (≤200 per Course, ≤512 MB per file), instructions, memory, Sessions, Cards, Plan. No "New chat" on Home; a Course-less conversation is an **Ask**, labelled, and never counts as study | MVP | New user reaches a Course home in the first 10 minutes (§02); a file uploaded to Course A is never retrieved in Course B (RLS test); Ask Sessions produce no Attempts |
@@ -829,7 +829,7 @@ Priority: **MVP** = March 2027 launch gate · **v1** = months 7–12 · **v2** =
 | 03-PAR-034 | Accessibility: screen reader, reduced motion, dyslexia-friendly type | ChatGPT, Claude partial | WCAG 2.2 AA as CI gates (4.5:1, 24×24 px, 44 pt touch, 2 px/3:1 focus, drag alternatives, 320 px reflow); math via MathML + lazy SRE speech; one reading-comfort set including a one-tap dyslexia preset; reduced motion = opacity/colour ≤160 ms (§09) | MVP | axe + Lighthouse a11y 100 on every §10 screen; manual VoiceOver/TalkBack pass on Learn, Mark, Cards; math read aloud correctly on 20 fixture expressions |
 | 03-PAR-035 | Usage meter and predictable limits | Claude session + weekly bars; Gemini opaque compute limits; ChatGPT message caps | Limits published in plain numbers on the pricing page and in Settings › Usage; session and weekly bars; grace indicator in exam weeks; soft slow-down never a hard mid-session stop (§03.3) | MVP | Zero silent limit changes (limits live in a versioned config with a changelog surfaced in-app); <3% of support tickets about limits |
 | 03-PAR-036 | Interactive quizzes in chat with hints and per-question feedback | Gemini quiz object (hint, side question, Analyze my performance); ChatGPT quizzes Aug 2026 | `/quiz` and the Cards tab produce probe cards: one Item per card, confidence rating, hint = one Help Ladder rung, feedback in mark-scheme language with a citation, "5 more like this"; every Item cites a Pack source; results write Attempts | MVP | 100% of generated quiz Items carry a resolvable citation; error-report rate <1%; a quiz of 10 writes 10 Attempts with confidence |
-| 03-PAR-037 | Flashcards with shuffle, TTS, progress | Gemini, NotebookLM (no SRS) | Cards on FSRS-6, exam-anchored (§04.7.7); two buttons; provenance line; TTS read-aloud via cached audio; offline | MVP | Retention target switches at 8 and 3 weeks in a fixture; Again/Got it only by default |
+| 03-PAR-037 | Flashcards with shuffle, TTS, progress | Gemini, NotebookLM (no SRS) | Cards on FSRS-6, exam-anchored (§04.12); two buttons; provenance line; TTS read-aloud via cached audio; offline | MVP | Retention target switches at 8 and 3 weeks in a fixture; Again/Got it only by default |
 | 03-PAR-038 | Timed full-length practice tests with section scores | Gemini SAT/JEE/NEET/GRE/ACT | Paper runner on real paper structure from Pack metadata (minutes per mark, extra time %, rest breaks), predict-before/postdict-after, Principal-Examiner debrief (§05.9) | MVP | A 9609 P2 mock runs to time with tariff pills; debrief cites ≥1 ER phrase per lost-mark cluster |
 | 03-PAR-039 | Long-conversation stability | ChatGPT degrades after ~40–50 messages; Gemini free 32K; Claude compaction | Durable state lives in the Learner Graph, not the transcript; Sessions default to one topic; at 40 Turns the tutor proposes a new Session with a "Continue where I left off" card that re-injects mastery, misconceptions and the open Item; server-side compaction of older Turns to a structured summary | MVP | Longitudinal eval: no measurable quality drop at Turn 50 vs Turn 5 on the pedagogy suite; context tokens per Turn bounded ≤24k after compaction |
 | 03-PAR-040 | Ads | ChatGPT Free/Go (adults) | **Never**, for any age or plan | Never | No ad SDK; pricing page states it |
@@ -859,7 +859,7 @@ Each difference protects a non-negotiable or a measured harm. Do not "fix" these
 | 03-DIFF-003 | Praise openers, warmth sliders, "Great question" | **No sycophancy.** Lint rejects person-praise, emoji, exclamation marks, agreement with a wrong claim and softened marks before paint; regenerate once with the violation named, then a template Turn; weekly praise audit <5% | Non-negotiable [A13]; feedback works through information (d=0.48) |
 | 03-DIFF-004 | Walls of text; sliders to reduce headers | **Turn governor:** Learn Turns ≤120 words, one move, one question, explicit hand-back; Mark cards exempt | [A12]; "walls of text" is a top complaint [A54] |
 | 03-DIFF-005 | Streaks, confetti, loss-framed notifications | **No streaks, no confetti, no shame.** One weekly learning-event goal with two rest days, hidden in exam weeks; ≤1 factual notification/day; one 400 ms celebratory fade when a paper first reaches ready | Non-negotiable [A40]; introjected motivation predicts ill-being |
-| 03-DIFF-006 | A holistic mark "from imagination" | **No number without a scheme.** Marks are per AO with quoted spans, a band not a point, a calibration badge, and no number below the §05.5 gate; vendor shown as a chip, the agreement number is the headline | Non-negotiable [A18][A22]; students' #1 pain is lenient drifting AI marking [A3] |
+| 03-DIFF-006 | A holistic mark "from imagination" | **No number without a scheme.** Marks are per AO with quoted spans, a band not a point, a calibration badge, and no number below the §05.6 gate; vendor shown as a chip, the agreement number is the headline | Non-negotiable [A18][A22]; students' #1 pain is lenient drifting AI marking [A3] |
 | 03-DIFF-007 | Model picker with vendor names; silent auto-routing | **Effort dial, no picker; no silent downgrades.** Every route change (escalation, fallback, limit degradation) is shown on the Turn (§08.7) | [A47]; the GPT-5 router revolt |
 | 03-DIFF-008 | Memory remembers what you said | **The Learner Graph remembers what you know:** mastery, misconceptions, seen-solution Items and calibration live outside the chat on an FSRS-6 clock anchored to the exam date; chat memory is a thin editable layer | Differentiator 7 [A48][A52] |
 | 03-DIFF-009 | Long chats that decay | **Short Sessions by design** (one topic; new-Session proposal at 40 Turns) with re-injected state | [A48]; degradation after ~40–50 messages |
@@ -2468,7 +2468,7 @@ learner_graph:                      # one per (user, course)
     misconception_id, status: suspected|confirmed|resolved,
     first_seen, last_seen, evidence_attempt_ids[], contrast_pass_days[]
   attempts[]: → attempts table (SYNTHESIS §3.1 fields + 04-NSTR-003)
-  marks[]:    → marks table (§05.8.1 contract)
+  marks[]:    → marks table (§05.2 contract)
   calibration:
     brier_overall_weekly[]: [{week, brier, n, sure_share}]
     predict_postdict[]: [{event_id, predicted, postdicted, actual, gap}]
@@ -2759,15 +2759,12 @@ This is the cell-by-cell expansion of the FINAL visibility matrix (11-TEN-002); 
 |---|---|---|
 | 07-VIS-001 | **The student always keeps:** transcripts, memories, self-directed Marks, wellbeing signals, effort/debt internals, and the right to revoke any share. No role, plan, tenant type or admin escalation can read these; there is no "school override" flag in the schema. Margin staff reach a transcript only through a support ticket the student opened or a safety escalation, both audit-logged and surfaced to the student. | RLS suite: 5 roles × 6 protected fields = 30 denial cases; a staff read without a ticket id is impossible (foreign key), and any staff read writes a student-visible audit row. |
 | 07-VIS-002 | **Assignment scope is the teacher's only automatic window.** Creating an assignment grants T (and U) read on Attempts, answer text and Marks **for those Items only**, from the assignment's open date to 90 days after its due date. Everything else a teacher sees is either Class-aggregated at k ≥ 5 within a Class (k ≥ 20 across Classes, 07-RET-003) or explicitly shared by the student. | Fixture: teacher opens a non-assigned Attempt → 403 + audit row; the same Item after assignment → 200. |
-| 07-VIS-003 | **Predicted grade** is off by default everywhere. It is shown to T only when: the paper is gated (§05.5), the student has toggled `prefs.show_predicted_to_teacher`, and the teacher is teacher of record for a Class bound to that Course. Parents require `prefs.show_predicted_to_parent` (default `false`, 07.1). Admins never see it. Revocation is immediate and retroactive on the surface (the number disappears; any prior export is listed in the student's audit view). | Toggle test in both directions; the teacher console renders "Not shared" in the column, never a blank cell (07-VIS-008). |
+| 07-VIS-003 | **Predicted grade** is off by default everywhere. It is shown to T only when: the paper is gated (§05.6), the student has toggled `prefs.show_predicted_to_teacher`, and the teacher is teacher of record for a Class bound to that Course. Parents require `prefs.show_predicted_to_parent` (default `false`, 07.1). Admins never see it. Revocation is immediate and retroactive on the surface (the number disappears; any prior export is listed in the student's audit view). | Toggle test in both directions; the teacher console renders "Not shared" in the column, never a blank cell (07-VIS-008). |
 | 07-VIS-004 | **Wellbeing signals are never a role's data.** They are not exposed in any console, digest, export or API. The only path out is a §12.8 safeguarding escalation to the school's named safeguarding contact, which sends a fixed message ("A student in your school triggered our crisis flow at 23:40 today. Please follow your safeguarding policy.") with the student's name and no content, writes an audit row, and tells the student it happened unless doing so would increase risk (decision recorded, reviewed by the Trust & Safety lead). | Static test: `affect_tag` and distress fields absent from every teacher/parent/admin response schema and from `/v1/exports`; escalation fixture produces the exact string. |
 | 07-VIS-005 | **Age-band and tenant-type variations.** `13_15` (school tenants only at launch): parent role does not exist unless a guardian edge exists; school consent covers `study_data` and, if the school opted in, `digest`; `logging_level` pinned to `none` (§07.8). `16_17` consumer: self-consent where the member-state age allows; parent controls limited to Study/Quiet Hours, digest cadence and payment (11-TEN-004). `18plus`: guardian scope auto-removes on the 18th birthday, with notice to both parties, and the parent surface degrades to billing only. Tutor centres get the teacher matrix with no admin aggregates across families. | Birthday-advance test; a tutor tenant admin querying cross-student aggregates is denied. |
 | 07-VIS-006 | **Every access is audited.** Each read of another person's data writes `{actor_id, actor_role, subject_user_hash, field_class, scope_reason (assignment_id / share_token / ticket_id / safeguarding_case), at}`. The student sees this list in Settings › Memory › "Who has seen what" in plain words, newest first, and can revoke any share from that row. Bulk exports by a school admin appear as one row naming the count. | Audit completeness test: 100 synthetic accesses → 100 rows, all rendered; a read path without a `scope_reason` fails CI. |
 | 07-VIS-007 | Consent revocation propagates within one Turn to the read path, the digest queue and the teacher console cache; already-delivered digests and exports are not recalled but are listed in the audit view with their delivery date. | Revocation fixture: the next digest omits the field; the console shows "Not shared" within 60 s. |
 | 07-VIS-008 | **Copy strings** (canonical, §15.E): teacher console empty cell — "Not shared. Students choose whether to show a predicted grade."; teacher on a self-directed Mark — "This was the student's own practice. You see class summaries, not private work."; parent digest header — "Summaries only. Margin never shows parents your child's conversations."; student share sheet — "Your teacher will see this attempt, your answer and its mark. They will not see your chat."; audit row — "Ms Okafor opened your Paper 2 assignment mark · 14 Sep, 09:12 · because you submitted it to her class."; safeguarding notice to the student — "We let your school's safeguarding contact know that you might need support tonight. We did not share what you wrote." | Copy lint; every string present in the string table with a screenshot in the release checklist (§09.16). |
-
-
-<!-- END g1 -->
 
 
 # §08 Model orchestration
@@ -2885,10 +2882,10 @@ Retrieved chunks and uploads are data, never instructions (OWASP LLM01/08/09). T
 |---|---|---|
 | 08-ENS-001 | **Cross-family second mark on 100% of levels Items ≥12 marks for the first two exam series per paper** (Opus 5 primary, GPT-5.6 Sol second), then 20% random + all challenges + all seeded QA scripts once the paper is gated (JUDGING 15). Points marking: Sonnet draft + SymPy; Opus confirms on any disagreement. | Sampling config per paper with `series_count`; audit shows 100% second-marked before gate. |
 | 08-ENS-002 | Both marks run in parallel; the primary streams to the student; the second completes within 60 s. Reconciliation: identical level per AO → show primary; disagreement of exactly 1 level on one AO → show the band widened to cover both and label "examiners would differ here"; disagreement >1 level on any AO → third family (Fable 5.1, or Sol/Gemini 3.1 Pro for ZDR tenants) → if still unresolved, human queue and the Mark shows feedback and spans with **no number**. | Reconciliation fixtures for each branch; no numeric total shown on unresolved Marks. |
-| 08-ENS-003 | Self-consistency on ≥12-mark Items: n=3 primary runs with varied anchor order (temperature is not settable on Sonnet 5/Opus 5); report the modal level and the spread as the band; run-to-run identical total ≥95%, identical level 100% is a §05.5 gate. | Gate dashboard per paper. |
+| 08-ENS-003 | Self-consistency on ≥12-mark Items: n=3 primary runs with varied anchor order (temperature is not settable on Sonnet 5/Opus 5); report the modal level and the spread as the band; run-to-run identical total ≥95%, identical level 100% is a §05.6 gate. | Gate dashboard per paper. |
 | 08-ENS-004 | Generosity correction: the primary prompt carries the examiner persona and negative exemplars; signed error vs gold must stay within ±0.3/10 per paper; drift beyond triggers the instruction-refinement loop (Reflect-and-Revise on held-out scripts, never touching the grid) and a new `policy_version`. | Monthly bias audit per model and paper; drift alert tested. |
 | 08-ENS-005 | Seeded production QA: 2–5% of Mark traffic re-injects gold scripts; a question family breaching tolerance pauses within one batch, falls back to the second family with the **provisional** badge and pages the content lead. | Seed injection visible only in telemetry; auto-pause fixture. |
-| 08-ENS-006 | All paired marks (primary, second, third, human, teacher override) are stored with `agreement`, `signed_error`, `families[]` and feed the calibration page and the Tier-2 gold set (§05.5). | Row count of paired marks grows monotonically; calibration page reads from the same table. |
+| 08-ENS-006 | All paired marks (primary, second, third, human, teacher override) are stored with `agreement`, `signed_error`, `families[]` and feed the calibration page and the Tier-2 gold set (§05.6). | Row count of paired marks grows monotonically; calibration page reads from the same table. |
 | 08-ENS-007 | Challenge-a-mark: one tap → re-mark by a family not yet used → side-by-side rationale → escalate to teacher/human; targets challenge <3%, upheld <30%. | Challenge flow test; metrics on the dashboard. |
 
 ## 08.7 Degradation ladder
@@ -3136,7 +3133,7 @@ Any PR touching `prompts/`, `orchestrator/`, `marking/`, `retrieval/`, `config/r
 
 ### What the student sees
 
-**08-EVG-010 Model provenance on the Mark.** Every Mark carries a provenance chip resolving to `{model_family, model, second_marker, policy_version, pack_version, calibration_state, marked_at}` (§12.9 transparency; §05.8.1 contract). Tapping it opens "How this was marked", which names the marker in plain words ("Marked by Claude Opus 5, second-checked by GPT-5.6 Sol · scheme version 9609 P2 2026.3 · marking version 2026.09.2"). Re-marks after a version change never silently overwrite: the original Mark is kept and the new one is labelled "Re-marked on the new marking version — your earlier mark is below".
+**08-EVG-010 Model provenance on the Mark.** Every Mark carries a provenance chip resolving to `{model_family, model, second_marker, policy_version, pack_version, calibration_state, marked_at}` (§12.9 transparency; §05.2 contract). Tapping it opens "How this was marked", which names the marker in plain words ("Marked by Claude Opus 5, second-checked by GPT-5.6 Sol · scheme version 9609 P2 2026.3 · marking version 2026.09.2"). Re-marks after a version change never silently overwrite: the original Mark is kept and the new one is labelled "Re-marked on the new marking version — your earlier mark is below".
 
 **08-EVG-011 Change log.** `release_notes` (11-CICD-007) exposes, in Settings › What changed and on the calibration page, every version that altered marking, limits or Packs, with the suite results attached. A change to a paper's calibration state or to a published limit that does not appear in the log is a release-blocking defect (02-INV: zero silent limit cuts).
 
@@ -5102,7 +5099,6 @@ Why: hosting or displaying scheme wording without a licence is the takedown risk
 | 10-TCHR-008 | Every v1 capability is represented by an "In v1" line, never by a disabled control or an empty tab. | Screenshot audit of all five tabs. |
 | 10-TCHR-009 | The override flow completes on a 390 px phone in portrait. | Scripted mobile run. |
 
-<!-- END g3 -->
 
 ## 10.21 Parent digest
 **Purpose.** Give a consenting parent enough evidence to help — and nothing that turns them into a second examiner. Effort and coverage from Attempts; no transcripts, no ranking.
@@ -5335,7 +5331,58 @@ Why: 64% of US high-schoolers fear being falsely accused of AI use and ESL write
 
 **Crisis resources by region.** Config-driven, never model-generated:
 
+Author `config/crisis_resources.yaml`; the build emits `config/crisis_resources.json`, which is the file §12.4 (12-TEEN-005) reads. **The numbers below are defaults, not verified facts. Counsel and operations must confirm every line — that the service exists, that it is free, that its hours and languages are as stated, and that a minor may call it — and set `verified_on` before that region ships.** A region with `verified_on: null` is not served to any account.
+
 ```yaml
+schema: crisis_resources@1
+# The renderer exposes exactly four placeholders to the §10.24 copy — no others exist.
+placeholders:
+  resources: "services[] where show_in_card, rendered '{name} {phone} ({hours})', joined with '; '"
+  primary:   "the service with role: primary; for age_band != 18plus, the role: youth service when one exists"
+  shortcode: "the first service with sms_shortcode set; the [Text {shortcode}] action is not rendered when null"
+  emergency: "regions[].emergency; the sentence 'If you are in danger now, call {emergency}.' is dropped when null"
+regions:
+  GB:
+    emergency: "999"
+    services:
+      - {name: "Samaritans",  role: primary, phone: "116 123",      sms_shortcode: null,            hours: "24h", languages: [en], under_18: false, show_in_card: true, verified_on: null, source_url: "…"}
+      - {name: "Childline",   role: youth,   phone: "0800 1111",    sms_shortcode: null,            hours: "24h", languages: [en], under_18: true,  show_in_card: true, verified_on: null, source_url: "…"}
+      - {name: "Shout",       role: text,    phone: null,           sms_shortcode: "SHOUT to 85258", hours: "24h", languages: [en], under_18: false, show_in_card: true, verified_on: null, source_url: "…"}
+  US:
+    emergency: "911"
+    services:
+      - {name: "988 Suicide & Crisis Lifeline", role: primary, phone: "988",            sms_shortcode: "988",          hours: "24h", languages: [en, es], under_18: false, show_in_card: true, verified_on: null, source_url: "…"}
+      - {name: "Childhelp",                     role: youth,   phone: "1-800-422-4453", sms_shortcode: null,           hours: "24h", languages: [en, es], under_18: true,  show_in_card: true, verified_on: null, source_url: "…"}
+      - {name: "Crisis Text Line",              role: text,    phone: null,             sms_shortcode: "HOME to 741741", hours: "24h", languages: [en], under_18: false, show_in_card: true, verified_on: null, source_url: "…"}
+  KZ:
+    emergency: "112"
+    services:
+      - {name: "111 national children's helpline", role: youth, phone: "111", sms_shortcode: null, hours: "24h", languages: [kk, ru], under_18: true, show_in_card: true, verified_on: null, source_url: "…"}
+  RU:
+    emergency: "112"
+    services:
+      - {name: "Детский телефон доверия", role: youth, phone: "8-800-2000-122", sms_shortcode: null, hours: "24h", languages: [ru], under_18: true, show_in_card: true, verified_on: null, source_url: "…"}
+  DE: {inherits: _eu}          # every EU member ships as `{inherits: _eu}` until its own entry is verified
+  _eu:                         # not an ISO code; reachable only through `inherits`
+    emergency: "112"
+    services:
+      - {name: "116 123 emotional-support line", role: primary, phone: "116 123", sms_shortcode: null, hours: "{{per_country}}", languages: [{{per_country}}], under_18: false, show_in_card: true, verified_on: null, source_url: "…"}
+      - {name: "116 111 child helpline",         role: youth,   phone: "116 111", sms_shortcode: null, hours: "{{per_country}}", languages: [{{per_country}}], under_18: true,  show_in_card: true, verified_on: null, source_url: "…"}
+  _default:                    # no country resolved, or the resolved country has no verified entry
+    emergency: null
+    services:
+      - {name: "Find a Helpline", role: primary, phone: null, url: "https://findahelpline.com", sms_shortcode: null, hours: "24h", languages: [en], under_18: false, show_in_card: true, verified_on: null, source_url: "…"}
+```
+
+| ID | Requirement | Acceptance |
+|---|---|---|
+| 10-STAT-001 | Resolve the region in exactly this order and stop at the first hit: tenant region (`policy.tenant_region`) → account region (`profile.country`) → IP country → `_default`. UI language never selects a region; a `13_15` or `16_17` account prefers the `role: youth` service as `{primary}`. | Fixture matrix of the four resolution levels × three age bands; a KZ account inside a GB school tenant renders the GB block. |
+| 10-STAT-002 | The model never emits a helpline number, shortcode or URL. The renderer builds `{resources}`, `{primary}`, `{shortcode}` and `{emergency}` from config only; if the config is missing, unparsable, or the resolved region has no `show_in_card` service, it fails **closed** to `_default` and logs `crisis_config_fallback`. Model text matching a phone/helpline-URL regex blocks the Turn. | Delete `crisis_resources.json` in staging → the crisis card still renders the `_default` block; counter increments; 0 numbers in model output across the red-team corpus (§12.10). |
+| 10-STAT-003 | Operations re-verify every entry quarterly and before each exam series, writing `verified_on`. `pnpm safety:lint` fails the build when any served region has an entry with `verified_on` null or older than 120 days (12-TEEN-005), and names the region and service. | Backdate one `verified_on` by 121 days → CI fails with that region named. |
+| 10-STAT-004 | `Call {primary}` is a real `tel:` link and `Text {shortcode}` a real `sms:` link, built from the config values, tappable on mobile and keyboard-reachable before any other control in the card (§09 A11Y). A service with `url` and no phone renders as a link, never as copyable text. | DOM test: `href` equals `tel:` / `sms:` plus the config value; tab order puts resource links first. |
+| 10-STAT-005 | No region is served until counsel has signed off its entries and the safety case doc (11-PRIV-001) records the sign-off date; until then that country resolves to `_default`. | Region-readiness table in the safety case; a fixture for an unsigned country renders `_default`. |
+
+
 
 ## 10.25 Admin / Compiler (internal)
 **Purpose.** The internal console where Packs are built and shipped: the ingestion DAG (§06.4), the review UIs that human-confirm mapping and scheme structuring, the provenance ledger and kill switch, the per-paper calibration and gate dashboards (§05.6), eval runs (§08.9) and feature flags. It is built from the same tokens as the product (06-COMP-006) because the people who use it stare at it for eight hours a day.
@@ -6093,7 +6140,6 @@ Every string names the *reason* and offers the next action. Banned in this situa
 
 Why: every competitor will guess a grade when asked; the one that refuses, names the reason and shows the checklist is the one teachers let into the building (SYNTHESIS §5 bets 1 and 9).
 
-<!-- END g4 -->
 
 ## 12.4 Teen safety: parity with ChatGPT for Teens
 
@@ -6444,8 +6490,6 @@ Red-teaming is a release gate, not a report. The suites below live in the eval i
 **12-RED-008 — Reconstruction and inference probes.** Two standing probes outside the suites: (a) 12 weeks of default-set parent-digest fields must not permit reconstruction of gated fields above cohort-prior accuracy (12-PAR-007); (b) teacher-console aggregates must not permit identification of an individual's rung depth or wellbeing state (§10.20). Run quarterly with the manual day.
 
 **12-RED-009 — Sign-off.** Each quarterly cycle produces one signed page in `compliance/red-team/YYYY-Qn.md`: suites run, versions, pass rates, findings by severity, fixes with their regression-test ids, and open items with owners and dates. Signed by the Trust & Safety lead and the CTO; co-signed by the DPO when a finding touched personal data. This page is section 7 of the Annex III technical file (11-PRIV-005) and is cited in the school safety case. *Acceptance:* `pnpm compliance:build` fails if the newest signed page is older than 100 days, or if any finding rated S0/S1 lacks a linked regression test.
-
-<!-- END g5 -->
 
 
 # §13 Quality bar and evaluation
@@ -6902,7 +6946,139 @@ One north star, one trust metric, diagnostics that explain movement, guard-rails
 
 ### North star — Unaided Mark Gain per study hour (UMG/h)
 
+The definition is owned by §04.16 (04-NSTR-001…004) and restated here without variation: **UMG/h is, per learner per week, the change in the unaided, timed component-mark estimate on unseen Items from gated papers, divided by hours studied in the product.** Everything below is the computation, the data lineage and the display rules for that one sentence. Audit it each term against blind-marked school mocks and each August against consented actual grades (§13.8 Layers 1–2).
+
+**What counts as an unaided Mark (14-MET-001).** A Mark on an Attempt qualifies only if every condition of 04-NSTR-001 holds: `rung_reached ≤ 1`, `seen_solution = false`, `intent ≠ just_answer`, `timed = true`, the Item was never shown to this learner before (`item_first_seen_at` equals this Attempt's timestamp and the Item carries no live `seen_solution_until` in `learner_graph.items[]`, §07.1), and the Mark came from a marker whose paper is `gated` (05-GATE-002). Note the consequence and do not "fix" it: because the test is `rung_reached ≤ 1`, an Attempt that *started* above rung 1 — a novice on a 20-mark levels Item, where §04.4 sets the entry rung by mastery × item type — never qualifies. *Why:* the estimate must answer "what would this learner score alone, in the hall", and a scaffolded opening is not that, however legitimate the scaffold was.
+
+| ID | Requirement | Acceptance |
+|---|---|---|
+| 14-MET-002 | Compute UMG/h only from the Attempt, Mark and Session tables — no client event, engagement stream or self-report — as one reproducible SQL file in `metrics/umg/`, pinned to a `policy_version` and `pack_version`. | Re-running it on last week's snapshot reproduces the published number exactly (07-GRPH-001). |
+| 14-MET-003 | The scale is **raw marks on the component**: `paper.max_raw` and the per-syllabus-point tariff weights `w_s`, both read from the Pack blueprint (§06.3). Never PUM, never a grade. The raw → threshold → PUM → grade chain stays in §05.8; UMG/h stops before it. | A UMG/h value rendered with a grade letter fails the copy lint (13-DQA-010). |
+| 14-MET-004 | A **study hour** is Session time under 04-NSTR-002: minutes inside a Session that contains ≥1 Attempt per 10 minutes, idle excluded, Ask conversations excluded. Idle is 120 s with no client event (keystroke, scroll, tap, timer tick); the accumulator stops at 120 s and resumes on the next event. Timed Papers count in full for the wall-clock the timer runs, including reading time and permitted rest breaks (§05.9). Card reviews count, because a Card review writes an Attempt (§07.1 `items[]`); Reader browsing outside a Session does not. | Fixture: a 62-minute Session with a 14-minute coffee gap and one timed 45-minute paper reports 48 + 45 minutes, not 107. |
+| 14-MET-005 | **Difficulty correction is mandatory.** Every Item carries `b_item`, the cohort mean unaided proportion score on that Item, shrunk to its question-family mean with a Beta(2,2) prior until n ≥ 30 unaided Attempts. A learner's adjusted score on a point is `adj = p_observed − b_item + b̄`, where `b̄` is the paper-average difficulty from the same bank. Without it a learner who moved from specimen questions to a hard 2019 paper reads as a regression. | Replay a learner given deliberately easier Items in week 4: raw p rises, `adj` does not. |
+| 14-MET-006 | **The estimator is paired** per syllabus point: a trailing 3-week window against the preceding 3-week window. Only points with qualifying Attempts in *both* contribute; the component delta is the tariff-weighted mean of the per-point adjusted deltas. Unpaired points are coverage, never imputed. | Adding a brand-new point to the current window changes coverage, not the delta. |
+| 14-MET-007 | **Minimum n before display**: ≥6 paired syllabus points, ≥12 qualifying Attempts and ≥3 study hours in each window. Below any of these Progress shows the shortfall in plain numbers ("8 of 12 unaided attempts — no estimate yet"), never a placeholder or a smoothed guess. | Fixture at 11 Attempts shows the shortfall string; at 12 shows a number. |
+| 14-MET-008 | Report UMG/h with a bootstrap 90% interval over Items. If the interval spans zero, the learner-facing copy reads "no measurable change yet" and the internal dashboard shows the interval, not the point estimate. | Dashboard cell renders the interval for every cohort row. |
+
 ```python
+def umg_per_hour(user, course, paper, now, pack):                 # 14-MET-002/005/006
+    cur  = attempts(user, paper, now - 21, now)                   # trailing 3 weeks (04-NSTR-001)
+    base = attempts(user, paper, now - 42, now - 21)              # paired comparison window
+    q    = lambda a: (a.rung_reached <= 1 and not a.seen_solution
+                      and a.intent != "just_answer" and a.timed
+                      and a.item_first_seen_at == a.created_at
+                      and a.marker_gate_status == "gated")        # 14-MET-001
+    b_bar  = pack.paper[paper].mean_item_difficulty
+    points = paired_points(cur, base, q)                          # ≥6 required (14-MET-007)
+    delta  = 0.0
+    for s in points:
+        adj_cur  = mean(a.marks/a.tariff - a.item.b + b_bar for a in cur[s]  if q(a))
+        adj_base = mean(a.marks/a.tariff - a.item.b + b_bar for a in base[s] if q(a))
+        delta   += pack.paper[paper].w[s] * (adj_cur - adj_base)  # tariff-weighted
+    marks = delta * pack.paper[paper].max_raw                     # exam-board raw scale
+    hours = study_hours(user, course, now - 21, now)              # 04-NSTR-002, 14-MET-004
+    return dict(umg_per_hour = marks / hours, marks = marks, hours = hours,
+                paired_points = len(points), ci90 = bootstrap(cur, base, q))
+```
+
+**What UMG/h is not (14-MET-009).** It is not practice-score gain, and that distinction is why the product exists: Bastani et al. (2025, n≈1,000) found an unguarded GPT interface raised *practice* performance +48% while lowering closed-book exam performance, and the guard-railed tutor raised practice +127% with no exam harm. A metric counting aided practice would have rated the harmful arm the winner. UMG/h is therefore also not Marks issued, minutes, messages, DAU, mastery pips lit, Cards reviewed, or any score on an Item whose solution the learner has seen. When UMG/h is noisy the answer is 14-MET-007, never a proxy.
+
+**Worked example — Amina, 9609 AS, Paper 2, four weeks (14-MET-010).** Baseline window = week 1, current window = week 4, `max_raw = 60` and `b̄ = 0.50` read from the Pack (illustrative; never hard-code either). Six syllabus points are paired.
+
+| Syllabus point | `w_s` | Wk-1 `p` | Wk-1 `b` | Wk-1 `adj` | Wk-4 `p` | Wk-4 `b` | Wk-4 `adj` | Δ adj |
+|---|---|---|---|---|---|---|---|---|
+| 9609/3.2.1 Cash-flow forecasting | 0.18 | 0.40 | 0.55 | 0.35 | 0.70 | 0.48 | 0.72 | +0.37 |
+| 9609/3.1.2 Break-even | 0.15 | 0.50 | 0.50 | 0.50 | 0.72 | 0.55 | 0.67 | +0.17 |
+| 9609/2.3.1 Motivation theories | 0.22 | 0.45 | 0.44 | 0.51 | 0.55 | 0.46 | 0.59 | +0.08 |
+| 9609/4.1.3 Marketing mix | 0.15 | 0.60 | 0.58 | 0.52 | 0.62 | 0.55 | 0.57 | +0.05 |
+| 9609/1.4.2 Stakeholders | 0.12 | 0.55 | 0.50 | 0.55 | 0.50 | 0.45 | 0.55 | 0.00 |
+| 9609/5.2.1 Sources of finance | 0.18 | 0.35 | 0.42 | 0.43 | 0.60 | 0.50 | 0.60 | +0.17 |
+
+Tariff-weighted adjusted score: week 1 = 0.4716, week 4 = 0.6194, so `delta` = 0.1478 of the component, or **8.9 raw marks of 60**. Study hours: 4.5 + 5.0 + 4.0 + 5.5 = 19.0, of which the 14.5 hours after the baseline window are the denominator. **UMG/h = 8.9 ÷ 14.5 = 0.61 raw marks per study hour**, 90% interval 0.31–0.88 — displayed, because six points and 14 qualifying Attempts clear 14-MET-007. Read it as: at this rate the next 20 hours are worth roughly 12 marks on Paper 2. Progress states that and, only where the paper is gated and 05-PRED-003 unlocks, adds `marks_to_next` from §05.8; it never converts UMG/h into a grade itself. Note the diagnostic inside the example: 1.4.2 Stakeholders moved 0.00 while its `b` fell — the learner is being fed easier Items on a point that is not improving, a Plan bug (§07.5), not a metric one.
+
+### Trust metric — predicted-vs-actual grade error
+
+| ID | Requirement | Acceptance |
+|---|---|---|
+| 14-MET-011 | The trust metric is the error between the last predicted-grade range (§05.8) issued before the paper and the **consented actual grade** (05-PRED-007). Computed only on learners who sat the real paper and consented to store the grade; never modelled, never imputed, never extrapolated to non-consenters. | Cohort size published beside every figure; a paper with n < 30 consented grades publishes n and no percentage. |
+| 14-MET-012 | Published **per paper per series** on the calibration page (05-GATE-008) and in the product wherever the calibration line appears (12-TRAN-001/002). Fields: n, share within one grade, share exact, signed bias in grades, series, policy version. The marketing number is this number (13-MARK-040, 14-GTM-011). | Marketing site pulls it by API; a static number fails the build. |
+| 14-MET-013 | **Target (SYNTHESIS §12):** within one grade for ≥80% of active learners by the second series. June 2027 is measured and published with no target attached; the target binds from June 2028. From the first series a second bound applies: signed bias inside ±0.3 grades — systematic over-prediction is the failure students already name about incumbents ("predicts me like 16 marks and in reality I'll get 3"). | Series Review minutes record both numbers per paper. |
+| 14-MET-014 | **On a miss** (below 80% within one grade from the second series, or signed bias outside ±0.3 in any series): that paper's predicted-grade panel reverts to the 05-GATE-004 state — components, marks-to-next and feedback stay, the grade range disappears — until the estimator is re-fit and re-passes; the calibration page states the miss and the date it was found; the paper's number is withdrawn from all marketing within 24 h; an incident is opened under 00-REP-003. A quiet re-fit published as a fresh number is prohibited. | Drill: inject a +0.5-grade bias in staging → panel reverts, page updates, marketing API returns `withdrawn`. |
+
+### Diagnostics that explain movement
+
+Diagnostics are read *together with* the north star to say why it moved; none is a target on its own (04-NSTR-004). Expected direction is what a healthy build shows; the opposite direction with UMG/h flat is the interesting case.
+
+| ID | Diagnostic | Computation and owning section | Expected direction | Reads as |
+|---|---|---|---|---|
+| 14-MET-020 | Qualifying attempt rate | Qualifying Attempts (14-MET-001) per study hour; §04.1, §04.3 | Up | UMG/h up with the rate flat = better teaching; up only with the rate = more practice, check leak |
+| 14-MET-021 | Entry-rung distribution | Share of Attempts by `entry_rung`, §04.4 | Mean falling as mastery rises | A rising mean with UMG/h flat means the ladder is opening too high or mastery is stale |
+| 14-MET-022 | Misconception clear rate | `misconceptions[]` moving `confirmed → resolved` within 14 days, §04.6, §07.1 | Up, ≥60% at 14 days | The single most direct causal path from a tutoring change to marks |
+| 14-MET-023 | Card retention at exam date | Mean `retrievability_at_exam` over Exam-ready and Secure points (§04.12, §07.1); 7/28-day unaided recall ≥85% / ≥80% | Up through the phase; ≥0.90 at T−7 | Falling while UMG/h rises means gains that will not survive to the hall |
+| 14-MET-024 | Calibration Brier | `calibration.brier_overall_weekly[]`, §04.14, §07.1 | Down over 8 weeks; predict–postdict gap narrowing | Rising Brier with UMG/h up is the debt-guard signal 5 forming (§04.11) |
+| 14-MET-025 | Timed-paper completion | Started Timed Papers finished inside the timer, §05.9 | Up; ≥70% by Phase C | The bridge between practice marks and hall marks; flat completion caps UMG/h |
+| 14-MET-026 | Transfer and mastery velocity | Unseen Items in an `equivalent_to` sibling point (§07.6); days Shaky → Secure (§07.2) | Up / down respectively | Transfer flat while UMG/h rises means Items are being memorised, not points |
+
+### Guard-rails that are never optimised
+
+**14-MET-030 — No guard-rail may be traded for north-star movement, in any experiment, release or quarter.** An experiment whose registered guard-rail breaches its threshold is reverted regardless of its primary outcome (13-EFF-001/002); a release whose guard-rail is red does not ship on the strength of a UMG/h gain. There is no exception for launch weeks or exam season. The **Friday metrics review** (14-MET-052) enforces this: every guard-rail is read out by its owner before any north-star number is discussed, and the minutes record the order.
+
+| ID | Guard-rail | Number and owning section | Alarm behaviour |
+|---|---|---|---|
+| 14-MET-031 | Answer-leak rate | < 5% overall, no persona > 10%, no syllabus > 8% (13-PED-010); production sample 1% of Learn Turns, 2% in essay subjects (13-PED-030) | > 5% on two consecutive weekly samples pages the learning scientist and freezes prompt promotion (13-PED-031); a suite regression opens an incident (00-REP-003) |
+| 14-MET-032 | Praise inflation | < 5% of Turns, < 3% in quantitative subjects (13-PED-015) | Blocks the release; a production week above threshold holds the tutoring prompt version pending review |
+| 14-MET-033 | Challenge rate and upheld rate | Challenge < 3% of Marks; upheld ≥ 70%, i.e. overturned < 30% (05-CHAL-005) | A paper above 30% overturn in a month is flagged on the gate dashboard and re-standardised (05-GATE-006); challenge rate above 3% is a marking-trust incident, not a support queue |
+| 14-MET-034 | Debt-guard retention cost | ≤ 2 pp of 30-day product retention (04-DEBT-003, 13-EFF-003) | Kill-switch on the guard arm at −2 pp, then **redesign, not silent disable**; the pp delta stays on the dashboard while the redesign runs |
+| 14-MET-035 | Wellbeing flags | Sessions with ≥1 Attempt starting after 22:00 in exam week must trend flat or down (12-WELL-004); share of learners at `wellbeing_state = elevated` (12-WELL-001) reported weekly | An upward trend across two weeks in season is an agenda item with a named owner; `elevated` share is never a target in either direction and never leaves the learner plane (12-WELL-007) |
+| 14-MET-036 | Cost per MAU | Blended free ≤ $1.00 in season, ≤ $0.60 off-season; median paid $1.6–2.6/month; heavy $8–13; `p99_to_median_ratio` ≤ 6 (08-COST-003, SYNTHESIS §12) | Two consecutive months above triggers a quota review (11-COST-009), never a silent degradation; the never-killed-for-cost behaviours in §08.10 stay up |
+| 14-MET-037 | TTFT and streaming latency | Tutoring Turn TTFT p50 < 800 ms / p95 < 1.5 s; trivial p95 < 1.0 s; levels Mark `mark_header` p95 < 5 s (11-PERF-001) | Breach for 15 minutes in production pages the owning service (11-OBS-005); breached at two consecutive weekly perf reviews opens a P2 with a 14-day due date (11-PERF-010) |
+| 14-MET-038 | Reported-never-targeted set | DAU, minutes, messages, Sessions (04-NSTR-004); zero silent limit cuts; zero EU-tenant requests to non-EU endpoints (SYNTHESIS §12) | These appear with no threshold and no goal; an experiment naming any of them as a primary outcome is rejected by the registry schema (13-EFF-002) |
+
+### Per-feature metrics
+
+**14-MET-040** Every major surface names, before it ships, the one metric that would tell you to cut or rebuild it, and that metric is on the weekly review from its first production week. A surface with no cut metric does not pass the §13.7 definition of done.
+
+| Surface (§10) | The one metric | Cut / rebuild threshold |
+|---|---|---|
+| Session (Learn) | Share of Sessions producing ≥1 qualifying unaided Attempt within 10 minutes | < 40% for a month: the gate and ladder are producing conversation, not Attempts — rebuild the opening, not the tone |
+| Practise | Paired adjusted-score delta on points practised vs matched untouched points (14-MET-005/006) | ≤ 0 at 8 weeks on a syllabus: Practise is generating Items nobody learns from |
+| Mark | Share of Marks followed by a qualifying unaided Attempt on the same syllabus point within 72 h | < 50%: the Mark is a verdict, not a teaching act — the AO cards and next-step line are wrong |
+| Papers (Timed Paper runner) | Timed-paper completion (14-MET-025) and the trust-metric delta between learners with ≥2 timed papers and those with none | Completion < 60%, or no trust-metric advantage over a series: the runner is costing hours it does not return |
+| Cards | 28-day unaided recall on scheduled Items and `retrievability_at_exam` versus matched unscheduled points | No retention advantage over matched points at 28 days: FSRS parameters or Card quality, and if neither fixes it, cut |
+| Plan | Predicted-grade movement per study hour, mark-yield arm vs weakest-topic arm (13-EFF-003) | Arm difference interval spanning zero at the registered n: the ranking is decoration — ship the simpler planner |
+| Progress | Change in blocks completed in the 7 days after a Progress visit versus matched non-visitors | No change, or a rise in `wellbeing_state = watch` among visitors: Progress is anxiety with charts |
+| Teacher console | Confirmed teacher overrides entering Tier 2 gold per active teacher per month (05-GATE-009), with activation per school > 60% (§14.4) | < 2 overrides per active teacher per month: the console is not producing the calibration moat it exists for — rescope to the calibration queue alone |
+
+### Dashboards, cadence, ownership and retirement
+
+| ID | Requirement | Acceptance |
+|---|---|---|
+| 14-MET-050 | Three dashboards, no others: **Ops** (daily), **Learning** (weekly), **Trust** (per series). Any fourth dashboard request is answered by adding a row to one of the three. | Dashboard inventory in `metrics/registry.yaml` has exactly three surfaces. |
+| 14-MET-051 | **Daily — Ops.** TTFT and end-to-end p50/p95 per route, cost against forecast with the §08.10 alarms, cache-read share, seeded-QA breaches per paper (05-GATE-005), leak alerts, incident queue, crash-free sessions. A 15-minute weekday check, daily including weekends from T−21 of any MVP syllabus to that series' last paper. Owner: **CTO**. | Standing agenda plus a written one-line outcome per day in season. |
+| 14-MET-052 | **Weekly — Learning (Friday, with 00-REP-001).** In fixed order: every guard-rail (14-MET-031…038) read by its owner; then the north star by cohort with intervals; then the diagnostics; then the per-feature cut metrics; then live experiments and their guard-rail movement. Chaired by the **founder**; no number is presented by the person whose gate data it is (14-REL-003). | The weekly report's section 1 is the guard-rail block; a report that leads with the north star is rejected. |
+| 14-MET-053 | **Per series — Trust.** After each results day: the trust metric per paper per series, the calibration page refresh (05-GATE-008), per-paper gate and badge states, the Layer 2 analysis (§13.8), the marketing-number sync, and any withdrawn numbers. Owner: **content lead** with the contracted examiners; the learning scientist signs the Layer 2 write-up. | Series Review minutes published internally within 14 days of results day. |
+| 14-MET-054 | **One owner per number**, taken from the §14.7 role table and stored in the registry: north star and diagnostics → learning scientist; trust metric and marking guard-rails → content lead; leak and praise → learning scientist; cost and latency → CTO; wellbeing → DPO with the learning scientist; per-feature cut metrics → the surface's owning role; commercial metrics → founder. The owner may not also own the pipeline that produces the number where §13 requires separation. | Registry export lists `metric_id, owner_role, dashboard, source_query, threshold` with no null owner. |
+| 14-MET-055 | **Retirement is a written act.** A metric is retired only at a Friday review, only by its owner, with the reason and — where it was a guard-rail — the replacement guard-rail live before the retirement takes effect. Guard-rails in 14-MET-031…038 may not be retired at all while the behaviour they protect ships; they may only be tightened. Retirement is recorded with the date and the review that agreed it. | `git log metrics/registry.yaml` shows every retirement with a review date in the commit body. |
+
+```yaml
+# metrics/registry.yaml — one entry per number on any dashboard (14-MET-054/055)
+- metric_id: umg_per_hour
+  title: "Unaided Mark Gain per study hour"
+  kind: north_star                    # north_star | trust | diagnostic | guard_rail | feature_cut
+  owner_role: learning_scientist      # §14.7 role table; never a person's name, never empty
+  dashboard: learning                 # ops | learning | trust
+  source_query: metrics/umg/umg_per_hour.sql
+  source_sections: ["04.16", "05.6", "07.1"]
+  scale: "raw marks per study hour, component scale (14-MET-003)"
+  min_n: { paired_points: 6, attempts: 12, hours: 3 }
+  threshold: null                     # a north star has a direction, not a gate
+  never_optimised: false
+  introduced: "2027-01-15"
+  retired: null                       # {date, reason, replacement_metric_id, review_date}
+```
+
+**14-MET-056 — A metric with no owner is deleted.** Not archived, not kept for context, not left on a dashboard because someone once asked for it: the registry job fails the build when any rendered number lacks an `owner_role`, and the number leaves the dashboard in the same commit. An unowned number is one nobody will act on, and a dashboard of those is how a team learns to ignore its own instruments.
+
 
 ## 14.6 Unit economics and pricing
 
@@ -7073,8 +7249,6 @@ Twenty risks, each with a signal you can see before the damage and a mitigation 
 | 14-RISK-002 | A row goes `red` when its early signal fires. A red row gets a named owner and a dated action at the next Monday review, and appears in the founder's weekly report (§00.6) until it clears. Two consecutive red weeks on any H-impact row escalates to a go/no-go on the affected release. | Weekly report contains every red row with its action |
 | 14-RISK-003 | No risk may be closed because it "hasn't happened"; a row closes only when its mitigation is shipped **and** its signal has been green for one full exam cycle. | Closure record names the shipped requirement ID |
 | 14-RISK-004 | Adding a risk requires an early signal that is already instrumented, or a ticket to instrument it. A risk without a signal is filed as an open question in §15.H instead. | Register lint |
-
-<!-- END g2 -->
 
 
 # §15 Appendices
@@ -7489,7 +7663,518 @@ Templates give the **shape** of a `mark_scheme_items` record for each question f
 
 ### 15.B.1 Levels-based 20-mark essay (Cambridge 9609 Paper 2 Section B / Paper 4 pattern)
 
+`{{…}}` is a compiler placeholder: legal in the template, a build error in a `mapped` Pack (15.B preamble). The grid restated below is the one printed in 05.3 for `ms_9609_41_MJ25_Q1@3`, plus the Level 0 band that 15-RUBR-001 makes mandatory; do not re-derive band ranges here.
+
 ```yaml
+template_id: tpl_levels_essay_20
+template_version: 1
+produces: MarkScheme@3                  # 15.C.2; the compiler strips these three keys and validates the rest
+applies_to: "<code>:P<n>:levels:20:<command_word>"   # question_family, 15-TAG-002
+record:
+  id: "ms_{{paper_slug}}_{{question_no}}@{{scheme_version}}"
+  question_id: "{{question_id}}"
+  part: null                            # null on a whole-essay item; "b" where a series splits the essay
+  syllabus_version: "{{code}}:{{first_year}}-{{last_year}}"
+  paper: {{paper_number}}
+  marks_total: 20
+  command_word: "{{command_word}}"      # verbatim from the paper: Evaluate | Discuss | Assess | Recommend
+  command_word_def_ref: "syl_{{code}}_{{first_year}}#cw#{{command_word}}"
+  ao_ceiling: AO4                       # from the Pack command-word table (15-CMD-002), never inferred
+  scheme_type: levels
+  generic_principles_ref: "cambridge:gmp:{{gmp_year}}"
+  wording_status: own_paraphrase        # licensed_verbatim only under a licence row (§06.9)
+  context:                              # required whenever the paper carries an insert or case study
+    case_study_id: "{{insert_id}}"
+    business_name: "{{business_name}}"
+    case_facts:                         # OWN summary of the insert, not insert text (05-SCHM-008).
+      - "{{fact_1}}"                    # This array is the ONLY ground truth for the cover-the-name
+      - "{{fact_2}}"                    # test in application_check (05-MARK-006).
+  marking_points: []                    # MUST be empty: scheme_type levels forbids points (15.C.2 allOf)
+  levels:                               # one entry per AO in the paper's grid, in AO order
+    - ao: AO1
+      max: 3
+      bands:
+        - {level: 2, range: [2, 3], descriptor: "Developed knowledge of relevant concepts",
+           evidence_rule: "≥2 accurate concepts or one concept with its mechanism; 3 needs both concepts defined without reusing the term"}
+        - {level: 1, range: [1, 1], descriptor: "Limited knowledge", evidence_rule: "1 accurate concept"}
+        - {level: 0, range: [0, 0], descriptor: "No creditable knowledge",
+           evidence_rule: "no span meets the Level 1 rule"}          # 15-RUBR-001: never omit this band
+    - ao: AO2
+      max: 2
+      bands:
+        - {level: 2, range: [2, 2], descriptor: "Developed application to the business",
+           evidence_rule: "≥2 spans pass cover-the-name against context.case_facts"}
+        - {level: 1, range: [1, 1], descriptor: "Limited application",
+           evidence_rule: "1 span passes cover-the-name"}
+        - {level: 0, range: [0, 0], descriptor: "No creditable application",
+           evidence_rule: "0 spans pass cover-the-name; naming the business is not application"}
+    - ao: AO3
+      max: 8
+      bands:
+        - {level: 2, range: [4, 8], descriptor: "Developed analysis: two or more links in the chain",
+           evidence_rule: "≥1 chain with ≥2 counted causal links; 7–8 needs ≥2 developed chains on both sides of the question"}
+        - {level: 1, range: [1, 3], descriptor: "Limited analysis: one link in the chain",
+           evidence_rule: "≥1 chain with exactly 1 link"}
+        - {level: 0, range: [0, 0], descriptor: "No creditable analysis",
+           evidence_rule: "no connective and no causal structure in any span; reason_code ASSERTION_NO_LINK"}
+    - ao: AO4
+      max: 7
+      bands:
+        - {level: 3, range: [6, 7], descriptor: "Effective evaluation: a developed, contextual judgement drawing together developed evaluative comments that balance key arguments",
+           evidence_rule: "committed judgement + weighing statement + case condition; 7 needs the decisive factor named from context.case_facts"}
+        - {level: 2, range: [3, 5], descriptor: "Developed evaluation: judgement supported by some evaluative comment",
+           evidence_rule: "judgement + ≥1 supported evaluative comment"}
+        - {level: 1, range: [1, 2], descriptor: "Limited evaluation: unsupported judgement or weak evaluative comment",
+           evidence_rule: "judgement asserted without support"}
+        - {level: 0, range: [0, 0], descriptor: "No creditable evaluation",
+           evidence_rule: "no judgement anywhere in the response"}
+  best_fit: true                        # Cambridge; boards.level_procedure = best_fit (05.4)
+  ecf_policy: {allowed: false, scope: none}
+  penalties: {sig_fig_once_per_paper: false, units_missing: null}
+  caps: []                              # paper-level ceilings only, e.g. "answer not on the case study";
+                                        # never use caps for the command-word cap, which is 05-MARK-005
+  blocks: []                            # points-only; empty on every levels record
+  indicative_content:                   # a guide, never a checklist (05-MARK-003)
+    - {id: IC1, text: "{{indicative_line}}", ao_hint: AO3}
+  diagram_required: false
+  diagram_checklist: {}
+  vision_status: not_applicable
+  exemplars_ref: ["{{exemplar_prefix}}_*"]      # 3–5 scored anchors, Tier 0 first (05-PIPE-002)
+  examiner_insight_refs: ["{{insight_id}}"]
+  tolerance: 2                          # 12–20 marks (05-MARK-009); do not set a per-question value
+  source: {document_id: "{{doc_id}}", page: {{page}}, trust_rank: 3, licence_basis: own}
+```
+
+**How the marker fills it.** The compiler emits one record per essay part; a content editor fills `context.case_facts` from the insert in our own words and confirms the band ranges against the official grid. The marker never reads this file as prose — it reads `levels[]` in AO order, evaluates each `evidence_rule` against the transcript, and places within the band from the rule's own margin clause ("just met" → bottom of range, "met with margin" → top). Sum by code, never by the model (05-PIPE-004). `AO4` cannot be lifted by `AO3` evidence, and `command_word_check.met = false` caps AO4 before any band is chosen (05-MARK-005). The instance this template produces is exactly the shape of the Mark in 05.12(a); if a filled record cannot reproduce that Mark's per-AO levels, the fill is wrong, not the template.
+
+### 15.B.2 Points-based short answer, 5 marks (Cambridge 9609 Paper 1 Section A pattern)
+
+```yaml
+template_id: tpl_points_short_5
+template_version: 1
+produces: MarkScheme@3
+applies_to: "<code>:P<n>:points:5:<command_word>"
+record:
+  id: "ms_{{paper_slug}}_{{question_no}}@{{scheme_version}}"
+  question_id: "{{question_id}}"
+  part: null                            # or "a"/"b" where the series splits 5 into 2 + 3 (05-GEN-001);
+                                        # the compiler emits two records and the engine sums them
+  syllabus_version: "{{code}}:{{first_year}}-{{last_year}}"
+  paper: {{paper_number}}
+  marks_total: 5
+  command_word: "{{command_word}}"      # Analyse | Explain | Describe
+  command_word_def_ref: "syl_{{code}}_{{first_year}}#cw#{{command_word}}"
+  ao_ceiling: AO3
+  scheme_type: points
+  generic_principles_ref: "cambridge:gmp:{{gmp_year}}"
+  wording_status: own_paraphrase
+  context: null                         # non-null only on data-response papers
+  marking_points:
+    - id: K1
+      type: B                           # B = independent; M/A/DM/DB/FT per 05-PROC-007
+      marks: 1
+      ao: AO1
+      credit_text: "{{term}} identified"
+      conjunctive_conditions:           # ← the conjunctive point required by 15-RUBR-002
+        - "{{definition_atom_1}}"       # e.g. "one item/order at a time"
+        - "{{definition_atom_2}}"       # e.g. "made to the customer's own specification"
+      all_required: true                # half the definition scores 0 and the engine names the failed atom
+      depends_on: null
+      ecf_allowed: false
+      cao: false
+      isw: false
+      accept: ["{{synonym_1}}", "{{synonym_2}}"]
+      reject: ["{{near_miss}}"]
+      ignore: []
+      alternatives: []                  # "//" alternatives, credited once (05-SCHM-003)
+      ora: false
+      notes: ""
+      diagram_required: false
+    - id: K2
+      type: B
+      marks: 1
+      ao: AO1
+      credit_text: "{{advantage}} named and attributed to a feature of {{term}}"
+      conjunctive_conditions: ["an advantage is named", "attributed to {{feature_list}}"]
+      all_required: true
+      depends_on: null
+      ecf_allowed: false
+      cao: false
+      isw: false
+      accept: []
+      reject: []
+      ignore: []
+      alternatives: []
+      ora: false
+      notes: ""
+      diagram_required: false
+    - id: AN1
+      type: B
+      marks: 1
+      ao: AO3
+      credit_text: "first link: the advantage explained by a mechanism"
+      conjunctive_conditions: []
+      all_required: true
+      depends_on: null
+      ecf_allowed: false
+      cao: false
+      isw: false
+      accept: []
+      reject: []
+      ignore: []
+      alternatives: []
+      ora: false
+      notes: "A connective without a mechanism is not a link (05-PROC-002)."
+      diagram_required: false
+    - id: AN2
+      type: DM                          # dependent: no second link without a first
+      marks: 1
+      ao: AO3
+      credit_text: "second link: mechanism → business behaviour or market effect"
+      conjunctive_conditions: []
+      all_required: true
+      depends_on: AN1
+      ecf_allowed: false
+      cao: false
+      isw: false
+      accept: []
+      reject: []
+      ignore: []
+      alternatives: []
+      ora: false
+      notes: ""
+      diagram_required: false
+    - id: AN3
+      type: DM
+      marks: 1
+      ao: AO3
+      credit_text: "third link: → financial or competitive consequence (margin, profit, share)"
+      conjunctive_conditions: []
+      all_required: true
+      depends_on: AN2
+      ecf_allowed: false
+      cao: false
+      isw: false
+      accept: []
+      reject: []
+      ignore: []
+      alternatives: []
+      ora: false
+      notes: ""
+      diagram_required: false
+  levels: []                            # MUST be empty on a points record
+  best_fit: false
+  ecf_policy: {allowed: false, scope: none}
+  penalties: {sig_fig_once_per_paper: false, units_missing: null}
+  caps: []
+  blocks: []
+  indicative_content: []
+  diagram_required: false
+  diagram_checklist: {}
+  vision_status: not_applicable
+  exemplars_ref: ["{{exemplar_prefix}}_*"]
+  examiner_insight_refs: ["{{insight_id}}"]
+  tolerance: 1                          # ≤8 marks (05-MARK-009)
+  source: {document_id: "{{doc_id}}", page: {{page}}, trust_rank: 3, licence_basis: own}
+```
+
+**How the marker fills it.** Five points, five marks, one span each. The engine matches each point to a quoted span, then resolves `depends_on` in code: `AN3` cannot be awarded without `AN2`, and `AN2` without `AN1`, regardless of what the model proposes. `K1` is the conjunctive case: both atoms must be evidenced, and the rendered line must name the atom that failed in the scheme's own words, never "incomplete" (05-WRKD-003). Evaluation written into an `Analyse` item earns nothing and fires `EVAL_IN_ANALYSE` with the fixed line from 05-PROC-004 — that behaviour is the command word's, not this record's, so do not encode it as a sixth point. The filled instance is the scheme behind 05.12(b).
+
+### 15.B.3 Mechanism marking points, M1–M5 (Cambridge 9701 organic mechanism pattern)
+
+The five points and their atoms are restated verbatim from the record printed in 05.3 (`ms_9701_21_MJ15_Q4b@2`), which came from the founder's marking-point file; a mechanism template that renumbers or re-splits them is wrong.
+
+```yaml
+template_id: tpl_mechanism_5
+template_version: 1
+produces: MarkScheme@3
+applies_to: "<code>:P<n>:points:5:describe"        # nucleophilic addition, addition–elimination,
+                                                   # electrophilic substitution, S_N1/S_N2
+record:
+  id: "ms_{{paper_slug}}_{{question_no}}@{{scheme_version}}"
+  question_id: "{{question_id}}"
+  part: "{{part}}"
+  syllabus_version: "{{code}}:{{first_year}}-{{last_year}}"
+  paper: {{paper_number}}
+  marks_total: 5
+  command_word: "Describe"
+  command_word_def_ref: "syl_{{code}}_{{first_year}}#cw#Describe"
+  ao_ceiling: AO2
+  scheme_type: points
+  generic_principles_ref: "cambridge:gmp:{{gmp_year}}"
+  wording_status: own_paraphrase
+  context: null
+  marking_points:
+    # Every point here is conjunctive: a curly arrow is creditable only together with the
+    # electron source it starts from. Splitting an atom pair into two 0.5-mark points is a
+    # build error — the board awards the pair or nothing (05-SCHM-002).
+    - id: M1
+      type: B
+      marks: 1
+      ao: AO1
+      credit_text: "lone pair on the nucleophile and a curly arrow from that lone pair to the carbonyl carbon"
+      conjunctive_conditions:
+        - "lone pair drawn on {{nucleophile}}"
+        - "curly arrow originates at the lone pair"
+        - "arrow terminates at the carbonyl C"
+      all_required: true
+      depends_on: null
+      ecf_allowed: false
+      cao: false
+      isw: false
+      accept: ["δ+ shown on carbonyl C"]
+      reject: ["arrow from the negative charge sign"]
+      ignore: []
+      alternatives: []
+      ora: false
+      notes: "Concerted attack; no intermediate before M3."
+      diagram_required: true
+    - id: M2
+      type: B
+      marks: 1
+      ao: AO1
+      credit_text: "partial charges on C=O and a curly arrow from the C=O bond to O"
+      conjunctive_conditions: ["δ+ on C and δ− on O", "arrow from the π bond to O"]
+      all_required: true
+      depends_on: null
+      ecf_allowed: false
+      cao: false
+      isw: false
+      accept: []
+      reject: []
+      ignore: []
+      alternatives: []
+      ora: false
+      notes: ""
+      diagram_required: true
+    - id: M3
+      type: B
+      marks: 1
+      ao: AO1
+      credit_text: "intermediate with negative charge on O"
+      conjunctive_conditions: ["tetrahedral intermediate drawn", "charge shown on O"]
+      all_required: true
+      depends_on: null
+      ecf_allowed: false
+      cao: false
+      isw: false
+      accept: []
+      reject: []
+      ignore: []
+      alternatives: []
+      ora: false
+      notes: ""
+      diagram_required: true
+    - id: M4
+      type: DB                          # dependent: the protonation step needs the intermediate
+      marks: 1
+      ao: AO1
+      credit_text: "lone pair on O⁻ with arrow to H, and arrow from H–CN bond to C"
+      conjunctive_conditions: ["arrow lone pair→H", "arrow H–CN bond→C"]
+      all_required: true
+      depends_on: M3
+      ecf_allowed: false
+      cao: false
+      isw: false
+      accept: []
+      reject: []
+      ignore: []
+      alternatives: []
+      ora: false
+      notes: ""
+      diagram_required: true
+    - id: M5
+      type: B
+      marks: 1
+      ao: AO1
+      credit_text: "{{catalyst}} regenerated"
+      conjunctive_conditions: []
+      all_required: true
+      depends_on: null
+      ecf_allowed: false
+      cao: false
+      isw: false
+      accept: []
+      reject: []
+      ignore: []
+      alternatives: ["HCN shown as the proton source with CN⁻ shown afterwards"]
+      ora: false
+      notes: ""
+      diagram_required: false
+  levels: []
+  best_fit: false
+  ecf_policy: {allowed: false, scope: none}
+  penalties: {sig_fig_once_per_paper: false, units_missing: null}
+  caps: []
+  blocks: []
+  indicative_content: []
+  diagram_required: true
+  diagram_checklist:                    # the VLM's structured description is checked against this
+    arrows: [{from: "{{nucleophile}} lone pair", to: "carbonyl C"},
+             {from: "C=O π bond", to: "O"},
+             {from: "O⁻ lone pair", to: "H"},
+             {from: "H–{{leaving}} bond", to: "{{leaving}}"}]
+    charges: ["δ+ on carbonyl C", "δ− on O", "full − on O in the intermediate"]
+    labels: ["tetrahedral intermediate"]
+    axes: []
+    curves: []
+    shifts: []
+    intersections: []
+  vision_status: provisional_teacher_confirm   # 06-TEN-003: T5 families ship provisional; no number
+                                              # until a ≥300-item diagram gold set passes 05-GATE-002
+  exemplars_ref: ["{{exemplar_prefix}}_*"]
+  examiner_insight_refs: ["{{insight_id}}"]
+  tolerance: 1
+  source: {document_id: "{{doc_id}}", page: {{page}}, trust_rank: 3, licence_basis: user}
+```
+
+**How the marker fills it.** The handwriting pipeline produces a structured arrow/charge description (05-HAND-007); the engine matches it atom by atom against `conjunctive_conditions`, then resolves `M4`'s dependency on `M3` in code. A student who draws the arrow but not the lone pair loses `M1` entirely, and the Mark says which atom was missing. Because `vision_status = provisional_teacher_confirm`, these Marks render the band and the provisional banner and never a number (15-TAG-007) — do not build a path that shows one. The founder's file already holds ≈20 mechanisms in this exact question→points shape; convert them through the paste-to-structured tool (§06.7), not by retyping.
+
+### 15.B.4 Practical planning / experimental design (Cambridge 9702 Paper 5 pattern)
+
+```yaml
+template_id: tpl_practical_plan_15
+template_version: 1
+produces: MarkScheme@3
+applies_to: "<code>:P5:points:15:design"           # 9702/9701/9700 planning; 100% AO3
+record:
+  id: "ms_{{paper_slug}}_{{question_no}}@{{scheme_version}}"
+  question_id: "{{question_id}}"
+  part: null
+  syllabus_version: "{{code}}:{{first_year}}-{{last_year}}"
+  paper: 5
+  marks_total: 15
+  command_word: "Design"                # per-syllabus word; the 15.D table is a build seed (15-CMD-001)
+  command_word_def_ref: "syl_{{code}}_{{first_year}}#cw#Design"
+  ao_ceiling: AO3
+  scheme_type: points
+  generic_principles_ref: "cambridge:gmp:{{gmp_year}}"
+  wording_status: own_paraphrase
+  context: null
+  marking_points:
+    - {id: P1,  type: B, marks: 1, ao: AO3, credit_text: "independent variable identified", conjunctive_conditions: [], all_required: true, depends_on: null, ecf_allowed: false, cao: false, isw: false, accept: [], reject: [], ignore: [], alternatives: [], ora: false, notes: "", diagram_required: false}
+    - {id: P2,  type: B, marks: 1, ao: AO3, credit_text: "dependent variable identified", conjunctive_conditions: [], all_required: true, depends_on: null, ecf_allowed: false, cao: false, isw: false, accept: [], reject: [], ignore: [], alternatives: [], ora: false, notes: "", diagram_required: false}
+    - {id: P3,  type: B, marks: 1, ao: AO3, credit_text: "one named variable to be controlled", conjunctive_conditions: [], all_required: true, depends_on: null, ecf_allowed: false, cao: false, isw: false, accept: [], reject: ["\"keep everything else the same\""], ignore: [], alternatives: [], ora: false, notes: "", diagram_required: false}
+    - {id: P4,  type: B, marks: 1, ao: AO3, credit_text: "labelled diagram of a workable arrangement",
+       conjunctive_conditions: ["apparatus labelled", "the arrangement would produce the measurement asked for"],
+       all_required: true, depends_on: null, ecf_allowed: false, cao: false, isw: false, accept: [], reject: [], ignore: [], alternatives: [], ora: false, notes: "Gate for the additional-detail cap below.", diagram_required: true}
+    - {id: P5,  type: B, marks: 1, ao: AO3, credit_text: "how the independent variable is varied", conjunctive_conditions: [], all_required: true, depends_on: null, ecf_allowed: false, cao: false, isw: false, accept: [], reject: [], ignore: [], alternatives: [], ora: false, notes: "", diagram_required: false}
+    - {id: P6,  type: B, marks: 1, ao: AO3, credit_text: "how the dependent variable is measured",
+       conjunctive_conditions: ["a named measuring instrument", "the quantity it measures stated"],
+       all_required: true, depends_on: null, ecf_allowed: false, cao: false, isw: false, accept: [], reject: ["\"measure it accurately\""], ignore: [], alternatives: [], ora: false, notes: "", diagram_required: false}
+    - {id: P7,  type: B, marks: 1, ao: AO3, credit_text: "how the named control variable is held constant", conjunctive_conditions: [], all_required: true, depends_on: "P3", ecf_allowed: false, cao: false, isw: false, accept: [], reject: [], ignore: [], alternatives: [], ora: false, notes: "", diagram_required: false}
+    - {id: P8,  type: B, marks: 1, ao: AO3, credit_text: "stated range and number of readings", conjunctive_conditions: ["a range", "at least {{n_readings}} readings"], all_required: true, depends_on: null, ecf_allowed: false, cao: false, isw: false, accept: [], reject: [], ignore: [], alternatives: [], ora: false, notes: "", diagram_required: false}
+    - {id: P9,  type: B, marks: 1, ao: AO3, credit_text: "the quantities to be plotted", conjunctive_conditions: [], all_required: true, depends_on: null, ecf_allowed: false, cao: false, isw: false, accept: [], reject: [], ignore: [], alternatives: [], ora: false, notes: "", diagram_required: false}
+    - {id: P10, type: DM, marks: 1, ao: AO3, credit_text: "how the relationship is tested from that graph (straight line, gradient or intercept)", conjunctive_conditions: [], all_required: true, depends_on: "P9", ecf_allowed: true, cao: false, isw: false, accept: [], reject: [], ignore: [], alternatives: [], ora: false, notes: "ECF: a wrong plot tested correctly still earns P10.", diagram_required: false}
+    - {id: P11, type: B, marks: 1, ao: AO3, credit_text: "one relevant safety precaution with its reason",
+       conjunctive_conditions: ["a precaution stated", "the hazard it addresses is one this experiment creates"],
+       all_required: true, depends_on: null, ecf_allowed: false, cao: false, isw: false, accept: [], reject: ["\"wear goggles\" with no named hazard"], ignore: [], alternatives: [], ora: false, notes: "", diagram_required: false}
+    # Additional detail: more points are listed than are awardable; `blocks` caps the block at 4.
+    - {id: D1, type: B, marks: 1, ao: AO3, credit_text: "{{detail_1}}", conjunctive_conditions: [], all_required: true, depends_on: null, ecf_allowed: false, cao: false, isw: false, accept: [], reject: [], ignore: [], alternatives: [], ora: false, notes: "", diagram_required: false}
+    - {id: D2, type: B, marks: 1, ao: AO3, credit_text: "{{detail_2}}", conjunctive_conditions: [], all_required: true, depends_on: null, ecf_allowed: false, cao: false, isw: false, accept: [], reject: [], ignore: [], alternatives: [], ora: false, notes: "", diagram_required: false}
+    - {id: D3, type: B, marks: 1, ao: AO3, credit_text: "{{detail_3}}", conjunctive_conditions: [], all_required: true, depends_on: null, ecf_allowed: false, cao: false, isw: false, accept: [], reject: [], ignore: [], alternatives: [], ora: false, notes: "", diagram_required: false}
+    - {id: D4, type: B, marks: 1, ao: AO3, credit_text: "{{detail_4}}", conjunctive_conditions: [], all_required: true, depends_on: null, ecf_allowed: false, cao: false, isw: false, accept: [], reject: [], ignore: [], alternatives: [], ora: false, notes: "", diagram_required: false}
+    # - {id: D5, …}, {id: D6, …}  — identical shape; list every awardable detail the
+    #   scheme names, however many, and let the block max do the capping.
+  levels: []
+  best_fit: false
+  ecf_policy: {allowed: true, scope: within-part}      # the analysis step may carry the candidate's own plot
+  penalties: {sig_fig_once_per_paper: false, units_missing: none}
+  caps:
+    - {when: "P4 not awarded", max_total: {{cap_without_workable_method}}}   # examiner-confirmed per paper
+  blocks:                               # the sum of block maxima is marks_total
+    - {name: "Defining the problem",        point_ids: [P1, P2, P3],             max: 3}
+    - {name: "Methods of data collection",  point_ids: [P4, P5, P6, P7, P8],     max: 5}
+    - {name: "Method of analysis",          point_ids: [P9, P10],                max: 2}
+    - {name: "Safety considerations",       point_ids: [P11],                    max: 1}
+    - {name: "Additional detail",           point_ids: [D1, D2, D3, D4, D5, D6], max: 4}
+  indicative_content: []
+  diagram_required: true
+  diagram_checklist:
+    labels: ["{{apparatus_1}}", "{{apparatus_2}}", "{{instrument}}"]
+    axes: []
+    curves: []
+    shifts: []
+    arrows: []
+    charges: []
+    intersections: []
+  vision_status: provisional_teacher_confirm
+  exemplars_ref: ["{{exemplar_prefix}}_*"]
+  examiner_insight_refs: ["{{insight_id}}"]
+  tolerance: 2                          # 12–20 marks (05-MARK-009)
+  source: {document_id: "{{doc_id}}", page: {{page}}, trust_rank: 3, licence_basis: own}
+```
+
+**How the marker fills it.** Planning papers are marked block by block, not point by point: the engine credits every point it can evidence, then applies each block `max`, then any `caps` row, then sums. That order matters — a candidate who writes six good additional details still scores 4 in that block, and one whose diagram is not workable is capped whatever else is written. Two conjunctive habits carry the whole paper: a measurement point needs an instrument **and** the quantity, and a safety point needs a precaution **and** a hazard this experiment creates; both are the atoms in `conjunctive_conditions`, and both are what examiner reports name most often. A **mixed** planning question (a points block plus one AO3 levels grid for the quality of the plan) is the same file with `scheme_type: mixed`, both `marking_points[]` and `levels[]` populated, and a `blocks[]` row listing the point ids that sit outside the grid so the compiler can check that block maxima plus levels maxima equal `marks_total`.
+
+### 15.B.5 The rationale rendering template
+
+`tpl_rationale_md@1` is the **only** markdown the Mark view renders (15-RUBR-003). The renderer fills slots; it does not write sentences. The band strip, the "Do this next" panel and the action buttons in the 05.12 renderings are component chrome from 09.7 wrapped around these slots — the text inside them comes from here and from nowhere else.
+
+```markdown
+{{band.low}} ── {{band.modal}} ── {{band.high}}    {{header.command_word}} · {{header.tariff}} marks · Paper {{paper_label}}
+Real examiners disagree by about ±{{band.tolerance}} on items like this.
+{{calibration.badge_text}}
+
+{{command_word_check.coaching_line}}
+
+{{ao.name}} {{ao.short_name}} · Level {{ao.level}} · {{ao.marks}} of {{ao.max}}
+  ✓ {{credited.line_ref}} {{credited.line}}
+  · {{partial.line_ref}} {{partial.line}}
+  ✗ "{{uncredited.quote}}" ({{uncredited.line_ref}}) — {{uncredited.line}}
+  {{examiner_warning.source_label}}, {{examiner_warning.series}}: {{examiner_warning.paraphrase}}
+  {{ao.missing_point}}
+
+{{glyph}} {{point.marking_point_id}}  {{point.line}}
+
+Do this next
+{{advice.primary_action.text}}    Worth about {{advice.primary_action.expected_gain}}.
+[ {{advice.secondary[].label}} ]
+```
+
+| Placeholder | Mark-object field (15.C.5) | Rule |
+|---|---|---|
+| `{{band.low\|modal\|high\|tolerance}}` | `total_band.low / .modal / .high / .tolerance` | Tabular numerals. The tolerance sentence is fixed copy from 05-MARK-009 and is never rephrased. |
+| `{{header.command_word}}`, `{{header.tariff}}` | `header.command_word`, `header.tariff` | Verbatim. |
+| `{{paper_label}}` | **derived**, not a Mark field: `Pack.papers[].number` resolved from `header.question_id` | The only derived slot in the template; the derivation is a pure function with a fixture table. |
+| `{{calibration.badge_text}}` | `calibration_status.badge_text` | Rendered as given; the renderer never composes a badge from `qwk` and `n_scripts`. |
+| `{{command_word_check.coaching_line}}` | `command_word_check.coaching_line` | One sentence, from the Pack's `CommandWord@1.coaching_line` (15-CMD-004). |
+| `{{ao.name}}`, `{{ao.short_name}}` | `per_ao[].ao`; short name from `Pack.syllabus.assessment_objectives[].short_name` | "AO3 Analysis". The renderer never truncates a long AO name in code. |
+| `{{ao.level}}`, `{{ao.marks}}`, `{{ao.max}}` | `per_ao[].level / .marks / .max` | One block per `per_ao[]` entry, in schema order. |
+| `{{credited.line_ref}}`, `{{credited.line}}` | `per_ao[].credited_spans[].line_ref`; line text = `span.reason` when present, else the fixed lexicon below | Prefix `✓`. |
+| `{{partial.line_ref}}`, `{{partial.line}}` | `per_ao[].partial_spans[]`, same rule | Prefix `·`. |
+| `{{uncredited.quote}}`, `{{uncredited.line}}` | `per_ao[].uncredited_attempts[].quote`, `.reason` (else the `reason_code` lexicon) | Prefix `✗`. The quote is rehydrated from the transcript by offset, never from the `quote` field (05-WRKD-002). |
+| `{{examiner_warning.*}}` | `examiner_warnings[].series`, `.paraphrase`; `source_label` is the fixed string "Examiners' report" | At most one per AO, matched by `matched_line_ref`. |
+| `{{ao.missing_point}}` | `per_ao[].missing_points[]` | One line each, max three (05-MARK-004). |
+| `{{glyph}}`, `{{point.marking_point_id}}`, `{{point.line}}` | `per_point[].glyph`, `.marking_point_id`; line text = `.reason`, else for an unmet conjunctive point the failed atom's own wording from the scheme (05-WRKD-003) | Points Marks only. |
+| `{{advice.primary_action.text}}`, `.expected_gain` | `next_mark_advice.primary_action.text`, `.expected_gain` | Exactly one primary action, always last. |
+| `{{advice.secondary[].label}}` | `next_mark_advice.secondary[].kind` (+ `.target_ao`) through the microcopy catalogue (§15.E) | Max two buttons. |
+
+**Fixed lexicon for a span line when `span.reason` is absent.** A lookup table, not generated prose: `causal_chain` + `links_counted ≥ 2` → "a {{links_counted}}-link chain — that is developed analysis"; `causal_chain` + `links_counted == 1` → "stops after one link"; `application` → "a fact true only of this business"; `judgement` → "a judgement, committed"; `knowledge` → "accurate and relevant"; `working` → "method shown"; `diagram` → "the arrow and its source both present". Reason codes map the same way (`SINGLE_LINK` → "one link only"; `ASSERTION_NO_LINK` → "an assertion with nothing following"; `GENERIC_NOT_CONTEXT` → "true of any business"; `EVAL_IN_ANALYSE`, `NO_WORKING`, `UNITS_MISSING` → the fixed lines already owned by 05-PROC-004, 05-PROC-011 and 05-PROC-009).
+
+**Omission rules — what disappears when a field is absent.** Never render an empty heading, a dangling colon or a placeholder.
+
+| Condition | Rendered result |
+|---|---|
+| `total_band == null` (below gate, 05-GATE-004) | The whole band strip is replaced by "Feedback only — this paper is not yet calibrated"; the tolerance sentence is dropped; everything else is unchanged (05-WRKD-004). |
+| `calibration_status.state == "provisional"` | `badge_text` line reads "Practice estimate — not yet calibrated" (05-MARK-010). |
+| `visibility.show_number == false` | No number appears in the strip or in any `{{ao.marks}} of {{ao.max}}` line; the level and the AO name stay. |
+| `header.level_procedure == "points"` | Render `per_point[]` blocks; omit every `per_ao` block, and vice versa. |
+| `credited_spans` / `partial_spans` / `uncredited_attempts` empty | That prefix line is omitted; an AO with all three empty renders its heading line only. |
+| `missing_points` empty | Omitted. |
+| `examiner_warnings` empty, or none matches this AO | Omitted; never render "no warnings". |
+| `application_check == null` | The cover-the-name line is omitted (non-case items). |
+| A span whose offsets no longer resolve in the transcript | Dropped from the rationale and the answer pane, and logged (05-WRKD-002). |
+| `visibility.show_teacher_flag == true` | One extra line after the affected AO: "An examiner is checking {{ao.name}}." (05-PIPE-008). |
+| `challenge_state != "none"` | One status line under the strip from the §15.E catalogue; no other slot changes. |
+
+| ID | Requirement | Acceptance |
+|---|---|---|
+| 15-RUBR-005 | Each template carries `template_id` and `template_version`; the compiler strips the three header keys, validates the remainder against `MarkScheme@3`, and stamps `template_id@version` on the emitted record for provenance. | A record whose `template_id` is unknown, or whose header keys survive into the Pack, fails the compile. |
+| 15-RUBR-006 | The rationale renderer generates no text at render time. Every rendered sentence traces to a Mark field, the fixed lexicon in this subsection, the §15.E catalogue, or the Pack. | Static check over the renderer bundle: no string concatenation into a rationale slot outside the lexicon module; the 05.12 fixtures render byte-identically (15-RUBR-003). |
+| 15-RUBR-007 | `Pack.syllabus.assessment_objectives[]` carries `short_name` (extends §06.3); the renderer reads it and never abbreviates an AO name in code. | A Pack with a null `short_name` fails `mapped`; renderer test asserts "AO3 Analysis" comes from the Pack. |
+| 15-RUBR-008 | In a points template, the sum of `blocks[].max` equals `marks_total`, and every `marking_points[].id` appears in at most one block; points outside every block are awardable without a cap. | Compiler validation error naming the block and the offending sum (15-RUBR-004). |
+| 15-RUBR-009 | A template whose family sets `diagram_required: true` must also set `vision_status`, and the Mark it produces renders with `visibility.show_number = false` until that diagram family's gold set passes 05-GATE-002. | Fixture: a mechanism Mark before the gate shows the band and the provisional banner, no number (06-TEN-003, 15-TAG-007). |
 
 ## 15.C JSON schemas
 
@@ -8134,5 +8819,3 @@ Everything below is a known hole, not a hidden one. Month numbers follow §14.1 
 | `designs/parts-craft/*.md` | The craft vision's eleven working fragments (composer, Mark view, tokens, motion, screens) before assembly | §09, §10 when a token or state is ambiguous | Drafts superseded by `vision-craft.md`; never cite in a PR |
 
 **15-READ-004 Reading order for a new agent joining mid-build.** SYNTHESIS §0 and §3 → §00 of this document → the §NN you own → INDEX §G's line for that section → the two or three brief sections it names → 15.F (vocabulary) → 15.H (what is not yet known in your area). Anything beyond that is optional and, past the first day, usually a sign you are re-litigating a settled ruling (00-AMB-002).
-
-<!-- END g6 -->
