@@ -3,14 +3,14 @@ import type { ReactNode } from 'react'
 import { Shell } from './components/Shell'
 import { TopBar } from './components/TopBar'
 import { api, get } from './lib/api'
-import type { Course, Health, Mark, Usage } from './lib/api'
+import type { Course, Health, Usage } from './lib/api'
 import { setCourse, store, toggleNav, useStore } from './lib/state'
 import { Today } from './screens/Today'
 import { CourseHome } from './screens/CourseHome'
 import { Session } from './screens/Session'
 import { Practise } from './screens/Practise'
 import { MarkView } from './screens/MarkView'
-import type { Mark as MarkObject } from './screens/MarkView'
+import type { MarkPayload } from './screens/MarkView'
 import { Cards } from './screens/Cards'
 import { Progress } from './screens/Progress'
 import { Settings } from './screens/Settings'
@@ -80,7 +80,7 @@ class ScreenBoundary extends Component<BoundaryProps, BoundaryState> {
  * every state below this point (loading, error, the spans, the AO cards).
  */
 function MarkRoute({ markId }: { markId: string }) {
-  const [mark, setMark] = useState<Mark | null>(null)
+  const [mark, setMark] = useState<MarkPayload | null>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [problem, setProblem] = useState('')
 
@@ -88,7 +88,7 @@ function MarkRoute({ markId }: { markId: string }) {
     let live = true
     setStatus('loading')
     setProblem('')
-    get<Mark>(`/api/marks/${encodeURIComponent(markId)}`)
+    get<MarkPayload>(`/api/marks/${encodeURIComponent(markId)}`)
       .then(payload => {
         if (!live) return
         setMark(payload)
@@ -104,12 +104,14 @@ function MarkRoute({ markId }: { markId: string }) {
 
   useEffect(() => load(), [load])
 
-  const body = (mark?.mark ?? null) as MarkObject | null
+  // The whole payload, not the Mark object inside it: the renderer's `runs` and
+  // `cards` live at the top level, and they are what draws the evidence on the
+  // answer. Handing the inner object over loses every highlight on the page.
   const answer = typeof mark?.mark?.transcript?.text === 'string' ? mark.mark.transcript.text : ''
 
   return (
     <MarkView
-      mark={status === 'ready' ? body : null}
+      mark={status === 'ready' ? mark : null}
       answer={answer}
       status={status === 'error' ? 'error' : status === 'loading' ? 'loading' : 'ready'}
       error={status === 'error' ? problem : null}

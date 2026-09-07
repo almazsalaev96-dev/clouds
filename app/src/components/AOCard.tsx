@@ -19,6 +19,8 @@ export interface AoResult extends AoObjective {
   name?: string | null
   levels?: number | null
   bands?: AoBand[] | null
+  /** A points card is one marking point; an objective card is a whole AO. */
+  kind?: 'point' | 'objective'
 }
 
 const AO_NAMES: Record<string, string> = {

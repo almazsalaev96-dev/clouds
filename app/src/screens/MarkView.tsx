@@ -243,17 +243,22 @@ function toAo(raw: unknown): AoResult | null {
     .filter(Boolean)
   const atoms = text(source, ['atoms_line'])
   if (atoms) missing.push(atoms)
-  const pointReason = kind === 'point' ? text(source, ['reason']) : null
+  // Why a point is uncredited is the next mark to go for; why one *is* credited is
+  // already shown against the quote, and repeating it there reads as a second gap.
+  const marks = num(source, ['marks', 'awarded', 'score']) ?? 0
+  const max = num(source, ['max', 'tariff', 'outOf']) ?? 0
+  const pointReason = kind === 'point' && marks < max ? text(source, ['reason']) : null
   if (pointReason && !buckets.uncredited.length && !missing.length) missing.push(pointReason)
 
   const title = text(source, ['title', 'label'])
   const name = title && title !== ao ? title.replace(new RegExp(`^${ao}\\s*`), '') : text(source, ['credit_text'])
 
   return {
+    kind: kind === 'point' ? 'point' : 'objective',
     ao,
     name,
-    marks: num(source, ['marks', 'awarded', 'score']) ?? 0,
-    max: num(source, ['max', 'tariff', 'outOf']) ?? 0,
+    marks,
+    max,
     level: num(source, ['level', 'band']),
     levels: num(source, ['levels', 'levelCount', 'of']),
     confidence: num(source, ['confidence']) ?? undefined,
@@ -263,7 +268,7 @@ function toAo(raw: unknown): AoResult | null {
           paraphrase: text(descriptorObject, ['paraphrase', 'text', 'descriptor']) ?? '',
           source_ref: text(descriptorObject, ['source_ref', 'sourceRef']),
         }
-      : descriptorText
+      : descriptorText && descriptorText !== name
         ? { paraphrase: descriptorText, band_id: bandId ?? undefined }
         : null,
     credited_spans: buckets.credited,
@@ -358,8 +363,10 @@ export function normaliseMark(input: MarkPayload, answer = ''): Mark {
       : Array.isArray(payload.aos) ? payload.aos : []
   const perAo = aoRaw.map(toAo).filter((ao): ao is AoResult => ao !== null)
 
+  // The tariff line is per objective. Points cards are named by marking point, so
+  // they would spell out "K1 1 · AP1 1"; the scheme's own AO split is what belongs there.
   const aoSplit: Record<string, number> = {}
-  for (const ao of perAo) if (ao.max > 0) aoSplit[ao.ao] = ao.max
+  for (const ao of perAo) if (ao.kind !== 'point' && ao.max > 0) aoSplit[ao.ao] = ao.max
 
   const header = record(source.header)
   const totalBandRaw = record(source.total_band) ?? (bandView && bandView.show !== false ? bandView : null)
