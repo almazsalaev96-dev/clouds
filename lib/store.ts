@@ -6,22 +6,30 @@ import type { ModelParams, ProviderId } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 
 /**
- * The app was called Clouds before it was called Armi. Settings and drafts are
- * carried across once, rather than silently resetting everyone who used it.
+ * The app has been renamed twice: Clouds, then Armi, now Astra. Settings and
+ * drafts follow the name rather than resetting with it, and the chain is
+ * ordered newest-first so the most recent state wins if several exist.
  */
-function migrateStorageKey(from: string, to: string) {
+const NAME_HISTORY = ["armi", "clouds"];
+
+function adoptPreviousStorage(suffix: string) {
   if (typeof window === "undefined") return;
+  const target = `astra.${suffix}`;
   try {
-    if (!localStorage.getItem(to)) {
-      const old = localStorage.getItem(from);
-      if (old) localStorage.setItem(to, old);
+    if (localStorage.getItem(target)) return;
+    for (const old of NAME_HISTORY) {
+      const value = localStorage.getItem(`${old}.${suffix}`);
+      if (value) {
+        localStorage.setItem(target, value);
+        return;
+      }
     }
   } catch {
     /* private mode, or storage disabled */
   }
 }
-migrateStorageKey("clouds.settings", "armi.settings");
-migrateStorageKey("clouds.drafts", "armi.drafts");
+adoptPreviousStorage("settings");
+adoptPreviousStorage("drafts");
 
 export type Theme = "light" | "dark" | "system";
 export type Density = "compact" | "comfortable" | "spacious";
@@ -104,7 +112,7 @@ export const useSettings = create<Settings>()(
         })),
       set: (partial) => set(partial),
     }),
-    { name: "armi.settings", version: 1 },
+    { name: "astra.settings", version: 1 },
   ),
 );
 
@@ -123,6 +131,6 @@ export const useDrafts = create<DraftState>()(
       drafts: {},
       setDraft: (id, text) => set((s) => ({ drafts: { ...s.drafts, [id]: text } })),
     }),
-    { name: "armi.drafts", version: 1 },
+    { name: "astra.drafts", version: 1 },
   ),
 );

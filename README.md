@@ -1,4 +1,4 @@
-# Armi
+# Astra
 
 One interface for Claude, GPT, Gemini and DeepSeek — plus the notes,
 flashcards and printable papers that come out of talking to them. You bring the

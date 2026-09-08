@@ -75,7 +75,7 @@ export function Sidebar({
                   mask: "radial-gradient(closest-side, transparent 52%, #000 54%)",
                 }}
               />
-              <span className="text-sm font-semibold tracking-[-0.01em] text-primary">Armi</span>
+              <span className="text-sm font-semibold tracking-[-0.01em] text-primary">Astra</span>
             </span>
           </div>
 
