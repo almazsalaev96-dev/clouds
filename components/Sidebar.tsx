@@ -3,8 +3,8 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  FileText, Layers, PanelLeft, Pin, PinOff, Plus, Printer, Search, Settings2,
-  Trash2, X,
+  FileText, Keyboard, Layers, PanelLeft, Pin, PinOff, Plus, Printer, Search,
+  Settings2, Trash2, X,
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { db, deleteConversation, groupConversations } from "@/lib/db";
@@ -25,12 +25,14 @@ export function Sidebar({
   onNewChat,
   onGoToSection,
   onOpenSettings,
+  onOpenShortcuts,
 }: {
   activeChatId: string | null;
   onSelectChat: (id: string) => void;
   onNewChat: () => void;
   onGoToSection: (section: Section) => void;
   onOpenSettings: () => void;
+  onOpenShortcuts: () => void;
 }) {
   const { sidebarOpen, toggleSidebar, section } = useSettings();
   const [query, setQuery] = React.useState("");
@@ -147,14 +149,17 @@ export function Sidebar({
             />
           </div>
 
-          <div className="border-t border-line p-2">
+          <div className="flex items-center gap-1 border-t border-line p-2">
             <button
               onClick={onOpenSettings}
-              className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-canvas hover:text-primary"
+              className="flex h-8 flex-1 items-center gap-2 rounded-md px-2 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-canvas hover:text-primary"
             >
               <Settings2 size={15} />
               Settings
             </button>
+            <IconButton label="Keyboard shortcuts" keys={["?"]} onClick={onOpenShortcuts}>
+              <Keyboard size={15} />
+            </IconButton>
           </div>
         </div>
       </aside>

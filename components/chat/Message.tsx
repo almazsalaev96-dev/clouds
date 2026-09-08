@@ -4,7 +4,7 @@ import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Copy,
-  NotebookPen, Pencil, RefreshCw, ThumbsDown, ThumbsUp, Volume2, X,
+  NotebookPen, PanelRight, Pencil, RefreshCw, ThumbsDown, ThumbsUp, Volume2, X,
 } from "lucide-react";
 import type { ChatError, Message as Msg } from "@/lib/types";
 import { getModel, formatTokens, MODELS } from "@/lib/models";
@@ -13,6 +13,7 @@ import { cn, formatDuration } from "@/lib/utils";
 import { Markdown } from "./Markdown";
 import { IconButton, Button, Tooltip } from "@/components/ui/primitives";
 import { ProviderMark } from "@/components/ui/ProviderMark";
+import { useArtifact } from "./ArtifactPanel";
 
 /* ---------------------------------------------------------------- user ---- */
 
@@ -28,12 +29,14 @@ export function UserMessage({
   index,
   onNavigate,
   onEdit,
+  entering,
 }: {
   message: Msg;
   siblings: Msg[];
   index: number;
   onNavigate: (id: string) => void;
   onEdit: (text: string) => void;
+  entering?: boolean;
 }) {
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState("");
@@ -104,7 +107,7 @@ export function UserMessage({
   }
 
   return (
-    <div className="msg group flex flex-col items-end gap-1.5 py-3">
+    <div id={`m-${message.id}`} className={cn("msg group flex flex-col items-end gap-1.5 py-3", entering && "msg-enter")}>
       {images.length > 0 && (
         <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
           {images.map((img, i) =>
@@ -173,6 +176,7 @@ export function AssistantMessage({
   onNavigate,
   onRegenerate,
   onSaveToNote,
+  entering,
 }: {
   message: Msg;
   siblings: Msg[];
@@ -180,12 +184,17 @@ export function AssistantMessage({
   onNavigate: (id: string) => void;
   onRegenerate: (modelId?: string) => void;
   onSaveToNote: (text: string) => void;
+  entering?: boolean;
 }) {
   const [copied, setCopied] = React.useState(false);
   const [vote, setVote] = React.useState<"up" | "down" | null>(null);
   const [speaking, setSpeaking] = React.useState(false);
   const text = blockText(message.content);
   const model = message.modelId ? getModel(message.modelId) : null;
+  const artifact = useArtifact();
+  // Past roughly a screen and a half, an answer stops being part of the
+  // conversation and starts being a document you scroll past to keep talking.
+  const isLong = text.length > 2200;
 
   const copy = () => {
     navigator.clipboard.writeText(text);
@@ -206,7 +215,7 @@ export function AssistantMessage({
   };
 
   return (
-    <div className="msg group py-3">
+    <div id={`m-${message.id}`} className={cn("msg group py-3", entering && "msg-enter")}>
       {/* Who is speaking, before you read what they said. In an app with four
           providers this is not metadata — it is context. */}
       <div className="mb-2 flex items-center gap-2 text-xs text-tertiary">
@@ -272,6 +281,21 @@ export function AssistantMessage({
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
         </DropdownMenu.Root>
+        {isLong && artifact && (
+          <IconButton
+            label="Open in side panel"
+            size={28}
+            onClick={() =>
+              artifact.open({
+                kind: "document",
+                title: text.match(/^#{1,3}\s+(.+)$/m)?.[1]?.slice(0, 60) ?? "Answer",
+                content: text,
+              })
+            }
+          >
+            <PanelRight size={14} />
+          </IconButton>
+        )}
         <IconButton label="Keep as a note" size={28} onClick={() => onSaveToNote(text)}>
           <NotebookPen size={14} />
         </IconButton>

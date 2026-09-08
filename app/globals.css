@@ -338,20 +338,12 @@ textarea:focus-visible {
    text, which is the actual product.
    ========================================================================= */
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
+body {
+  background-image:
     radial-gradient(60rem 40rem at 12% -10%, var(--field-a), transparent 70%),
     radial-gradient(50rem 36rem at 92% 108%, var(--field-b), transparent 70%);
-}
-
-body > * {
-  position: relative;
-  z-index: 1;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
 }
 
 /* ============================================================================
@@ -360,12 +352,12 @@ body > * {
 
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes rise-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; translate: 0 4px; }
+  to { opacity: 1; translate: 0 0; }
 }
 @keyframes pop-in {
-  from { opacity: 0; transform: scale(0.97); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; scale: 0.97; }
+  to { opacity: 1; scale: 1; }
 }
 @keyframes caret-pulse {
   0%, 45% { opacity: 1; }

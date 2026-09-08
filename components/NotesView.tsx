@@ -127,15 +127,22 @@ export function NotesView({
         newLabel="New note"
         emptyTitle="Nothing written down yet."
         emptyHint="Keep an answer from a chat, or start from a blank page. Notes are markdown, and they feed the flashcards and papers."
-        items={(notes ?? []).map((n) => ({
-          id: n.id,
-          title: n.title || "Untitled note",
-          preview: n.content.replace(/^#.*$/m, "").replace(/\s+/g, " ").trim().slice(0, 120),
-          meta: new Date(n.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-        }))}
+        items={[...(notes ?? [])]
+          .sort((a, b) => Number(b.pinned) - Number(a.pinned))
+          .map((n) => ({
+            id: n.id,
+            title: n.title || "Untitled note",
+            preview: n.content.replace(/^#.*$/m, "").replace(/\s+/g, " ").trim().slice(0, 120),
+            meta: new Date(n.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+            pinned: n.pinned,
+          }))}
         onOpen={onSelect}
         onNew={onNew}
         onDelete={(id) => void db.notes.delete(id)}
+        onTogglePin={(id) => {
+          const note = (notes ?? []).find((n) => n.id === id);
+          if (note) void db.notes.update(id, { pinned: !note.pinned });
+        }}
       />
     );
   }

@@ -119,7 +119,9 @@ export function ArtifactPanel({
           {artifact.kind === "code" ? (
             <CodeBlock code={artifact.content} lang={artifact.lang} filename={artifact.title} bare wrap={wrap} />
           ) : (
-            <Markdown content={artifact.content} />
+            <div className="mx-auto max-w-[38rem]">
+              <Markdown content={artifact.content} />
+            </div>
           )}
         </div>
       </aside>

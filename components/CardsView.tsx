@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Check, List, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { Check, ChevronRight, List, Plus, RotateCcw, Sparkles, Trash2, X } from "lucide-react";
 import type { Card, Deck, Grade } from "@/lib/types";
 import { db, deleteDeck } from "@/lib/db";
 import { GRADES, dueCount, formatDue, newCard, orderForReview, schedule } from "@/lib/study";
@@ -31,8 +31,31 @@ export function CardsView({
     [] as Card[],
   );
   const [mode, setMode] = React.useState<"review" | "list">("review");
+  const [reviewingAll, setReviewingAll] = React.useState(false);
 
   React.useEffect(() => setMode("review"), [deckId]);
+  React.useEffect(() => {
+    if (deckId) setReviewingAll(false);
+  }, [deckId]);
+
+  const dueEverywhere = orderForReview(allCards ?? []);
+
+  // Reviewing is a daily habit, not a per-deck errand: what people want is one
+  // queue of everything that is due, in the order they are closest to losing.
+  if (!deck && reviewingAll) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <DetailBar onBack={() => setReviewingAll(false)} backLabel="All decks">
+          <h1 className="mr-auto truncate text-sm font-medium text-primary">Everything due</h1>
+          <span className="text-xs text-tertiary tnum">
+            across {new Set(dueEverywhere.map((c) => c.deckId)).size} deck
+            {new Set(dueEverywhere.map((c) => c.deckId)).size === 1 ? "" : "s"}
+          </span>
+        </DetailBar>
+        <Review cards={allCards ?? []} />
+      </div>
+    );
+  }
 
   if (!deck) {
     return (
@@ -55,6 +78,28 @@ export function CardsView({
         onOpen={onSelect}
         onNew={onNew}
         onDelete={(id) => void deleteDeck(id)}
+        lead={
+          dueEverywhere.length > 0 ? (
+            <button
+              onClick={() => setReviewingAll(true)}
+              className="group mb-3 flex w-full items-center gap-3 rounded-lg border border-line bg-surface px-3 py-3 text-left transition-colors duration-[var(--dur-fast)] hover:border-accent"
+            >
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-subtle text-accent">
+                <Sparkles size={15} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium text-primary">
+                  {dueEverywhere.length} card{dueEverywhere.length === 1 ? "" : "s"} due today
+                </span>
+                <span className="block text-xs text-secondary">
+                  Across {new Set(dueEverywhere.map((c) => c.deckId)).size} deck
+                  {new Set(dueEverywhere.map((c) => c.deckId)).size === 1 ? "" : "s"} — review them in one pass.
+                </span>
+              </span>
+              <ChevronRight size={16} className="shrink-0 text-tertiary transition-transform duration-[var(--dur-fast)] group-hover:translate-x-0.5" />
+            </button>
+          ) : null
+        }
       />
     );
   }
@@ -98,6 +143,12 @@ function Review({ cards }: { cards: Card[] }) {
     const list = orderForReview(cards);
     if (list.length || !aheadOf) return list;
     return [...cards].sort((a, b) => a.due - b.due).slice(0, 20);
+  }, [cards, aheadOf]);
+
+  // Studying ahead is a decision about right now, not a mode you get stuck in:
+  // once something is genuinely due again, the deck goes back to normal.
+  React.useEffect(() => {
+    if (aheadOf && orderForReview(cards).length > 0) setAheadOf(false);
   }, [cards, aheadOf]);
 
   const card = queue[0];

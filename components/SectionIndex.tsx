@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, Plus, Search, Trash2, X } from "lucide-react";
+import { ChevronLeft, Pin, PinOff, Plus, Search, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button, ConfirmInline, IconButton, Tooltip } from "@/components/ui/primitives";
 
@@ -12,6 +12,7 @@ export interface IndexItem {
   preview?: string;
   meta?: string;
   badge?: string;
+  pinned?: boolean;
 }
 
 /**
@@ -31,6 +32,8 @@ export function SectionIndex({
   onOpen,
   onNew,
   onDelete,
+  onTogglePin,
+  lead,
 }: {
   title: string;
   items: IndexItem[];
@@ -40,6 +43,9 @@ export function SectionIndex({
   onOpen: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  onTogglePin?: (id: string) => void;
+  /** Rendered above the list, for anything more urgent than browsing it. */
+  lead?: React.ReactNode;
 }) {
   const [query, setQuery] = React.useState("");
   const [confirming, setConfirming] = React.useState<string | null>(null);
@@ -62,6 +68,8 @@ export function SectionIndex({
             {newLabel}
           </Button>
         </header>
+
+        {lead}
 
         {items.length > 0 && (
           <div className="mb-3 flex h-9 items-center gap-2 rounded-md border border-line bg-surface px-2.5 transition-colors duration-[var(--dur-fast)] focus-within:border-accent">
@@ -126,10 +134,30 @@ export function SectionIndex({
                       )}
                     </button>
 
+                    {item.pinned && !onTogglePin && (
+                      <Pin size={12} className="shrink-0 text-tertiary" aria-label="Pinned" />
+                    )}
+
                     {item.badge && (
                       <span className="shrink-0 rounded-full bg-accent px-1.5 text-xs font-medium text-accent-fg tnum">
                         {item.badge}
                       </span>
+                    )}
+
+                    {onTogglePin && (
+                      <Tooltip label={item.pinned ? "Unpin" : "Pin to top"}>
+                        <button
+                          onClick={() => onTogglePin(item.id)}
+                          aria-label={item.pinned ? `Unpin ${item.title}` : `Pin ${item.title}`}
+                          aria-pressed={item.pinned}
+                          className={cn(
+                            "flex size-7 shrink-0 items-center justify-center rounded-md transition-opacity duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary focus-visible:opacity-100 group-hover:opacity-100",
+                            item.pinned ? "text-accent opacity-100" : "text-tertiary opacity-0",
+                          )}
+                        >
+                          {item.pinned ? <PinOff size={14} /> : <Pin size={14} />}
+                        </button>
+                      </Tooltip>
                     )}
 
                     <Tooltip label="Delete">

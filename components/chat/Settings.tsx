@@ -9,6 +9,7 @@ import { deleteAllData } from "@/lib/db";
 import { useSettings, paramsFor, DEFAULT_PARAMS } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
+import { SHORTCUT_GROUPS } from "@/components/ShortcutsOverlay";
 
 type Tab = "keys" | "appearance" | "model" | "data" | "shortcuts";
 
@@ -317,32 +318,24 @@ function ModelPanel() {
 
 /* ----------------------------------------------------------- shortcuts ---- */
 
-const SHORTCUTS: [string, string[]][] = [
-  ["Command palette", ["mod", "K"]],
-  ["New chat", ["mod", "N"]],
-  ["Toggle sidebar", ["mod", "\\"]],
-  ["Model picker", ["mod", "/"]],
-  ["Send message", ["mod", "enter"]],
-  ["Edit last message", ["↑"]],
-  ["Stop generating", ["Esc", "Esc"]],
-  ["Copy last response", ["mod", "shift", "C"]],
-  ["Toggle theme", ["mod", "shift", "D"]],
-  ["Settings", ["mod", ","]],
-];
-
 function ShortcutsPanel() {
   return (
-    <Panel title="Keyboard shortcuts" description="Everything here is also in the command palette.">
-      <dl className="divide-y divide-[var(--border-subtle)]">
-        {SHORTCUTS.map(([label, keys]) => (
-          <div key={label} className="flex items-center justify-between py-2">
-            <dt className="text-sm text-secondary">{label}</dt>
-            <dd>
-              <Kbd keys={keys} />
-            </dd>
-          </div>
-        ))}
-      </dl>
+    <Panel title="Keyboard shortcuts" description="Press ? anywhere to see this without opening settings.">
+      {SHORTCUT_GROUPS.map(({ group, items }) => (
+        <section key={group}>
+          <h3 className="mb-1 text-xs font-medium text-tertiary">{group}</h3>
+          <dl className="divide-y divide-[var(--border-subtle)]">
+            {items.map(([label, keys]) => (
+              <div key={label} className="flex items-center justify-between gap-4 py-2">
+                <dt className="text-sm text-secondary">{label}</dt>
+                <dd className="shrink-0">
+                  <Kbd keys={keys} />
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ))}
     </Panel>
   );
 }

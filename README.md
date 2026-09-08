@@ -163,10 +163,16 @@ heading, and link URLs printed in full.
   and closes on Escape.
 - Notes, decks and papers all seeded and driven in a browser; the print layout was
   captured through Chromium's print media emulation rather than assumed.
-- One real bug found by looking rather than by testing: unlayered `button`/`input`
-  base rules were overriding every Tailwind text-size utility in the app, because
-  unlayered CSS beats every `@layer`. Moving them into `@layer base` fixed sizing
-  across every menu, toolbar and heading at once.
+- Highlighting confirmed to run in a real Web Worker (counted at construction, not
+  assumed), producing 240 themed spans on a 40-line block.
+- Three bugs found by measuring rather than by looking, all of them cascade problems:
+  unlayered `button`/`input` rules were overriding every Tailwind text-size utility,
+  because unlayered CSS beats every `@layer`; the `pop-in` keyframe ended on
+  `transform: none`, which would erase the translate that centres a dialog; and the
+  field background's `body > * { position: relative }` was overriding `position: fixed`
+  on every portalled dialog, leaving each one anchored halfway down the page. The
+  first moved into `@layer base`, the second now animates the independent `scale`
+  property, and the third became background layers on `body` with no DOM at all.
 
 ## Known gaps
 
@@ -175,17 +181,11 @@ Stated plainly, because a checklist you cannot trust is worse than no checklist.
 - **The happy path is untested against a live provider.** No valid key was available
   in this environment. Every failure path was exercised end to end; token streaming
   was not.
-- **Shiki runs on the main thread**, not in a Web Worker as the brief calls for. It
-  never runs *during* a stream — blocks stay plain monospace until 60ms after the
-  last token — so the streaming frame budget is unaffected either way. Moving it is
-  contained behind `lib/highlighter.ts`.
 - **No true virtualization.** Every turn carries `content-visibility: auto` with an
   intrinsic size, so the browser skips layout and paint for anything off-screen —
   most of the benefit, without breaking find-in-page, text selection across messages,
   or scroll restoration. A conversation in the thousands of messages would still want
   real windowing.
-- **The side panel holds code, not prose.** Long text answers still render inline;
-  lifting a document is the same mechanism and simply isn't wired up yet.
 - **Flashcard and paper generation is untested against a live model** for the same
   reason as the chat happy path: no valid key here. The prompts, the JSON extraction
   (which tolerates fences and surrounding prose) and the failure messages are written;
@@ -193,7 +193,8 @@ Stated plainly, because a checklist you cannot trust is worse than no checklist.
 - **No page numbers in the PDF.** Chrome does not support content in `@page` margin
   boxes, so numbering would mean shipping a layout engine. The browser's own print
   dialog can add headers and footers.
-- **Review is per deck, not across all of them.** There is no single "study everything
-  due today" queue yet, which is the shape most people actually want.
+- **No cross-deck statistics.** There is a single "everything due today" queue, but
+  no history of what you reviewed, no retention curve, and no notion of a daily new-card
+  limit — all of which a serious reviewer eventually wants.
 - **Screen-reader testing was not run.** Semantics, live regions, labels and focus
   order are implemented to spec but verified by inspection, not with VoiceOver.

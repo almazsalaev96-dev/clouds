@@ -107,9 +107,12 @@ export function MessageList({
         aria-label="Conversation"
       >
         <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-4">
-          {messages.map((m) => {
+          {messages.map((m, i) => {
             const siblings = siblingsOf(allMessages, m);
             const index = siblings.findIndex((s) => s.id === m.id);
+            // Only the newest turn rises in. Animating the whole transcript on
+            // every conversation switch would be motion for its own sake.
+            const entering = i === messages.length - 1;
             return m.role === "user" ? (
               <UserMessage
                 key={m.id}
@@ -118,6 +121,7 @@ export function MessageList({
                 index={index}
                 onNavigate={onNavigate}
                 onEdit={(text) => onEdit(m, text)}
+                entering={entering}
               />
             ) : (
               <AssistantMessage
@@ -128,6 +132,7 @@ export function MessageList({
                 onNavigate={onNavigate}
                 onRegenerate={(modelId) => onRegenerate(m, modelId)}
                 onSaveToNote={onSaveToNote}
+                entering={entering}
               />
             );
           })}

@@ -17,6 +17,8 @@ import { Sidebar } from "@/components/Sidebar";
 import { NotesView, saveToNote } from "@/components/NotesView";
 import { CardsView } from "@/components/CardsView";
 import { PapersView } from "@/components/PapersView";
+import { ShortcutsOverlay } from "@/components/ShortcutsOverlay";
+import { InlineError } from "@/components/chat/Message";
 import { TopBar } from "@/components/chat/TopBar";
 import { MessageList } from "@/components/chat/MessageList";
 import { Composer } from "@/components/chat/Composer";
@@ -47,6 +49,8 @@ export default function Page() {
   const [settingsTab, setSettingsTab] = React.useState<"keys" | "appearance" | "model" | "data" | "shortcuts">("keys");
   const [scrolled, setScrolled] = React.useState(false);
   const [artifact, setArtifact] = React.useState<Artifact | null>(null);
+  /** Where j/k currently sit in the transcript. */
+  const cursorRef = React.useRef(0);
   const [compareWith, setCompareWith] = React.useState<string[]>([]);
   const [noteId, setNoteId] = React.useState<string | null>(null);
   const [deckId, setDeckId] = React.useState<string | null>(null);
@@ -98,6 +102,10 @@ export default function Page() {
     () => pathTo(allMessages ?? [], conversation?.leafId ?? null),
     [allMessages, conversation?.leafId],
   );
+
+  React.useEffect(() => {
+    cursorRef.current = Math.max(0, path.length - 1);
+  }, [activeId, path.length]);
 
   const contextTokens = React.useMemo(
     () => path.reduce((n, m) => n + estimateTokens(blockText(m.content)), 0),
@@ -331,17 +339,25 @@ export default function Page() {
   );
 
   const [studyBusy, setStudyBusy] = React.useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
+  const [notice, setNotice] = React.useState<string | null>(null);
 
   /** A whole conversation is often the study material, not one answer in it. */
   const conversationToCards = React.useCallback(async () => {
     if (!path.length) return;
     setStudyBusy(true);
+    setNotice(null);
     const source = path
       .map((m) => `${m.role === "user" ? "Q" : "A"}: ${blockText(m.content)}`)
       .join("\n\n");
     const drafts = await generateCards(source, { modelId: cheapestAvailable(configured), count: 12 });
     setStudyBusy(false);
-    if (!drafts?.length) return;
+    if (!drafts?.length) {
+      setNotice(
+        "Couldn't turn this conversation into cards. Check the API key for the model, or try again once there's more in the thread.",
+      );
+      return;
+    }
     const deck = await createDeck(conversation?.title || "From a conversation", {
       sourceConversationId: activeId ?? undefined,
     });
@@ -394,16 +410,43 @@ export default function Page() {
   const editLast = React.useCallback(() => {
     const lastUser = [...path].reverse().find((m) => m.role === "user");
     if (!lastUser) return;
-    // Scroll the message into view and let its own edit affordance take over.
-    document.getElementById(`m-${lastUser.id}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
-    drafts.setDraft(activeId ?? "new", blockText(lastUser.content));
-  }, [path, drafts, activeId]);
+    const el = document.getElementById(`m-${lastUser.id}`);
+    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+    // Its own edit control does the work, so editing stays one flow whether you
+    // reached it with the keyboard or the mouse.
+    el?.querySelector<HTMLButtonElement>('button[aria-label="Edit"]')?.click();
+  }, [path]);
 
   /* --- Shortcuts. Everything here is also in the palette. ---------------- */
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
       if (!mod) {
+        const tagNow = (e.target as HTMLElement)?.tagName;
+        const typing = tagNow === "INPUT" || tagNow === "TEXTAREA";
+
+        if (e.key === "?" && !typing) {
+          e.preventDefault();
+          setShortcutsOpen(true);
+          return;
+        }
+
+        // j and k step through the transcript, vi-style, once the composer is
+        // out of the way.
+        if ((e.key === "j" || e.key === "k") && !typing && settings.section === "chat" && path.length) {
+          e.preventDefault();
+          const ids = path.map((m) => m.id);
+          const next =
+            e.key === "j"
+              ? Math.min(cursorRef.current + 1, ids.length - 1)
+              : Math.max(cursorRef.current - 1, 0);
+          cursorRef.current = next;
+          document
+            .getElementById(`m-${ids[next]}`)
+            ?.scrollIntoView({ block: "center", behavior: "smooth" });
+          return;
+        }
+
         if (e.key !== "Escape") return;
         const tag = (e.target as HTMLElement)?.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA") return;
@@ -485,6 +528,7 @@ export default function Page() {
           onNewChat={() => void createInSection("chat")}
           onGoToSection={goToSection}
           onOpenSettings={openKeys}
+          onOpenShortcuts={() => setShortcutsOpen(true)}
         />
 
         <main className="flex min-w-0 flex-1 flex-col">
@@ -561,6 +605,11 @@ export default function Page() {
             />
           ) : (
             <div className="flex min-h-0 flex-1 flex-col">
+              {notice && (
+                <div className="mx-auto w-full max-w-[var(--measure)] px-4 pt-2">
+                  <InlineError message={notice} onDismiss={() => setNotice(null)} />
+                </div>
+              )}
               <MessageList
                 onScrolledChange={setScrolled}
                 messages={path}
@@ -641,6 +690,8 @@ export default function Page() {
           }}
         />
         )}
+
+        <ShortcutsOverlay open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
 
         {settingsOpen && (
           <Settings

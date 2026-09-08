@@ -151,6 +151,13 @@ export function Composer({
       send();
       return;
     }
+    // Escape steps out of the composer. Everything that only works when you are
+    // not typing — j/k, ?, backing out of a section — depends on being able to
+    // leave, and a text box you cannot leave with the keyboard is a trap.
+    if (e.key === "Escape") {
+      e.currentTarget.blur();
+      return;
+    }
     // ↑ on an empty box edits the last thing you said — the fastest possible
     // path to the most common correction.
     if (e.key === "ArrowUp" && !text) {

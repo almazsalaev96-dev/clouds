@@ -1,18 +1,55 @@
 import type { Highlighter } from "shiki";
 
 /**
- * One highlighter instance for the whole app, loaded lazily and only for the
- * languages actually seen. Shiki's full grammar set is megabytes; a chat that
- * shows one Python block should not pay for Haskell.
+ * Highlighting happens in a worker, so tokenising a thousand-line file cannot
+ * drop a frame of the stream that produced it. Grammars load lazily and only
+ * for the languages actually seen — Shiki's full set is megabytes, and a chat
+ * that shows one Python block should not pay for Haskell.
  *
- * Note on the worker: the master prompt calls for highlighting off the main
- * thread. This runs on the main thread, but never during a stream — blocks
- * render as plain monospace until 60ms after the last token, so the streaming
- * frame budget is untouched either way. Moving it to a worker is a contained
- * change behind this module and is the right next step for very large files.
+ * If a worker cannot be constructed — an older browser, a strict CSP — the
+ * same work runs on this thread instead. Falling back to plain monospace
+ * because of a policy header would be a worse trade than a few milliseconds.
  */
 let highlighterPromise: Promise<Highlighter> | null = null;
 const loaded = new Set<string>();
+
+let worker: Worker | null | undefined;
+let nextJob = 0;
+const pending = new Map<number, (html: string | null) => void>();
+
+function getWorker(): Worker | null {
+  if (worker !== undefined) return worker;
+  try {
+    worker = new Worker(new URL("./highlight.worker.ts", import.meta.url));
+    worker.onmessage = (e: MessageEvent<{ id: number; html: string | null }>) => {
+      pending.get(e.data.id)?.(e.data.html);
+      pending.delete(e.data.id);
+    };
+    worker.onerror = () => {
+      // Fail the whole queue over to the main thread rather than hanging.
+      for (const resolve of pending.values()) resolve(null);
+      pending.clear();
+      worker = null;
+    };
+  } catch {
+    worker = null;
+  }
+  return worker;
+}
+
+function highlightInWorker(code: string, lang: string): Promise<string | null> {
+  const w = getWorker();
+  if (!w) return Promise.resolve(null);
+  const id = ++nextJob;
+  return new Promise((resolve) => {
+    pending.set(id, resolve);
+    w.postMessage({ id, code, lang });
+    // A grammar that never loads must not leave a block waiting forever.
+    setTimeout(() => {
+      if (pending.delete(id)) resolve(null);
+    }, 4000);
+  });
+}
 
 const ALIASES: Record<string, string> = {
   js: "javascript", jsx: "jsx", ts: "typescript", tsx: "tsx", py: "python",
@@ -49,30 +86,31 @@ async function getHighlighter(): Promise<Highlighter> {
 }
 
 export async function highlight(code: string, lang: string): Promise<string | null> {
+  const fromWorker = await highlightInWorker(code, lang);
+  if (fromWorker) return recolor(fromWorker);
+  return highlightOnMainThread(code, lang);
+}
+
+async function highlightOnMainThread(code: string, lang: string): Promise<string | null> {
   try {
     const hl = await getHighlighter();
     if (!loaded.has(lang)) {
       await hl.loadLanguage(lang as never);
       loaded.add(lang);
     }
-    return hl.codeToHtml(code, {
-      lang,
-      theme: "github-light",
-      transformers: [
-        {
-          // Shiki writes literal colors. We rewrite them to token variables so
-          // the block follows the app's theme with no second highlight pass.
-          span(node) {
-            const style = (node.properties.style as string) ?? "";
-            const color = style.match(/color:(#[0-9a-fA-F]{3,8})/)?.[1]?.toLowerCase();
-            if (color) node.properties.style = `color:${mapColor(color)}`;
-          },
-        },
-      ],
-    });
+    return recolor(hl.codeToHtml(code, { lang, theme: "github-light" }));
   } catch {
     return null;
   }
+}
+
+/**
+ * Shiki writes literal colours. Rewriting them to token variables is what lets
+ * a block follow the app's theme instantly — switching light to dark costs
+ * nothing, because no block is highlighted a second time.
+ */
+function recolor(html: string): string {
+  return html.replace(/color:(#[0-9a-fA-F]{3,8})/g, (_, hex: string) => `color:${mapColor(hex.toLowerCase())}`);
 }
 
 /** github-light's palette → our six syntax tokens. */
