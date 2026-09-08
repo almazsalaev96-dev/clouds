@@ -3,14 +3,15 @@ import "./globals.css";
 import "katex/dist/katex.min.css";
 
 export const metadata: Metadata = {
-  title: "Clouds",
-  description: "One calm interface for Claude, GPT, Gemini and DeepSeek.",
+  title: "Armi",
+  description:
+    "One interface for Claude, GPT, Gemini and DeepSeek — and the notes, cards and papers that come out of them.",
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fbfaf9" },
-    { media: "(prefers-color-scheme: dark)", color: "#141413" },
+    { media: "(prefers-color-scheme: light)", color: "#faf8f3" },
+    { media: "(prefers-color-scheme: dark)", color: "#100f0c" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -25,7 +26,7 @@ export const viewport: Viewport = {
 const THEME_SCRIPT = `
 (function () {
   try {
-    var s = JSON.parse(localStorage.getItem("clouds.settings") || "{}").state || {};
+    var s = JSON.parse(localStorage.getItem("armi.settings") || "{}").state || {};
     if (s.theme && s.theme !== "system") document.documentElement.dataset.theme = s.theme;
     if (s.density && s.density !== "comfortable") document.documentElement.dataset.density = s.density;
   } catch (e) {}

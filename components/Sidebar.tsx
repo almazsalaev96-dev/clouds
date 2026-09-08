@@ -62,7 +62,19 @@ export function Sidebar({
             <IconButton label="Hide sidebar" keys={["mod", "\\"]} onClick={toggleSidebar}>
               <PanelLeft size={16} />
             </IconButton>
-            <span className="ml-1 text-sm font-medium tracking-[-0.01em] text-primary">Clouds</span>
+            <span className="ml-1 flex items-center gap-1.5">
+              <span
+                aria-hidden
+                className="size-[13px] rounded-full"
+                style={{
+                  background:
+                    "conic-gradient(from 210deg, var(--accent), var(--accent-2), var(--accent))",
+                  WebkitMask: "radial-gradient(closest-side, transparent 52%, #000 54%)",
+                  mask: "radial-gradient(closest-side, transparent 52%, #000 54%)",
+                }}
+              />
+              <span className="text-sm font-semibold tracking-[-0.01em] text-primary">Armi</span>
+            </span>
           </div>
 
           <div className="space-y-1 px-2 pb-2">

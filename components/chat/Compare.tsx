@@ -107,9 +107,10 @@ function CompareColumn({
 
   return (
     <article className="flex min-h-[12rem] flex-col overflow-hidden rounded-lg border border-line bg-surface">
-      <header className="flex h-9 shrink-0 items-center gap-1.5 border-b border-line px-2.5 text-xs">
+      <header className="relative flex h-9 shrink-0 items-center gap-1.5 border-b border-line px-2.5 text-xs">
+        {busy && <span className="field-line absolute inset-x-0 bottom-0" aria-hidden />}
         <span className="text-tertiary">
-          <ProviderMark provider={model.provider} size={12} />
+          {busy ? <span className="think-orb" aria-hidden /> : <ProviderMark provider={model.provider} size={12} />}
         </span>
         <span className="truncate font-medium text-secondary">{model.name}</span>
         <span className="ml-auto flex items-center gap-1.5 text-tertiary tnum">

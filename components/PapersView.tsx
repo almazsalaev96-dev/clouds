@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, Download, Eye, Loader2, Pencil, Printer, Sparkles } from "lucide-react";
+import { ChevronLeft, Download, Eye, Pencil, Printer, Sparkles } from "lucide-react";
 import type { Paper } from "@/lib/types";
 import { db } from "@/lib/db";
 import { cheapestAvailable, generatePaper } from "@/lib/generate";
@@ -158,7 +158,7 @@ export function PapersView({
           {editing ? "Preview" : "Edit"}
         </Button>
         <Button size="sm" variant="ghost" onClick={rewrite} disabled={busy || !draft.trim()}>
-          {busy ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+          {busy ? <span className="think-orb" aria-hidden /> : <Sparkles size={13} />}
           Draft it
         </Button>
         <Button size="sm" variant="ghost" onClick={exportMarkdown}>

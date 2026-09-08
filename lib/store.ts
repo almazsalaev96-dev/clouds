@@ -5,6 +5,24 @@ import { persist } from "zustand/middleware";
 import type { ModelParams, ProviderId } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 
+/**
+ * The app was called Clouds before it was called Armi. Settings and drafts are
+ * carried across once, rather than silently resetting everyone who used it.
+ */
+function migrateStorageKey(from: string, to: string) {
+  if (typeof window === "undefined") return;
+  try {
+    if (!localStorage.getItem(to)) {
+      const old = localStorage.getItem(from);
+      if (old) localStorage.setItem(to, old);
+    }
+  } catch {
+    /* private mode, or storage disabled */
+  }
+}
+migrateStorageKey("clouds.settings", "armi.settings");
+migrateStorageKey("clouds.drafts", "armi.drafts");
+
 export type Theme = "light" | "dark" | "system";
 export type Density = "compact" | "comfortable" | "spacious";
 export type Section = "chat" | "notes" | "cards" | "papers";
@@ -86,7 +104,7 @@ export const useSettings = create<Settings>()(
         })),
       set: (partial) => set(partial),
     }),
-    { name: "clouds.settings", version: 1 },
+    { name: "armi.settings", version: 1 },
   ),
 );
 
@@ -105,6 +123,6 @@ export const useDrafts = create<DraftState>()(
       drafts: {},
       setDraft: (id, text) => set((s) => ({ drafts: { ...s.drafts, [id]: text } })),
     }),
-    { name: "clouds.drafts", version: 1 },
+    { name: "armi.drafts", version: 1 },
   ),
 );

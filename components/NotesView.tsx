@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Download, Eye, Layers, Loader2, Pencil, Printer } from "lucide-react";
+import { Download, Eye, Layers, Pencil, Printer } from "lucide-react";
 import type { Note } from "@/lib/types";
 import { db, deriveTitle } from "@/lib/db";
 import { generateCards, cheapestAvailable } from "@/lib/generate";
@@ -153,11 +153,11 @@ export function NotesView({
           {preview ? "Edit" : "Preview"}
         </Button>
         <Button size="sm" variant="ghost" onClick={makeCards} disabled={busy !== null || !draft.trim()}>
-          {busy === "cards" ? <Loader2 size={13} className="animate-spin" /> : <Layers size={13} />}
+          {busy === "cards" ? <span className="think-orb" aria-hidden /> : <Layers size={13} />}
           Flashcards
         </Button>
         <Button size="sm" variant="ghost" onClick={makePaper} disabled={busy !== null || !draft.trim()}>
-          {busy === "paper" ? <Loader2 size={13} className="animate-spin" /> : <Printer size={13} />}
+          {busy === "paper" ? <span className="think-orb" aria-hidden /> : <Printer size={13} />}
           Make paper
         </Button>
         <Button size="sm" variant="ghost" onClick={exportMarkdown}>

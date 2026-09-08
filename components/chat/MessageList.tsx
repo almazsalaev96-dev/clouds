@@ -197,12 +197,19 @@ function StreamingMessage({
 
   return (
     <div className="py-3">
-      <div className="mb-1.5 flex items-center gap-2 text-xs text-tertiary">
+      <div className="mb-2 flex items-center gap-2 text-xs text-tertiary">
+        <span className="think-orb" aria-hidden />
         <span className="font-medium text-secondary">{modelName}</span>
         {waiting && elapsed > PATIENCE_MS && (
           // The honest version of a spinner: what is happening, and for how long.
           <span className="tnum anim-fade">thinking · {formatElapsed(elapsed)}</span>
         )}
+      </div>
+
+      {/* The whole answer is live, so the line spans it rather than sitting on
+          one word of it. */}
+      <div className="mb-3 h-0.5 w-full overflow-hidden rounded-full bg-[var(--bg-subtle)]">
+        <div className="field-line h-full w-full" />
       </div>
 
       {reasoning && !text && (

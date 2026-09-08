@@ -1,6 +1,6 @@
-# Clouds
+# Armi
 
-One calm interface for Claude, GPT, Gemini and DeepSeek — plus the notes,
+One interface for Claude, GPT, Gemini and DeepSeek — plus the notes,
 flashcards and printable papers that come out of talking to them. You bring the
 API keys.
 
@@ -59,6 +59,22 @@ answer you chose. The other two are not discarded: they stay under `‹ 2/3 ›`
 **Side panel** — any code block over 24 lines can be lifted into its own column. The
 copy left in the thread collapses to a one-line reference, so a 900-line answer stops
 burying the conversation that produced it.
+
+**Look** — warm near-black rather than neutral grey, so the ground has a faint amber
+cast and the two accents read against it as temperature: neo blue is *you can act
+here*, orange is *the model is working*. Two very faint pools of colour sit fixed
+behind everything, near the threshold of visibility, so the page reads as having depth
+rather than being a flat wall. Light mode is the same identity in daylight — warm
+paper, the same blue, the same orange — not a second brand.
+
+**Thinking** — one motif wherever the model is running: a ring of field energy that
+turns, and a hairline that travels the width of whatever is live. It says *running*
+without claiming to know how much longer, which a progress bar would, and would be
+lying about. The streaming caret runs blue at its base to orange at its tip; the
+composer border joins the same event, so where you type and where text appears are
+visibly one thing. Under `prefers-reduced-motion` the ring stops turning and the line
+stops travelling, but both stay visible — reduced motion still needs the state to be
+legible.
 
 **Navigation** — the sidebar belongs to conversations: New chat, search, then the
 history. Notes, Cards and Papers sit above that as destinations, separated by a

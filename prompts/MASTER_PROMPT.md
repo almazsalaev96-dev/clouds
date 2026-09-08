@@ -170,8 +170,10 @@ dark mode. Never hardcode a color, size, or duration anywhere else in the codeba
 
 ### 4.1 Color
 
-Neutral-first palette. One accent, used sparingly — accent means "you can act here,"
-never "this is decorative."
+Two accents, each with a job. Neo blue means "you can act here." Orange means "the
+model is working." Nothing else is coloured. The ground is warm near-black in dark
+mode and warm paper in light, so blue reads cold against it and orange reads hot —
+the temperature difference is what makes the two legible at a glance.
 
 ```
 /* Light */

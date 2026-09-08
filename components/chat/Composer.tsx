@@ -257,6 +257,7 @@ export function Composer({
         className={cn(
           "rounded-xl border bg-surface transition-[border-color,box-shadow] duration-[var(--dur-fast)] ease-[var(--ease-std)]",
           "border-line-strong shadow-sm focus-within:border-accent focus-within:shadow-md",
+          streaming && "is-live",
         )}
       >
         <div className="flex items-end gap-1 p-1.5">

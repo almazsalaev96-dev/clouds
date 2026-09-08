@@ -10,30 +10,39 @@
 :root {
   color-scheme: light;
 
-  /* --- Surfaces. Light mode ground is warm off-white, never #FFF: pure white
-         at full-screen size is a glare source, and prose sits badly on it. --- */
-  --bg-canvas: #fbfaf9;
+  /* --- Light is the same identity in daylight: warm paper, the same neo blue,
+         the same orange. Not a different brand with the lights on. --- */
+  --bg-canvas: #faf8f3;
   --bg-surface: #ffffff;
-  --bg-subtle: #f4f2f0;
-  --bg-inset: #eeebe8;
-  --bg-overlay: rgba(26, 24, 21, 0.32);
+  --bg-subtle: #f2efe7;
+  --bg-inset: #edeade;
+  --bg-overlay: rgba(20, 18, 13, 0.34);
 
-  --border-subtle: #e7e3df;
-  --border-strong: #d4cfca;
+  --border-subtle: #e5e0d3;
+  --border-strong: #d1cbba;
 
-  --text-primary: #1a1815;
-  --text-secondary: #605a54;
-  --text-tertiary: #8c857d;
+  --text-primary: #17150f;
+  --text-secondary: #5c574a;
+  --text-tertiary: #8a8372;
 
-  --accent: #2f6fed;
-  --accent-hover: #2559c4;
-  --accent-subtle: #eaf0fe;
+  /* Neo blue: the colour of anything you can act on. */
+  --accent: #1f5fe0;
+  --accent-hover: #1a4fbd;
+  --accent-subtle: #e6edfd;
   --accent-fg: #ffffff;
 
-  --success: #1b7f4b;
-  --warning: #a96411;
-  --danger: #c4342b;
-  --danger-subtle: #fdeeed;
+  /* Orange: the colour of the model working. Never decoration. */
+  --accent-2: #e2660a;
+  --accent-2-subtle: #fdefe2;
+
+  --success: #157a48;
+  --warning: #a8620f;
+  --danger: #c33228;
+  --danger-subtle: #fdeeec;
+
+  --field-a: rgba(31, 95, 224, 0.05);
+  --field-b: rgba(226, 102, 10, 0.04);
+  --glow: none;
 
   /* --- Elevation. Only popovers and modals get a shadow. --- */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(0, 0, 0, 0.03);
@@ -61,13 +70,13 @@
 
   /* --- Syntax. Six hues, low saturation. A code block should read as one
          calm object, not a Christmas tree. --- */
-  --syn-comment: #8c857d;
-  --syn-keyword: #8250df;
-  --syn-string: #0a7b53;
-  --syn-function: #2f6fed;
-  --syn-number: #b3541e;
-  --syn-type: #1d7d8a;
-  --syn-punct: #605a54;
+  --syn-comment: #8a8372;
+  --syn-keyword: #7c4fd6;
+  --syn-string: #0e7a4e;
+  --syn-function: #1f5fe0;
+  --syn-number: #c05a10;
+  --syn-type: #0f7484;
+  --syn-punct: #5c574a;
 }
 
 :root[data-theme="dark"],
@@ -79,71 +88,105 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg-canvas: #141413;
-    --bg-surface: #1c1b1a;
-    --bg-subtle: #252423;
-    --bg-inset: #1a1918;
-    --bg-overlay: rgba(0, 0, 0, 0.6);
-    --border-subtle: #2e2c2a;
-    --border-strong: #403d3a;
-    --text-primary: #edeae6;
-    --text-secondary: #a7a099;
-    --text-tertiary: #756e67;
-    --accent: #6c9bff;
-    --accent-hover: #8ab0ff;
-    --accent-subtle: #1b2438;
-    --accent-fg: #10131b;
-    --success: #4ac07f;
-    --warning: #d99a3d;
-    --danger: #f0796f;
-    --danger-subtle: #2c1a19;
+
+    /* Warm near-black rather than neutral: the ground has a faint amber cast,
+       so blue reads cold against it and orange reads hot. */
+    --bg-canvas: #100f0c;
+    --bg-surface: #17160f;
+    --bg-subtle: #1f1d16;
+    --bg-inset: #141310;
+    --bg-overlay: rgba(0, 0, 0, 0.66);
+
+    --border-subtle: #2b2820;
+    --border-strong: #3c3830;
+
+    --text-primary: #f0ebdf;
+    --text-secondary: #a9a292;
+    --text-tertiary: #77705f;
+
+    --accent: #4d8dff;
+    --accent-hover: #74a6ff;
+    --accent-subtle: #10203c;
+    --accent-fg: #060d18;
+
+    --accent-2: #ff8a2b;
+    --accent-2-subtle: #2b1a09;
+
+    --success: #4ec284;
+    --warning: #e0a24a;
+    --danger: #f2796c;
+    --danger-subtle: #2c1715;
+
+    /* The two pools that make the ground feel like a field rather than a wall.
+       Deliberately near the threshold of visibility. */
+    --field-a: rgba(77, 141, 255, 0.055);
+    --field-b: rgba(255, 138, 43, 0.04);
+    --glow: 0 0 16px -4px var(--accent);
+
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);
     /* In dark, elevation reads as a lighter surface plus a top highlight.
        Shadows are nearly invisible on a dark ground. */
     --highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    --syn-comment: #756e67;
-    --syn-keyword: #c8a2ff;
-    --syn-string: #6cd0a0;
-    --syn-function: #7fabff;
-    --syn-number: #e8a76c;
-    --syn-type: #6fc9d6;
-    --syn-punct: #a7a099;
+    --syn-comment: #77705f;
+    --syn-keyword: #c4a4ff;
+    --syn-string: #6ed3a4;
+    --syn-function: #74a6ff;
+    --syn-number: #ffa25c;
+    --syn-type: #6ecbd8;
+    --syn-punct: #a9a292;
   }
 }
 
 :root[data-theme="dark"] {
-  color-scheme: dark;
-  --bg-canvas: #141413;
-  --bg-surface: #1c1b1a;
-  --bg-subtle: #252423;
-  --bg-inset: #1a1918;
-  --bg-overlay: rgba(0, 0, 0, 0.6);
-  --border-subtle: #2e2c2a;
-  --border-strong: #403d3a;
-  --text-primary: #edeae6;
-  --text-secondary: #a7a099;
-  --text-tertiary: #756e67;
-  --accent: #6c9bff;
-  --accent-hover: #8ab0ff;
-  --accent-subtle: #1b2438;
-  --accent-fg: #10131b;
-  --success: #4ac07f;
-  --warning: #d99a3d;
-  --danger: #f0796f;
-  --danger-subtle: #2c1a19;
+    color-scheme: dark;
+
+  /* Warm near-black rather than neutral: the ground has a faint amber cast,
+     so blue reads cold against it and orange reads hot. */
+  --bg-canvas: #100f0c;
+  --bg-surface: #17160f;
+  --bg-subtle: #1f1d16;
+  --bg-inset: #141310;
+  --bg-overlay: rgba(0, 0, 0, 0.66);
+
+  --border-subtle: #2b2820;
+  --border-strong: #3c3830;
+
+  --text-primary: #f0ebdf;
+  --text-secondary: #a9a292;
+  --text-tertiary: #77705f;
+
+  --accent: #4d8dff;
+  --accent-hover: #74a6ff;
+  --accent-subtle: #10203c;
+  --accent-fg: #060d18;
+
+  --accent-2: #ff8a2b;
+  --accent-2-subtle: #2b1a09;
+
+  --success: #4ec284;
+  --warning: #e0a24a;
+  --danger: #f2796c;
+  --danger-subtle: #2c1715;
+
+  /* The two pools that make the ground feel like a field rather than a wall.
+     Deliberately near the threshold of visibility. */
+  --field-a: rgba(77, 141, 255, 0.055);
+  --field-b: rgba(255, 138, 43, 0.04);
+  --glow: 0 0 16px -4px var(--accent);
+
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);
   --highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --syn-comment: #756e67;
-  --syn-keyword: #c8a2ff;
-  --syn-string: #6cd0a0;
-  --syn-function: #7fabff;
-  --syn-number: #e8a76c;
-  --syn-type: #6fc9d6;
-  --syn-punct: #a7a099;
+  --syn-comment: #77705f;
+  --syn-keyword: #c4a4ff;
+  --syn-string: #6ed3a4;
+  --syn-function: #74a6ff;
+  --syn-number: #ffa25c;
+  --syn-type: #6ecbd8;
+  --syn-punct: #a9a292;
 }
 
 :root[data-density="compact"] { --density: 0.75; }
@@ -164,6 +207,8 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-subtle: var(--accent-subtle);
   --color-accent-fg: var(--accent-fg);
+  --color-accent-2: var(--accent-2);
+  --color-accent-2-subtle: var(--accent-2-subtle);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
@@ -284,6 +329,32 @@ textarea:focus-visible {
 .tnum { font-variant-numeric: tabular-nums; }
 
 /* ============================================================================
+   THE FIELD
+
+   Two very faint pools of colour fixed behind everything — blue at one corner,
+   orange at the other. They never move and they are barely visible; the point
+   is only that the ground stops reading as a flat wall and starts reading as
+   something with depth behind it. Anything stronger would compete with the
+   text, which is the actual product.
+   ========================================================================= */
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 40rem at 12% -10%, var(--field-a), transparent 70%),
+    radial-gradient(50rem 36rem at 92% 108%, var(--field-b), transparent 70%);
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================================================
    ANIMATION PRIMITIVES
    ========================================================================= */
 
@@ -322,17 +393,102 @@ textarea:focus-visible {
   border-radius: var(--radius-sm);
 }
 
-/* The one piece of motion that runs continuously — so it is the one most
-   worth switching off for people who asked for less of it. */
+/* The caret runs hot: blue at rest, orange where the text is being written.
+   It is the one piece of motion that runs continuously, so it is also the one
+   most worth switching off for people who asked for less of it. */
 .caret {
   display: inline-block;
   width: 2px;
   height: 1.05em;
   margin-left: 1px;
   vertical-align: text-bottom;
-  background: var(--accent);
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
   border-radius: 1px;
+  box-shadow: var(--glow);
   animation: caret-pulse 1.1s var(--ease-std) infinite;
+}
+
+/* ============================================================================
+   THINKING
+
+   One motif, used everywhere the model is working: a ring of field energy that
+   turns. It says "running" without claiming to know how much longer, which a
+   progress bar would — and would be lying about.
+   ========================================================================= */
+
+@keyframes orb-spin {
+  to { transform: rotate(1turn); }
+}
+
+@keyframes field-sweep {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@keyframes field-breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+.think-orb {
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  flex: none;
+  border-radius: 999px;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    var(--accent) 110deg,
+    var(--accent-2) 220deg,
+    transparent 330deg
+  );
+  /* Masked to a ring, so it reads as an aperture rather than a coloured dot. */
+  -webkit-mask: radial-gradient(closest-side, transparent 58%, #000 60%);
+  mask: radial-gradient(closest-side, transparent 58%, #000 60%);
+  animation: orb-spin 1.4s linear infinite;
+}
+
+/* A hairline of field energy travelling left to right. Used where a whole
+   region is live — a streaming answer, a comparison column, a draft in
+   progress — and nowhere else. */
+.field-line {
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent) 35%,
+    var(--accent-2) 65%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: field-sweep 1.9s linear infinite;
+}
+
+/* The composer while an answer is arriving: the border carries the same
+   energy, so the place you type and the place text appears are visibly part of
+   one event. */
+.is-live {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border-strong)) !important;
+  box-shadow: var(--glow);
+}
+
+.pulse-soft {
+  animation: field-breathe 2s var(--ease-std) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Reduced motion still needs the *state* to be legible: the ring stops
+     turning and the line stops travelling, but both stay visible. */
+  .think-orb {
+    animation: none;
+    background: conic-gradient(from 0deg, var(--accent), var(--accent-2), var(--accent));
+  }
+  .field-line {
+    animation: none;
+    background-position: 50% 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
