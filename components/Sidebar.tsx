@@ -70,7 +70,7 @@ export function Sidebar({
                 className="size-[13px] rounded-full"
                 style={{
                   background:
-                    "conic-gradient(from 210deg, var(--accent), var(--accent-2), var(--accent))",
+                    "conic-gradient(from 210deg, var(--accent), var(--live), var(--accent))",
                   WebkitMask: "radial-gradient(closest-side, transparent 52%, #000 54%)",
                   mask: "radial-gradient(closest-side, transparent 52%, #000 54%)",
                 }}
@@ -128,7 +128,7 @@ export function Sidebar({
                 </span>
                 {s.label}
                 {s.id === "cards" && due > 0 && (
-                  <span className="ml-auto rounded-full bg-accent px-1.5 text-xs font-medium text-accent-fg tnum">
+                  <span className="ml-auto rounded-full bg-[var(--go-fill)] px-1.5 text-xs font-semibold text-[var(--on-fill)] tnum">
                     {due}
                   </span>
                 )}

@@ -10,38 +10,51 @@
 :root {
   color-scheme: light;
 
-  /* --- Light is the same identity in daylight: warm paper, the same neo blue,
-         the same orange. Not a different brand with the lights on. --- */
-  --bg-canvas: #faf8f3;
+  /* --- Light is the same system in daylight: the navy becomes the ink, and
+         Deep AI Blue stays exactly where it was. --- */
+  --bg-canvas: #f6f8fd;
   --bg-surface: #ffffff;
-  --bg-subtle: #f2efe7;
-  --bg-inset: #edeade;
-  --bg-overlay: rgba(20, 18, 13, 0.34);
+  --bg-subtle: #ecf0f9;
+  --bg-inset: #e6ecf7;
+  --bg-overlay: rgba(3, 8, 23, 0.38);
 
-  --border-subtle: #e5e0d3;
-  --border-strong: #d1cbba;
+  --border-subtle: #dbe2f0;
+  /* Control boundaries clear 3:1 against the page. Hairlines do not have to,
+     which is why there are two of these. */
+  --border-strong: #8a93a8;
 
-  --text-primary: #17150f;
-  --text-secondary: #5c574a;
-  --text-tertiary: #8a8372;
+  --text-primary: #030817;
+  --text-secondary: #44506b;
+  --text-tertiary: #6f7c97;
 
-  /* Neo blue: the colour of anything you can act on. */
-  --accent: #1f5fe0;
-  --accent-hover: #1a4fbd;
-  --accent-subtle: #e6edfd;
+  /* Deep AI Blue. The colour of anything you can act on, and the only hue
+     allowed to cover real area. */
+  --accent: #0b2eff;
+  --accent-hover: #287bff;
+  --accent-subtle: #e4e9ff;
+  --accent-fill: var(--accent);
   --accent-fg: #ffffff;
 
-  /* Orange: the colour of the model working. Never decoration. */
-  --accent-2: #e2660a;
-  --accent-2-subtle: #fdefe2;
+  /* --- The three signals. Darkened here only as far as legibility on paper-
+         white demands; they are never used as fills at this weight. --- */
+  --live: #b84400;
+  --go: #4c6b00;
+  --stop: #cd2318;
 
-  --success: #157a48;
-  --warning: #a8620f;
-  --danger: #c33228;
-  --danger-subtle: #fdeeec;
+  /* Fills keep the palette's vivid values in both themes, because they are
+     read as shapes with dark text on them, not as coloured text. */
+  --go-fill: #d8ff38;
+  --on-fill: #030817;
 
-  --field-a: rgba(31, 95, 224, 0.05);
-  --field-b: rgba(226, 102, 10, 0.04);
+  --success: var(--go);
+  --warning: var(--live);
+  --danger: var(--stop);
+  --danger-subtle: #fdeceb;
+
+  /* Both pools are blue. A wash of lime or orange across half the window would
+     spend a signal on decoration, which is the one thing they must never be. */
+  --field-a: rgba(11, 46, 255, 0.05);
+  --field-b: rgba(40, 123, 255, 0.045);
   --glow: none;
 
   /* --- Elevation. Only popovers and modals get a shadow. --- */
@@ -70,13 +83,13 @@
 
   /* --- Syntax. Six hues, low saturation. A code block should read as one
          calm object, not a Christmas tree. --- */
-  --syn-comment: #8a8372;
-  --syn-keyword: #7c4fd6;
-  --syn-string: #0e7a4e;
-  --syn-function: #1f5fe0;
-  --syn-number: #c05a10;
-  --syn-type: #0f7484;
-  --syn-punct: #5c574a;
+  --syn-comment: #6f7c97;
+  --syn-keyword: #6c3fd0;
+  --syn-string: #0d6b47;
+  --syn-function: #0b2eff;
+  --syn-number: #a8451f;
+  --syn-type: #0a6b7d;
+  --syn-punct: #44506b;
 }
 
 :root[data-theme="dark"],
@@ -89,39 +102,46 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 
-    /* Warm near-black rather than neutral: the ground has a faint amber cast,
-       so blue reads cold against it and orange reads hot. */
-    --bg-canvas: #100f0c;
-    --bg-surface: #17160f;
-    --bg-subtle: #1f1d16;
-    --bg-inset: #141310;
-    --bg-overlay: rgba(0, 0, 0, 0.66);
+    /* Void Navy. Not black: a ground with a hue lets blue sit on it as depth
+       rather than as a hole. */
+    --bg-canvas: #030817;
+    --bg-surface: #0a1226;
+    --bg-subtle: #101b33;
+    --bg-inset: #060e20;
+    --bg-overlay: rgba(1, 4, 12, 0.74);
 
-    --border-subtle: #2b2820;
-    --border-strong: #3c3830;
+    --border-subtle: #1a2743;
+    --border-strong: #505d79;
 
-    --text-primary: #f0ebdf;
-    --text-secondary: #a9a292;
-    --text-tertiary: #77705f;
+    --text-primary: #e9eef9;
+    --text-secondary: #98a5c0;
+    --text-tertiary: #647290;
 
-    --accent: #4d8dff;
-    --accent-hover: #74a6ff;
-    --accent-subtle: #10203c;
-    --accent-fg: #060d18;
+    /* Electric Blue carries text and icons, because Deep AI Blue is too dark
+       to read against the navy. Deep AI Blue is the fill underneath them. */
+    --accent: #3585ff;
+    --accent-hover: #6ba6ff;
+    --accent-subtle: #0b1a3d;
+    --accent-fill: #0b2eff;
+    --accent-fg: #ffffff;
 
-    --accent-2: #ff8a2b;
-    --accent-2-subtle: #2b1a09;
+    /* Acid Lime, Hyper Orange, Signal Red — at full strength, because they only
+       ever appear at the size of a badge, a caret or a rule. */
+    --live: #ff6818;
+    --go: #d8ff38;
+    --stop: #ff3b30;
 
-    --success: #4ec284;
-    --warning: #e0a24a;
-    --danger: #f2796c;
-    --danger-subtle: #2c1715;
+    --go-fill: #d8ff38;
+    --on-fill: #030817;
 
-    /* The two pools that make the ground feel like a field rather than a wall.
-       Deliberately near the threshold of visibility. */
-    --field-a: rgba(77, 141, 255, 0.055);
-    --field-b: rgba(255, 138, 43, 0.04);
-    --glow: 0 0 16px -4px var(--accent);
+    --success: var(--go);
+    --warning: var(--live);
+    --danger: var(--stop);
+    --danger-subtle: #2a0f0d;
+
+    --field-a: rgba(11, 46, 255, 0.16);
+    --field-b: rgba(40, 123, 255, 0.09);
+    --glow: 0 0 18px -4px var(--accent);
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
@@ -129,64 +149,71 @@
     /* In dark, elevation reads as a lighter surface plus a top highlight.
        Shadows are nearly invisible on a dark ground. */
     --highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    --syn-comment: #77705f;
-    --syn-keyword: #c4a4ff;
-    --syn-string: #6ed3a4;
-    --syn-function: #74a6ff;
-    --syn-number: #ffa25c;
-    --syn-type: #6ecbd8;
-    --syn-punct: #a9a292;
+    --syn-comment: #647290;
+    --syn-keyword: #c08bff;
+    --syn-string: #7ce0a8;
+    --syn-function: #6ba6ff;
+    --syn-number: #ffa05c;
+    --syn-type: #57d3e6;
+    --syn-punct: #98a5c0;
   }
 }
 
 :root[data-theme="dark"] {
-    color-scheme: dark;
+  color-scheme: dark;
 
-  /* Warm near-black rather than neutral: the ground has a faint amber cast,
-     so blue reads cold against it and orange reads hot. */
-  --bg-canvas: #100f0c;
-  --bg-surface: #17160f;
-  --bg-subtle: #1f1d16;
-  --bg-inset: #141310;
-  --bg-overlay: rgba(0, 0, 0, 0.66);
+  /* Void Navy. Not black: a ground with a hue lets blue sit on it as depth
+     rather than as a hole. */
+  --bg-canvas: #030817;
+  --bg-surface: #0a1226;
+  --bg-subtle: #101b33;
+  --bg-inset: #060e20;
+  --bg-overlay: rgba(1, 4, 12, 0.74);
 
-  --border-subtle: #2b2820;
-  --border-strong: #3c3830;
+  --border-subtle: #1a2743;
+  --border-strong: #505d79;
 
-  --text-primary: #f0ebdf;
-  --text-secondary: #a9a292;
-  --text-tertiary: #77705f;
+  --text-primary: #e9eef9;
+  --text-secondary: #98a5c0;
+  --text-tertiary: #647290;
 
-  --accent: #4d8dff;
-  --accent-hover: #74a6ff;
-  --accent-subtle: #10203c;
-  --accent-fg: #060d18;
+  /* Electric Blue carries text and icons, because Deep AI Blue is too dark to
+     read against the navy. Deep AI Blue is the fill underneath them. */
+  --accent: #3585ff;
+  --accent-hover: #6ba6ff;
+  --accent-subtle: #0b1a3d;
+  --accent-fill: #0b2eff;
+  --accent-fg: #ffffff;
 
-  --accent-2: #ff8a2b;
-  --accent-2-subtle: #2b1a09;
+  /* Acid Lime, Hyper Orange, Signal Red — at full strength, because they only
+     ever appear at the size of a badge, a caret or a rule. */
+  --live: #ff6818;
+  --go: #d8ff38;
+  --stop: #ff3b30;
 
-  --success: #4ec284;
-  --warning: #e0a24a;
-  --danger: #f2796c;
-  --danger-subtle: #2c1715;
+  --go-fill: #d8ff38;
+  --on-fill: #030817;
 
-  /* The two pools that make the ground feel like a field rather than a wall.
-     Deliberately near the threshold of visibility. */
-  --field-a: rgba(77, 141, 255, 0.055);
-  --field-b: rgba(255, 138, 43, 0.04);
-  --glow: 0 0 16px -4px var(--accent);
+  --success: var(--go);
+  --warning: var(--live);
+  --danger: var(--stop);
+  --danger-subtle: #2a0f0d;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);
-  --highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --syn-comment: #77705f;
-  --syn-keyword: #c4a4ff;
-  --syn-string: #6ed3a4;
-  --syn-function: #74a6ff;
-  --syn-number: #ffa25c;
-  --syn-type: #6ecbd8;
-  --syn-punct: #a9a292;
+  --field-a: rgba(11, 46, 255, 0.16);
+  --field-b: rgba(40, 123, 255, 0.09);
+  --glow: 0 0 18px -4px var(--accent);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.62);
+  --highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --syn-comment: #647290;
+  --syn-keyword: #c08bff;
+  --syn-string: #7ce0a8;
+  --syn-function: #6ba6ff;
+  --syn-number: #ffa05c;
+  --syn-type: #57d3e6;
+  --syn-punct: #98a5c0;
 }
 
 :root[data-density="compact"] { --density: 0.75; }
@@ -207,8 +234,10 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-subtle: var(--accent-subtle);
   --color-accent-fg: var(--accent-fg);
-  --color-accent-2: var(--accent-2);
-  --color-accent-2-subtle: var(--accent-2-subtle);
+  --color-accent-fill: var(--accent-fill);
+  --color-live: var(--live);
+  --color-go: var(--go);
+  --color-stop: var(--stop);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
@@ -394,7 +423,7 @@ body {
   height: 1.05em;
   margin-left: 1px;
   vertical-align: text-bottom;
-  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+  background: linear-gradient(180deg, var(--accent), var(--live));
   border-radius: 1px;
   box-shadow: var(--glow);
   animation: caret-pulse 1.1s var(--ease-std) infinite;
@@ -432,7 +461,7 @@ body {
     from 0deg,
     transparent 0deg,
     var(--accent) 110deg,
-    var(--accent-2) 220deg,
+    var(--live) 220deg,
     transparent 330deg
   );
   /* Masked to a ring, so it reads as an aperture rather than a coloured dot. */
@@ -451,7 +480,7 @@ body {
     90deg,
     transparent 0%,
     var(--accent) 35%,
-    var(--accent-2) 65%,
+    var(--live) 65%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -475,7 +504,7 @@ body {
      turning and the line stops travelling, but both stay visible. */
   .think-orb {
     animation: none;
-    background: conic-gradient(from 0deg, var(--accent), var(--accent-2), var(--accent));
+    background: conic-gradient(from 0deg, var(--accent), var(--live), var(--accent));
   }
   .field-line {
     animation: none;

@@ -405,7 +405,7 @@ export function InlineError({
   const action = error?.action ?? "retry";
 
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-md border border-[color-mix(in_srgb,var(--danger)_25%,transparent)] bg-[var(--danger-subtle)] px-3 py-2 anim-fade">
+    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-l-2 border-[var(--stop)] py-1 pl-3 anim-fade">
       <span className="text-sm text-primary">{text}</span>
       <span className="ml-auto flex items-center gap-1">
         {action === "add_key" && onAddKey && (

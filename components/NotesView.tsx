@@ -174,7 +174,7 @@ export function NotesView({
 
       {result && (
         <div className="mx-auto mt-2 w-full max-w-[var(--measure)] px-4">
-          <p className="rounded-md bg-[var(--danger-subtle)] px-3 py-2 text-sm text-primary anim-fade">
+          <p className="border-l-2 border-[var(--stop)] py-1 pl-3 text-sm text-primary anim-fade">
             {result}
           </p>
         </div>

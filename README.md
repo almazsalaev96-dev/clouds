@@ -60,12 +60,21 @@ answer you chose. The other two are not discarded: they stay under `‹ 2/3 ›`
 copy left in the thread collapses to a one-line reference, so a 900-line answer stops
 burying the conversation that produced it.
 
-**Look** — warm near-black rather than neutral grey, so the ground has a faint amber
-cast and the two accents read against it as temperature: neo blue is *you can act
-here*, orange is *the model is working*. Two very faint pools of colour sit fixed
-behind everything, near the threshold of visibility, so the page reads as having depth
-rather than being a flat wall. Light mode is the same identity in daylight — warm
-paper, the same blue, the same orange — not a second brand.
+**Look** — a Void Navy ground (`#030817`) with Deep AI Blue (`#0B2EFF`) as the only
+hue allowed to cover area, Electric Blue (`#287BFF`) carrying text and icons on top of
+it, and three signals — Acid Lime, Hyper Orange, Signal Red — that never fill anything
+larger than a badge, a caret or a 2px rule. That restraint is the palette: a colour
+used everywhere stops meaning anything, so lime marks work waiting, orange marks the
+model running, and red marks something you cannot undo. Failures get a red rule and a
+sentence, not a panel of red.
+
+Two constraints fall out of the ratios and are enforced rather than assumed. Deep AI
+Blue is too dark to read against navy, so it is a *fill* with white on it (7.4:1)
+while Electric Blue carries text (5.1:1) — a primary button in the reading colour
+would have shipped at 3.5:1. And a signal used as text is not the same value as a
+signal used as a fill: light mode darkens lime to `#4C6B00` for type, while the badge
+keeps the vivid `#D8FF38` with navy on top. Every pair was computed, not eyeballed;
+control borders clear 3:1 against the page, body text 4.5:1, in both themes.
 
 **Thinking** — one motif wherever the model is running: a ring of field energy that
 turns, and a hairline that travels the width of whatever is live. It says *running*

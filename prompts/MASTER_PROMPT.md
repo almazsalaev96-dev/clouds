@@ -170,10 +170,15 @@ dark mode. Never hardcode a color, size, or duration anywhere else in the codeba
 
 ### 4.1 Color
 
-Two accents, each with a job. Neo blue means "you can act here." Orange means "the
-model is working." Nothing else is coloured. The ground is warm near-black in dark
-mode and warm paper in light, so blue reads cold against it and orange reads hot —
-the temperature difference is what makes the two legible at a glance.
+Give the palette a budget in *area*, not just a list of hexes: one ground at roughly
+two thirds of the screen, one accent hue allowed to fill things, and every remaining
+colour a signal that appears at the size of a badge, a caret or a hairline rule and
+never larger. A colour used everywhere stops meaning anything.
+
+Two rules fall out of that and must be checked, not assumed. A hue dark enough to fill
+a button is usually too dark to read as text on your ground, so the fill value and the
+text value are different tokens. And a signal used as text needs a different value
+from the same signal used as a fill — compute both against every surface they land on.
 
 ```
 /* Light */

@@ -11,6 +11,14 @@ import { Markdown } from "@/components/chat/Markdown";
 import { Button, IconButton } from "@/components/ui/primitives";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
 
+/** Each grade's colour, used only as a 2px rule above its label. */
+const GRADE_SIGNAL: Record<Grade, string> = {
+  again: "var(--stop)",
+  hard: "var(--live)",
+  good: "var(--accent)",
+  easy: "var(--go)",
+};
+
 export function CardsView({
   deckId,
   onSelect,
@@ -252,12 +260,15 @@ function Review({ cards }: { cards: Card[] }) {
                 <button
                   key={g.grade}
                   onClick={() => grade(g.grade)}
-                  className={cn(
-                    "flex flex-col items-center rounded-md border border-line bg-surface py-2 transition-colors duration-[var(--dur-fast)] hover:border-line-strong",
-                    g.grade === "again" && "hover:border-[var(--danger)]",
-                    g.grade === "easy" && "hover:border-[var(--success)]",
-                  )}
+                  className="group/grade relative flex flex-col items-center overflow-hidden rounded-md border border-line bg-surface py-2 transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
                 >
+                  {/* A signal at hairline scale: enough to tell the four apart
+                      before reading them, nowhere near enough to be a fill. */}
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-0 top-0 h-0.5 opacity-70 transition-opacity duration-[var(--dur-fast)] group-hover/grade:opacity-100"
+                    style={{ background: GRADE_SIGNAL[g.grade] }}
+                  />
                   <span className="text-sm font-medium text-primary">{g.label}</span>
                   <span className="text-xs text-tertiary">{g.hint}</span>
                   <span className="mt-1 text-xs text-tertiary tnum">

@@ -310,8 +310,8 @@ export function Composer({
               disabled={!canSend || streaming}
               aria-label="Send message"
               className={cn(
-                "absolute inset-0 flex items-center justify-center rounded-md bg-accent text-accent-fg transition-[opacity,background-color] duration-[var(--dur-fast)] ease-[var(--ease-std)]",
-                "hover:bg-accent-hover disabled:bg-[var(--bg-subtle)] disabled:text-[var(--text-tertiary)]",
+                "absolute inset-0 flex items-center justify-center rounded-md bg-[var(--accent-fill)] text-accent-fg transition-[opacity,filter] duration-[var(--dur-fast)] ease-[var(--ease-std)]",
+                "hover:brightness-110 disabled:bg-[var(--bg-subtle)] disabled:text-[var(--text-tertiary)]",
                 streaming ? "pointer-events-none opacity-0" : "opacity-100",
               )}
             >
