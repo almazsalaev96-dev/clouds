@@ -4,7 +4,7 @@ import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Copy,
-  NotebookPen, PanelRight, Pencil, RefreshCw, ThumbsDown, ThumbsUp, Volume2, X,
+  NotebookPen, PanelRight, Pencil, RefreshCw, Volume2, X,
 } from "lucide-react";
 import type { ChatError, Message as Msg } from "@/lib/types";
 import { getModel, formatTokens, MODELS } from "@/lib/models";
@@ -187,7 +187,6 @@ export function AssistantMessage({
   entering?: boolean;
 }) {
   const [copied, setCopied] = React.useState(false);
-  const [vote, setVote] = React.useState<"up" | "down" | null>(null);
   const [speaking, setSpeaking] = React.useState(false);
   const text = blockText(message.content);
   const model = message.modelId ? getModel(message.modelId) : null;
@@ -302,23 +301,6 @@ export function AssistantMessage({
         <IconButton label={speaking ? "Stop reading" : "Read aloud"} size={28} onClick={speak} active={speaking}>
           <Volume2 size={14} />
         </IconButton>
-        <span className="mx-1 h-3.5 w-px bg-[var(--border-subtle)]" />
-        <IconButton
-          label="Good response"
-          size={28}
-          active={vote === "up"}
-          onClick={() => setVote((v) => (v === "up" ? null : "up"))}
-        >
-          <ThumbsUp size={14} className={cn(vote === "up" && "text-success")} />
-        </IconButton>
-        <IconButton
-          label="Bad response"
-          size={28}
-          active={vote === "down"}
-          onClick={() => setVote((v) => (v === "down" ? null : "down"))}
-        >
-          <ThumbsDown size={14} className={cn(vote === "down" && "text-danger")} />
-        </IconButton>
       </div>
     </div>
   );
@@ -337,7 +319,7 @@ function Reasoning({ text }: { text: string }) {
         className="flex items-center gap-1 text-sm text-tertiary transition-colors duration-[var(--dur-fast)] hover:text-secondary"
       >
         <Caret size={13} className={cn("transition-transform duration-[var(--dur-fast)]", open && "rotate-90")} />
-        Thought for a moment
+        Reasoning
       </button>
       {open && (
         <div className="mt-2 whitespace-pre-wrap border-l-2 border-line pl-3 text-sm text-secondary anim-fade">

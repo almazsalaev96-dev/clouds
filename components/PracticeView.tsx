@@ -129,10 +129,6 @@ export function PracticeView({
               <span className="block text-sm font-medium text-primary">
                 {due.length} trap{due.length === 1 ? "" : "s"} due
               </span>
-              <span className="block text-xs text-secondary">
-                Across {new Set(due.map((t) => t.skillId)).size} skill
-                {new Set(due.map((t) => t.skillId)).size === 1 ? "" : "s"} — interleaved, so no two in a row are alike.
-              </span>
             </span>
             <ChevronRight size={16} className="shrink-0 text-tertiary transition-transform duration-[var(--dur-fast)] group-hover:translate-x-0.5" />
           </button>
@@ -206,9 +202,9 @@ function SeedSheet({
   };
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-6">
-        <DetailBarless onCancel={onCancel} />
+    <div className="flex min-h-0 flex-1 flex-col">
+      <DetailBar onBack={onCancel} backLabel="All skills" />
+      <div className="mx-auto w-full max-w-[var(--measure)] overflow-y-auto px-4 pb-[18vh] pt-4">
 
         {!sketch ? (
           <>
@@ -307,17 +303,6 @@ function SeedSheet({
   );
 }
 
-function DetailBarless({ onCancel }: { onCancel: () => void }) {
-  return (
-    <button
-      onClick={onCancel}
-      className="mb-4 text-xs text-tertiary transition-colors duration-[var(--dur-fast)] hover:text-primary"
-    >
-      ← All skills
-    </button>
-  );
-}
-
 /* ----------------------------------------------------------------- drill -- */
 
 function Drill({
@@ -400,12 +385,9 @@ function Drill({
       const now = Date.now();
       const bySlug = new Map(traps.map((t) => [t.slug, t]));
       const fresh: Problem[] = [];
-      const pairs = new Map<string, string>();
       for (const d of drafts) {
         const t = bySlug.get(d.trapSlug);
         if (!t) continue;
-        const pairId = pairs.get(d.trapSlug) ?? uid();
-        pairs.set(d.trapSlug, pairId);
         fresh.push({
           id: uid(),
           skillId: t.skillId,
@@ -417,7 +399,6 @@ function Drill({
           explanation: d.explanation,
           hint: d.hint,
           stepOne: d.stepOne,
-          pairId,
           createdAt: now,
         });
       }

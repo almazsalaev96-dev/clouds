@@ -85,6 +85,8 @@
   --spacing: calc(0.25rem * var(--density));
 
   --measure: 46rem;
+  /* Wider than prose, for a page-shaped sheet and its toolbar. */
+  --measure-wide: 52rem;
   --sidebar-w: 260px;
   --topbar-h: 48px;
   --panel-w: clamp(26rem, 34vw, 40rem);

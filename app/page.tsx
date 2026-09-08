@@ -147,17 +147,31 @@ export default function Page() {
 
   /* --- Sending ---------------------------------------------------------- */
 
+  /** The model and instructions belong to the thread, not to the app. */
+  const threadModelId = conversation?.modelId ?? settings.modelId;
+  const threadPrompt = conversation?.systemPrompt ?? settings.systemPrompt;
+
   const runTurn = React.useCallback(
     async (conversationId: string, parentId: string | null, history: Message[], modelId: string) => {
+      const conv = await db.conversations.get(conversationId);
       await stream.send({
         conversationId,
         parentId,
         modelId,
         history,
-        systemPrompt: settings.systemPrompt || undefined,
+        systemPrompt: (conv?.systemPrompt ?? settings.systemPrompt) || undefined,
       });
     },
     [stream, settings.systemPrompt],
+  );
+
+  /** Switching model writes to the open thread; with none open, to the default. */
+  const setModel = React.useCallback(
+    (id: string) => {
+      settings.setModel(id);
+      if (activeId) void db.conversations.update(activeId, { modelId: id });
+    },
+    [settings, activeId],
   );
 
   const send = React.useCallback(
@@ -188,15 +202,15 @@ export default function Page() {
         setComparing({
           parentId: userMessage.id,
           history,
-          modelIds: [settings.modelId, ...compareWith],
+          modelIds: [threadModelId, ...compareWith],
         });
       } else {
-        void runTurn(convId, userMessage.id, history, settings.modelId);
+        void runTurn(convId, userMessage.id, history, threadModelId);
       }
 
       if (isFirst) void generateTitle(convId, blockText(content));
     },
-    [activeId, conversation?.leafId, path, settings.modelId, runTurn, generateTitle, compareWith],
+    [activeId, conversation?.leafId, path, threadModelId, runTurn, generateTitle, compareWith],
   );
 
   /** Regenerating reuses the parent, so the new answer is a sibling of the old. */
@@ -205,10 +219,12 @@ export default function Page() {
       if (!activeId) return;
       const parentId = message.parentId;
       const history = pathTo(allMessages ?? [], parentId);
-      await db.conversations.update(activeId, { leafId: parentId });
-      void runTurn(activeId, parentId, history, modelId ?? settings.modelId);
+      // The leaf stays where it is: the old answer remains on screen and the
+      // new one streams beneath it, so a worse regeneration costs nothing and
+      // an aborted one costs nothing at all.
+      void runTurn(activeId, parentId, history, modelId ?? message.modelId ?? threadModelId);
     },
-    [activeId, allMessages, runTurn, settings.modelId],
+    [activeId, allMessages, runTurn, threadModelId],
   );
 
   /** Editing forks: the original message and its whole subtree stay reachable. */
@@ -223,20 +239,21 @@ export default function Page() {
         content: [...kept, { type: "text", text }],
       });
       const history = [...pathTo(allMessages ?? [], message.parentId), edited];
-      void runTurn(activeId, edited.id, history, settings.modelId);
+      void runTurn(activeId, edited.id, history, threadModelId);
     },
-    [activeId, allMessages, runTurn, settings.modelId],
+    [activeId, allMessages, runTurn, threadModelId],
   );
 
   const keepCompared = React.useCallback(
     async (messageId: string, modelId: string) => {
       if (!activeId) return;
-      await db.conversations.update(activeId, { leafId: messageId });
-      settings.setModel(modelId);
+      // Keeping a compared answer points the thread at it and adopts its
+      // model for this thread — it must not rewrite the global default.
+      await db.conversations.update(activeId, { leafId: messageId, modelId });
       setComparing(null);
       setCompareWith([]);
     },
-    [activeId, settings],
+    [activeId],
   );
 
   const navigate = React.useCallback(
@@ -252,10 +269,11 @@ export default function Page() {
   }, [settings]);
 
   const newChat = React.useCallback(() => {
-    stream.stop();
+    // Deliberately does not stop the stream: an answer belongs to the thread it
+    // was asked in, not to whatever is on screen.
     setActiveId(null);
     closeDrawerOnMobile();
-  }, [stream, closeDrawerOnMobile]);
+  }, [closeDrawerOnMobile]);
 
   const goToSection = React.useCallback(
     (target: Section) => {
@@ -286,7 +304,6 @@ export default function Page() {
     (section: Section, id: string) => {
       closeDrawerOnMobile();
       if (section === "chat") {
-        stream.stop();
         setActiveId(id);
         settings.setSection("chat");
       } else if (section === "notes") setNoteId(id);
@@ -294,7 +311,7 @@ export default function Page() {
       else if (section === "practice") setSkillId(id);
       else setPaperId(id);
     },
-    [closeDrawerOnMobile, stream, settings],
+    [closeDrawerOnMobile, settings],
   );
 
   const [studyBusy, setStudyBusy] = React.useState(false);
@@ -342,10 +359,10 @@ export default function Page() {
   const keepAsNote = React.useCallback(
     async (text: string) => {
       const note = await saveToNote(text, activeId ?? undefined);
+      // Deliberately does not navigate: you were reading something.
       setNoteId(note.id);
-      settings.setSection("notes");
     },
-    [activeId, settings],
+    [activeId],
   );
 
   const exportConversation = React.useCallback(() => {
@@ -476,7 +493,9 @@ export default function Page() {
     setSettingsOpen(true);
   }, []);
 
-  const showEmpty = path.length === 0 && stream.phase === "idle" && !comparing;
+  /** Is the one live stream the one this screen is showing? */
+  const live = stream.conversationId !== null && stream.conversationId === activeId;
+  const showEmpty = path.length === 0 && !live && !comparing;
 
   const artifactValue = React.useMemo(
     () => ({ open: setArtifact, current: artifact }),
@@ -496,7 +515,7 @@ export default function Page() {
           onOpenShortcuts={() => setShortcutsOpen(true)}
         />
 
-        <main className="flex min-w-0 flex-1 flex-col">
+        <main className="relative flex min-w-0 flex-1 flex-col">
           {settings.section !== "chat" ? (
             <>
               <header className="no-print flex h-[var(--topbar-h)] shrink-0 items-center gap-1 border-b border-transparent px-2">
@@ -558,6 +577,8 @@ export default function Page() {
             configured={configured}
             modelPickerOpen={modelPickerOpen}
             onModelPickerOpenChange={setModelPickerOpen}
+            modelId={threadModelId}
+            onModelChange={setModel}
             onRename={(title) => activeId && db.conversations.update(activeId, { title })}
             onExport={exportConversation}
             onDelete={() => setPendingDelete(activeId)}
@@ -590,12 +611,12 @@ export default function Page() {
                 onScrolledChange={setScrolled}
                 messages={path}
                 allMessages={allMessages ?? []}
-                streaming={stream.phase}
-                streamText={stream.text}
-                streamReasoning={stream.reasoning}
-                streamModelId={settings.modelId}
-                elapsed={stream.elapsed}
-                error={stream.error}
+                streaming={live ? stream.phase : "idle"}
+                streamText={live ? stream.text : ""}
+                streamReasoning={live ? stream.reasoning : ""}
+                streamModelId={threadModelId}
+                elapsed={live ? stream.elapsed : 0}
+                error={live ? stream.error : null}
                 onNavigate={navigate}
                 onEdit={editMessage}
                 onRegenerate={(m, modelId) => regenerate(m, modelId)}
@@ -603,7 +624,7 @@ export default function Page() {
                 onRetry={() => {
                   const last = [...path].reverse().find((m) => m.role === "assistant");
                   if (last) regenerate(last);
-                  else if (path.length) runTurn(activeId!, path[path.length - 1].id, path, settings.modelId);
+                  else if (path.length) runTurn(activeId!, path[path.length - 1].id, path, threadModelId);
                 }}
                 onAddKey={openKeys}
                 onSwitchModel={() => setModelPickerOpen(true)}
@@ -633,8 +654,10 @@ export default function Page() {
               {mounted && (
                 <Composer
                   conversationId={activeId ?? "new"}
-                  streaming={stream.phase !== "idle"}
+                  streaming={live && stream.phase !== "idle"}
                   contextTokens={contextTokens}
+                  modelId={threadModelId}
+                  spentUsd={conversation?.costUsd ?? 0}
                   onSend={send}
                   onStop={stream.stop}
                   onEditLast={editLast}

@@ -10,6 +10,15 @@ export type Phase = "idle" | "waiting" | "streaming";
 
 interface StreamState {
   phase: Phase;
+  /**
+   * Which conversation this stream belongs to.
+   *
+   * Without it the page can only ask "is something streaming", so it stopped
+   * the stream whenever you navigated — the safe-looking choice that threw away
+   * the answer you were waiting for. With it, the page asks "is this stream
+   * mine", and an answer finishes wherever it was started.
+   */
+  conversationId: string | null;
   text: string;
   reasoning: string;
   /** Milliseconds since send. Drives the honest "thinking · 6s" counter. */
@@ -21,6 +30,7 @@ interface StreamState {
 
 const EMPTY: StreamState = {
   phase: "idle",
+  conversationId: null,
   text: "",
   reasoning: "",
   elapsed: 0,
@@ -111,7 +121,7 @@ export function useStream(onFinish?: (m: Message) => void) {
       usageRef.current = null;
       startedRef.current = Date.now();
 
-      setState({ ...EMPTY, phase: "waiting", messageId: assistantId });
+      setState({ ...EMPTY, phase: "waiting", messageId: assistantId, conversationId: opts.conversationId });
 
       // A live elapsed counter, not a spinner: it is the difference between
       // "this is broken" and "this is working, and here is how hard".

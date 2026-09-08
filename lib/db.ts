@@ -244,7 +244,6 @@ export async function createNote(init: Partial<Note> = {}): Promise<Note> {
     createdAt: now,
     updatedAt: now,
     pinned: false,
-    tags: [],
     ...init,
   };
   await db.notes.add(note);

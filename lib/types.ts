@@ -137,7 +137,6 @@ export interface Note {
   createdAt: number;
   updatedAt: number;
   pinned: boolean;
-  tags: string[];
   /** Where it came from, so a note can point back at its conversation. */
   sourceConversationId?: string;
 }
@@ -265,8 +264,6 @@ export interface Problem {
   hint: string;
   /** The first step performed, supplied for the scaffolded retry. */
   stepOne: string;
-  /** Twins share this, so the second attempt is never a fresh generation. */
-  pairId: string;
   servedAt?: number;
   retired?: boolean;
   createdAt: number;

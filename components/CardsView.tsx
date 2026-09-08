@@ -100,10 +100,6 @@ export function CardsView({
                 <span className="block text-sm font-medium text-primary">
                   {dueEverywhere.length} card{dueEverywhere.length === 1 ? "" : "s"} due today
                 </span>
-                <span className="block text-xs text-secondary">
-                  Across {new Set(dueEverywhere.map((c) => c.deckId)).size} deck
-                  {new Set(dueEverywhere.map((c) => c.deckId)).size === 1 ? "" : "s"} — review them in one pass.
-                </span>
               </span>
               <ChevronRight size={16} className="shrink-0 text-tertiary transition-transform duration-[var(--dur-fast)] group-hover:translate-x-0.5" />
             </button>

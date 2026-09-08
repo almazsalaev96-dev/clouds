@@ -6,7 +6,7 @@ import { ArrowUp, Columns2, Paperclip, Square, X, FileText, Check } from "lucide
 import type { ContentBlock } from "@/lib/types";
 import { getModel, estimateTokens, formatCost, formatTokens, MODELS } from "@/lib/models";
 import { fileToBase64, formatBytes, cn } from "@/lib/utils";
-import { useSettings, useDrafts, paramsFor } from "@/lib/store";
+import { useSettings, useDrafts } from "@/lib/store";
 import { Tooltip } from "@/components/ui/primitives";
 import { ProviderMark } from "@/components/ui/ProviderMark";
 
@@ -28,6 +28,8 @@ export function Composer({
   conversationId,
   streaming,
   contextTokens,
+  modelId,
+  spentUsd,
   onSend,
   onStop,
   onEditLast,
@@ -39,6 +41,10 @@ export function Composer({
   conversationId: string;
   streaming: boolean;
   contextTokens: number;
+  /** The thread's model, not the app's. */
+  modelId: string;
+  /** What this thread has actually cost, accumulated from real usage. */
+  spentUsd: number;
   onSend: (content: ContentBlock[]) => void;
   onStop: () => void;
   onEditLast: () => void;
@@ -49,7 +55,7 @@ export function Composer({
 }) {
   const settings = useSettings();
   const drafts = useDrafts();
-  const model = getModel(settings.modelId);
+  const model = getModel(modelId);
   const [attachments, setAttachments] = React.useState<Attachment[]>([]);
   const [dragging, setDragging] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
@@ -192,8 +198,6 @@ export function Composer({
 
   const draftTokens = estimateTokens(text) + attachments.reduce((n, a) => n + (a.kind === "file" ? estimateTokens(a.data) : 800), 0);
   const totalTokens = contextTokens + draftTokens;
-  const params = paramsFor(settings.modelId);
-  const cost = (totalTokens * model.priceIn + params.maxTokens * 0.25 * model.priceOut) / 1_000_000;
   const overContext = totalTokens > model.contextWindow * 0.9;
   const canSend = Boolean(text.trim() || attachments.length);
 
@@ -366,7 +370,7 @@ export function Composer({
                   Answer alongside {model.name} — pick up to two.
                 </p>
                 <div className="max-h-72 overflow-y-auto">
-                  {MODELS.filter((m) => m.id !== settings.modelId).map((m) => {
+                  {MODELS.filter((m) => m.id !== modelId).map((m) => {
                     const on = compareWith.includes(m.id);
                     const usable = availableModels(m.id);
                     return (
@@ -399,7 +403,11 @@ export function Composer({
               </span>
             )}
             {!overContext && totalTokens > 0 && <span>~{formatTokens(totalTokens)} tok</span>}
-            {cost > 0 && <span>{formatCost(cost)}</span>}
+            {spentUsd > 0 && (
+              <Tooltip label="What this conversation has cost so far">
+                <span>{formatCost(spentUsd)}</span>
+              </Tooltip>
+            )}
           </span>
         </div>
       </div>

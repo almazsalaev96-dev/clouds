@@ -131,7 +131,7 @@ export function Sidebar({
                 </span>
                 {s.label}
                 {((s.id === "cards" && due > 0) || (s.id === "practice" && trapsDue > 0)) && (
-                  <span className="ml-auto rounded-full bg-[var(--go-fill)] px-1.5 text-xs font-semibold text-[var(--on-fill)] tnum">
+                  <span className="ml-auto rounded-full bg-accent-subtle px-1.5 text-xs font-semibold text-accent tnum">
                     {s.id === "cards" ? due : trapsDue}
                   </span>
                 )}

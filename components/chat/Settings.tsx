@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Check, ExternalLink, Eye, EyeOff, Loader2, X } from "lucide-react";
+import { Check, ExternalLink, Eye, EyeOff, X } from "lucide-react";
 import type { ProviderId } from "@/lib/types";
 import { PROVIDERS, getModel } from "@/lib/models";
 import { deleteAllData } from "@/lib/db";
@@ -178,7 +178,7 @@ function KeyRow({ provider, serverConfigured }: { provider: ProviderId; serverCo
             </button>
           </div>
           <Button size="sm" onClick={test} disabled={!value || testing}>
-            {testing ? <Loader2 size={13} className="animate-spin" /> : "Test"}
+            {testing ? <span className="think-orb" aria-hidden /> : "Test"}
           </Button>
         </div>
       )}

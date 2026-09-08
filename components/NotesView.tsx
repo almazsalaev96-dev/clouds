@@ -217,7 +217,6 @@ export async function saveToNote(text: string, conversationId?: string): Promise
     createdAt: now,
     updatedAt: now,
     pinned: false,
-    tags: [],
     sourceConversationId: conversationId,
   };
   await db.notes.add(note);

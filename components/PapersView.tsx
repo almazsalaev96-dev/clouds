@@ -167,7 +167,7 @@ export function PapersView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="no-print mx-auto flex w-full max-w-[52rem] flex-wrap items-center gap-1 px-4 pt-3">
+      <div className="no-print mx-auto flex w-full max-w-[var(--measure-wide)] flex-wrap items-center gap-1 px-4 pt-3">
         <IconButton label="All papers" keys={["Esc"]} onClick={onBack}>
           <ChevronLeft size={16} />
         </IconButton>
@@ -222,7 +222,7 @@ export function PapersView({
       </div>
 
       {note && (
-        <div className="no-print mx-auto mt-2 w-full max-w-[52rem] px-4">
+        <div className="no-print mx-auto mt-2 w-full max-w-[var(--measure-wide)] px-4">
           <p className="border-l-2 border-[var(--stop)] py-1 pl-3 text-sm text-primary anim-fade">
             {note}
           </p>
@@ -230,7 +230,7 @@ export function PapersView({
       )}
 
       <div className="paper-scroll min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-[52rem] px-4 pb-16 pt-4">
+        <div className="mx-auto w-full max-w-[var(--measure-wide)] px-4 pb-16 pt-4">
           {/* A sheet, not a text box. Seeing the margins while you write is the
               difference between editing text and making a document. */}
           <article className="paper-sheet mx-auto w-full max-w-[210mm] rounded-lg border border-line bg-surface px-[18mm] py-[20mm] shadow-sm">

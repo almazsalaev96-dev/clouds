@@ -15,6 +15,8 @@ export function TopBar({
   configured,
   modelPickerOpen,
   onModelPickerOpenChange,
+  modelId,
+  onModelChange,
   onRename,
   onExport,
   onDelete,
@@ -31,6 +33,8 @@ export function TopBar({
   configured: Record<string, boolean>;
   modelPickerOpen: boolean;
   onModelPickerOpenChange: (o: boolean) => void;
+  modelId: string;
+  onModelChange: (id: string) => void;
   onRename: (title: string) => void;
   onExport: () => void;
   onDelete: () => void;
@@ -42,7 +46,7 @@ export function TopBar({
   onMakeCards: () => void;
   busy: boolean;
 }) {
-  const { sidebarOpen, toggleSidebar, modelId, setModel } = useSettings();
+  const { sidebarOpen, toggleSidebar } = useSettings();
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState("");
 
@@ -65,7 +69,7 @@ export function TopBar({
         open={modelPickerOpen}
         onOpenChange={onModelPickerOpenChange}
         value={modelId}
-        onChange={setModel}
+        onChange={onModelChange}
         configured={configured}
       />
 
