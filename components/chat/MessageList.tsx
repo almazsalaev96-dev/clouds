@@ -29,6 +29,7 @@ export function MessageList({
   onNavigate,
   onEdit,
   onRegenerate,
+  onSaveToNote,
   onRetry,
   onAddKey,
   onSwitchModel,
@@ -47,6 +48,7 @@ export function MessageList({
   onNavigate: (id: string) => void;
   onEdit: (message: Msg, text: string) => void;
   onRegenerate: (message: Msg, modelId?: string) => void;
+  onSaveToNote: (text: string) => void;
   onRetry: () => void;
   onAddKey: () => void;
   onSwitchModel: () => void;
@@ -125,6 +127,7 @@ export function MessageList({
                 index={index}
                 onNavigate={onNavigate}
                 onRegenerate={(modelId) => onRegenerate(m, modelId)}
+                onSaveToNote={onSaveToNote}
               />
             );
           })}

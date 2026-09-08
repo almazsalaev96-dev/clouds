@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { Conversation, Message, ContentBlock } from "./types";
+import type { Card, Conversation, Deck, Message, Note, Paper, ContentBlock } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 
 /**
@@ -10,12 +10,23 @@ import { DEFAULT_MODEL_ID } from "./models";
 class ChatDB extends Dexie {
   conversations!: Table<Conversation, string>;
   messages!: Table<Message, string>;
+  notes!: Table<Note, string>;
+  decks!: Table<Deck, string>;
+  cards!: Table<Card, string>;
+  papers!: Table<Paper, string>;
 
   constructor() {
     super("clouds");
     this.version(1).stores({
       conversations: "id, updatedAt, pinned, archived",
       messages: "id, conversationId, parentId, createdAt",
+    });
+    // Additive: Dexie migrates in place, so existing conversations survive.
+    this.version(2).stores({
+      notes: "id, updatedAt, pinned",
+      decks: "id, createdAt",
+      cards: "id, deckId, due",
+      papers: "id, updatedAt",
     });
   }
 }
@@ -96,10 +107,18 @@ export async function deleteConversation(id: string) {
 }
 
 export async function deleteAllData() {
-  await db.transaction("rw", db.conversations, db.messages, async () => {
-    await db.messages.clear();
-    await db.conversations.clear();
-  });
+  await db.transaction(
+    "rw",
+    [db.conversations, db.messages, db.notes, db.decks, db.cards, db.papers],
+    async () => {
+      await db.messages.clear();
+      await db.conversations.clear();
+      await db.notes.clear();
+      await db.decks.clear();
+      await db.cards.clear();
+      await db.papers.clear();
+    },
+  );
 }
 
 export function blockText(content: ContentBlock[]): string {
@@ -143,4 +162,79 @@ export function groupConversations(list: Conversation[]) {
     else push(new Date(t).toLocaleString(undefined, { month: "long", year: "numeric" }), c);
   }
   return [...groups.entries()];
+}
+
+/* ----------------------------------------------------------------- notes -- */
+
+export async function createNote(init: Partial<Note> = {}): Promise<Note> {
+  const now = Date.now();
+  const note: Note = {
+    id: uid(),
+    title: "",
+    content: "",
+    createdAt: now,
+    updatedAt: now,
+    pinned: false,
+    tags: [],
+    ...init,
+  };
+  await db.notes.add(note);
+  return note;
+}
+
+/**
+ * A title the user did not have to write. The first heading wins, then the
+ * first sentence; an untitled note is never left as "Untitled" if the text
+ * itself says what it is.
+ */
+export function deriveTitle(content: string, fallback = "Untitled note"): string {
+  const heading = content.match(/^#{1,3}\s+(.+)$/m)?.[1];
+  if (heading) return heading.trim().slice(0, 80);
+  const firstLine = content
+    .split("\n")
+    .map((l) => l.replace(/^[>*\-\s#]+/, "").trim())
+    .find(Boolean);
+  if (!firstLine) return fallback;
+  const sentence = firstLine.split(/(?<=[.!?])\s/)[0];
+  return sentence.slice(0, 80) || fallback;
+}
+
+export async function deleteNote(id: string) {
+  await db.notes.delete(id);
+}
+
+/* ----------------------------------------------------------------- decks -- */
+
+export async function createDeck(title: string, source: Partial<Deck> = {}): Promise<Deck> {
+  const deck: Deck = { id: uid(), title, createdAt: Date.now(), ...source };
+  await db.decks.add(deck);
+  return deck;
+}
+
+export async function deleteDeck(id: string) {
+  await db.transaction("rw", db.decks, db.cards, async () => {
+    await db.cards.where("deckId").equals(id).delete();
+    await db.decks.delete(id);
+  });
+}
+
+/* ---------------------------------------------------------------- papers -- */
+
+export async function createPaper(init: Partial<Paper> = {}): Promise<Paper> {
+  const now = Date.now();
+  const paper: Paper = {
+    id: uid(),
+    title: "",
+    content: "",
+    createdAt: now,
+    updatedAt: now,
+    format: "report",
+    ...init,
+  };
+  await db.papers.add(paper);
+  return paper;
+}
+
+export async function deletePaper(id: string) {
+  await db.papers.delete(id);
 }

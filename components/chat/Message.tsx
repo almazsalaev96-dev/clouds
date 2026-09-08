@@ -4,7 +4,7 @@ import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Copy,
-  Pencil, RefreshCw, ThumbsDown, ThumbsUp, Volume2, X,
+  NotebookPen, Pencil, RefreshCw, ThumbsDown, ThumbsUp, Volume2, X,
 } from "lucide-react";
 import type { ChatError, Message as Msg } from "@/lib/types";
 import { getModel, formatTokens, MODELS } from "@/lib/models";
@@ -172,12 +172,14 @@ export function AssistantMessage({
   index,
   onNavigate,
   onRegenerate,
+  onSaveToNote,
 }: {
   message: Msg;
   siblings: Msg[];
   index: number;
   onNavigate: (id: string) => void;
   onRegenerate: (modelId?: string) => void;
+  onSaveToNote: (text: string) => void;
 }) {
   const [copied, setCopied] = React.useState(false);
   const [vote, setVote] = React.useState<"up" | "down" | null>(null);
@@ -270,6 +272,9 @@ export function AssistantMessage({
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
         </DropdownMenu.Root>
+        <IconButton label="Keep as a note" size={28} onClick={() => onSaveToNote(text)}>
+          <NotebookPen size={14} />
+        </IconButton>
         <IconButton label={speaking ? "Stop reading" : "Read aloud"} size={28} onClick={speak} active={speaking}>
           <Volume2 size={14} />
         </IconButton>

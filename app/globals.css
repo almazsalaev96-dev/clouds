@@ -204,24 +204,38 @@
    BASE
    ========================================================================= */
 
-* { border-color: var(--border-subtle); }
+@layer base {
+  * { border-color: var(--border-subtle); }
 
-html {
-  -webkit-text-size-adjust: 100%;
-  text-rendering: optimizeLegibility;
-}
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
 
-body {
-  background: var(--bg-canvas);
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-  line-height: 1.65;
-  letter-spacing: -0.011em;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  overscroll-behavior: none;
+  body {
+    background: var(--bg-canvas);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.65;
+    letter-spacing: -0.011em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    overscroll-behavior: none;
+  }
+
+  button {
+    cursor: pointer;
+    font: inherit;
+    letter-spacing: inherit;
+  }
+  button:disabled { cursor: default; }
+  input,
+  textarea {
+    font: inherit;
+    letter-spacing: inherit;
+  }
 }
 
 /* Focus is visible for keyboard users and invisible for mouse users. */
@@ -265,10 +279,6 @@ textarea:focus-visible {
   background-clip: content-box;
 }
 *:hover::-webkit-scrollbar-thumb { background: var(--border-strong); background-clip: content-box; }
-
-button { cursor: pointer; font: inherit; letter-spacing: inherit; }
-button:disabled { cursor: default; }
-input, textarea { font: inherit; letter-spacing: inherit; }
 
 /* Numerals align in every counter, price and table. */
 .tnum { font-variant-numeric: tabular-nums; }
@@ -482,4 +492,119 @@ input, textarea { font: inherit; letter-spacing: inherit; }
    re-render. Anything longer than this starts to feel like waiting. */
 .msg-enter {
   animation: rise-in var(--dur-enter) var(--ease-out) both;
+}
+
+/* ============================================================================
+   PRINT — papers are exported through the browser's own print pipeline, so
+   this stylesheet *is* the PDF renderer. It has to strip the application and
+   leave a document behind.
+   ========================================================================= */
+
+@media print {
+  @page {
+    size: A4;
+    margin: 18mm 20mm 20mm;
+  }
+
+  /* Colour management is the browser's job on paper: force a light document
+     regardless of the theme the user happens to be reading in. */
+  html,
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* The shell paints the app's own ground; on paper that ground is the page. */
+  .app-shell,
+  .app-shell > main,
+  .paper-scroll,
+  .paper-scroll > * {
+    background: #fff !important;
+  }
+
+  /* The app is a fixed-height flex shell with its own scrollers. On paper
+     everything has to become one continuous flow instead. */
+  .app-shell,
+  .paper-scroll,
+  .paper-scroll > * {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .paper-sheet {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  .paper-sheet,
+  .paper-sheet * {
+    color: #111 !important;
+  }
+
+  /* Inputs are how the title and author are edited on screen; on paper they
+     are just type, so the affordances have to disappear. */
+  .paper-head input {
+    border: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+  .paper-head input::placeholder {
+    color: transparent !important;
+  }
+
+  .paper-sheet .prose {
+    font-size: 11pt;
+    line-height: 1.55;
+  }
+
+  /* Typographic conventions that only apply on paper. */
+  .paper-sheet h1,
+  .paper-sheet h2,
+  .paper-sheet h3 {
+    break-after: avoid-page;
+  }
+  .paper-sheet p,
+  .paper-sheet li,
+  .paper-sheet blockquote {
+    orphans: 3;
+    widows: 3;
+  }
+  .paper-sheet pre,
+  .paper-sheet figure,
+  .paper-sheet table,
+  .paper-sheet img {
+    break-inside: avoid;
+  }
+
+  .paper-sheet pre,
+  .paper-sheet .table-scroll {
+    overflow: visible !important;
+    border-color: #ddd !important;
+  }
+  .paper-sheet code {
+    background: #f4f4f4 !important;
+    border-color: #e2e2e2 !important;
+  }
+
+  /* A URL the reader cannot click is worth printing in full. */
+  .paper-sheet a::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #555 !important;
+  }
+  .paper-sheet a svg {
+    display: none !important;
+  }
 }

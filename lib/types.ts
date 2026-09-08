@@ -126,3 +126,55 @@ export interface ChatRequest {
   /** Sent only when the server has no key for this provider. */
   clientKey?: string;
 }
+
+/* ---------------------------------------------------------------- study ---- */
+
+export interface Note {
+  id: string;
+  title: string;
+  /** Markdown. The same renderer draws it as the chat, so it is one format. */
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+  pinned: boolean;
+  tags: string[];
+  /** Where it came from, so a note can point back at its conversation. */
+  sourceConversationId?: string;
+}
+
+export interface Deck {
+  id: string;
+  title: string;
+  createdAt: number;
+  sourceNoteId?: string;
+  sourceConversationId?: string;
+}
+
+export type Grade = "again" | "hard" | "good" | "easy";
+
+export interface Card {
+  id: string;
+  deckId: string;
+  front: string;
+  back: string;
+  /** SM-2 state. */
+  ease: number;
+  interval: number;
+  reps: number;
+  lapses: number;
+  due: number;
+  lastReviewed?: number;
+  createdAt: number;
+}
+
+export interface Paper {
+  id: string;
+  title: string;
+  subtitle?: string;
+  author?: string;
+  /** Markdown body, laid out for print. */
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+  format: "report" | "essay" | "notes";
+}

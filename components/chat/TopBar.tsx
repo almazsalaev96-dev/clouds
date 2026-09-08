@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Download, MoreHorizontal, PanelLeft, Pin, PinOff, Trash2 } from "lucide-react";
+import { Download, Layers, MoreHorizontal, NotebookPen, PanelLeft, Pin, PinOff, Trash2 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { useSettings } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,9 @@ export function TopBar({
   onExport,
   onDelete,
   onTogglePin,
+  onSaveAsNote,
+  onMakeCards,
+  busy,
 }: {
   conversation: Conversation | null;
   scrolled: boolean;
@@ -29,6 +32,9 @@ export function TopBar({
   onExport: () => void;
   onDelete: () => void;
   onTogglePin: () => void;
+  onSaveAsNote: () => void;
+  onMakeCards: () => void;
+  busy: boolean;
 }) {
   const { sidebarOpen, toggleSidebar, modelId, setModel } = useSettings();
   const [editing, setEditing] = React.useState(false);
@@ -37,7 +43,7 @@ export function TopBar({
   return (
     <header
       className={cn(
-        "sticky top-0 z-20 flex h-[var(--topbar-h)] shrink-0 items-center gap-1 px-2 backdrop-blur-xl transition-[border-color] duration-[var(--dur-fast)]",
+        "no-print sticky top-0 z-20 flex h-[var(--topbar-h)] shrink-0 items-center gap-1 px-2 backdrop-blur-xl transition-[border-color] duration-[var(--dur-fast)]",
         "border-b bg-[color-mix(in_srgb,var(--bg-canvas)_80%,transparent)]",
         // The hairline only exists once there is content above it to separate.
         scrolled ? "border-line" : "border-transparent",
@@ -109,6 +115,12 @@ export function TopBar({
               >
                 <Item onSelect={onTogglePin} icon={conversation.pinned ? <PinOff size={14} /> : <Pin size={14} />}>
                   {conversation.pinned ? "Unpin" : "Pin to top"}
+                </Item>
+                <Item onSelect={onSaveAsNote} icon={<NotebookPen size={14} />}>
+                  Save as a note
+                </Item>
+                <Item onSelect={onMakeCards} icon={<Layers size={14} />}>
+                  {busy ? "Making flashcards…" : "Make flashcards"}
                 </Item>
                 <Item onSelect={onExport} icon={<Download size={14} />}>
                   Export as Markdown

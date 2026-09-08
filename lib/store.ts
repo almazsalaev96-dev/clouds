@@ -7,10 +7,12 @@ import { DEFAULT_MODEL_ID } from "./models";
 
 export type Theme = "light" | "dark" | "system";
 export type Density = "compact" | "comfortable" | "spacious";
+export type Section = "chat" | "notes" | "cards" | "papers";
 
 interface Settings {
   theme: Theme;
   density: Density;
+  section: Section;
   modelId: string;
   systemPrompt: string;
   sidebarOpen: boolean;
@@ -25,6 +27,7 @@ interface Settings {
 
   setTheme: (t: Theme) => void;
   setDensity: (d: Density) => void;
+  setSection: (s: Section) => void;
   setModel: (id: string) => void;
   setSystemPrompt: (s: string) => void;
   toggleSidebar: () => void;
@@ -47,6 +50,7 @@ export const useSettings = create<Settings>()(
     (set, get) => ({
       theme: "system",
       density: "comfortable",
+      section: "chat",
       modelId: DEFAULT_MODEL_ID,
       systemPrompt: "",
       sidebarOpen: true,
@@ -60,6 +64,7 @@ export const useSettings = create<Settings>()(
 
       setTheme: (theme) => set({ theme }),
       setDensity: (density) => set({ density }),
+      setSection: (section) => set({ section }),
       setModel: (modelId) =>
         set((s) => ({
           modelId,

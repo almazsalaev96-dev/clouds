@@ -2,21 +2,27 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
+import { PanelLeft } from "lucide-react";
 import type { ContentBlock, Message } from "@/lib/types";
 import {
-  createConversation, db, deepestLeaf, deleteConversation, exportMarkdown,
-  pathTo, addMessage, blockText,
+  createConversation, createDeck, createNote, createPaper, db, deepestLeaf,
+  deleteConversation, exportMarkdown, pathTo, addMessage, blockText,
 } from "@/lib/db";
 import { estimateTokens, getModel } from "@/lib/models";
-import { useSettings, useDrafts, paramsFor } from "@/lib/store";
+import { cheapestAvailable, generateCards } from "@/lib/generate";
+import { newCard } from "@/lib/study";
+import { useSettings, useDrafts, paramsFor, type Section } from "@/lib/store";
 import { useStream } from "@/lib/hooks/useStream";
-import { Sidebar } from "@/components/chat/Sidebar";
+import { Sidebar } from "@/components/Sidebar";
+import { NotesView, saveToNote } from "@/components/NotesView";
+import { CardsView } from "@/components/CardsView";
+import { PapersView } from "@/components/PapersView";
 import { TopBar } from "@/components/chat/TopBar";
 import { MessageList } from "@/components/chat/MessageList";
 import { Composer } from "@/components/chat/Composer";
 import { EmptyState } from "@/components/chat/EmptyState";
 import dynamic from "next/dynamic";
-import { TooltipProvider } from "@/components/ui/primitives";
+import { IconButton, TooltipProvider } from "@/components/ui/primitives";
 import { ArtifactPanel, ArtifactProvider, type Artifact } from "@/components/chat/ArtifactPanel";
 
 // Neither of these is on the path to a first message, so neither belongs in
@@ -42,6 +48,9 @@ export default function Page() {
   const [scrolled, setScrolled] = React.useState(false);
   const [artifact, setArtifact] = React.useState<Artifact | null>(null);
   const [compareWith, setCompareWith] = React.useState<string[]>([]);
+  const [noteId, setNoteId] = React.useState<string | null>(null);
+  const [deckId, setDeckId] = React.useState<string | null>(null);
+  const [paperId, setPaperId] = React.useState<string | null>(null);
   const [comparing, setComparing] = React.useState<{
     parentId: string;
     history: Message[];
@@ -286,6 +295,73 @@ export default function Page() {
     closeDrawerOnMobile();
   }, [stream, closeDrawerOnMobile]);
 
+  const createInSection = React.useCallback(
+    async (section: Section) => {
+      closeDrawerOnMobile();
+      if (section === "chat") return newChat();
+      if (section === "notes") return setNoteId((await createNote()).id);
+      if (section === "cards") return setDeckId((await createDeck("New deck")).id);
+      setPaperId((await createPaper()).id);
+    },
+    [closeDrawerOnMobile, newChat],
+  );
+
+  const selectInSection = React.useCallback(
+    (section: Section, id: string) => {
+      closeDrawerOnMobile();
+      if (section === "chat") {
+        stream.stop();
+        setActiveId(id);
+      } else if (section === "notes") setNoteId(id);
+      else if (section === "cards") setDeckId(id);
+      else setPaperId(id);
+    },
+    [closeDrawerOnMobile, stream],
+  );
+
+  const [studyBusy, setStudyBusy] = React.useState(false);
+
+  /** A whole conversation is often the study material, not one answer in it. */
+  const conversationToCards = React.useCallback(async () => {
+    if (!path.length) return;
+    setStudyBusy(true);
+    const source = path
+      .map((m) => `${m.role === "user" ? "Q" : "A"}: ${blockText(m.content)}`)
+      .join("\n\n");
+    const drafts = await generateCards(source, { modelId: cheapestAvailable(configured), count: 12 });
+    setStudyBusy(false);
+    if (!drafts?.length) return;
+    const deck = await createDeck(conversation?.title || "From a conversation", {
+      sourceConversationId: activeId ?? undefined,
+    });
+    await db.cards.bulkAdd(drafts.map((c) => newCard(deck.id, c.front, c.back)));
+    setDeckId(deck.id);
+    settings.setSection("cards");
+  }, [path, configured, conversation?.title, activeId, settings]);
+
+  const conversationToNote = React.useCallback(async () => {
+    if (!path.length) return;
+    const md = path
+      .map((m) => `${m.role === "user" ? "**You**" : `**${m.modelId ?? "Assistant"}**`}\n\n${blockText(m.content)}`)
+      .join("\n\n---\n\n");
+    const note = await saveToNote(
+      `# ${conversation?.title || "Saved conversation"}\n\n${md}`,
+      activeId ?? undefined,
+    );
+    setNoteId(note.id);
+    settings.setSection("notes");
+  }, [path, conversation?.title, activeId, settings]);
+
+  /** Lift an answer out of the conversation and into something you keep. */
+  const keepAsNote = React.useCallback(
+    async (text: string) => {
+      const note = await saveToNote(text, activeId ?? undefined);
+      setNoteId(note.id);
+      settings.setSection("notes");
+    },
+    [activeId, settings],
+  );
+
   const exportConversation = React.useCallback(() => {
     if (!conversation) return;
     const md = exportMarkdown(conversation, path);
@@ -329,8 +405,17 @@ export default function Page() {
           break;
         case "n":
           e.preventDefault();
-          newChat();
+          void createInSection(settings.section);
           break;
+        case "1":
+        case "2":
+        case "3":
+        case "4": {
+          e.preventDefault();
+          const sections = ["chat", "notes", "cards", "papers"] as const;
+          settings.setSection(sections[Number(e.key) - 1]);
+          break;
+        }
         case "\\":
           e.preventDefault();
           settings.toggleSidebar();
@@ -361,7 +446,7 @@ export default function Page() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [newChat, path, settings, stream]);
+  }, [createInSection, path, settings, stream]);
 
   const openKeys = React.useCallback(() => {
     setSettingsTab("keys");
@@ -378,19 +463,48 @@ export default function Page() {
   return (
     <TooltipProvider>
       <ArtifactProvider value={artifactValue}>
-      <div className="flex h-dvh overflow-hidden bg-canvas">
+      <div className="app-shell flex h-dvh overflow-hidden bg-canvas">
         <Sidebar
-          activeId={activeId}
-          onSelect={(id) => {
-            stream.stop();
-            setActiveId(id);
-            closeDrawerOnMobile();
-          }}
-          onNew={newChat}
+          activeIds={{ chat: activeId, notes: noteId, cards: deckId, papers: paperId }}
+          onSelect={selectInSection}
+          onNew={createInSection}
           onOpenSettings={openKeys}
         />
 
         <main className="flex min-w-0 flex-1 flex-col">
+          {settings.section !== "chat" ? (
+            <>
+              <header className="no-print flex h-[var(--topbar-h)] shrink-0 items-center gap-1 border-b border-transparent px-2">
+                {!settings.sidebarOpen && (
+                  <IconButton label="Show sidebar" keys={["mod", "\\"]} onClick={settings.toggleSidebar}>
+                    <PanelLeft size={16} />
+                  </IconButton>
+                )}
+                <span className="ml-1 text-sm font-medium capitalize text-primary">
+                  {settings.section}
+                </span>
+              </header>
+              {settings.section === "notes" && (
+                <NotesView
+                  noteId={noteId}
+                  configured={configured}
+                  onOpenDeck={(id) => {
+                    setDeckId(id);
+                    settings.setSection("cards");
+                  }}
+                  onOpenPaper={(id) => {
+                    setPaperId(id);
+                    settings.setSection("papers");
+                  }}
+                />
+              )}
+              {settings.section === "cards" && <CardsView deckId={deckId} />}
+              {settings.section === "papers" && (
+                <PapersView paperId={paperId} configured={configured} />
+              )}
+            </>
+          ) : (
+          <>
           <TopBar
             conversation={conversation ?? null}
             scrolled={scrolled}
@@ -403,6 +517,9 @@ export default function Page() {
             onTogglePin={() =>
               activeId && conversation && db.conversations.update(activeId, { pinned: !conversation.pinned })
             }
+            onSaveAsNote={conversationToNote}
+            onMakeCards={conversationToCards}
+            busy={studyBusy}
           />
 
           {showEmpty ? (
@@ -427,6 +544,7 @@ export default function Page() {
                 onNavigate={navigate}
                 onEdit={editMessage}
                 onRegenerate={(m, modelId) => regenerate(m, modelId)}
+                onSaveToNote={keepAsNote}
                 onRetry={() => {
                   const last = [...path].reverse().find((m) => m.role === "assistant");
                   if (last) regenerate(last);
@@ -451,7 +569,7 @@ export default function Page() {
             </div>
           )}
 
-          <div className="relative shrink-0 bg-canvas px-4 pb-3">
+          <div className="no-print relative shrink-0 bg-canvas px-4 pb-3">
             <div
               aria-hidden
               className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-transparent to-[var(--bg-canvas)]"
@@ -473,6 +591,8 @@ export default function Page() {
               )}
             </div>
           </div>
+          </>
+          )}
         </main>
 
         {artifact && <ArtifactPanel artifact={artifact} onClose={() => setArtifact(null)} />}

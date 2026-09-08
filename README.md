@@ -1,6 +1,8 @@
 # Clouds
 
-One calm interface for Claude, GPT, Gemini and DeepSeek. You bring the API keys.
+One calm interface for Claude, GPT, Gemini and DeepSeek — plus the notes,
+flashcards and printable papers that come out of talking to them. You bring the
+API keys.
 
 Built against [`prompts/MASTER_PROMPT.md`](prompts/MASTER_PROMPT.md), which is the
 design and engineering brief this repository implements. Where the code departs from
@@ -58,6 +60,21 @@ answer you chose. The other two are not discarded: they stay under `‹ 2/3 ›`
 copy left in the thread collapses to a one-line reference, so a 900-line answer stops
 burying the conversation that produced it.
 
+**Notes** — markdown documents, edited in place, searched by body as well as title.
+Keep any answer from a chat with one click, or the whole conversation. Titles derive
+themselves from the first heading, so nothing is ever called "Untitled" that says what
+it is in its first line.
+
+**Flashcards** — turn a note or a conversation into a deck, then review it on the
+SM-2 schedule that Anki and SuperMemo use: four grades, each showing the interval it
+will actually produce, and a lapse that returns in ten minutes rather than tomorrow.
+Space reveals, `1`–`4` grade, and the sidebar carries the only number that decides
+whether you open a deck at all — how many are due.
+
+**Papers** — a printable document built from the same markdown. Report, essay or
+notes shapes; a title, subtitle and author set on the sheet itself; "Draft it" to have
+a model write it from your material; and Print / PDF to export.
+
 **The rest** — command palette (`⌘K`), keyboard operation throughout, light/dark with
 no flash, three densities, and every empty and error state written rather than
 defaulted.
@@ -69,13 +86,16 @@ app/
   api/chat/        SSE proxy. Keys resolve server-side; abort propagates upstream.
   api/models/      Which providers the server can answer for. Never sends a key.
   api/test-key/    One-token round trip for the Test button.
-  globals.css      Every token in the app. Nothing else hardcodes a value.
+  globals.css      Every token in the app, plus the print stylesheet.
 lib/
   providers/       One adapter per provider, one normalized event stream.
   hooks/useStream  The streaming controller and the reveal buffer.
-  db.ts            Dexie. The message tree, path resolution, branching.
-  store.ts         Settings and drafts, persisted.
-components/chat/   Sidebar, composer, message list, code blocks, dialogs.
+  db.ts            Dexie. The message tree, notes, decks, cards, papers.
+  study.ts         SM-2 scheduling.
+  generate.ts      One-shot generation: titles, flashcards, paper drafts.
+  store.ts         Settings, section, drafts — persisted.
+components/        Sidebar and the four section views.
+components/chat/   Composer, message list, code blocks, compare, dialogs.
 ```
 
 Three decisions carry most of the weight:
@@ -98,6 +118,14 @@ interface — including Google's habit of reporting a bad key as a 400.
 Comparison falls out of the tree almost for free: each column writes against the same
 parent, so the three answers are siblings before anyone chooses between them.
 
+**PDF export is the browser's print pipeline, not a library.** It already hyphenates,
+breaks pages, embeds fonts and honours the user's paper size, and it hands them a file
+they chose the name and location for. `@media print` in `globals.css` is therefore the
+actual renderer: it strips the application, forces a light document whatever theme the
+user reads in, turns the fixed-height flex shell into one continuous flow, and applies
+the conventions that only exist on paper — orphans and widows, no page break after a
+heading, and link URLs printed in full.
+
 ## Verified
 
 - `npm run build` and `tsc --noEmit` clean; no `any`, TypeScript strict.
@@ -112,6 +140,12 @@ parent, so the three answers are siblings before anyone chooses between them.
   its own request, and each renders its own classified failure independently.
 - The side panel opens from a code block, collapses the inline copy to a reference,
   and closes on Escape.
+- Notes, decks and papers all seeded and driven in a browser; the print layout was
+  captured through Chromium's print media emulation rather than assumed.
+- One real bug found by looking rather than by testing: unlayered `button`/`input`
+  base rules were overriding every Tailwind text-size utility in the app, because
+  unlayered CSS beats every `@layer`. Moving them into `@layer base` fixed sizing
+  across every menu, toolbar and heading at once.
 
 ## Known gaps
 
@@ -131,5 +165,14 @@ Stated plainly, because a checklist you cannot trust is worse than no checklist.
   real windowing.
 - **The side panel holds code, not prose.** Long text answers still render inline;
   lifting a document is the same mechanism and simply isn't wired up yet.
+- **Flashcard and paper generation is untested against a live model** for the same
+  reason as the chat happy path: no valid key here. The prompts, the JSON extraction
+  (which tolerates fences and surrounding prose) and the failure messages are written;
+  what has not been observed is a real model's output flowing through them.
+- **No page numbers in the PDF.** Chrome does not support content in `@page` margin
+  boxes, so numbering would mean shipping a layout engine. The browser's own print
+  dialog can add headers and footers.
+- **Review is per deck, not across all of them.** There is no single "study everything
+  due today" queue yet, which is the shape most people actually want.
 - **Screen-reader testing was not run.** Semantics, live regions, labels and focus
   order are implemented to spec but verified by inspection, not with VoiceOver.
