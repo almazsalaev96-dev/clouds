@@ -315,7 +315,7 @@ export function Composer({
               <Popover.Trigger asChild>
                 <button
                   aria-label="Add photos and files"
-                  className="focus-inset flex size-9 shrink-0 items-center justify-center rounded-full text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                  className="ctl focus-inset flex [--ctl:2.25rem] shrink-0 items-center justify-center rounded-full text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
                 >
                   <Plus size={18} />
                 </button>
@@ -360,7 +360,7 @@ export function Composer({
               <button
                 aria-label="Tools"
                 className={cn(
-                  "focus-inset flex h-9 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-sm transition-colors duration-[var(--dur-fast)]",
+                  "ctl-h focus-inset flex shrink-0 items-center gap-1.5 rounded-full px-2.5 text-sm transition-colors duration-[var(--dur-fast)]",
                   toolsActive
                     ? "bg-accent-subtle text-accent"
                     : "text-secondary hover:bg-subtle hover:text-primary",
@@ -451,7 +451,7 @@ export function Composer({
                 aria-label={dictation.listening ? "Stop dictating" : "Dictate"}
                 aria-pressed={dictation.listening}
                 className={cn(
-                  "focus-inset flex size-9 shrink-0 items-center justify-center rounded-full transition-colors duration-[var(--dur-fast)]",
+                  "ctl focus-inset flex [--ctl:2.25rem] shrink-0 items-center justify-center rounded-full transition-colors duration-[var(--dur-fast)]",
                   dictation.listening
                     ? "bg-[color-mix(in_srgb,var(--stop)_14%,transparent)] text-[var(--stop)]"
                     : "text-secondary hover:bg-subtle hover:text-primary",
@@ -465,7 +465,7 @@ export function Composer({
           {/* Send becomes stop in place. A monochrome disc reads as the one
               terminal action without spending the accent on something the eye
               already finds by shape and position. */}
-          <div className="relative size-9 shrink-0">
+          <div className="ctl relative [--ctl:2.25rem] shrink-0">
             <button
               onClick={send}
               disabled={!canSend || streaming}

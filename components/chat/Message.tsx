@@ -289,7 +289,7 @@ function AssistantMessageImpl({
             <DropdownMenu.Trigger asChild>
               <button
                 aria-label="Regenerate with another model"
-                className="focus-inset flex size-6 items-center justify-center rounded-md text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                className="ctl focus-inset flex [--ctl:1.5rem] items-center justify-center rounded-md text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
               >
                 <ChevronDown size={13} />
               </button>
@@ -325,7 +325,7 @@ function AssistantMessageImpl({
             <DropdownMenu.Trigger asChild>
               <button
                 aria-label="More actions"
-                className="focus-inset flex size-7 items-center justify-center rounded-md text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                className="ctl focus-inset flex [--ctl:1.75rem] items-center justify-center rounded-md text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
               >
                 <MoreHorizontal size={15} />
               </button>
@@ -435,7 +435,7 @@ export function BranchNav({
         aria-label="Previous version"
         disabled={index <= 0}
         onClick={() => onNavigate(siblings[index - 1].id)}
-        className="flex size-6 items-center justify-center rounded-sm hover:bg-subtle hover:text-primary disabled:opacity-30 disabled:hover:bg-transparent"
+        className="ctl flex [--ctl:1.5rem] items-center justify-center rounded-sm hover:bg-subtle hover:text-primary disabled:opacity-30 disabled:hover:bg-transparent"
       >
         <ChevronLeft size={13} />
       </button>
@@ -446,7 +446,7 @@ export function BranchNav({
         aria-label="Next version"
         disabled={index >= siblings.length - 1}
         onClick={() => onNavigate(siblings[index + 1].id)}
-        className="flex size-6 items-center justify-center rounded-sm hover:bg-subtle hover:text-primary disabled:opacity-30 disabled:hover:bg-transparent"
+        className="ctl flex [--ctl:1.5rem] items-center justify-center rounded-sm hover:bg-subtle hover:text-primary disabled:opacity-30 disabled:hover:bg-transparent"
       >
         <ChevronRight size={13} />
       </button>
@@ -500,7 +500,7 @@ export function InlineError({
             <button
               onClick={onDismiss}
               aria-label="Dismiss error"
-              className="flex size-7 items-center justify-center rounded-sm text-tertiary hover:bg-subtle hover:text-primary"
+              className="ctl flex [--ctl:1.75rem] items-center justify-center rounded-sm text-tertiary hover:bg-subtle hover:text-primary"
             >
               <X size={14} />
             </button>

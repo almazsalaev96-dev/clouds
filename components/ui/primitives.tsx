@@ -107,9 +107,12 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
           ref={ref}
           aria-label={label}
           aria-pressed={active}
-          style={{ width: size, height: size }}
+          // Through a variable rather than width/height directly, so the
+          // coarse-pointer floor in `.ctl` can raise it. An inline width would
+          // beat every stylesheet and leave touch users with a 24px target.
+          style={{ "--ctl": `${size}px` } as React.CSSProperties}
           className={cn(
-            "inline-flex shrink-0 items-center justify-center rounded-md transition-colors duration-[var(--dur-fast)] ease-[var(--ease-std)] disabled:pointer-events-none disabled:opacity-35",
+            "ctl focus-inset inline-flex shrink-0 items-center justify-center rounded-md transition-colors duration-[var(--dur-fast)] ease-[var(--ease-std)] disabled:pointer-events-none disabled:opacity-35",
             active ? "bg-subtle text-primary" : "text-tertiary hover:bg-subtle hover:text-primary",
             className,
           )}

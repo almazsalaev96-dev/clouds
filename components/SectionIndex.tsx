@@ -175,7 +175,7 @@ export function SectionIndex({
                       <button
                         onClick={() => onDelete(item.id)}
                         aria-label={`Delete ${item.title}`}
-                        className="focus-inset flex size-7 shrink-0 items-center justify-center rounded-md text-tertiary reveal hover:bg-subtle hover:text-danger"
+                        className="ctl focus-inset flex [--ctl:1.75rem] shrink-0 items-center justify-center rounded-md text-tertiary reveal hover:bg-subtle hover:text-danger"
                       >
                         <Trash2 size={14} />
                       </button>

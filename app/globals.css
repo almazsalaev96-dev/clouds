@@ -106,84 +106,14 @@
   --composer-lift-focus: 0 1px 3px rgb(15 23 42 / 0.07), 0 16px 36px -16px rgb(15 23 42 / 0.22);
 }
 
-:root[data-theme="dark"],
-:root:not([data-theme="light"]) {
-  /* Dark is re-picked, not inverted. #000 smears during scroll on OLED and
-     #FFF text is harsh; both are avoided deliberately. */
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-
-    /* Void Navy, and surfaces that step out of it with as little chroma as the
-       separation needs. Saturated steps read as murk rather than depth. */
-    --bg-canvas: #030817;
-    --bg-surface: #080d1e;
-    --bg-subtle: #0d1327;
-    --bg-inset: #05091a;
-    --bg-overlay: rgba(1, 3, 12, 0.74);
-
-    --border-subtle: #161c33;
-    --border-strong: #5a6182;
-
-    --text-primary: #e8ecf7;
-    --text-secondary: #98a1bd;
-    --text-tertiary: #79809e;
-    --text-faint: #5f6688;
-
-    /* Deep AI Blue fills and holds white text; Electric Blue is the step that
-       can be read on the navy. One family, two jobs — no single value can do
-       both, because the two thresholds cross. */
-    --accent: #287bff;
-    --accent-hover: #5c9aff;
-    --accent-fill: #0b2eff;
-    --accent-fill-hover: #2447ff;
-    --accent-subtle: #0a1330;
-    --accent-fg: #ffffff;
-
-    /* Acid Lime, Hyper Orange, Signal Red — at full strength, because they only
-       ever appear at the size of a badge, a caret or a rule. */
-    --live: #ff6818;
-    --go: #d8ff38;
-    --stop: #ff3b30;
-
-    --go-fill: #d8ff38;
-    --on-fill: #030817;
-    --stop-fill: #de332a;
-
-    --success: var(--go);
-    --warning: var(--live);
-    --danger: var(--stop);
-    --danger-subtle: #2a0f0d;
-
-    --field-a: rgba(11, 46, 255, 0.07);
-    --field-b: rgba(40, 123, 255, 0.035);
-    --glow: 0 0 18px -6px var(--accent);
-
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
-    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);
-    /* In dark, elevation reads as a lighter surface plus a top highlight.
-       Shadows are nearly invisible on a dark ground. */
-    --highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    --syn-comment: #666c92;
-    --syn-keyword: #c49bff;
-    --syn-string: #7ce0a8;
-    --syn-function: #7d90ff;
-    --syn-number: #ffa05c;
-    --syn-type: #5fd0e2;
-    --syn-punct: #9aa0c2;
-
-    --composer-bg: #101736;
-    --composer-line: rgba(232, 236, 247, 0.05);
-    --composer-line-focus: rgba(232, 236, 247, 0.12);
-    --composer-lift: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 12px 32px -18px rgb(0 0 0 / 0.7);
-    --composer-lift-focus: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 18px 44px -20px rgb(0 0 0 / 0.8);
-  }
-}
-
 :root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* The only dark palette. `data-theme` is resolved before first paint — the
+     system preference is turned into a concrete value there rather than
+     answered by a second copy of this block behind a media query, which is how
+     the two copies this replaces came to disagree about shadows and syntax
+     colours. */
 
   /* Void Navy, and surfaces that step out of it with as little chroma as the
      separation needs. Saturated steps read as murk rather than depth. */
@@ -230,17 +160,17 @@
   --field-b: rgba(40, 123, 255, 0.035);
   --glow: 0 0 18px -6px var(--accent);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.55);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.62);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);
   --highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --syn-comment: #79809e;
-  --syn-keyword: #b79bff;
-  --syn-string: #6fd6a0;
-  --syn-function: #5c9aff;
-  --syn-number: #ff9a52;
-  --syn-type: #52c9dd;
-  --syn-punct: #98a1bd;
+  --syn-comment: #666c92;
+  --syn-keyword: #c49bff;
+  --syn-string: #7ce0a8;
+  --syn-function: #7d90ff;
+  --syn-number: #ffa05c;
+  --syn-type: #5fd0e2;
+  --syn-punct: #9aa0c2;
 
   --composer-bg: #101736;
   --composer-line: rgba(232, 236, 247, 0.05);
@@ -365,6 +295,39 @@ textarea:focus-visible {
    element keeps it whole. */
 .focus-inset:focus-visible {
   outline-offset: -2px;
+}
+
+/* ---------------------------------------------------------------------------
+   The controls floor.
+
+   Icon controls are drawn at 24–32px because that is the weight they should
+   carry next to text. A fingertip is about 9mm, and every platform's guidance
+   puts the floor near 44px — so on a touch screen those same controls are a
+   coin toss, and the row of them under an answer is four coin tosses in a row.
+
+   The mark keeps its drawn size; only the box around it grows, and only where
+   the pointer is coarse. A mouse still gets the compact row it was designed
+   for.
+--------------------------------------------------------------------------- */
+.ctl {
+  width: var(--ctl, 2rem);
+  height: var(--ctl, 2rem);
+}
+
+/* The same floor for controls that are wider than they are tall — a pill with
+   a word in it — where forcing a square would only add empty space. */
+.ctl-h {
+  height: var(--ctl, 2.25rem);
+}
+
+@media (pointer: coarse) {
+  .ctl {
+    width: max(var(--ctl, 2rem), 2.75rem);
+    height: max(var(--ctl, 2rem), 2.75rem);
+  }
+  .ctl-h {
+    height: max(var(--ctl, 2.25rem), 2.75rem);
+  }
 }
 
 /* Placeholder rows, while a query is still out.

@@ -144,7 +144,7 @@ export function CodeBlock({
                   })
                 }
                 aria-label="Open code in side panel"
-                className="flex size-7 items-center justify-center rounded-sm text-tertiary reveal hover:bg-subtle hover:text-primary"
+                className="ctl flex [--ctl:1.75rem] items-center justify-center rounded-sm text-tertiary reveal hover:bg-subtle hover:text-primary"
               >
                 <PanelRight size={14} />
               </button>
@@ -155,7 +155,7 @@ export function CodeBlock({
               <button
                 onClick={() => setCollapsed((c) => !c)}
                 aria-label={collapsed ? "Expand code" : "Collapse code"}
-                className="flex size-7 items-center justify-center rounded-sm text-tertiary reveal hover:bg-subtle hover:text-primary"
+                className="ctl flex [--ctl:1.75rem] items-center justify-center rounded-sm text-tertiary reveal hover:bg-subtle hover:text-primary"
               >
                 <ChevronDown size={14} className={cn("transition-transform duration-[var(--dur-fast)]", collapsed && "-rotate-90")} />
               </button>
@@ -179,7 +179,7 @@ export function CodeBlock({
             <button
               onClick={download}
               aria-label="Download code"
-              className="flex size-7 items-center justify-center rounded-sm text-tertiary reveal hover:bg-subtle hover:text-primary"
+              className="ctl flex [--ctl:1.75rem] items-center justify-center rounded-sm text-tertiary reveal hover:bg-subtle hover:text-primary"
             >
               <Download size={14} />
             </button>

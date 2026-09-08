@@ -343,7 +343,7 @@ function Row({
             <button
               onClick={onTogglePin}
               aria-label={pinned ? "Unpin" : "Pin"}
-              className="focus-inset flex size-6 items-center justify-center rounded-sm text-tertiary hover:bg-subtle hover:text-primary"
+              className="ctl focus-inset flex [--ctl:1.5rem] items-center justify-center rounded-sm text-tertiary hover:bg-subtle hover:text-primary"
             >
               {pinned ? <PinOff size={12} /> : <Pin size={12} />}
             </button>
@@ -353,7 +353,7 @@ function Row({
           <button
             onClick={onDelete}
             aria-label={`Delete ${title}`}
-            className="focus-inset flex size-6 items-center justify-center rounded-sm text-tertiary hover:bg-subtle hover:text-danger"
+            className="ctl focus-inset flex [--ctl:1.5rem] items-center justify-center rounded-sm text-tertiary hover:bg-subtle hover:text-danger"
           >
             <Trash2 size={12} />
           </button>

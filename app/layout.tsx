@@ -22,6 +22,14 @@ export const viewport: Viewport = {
 /**
  * Applied before first paint. Reading the theme in an effect means one frame of
  * the wrong colors, and that flash is the most-noticed bug in any themed app.
+ *
+ * "system" is resolved here rather than left to a media query, so `data-theme`
+ * is always a concrete value. That is not a micro-optimisation: while the
+ * palette lived in two places — one for the attribute, one for
+ * `prefers-color-scheme` — they drifted, and picking Dark in settings gave you
+ * different shadows and different syntax colours than having your OS in dark
+ * with System selected. One resolved attribute means one palette, and no
+ * second copy to forget.
  */
 const THEME_SCRIPT = `
 (function () {
@@ -33,7 +41,9 @@ const THEME_SCRIPT = `
       if (v) { raw = v; break; }
     }
     var s = JSON.parse(raw).state || {};
-    if (s.theme && s.theme !== "system") document.documentElement.dataset.theme = s.theme;
+    var t = s.theme && s.theme !== "system" ? s.theme
+      : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.dataset.theme = t;
     if (s.density && s.density !== "comfortable") document.documentElement.dataset.density = s.density;
   } catch (e) {}
 })();

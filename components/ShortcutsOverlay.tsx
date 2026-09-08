@@ -95,7 +95,7 @@ export function ShortcutsOverlay({
 
           <Dialog.Close
             aria-label="Close"
-            className="absolute right-3 top-3 flex size-7 items-center justify-center rounded-md text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+            className="ctl absolute right-3 top-3 flex [--ctl:1.75rem] items-center justify-center rounded-md text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
           >
             <X size={15} />
           </Dialog.Close>

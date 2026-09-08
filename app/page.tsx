@@ -75,13 +75,30 @@ export default function Page() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* `data-theme` always carries a resolved value, so there is one dark palette
+     rather than one per selector. On "system" that means following the OS while
+     it changes — someone whose machine flips at sunset should not have to
+     reload. */
   React.useEffect(() => {
     const root = document.documentElement;
-    if (settings.theme === "system") delete root.dataset.theme;
-    else root.dataset.theme = settings.theme;
     if (settings.density === "comfortable") delete root.dataset.density;
     else root.dataset.density = settings.density;
-  }, [settings.theme, settings.density]);
+  }, [settings.density]);
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    if (settings.theme !== "system") {
+      root.dataset.theme = settings.theme;
+      return;
+    }
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const apply = () => {
+      root.dataset.theme = mq.matches ? "dark" : "light";
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, [settings.theme]);
 
   React.useEffect(() => {
     fetch("/api/models")

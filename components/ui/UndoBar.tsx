@@ -56,7 +56,7 @@ export function UndoBar() {
         <button
           onClick={dismissUndo}
           aria-label="Dismiss"
-          className="focus-inset flex size-7 shrink-0 items-center justify-center rounded-lg text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+          className="ctl focus-inset flex [--ctl:1.75rem] shrink-0 items-center justify-center rounded-lg text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
         >
           <X size={14} />
         </button>
