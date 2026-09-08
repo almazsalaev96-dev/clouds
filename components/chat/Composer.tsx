@@ -4,7 +4,7 @@ import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { ArrowUp, Columns2, Paperclip, Square, X, FileText, Check } from "lucide-react";
 import type { ContentBlock } from "@/lib/types";
-import { getModel, estimateTokens, formatCost, formatTokens, MODELS } from "@/lib/models";
+import { getModel, estimateTokens, formatTokens, MODELS } from "@/lib/models";
 import { fileToBase64, formatBytes, cn } from "@/lib/utils";
 import { useSettings, useDrafts } from "@/lib/store";
 import { Tooltip } from "@/components/ui/primitives";
@@ -29,7 +29,6 @@ export function Composer({
   streaming,
   contextTokens,
   modelId,
-  spentUsd,
   onSend,
   onStop,
   onEditLast,
@@ -43,8 +42,8 @@ export function Composer({
   contextTokens: number;
   /** The thread's model, not the app's. */
   modelId: string;
-  /** What this thread has actually cost, accumulated from real usage. */
-  spentUsd: number;
+  /** Kept for the context warning; the cost itself lives in the thread menu. */
+  spentUsd?: number;
   onSend: (content: ContentBlock[]) => void;
   onStop: () => void;
   onEditLast: () => void;
@@ -396,19 +395,12 @@ export function Composer({
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
-          <span className="ml-auto flex items-center gap-2 tnum">
-            {overContext && (
-              <span className="text-warning">
-                {formatTokens(totalTokens)} / {formatTokens(model.contextWindow)}
-              </span>
-            )}
-            {!overContext && totalTokens > 0 && <span>~{formatTokens(totalTokens)} tok</span>}
-            {spentUsd > 0 && (
-              <Tooltip label="What this conversation has cost so far">
-                <span>{formatCost(spentUsd)}</span>
-              </Tooltip>
-            )}
-          </span>
+          {overContext && (
+            <span className="ml-auto flex items-center gap-1.5 text-warning tnum">
+              <span className="size-1 rounded-full bg-[var(--live)]" aria-hidden />
+              {formatTokens(totalTokens)} of {formatTokens(model.contextWindow)}
+            </span>
+          )}
         </div>
       </div>
 

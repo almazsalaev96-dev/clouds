@@ -657,7 +657,6 @@ export default function Page() {
                   streaming={live && stream.phase !== "idle"}
                   contextTokens={contextTokens}
                   modelId={threadModelId}
-                  spentUsd={conversation?.costUsd ?? 0}
                   onSend={send}
                   onStop={stream.stop}
                   onEditLast={editLast}

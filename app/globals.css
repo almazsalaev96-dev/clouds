@@ -11,32 +11,29 @@
   color-scheme: light;
 
   /* --- Light is the same system in daylight: the navy becomes the ink, and
-         the indigo holds its place. --- */
-  --bg-canvas: #f7f7fd;
+         Deep AI Blue holds its place. --- */
+  --bg-canvas: #f7f8fc;
   --bg-surface: #ffffff;
-  --bg-subtle: #eeeef9;
-  --bg-inset: #e8e9f7;
+  --bg-subtle: #eef0f7;
+  --bg-inset: #e7eaf4;
   --bg-overlay: rgba(3, 8, 23, 0.38);
 
-  --border-subtle: #dedff0;
+  --border-subtle: #dde1ee;
   /* Control boundaries clear 3:1 against the page. Hairlines do not have to,
      which is why there are two of these. */
-  --border-strong: #8b8da8;
+  --border-strong: #888ea4;
 
   --text-primary: #030817;
-  --text-secondary: #464a6b;
-  /* Quiet, but still text: clears 4.5:1 on every ground it can land on. */
-  --text-tertiary: #636889;
-  /* Decoration only — list markers, dividers, disabled icon fills. Never words. */
-  --text-faint: #9aa0bb;
+  --text-secondary: #454d68;
+  --text-tertiary: #5f6684;
+  --text-faint: #7d8399;
 
-  /* One indigo, in two steps. On paper a single value can carry text and hold
-     white, so both roles point at the same colour here. */
-  --accent: #2233cc;
-  --accent-hover: #2f45e0;
-  --accent-fill: #2233cc;
-  --accent-fill-hover: #2f45e0;
-  --accent-subtle: #e8eaff;
+  /* Deep AI Blue. The only hue allowed to cover area. */
+  --accent: #0b2eff;
+  --accent-hover: #287bff;
+  --accent-fill: #0b2eff;
+  --accent-fill-hover: #287bff;
+  --accent-subtle: #e6ebff;
   --accent-fg: #ffffff;
 
   /* --- The three signals. Darkened here only as far as legibility on paper
@@ -44,25 +41,23 @@
   --live: #b84400;
   --go: #4c6b00;
   --stop: #cd2318;
-  /* Signal Red cannot hold white text at 4.5:1, so a destructive button gets a
-     deeper step. The vivid value stays for rules and icons. */
-  --stop-fill: #cd2318;
 
   /* Fills keep the vivid values in both themes, because they are read as
      shapes with dark text on them, not as coloured text. */
   --go-fill: #d8ff38;
   --on-fill: #030817;
+  --stop-fill: #cd2318;
 
   --success: var(--go);
   --warning: var(--live);
   --danger: var(--stop);
   --danger-subtle: #fdeceb;
 
-  /* Both pools are the primary. A wash of lime or orange across half the
-     window would spend a signal on decoration, which is the one thing they
-     must never be. */
-  --field-a: rgba(34, 51, 204, 0.05);
-  --field-b: rgba(47, 69, 224, 0.04);
+  /* Barely there, and deliberately so: the ground should have depth, not a
+     tint. A visible wash of colour over half the window is a background that
+     competes with the text, which is the actual product. */
+  --field-a: rgba(11, 46, 255, 0.035);
+  --field-b: rgba(40, 123, 255, 0.028);
   --glow: none;
 
   /* --- Elevation. Only popovers and modals get a shadow. --- */
@@ -93,13 +88,13 @@
 
   /* --- Syntax. Six hues, low saturation. A code block should read as one
          calm object, not a Christmas tree. --- */
-  --syn-comment: #71769a;
-  --syn-keyword: #7b3fc4;
-  --syn-string: #0d6b47;
-  --syn-function: #2233cc;
-  --syn-number: #a8451f;
-  --syn-type: #0a6b7d;
-  --syn-punct: #464a6b;
+  --syn-comment: #5f6684;
+  --syn-keyword: #6b32bd;
+  --syn-string: #0b6642;
+  --syn-function: #0b2eff;
+  --syn-number: #9f411c;
+  --syn-type: #0a6577;
+  --syn-punct: #454d68;
 }
 
 :root[data-theme="dark"],
@@ -112,30 +107,30 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 
-    /* Void Navy, tilted a few degrees toward the indigo so the ground and the
-       primary read as one system rather than two blues. */
+    /* Void Navy, and surfaces that step out of it with as little chroma as the
+       separation needs. Saturated steps read as murk rather than depth. */
     --bg-canvas: #030817;
-    --bg-surface: #0a0f26;
-    --bg-subtle: #101533;
-    --bg-inset: #060b20;
+    --bg-surface: #080d1e;
+    --bg-subtle: #0d1327;
+    --bg-inset: #05091a;
     --bg-overlay: rgba(1, 3, 12, 0.74);
 
-    --border-subtle: #1a1f43;
-    --border-strong: #5d6284;
+    --border-subtle: #161c33;
+    --border-strong: #5a6182;
 
-    --text-primary: #e9eaf7;
-    --text-secondary: #9aa0c2;
-    --text-tertiary: #7a7fa1;
-    --text-faint: #565c7e;
+    --text-primary: #e8ecf7;
+    --text-secondary: #98a1bd;
+    --text-tertiary: #79809e;
+    --text-faint: #5f6688;
 
-    /* One indigo, two steps — a family, not two colours. The deep step fills
-       and holds white text; the light step is the same hue raised until it can
-       be read on the navy. No single value can do both: the thresholds cross. */
-    --accent: #7d90ff;
-    --accent-hover: #9dabff;
-    --accent-fill: #2f45e0;
-    --accent-fill-hover: #3b52ee;
-    --accent-subtle: #131a3f;
+    /* Deep AI Blue fills and holds white text; Electric Blue is the step that
+       can be read on the navy. One family, two jobs — no single value can do
+       both, because the two thresholds cross. */
+    --accent: #287bff;
+    --accent-hover: #5c9aff;
+    --accent-fill: #0b2eff;
+    --accent-fill-hover: #2447ff;
+    --accent-subtle: #0a1330;
     --accent-fg: #ffffff;
 
     /* Acid Lime, Hyper Orange, Signal Red — at full strength, because they only
@@ -143,19 +138,19 @@
     --live: #ff6818;
     --go: #d8ff38;
     --stop: #ff3b30;
-    --stop-fill: #de332a;
 
     --go-fill: #d8ff38;
     --on-fill: #030817;
+    --stop-fill: #de332a;
 
     --success: var(--go);
     --warning: var(--live);
     --danger: var(--stop);
     --danger-subtle: #2a0f0d;
 
-    --field-a: rgba(47, 69, 224, 0.2);
-    --field-b: rgba(125, 144, 255, 0.07);
-    --glow: 0 0 18px -4px var(--accent-fill);
+    --field-a: rgba(11, 46, 255, 0.07);
+    --field-b: rgba(40, 123, 255, 0.035);
+    --glow: 0 0 18px -6px var(--accent);
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
@@ -174,32 +169,31 @@
 }
 
 :root[data-theme="dark"] {
-    color-scheme: dark;
 
-  /* Void Navy, tilted a few degrees toward the indigo so the ground and the
-     primary read as one system rather than two blues. */
+  /* Void Navy, and surfaces that step out of it with as little chroma as the
+     separation needs. Saturated steps read as murk rather than depth. */
   --bg-canvas: #030817;
-  --bg-surface: #0a0f26;
-  --bg-subtle: #101533;
-  --bg-inset: #060b20;
+  --bg-surface: #080d1e;
+  --bg-subtle: #0d1327;
+  --bg-inset: #05091a;
   --bg-overlay: rgba(1, 3, 12, 0.74);
 
-  --border-subtle: #1a1f43;
-  --border-strong: #5d6284;
+  --border-subtle: #161c33;
+  --border-strong: #5a6182;
 
-  --text-primary: #e9eaf7;
-  --text-secondary: #9aa0c2;
-  --text-tertiary: #7a7fa1;
-  --text-faint: #565c7e;
+  --text-primary: #e8ecf7;
+  --text-secondary: #98a1bd;
+  --text-tertiary: #79809e;
+  --text-faint: #5f6688;
 
-  /* One indigo, two steps — a family, not two colours. The deep step fills
-     and holds white text; the light step is the same hue raised until it can
-     be read on the navy. No single value can do both: the thresholds cross. */
-  --accent: #7d90ff;
-  --accent-hover: #9dabff;
-  --accent-fill: #2f45e0;
-  --accent-fill-hover: #3b52ee;
-  --accent-subtle: #131a3f;
+  /* Deep AI Blue fills and holds white text; Electric Blue is the step that
+     can be read on the navy. One family, two jobs — no single value can do
+     both, because the two thresholds cross. */
+  --accent: #287bff;
+  --accent-hover: #5c9aff;
+  --accent-fill: #0b2eff;
+  --accent-fill-hover: #2447ff;
+  --accent-subtle: #0a1330;
   --accent-fg: #ffffff;
 
   /* Acid Lime, Hyper Orange, Signal Red — at full strength, because they only
@@ -207,31 +201,31 @@
   --live: #ff6818;
   --go: #d8ff38;
   --stop: #ff3b30;
-  --stop-fill: #de332a;
 
   --go-fill: #d8ff38;
   --on-fill: #030817;
+  --stop-fill: #de332a;
 
   --success: var(--go);
   --warning: var(--live);
   --danger: var(--stop);
   --danger-subtle: #2a0f0d;
 
-  --field-a: rgba(47, 69, 224, 0.2);
-  --field-b: rgba(125, 144, 255, 0.07);
-  --glow: 0 0 18px -4px var(--accent-fill);
+  --field-a: rgba(11, 46, 255, 0.07);
+  --field-b: rgba(40, 123, 255, 0.035);
+  --glow: 0 0 18px -6px var(--accent);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.55);
   --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.62);
-  --highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  --syn-comment: #666c92;
-  --syn-keyword: #c49bff;
-  --syn-string: #7ce0a8;
-  --syn-function: #7d90ff;
-  --syn-number: #ffa05c;
-  --syn-type: #5fd0e2;
-  --syn-punct: #9aa0c2;
+  --highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --syn-comment: #79809e;
+  --syn-keyword: #b79bff;
+  --syn-string: #6fd6a0;
+  --syn-function: #5c9aff;
+  --syn-number: #ff9a52;
+  --syn-type: #52c9dd;
+  --syn-punct: #98a1bd;
 }
 
 :root[data-density="compact"] { --density: 0.75; }

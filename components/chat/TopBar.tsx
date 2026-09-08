@@ -5,6 +5,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Download, Layers, MoreHorizontal, NotebookPen, PanelLeft, Pin, PinOff, Trash2 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { useSettings } from "@/lib/store";
+import { formatCost, formatTokens } from "@/lib/models";
 import { cn } from "@/lib/utils";
 import { ConfirmInline, IconButton } from "@/components/ui/primitives";
 import { ModelPicker } from "./ModelPicker";
@@ -146,6 +147,15 @@ export function TopBar({
                 <Item onSelect={onDelete} icon={<Trash2 size={14} />} danger>
                   Delete conversation
                 </Item>
+                {conversation.costUsd > 0 && (
+                  <>
+                    <DropdownMenu.Separator className="my-1 h-px bg-[var(--border-subtle)]" />
+                    <p className="px-2 py-1 text-xs text-tertiary tnum">
+                      {formatCost(conversation.costUsd)} spent ·{" "}
+                      {formatTokens(conversation.inputTokens + conversation.outputTokens)} tokens
+                    </p>
+                  </>
+                )}
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
