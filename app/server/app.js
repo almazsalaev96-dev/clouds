@@ -9,6 +9,7 @@ import { createRouter, dispatch, json } from './http.js'
 import { seedIfEmpty } from './packs/seed.js'
 import registerCourses from './routes/courses.js'
 import registerSession from './routes/session.js'
+import registerConversations from './routes/conversations.js'
 import registerPractise from './routes/practise.js'
 import registerMark from './routes/mark.js'
 import registerCards from './routes/cards.js'
@@ -21,6 +22,7 @@ export function createApp() {
   router.get('/api/health', ({ res }) => json(res, { ok: true, providers: providerStatus() }))
   registerCourses(router)
   registerSession(router)
+  registerConversations(router)
   registerPractise(router)
   registerMark(router)
   registerCards(router)

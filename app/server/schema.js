@@ -35,6 +35,19 @@ CREATE TABLE IF NOT EXISTS turns (
   role TEXT NOT NULL, body TEXT NOT NULL, rung INTEGER, intent TEXT, handback TEXT,
   gate TEXT, lint TEXT, model TEXT, cost REAL, ttft_ms INTEGER, created_at TEXT NOT NULL);
 
+-- Titles only. The conversation list is derived from turns, so a thread nobody
+-- renamed still appears; this table has nothing to say about whether it exists.
+CREATE TABLE IF NOT EXISTS conversations (
+  id TEXT PRIMARY KEY, user_id TEXT NOT NULL, course_id TEXT, title TEXT,
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+
+-- What a turn made. A deck of cards, a question to attempt, the mark on an answer:
+-- the chat is where these happen, so the thread has to be able to show them again
+-- when it is reopened. The body column holds the artefact as the client reads it.
+CREATE TABLE IF NOT EXISTS artefacts (
+  id TEXT PRIMARY KEY, turn_id TEXT NOT NULL, session_id TEXT NOT NULL, course_id TEXT,
+  kind TEXT NOT NULL, body TEXT NOT NULL, created_at TEXT NOT NULL);
+
 CREATE TABLE IF NOT EXISTS marks (
   id TEXT PRIMARY KEY, attempt_id TEXT NOT NULL, item_id TEXT NOT NULL, course_id TEXT NOT NULL,
   body TEXT NOT NULL, total INTEGER NOT NULL, max INTEGER NOT NULL,
@@ -60,6 +73,7 @@ CREATE TABLE IF NOT EXISTS events (
 
 CREATE INDEX IF NOT EXISTS idx_items_point ON items(pack, syllabus_point);
 CREATE INDEX IF NOT EXISTS idx_turns_session ON turns(session_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_artefacts_session ON artefacts(session_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_cards_due ON cards(user_id, course_id, due);
 CREATE INDEX IF NOT EXISTS idx_attempts_course ON attempts(course_id, created_at);
 `

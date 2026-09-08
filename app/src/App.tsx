@@ -15,11 +15,13 @@ import { Cards } from './screens/Cards'
 import { Progress } from './screens/Progress'
 import { Settings } from './screens/Settings'
 import { Ask } from './screens/Ask'
+import { Chat } from './screens/Chat'
 
 /** Hash routing, no router package. "#/mark/mk_1?x=1" → "/mark/mk_1". */
 function currentPath(): string {
   const raw = window.location.hash.replace(/^#/, '').split('?')[0]
-  if (!raw || raw === '/') return '/today'
+  // The chat is the front door: an address with nothing in it opens a thread.
+  if (!raw || raw === '/') return '/'
   return raw.startsWith('/') ? raw : `/${raw}`
 }
 
@@ -28,7 +30,7 @@ function useHashPath(): string {
   useEffect(() => {
     const onChange = () => setPath(currentPath())
     window.addEventListener('hashchange', onChange)
-    if (!window.location.hash) window.history.replaceState(null, '', '#/today')
+    if (!window.location.hash) window.history.replaceState(null, '', '#/')
     onChange()
     return () => window.removeEventListener('hashchange', onChange)
   }, [])
@@ -121,6 +123,12 @@ function MarkRoute({ markId }: { markId: string }) {
 }
 
 function screenFor(path: string, courseId: string | null): ReactNode {
+  if (path === '/' || path === '/chat') return <Chat courseId={courseId ?? undefined} />
+  if (path.startsWith('/c/')) {
+    const id = decodeURIComponent(path.slice('/c/'.length).split('/')[0] || '')
+    // A conversation is addressable, so a thread can be linked to and reopened.
+    return <Chat key={id} courseId={courseId ?? undefined} conversationId={id || undefined} />
+  }
   if (path.startsWith('/mark/')) {
     const markId = decodeURIComponent(path.slice('/mark/'.length))
     if (markId) return <MarkRoute markId={markId} />

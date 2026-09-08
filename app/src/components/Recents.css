@@ -1,0 +1,22 @@
+/* The thread list is navigation, so it reads like navigation: no cards, no borders,
+   one line each, and the current thread marked the way the sections above it are. */
+.recents { margin-top: var(--s5); }
+.recents__title {
+  margin: 0 var(--s4) var(--s2);
+  font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--ink-3); font-weight: 500;
+}
+.recents__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.recents__link {
+  display: block;
+  padding: var(--s2) var(--s4);
+  color: var(--ink-2); text-decoration: none;
+  font-size: var(--t-ui);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  border-left: 2px solid transparent;
+}
+.recents__link:hover { background: var(--paper-sunk); color: var(--ink); }
+.recents__link[data-current='yes'] {
+  background: var(--paper-sunk); color: var(--ink); border-left-color: var(--accent);
+}
+.recents__link:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }

@@ -18,9 +18,11 @@ import { pick } from '../providers/router.js'
 import { evaluateGate } from '../engine/gate.js'
 import { RUNGS, entryRung, nextRung, rungBudget } from '../engine/ladder.js'
 import { vetTurn, handbackFor } from '../engine/orchestrator.js'
+import { makeCards } from '../engine/cardmaker.js'
+import { rankedPoints } from './practise.js'
 import { parseScheme } from '../marking/scheme.js'
 import {
-  USER, jsonOk, readBody, str, mustCourse, misconceptionsFor, safeJson,
+  USER, jsonOk, readBody, str, mustCourse, misconceptionsFor, safeJson, pointsWithState,
 } from './courses.js'
 
 /** Student answers are personal data, so DeepSeek is never eligible (§08.8). */
@@ -34,18 +36,19 @@ const RETEST_HOURS = 36
 export default function register(router) {
   router.post('/api/session/turn', handleTurn)
 
-  /** The transcript of one session, oldest first. */
+  /** The transcript of one session, oldest first, with whatever each turn made. */
   router.get('/api/session/:sessionId', ({ res, params }) => {
     const turns = all('SELECT * FROM turns WHERE session_id = ? ORDER BY created_at, rowid', params.sessionId)
     if (!turns.length) return jsonOk(res, { sessionId: params.sessionId, turns: [], item: null, courseId: null })
     const last = turns[turns.length - 1]
     const item = last.item_id ? get('SELECT * FROM items WHERE id = ?', last.item_id) : null
+    const made = artefactsFor(params.sessionId)
     return jsonOk(res, {
       sessionId: params.sessionId,
       courseId: last.course_id,
       itemId: last.item_id,
       item: item ? publicItem(item) : null,
-      turns: turns.map(turnView),
+      turns: turns.map(t => turnView(t, made.get(t.id))),
     })
   })
 }
@@ -103,6 +106,14 @@ async function runTurn({ stream, started, course, item, sessionId, text, intent,
     studentTurnId, sessionId, courseId, item?.id || null, 'student', text,
     null, intent, null, null, null, null, null, null, now())
 
+  // 1b — a request for cards is not a question being worked, so the gate and the
+  // ladder have nothing to withhold. It is served here and what it makes is attached
+  // to the turn, because the chat is where things are made, not a link to elsewhere.
+  if (!item && wantsCards(text)) {
+    await serveCards({ stream, started, course, sessionId, text, intent, history })
+    return
+  }
+
   // 2 — the Effort Gate. No item means nothing to withhold (04-GATE-004a).
   const gate = item
     ? safeGate({ text, item, mastery, secondsOnItem, priorAttempts })
@@ -136,6 +147,7 @@ async function runTurn({ stream, started, course, item, sessionId, text, intent,
     stream.send('turn', {
       id, rung: 0, handback, gate: gateView(gate), degraded: false, model: 'gate',
       cost: 0, ttftMs: Date.now() - started, seenSolution: false, retest: null,
+      artefacts: [],
     })
     return
   }
@@ -250,12 +262,238 @@ async function runTurn({ stream, started, course, item, sessionId, text, intent,
 
   stream.send('turn', {
     id, rung, handback, gate: gateView(gate), degraded: route.degraded, model,
-    cost, ttftMs: ttft, usage, seenSolution, retest,
+    cost, ttftMs: ttft, usage, seenSolution, retest, artefacts: [],
     rungName: RUNGS?.[rung - 1]?.name || null,
     rungBudget: budget,
     cappedBy: cappedBy ? `This item's ladder stops at rung ${budget}.` : null,
     lint: { ok: !!lint.ok, violations: lint.violations || [] },
   })
+}
+
+/* --------------------------------------------------------------------- cards */
+
+/** Nobody says "flashcards" except to ask for some. */
+const CARD_WORD = /\bflash\s?cards?\b/i
+/** "cards" on its own is ambiguous, so it needs a verb that makes something. */
+const CARD_NOUN = /\b(?:cards?|deck)\b/i
+const CARD_VERB = /\b(?:make|create|build|generate|write|turn|give|need|want|add)\b/i
+/** Asking to sit the cards already made is the Cards screen's job, not this one. */
+const CARD_REVIEW = /\b(?:review|revise|sit|do|open|show|see)\s+(?:my\s+|the\s+)?(?:due\s+)?cards?\b/i
+
+/** Did this turn ask for cards? */
+export function wantsCards(text) {
+  const said = String(text ?? '')
+  if (CARD_REVIEW.test(said)) return false
+  if (CARD_WORD.test(said)) return true
+  return CARD_NOUN.test(said) && CARD_VERB.test(said)
+}
+
+/**
+ * The topic, when the student named one.
+ *
+ * "Make me cards on cash flow" is a request with a topic in it; "make me some cards"
+ * is a request with none, and passing the whole sentence as a topic would have the
+ * maker hunt the syllabus for a point called "make me some cards".
+ */
+export function topicAsked(text) {
+  const said = String(text ?? '').replace(/\s+/g, ' ').trim()
+  const on = said.match(/\b(?:on|about|covering)\s+(.{2,90}?)\s*[.?!]*$/i)
+  if (!on) return ''
+  const topic = on[1].replace(/^(?:the|my|our)\s+/i, '').trim()
+  // "on the topic I am weakest on" names no topic; it asks the ranking to choose.
+  return /\b(?:topic|thing|stuff|anything|something)\b/i.test(topic) ? '' : topic
+}
+
+/**
+ * The point the Mark-Yield ranking puts first *that this course can make cards about*.
+ * Ranking the whole syllabus and then landing on a point with nothing behind it would
+ * be an empty deck with a good reason, which is still an empty deck.
+ */
+function weakestPoint(course, material) {
+  const has = new Set((material || []).map(m => m.code))
+  try {
+    for (const entry of rankedPoints(course)) {
+      const point = entry?.point || entry
+      // The code alone: a title dragged in every point whose words it shared.
+      if (point?.code && has.has(point.code)) return point.code
+    }
+  } catch (err) {
+    console.error('[cards]', err)
+  }
+  return ''
+}
+
+/** "make me 5 cards" means five. Anything else takes the maker's own default. */
+function countAsked(text) {
+  const said = String(text ?? '').match(/\b(\d{1,2})\s+(?:more\s+)?(?:flash\s?)?cards?\b/i)
+  const n = said ? Number(said[1]) : NaN
+  return Number.isFinite(n) && n > 0 ? n : undefined
+}
+
+/**
+ * Cards, made in the thread.
+ *
+ * The deck is built from this course's material and what has been said here, then
+ * attached to the Turn that introduced it, so reopening the conversation shows the
+ * same deck rather than a sentence about one. Nothing is scheduled: a deck is a draft
+ * until the student keeps it, and keeping it is `POST /api/cards/bulk`.
+ */
+async function serveCards({ stream, started, course, sessionId, text, intent, history }) {
+  // A deck is written from the student's own words, so the same policy as the tutor's
+  // applies: personal data, and never DeepSeek (§08.8).
+  const route = pick('generate', TUTOR_POLICY)
+  const handback = 'Turn each card over before you read the back'
+  stream.send('start', {
+    sessionId, rung: 0, gate: gateView({ open: true, reason: 'making' }),
+    degraded: route.degraded, model: route.model, handback,
+    status: 'Making cards from your course material…',
+  })
+
+  let deck = null
+  let failure = null
+  if (course) {
+    try {
+      const material = packMaterial(course)
+      deck = await makeCards({
+        course,
+        points: pointsWithState(course),
+        // With no topic named and nothing said yet, the ranking chooses: a first deck
+        // lands on the point the next hour is best spent on rather than on the whole
+        // syllabus at once.
+        topic: topicAsked(text) || (history.length ? '' : weakestPoint(course, material)),
+        // The request is part of the conversation, so a first message can still make
+        // a deck: without it the transcript would be empty on turn one.
+        transcript: [...history.map(t => ({ role: t.role, content: t.body })), { role: 'student', content: text }],
+        material,
+        count: countAsked(text),
+        // A degraded route means the built-in model, which writes tutor prose rather
+        // than cards. Handing it over would only fill the deck's warnings with its
+        // rejects; the conversation and the course material are the better source.
+        provider: route.degraded ? null : route.provider,
+        model: route.degraded ? null : route.model,
+      })
+    } catch (err) {
+      failure = err
+      if ((err?.status || 500) >= 500) console.error('[cards]', err)
+    }
+  }
+
+  const message = cardMessage({ course, deck, failure, handback })
+  for (const chunk of chunksOf(message)) stream.send('delta', { text: chunk })
+
+  const id = persistTurn({
+    sessionId, courseId: course?.id, itemId: null, body: message, rung: 0, intent,
+    handback, gate: gateView({ open: true, reason: 'making' }),
+    lint: { ok: true, violations: [] }, model: deck?.model || 'cardmaker', cost: 0,
+    ttftMs: Date.now() - started,
+  })
+
+  const made = []
+  if (deck?.cards?.length) {
+    made.push(persistArtefact({
+      turnId: id, sessionId, courseId: course?.id,
+      artefact: {
+        kind: 'flashcards',
+        // The points the deck actually landed on read better than the request that
+        // found them — "Business strategy", not "6.2".
+        topic: deck.grounded?.length ? deck.grounded.map(g => g.title).join(', ') : deck.topic,
+        cards: deck.cards,
+        grounded: deck.grounded,
+        warnings: deck.warnings,
+        model: deck.model,
+      },
+    }))
+  }
+
+  logEvent('cards.made', {
+    sessionId, turnId: id, cards: deck?.cards?.length || 0,
+    grounded: deck?.grounded?.map(g => g.code) || [], model: deck?.model || null,
+    failed: failure ? String(failure.message || failure) : null,
+  }, USER, course?.id || null)
+
+  stream.send('turn', {
+    id, rung: 0, handback, gate: gateView({ open: true, reason: 'making' }),
+    degraded: route.degraded, model: deck?.model || null, cost: 0,
+    ttftMs: Date.now() - started, seenSolution: false, retest: null,
+    artefacts: made,
+  })
+}
+
+/** The sentence that introduces the deck, or says plainly why there is not one. */
+function cardMessage({ course, deck, failure, handback }) {
+  if (!course) {
+    return 'Cards are made against a course, and this thread is not on one yet. Open a course from the sidebar, then ask again.'
+  }
+  if (failure) {
+    return `The cards did not get made: ${failure.message || 'the maker stopped before it finished'}. ${handback} once you have some — send the request again.`
+  }
+  const cards = deck?.cards || []
+  const on = deck?.grounded?.map(g => `${g.code} ${g.title}`).join(', ') || deck?.topic || 'this course'
+  if (!cards.length) {
+    const why = deck?.warnings?.[0] || `There is nothing on ${on} to make cards from yet.`
+    return `${why} Work a question on it first, and the cards will have something to be made of.`
+  }
+  return [
+    `${cards.length} card${cards.length === 1 ? '' : 's'} on ${on}, ${sourceOf(deck)}.`,
+    '',
+    `${handback} — a card you recognise is not a card you know. Keep them and they go into your review queue straight away.`,
+  ].join('\n')
+}
+
+/**
+ * Where the cards actually came from, said in the sentence that introduces them. A
+ * deck cut from the pack must not be described as coming out of a conversation that
+ * has not happened.
+ */
+function sourceOf(deck) {
+  if (deck.model) return 'written from your course material and this thread'
+  const why = (deck.cards || []).map(c => String(c.why || ''))
+  const material = why.some(w => /course material/i.test(w))
+  const thread = why.some(w => /this conversation/i.test(w))
+  if (material && thread) return 'taken from your course material and this thread'
+  if (material) return 'taken from your course material'
+  if (thread) return 'taken from what this thread has covered'
+  return 'taken from this course'
+}
+
+/**
+ * The course's own material, as the card maker reads it: what the pack records that
+ * students get wrong on a point is a statement of what is right, and a thread that
+ * has covered nothing yet can still be given cards out of it.
+ */
+function packMaterial(course) {
+  const rows = all('SELECT code, title FROM syllabus WHERE pack = ?', course.syllabus)
+  const out = []
+  for (const row of rows) {
+    const text = misconceptionsFor(course.syllabus, row.code)
+      .map(m => str(m?.right))
+      .filter(Boolean)
+      .join(' ')
+    if (text) out.push({ code: row.code, title: row.title, text })
+  }
+  return out
+}
+
+/** One artefact, stored against the Turn that made it and returned as the client reads it. */
+function persistArtefact({ turnId, sessionId, courseId, artefact }) {
+  const id = uid('art')
+  const body = { ...artefact, id }
+  run('INSERT INTO artefacts (id,turn_id,session_id,course_id,kind,body,created_at) VALUES (?,?,?,?,?,?,?)',
+    id, turnId, sessionId, courseId || null, String(artefact.kind), JSON.stringify(body), now())
+  return body
+}
+
+/** Everything one session made, by the Turn it belongs to. One query, not one each. */
+export function artefactsFor(sessionId) {
+  const rows = all('SELECT * FROM artefacts WHERE session_id = ? ORDER BY created_at, rowid', sessionId)
+  const byTurn = new Map()
+  for (const row of rows) {
+    const body = safeJson(row.body, null)
+    if (!body || typeof body !== 'object') continue
+    if (!byTurn.has(row.turn_id)) byTurn.set(row.turn_id, [])
+    byTurn.get(row.turn_id).push({ ...body, id: row.id, kind: row.kind })
+  }
+  return byTurn
 }
 
 /* ------------------------------------------------------------- prompt building */
@@ -472,9 +710,10 @@ function safeNumber(value, fallback, lo, hi) {
   return Math.min(hi, Math.max(lo, Math.round(n)))
 }
 
-function turnView(t) {
+export function turnView(t, made = []) {
   return {
     id: t.id,
+    artefacts: Array.isArray(made) ? made : [],
     role: t.role,
     body: t.body,
     rung: t.rung == null ? null : Number(t.rung),
@@ -491,7 +730,7 @@ function turnView(t) {
 }
 
 /** The item as the client may see it. The mark scheme is not in it. */
-function publicItem(item) {
+export function publicItem(item) {
   return {
     id: item.id,
     syllabusPoint: item.syllabus_point,

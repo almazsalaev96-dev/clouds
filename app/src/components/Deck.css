@@ -1,0 +1,58 @@
+/* A deck made in the conversation. It sits inside a turn, so it is quieter than a
+   screen: one border, no shadow, and the accent spent only on the one action. */
+.deck {
+  margin-top: var(--s4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--paper-raised);
+  overflow: hidden;
+}
+
+.deck__head { padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); }
+.deck__title { margin: 0; font-size: var(--t-ui); font-weight: 600; }
+.deck__topic { font-weight: 400; color: var(--ink-2); }
+.deck__grounded { margin: var(--s1) 0 0; font-size: var(--t-xs); color: var(--ink-3); }
+
+.deck__list { list-style: none; margin: 0; padding: 0; }
+.deck__card + .deck__card { border-top: 1px solid var(--line); }
+
+.deck__face {
+  display: flex; align-items: baseline; gap: var(--s3); width: 100%;
+  padding: var(--s3) var(--s4);
+  background: none; border: 0; text-align: left; cursor: pointer;
+  font: inherit; color: var(--ink);
+}
+.deck__face:hover { background: var(--paper-sunk); }
+.deck__face:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.deck__front { flex: 1; font-size: var(--t-md); line-height: var(--lh-read); }
+.deck__turn { font-size: var(--t-xs); color: var(--ink-3); flex: none; }
+
+.deck__back {
+  padding: 0 var(--s4) var(--s3) var(--s4);
+  font-size: var(--t-md); line-height: var(--lh-read); color: var(--ink-2);
+  border-left: 2px solid var(--accent-line); margin-left: var(--s4);
+}
+.deck__point { display: block; margin-top: var(--s2); font-size: var(--t-xs); color: var(--ink-3); }
+
+.deck__warnings {
+  margin: 0; padding: var(--s3) var(--s4) 0 calc(var(--s4) + var(--s3));
+  font-size: var(--t-sm); color: var(--ink-3);
+}
+
+.deck__actions {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  border-top: 1px solid var(--line); background: var(--paper-sunk);
+}
+.deck__keep {
+  font: inherit; font-size: var(--t-ui); font-weight: 500;
+  padding: var(--s2) var(--s4); border-radius: var(--r-md);
+  background: var(--accent); color: var(--paper-raised); border: 1px solid transparent;
+  cursor: pointer;
+}
+.deck__keep:hover:not(:disabled) { background: var(--accent-ink); }
+.deck__keep:disabled { opacity: 0.6; cursor: default; }
+.deck__keep:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.deck__kept { margin: 0; font-size: var(--t-sm); color: var(--ink-2); }
+.deck__link { color: var(--accent); }
+.deck__problem { margin: 0; font-size: var(--t-sm); color: var(--bad); }

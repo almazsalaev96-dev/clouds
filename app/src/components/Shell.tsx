@@ -3,12 +3,13 @@ import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { Course } from '../lib/api'
 import {
-  setCourse, setNavOpen, setPaletteOpen, setSideOpen, toggleNav, togglePalette, toggleSide,
+  setCourse, setNavOpen, setPaletteOpen, setSession, setSideOpen, toggleNav, togglePalette, toggleSide,
   useHotkeys, useStore,
 } from '../lib/state'
 import type { Theme } from '../lib/state'
 import { setTheme } from '../lib/state'
 import { Rail } from './Rail'
+import { Recents } from './Recents'
 import type { RailSection } from './Rail'
 import './Shell.css'
 
@@ -31,22 +32,33 @@ interface NavLink {
   match: (path: string) => boolean
 }
 
+/**
+ * The chat is the product, so the sidebar is not a tool menu with the chat in it. It
+ * is: start a thread, the few places the things made in threads live afterwards, and
+ * then the threads themselves.
+ */
 const NAV_LINKS: NavLink[] = [
-  { href: '#/today', label: 'Today', hint: 'What to do now', match: p => p === '/' || p.startsWith('/today') },
+  { href: '#/today', label: 'Today', hint: 'What to do now', match: p => p.startsWith('/today') || p.startsWith('/plan') },
   { href: '#/course', label: 'Course', hint: 'Syllabus and topics', match: p => p.startsWith('/course') },
-  { href: '#/session', label: 'Session', hint: 'Work through it with the tutor', match: p => p.startsWith('/session') },
   { href: '#/practise', label: 'Practise', hint: 'Exam questions, marked', match: p => p.startsWith('/practise') || p.startsWith('/mark') },
   { href: '#/cards', label: 'Cards', hint: 'Due for review', match: p => p.startsWith('/cards') },
-  { href: '#/plan', label: 'Plan', hint: 'The weeks before the exam', match: p => p.startsWith('/plan') },
   { href: '#/progress', label: 'Progress', hint: 'Mastery and readiness', match: p => p.startsWith('/progress') },
-  { href: '#/ask', label: 'Ask', hint: 'Anything, outside a course', match: p => p.startsWith('/ask') },
   { href: '#/settings', label: 'Settings', hint: 'Appearance, reading, data', match: p => p.startsWith('/settings') },
 ]
 
+/** The conversation a path names, for marking it in the thread list. */
+export function conversationOf(path: string): string | null {
+  const at = path.indexOf('/c/')
+  if (at !== 0) return null
+  const id = decodeURIComponent(path.slice(3).split('/')[0] || '')
+  return id || null
+}
+
 /** Which rail icon is lit for a path. Session belongs to Course, a Mark to Practise. */
 export function sectionFor(path: string): RailSection | null {
-  if (path === '/' || path.startsWith('/today') || path.startsWith('/plan')) return 'today'
-  if (path.startsWith('/course') || path.startsWith('/session')) return 'course'
+  if (path === '/' || path.startsWith('/chat') || path.startsWith('/c/') || path.startsWith('/session') || path.startsWith('/ask')) return 'ask'
+  if (path.startsWith('/today') || path.startsWith('/plan')) return 'today'
+  if (path.startsWith('/course')) return 'course'
   if (path.startsWith('/practise') || path.startsWith('/mark')) return 'practise'
   if (path.startsWith('/cards')) return 'cards'
   if (path.startsWith('/progress')) return 'progress'
@@ -104,9 +116,9 @@ interface Command {
 function buildCommands(courses: Course[], theme: Theme): Command[] {
   const go = (hash: string) => () => { window.location.hash = hash }
   const commands: Command[] = [
+    { id: 'go-chat', label: 'New chat', hint: 'Ask for anything on your course', run: () => { setSession(null); go('#/')() } },
     { id: 'go-today', label: 'Go to Today', hint: 'What to do now', run: go('#/today') },
     { id: 'go-course', label: 'Go to Course', hint: 'Syllabus and topics', run: go('#/course') },
-    { id: 'go-session', label: 'New session', hint: 'Learn with the tutor', run: go('#/session') },
     { id: 'go-practise', label: 'Practise', hint: 'Exam questions, marked', run: go('#/practise') },
     { id: 'go-cards', label: 'Review cards', hint: 'Due for review', run: go('#/cards') },
     { id: 'go-plan', label: 'Open plan', hint: 'The weeks before the exam', run: go('#/plan') },
@@ -229,7 +241,7 @@ function CommandPalette({ courses }: { courses: Course[] }) {
 /* ---------------------------------------------------------------------- shell */
 
 export function Shell({ path, courses, course, topBar, children, side, sideLabel }: ShellProps) {
-  const { navOpen, sideOpen, paletteOpen } = useStore()
+  const { navOpen, sideOpen, paletteOpen, sessionId } = useStore()
   const [paneNode, setPaneNode] = useState<HTMLElement | null>(null)
   const [claims, setClaims] = useState(0)
 
@@ -296,6 +308,11 @@ export function Shell({ path, courses, course, topBar, children, side, sideLabel
             </p>
           </div>
 
+          <a className="shell__new" href="#/" onClick={() => setSession(null)}>
+            <span className="shell__new-plus" aria-hidden="true">+</span>
+            New chat
+          </a>
+
           <ul className="shell__nav-list">
             {NAV_LINKS.map(link => {
               const current = link.match(path)
@@ -314,6 +331,8 @@ export function Shell({ path, courses, course, topBar, children, side, sideLabel
               )
             })}
           </ul>
+
+          <Recents currentId={conversationOf(path) ?? sessionId} />
 
           <button type="button" className="shell__nav-commands" onClick={() => setPaletteOpen(true)}>
             Commands

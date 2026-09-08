@@ -332,3 +332,17 @@
 .app__btn:hover { background: var(--accent-ink); }
 
 .app__link { font-size: var(--t-ui); color: var(--accent-ink); }
+
+/* Starting a thread is the first thing in the sidebar, because it is the first thing
+   the product does. It reads as an action, not as one more destination. */
+.shell__new {
+  display: flex; align-items: center; gap: var(--s2);
+  margin: 0 var(--s3) var(--s3);
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--line-strong); border-radius: var(--r-md);
+  background: var(--paper-raised); color: var(--ink);
+  font-size: var(--t-ui); font-weight: 500; text-decoration: none;
+}
+.shell__new:hover { background: var(--paper-sunk); border-color: var(--accent-line); }
+.shell__new:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.shell__new-plus { font-size: var(--t-lg); line-height: 1; color: var(--ink-3); }

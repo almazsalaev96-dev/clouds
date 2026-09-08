@@ -7,6 +7,8 @@ import type { Intent, Mode } from '../components/Composer'
 import { TurnCard } from '../components/TurnCard'
 import type { Citation } from '../components/TurnCard'
 import { LadderControl } from '../components/LadderControl'
+import { readArtefacts } from '../lib/artefacts'
+import type { Artefact } from '../lib/artefacts'
 import './Session.css'
 
 /* ------------------------------------------------------------------ *
@@ -186,6 +188,11 @@ export function useSessionStream(options: {
   courseId: string | null
   sessionId: string
   statusLine: string
+  /**
+   * Told what a completed turn made — a deck of cards, a question, a mark — against
+   * the id of the turn that made it, so the screen can draw it under that turn.
+   */
+  onArtefacts?(turnId: string, made: Artefact[]): void
 }) {
   const { courseId, sessionId, statusLine } = options
   const [turns, setTurns] = useState<UiTurn[]>([])
@@ -204,6 +211,10 @@ export function useSessionStream(options: {
   const timers = useRef<number[]>([])
   const queue = useRef<{ options: SendOptions; turnId: string }[]>([])
   const lastSend = useRef<SendOptions | null>(null)
+  // Held in a ref so a screen may pass a fresh closure every render without tearing
+  // down the stream that is running.
+  const sink = useRef(options.onArtefacts)
+  sink.current = options.onArtefacts
 
   const clearTimers = useCallback(() => {
     timers.current.forEach(t => window.clearTimeout(t))
@@ -307,6 +318,8 @@ export function useSessionStream(options: {
           }))
           setHandback(asText(field(meta, 'handback')) ?? '')
           setDegraded(field(meta, 'degraded') === true)
+          const made = readArtefacts(field(meta, 'artefacts'))
+          if (made.length) sink.current?.(assistantId, made)
           finish()
         },
         onError(error) {

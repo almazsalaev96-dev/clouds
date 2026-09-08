@@ -13,6 +13,8 @@ import {
 
 const GRADES = new Set(['again', 'good'])
 const DEFAULT_LIMIT = 60
+/** A deck one conversation can produce. More than this is an import, not a chat. */
+const MAX_BULK = 50
 
 export default function register(router) {
   /** Everything due now, soonest first. */
@@ -105,6 +107,60 @@ export default function register(router) {
     return jsonOk(res, cardView(get('SELECT * FROM cards WHERE id = ?', id), course), 201)
   })
 
+  /**
+   * A whole deck at once — what a conversation makes. Every card is validated the way
+   * one card is, before any of them is written, so a deck is never half saved. A front
+   * already on this course is not saved twice: the student would answer the same
+   * question twice and the scheduler would count it as two topics.
+   */
+  router.post('/api/cards/bulk', async ({ req, res }) => {
+    const body = await readBody(req)
+    const course = body.courseId ? mustCourse(str(body.courseId)) : resolveCourse({})
+    const deck = Array.isArray(body.cards) ? body.cards : null
+    if (!deck || !deck.length) {
+      throw Object.assign(new Error('Send the cards to save as a list — there is nothing here to keep.'), { status: 400 })
+    }
+    if (deck.length > MAX_BULK) {
+      throw Object.assign(new Error(`Save at most ${MAX_BULK} cards at a time. Split the deck and send it in two.`), { status: 400 })
+    }
+
+    const checked = deck.map((card, i) => {
+      const front = str(card?.front)
+      const back = str(card?.back)
+      const at = `Card ${i + 1} of this deck`
+      if (!front) throw Object.assign(new Error(`${at} has no front. Write the question you want to be asked.`), { status: 400 })
+      if (!back) throw Object.assign(new Error(`${at} has no back. Write the answer you want to recall.`), { status: 400 })
+      return {
+        front,
+        back,
+        point: str(card?.syllabusPoint ?? card?.syllabus_point) || 'unfiled',
+        source: str(card?.source) || str(body.source) || 'chat',
+        due: toIso(card?.due) || toIso(body.due) || now(),
+      }
+    })
+
+    const existing = new Set(all('SELECT front FROM cards WHERE user_id = ? AND course_id = ?', USER, course.id).map(r => r.front))
+    const created = []
+    const skipped = []
+    for (const card of checked) {
+      if (existing.has(card.front)) { skipped.push(card.front); continue }
+      const id = uid('card')
+      run('INSERT INTO cards (id,user_id,course_id,syllabus_point,front,back,source,stability,difficulty,due,reps,lapses,last_review,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        id, USER, course.id, card.point, card.front, card.back, card.source, 0, 5,
+        card.due, 0, 0, null, now())
+      existing.add(card.front)
+      created.push(cardView(get('SELECT * FROM cards WHERE id = ?', id), course))
+    }
+    logEvent('cards.bulk', { created: created.length, skipped: skipped.length, source: checked[0].source }, USER, course.id)
+
+    return jsonOk(res, {
+      courseId: course.id,
+      created,
+      skipped,
+      line: `${created.length} card${created.length === 1 ? '' : 's'} saved${skipped.length ? `, ${skipped.length} already on this course` : ''}.`,
+    }, created.length ? 201 : 200)
+  })
+
   /** The counts the Cards screen reads, and the forecast for the next week. */
   router.get('/api/cards/stats', ({ res, query }) => {
     const course = resolveCourse(query)
@@ -193,6 +249,7 @@ function provenanceLine(r) {
   const src = String(r.source || '')
   if (src.startsWith('mark:')) return `From your mark on ${r.syllabus_point}, ${date}`
   if (src.startsWith('retest:')) return `Retest of a question you saw the solution to, ${date}`
+  if (src === 'chat' || src.startsWith('chat:')) return `Made in a conversation, ${date}`
   if (src === 'manual') return `You wrote this card, ${date}`
   return `From ${src || 'your course'}, ${date}`
 }
