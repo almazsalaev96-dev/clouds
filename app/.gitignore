@@ -6,3 +6,4 @@ dist
 .workflows
 *.db-shm
 *.db-wal
+dist-preview

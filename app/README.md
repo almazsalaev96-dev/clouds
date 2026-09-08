@@ -13,6 +13,11 @@ npm run dev      # API on :8787, web on :5173 with hot reload
 npm test         # the marking tests, no dependencies beyond node:test
 ```
 
+`npm run pack:preview` builds the whole thing into one HTML file that runs with no
+server at all: SQLite compiled to JavaScript, the same schema, the same routes, the
+same marking. Useful for handing someone the product rather than a screenshot of it.
+It keeps its work in memory, so a reload starts a fresh course.
+
 Or build once and serve everything from the API process:
 
 ```
