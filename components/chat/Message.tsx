@@ -299,7 +299,7 @@ function AssistantMessageImpl({
             <DropdownMenu.Content
               align="start"
               sideOffset={6}
-              className="z-50 w-60 rounded-lg border border-line bg-surface p-1 shadow-md anim-pop"
+              className="z-50 w-60 rounded-lg glass border border-line p-1 shadow-lg anim-pop"
             >
               {MODELS.filter((m) => m.id !== message.modelId).map((m) => (
                 <DropdownMenu.Item
@@ -335,7 +335,7 @@ function AssistantMessageImpl({
             <DropdownMenu.Content
               align="start"
               sideOffset={6}
-              className="z-50 w-56 rounded-lg border border-line bg-surface p-1 shadow-md anim-pop"
+              className="z-50 w-56 rounded-lg glass border border-line p-1 shadow-lg anim-pop"
             >
               <DropdownMenu.Item
                 onSelect={() => onSaveToNote(text)}

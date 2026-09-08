@@ -232,7 +232,7 @@ function StreamingMessage({
   const waiting = !text && !reasoning;
 
   return (
-    <div className="py-3">
+    <div className="live-ring rounded-xl px-3 py-3 -mx-3">
       <div className="mb-2 flex items-center gap-2 text-xs text-tertiary">
         <span className="think-orb" aria-hidden />
         <span className="font-medium text-secondary">{modelName}</span>

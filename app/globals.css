@@ -10,69 +10,90 @@
 :root {
   color-scheme: light;
 
-  /* --- Light is the same system in daylight: the navy becomes the ink, and
-         Deep AI Blue holds its place. --- */
-  --bg-canvas: #f7f8fc;
-  --bg-surface: #ffffff;
-  --bg-subtle: #eef0f7;
-  --bg-inset: #e7eaf4;
-  --bg-overlay: rgba(3, 8, 23, 0.38);
+  /* ---------------------------------------------------------------------
+     INK — light.
 
-  --border-subtle: #dde1ee;
+     The whole palette is neutral. Greys carry every surface, every border
+     and every piece of text; the one hue in the system is the accent, and
+     it appears only where you can act. That constraint is the look: when
+     nothing else is coloured, a single blue button reads as the answer to
+     "what do I press", without anything having to shout.
+     --------------------------------------------------------------------- */
+  --bg-canvas: #f6f6f8;
+  --bg-surface: #ffffff;
+  --bg-subtle: #eeeef1;
+  --bg-inset: #e7e7ec;
+  --bg-overlay: rgba(10, 10, 12, 0.42);
+
+  --border-subtle: #e3e3e8;
   /* Control boundaries clear 3:1 against the page. Hairlines do not have to,
      which is why there are two of these. */
-  --border-strong: #888ea4;
+  --border-strong: #8d8d98;
 
-  --text-primary: #030817;
-  --text-secondary: #454d68;
-  --text-tertiary: #5f6684;
-  --text-faint: #7d8399;
+  --text-primary: #0a0a0c;
+  --text-secondary: #4a4a55;
+  --text-tertiary: #6e6e7a;
+  --text-faint: #8a8a97;
 
-  /* Deep AI Blue. The only hue allowed to cover area. */
-  --accent: #0b2eff;
-  --accent-hover: #287bff;
-  --accent-fill: #0b2eff;
-  --accent-fill-hover: #287bff;
-  --accent-subtle: #e6ebff;
+  /* The only hue in the system. */
+  --accent: #2a63e4;
+  --accent-hover: #1c4fc7;
+  --accent-fill: #2f6bf0;
+  --accent-fill-hover: #1f57d8;
+  --accent-subtle: #ecf1ff;
   --accent-fg: #ffffff;
+  /* Space-separated on purpose: these exist so effects can write
+     `rgb(var(--accent-rgb) / 0.4)`, and that slash syntax is invalid against a
+     comma-separated list — the whole declaration is dropped, silently. */
+  --accent-rgb: 47 107 240;
 
-  /* --- The three signals. Darkened here only as far as legibility on paper
-         demands; they are never used as fills at this weight. --- */
-  --live: #b84400;
-  --go: #4c6b00;
-  --stop: #cd2318;
+  /* Second signal — live and streaming states only, never a surface. */
+  --accent-2: #7b5cf0;
+  --accent-2-rgb: 123 92 240;
 
-  /* Fills keep the vivid values in both themes, because they are read as
-     shapes with dark text on them, not as coloured text. */
-  --go-fill: #d8ff38;
-  --on-fill: #030817;
-  --stop-fill: #cd2318;
+  /* --- Status. Darkened here only as far as legibility on paper demands. --- */
+  --live: #b4530a;
+  --go: #17693f;
+  --stop: #c62a20;
+
+  --go-fill: #17693f;
+  --on-fill: #ffffff;
+  --stop-fill: #c62a20;
 
   --success: var(--go);
   --warning: var(--live);
   --danger: var(--stop);
-  --danger-subtle: #fdeceb;
+  --danger-subtle: #fdecea;
 
-  /* Barely there, and deliberately so: the ground should have depth, not a
-     tint. A visible wash of colour over half the window is a background that
-     competes with the text, which is the actual product. */
-  --field-a: rgba(11, 46, 255, 0.035);
-  --field-b: rgba(40, 123, 255, 0.028);
+  /* The mesh behind everything. Kept to a whisper on light, where any real
+     colour on a near-white ground reads as a stain rather than depth. */
+  --mesh-a: rgba(47, 107, 240, 0.13);
+  --mesh-b: rgba(123, 92, 240, 0.11);
+  --mesh-c: rgba(20, 20, 24, 0.045);
+  --grain-opacity: 0.035;
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-line: rgba(10, 10, 12, 0.08);
   --glow: none;
 
-  /* --- Elevation. Only popovers and modals get a shadow. --- */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(0, 0, 0, 0.03);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06);
+  /* --- Elevation. --- */
+  --shadow-sm: 0 1px 2px rgba(10, 10, 12, 0.05), 0 1px 1px rgba(10, 10, 12, 0.03);
+  --shadow-md: 0 4px 12px rgba(10, 10, 12, 0.07), 0 1px 3px rgba(10, 10, 12, 0.04);
+  --shadow-lg: 0 16px 44px rgba(10, 10, 12, 0.12), 0 2px 8px rgba(10, 10, 12, 0.06);
   --highlight-top: none;
 
-  /* --- Motion. Nothing exceeds 320ms. Nothing bounces. --- */
+  /* --- Motion. Springs where something arrives; linear easing where
+         something merely changes colour. --- */
   --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-std: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: linear(
+    0, 0.006, 0.025, 0.101, 0.539 27.4%, 0.721, 0.849, 0.937, 0.991 52.9%,
+    1.023, 1.037, 1.043 65%, 1.04, 1.03, 1.017, 1.006 82.2%, 1.001, 0.999, 1
+  );
   --dur-fast: 120ms;
   --dur-enter: 180ms;
   --dur-layout: 240ms;
   --dur-slow: 320ms;
+  --dur-spring: 420ms;
 
   /* --- Density. One multiplier drives every spacing utility in the app,
          because Tailwind v4 derives its numeric scale from --spacing. --- */
@@ -88,95 +109,103 @@
 
   /* --- Syntax. Six hues, low saturation. A code block should read as one
          calm object, not a Christmas tree. --- */
-  --syn-comment: #5f6684;
-  --syn-keyword: #6b32bd;
-  --syn-string: #0b6642;
-  --syn-function: #0b2eff;
-  --syn-number: #9f411c;
-  --syn-type: #0a6577;
-  --syn-punct: #454d68;
+  --syn-comment: #60606f;
+  --syn-keyword: #7b3fd4;
+  --syn-string: #17693f;
+  --syn-function: #2554cc;
+  --syn-number: #9c4708;
+  --syn-type: #0d6b85;
+  --syn-punct: #62626e;
 
-  /* The composer's lift. On light it is a real drop shadow; on dark a shadow
-     under a dark box is invisible, so the lift there comes from a lit top
-     edge instead. Both live here so the rule that uses them stays one rule. */
-  --composer-bg: #ffffff;
-  --composer-line: rgba(11, 18, 40, 0.09);
-  --composer-line-focus: rgba(11, 18, 40, 0.16);
-  --composer-lift: 0 1px 2px rgb(15 23 42 / 0.05), 0 10px 28px -14px rgb(15 23 42 / 0.16);
-  --composer-lift-focus: 0 1px 3px rgb(15 23 42 / 0.07), 0 16px 36px -16px rgb(15 23 42 / 0.22);
+  /* The composer. On light it lifts with a real drop shadow; on dark a shadow
+     under a dark box is invisible, so the lift there comes from a lit top edge
+     instead. Both live here so the rule that uses them stays one rule. */
+  --composer-bg: rgba(255, 255, 255, 0.86);
+  --composer-line: rgba(10, 10, 12, 0.09);
+  --composer-line-focus: rgba(10, 10, 12, 0.17);
+  --composer-lift: 0 1px 2px rgb(10 10 12 / 0.05), 0 12px 32px -16px rgb(10 10 12 / 0.18);
+  --composer-lift-focus: 0 1px 3px rgb(10 10 12 / 0.07), 0 20px 44px -18px rgb(10 10 12 / 0.24);
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  /* The only dark palette. `data-theme` is resolved before first paint — the
-     system preference is turned into a concrete value there rather than
-     answered by a second copy of this block behind a media query, which is how
-     the two copies this replaces came to disagree about shadows and syntax
-     colours. */
+  /* ---------------------------------------------------------------------
+     INK — dark. The only dark palette.
 
-  /* Void Navy, and surfaces that step out of it with as little chroma as the
-     separation needs. Saturated steps read as murk rather than depth. */
-  --bg-canvas: #030817;
-  --bg-surface: #080d1e;
-  --bg-subtle: #0d1327;
-  --bg-inset: #05091a;
-  --bg-overlay: rgba(1, 3, 12, 0.74);
+     `data-theme` is resolved before first paint, so the system preference
+     becomes a concrete value there rather than being answered by a second
+     copy of this block behind a media query. Two copies is how the palette
+     this replaces came to disagree with itself about shadows and syntax.
 
-  --border-subtle: #161c33;
-  --border-strong: #5a6182;
+     Near-black with no hue in it. Every step from canvas to surface to
+     subtle is a step in lightness alone — a tinted dark reads as murk, and
+     it makes the one hue in the system compete instead of stand out.
+     --------------------------------------------------------------------- */
+  --bg-canvas: #0a0a0c;
+  --bg-surface: #141417;
+  --bg-subtle: #1c1c20;
+  --bg-inset: #0e0e11;
+  --bg-overlay: rgba(6, 6, 8, 0.72);
 
-  --text-primary: #e8ecf7;
-  --text-secondary: #98a1bd;
-  --text-tertiary: #79809e;
-  --text-faint: #5f6688;
+  --border-subtle: #26262b;
+  --border-strong: #5f5f6a;
 
-  /* Deep AI Blue fills and holds white text; Electric Blue is the step that
-     can be read on the navy. One family, two jobs — no single value can do
-     both, because the two thresholds cross. */
-  --accent: #287bff;
-  --accent-hover: #5c9aff;
-  --accent-fill: #0b2eff;
-  --accent-fill-hover: #2447ff;
-  --accent-subtle: #0a1330;
+  --text-primary: #ededf0;
+  --text-secondary: #a1a1ad;
+  --text-tertiary: #8a8a94;
+  --text-faint: #6b6b76;
+
+  --accent: #3d7bff;
+  --accent-hover: #6a9bff;
+  --accent-fill: #2f6bf0;
+  --accent-fill-hover: #4881ff;
+  --accent-subtle: #101a2e;
   --accent-fg: #ffffff;
+  --accent-rgb: 61 123 255;
 
-  /* Acid Lime, Hyper Orange, Signal Red — at full strength, because they only
-     ever appear at the size of a badge, a caret or a rule. */
-  --live: #ff6818;
-  --go: #d8ff38;
-  --stop: #ff3b30;
+  --accent-2: #9b7bff;
+  --accent-2-rgb: 155 123 255;
 
-  --go-fill: #d8ff38;
-  --on-fill: #030817;
-  --stop-fill: #de332a;
+  --live: #ff9142;
+  --go: #4ade80;
+  --stop: #ff6259;
+
+  --go-fill: #22c55e;
+  --on-fill: #0a0a0c;
+  --stop-fill: #e0483e;
 
   --success: var(--go);
   --warning: var(--live);
   --danger: var(--stop);
-  --danger-subtle: #2a0f0d;
+  --danger-subtle: #2a100e;
 
-  --field-a: rgba(11, 46, 255, 0.07);
-  --field-b: rgba(40, 123, 255, 0.035);
-  --glow: 0 0 18px -6px var(--accent);
+  --mesh-a: rgba(61, 123, 255, 0.20);
+  --mesh-b: rgba(155, 123, 255, 0.17);
+  --mesh-c: rgba(255, 255, 255, 0.05);
+  --grain-opacity: 0.055;
+  --glass: rgba(22, 22, 26, 0.72);
+  --glass-line: rgba(255, 255, 255, 0.07);
+  --glow: 0 0 22px -6px var(--accent);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);
-  --highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --syn-comment: #666c92;
-  --syn-keyword: #c49bff;
-  --syn-string: #7ce0a8;
-  --syn-function: #7d90ff;
-  --syn-number: #ffa05c;
-  --syn-type: #5fd0e2;
-  --syn-punct: #9aa0c2;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 20px 52px rgba(0, 0, 0, 0.62);
+  --highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 
-  --composer-bg: #101736;
-  --composer-line: rgba(232, 236, 247, 0.05);
-  --composer-line-focus: rgba(232, 236, 247, 0.12);
-  --composer-lift: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 12px 32px -18px rgb(0 0 0 / 0.7);
-  --composer-lift-focus: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 18px 44px -20px rgb(0 0 0 / 0.8);
+  --syn-comment: #82828f;
+  --syn-keyword: #c4a2ff;
+  --syn-string: #7ee3a6;
+  --syn-function: #7fa8ff;
+  --syn-number: #ffb07a;
+  --syn-type: #6fd4e8;
+  --syn-punct: #9a9aa6;
+
+  --composer-bg: rgba(26, 26, 30, 0.72);
+  --composer-line: rgba(255, 255, 255, 0.07);
+  --composer-line-focus: rgba(255, 255, 255, 0.15);
+  --composer-lift: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 16px 40px -20px rgb(0 0 0 / 0.8);
+  --composer-lift-focus: inset 0 1px 0 rgb(255 255 255 / 0.09), 0 24px 56px -22px rgb(0 0 0 / 0.9);
 }
 
 :root[data-density="compact"] { --density: 0.75; }
@@ -252,7 +281,9 @@
   }
 
   body {
-    background: var(--bg-canvas);
+    /* Transparent on purpose: the canvas colour is on `html` so the field
+       layers can sit behind the page without being painted over. */
+    background: transparent;
     color: var(--text-primary);
     font-family: var(--font-sans);
     font-size: var(--text-base);
@@ -295,6 +326,49 @@ textarea:focus-visible {
    element keeps it whole. */
 .focus-inset:focus-visible {
   outline-offset: -2px;
+}
+
+/* ---------------------------------------------------------------------------
+   GLASS
+
+   Anything that floats over the page — the sidebar, the top bar, the strip the
+   composer sits in, menus, the palette, the undo bar — is translucent and
+   blurred rather than opaque. Two reasons, and neither is decoration:
+
+   the field behind the page keeps showing through, so the app reads as one
+   continuous surface instead of a stack of separate boxes; and content that
+   scrolls under a floating bar stays faintly visible, which tells you the
+   scroll went somewhere rather than into a wall.
+
+   `backdrop-filter` is expensive if you put it on many elements, so it is on
+   about six, all of them full-width chrome that is always on screen anyway.
+--------------------------------------------------------------------------- */
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Where the blur is unsupported the translucency alone would let text show
+   through and turn the bar into mush, so those browsers get an opaque bar. */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass {
+    background: var(--bg-surface);
+  }
+}
+
+/* The strip under the transcript. It fades rather than cuts, so an answer
+   scrolling past does not end at a hard line. */
+.composer-dock {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, var(--bg-canvas) 62%, transparent) 22%,
+    color-mix(in srgb, var(--bg-canvas) 88%, transparent) 55%,
+    var(--bg-canvas) 100%
+  );
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 /* ---------------------------------------------------------------------------
@@ -451,19 +525,79 @@ textarea:focus-visible {
 /* ============================================================================
    THE FIELD
 
-   Two very faint pools of colour fixed behind everything — blue at one corner,
-   orange at the other. They never move and they are barely visible; the point
-   is only that the ground stops reading as a flat wall and starts reading as
-   something with depth behind it. Anything stronger would compete with the
-   text, which is the actual product.
+   Three things sit behind the whole app, in this order, none of them ever
+   catching the eye on purpose:
+
+   1. A gradient mesh — four soft pools of the two accent hues, drifting on a
+      40-second cycle. Slow enough that you never see it move; present enough
+      that the ground reads as depth rather than a flat wall.
+   2. Film grain — a tiled SVG noise tile at a few percent. The single most
+      effective way to stop a large flat dark surface from looking like dead
+      plastic, and it costs one repeating background.
+   3. A vignette, so the corners fall off and the centre of the page — where
+      the text is — is the brightest thing on screen.
+
+   All three are behind `pointer-events: none` fixed layers, so nothing here
+   can ever eat a click.
    ========================================================================= */
 
-body {
+/* The canvas colour lives on `html`, not `body`, so the two fixed layers below
+   can sit at z-index -1 and still be visible. Painting it on `body` would hide
+   them behind it, and the alternative — lifting every app element with
+   `body > * { position: relative }` — reaches Radix portals, which are direct
+   children of body too. This way nothing the app renders needs a rule at all. */
+html {
+  background-color: var(--bg-canvas);
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* The mesh. */
+body::before {
   background-image:
-    radial-gradient(60rem 40rem at 12% -10%, var(--field-a), transparent 70%),
-    radial-gradient(50rem 36rem at 92% 108%, var(--field-b), transparent 70%);
-  background-attachment: fixed;
-  background-repeat: no-repeat;
+    radial-gradient(38rem 30rem at 8% -6%, var(--mesh-a), transparent 65%),
+    radial-gradient(34rem 28rem at 96% 4%, var(--mesh-b), transparent 62%),
+    radial-gradient(42rem 34rem at 78% 106%, var(--mesh-a), transparent 66%),
+    radial-gradient(30rem 26rem at 22% 92%, var(--mesh-c), transparent 60%);
+  animation: mesh-drift 40s var(--ease-std) infinite alternate;
+}
+
+/* Grain and vignette share a layer so the page only pays for two pseudo
+   elements in total. */
+body::after {
+  background-image:
+    radial-gradient(120% 90% at 50% 42%, transparent 55%, rgb(0 0 0 / 0.28) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-size: auto, 140px 140px;
+  background-repeat: no-repeat, repeat;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: overlay;
+}
+
+:root:not([data-theme="dark"]) body::after {
+  /* A dark vignette over near-white reads as dirt. Light gets grain only. */
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+  background-repeat: repeat;
+  mix-blend-mode: multiply;
+}
+
+@keyframes mesh-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(-1.5%, 1.2%, 0) scale(1.06); }
+  100% { transform: translate3d(1.8%, -1%, 0) scale(1.03); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
 }
 
 /* ============================================================================
@@ -475,8 +609,12 @@ body {
   from { opacity: 0; translate: 0 4px; }
   to { opacity: 1; translate: 0 0; }
 }
+/* Only `opacity` and `scale`. Not `translate`, and never `transform`: Tailwind
+   centres dialogs with `-translate-x-1/2 -translate-y-1/2`, which compiles to
+   the `translate` property, so animating it here throws every centred dialog
+   into a corner. The spring easing supplies the character instead. */
 @keyframes pop-in {
-  from { opacity: 0; scale: 0.97; }
+  from { opacity: 0; scale: 0.94; }
   to { opacity: 1; scale: 1; }
 }
 @keyframes caret-pulse {
@@ -491,7 +629,10 @@ body {
 
 .anim-fade { animation: fade-in var(--dur-enter) var(--ease-out) both; }
 .anim-rise { animation: rise-in var(--dur-enter) var(--ease-out) both; }
-.anim-pop { animation: pop-in var(--dur-fast) var(--ease-out) both; }
+/* Menus and popovers arrive on a spring: a touch of overshoot reads as the
+   thing being placed rather than faded in. Short enough that it never delays
+   the click that follows. */
+.anim-pop { animation: pop-in var(--dur-spring) var(--ease-spring) both; }
 
 .skeleton {
   background: linear-gradient(
@@ -514,9 +655,15 @@ body {
   height: 1.05em;
   margin-left: 1px;
   vertical-align: text-bottom;
-  background: linear-gradient(180deg, var(--accent), var(--live));
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
   border-radius: 1px;
-  box-shadow: var(--glow);
+  /* The trail: three halos at falling opacity and rising blur, so the caret
+     reads as the leading edge of something arriving rather than a cursor
+     parked at the end of a finished sentence. */
+  box-shadow:
+    0 0 6px 0 rgb(var(--accent-rgb) / 0.75),
+    0 0 16px 2px rgb(var(--accent-rgb) / 0.4),
+    0 0 30px 6px rgb(var(--accent-2-rgb) / 0.18);
   animation: caret-pulse 1.1s var(--ease-std) infinite;
 }
 
@@ -552,7 +699,7 @@ body {
     from 0deg,
     transparent 0deg,
     var(--accent) 110deg,
-    var(--live) 220deg,
+    var(--accent-2) 220deg,
     transparent 330deg
   );
   /* Masked to a ring, so it reads as an aperture rather than a coloured dot. */
@@ -571,7 +718,7 @@ body {
     90deg,
     transparent 0%,
     var(--accent) 35%,
-    var(--live) 65%,
+    var(--accent-2) 65%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -586,6 +733,155 @@ body {
   box-shadow: var(--glow);
 }
 
+/* ---------------------------------------------------------------------------
+   EFFECTS
+
+   Everything below is state made visible. None of it decorates something that
+   is standing still; each one is attached to a thing that is happening —
+   a reply arriving, a control being pressed, a pointer approaching a card.
+--------------------------------------------------------------------------- */
+
+/* A rotating conic border. Used on whatever is generating right now: the
+   border is the only part that moves, so the answer underneath stays still
+   and readable while it is obviously alive. Drawn as a mask so it is one
+   element, not a wrapper plus an inner box. */
+.live-ring {
+  position: relative;
+  isolation: isolate;
+}
+
+.live-ring::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--ring-angle, 0deg),
+    transparent 0deg,
+    rgb(var(--accent-rgb) / 0.9) 60deg,
+    rgb(var(--accent-2-rgb) / 0.85) 130deg,
+    transparent 200deg,
+    transparent 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: ring-spin 2.4s linear infinite;
+  pointer-events: none;
+}
+
+@property --ring-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes ring-spin {
+  to { --ring-angle: 360deg; }
+}
+
+/* Text that is still arriving. A slow sheen travels through the last words so
+   the eye can tell "still coming" from "finished and short". */
+.streaming-text {
+  background: linear-gradient(
+    100deg,
+    var(--text-primary) 0%,
+    var(--text-primary) 42%,
+    rgb(var(--accent-rgb) / 0.85) 50%,
+    var(--text-primary) 58%,
+    var(--text-primary) 100%
+  );
+  background-size: 260% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: text-sheen 2.6s linear infinite;
+}
+
+@keyframes text-sheen {
+  from { background-position: 130% 0; }
+  to { background-position: -30% 0; }
+}
+
+/* The caret at the end of a stream, with a glow trail. */
+.caret-glow {
+  box-shadow:
+    0 0 6px 0 rgb(var(--accent-rgb) / 0.9),
+    0 0 16px 2px rgb(var(--accent-rgb) / 0.45),
+    0 0 32px 6px rgb(var(--accent-rgb) / 0.18);
+}
+
+/* Primary actions bloom on hover: a soft accent halo under the button, which
+   reads as the control lifting toward you rather than merely changing colour. */
+/* No `position` here: this class lands on buttons that are already absolutely
+   placed, and an unlayered `position: relative` would beat Tailwind's layered
+   `absolute` and knock them out of their slot. */
+.bloom {
+  transition:
+    box-shadow var(--dur-enter) var(--ease-out),
+    transform var(--dur-enter) var(--ease-spring);
+}
+
+.bloom:hover:not(:disabled) {
+  box-shadow:
+    0 0 0 1px rgb(var(--accent-rgb) / 0.35),
+    0 6px 20px -6px rgb(var(--accent-rgb) / 0.55),
+    0 2px 6px -2px rgb(var(--accent-rgb) / 0.4);
+  transform: translateY(-1px);
+}
+
+.bloom:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+  transition-duration: var(--dur-fast);
+}
+
+/* Cards lift and tilt toward the pointer. The tilt is tiny — under a degree —
+   which is enough to read as physical and small enough not to bend the text
+   on it. Coarse pointers get the lift without the tilt, since there is no
+   hover there to track. */
+.lift {
+  transition:
+    transform var(--dur-enter) var(--ease-spring),
+    border-color var(--dur-fast) var(--ease-std),
+    box-shadow var(--dur-enter) var(--ease-out);
+  will-change: transform;
+}
+
+@media (hover: hover) {
+  .lift:hover {
+    transform: translateY(-2px) scale(1.006);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.lift:active {
+  transform: translateY(0) scale(0.995);
+  transition-duration: var(--dur-fast);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-ring::before,
+  .streaming-text {
+    animation: none;
+  }
+  .streaming-text {
+    background: none;
+    color: var(--text-primary);
+  }
+  .bloom:hover:not(:disabled),
+  .lift:hover,
+  .lift:active,
+  .bloom:active:not(:disabled) {
+    transform: none;
+  }
+}
+
 .pulse-soft {
   animation: field-breathe 2s var(--ease-std) infinite;
 }
@@ -595,7 +891,7 @@ body {
      turning and the line stops travelling, but both stay visible. */
   .think-orb {
     animation: none;
-    background: conic-gradient(from 0deg, var(--accent), var(--live), var(--accent));
+    background: conic-gradient(from 0deg, var(--accent), var(--accent-2), var(--accent));
   }
   .field-line {
     animation: none;

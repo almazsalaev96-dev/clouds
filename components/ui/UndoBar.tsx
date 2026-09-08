@@ -41,7 +41,7 @@ export function UndoBar() {
         // Keyed by id so a second delete restarts the animation rather than
         // inheriting the first one's remaining time.
         key={entry.id}
-        className="pointer-events-auto relative flex max-w-[min(30rem,100%)] items-center gap-3 overflow-hidden rounded-xl border border-line bg-surface py-2 pl-3.5 pr-2 shadow-lg anim-pop"
+        className="glass pointer-events-auto relative flex max-w-[min(30rem,100%)] items-center gap-3 overflow-hidden rounded-xl border border-line py-2 pl-3.5 pr-2 shadow-lg anim-pop"
       >
         <span className="min-w-0 flex-1 truncate text-sm text-secondary">
           Deleted <span className="text-primary">{entry.label}</span>

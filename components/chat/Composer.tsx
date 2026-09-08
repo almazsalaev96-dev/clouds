@@ -326,7 +326,7 @@ export function Composer({
                 align="start"
                 side="top"
                 sideOffset={8}
-                className="z-50 w-60 rounded-2xl border border-line bg-surface p-1.5 shadow-lg anim-pop"
+                className="z-50 w-60 rounded-2xl glass border border-line p-1.5 shadow-lg anim-pop"
               >
                 <button
                   onClick={() => {
@@ -378,7 +378,7 @@ export function Composer({
                 align="start"
                 side="top"
                 sideOffset={8}
-                className="z-50 w-72 rounded-2xl border border-line bg-surface p-1.5 shadow-lg anim-pop"
+                className="z-50 w-72 rounded-2xl glass border border-line p-1.5 shadow-lg anim-pop"
               >
                 {model.reasoning ? (
                   <button
@@ -471,9 +471,12 @@ export function Composer({
               disabled={!canSend || streaming}
               aria-label="Send message"
               className={cn(
-                "focus-inset absolute inset-0 flex items-center justify-center rounded-full transition-[opacity,background-color,color] duration-[var(--dur-fast)] ease-[var(--ease-std)]",
+                "bloom focus-inset absolute inset-0 flex items-center justify-center rounded-full transition-[opacity,background-color,color,box-shadow,transform] duration-[var(--dur-fast)] ease-[var(--ease-std)]",
                 "bg-[var(--text-primary)] text-[var(--bg-canvas)] hover:opacity-90",
-                "disabled:bg-[var(--bg-subtle)] disabled:text-[var(--text-faint)]",
+                // The disabled disc has to stay a disc. On a translucent
+                // composer, a fill this close to the surface behind it just
+                // disappears, so it borrows the border instead of the surface.
+                "disabled:bg-[color-mix(in_srgb,var(--text-primary)_16%,transparent)] disabled:text-[var(--text-faint)]",
                 streaming ? "pointer-events-none opacity-0" : "opacity-100",
               )}
             >

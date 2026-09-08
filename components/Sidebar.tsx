@@ -55,7 +55,7 @@ export function Sidebar({
       )}
       <aside
         className={cn(
-          "no-print z-40 flex shrink-0 flex-col overflow-hidden border-r border-line bg-subtle",
+          "glass no-print z-40 flex shrink-0 flex-col overflow-hidden border-r border-line",
           "fixed inset-y-0 left-0 w-[var(--sidebar-w)] transition-transform duration-[var(--dur-layout)] ease-[var(--ease-out)]",
           "md:relative md:z-auto md:transition-[width]",
           sidebarOpen

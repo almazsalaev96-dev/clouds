@@ -48,8 +48,8 @@ export function TopBar({
   return (
     <header
       className={cn(
-        "no-print sticky top-0 z-20 flex h-[var(--topbar-h)] shrink-0 items-center gap-1 px-2 backdrop-blur-xl transition-[border-color] duration-[var(--dur-fast)]",
-        "border-b bg-[color-mix(in_srgb,var(--bg-canvas)_80%,transparent)]",
+        "glass no-print sticky top-0 z-20 flex h-[var(--topbar-h)] shrink-0 items-center gap-1 px-2 transition-[border-color] duration-[var(--dur-fast)]",
+        "border-b",
         // The hairline only exists once there is content above it to separate.
         scrolled ? "border-line" : "border-transparent",
       )}
@@ -116,7 +116,7 @@ export function TopBar({
               <DropdownMenu.Content
                 align="end"
                 sideOffset={6}
-                className="z-50 w-52 rounded-lg border border-line bg-surface p-1 shadow-md anim-pop"
+                className="z-50 w-52 rounded-lg glass border border-line p-1 shadow-lg anim-pop"
               >
                 <Item onSelect={onTogglePin} icon={conversation.pinned ? <PinOff size={14} /> : <Pin size={14} />}>
                   {conversation.pinned ? "Unpin" : "Pin to top"}

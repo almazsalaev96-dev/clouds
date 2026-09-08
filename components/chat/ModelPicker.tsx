@@ -82,7 +82,7 @@ export function ModelPicker({
         <Popover.Content
           align={align}
           sideOffset={6}
-          className="z-50 w-[26rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-line bg-surface shadow-lg anim-pop"
+          className="z-50 w-[26rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg glass border border-line shadow-lg anim-pop"
         >
           <div className="border-b border-line px-3 py-2">
             <input

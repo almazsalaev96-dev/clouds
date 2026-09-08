@@ -66,7 +66,7 @@ export function ShortcutsOverlay({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-[var(--bg-overlay)] anim-fade" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[40rem] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-4rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-line bg-surface p-5 shadow-lg anim-pop">
+        <Dialog.Content className="glass fixed left-1/2 top-1/2 z-50 w-[40rem] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-4rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-line p-5 shadow-lg anim-pop">
           <Dialog.Title className="text-lg font-semibold text-primary">
             Keyboard shortcuts
           </Dialog.Title>

@@ -130,7 +130,7 @@ export function SectionIndex({
             {filtered.map((item) => (
               <li
                 key={item.id}
-                className="group flex items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2.5 transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
+                className="lift group flex items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2.5 hover:border-line-strong"
               >
                     <button onClick={() => onOpen(item.id)} className="focus-inset min-w-0 flex-1 rounded-md text-left">
                       <span className="flex items-baseline gap-2">

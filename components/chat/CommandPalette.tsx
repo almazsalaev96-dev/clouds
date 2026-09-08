@@ -288,7 +288,7 @@ export function CommandPalette({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-[var(--bg-overlay)] anim-fade" />
         <Dialog.Content
-          className="fixed left-1/2 top-[18vh] z-50 w-[34rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-xl border border-line bg-surface shadow-lg anim-pop"
+          className="fixed left-1/2 top-[18vh] z-50 w-[34rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-xl glass border border-line shadow-lg anim-pop"
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") {
               e.preventDefault();

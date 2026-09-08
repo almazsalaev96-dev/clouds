@@ -526,7 +526,7 @@ export default function Page() {
   return (
     <TooltipProvider>
       <ArtifactProvider value={artifactValue}>
-      <div className="app-shell flex h-dvh overflow-hidden bg-canvas">
+      <div className="app-shell flex h-dvh overflow-hidden">
         <Sidebar
           activeChatId={activeId}
           onSelectChat={(id) => selectInSection("chat", id)}
@@ -663,11 +663,7 @@ export default function Page() {
             </div>
           )}
 
-          <div className="no-print relative shrink-0 bg-canvas px-4 pb-3">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-b from-transparent to-[var(--bg-canvas)]"
-            />
+          <div className="composer-dock no-print relative shrink-0 px-4 pb-3 pt-2">
             <div className="mx-auto w-full max-w-[var(--measure)]">
               {mounted && (
                 <Composer

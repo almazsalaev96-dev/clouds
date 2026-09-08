@@ -34,7 +34,7 @@ export function Tooltip({
         <TooltipPrimitive.Content
           side={side}
           sideOffset={6}
-          className="z-50 flex items-center gap-2 rounded-md border border-line bg-surface px-2 py-1 text-xs text-primary shadow-md anim-pop"
+          className="glass z-50 flex items-center gap-2 rounded-md border border-line px-2 py-1 text-xs text-primary shadow-md anim-pop"
         >
           {label}
           {keys && <Kbd keys={keys} />}
