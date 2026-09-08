@@ -1,6 +1,7 @@
 import type { ChatRequest, StreamEvent, StopReason } from "../types";
 import { getModel, estimateCost } from "../models";
 import { classifyError, sseData, sseLines, textOf, imagesOf } from "./shared";
+import { thinkingBudget } from "./thinking";
 
 export async function* streamAnthropic(
   req: ChatRequest,
@@ -36,9 +37,10 @@ export async function* streamAnthropic(
   if (req.systemPrompt) body.system = req.systemPrompt;
   // Anthropic rejects temperature alongside extended thinking, so the two are
   // mutually exclusive rather than both sent and hoping for the best.
-  if (model.reasoning && req.params.reasoningEffort) {
-    const budgets = { low: 4000, medium: 10000, high: 24000 } as const;
-    const budget = Math.min(budgets[req.params.reasoningEffort], Math.max(1024, (body.max_tokens as number) - 1024));
+  const budget = model.reasoning
+    ? thinkingBudget(body.max_tokens as number, req.params.reasoningEffort)
+    : null;
+  if (budget) {
     body.thinking = { type: "enabled", budget_tokens: budget };
   } else {
     body.temperature = req.params.temperature;

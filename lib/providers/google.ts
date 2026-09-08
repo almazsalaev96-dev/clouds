@@ -1,6 +1,7 @@
 import type { ChatRequest, StreamEvent, StopReason } from "../types";
 import { getModel, estimateCost } from "../models";
 import { classifyError, sseData, sseLines, textOf, imagesOf } from "./shared";
+import { thinkingBudget } from "./thinking";
 
 export async function* streamGoogle(
   req: ChatRequest,
@@ -39,10 +40,15 @@ export async function* streamGoogle(
     },
   };
   if (req.systemPrompt) body.systemInstruction = { parts: [{ text: req.systemPrompt }] };
-  if (model.reasoning && req.params.reasoningEffort) {
-    const budgets = { low: 2000, medium: 8000, high: 24000 } as const;
+  const budget = model.reasoning
+    ? thinkingBudget(
+        Math.min(req.params.maxTokens, model.maxOutput),
+        req.params.reasoningEffort,
+      )
+    : null;
+  if (budget) {
     (body.generationConfig as Record<string, unknown>).thinkingConfig = {
-      thinkingBudget: budgets[req.params.reasoningEffort],
+      thinkingBudget: budget,
       includeThoughts: true,
     };
   }

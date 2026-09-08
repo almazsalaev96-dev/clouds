@@ -94,6 +94,7 @@ function CompareColumn({
       modelId,
       history,
       systemPrompt: settings.systemPrompt || undefined,
+      advanceLeaf: false,
     });
     // Fired once, deliberately: a column is a single request, not a subscription.
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -9,9 +9,9 @@ import {
   deleteConversation, exportMarkdown, pathTo, addMessage, blockText,
 } from "@/lib/db";
 import { estimateTokens, getModel } from "@/lib/models";
-import { cheapestAvailable, generateCards } from "@/lib/generate";
+import { cheapestAvailable, complete, generateCards } from "@/lib/generate";
 import { newCard } from "@/lib/study";
-import { useSettings, useDrafts, paramsFor, type Section } from "@/lib/store";
+import { useSettings, useDrafts, type Section } from "@/lib/store";
 import { useStream } from "@/lib/hooks/useStream";
 import { Sidebar } from "@/components/Sidebar";
 import { NotesView, saveToNote } from "@/components/NotesView";
@@ -129,64 +129,15 @@ export default function Page() {
          never block anything the user is doing. -------------------------- */
   const generateTitle = React.useCallback(
     async (conversationId: string, firstUserText: string) => {
-      const candidates = ["claude-haiku-4-5", "gemini-2.5-flash", "gpt-5.1-mini", "deepseek-chat"];
-      const pick =
-        candidates.find((id) => {
-          const p = getModel(id).provider;
-          return configured[p] || settings.keys[p];
-        }) ?? settings.modelId;
-
-      const provider = getModel(pick).provider;
-      try {
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            modelId: pick,
-            messages: [
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "text",
-                    text: `Give this conversation a title of at most six words. Reply with the title alone — no quotes, no punctuation at the end.\n\n${firstUserText.slice(0, 800)}`,
-                  },
-                ],
-              },
-            ],
-            params: { ...paramsFor(pick), maxTokens: 1024, temperature: 0.3 },
-            clientKey: settings.keys[provider] || undefined,
-          }),
-        });
-        if (!res.body) return;
-
-        let title = "";
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buf = "";
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buf += decoder.decode(value, { stream: true });
-          let nl: number;
-          while ((nl = buf.indexOf("\n\n")) !== -1) {
-            const chunk = buf.slice(0, nl);
-            buf = buf.slice(nl + 2);
-            if (!chunk.startsWith("data: ")) continue;
-            try {
-              const ev = JSON.parse(chunk.slice(6));
-              if (ev.type === "text") title += ev.text;
-            } catch { /* partial frame */ }
-          }
-        }
-
-        const clean = title.trim().replace(/^["'#\s]+|["'.\s]+$/g, "").slice(0, 60);
-        if (clean) await db.conversations.update(conversationId, { title: clean });
-      } catch {
-        /* A missing title is a cosmetic loss; it must never surface as an error. */
-      }
+      const title = await complete(
+        `Give this conversation a title of at most six words. Reply with the title alone — no quotes, no punctuation at the end.\n\n${firstUserText.slice(0, 800)}`,
+        { modelId: cheapestAvailable(configured), maxTokens: 64, temperature: 0.3 },
+      );
+      // A missing title is a cosmetic loss and must never surface as an error.
+      const clean = title?.trim().replace(/^["'#\s]+|["'.\s]+$/g, "").slice(0, 60);
+      if (clean) await db.conversations.update(conversationId, { title: clean });
     },
-    [configured, settings.keys, settings.modelId],
+    [configured],
   );
 
   const stream = useStream();

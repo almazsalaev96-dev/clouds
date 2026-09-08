@@ -143,15 +143,34 @@ function Review({ cards }: { cards: Card[] }) {
   const [revealed, setRevealed] = React.useState(false);
   const [aheadOf, setAheadOf] = React.useState(false);
   const [done, setDone] = React.useState(0);
+  /**
+   * Cards failed in this session, and how far into it they may return.
+   *
+   * `again` writes a due date ten minutes out, which is right for tomorrow and
+   * useless today: the queue is derived from the database, so the one card just
+   * proved unknown vanished until the next session. Anki calls the fix learning
+   * steps. Three cards is enough that the answer has left working memory and
+   * short enough that the session can still close.
+   */
+  const relearning = React.useRef<{ id: string; readyAt: number }[]>([]);
 
   // The queue is recomputed from the database rather than held in state, so
   // grading a card removes it the moment it is no longer due — no stale copy,
   // no double-counting a card you already answered.
   const queue = React.useMemo(() => {
-    const list = orderForReview(cards);
+    const scheduled = orderForReview(cards);
+    const seen = new Set(scheduled.map((c) => c.id));
+    // Appended, not prepended: other cards should come between a lapse and its
+    // second attempt, otherwise the retry only proves short-term memory.
+    const returning = relearning.current
+      .filter((r) => r.readyAt <= done && !seen.has(r.id))
+      .map((r) => cards.find((c) => c.id === r.id))
+      .filter((c): c is Card => Boolean(c));
+
+    const list = [...scheduled, ...returning];
     if (list.length || !aheadOf) return list;
     return [...cards].sort((a, b) => a.due - b.due).slice(0, 20);
-  }, [cards, aheadOf]);
+  }, [cards, aheadOf, done]);
 
   // Studying ahead is a decision about right now, not a mode you get stuck in:
   // once something is genuinely due again, the deck goes back to normal.
@@ -165,10 +184,16 @@ function Review({ cards }: { cards: Card[] }) {
     async (g: Grade) => {
       if (!card) return;
       await db.cards.put(schedule(card, g));
+
+      relearning.current = relearning.current.filter((r) => r.id !== card.id);
+      if (g === "again") {
+        relearning.current.push({ id: card.id, readyAt: done + 3 });
+      }
+
       setRevealed(false);
       setDone((d) => d + 1);
     },
-    [card],
+    [card, done],
   );
 
   React.useEffect(() => {
@@ -203,6 +228,7 @@ function Review({ cards }: { cards: Card[] }) {
   }
 
   if (!card) {
+    relearning.current = [];
     const next = Math.min(...cards.map((c) => c.due));
     return (
       <Centred>

@@ -747,6 +747,26 @@ body {
     color: transparent !important;
   }
 
+  /* A paper caught in edit mode must never print as raw markdown. */
+  .paper-sheet textarea {
+    display: none !important;
+  }
+
+  /* The app's own scrollers have to unroll too, or a printed conversation is
+     silently clipped to one screen while still looking like a clean document. */
+  .app-shell main,
+  .app-shell main > * {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .msg {
+    content-visibility: visible !important;
+    contain-intrinsic-size: none !important;
+  }
+
   .paper-sheet .prose {
     font-size: 11pt;
     line-height: 1.55;

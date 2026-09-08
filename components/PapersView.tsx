@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, Download, Eye, Pencil, Printer, Sparkles } from "lucide-react";
+import { ChevronLeft, Download, Eye, Pencil, Printer, Sparkles, Undo2 } from "lucide-react";
 import type { Paper } from "@/lib/types";
 import { db } from "@/lib/db";
 import { cheapestAvailable, generatePaper } from "@/lib/generate";
@@ -49,6 +49,8 @@ export function PapersView({
   const [editing, setEditing] = React.useState(true);
   const [busy, setBusy] = React.useState(false);
   const [note, setNote] = React.useState<string | null>(null);
+  /** What "Draft it" replaced, so the most destructive button is reversible. */
+  const [replaced, setReplaced] = React.useState<string | null>(null);
   const loadedFor = React.useRef<string | null>(null);
   const bodyRef = React.useRef<HTMLTextAreaElement>(null);
 
@@ -64,13 +66,37 @@ export function PapersView({
     }
   }, [paper]);
 
-  const persist = React.useMemo(
-    () =>
-      debounce((id: string, patch: Partial<Paper>) => {
-        void db.papers.update(id, { ...patch, updatedAt: Date.now() });
-      }, 400),
-    [],
+  /**
+   * One debounced writer serves four fields, and `debounce` holds a single
+   * timer: typing a title and then the body within the window cancelled the
+   * title write, so the title visibly reverted on the next render. Patches
+   * accumulate instead of racing.
+   */
+  const pending = React.useRef<Partial<Paper>>({});
+  const flush = React.useCallback((id: string) => {
+    const patch = pending.current;
+    pending.current = {};
+    if (Object.keys(patch).length) void db.papers.update(id, { ...patch, updatedAt: Date.now() });
+  }, []);
+  const debouncedFlush = React.useMemo(() => debounce((id: string) => flush(id), 400), [flush]);
+  const persist = React.useCallback(
+    (id: string, patch: Partial<Paper>) => {
+      pending.current = { ...pending.current, ...patch };
+      debouncedFlush(id);
+    },
+    [debouncedFlush],
   );
+
+  // A tab closed or backgrounded mid-sentence should not lose it.
+  React.useEffect(() => {
+    if (!paperId) return;
+    const onHide = () => flush(paperId);
+    window.addEventListener("visibilitychange", onHide);
+    return () => {
+      window.removeEventListener("visibilitychange", onHide);
+      flush(paperId);
+    };
+  }, [paperId, flush]);
 
   if (!paper) {
     return (
@@ -107,9 +133,18 @@ export function PapersView({
       setNote("Couldn't draft this one — check your API key, or add more source material.");
       return;
     }
+    setReplaced(draft);
     setDraft(out);
     setEditing(false);
     await db.papers.update(paper.id, { content: out, updatedAt: Date.now() });
+  };
+
+  const undoDraft = async () => {
+    if (replaced === null) return;
+    setDraft(replaced);
+    setEditing(true);
+    await db.papers.update(paper.id, { content: replaced, updatedAt: Date.now() });
+    setReplaced(null);
   };
 
   const exportMarkdown = () => {
@@ -161,10 +196,25 @@ export function PapersView({
           {busy ? <span className="think-orb" aria-hidden /> : <Sparkles size={13} />}
           Draft it
         </Button>
+        {replaced !== null && (
+          <Button size="sm" variant="ghost" onClick={undoDraft}>
+            <Undo2 size={13} />
+            Undo draft
+          </Button>
+        )}
         <Button size="sm" variant="ghost" onClick={exportMarkdown}>
           <Download size={13} />
         </Button>
-        <Button size="sm" variant="secondary" onClick={() => window.print()}>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            // Print the document, never the source. Leaving edit mode first is
+            // the whole fix; the stylesheet covers a stray Cmd+P as well.
+            setEditing(false);
+            requestAnimationFrame(() => window.print());
+          }}
+        >
           <Printer size={13} />
           Print / PDF
         </Button>

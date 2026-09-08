@@ -97,6 +97,8 @@ export function useStream(onFinish?: (m: Message) => void) {
       modelId: string;
       history: Message[];
       systemPrompt?: string;
+      /** False while comparing: the column writes, the user chooses. */
+      advanceLeaf?: boolean;
     }) => {
       const model = getModel(opts.modelId);
       const settings = useSettings.getState();
@@ -239,15 +241,17 @@ export function useStream(onFinish?: (m: Message) => void) {
       // An errored turn with no text is not worth keeping as a message; the
       // error is surfaced inline instead, where retry lives.
       if (finalText || reasoningRef.current || !error) {
-        await addMessage(saved);
-        const conv = await db.conversations.get(opts.conversationId);
-        if (conv) {
-          await db.conversations.update(opts.conversationId, {
-            inputTokens: conv.inputTokens + usage.inputTokens,
-            outputTokens: conv.outputTokens + usage.outputTokens,
-            costUsd: conv.costUsd + usage.costUsd,
+        await addMessage(saved, opts.advanceLeaf ?? true);
+        // Read-modify-write loses two of three concurrent comparison columns,
+        // and the number it loses them from is the one a user might act on.
+        await db.conversations
+          .where("id")
+          .equals(opts.conversationId)
+          .modify((conv) => {
+            conv.inputTokens += usage.inputTokens;
+            conv.outputTokens += usage.outputTokens;
+            conv.costUsd += usage.costUsd;
           });
-        }
         finishRef.current?.(saved);
       }
 

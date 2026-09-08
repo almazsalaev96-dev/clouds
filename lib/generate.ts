@@ -1,7 +1,7 @@
 "use client";
 
 import { getModel } from "./models";
-import { useSettings, paramsFor } from "./store";
+import { useSettings } from "./store";
 import type { ProviderId } from "./types";
 
 /**
@@ -28,10 +28,13 @@ export async function complete(
         modelId,
         messages: [{ role: "user", content: [{ type: "text", text: prompt }] }],
         systemPrompt: opts.system,
+        // Explicit and self-contained. These calls want a complete, parseable
+        // answer, not the sampling settings someone left on the chat surface.
         params: {
-          ...paramsFor(modelId),
           maxTokens: opts.maxTokens ?? 8192,
           temperature: opts.temperature ?? 0.4,
+          topP: 1,
+          reasoningEffort: undefined,
         },
         clientKey: settings.keys[provider] || undefined,
       }),

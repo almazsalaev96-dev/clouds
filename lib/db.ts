@@ -55,10 +55,29 @@ export async function createConversation(modelId = DEFAULT_MODEL_ID): Promise<Co
   return c;
 }
 
-export async function addMessage(m: Omit<Message, "id" | "createdAt"> & Partial<Pick<Message, "id" | "createdAt">>) {
-  const msg: Message = { id: m.id ?? uid(), createdAt: m.createdAt ?? Date.now(), ...m } as Message;
-  await db.messages.add(msg);
-  await db.conversations.update(msg.conversationId, { leafId: msg.id, updatedAt: Date.now() });
+export async function addMessage(
+  m: Omit<Message, "id" | "createdAt"> & Partial<Pick<Message, "id" | "createdAt">>,
+  /**
+   * Whether this message becomes the conversation's current answer.
+   *
+   * Comparison runs three columns against one parent, and if each claims the
+   * leaf on completion then whichever model happened to finish last silently
+   * becomes the answer — including when the user pressed Cancel. Choosing is
+   * the point of comparing, so a compared answer is written without claiming
+   * anything, and "Keep this one" moves the pointer.
+   */
+  advanceLeaf = true,
+) {
+  // Spread first so a caller passing an explicit undefined id cannot overwrite
+  // the generated one.
+  const msg: Message = { ...m, id: m.id ?? uid(), createdAt: m.createdAt ?? Date.now() } as Message;
+  await db.transaction("rw", [db.messages, db.conversations], async () => {
+    await db.messages.add(msg);
+    await db.conversations.update(msg.conversationId, {
+      ...(advanceLeaf ? { leafId: msg.id } : {}),
+      updatedAt: Date.now(),
+    });
+  });
   return msg;
 }
 
