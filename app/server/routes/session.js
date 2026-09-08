@@ -129,16 +129,16 @@ async function runTurn({ stream, started, course, item, sessionId, text, intent,
   // 1b — a request for cards is not a question being worked, so the gate and the
   // ladder have nothing to withhold. It is served here and what it makes is attached
   // to the turn, because the chat is where things are made, not a link to elsewhere.
-  if (!item && wantsCards(text)) {
-    await serveCards({ stream, started, course, sessionId, text, intent, history, material })
+  if (asksFor(text, item, wantsCards)) {
+    await serveCards({ stream, started, course, item, sessionId, text, intent, history, material })
     return
   }
 
   // 1c — and a request for a question is served the same way: the question arrives in
   // the thread, and the thread is then on it, so the next turn goes through the gate
   // and the ladder exactly as an item turn should.
-  if (!item && wantsQuestion(text)) {
-    await serveQuestion({ stream, started, course, sessionId, text, intent })
+  if (asksFor(text, item, wantsQuestion)) {
+    await serveQuestion({ stream, started, course, item, sessionId, text, intent })
     return
   }
 
@@ -298,6 +298,22 @@ async function runTurn({ stream, started, course, item, sessionId, text, intent,
   })
 }
 
+/**
+ * Is this turn a request for something to be made, rather than work on the question?
+ *
+ * With no question in front of them a student who mentions cards wants cards. With
+ * one, the bar is higher: an attempt is what the thread is for, and swallowing an
+ * answer because it happened to contain the word "card" would cost the student the
+ * work they just did. An exam answer is long; a request is short and says so.
+ */
+const ASK_WORDS = 25
+function asksFor(text, item, wants) {
+  if (!wants(text)) return false
+  if (!item) return true
+  const words = String(text ?? '').trim().split(/\s+/).filter(Boolean).length
+  return words <= ASK_WORDS
+}
+
 /* --------------------------------------------------------------------- cards */
 
 /** Nobody says "flashcards" except to ask for some. */
@@ -329,7 +345,11 @@ export function topicAsked(text) {
   if (!on) return ''
   const topic = on[1].replace(/^(?:the|my|our)\s+/i, '').trim()
   // "on the topic I am weakest on" names no topic; it asks the ranking to choose.
-  return /\b(?:topic|thing|stuff|anything|something)\b/i.test(topic) ? '' : topic
+  // "on this", "on the topic I am weakest on" — a pronoun and a placeholder both
+  // name no topic; they ask whatever is in front of the student to be used instead.
+  return /^(?:this|that|it|here|them|these|those)$/i.test(topic)
+    || /\b(?:topic|thing|stuff|anything|something)\b/i.test(topic)
+    ? '' : topic
 }
 
 /**
@@ -366,7 +386,7 @@ function countAsked(text) {
  * same deck rather than a sentence about one. Nothing is scheduled: a deck is a draft
  * until the student keeps it, and keeping it is `POST /api/cards/bulk`.
  */
-async function serveCards({ stream, started, course, sessionId, text, intent, history, material: added = [] }) {
+async function serveCards({ stream, started, course, item, sessionId, text, intent, history, material: added = [] }) {
   // A deck is written from the student's own words, so the same policy as the tutor's
   // applies: personal data, and never DeepSeek (§08.8).
   const route = pick('generate', TUTOR_POLICY)
@@ -388,9 +408,12 @@ async function serveCards({ stream, started, course, sessionId, text, intent, hi
         // With no topic named and nothing said yet, the ranking chooses: a first deck
         // lands on the point the next hour is best spent on rather than on the whole
         // syllabus at once.
-        // A student who added their own notes has already said what the deck is
-        // about, so the ranking only picks the topic when the thread is otherwise bare.
-        topic: topicAsked(text) || (history.length || added.length ? '' : weakestPoint(course, packed)),
+        // Precedence: the topic they named, then the question they are sitting on,
+        // then — only on a bare thread — the point the ranking puts first. A student
+        // who added their own notes has already said what the deck is about.
+        topic: topicAsked(text)
+          || (item?.syllabus_point || '')
+          || (history.length || added.length ? '' : weakestPoint(course, packed)),
         // The request is part of the conversation, so a first message can still make
         // a deck: without it the transcript would be empty on turn one.
         transcript: [
@@ -517,7 +540,7 @@ export function wantsQuestion(text) {
  * turn: the question is attached to the Turn as an artefact and the thread is left
  * sitting on that item, so the student's attempt goes through the full loop.
  */
-async function serveQuestion({ stream, started, course, sessionId, text, intent }) {
+async function serveQuestion({ stream, started, course, item, sessionId, text, intent }) {
   const handback = 'Write your answer here and I will mark it against the scheme'
   stream.send('start', {
     sessionId, rung: 0, gate: gateView({ open: true, reason: 'setting' }),
@@ -527,20 +550,26 @@ async function serveQuestion({ stream, started, course, sessionId, text, intent 
   let choice = null
   let asked = ''
   let missed = false
+  let exhausted = null
   if (course) {
-    asked = topicAsked(text)
+    // The question they are on names the topic when they did not: "another question"
+    // means another on this, not another on anything.
+    asked = topicAsked(text) || item?.syllabus_point || ''
     const named = asked ? pointsNamedBy(pointsWithState(course), asked) : []
     for (const point of named) {
-      choice = safeNextItem(course, { point: point.code })
+      choice = safeNextItem(course, { point: point.code, exclude: item ? [item.id] : [] })
       if (choice) break
     }
     if (!choice) {
       missed = !!asked && named.length === 0
-      choice = safeNextItem(course, {})
+      // Named a point that exists but has nothing left to set: say that, rather than
+      // silently handing over a question on something else.
+      if (named.length) exhausted = `${named[0].code} ${named[0].title}`
+      choice = safeNextItem(course, { exclude: item ? [item.id] : [] })
     }
   }
 
-  const message = questionMessage({ course, choice, asked, missed, handback })
+  const message = questionMessage({ course, choice, asked, missed, exhausted, handback })
   for (const chunk of chunksOf(message)) stream.send('delta', { text: chunk })
 
   const id = persistTurn({
@@ -591,7 +620,7 @@ function safeNextItem(course, opts) {
 }
 
 /** One sentence naming the question, why it was chosen, and what to do with it. */
-function questionMessage({ course, choice, asked, missed, handback }) {
+function questionMessage({ course, choice, asked, missed, exhausted, handback }) {
   if (!course) {
     return 'Questions come from a course, and this thread is not on one yet. Open a course from the sidebar, then ask again.'
   }
@@ -604,7 +633,9 @@ function questionMessage({ course, choice, asked, missed, handback }) {
   // and nothing else; saying "paper 2" twice in one sentence reads as a stutter.
   const lead = missed
     ? `Nothing on this course is called "${asked}", so this is on ${point} instead.`
-    : `${point}.`
+    : exhausted
+      ? `That is every question this pack has on ${exhausted}, so this one is on ${point}.`
+      : `${point}.`
   const why = str(choice.reason)
   return [
     `${lead}${why ? ` ${why}` : ''}`,
