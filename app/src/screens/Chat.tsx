@@ -46,7 +46,7 @@ interface ChatProps {
 export function Chat({ courseId, conversationId }: ChatProps) {
   const app = useStore()
   const showFooter = useTechnicalFooter()
-  const [sessionId] = useState(() => conversationId ?? app.sessionId ?? newSessionId())
+  const [sessionId, setSessionId] = useState(() => conversationId ?? app.sessionId ?? newSessionId())
   const [draft, setDraft] = useState('')
   const [intent, setIntent] = useState<Intent>('learn')
   const [artefacts, setArtefacts] = useState<Record<string, Artefact[]>>({})
@@ -82,6 +82,21 @@ export function Chat({ courseId, conversationId }: ChatProps) {
   // One conversation id, kept, so the thread survives a reload and can be reopened
   // from the list beside it.
   useEffect(() => { if (app.sessionId !== sessionId) setSession(sessionId) }, [app.sessionId, sessionId])
+
+  // "New chat" clears the stored id. A thread already on screen has to notice and
+  // start over — without this the button did nothing from inside the very thread it
+  // is there to leave.
+  useEffect(() => {
+    if (conversationId || app.sessionId !== null) return
+    setSessionId(newSessionId())
+    setTurns([])
+    setArtefacts({})
+    setAnswering(null)
+    setAdded([])
+    setAddProblem(null)
+    setDraft('')
+    setResumed(true)
+  }, [app.sessionId, conversationId, setTurns])
 
   useEffect(() => {
     if (resumed) return

@@ -7,8 +7,9 @@
   color: var(--ink-3); font-weight: 500;
 }
 .recents__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.recents__row { position: relative; display: flex; align-items: center; min-width: 0; }
 .recents__link {
-  display: block;
+  display: block; flex: 1; min-width: 0;
   padding: var(--s2) var(--s4);
   color: var(--ink-2); text-decoration: none;
   font-size: var(--t-ui);
@@ -20,3 +21,51 @@
   background: var(--paper-sunk); color: var(--ink); border-left-color: var(--accent);
 }
 .recents__link:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* The two acts sit over the end of the row and appear on hover, so a sidebar of
+   threads is a list of threads and not a list of buttons. Keyboard users get them
+   through focus-within, which is why they are never display:none. */
+.recents__acts {
+  position: absolute; right: var(--s2); display: flex; gap: var(--s1);
+  opacity: 0; pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--paper-sunk) 18%);
+  padding-left: var(--s5);
+}
+.recents__acts[data-open='yes'] { opacity: 1; pointer-events: auto; }
+.recents__row:focus-within .recents__acts { opacity: 1; pointer-events: auto; }
+.recents__act {
+  font: inherit; font-size: var(--t-xs);
+  padding: 2px var(--s2); border-radius: var(--r-sm, 4px);
+  border: 1px solid var(--line); background: var(--paper);
+  color: var(--ink-3); cursor: pointer;
+}
+.recents__act:hover { color: var(--ink); border-color: var(--accent-line); }
+.recents__act--danger:hover { color: var(--bad); border-color: var(--bad); }
+.recents__act:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.recents__rename {
+  flex: 1; min-width: 0; font: inherit; font-size: var(--t-ui);
+  margin: 0 var(--s3); padding: var(--s1) var(--s2);
+  border: 1px solid var(--accent-line); border-radius: var(--r-sm, 4px);
+  background: var(--paper); color: var(--ink);
+}
+
+.recents__row--confirm {
+  flex-direction: column; align-items: flex-start; gap: var(--s1);
+  padding: var(--s2) var(--s4);
+  background: var(--paper-sunk);
+}
+.recents__confirm-text { font-size: var(--t-sm); color: var(--ink-2); }
+.recents__confirm-acts { display: flex; gap: var(--s2); }
+.recents__confirm-yes {
+  font: inherit; font-size: var(--t-xs); padding: 2px var(--s2);
+  border-radius: var(--r-sm, 4px); border: 1px solid var(--bad);
+  background: var(--bad); color: var(--paper-raised); cursor: pointer;
+}
+.recents__confirm-yes:disabled { opacity: 0.6; cursor: default; }
+.recents__confirm-no {
+  font: inherit; font-size: var(--t-xs); padding: 2px var(--s2);
+  border-radius: var(--r-sm, 4px); border: 1px solid var(--line-strong);
+  background: var(--paper); color: var(--ink-2); cursor: pointer;
+}
+.recents__problem { margin: var(--s2) var(--s4) 0; font-size: var(--t-sm); color: var(--bad); }

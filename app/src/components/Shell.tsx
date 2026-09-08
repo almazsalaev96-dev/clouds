@@ -332,7 +332,14 @@ export function Shell({ path, courses, course, topBar, children, side, sideLabel
             })}
           </ul>
 
-          <Recents currentId={conversationOf(path) ?? sessionId} />
+          <Recents
+            currentId={conversationOf(path) ?? sessionId}
+            onDeleted={() => {
+              // The thread they were reading is gone, so the screen cannot stay on it.
+              setSession(null)
+              window.location.hash = '#/'
+            }}
+          />
 
           <button type="button" className="shell__nav-commands" onClick={() => setPaletteOpen(true)}>
             Commands
