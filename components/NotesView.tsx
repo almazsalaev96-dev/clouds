@@ -12,6 +12,7 @@ import { debounce } from "@/lib/utils";
 import { useAutoGrow } from "@/lib/hooks/useAutoGrow";
 import { Markdown } from "@/components/chat/Markdown";
 import { Button } from "@/components/ui/primitives";
+import { DetailBar, SectionIndex } from "@/components/SectionIndex";
 
 /**
  * A note is markdown, edited in place. There is no rich-text layer, no toolbar
@@ -22,14 +23,25 @@ import { Button } from "@/components/ui/primitives";
 export function NotesView({
   noteId,
   configured,
+  onSelect,
+  onNew,
+  onBack,
   onOpenDeck,
   onOpenPaper,
 }: {
   noteId: string | null;
   configured: Record<string, boolean>;
+  onSelect: (id: string) => void;
+  onNew: () => void;
+  onBack: () => void;
   onOpenDeck: (id: string) => void;
   onOpenPaper: (id: string) => void;
 }) {
+  const notes = useLiveQuery(
+    () => db.notes.orderBy("updatedAt").reverse().toArray(),
+    [],
+    [] as Note[],
+  );
   const note = useLiveQuery(() => (noteId ? db.notes.get(noteId) : undefined), [noteId]);
   const [preview, setPreview] = React.useState(false);
   const [draft, setDraft] = React.useState("");
@@ -110,9 +122,21 @@ export function NotesView({
 
   if (!note) {
     return (
-      <div className="flex flex-1 items-center justify-center px-4">
-        <p className="text-sm text-tertiary">Pick a note, or start a new one.</p>
-      </div>
+      <SectionIndex
+        title="Notes"
+        newLabel="New note"
+        emptyTitle="Nothing written down yet."
+        emptyHint="Keep an answer from a chat, or start from a blank page. Notes are markdown, and they feed the flashcards and papers."
+        items={(notes ?? []).map((n) => ({
+          id: n.id,
+          title: n.title || "Untitled note",
+          preview: n.content.replace(/^#.*$/m, "").replace(/\s+/g, " ").trim().slice(0, 120),
+          meta: new Date(n.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+        }))}
+        onOpen={onSelect}
+        onNew={onNew}
+        onDelete={(id) => void db.notes.delete(id)}
+      />
     );
   }
 
@@ -120,7 +144,7 @@ export function NotesView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="mx-auto flex w-full max-w-[var(--measure)] items-center gap-1 px-4 pt-3">
+      <DetailBar onBack={onBack} backLabel="All notes">
         <span className="mr-auto text-xs text-tertiary tnum">
           {words} word{words === 1 ? "" : "s"}
         </span>
@@ -139,7 +163,7 @@ export function NotesView({
         <Button size="sm" variant="ghost" onClick={exportMarkdown}>
           <Download size={13} />
         </Button>
-      </div>
+      </DetailBar>
 
       {result && (
         <div className="mx-auto mt-2 w-full max-w-[var(--measure)] px-4">

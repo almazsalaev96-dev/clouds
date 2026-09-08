@@ -83,7 +83,7 @@ for (const theme of ["light", "dark"]) {
   page.on("pageerror", (e) => console.log("PAGEERROR:", e.message));
   await page.goto(URL, { waitUntil: "networkidle" });
   await page.evaluate((t) => {
-    localStorage.setItem("clouds.settings", JSON.stringify({ state: { theme: t, density: "comfortable", modelId: "claude-sonnet-4-5", section: "notes", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: { anthropic: "sk-ant-demo" }, params: {}, favorites: [], recentModels: [], systemPrompt: "" }, version: 1 }));
+    localStorage.setItem("clouds.settings", JSON.stringify({ state: { theme: t, density: "comfortable", modelId: "claude-sonnet-4-5", section: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: { anthropic: "sk-ant-demo" }, params: {}, favorites: [], recentModels: [], systemPrompt: "" }, version: 1 }));
   }, theme);
 
   await page.evaluate(async ({ note, paper, cards }) => {
@@ -120,7 +120,10 @@ for (const theme of ["light", "dark"]) {
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(1200);
 
-  // Notes
+  // Notes index, then a note.
+  await page.getByRole("button", { name: "Notes", exact: true }).click();
+  await page.waitForTimeout(900);
+  await page.screenshot({ path: `${OUT}/notes-index-${theme}.png` });
   await page.getByRole("button", { name: /Debouncing user input/ }).first().click();
   await page.waitForTimeout(900);
   await page.screenshot({ path: `${OUT}/notes-${theme}.png` });
@@ -132,8 +135,9 @@ for (const theme of ["light", "dark"]) {
   }
 
   // Cards
-  await page.keyboard.press("Control+3");
-  await page.waitForTimeout(700);
+  await page.getByRole("button", { name: /^Cards/ }).click();
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: `${OUT}/cards-index-${theme}.png` });
   await page.getByRole("button", { name: /Debouncing user input/ }).first().click();
   await page.waitForTimeout(800);
   await page.keyboard.press("Space");
@@ -141,8 +145,8 @@ for (const theme of ["light", "dark"]) {
   await page.screenshot({ path: `${OUT}/cards-${theme}.png` });
 
   // Papers
-  await page.keyboard.press("Control+4");
-  await page.waitForTimeout(700);
+  await page.getByRole("button", { name: "Papers", exact: true }).click();
+  await page.waitForTimeout(800);
   await page.getByRole("button", { name: /Debouncing user input/ }).first().click();
   await page.waitForTimeout(1000);
   await page.screenshot({ path: `${OUT}/paper-${theme}.png` });

@@ -3,14 +3,27 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Check, List, Plus, RotateCcw, Trash2, X } from "lucide-react";
-import type { Card, Grade } from "@/lib/types";
-import { db } from "@/lib/db";
+import type { Card, Deck, Grade } from "@/lib/types";
+import { db, deleteDeck } from "@/lib/db";
 import { GRADES, dueCount, formatDue, newCard, orderForReview, schedule } from "@/lib/study";
 import { cn } from "@/lib/utils";
 import { Markdown } from "@/components/chat/Markdown";
 import { Button, IconButton } from "@/components/ui/primitives";
+import { DetailBar, SectionIndex } from "@/components/SectionIndex";
 
-export function CardsView({ deckId }: { deckId: string | null }) {
+export function CardsView({
+  deckId,
+  onSelect,
+  onNew,
+  onBack,
+}: {
+  deckId: string | null;
+  onSelect: (id: string) => void;
+  onNew: () => void;
+  onBack: () => void;
+}) {
+  const decks = useLiveQuery(() => db.decks.orderBy("createdAt").reverse().toArray(), [], [] as Deck[]);
+  const allCards = useLiveQuery(() => db.cards.toArray(), [], [] as Card[]);
   const deck = useLiveQuery(() => (deckId ? db.decks.get(deckId) : undefined), [deckId]);
   const cards = useLiveQuery(
     () => (deckId ? db.cards.where("deckId").equals(deckId).toArray() : []),
@@ -23,11 +36,26 @@ export function CardsView({ deckId }: { deckId: string | null }) {
 
   if (!deck) {
     return (
-      <div className="flex flex-1 items-center justify-center px-4">
-        <p className="text-sm text-tertiary">
-          Pick a deck, or make one from a note or a conversation.
-        </p>
-      </div>
+      <SectionIndex
+        title="Cards"
+        newLabel="New deck"
+        emptyTitle="No decks yet."
+        emptyHint="Turn a note or a conversation into a deck, then review it on a spaced schedule — the interval stretches every time you get one right."
+        items={(decks ?? []).map((d) => {
+          const own = (allCards ?? []).filter((c) => c.deckId === d.id);
+          const due = dueCount(own);
+          return {
+            id: d.id,
+            title: d.title || "Untitled deck",
+            meta: `${own.length} card${own.length === 1 ? "" : "s"}`,
+            preview: own[0]?.front,
+            badge: due > 0 ? String(due) : undefined,
+          };
+        })}
+        onOpen={onSelect}
+        onNew={onNew}
+        onDelete={(id) => void deleteDeck(id)}
+      />
     );
   }
 
@@ -35,7 +63,7 @@ export function CardsView({ deckId }: { deckId: string | null }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="mx-auto flex w-full max-w-[var(--measure)] items-center gap-2 px-4 pt-3">
+      <DetailBar onBack={onBack} backLabel="All decks">
         <h1 className="mr-auto truncate text-sm font-medium text-primary">{deck.title}</h1>
         <span className="text-xs text-tertiary tnum">
           {(cards ?? []).length} card{(cards ?? []).length === 1 ? "" : "s"}
@@ -45,7 +73,7 @@ export function CardsView({ deckId }: { deckId: string | null }) {
           {mode === "review" ? <List size={13} /> : <RotateCcw size={13} />}
           {mode === "review" ? "All cards" : "Review"}
         </Button>
-      </div>
+      </DetailBar>
 
       {mode === "review" ? (
         <Review cards={cards ?? []} />

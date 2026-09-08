@@ -2,14 +2,15 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Download, Eye, Loader2, Pencil, Printer, Sparkles } from "lucide-react";
+import { ChevronLeft, Download, Eye, Loader2, Pencil, Printer, Sparkles } from "lucide-react";
 import type { Paper } from "@/lib/types";
 import { db } from "@/lib/db";
 import { cheapestAvailable, generatePaper } from "@/lib/generate";
 import { cn, debounce } from "@/lib/utils";
 import { useAutoGrow } from "@/lib/hooks/useAutoGrow";
 import { Markdown } from "@/components/chat/Markdown";
-import { Button } from "@/components/ui/primitives";
+import { Button, IconButton } from "@/components/ui/primitives";
+import { SectionIndex } from "@/components/SectionIndex";
 
 const FORMATS: { id: Paper["format"]; label: string; hint: string }[] = [
   { id: "report", label: "Report", hint: "Summary, headed sections, conclusion" },
@@ -28,10 +29,21 @@ const FORMATS: { id: Paper["format"]; label: string; hint: string }[] = [
 export function PapersView({
   paperId,
   configured,
+  onSelect,
+  onNew,
+  onBack,
 }: {
   paperId: string | null;
   configured: Record<string, boolean>;
+  onSelect: (id: string) => void;
+  onNew: () => void;
+  onBack: () => void;
 }) {
+  const papers = useLiveQuery(
+    () => db.papers.orderBy("updatedAt").reverse().toArray(),
+    [],
+    [] as Paper[],
+  );
   const paper = useLiveQuery(() => (paperId ? db.papers.get(paperId) : undefined), [paperId]);
   const [draft, setDraft] = React.useState("");
   const [editing, setEditing] = React.useState(true);
@@ -62,11 +74,21 @@ export function PapersView({
 
   if (!paper) {
     return (
-      <div className="flex flex-1 items-center justify-center px-4">
-        <p className="text-sm text-tertiary">
-          Pick a paper, or make one from a note.
-        </p>
-      </div>
+      <SectionIndex
+        title="Papers"
+        newLabel="New paper"
+        emptyTitle="No papers yet."
+        emptyHint="A paper is the printable end of a note — pick a shape, let a model draft it from your material, then export it as a PDF."
+        items={(papers ?? []).map((p) => ({
+          id: p.id,
+          title: p.title || "Untitled paper",
+          preview: p.content.replace(/^#+\s*/gm, "").replace(/\s+/g, " ").trim().slice(0, 120),
+          meta: p.format,
+        }))}
+        onOpen={onSelect}
+        onNew={onNew}
+        onDelete={(id) => void db.papers.delete(id)}
+      />
     );
   }
 
@@ -110,6 +132,9 @@ export function PapersView({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="no-print mx-auto flex w-full max-w-[52rem] flex-wrap items-center gap-1 px-4 pt-3">
+        <IconButton label="All papers" keys={["Esc"]} onClick={onBack}>
+          <ChevronLeft size={16} />
+        </IconButton>
         <div className="mr-auto flex rounded-md border border-line-strong bg-canvas p-0.5">
           {FORMATS.map((f) => (
             <button

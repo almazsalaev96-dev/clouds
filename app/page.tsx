@@ -295,6 +295,16 @@ export default function Page() {
     closeDrawerOnMobile();
   }, [stream, closeDrawerOnMobile]);
 
+  const goToSection = React.useCallback(
+    (target: Section) => {
+      settings.setSection(target);
+      if (target === "notes") setNoteId(null);
+      if (target === "cards") setDeckId(null);
+      if (target === "papers") setPaperId(null);
+    },
+    [settings],
+  );
+
   const createInSection = React.useCallback(
     async (section: Section) => {
       closeDrawerOnMobile();
@@ -312,11 +322,12 @@ export default function Page() {
       if (section === "chat") {
         stream.stop();
         setActiveId(id);
+        settings.setSection("chat");
       } else if (section === "notes") setNoteId(id);
       else if (section === "cards") setDeckId(id);
       else setPaperId(id);
     },
-    [closeDrawerOnMobile, stream],
+    [closeDrawerOnMobile, stream, settings],
   );
 
   const [studyBusy, setStudyBusy] = React.useState(false);
@@ -393,9 +404,13 @@ export default function Page() {
     const onKey = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
       if (!mod) {
-        if (e.key === "Escape" && stream.phase !== "idle") {
-          stream.stop();
-        }
+        if (e.key !== "Escape") return;
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA") return;
+        if (settings.section === "notes" && noteId) setNoteId(null);
+        else if (settings.section === "cards" && deckId) setDeckId(null);
+        else if (settings.section === "papers" && paperId) setPaperId(null);
+        else if (stream.phase !== "idle") stream.stop();
         return;
       }
       switch (e.key.toLowerCase()) {
@@ -413,7 +428,7 @@ export default function Page() {
         case "4": {
           e.preventDefault();
           const sections = ["chat", "notes", "cards", "papers"] as const;
-          settings.setSection(sections[Number(e.key) - 1]);
+          goToSection(sections[Number(e.key) - 1]);
           break;
         }
         case "\\":
@@ -446,7 +461,7 @@ export default function Page() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [createInSection, path, settings, stream]);
+  }, [createInSection, goToSection, path, settings, stream, noteId, deckId, paperId]);
 
   const openKeys = React.useCallback(() => {
     setSettingsTab("keys");
@@ -465,9 +480,10 @@ export default function Page() {
       <ArtifactProvider value={artifactValue}>
       <div className="app-shell flex h-dvh overflow-hidden bg-canvas">
         <Sidebar
-          activeIds={{ chat: activeId, notes: noteId, cards: deckId, papers: paperId }}
-          onSelect={selectInSection}
-          onNew={createInSection}
+          activeChatId={activeId}
+          onSelectChat={(id) => selectInSection("chat", id)}
+          onNewChat={() => void createInSection("chat")}
+          onGoToSection={goToSection}
           onOpenSettings={openKeys}
         />
 
@@ -480,14 +496,15 @@ export default function Page() {
                     <PanelLeft size={16} />
                   </IconButton>
                 )}
-                <span className="ml-1 text-sm font-medium capitalize text-primary">
-                  {settings.section}
-                </span>
+
               </header>
               {settings.section === "notes" && (
                 <NotesView
                   noteId={noteId}
                   configured={configured}
+                  onSelect={setNoteId}
+                  onNew={() => void createInSection("notes")}
+                  onBack={() => setNoteId(null)}
                   onOpenDeck={(id) => {
                     setDeckId(id);
                     settings.setSection("cards");
@@ -498,9 +515,22 @@ export default function Page() {
                   }}
                 />
               )}
-              {settings.section === "cards" && <CardsView deckId={deckId} />}
+              {settings.section === "cards" && (
+                <CardsView
+                  deckId={deckId}
+                  onSelect={setDeckId}
+                  onNew={() => void createInSection("cards")}
+                  onBack={() => setDeckId(null)}
+                />
+              )}
               {settings.section === "papers" && (
-                <PapersView paperId={paperId} configured={configured} />
+                <PapersView
+                  paperId={paperId}
+                  configured={configured}
+                  onSelect={setPaperId}
+                  onNew={() => void createInSection("papers")}
+                  onBack={() => setPaperId(null)}
+                />
               )}
             </>
           ) : (

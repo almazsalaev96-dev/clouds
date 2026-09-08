@@ -60,6 +60,11 @@ answer you chose. The other two are not discarded: they stay under `‹ 2/3 ›`
 copy left in the thread collapses to a one-line reference, so a 900-line answer stops
 burying the conversation that produced it.
 
+**Navigation** — the sidebar belongs to conversations: New chat, search, then the
+history. Notes, Cards and Papers sit above that as destinations, separated by a
+hairline, each opening as its own page with its own index in the main column. Taking
+the chat list away to show a note list would cost more than it buys.
+
 **Notes** — markdown documents, edited in place, searched by body as well as title.
 Keep any answer from a chat with one click, or the whole conversation. Titles derive
 themselves from the first heading, so nothing is ever called "Untitled" that says what
