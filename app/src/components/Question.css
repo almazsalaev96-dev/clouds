@@ -1,0 +1,57 @@
+/* A question set in the thread. It is bordered like the deck beside it, because both
+   are things the conversation made rather than things it said. */
+.question {
+  margin-top: var(--s4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--paper-raised);
+  overflow: hidden;
+}
+.question--answering { border-color: var(--accent-line); box-shadow: inset 3px 0 0 var(--accent); }
+
+.question__head {
+  display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap;
+  padding: var(--s3) var(--s4);
+  border-bottom: 1px solid var(--line);
+}
+.question__where { font-size: var(--t-xs); color: var(--ink-3); }
+
+.question__stimulus { border-bottom: 1px solid var(--line); }
+.question__stimulus-summary {
+  padding: var(--s2) var(--s4); cursor: pointer;
+  font-size: var(--t-sm); color: var(--ink-2);
+}
+.question__stimulus-summary:hover { color: var(--ink); }
+.question__stimulus-body {
+  padding: 0 var(--s4) var(--s3);
+  font-size: var(--t-sm); color: var(--ink-2); white-space: pre-wrap;
+  line-height: var(--lh-read);
+}
+
+.question__stem {
+  margin: 0; padding: var(--s4);
+  font-size: var(--t-lg); line-height: var(--lh-read); white-space: pre-wrap;
+}
+
+.question__actions {
+  display: flex; align-items: center; gap: var(--s3);
+  padding: var(--s3) var(--s4); border-top: 1px solid var(--line);
+  background: var(--paper-sunk);
+}
+.question__take {
+  font: inherit; font-size: var(--t-ui);
+  padding: var(--s2) var(--s4); border-radius: var(--r-md);
+  font-weight: 500;
+  border: 1px solid transparent; background: var(--accent); color: var(--paper-raised);
+  cursor: pointer;
+}
+.question__take:hover { background: var(--accent-ink); }
+.question__take:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.question__live { font-size: var(--t-xs); color: var(--accent); }
+.question__drop {
+  font: inherit; font-size: var(--t-sm);
+  padding: var(--s1) var(--s3); border-radius: var(--r-md);
+  border: 1px solid var(--line-strong); background: var(--paper); color: var(--ink-2);
+  cursor: pointer;
+}
+.question__drop:hover { color: var(--ink); border-color: var(--accent-line); }

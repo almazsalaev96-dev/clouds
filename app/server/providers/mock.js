@@ -1524,6 +1524,38 @@ function trimPhrase(text, limit = 70) {
 /** A short, quotable fragment of a marking point, for feedback prose. */
 const keyPhrase = (text) => trimPhrase(text, 52)
 
+/** A sentence starts upright. Acronyms keep their capitals. */
+const upperFirst = (text) => {
+  const t = String(text || '')
+  return /^[A-Z]{2,}/.test(t) ? t : t.charAt(0).toUpperCase() + t.slice(1)
+}
+
+/**
+ * What a belief actually claims — the predicate, not the whole sentence.
+ *
+ * "Break-even output is the output a business should aim to produce" shares its
+ * subject with every correct answer on the topic, so matching the sentence names the
+ * misconception at the students who have it right as well as the ones who have it
+ * wrong. What separates them is what they say break-even output *is*.
+ */
+function claimOf(text) {
+  const m = String(text || '').match(/^(.{3,80}?)\s+(?:is|are|means|refers to|equals)\s+(.+)$/i)
+  return (m ? m[2] : String(text || '')).replace(/[.\s]+$/, '').trim()
+}
+
+/**
+ * Is this misconception one the answer actually asserts?
+ *
+ * The bar is high on purpose. Telling a student who is right that they took a wrong
+ * turn costs more than missing one who is wrong: the first teaches them to distrust
+ * the feedback, and the second is caught by the next question.
+ */
+function misconceptionHeld(m, view) {
+  const claim = claimOf(m?.text)
+  if (!claim || contentCore(claim).length < 2) return false
+  return coverage(claim, view.set, view.norm) >= 0.6
+}
+
 const AO_RANK = ['AO1', 'AO2', 'AO3', 'AO4']
 
 /** The uncredited point worth naming: the objective losing most, higher AO on a tie. */
@@ -1634,17 +1666,19 @@ function tutorTurn(req, material, seedRng) {
   const ask = COMMAND_ASKS[command] || ''
   const target = missed[0] || points[0] || null
   const thread = material.indicative.find(c => coverage(c.text, view.set, view.norm) < 0.5) || material.indicative[0] || null
-  const mis = material.misconceptions.find(m => coverage(m.text, view.set, view.norm) >= 0.45) || null
+  const mis = material.misconceptions.find(m => misconceptionHeld(m, view)) || null
 
   const parts = []
   let handback = 'Write the next line.'
 
-  // (1) Task-level acknowledgement, only when something is actually right.
-  if (got.length) parts.push(`${got[0].id} is there: ${keyPhrase(got[0].text)}.`)
+  // (1) Task-level acknowledgement, only when something is actually right. The
+  // marking point is named by what it credits, never by its id: "K1" is the scheme's
+  // filing reference and means nothing to the student reading it.
+  if (got.length) parts.push(`${upperFirst(keyPhrase(got[0].text))} is there.`)
   else if (view.links && rung >= 2 && !mis) parts.push('You have a first causal step.')
 
-  // (2) One diagnosis, named where the Pack names it.
-  if (mis) parts.push(`The wrong turn is ${mis.id ? mis.id + ': ' : ''}${trimPhrase(mis.text)}.`)
+  // (2) One diagnosis, in the Pack's words but not under the Pack's label.
+  if (mis) parts.push(`The wrong turn is this: ${trimPhrase(mis.text)}.`)
 
   // (3) Exactly one move, sized to the rung.
   if (rung <= 1) {

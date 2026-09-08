@@ -45,6 +45,8 @@ export interface QuestionArtefact {
   paper?: string | null
   stimulus?: string | null
   syllabusPoint?: string | null
+  /** Why the ranking chose this question, in the ranking's own words. */
+  why?: string | null
 }
 
 export interface MarkArtefact {
@@ -153,6 +155,7 @@ export function readArtefact(value: unknown): Artefact | null {
       paper: text(source, 'paper'),
       stimulus: text(source, 'stimulus'),
       syllabusPoint: text(source, 'syllabusPoint') ?? text(source, 'syllabus_point'),
+      why: text(source, 'why'),
     }
   }
 

@@ -60,3 +60,17 @@
   .chat__column { padding: 0 var(--s4); }
   .chat__blank { padding-top: var(--s5); }
 }
+
+/* What the composer is answering. It is a strip rather than a card because the
+   question itself is already in the thread; this only says which one is live. */
+.chat__answering {
+  display: flex; align-items: baseline; gap: var(--s2);
+  margin: 0 0 var(--s2); font-size: var(--t-sm); color: var(--ink-2);
+}
+.chat__answering-label { font-size: var(--t-xs); color: var(--accent); flex: none; }
+.chat__answering-stem { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat__answering-drop {
+  flex: none; font: inherit; font-size: var(--t-xs); color: var(--ink-3);
+  background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline;
+}
+.chat__answering-drop:hover { color: var(--ink); }

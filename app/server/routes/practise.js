@@ -178,7 +178,7 @@ function reasonFor(point, options) {
  * The next item to answer: the highest-yield point that still has an item the
  * student has not just done. Returns the item, the point and the reason.
  */
-export function nextItemFor(course, { exclude = [], paper = null, maxTariff = null, sinceHours = 24 } = {}) {
+export function nextItemFor(course, { exclude = [], paper = null, point = null, maxTariff = null, sinceHours = 24 } = {}) {
   const ranked = rankedPoints(course)
   const recent = new Set(all(
     'SELECT item_id FROM attempts WHERE user_id = ? AND course_id = ? AND created_at > ?',
@@ -186,6 +186,9 @@ export function nextItemFor(course, { exclude = [], paper = null, maxTariff = nu
   const skip = new Set([...exclude, ...recent])
 
   for (const entry of ranked) {
+    // A named point narrows the ranking rather than replacing it: the reason line the
+    // student is given is still the ranking's own.
+    if (point && entry.point.code !== point) continue
     if (paper && entry.point.paper !== paper) continue
     const items = itemsForPoint(course, entry.point.code)
       .filter(i => !skip.has(i.id))

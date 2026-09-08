@@ -4,8 +4,9 @@ import { Composer } from '../components/Composer'
 import type { Intent } from '../components/Composer'
 import { TurnCard } from '../components/TurnCard'
 import { Deck } from '../components/Deck'
+import { Question } from '../components/Question'
 import { readArtefacts } from '../lib/artefacts'
-import type { Artefact } from '../lib/artefacts'
+import type { Artefact, QuestionArtefact } from '../lib/artefacts'
 import { setSession, useStore } from '../lib/state'
 import { newSessionId, readTurn, useSessionStream, useTechnicalFooter } from './Session'
 import type { UiTurn } from './Session'
@@ -40,6 +41,7 @@ export function Chat({ courseId, conversationId }: ChatProps) {
   const [draft, setDraft] = useState('')
   const [intent, setIntent] = useState<Intent>('learn')
   const [artefacts, setArtefacts] = useState<Record<string, Artefact[]>>({})
+  const [answering, setAnswering] = useState<Answering | null>(null)
   const [resumed, setResumed] = useState(false)
   const [pinnedNew, setPinnedNew] = useState(false)
 
@@ -47,6 +49,11 @@ export function Chat({ courseId, conversationId }: ChatProps) {
 
   const keepArtefacts = useCallback((turnId: string, made: Artefact[]) => {
     setArtefacts(previous => ({ ...previous, [turnId]: made }))
+    // A question the student asked for is a question they are now on: binding it here
+    // is what they meant, and it is what sends the next turn through the gate, the
+    // ladder and the mark scheme instead of into open chat.
+    const question = made.find((a): a is QuestionArtefact => a.kind === 'question')
+    if (question) setAnswering(takeUp(question))
   }, [])
 
   const {
@@ -75,6 +82,17 @@ export function Chat({ courseId, conversationId }: ChatProps) {
           .filter((t): t is StoredTurn => t !== null)
         setTurns(restored.map(t => t.turn))
         setArtefacts(Object.fromEntries(restored.filter(t => t.artefacts.length).map(t => [t.turn.id, t.artefacts])))
+        // A reopened thread is still on whatever question it was on.
+        const open = (data as { itemId?: unknown })?.itemId
+        const item = asRecord((data as { item?: unknown })?.item)
+        if (typeof open === 'string' && open && item) {
+          setAnswering({
+            id: open,
+            stem: typeof item.stem === 'string' ? item.stem : '',
+            commandWord: typeof item.commandWord === 'string' ? item.commandWord : null,
+            tariff: typeof item.tariff === 'number' ? item.tariff : null,
+          })
+        }
       })
       .catch(() => { /* nothing stored, or offline: this is a new thread */ })
       .finally(() => { if (live) setResumed(true) })
@@ -102,8 +120,8 @@ export function Chat({ courseId, conversationId }: ChatProps) {
     const text = draft.trim()
     if (!text || streaming) return
     setDraft('')
-    void send({ intent: chosen, text })
-  }, [draft, send, streaming])
+    void send({ intent: chosen, text, itemId: answering?.id ?? null })
+  }, [answering, draft, send, streaming])
 
   const empty = turns.length === 0 && !streaming
 
@@ -159,11 +177,23 @@ export function Chat({ courseId, conversationId }: ChatProps) {
                     ttftMs={showFooter ? turn.ttftMs : null}
                     citations={turn.citations}
                   />
-                  {(artefacts[turn.id] || []).map(artefact => (
-                    artefact.kind === 'flashcards'
-                      ? <Deck key={artefact.id} deck={artefact} courseId={course} />
-                      : null
-                  ))}
+                  {(artefacts[turn.id] || []).map(artefact => {
+                    if (artefact.kind === 'flashcards') {
+                      return <Deck key={artefact.id} deck={artefact} courseId={course} />
+                    }
+                    if (artefact.kind === 'question') {
+                      return (
+                        <Question
+                          key={artefact.id}
+                          question={artefact}
+                          answering={answering?.id === artefact.itemId}
+                          onAnswer={() => setAnswering(takeUp(artefact))}
+                          onDrop={() => setAnswering(null)}
+                        />
+                      )
+                    }
+                    return null
+                  })}
                 </li>
               ))}
             </ol>
@@ -186,6 +216,20 @@ export function Chat({ courseId, conversationId }: ChatProps) {
 
       <div className="chat__composer">
         <div className="chat__column">
+          {answering && (
+            <p className="chat__answering" role="status">
+              <span className="chat__answering-label mono">Answering</span>
+              <span className="chat__answering-stem">
+                {answering.commandWord ? `${answering.commandWord} — ` : ''}
+                {answering.stem.replace(/\s+/g, ' ').slice(0, 90)}
+                {answering.stem.length > 90 ? '…' : ''}
+                {answering.tariff ? ` [${answering.tariff}]` : ''}
+              </span>
+              <button type="button" className="chat__answering-drop" onClick={() => setAnswering(null)}>
+                Put it down
+              </button>
+            </p>
+          )}
           {!online && <p className="chat__offline" role="status">You are offline. The turn will send when you are back.</p>}
           {degraded && <p className="chat__degraded" role="status">Answered by the built-in model — add an API key for full marking.</p>}
           <Composer
@@ -210,6 +254,21 @@ interface StoredTurn {
   turn: UiTurn
   artefacts: Artefact[]
 }
+
+/** The question the composer is answering, as little of it as the strip needs. */
+interface Answering {
+  id: string
+  stem: string
+  commandWord: string | null
+  tariff: number | null
+}
+
+const takeUp = (q: QuestionArtefact): Answering => ({
+  id: q.itemId,
+  stem: q.stem,
+  commandWord: q.commandWord ?? null,
+  tariff: q.tariff ?? null,
+})
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : null

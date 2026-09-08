@@ -95,6 +95,19 @@ function topicNames(point, topic) {
 }
 
 /**
+ * The points a student named, or none.
+ *
+ * Shared with the routes: whatever finds the topic for a deck must find the same
+ * topic for a question, or the two would disagree about what "cash flow" means.
+ */
+export function pointsNamedBy(points, topic) {
+  const named = norm(topic)
+  if (!named) return []
+  const known = readPoints(points)
+  return known.filter((p) => topicNames(p, named.toLowerCase()))
+}
+
+/**
  * The points a deck may draw on. A topic the student named wins; with no topic the
  * conversation is read for the points it already talks about; with neither, the
  * whole course is on the table.

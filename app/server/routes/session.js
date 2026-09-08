@@ -18,8 +18,8 @@ import { pick } from '../providers/router.js'
 import { evaluateGate } from '../engine/gate.js'
 import { RUNGS, entryRung, nextRung, rungBudget } from '../engine/ladder.js'
 import { vetTurn, handbackFor } from '../engine/orchestrator.js'
-import { makeCards } from '../engine/cardmaker.js'
-import { rankedPoints } from './practise.js'
+import { makeCards, pointsNamedBy } from '../engine/cardmaker.js'
+import { rankedPoints, nextItemFor } from './practise.js'
 import { parseScheme } from '../marking/scheme.js'
 import {
   USER, jsonOk, readBody, str, mustCourse, misconceptionsFor, safeJson, pointsWithState,
@@ -111,6 +111,14 @@ async function runTurn({ stream, started, course, item, sessionId, text, intent,
   // to the turn, because the chat is where things are made, not a link to elsewhere.
   if (!item && wantsCards(text)) {
     await serveCards({ stream, started, course, sessionId, text, intent, history })
+    return
+  }
+
+  // 1c — and a request for a question is served the same way: the question arrives in
+  // the thread, and the thread is then on it, so the next turn goes through the gate
+  // and the ladder exactly as an item turn should.
+  if (!item && wantsQuestion(text)) {
+    await serveQuestion({ stream, started, course, sessionId, text, intent })
     return
   }
 
@@ -455,6 +463,129 @@ function sourceOf(deck) {
   if (thread) return 'taken from what this thread has covered'
   return 'taken from this course'
 }
+
+/* ----------------------------------------------------------------- questions */
+
+/** "Give me a question", "ask me one", "another question" — a request to be set work. */
+const ASK_ME = /\b(?:ask|set|give)\s+me\b[^.?!]{0,40}\b(?:questions?|one|something|another)\b/i
+const QUESTION_NOUN = /\b(?:exam\s+)?questions?\b|\bpast[- ]paper\b|\bpracti[cs]e\b/i
+const QUESTION_VERB = /\b(?:give|set|ask|show|find|need|want|another|next|try|do)\b/i
+/** Talking about a question is not asking for one. */
+const ABOUT_A_QUESTION = /\b(?:i\s+have|about|answer(?:ing)?|regarding|on)\s+(?:a|my|this|the)\s+questions?\b/i
+
+/** Did this turn ask to be set a question? */
+export function wantsQuestion(text) {
+  const said = String(text ?? '')
+  if (ABOUT_A_QUESTION.test(said)) return false
+  if (ASK_ME.test(said)) return true
+  return QUESTION_NOUN.test(said) && QUESTION_VERB.test(said)
+}
+
+/**
+ * A question, served in the thread.
+ *
+ * Nothing is withheld here either — being set a question is not being given a
+ * solution — so the gate and the ladder do not run. What they do run on is the next
+ * turn: the question is attached to the Turn as an artefact and the thread is left
+ * sitting on that item, so the student's attempt goes through the full loop.
+ */
+async function serveQuestion({ stream, started, course, sessionId, text, intent }) {
+  const handback = 'Write your answer here and I will mark it against the scheme'
+  stream.send('start', {
+    sessionId, rung: 0, gate: gateView({ open: true, reason: 'setting' }),
+    degraded: false, model: 'practise', handback, status: 'Choosing the question worth the most to you…',
+  })
+
+  let choice = null
+  let asked = ''
+  let missed = false
+  if (course) {
+    asked = topicAsked(text)
+    const named = asked ? pointsNamedBy(pointsWithState(course), asked) : []
+    for (const point of named) {
+      choice = safeNextItem(course, { point: point.code })
+      if (choice) break
+    }
+    if (!choice) {
+      missed = !!asked && named.length === 0
+      choice = safeNextItem(course, {})
+    }
+  }
+
+  const message = questionMessage({ course, choice, asked, missed, handback })
+  for (const chunk of chunksOf(message)) stream.send('delta', { text: chunk })
+
+  const id = persistTurn({
+    sessionId, courseId: course?.id, itemId: choice?.item?.id || null, body: message,
+    rung: 0, intent, handback, gate: gateView({ open: true, reason: 'setting' }),
+    lint: { ok: true, violations: [] }, model: 'practise', cost: 0, ttftMs: Date.now() - started,
+  })
+
+  const made = []
+  if (choice?.item) {
+    const q = choice.item
+    made.push(persistArtefact({
+      turnId: id, sessionId, courseId: course?.id,
+      artefact: {
+        kind: 'question',
+        itemId: q.id,
+        stem: q.stem,
+        commandWord: q.commandWord ?? q.command_word ?? null,
+        tariff: Number(q.tariff) || null,
+        paper: q.paper ?? null,
+        stimulus: q.stimulus ?? null,
+        syllabusPoint: q.syllabusPoint ?? q.syllabus_point ?? choice.point?.code ?? null,
+        why: str(choice.reason) || null,
+      },
+    }))
+  }
+
+  logEvent('question.set', {
+    sessionId, turnId: id, itemId: choice?.item?.id || null,
+    point: choice?.point?.code || null, asked: asked || null,
+  }, USER, course?.id || null)
+
+  stream.send('turn', {
+    id, rung: 0, handback, gate: gateView({ open: true, reason: 'setting' }),
+    degraded: false, model: 'practise', cost: 0, ttftMs: Date.now() - started,
+    seenSolution: false, retest: null, itemId: choice?.item?.id || null, artefacts: made,
+  })
+}
+
+/** The ranking can fail; a student asking for a question still gets an answer. */
+function safeNextItem(course, opts) {
+  try {
+    return nextItemFor(course, opts)
+  } catch (err) {
+    console.error('[question]', err)
+    return null
+  }
+}
+
+/** One sentence naming the question, why it was chosen, and what to do with it. */
+function questionMessage({ course, choice, asked, missed, handback }) {
+  if (!course) {
+    return 'Questions come from a course, and this thread is not on one yet. Open a course from the sidebar, then ask again.'
+  }
+  if (!choice?.item) {
+    return `There is no question left on this course that you have not just answered. Come back to it tomorrow, or name a topic and I will look there.`
+  }
+  const q = choice.item
+  const point = choice.point ? `${choice.point.code} ${choice.point.title}` : 'this course'
+  // The ranking's reason line already names the paper, so the lead names the point
+  // and nothing else; saying "paper 2" twice in one sentence reads as a stutter.
+  const lead = missed
+    ? `Nothing on this course is called "${asked}", so this is on ${point} instead.`
+    : `${point}.`
+  const why = str(choice.reason)
+  return [
+    `${lead}${why ? ` ${why}` : ''}`,
+    '',
+    `${handback}. It is worth ${q.tariff} mark${Number(q.tariff) === 1 ? '' : 's'}, so give it the ${Math.max(3, Math.round((Number(q.tariff) || 4) * 1.2))} minutes it is worth in the exam.`,
+  ].join('\n')
+}
+
+/* ------------------------------------------------------------------- material */
 
 /**
  * The course's own material, as the card maker reads it: what the pack records that
