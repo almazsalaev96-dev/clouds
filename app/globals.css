@@ -335,7 +335,6 @@
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
 }
 /* Every text field in this app lives in a container that indicates focus
    itself, so a second ring inside the first is noise, not information. */
@@ -372,8 +371,50 @@ textarea:focus-visible {
 }
 *:hover::-webkit-scrollbar-thumb { background: var(--border-strong); background-clip: content-box; }
 
+/* Present to assistive technology, absent from the page. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Numerals align in every counter, price and table. */
 .tnum { font-variant-numeric: tabular-nums; }
+
+/**
+ * Controls revealed by hover.
+ *
+ * Copy, edit, regenerate, keep-as-note, branch navigation, the code block's
+ * controls and the model favourite star all lived behind `:hover`, with no
+ * rule for pointers that cannot hover — so on a phone they were invisible and
+ * still tappable. A user either never found copy and edit, or hit one by
+ * accident. One utility, so the next one cannot forget.
+ */
+.reveal {
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-std);
+}
+.group:hover .reveal,
+.group:focus-within .reveal,
+.group\/code:hover .reveal,
+.group\/code:focus-within .reveal,
+.group\/chip:hover .reveal,
+.group\/grade:hover .reveal,
+.reveal:focus-visible,
+.reveal[data-visible="true"] {
+  opacity: 1;
+}
+@media (hover: none) {
+  .reveal {
+    opacity: 1;
+  }
+}
 
 /* ============================================================================
    THE FIELD

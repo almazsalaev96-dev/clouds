@@ -58,3 +58,20 @@ export function formatBytes(n: number): string {
   if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+/**
+ * Whether a keystroke came from inside an overlay.
+ *
+ * Global shortcut handlers do not know a dialog is open, and the consequences
+ * are not cosmetic: Space is the standard key for activating a focused button,
+ * so pressing Space on any control inside a dialog also revealed the flashcard
+ * behind it, and 1-4 silently graded and rescheduled a card the user could not
+ * see. Radix marks its layers, so the check is cheap and exact.
+ */
+export function inOverlay(e: Event): boolean {
+  const target = e.target as HTMLElement | null;
+  if (!target?.closest) return false;
+  return Boolean(
+    target.closest('[role="dialog"], [role="menu"], [role="listbox"], [data-radix-popper-content-wrapper]'),
+  );
+}

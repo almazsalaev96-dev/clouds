@@ -13,6 +13,7 @@ import { cheapestAvailable, complete, generateCards } from "@/lib/generate";
 import { newCard } from "@/lib/study";
 import { useSettings, useDrafts, type Section } from "@/lib/store";
 import { useStream } from "@/lib/hooks/useStream";
+import { inOverlay } from "@/lib/utils";
 import { Sidebar } from "@/components/Sidebar";
 import { NotesView, saveToNote } from "@/components/NotesView";
 import { CardsView } from "@/components/CardsView";
@@ -359,9 +360,12 @@ export default function Page() {
     URL.revokeObjectURL(url);
   }, [conversation, path]);
 
+  const [pendingDelete, setPendingDelete] = React.useState<string | null>(null);
+
   const removeConversation = React.useCallback(async () => {
     if (!activeId) return;
     await deleteConversation(activeId);
+    setPendingDelete(null);
     setActiveId(null);
   }, [activeId]);
 
@@ -378,6 +382,7 @@ export default function Page() {
   /* --- Shortcuts. Everything here is also in the palette. ---------------- */
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (inOverlay(e)) return;
       const mod = e.metaKey || e.ctrlKey;
       if (!mod) {
         const tagNow = (e.target as HTMLElement)?.tagName;
@@ -555,7 +560,10 @@ export default function Page() {
             onModelPickerOpenChange={setModelPickerOpen}
             onRename={(title) => activeId && db.conversations.update(activeId, { title })}
             onExport={exportConversation}
-            onDelete={removeConversation}
+            onDelete={() => setPendingDelete(activeId)}
+            confirmingDelete={pendingDelete !== null && pendingDelete === activeId}
+            onConfirmDelete={removeConversation}
+            onCancelDelete={() => setPendingDelete(null)}
             onTogglePin={() =>
               activeId && conversation && db.conversations.update(activeId, { pinned: !conversation.pinned })
             }
@@ -654,7 +662,7 @@ export default function Page() {
             selectConversation: setActiveId,
             setModel: settings.setModel,
             exportMarkdown: exportConversation,
-            deleteConversation: removeConversation,
+            deleteConversation: () => setPendingDelete(activeId),
           }}
         />
         )}

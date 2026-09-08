@@ -141,7 +141,7 @@ export function UserMessage({
         </div>
       )}
 
-      <div className="flex h-6 items-center gap-0.5 opacity-0 transition-opacity duration-[var(--dur-fast)] focus-within:opacity-100 group-hover:opacity-100">
+      <div className="flex h-6 items-center gap-0.5 reveal">
         {siblings.length > 1 && (
           <BranchNav siblings={siblings} index={index} onNavigate={onNavigate} />
         )}
@@ -241,7 +241,7 @@ export function AssistantMessage({
 
       {message.error && <InlineError message={message.error} onRetry={() => onRegenerate()} />}
 
-      <div className="mt-1.5 flex h-7 items-center gap-0.5 opacity-0 transition-opacity duration-[var(--dur-fast)] focus-within:opacity-100 group-hover:opacity-100">
+      <div className="mt-1.5 flex h-7 items-center gap-0.5 reveal">
         {siblings.length > 1 && <BranchNav siblings={siblings} index={index} onNavigate={onNavigate} />}
         <IconButton label={copied ? "Copied" : "Copy"} size={28} onClick={copy}>
           {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}

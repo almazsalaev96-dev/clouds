@@ -2,13 +2,13 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Check, ChevronRight, List, Plus, RotateCcw, Sparkles, Trash2, X } from "lucide-react";
+import { Check, ChevronRight, List, Plus, RotateCcw, Sparkles, Trash2, Undo2, X } from "lucide-react";
 import type { Card, Deck, Grade } from "@/lib/types";
 import { db, deleteDeck } from "@/lib/db";
 import { GRADES, dueCount, formatDue, newCard, orderForReview, schedule } from "@/lib/study";
-import { cn } from "@/lib/utils";
+import { cn, inOverlay } from "@/lib/utils";
 import { Markdown } from "@/components/chat/Markdown";
-import { Button, IconButton } from "@/components/ui/primitives";
+import { Button, IconButton, Kbd } from "@/components/ui/primitives";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
 
 /** Each grade's colour, used only as a 2px rule above its label. */
@@ -154,6 +154,8 @@ function Review({ cards }: { cards: Card[] }) {
    * short enough that the session can still close.
    */
   const relearning = React.useRef<{ id: string; readyAt: number }[]>([]);
+  /** Pre-grade snapshots, so a mis-keyed grade is one keystroke from undone. */
+  const undoStack = React.useRef<Card[]>([]);
 
   // The queue is recomputed from the database rather than held in state, so
   // grading a card removes it the moment it is no longer due — no stale copy,
@@ -184,6 +186,7 @@ function Review({ cards }: { cards: Card[] }) {
   const grade = React.useCallback(
     async (g: Grade) => {
       if (!card) return;
+      undoStack.current.push(card);
       await db.cards.put(schedule(card, g));
 
       relearning.current = relearning.current.filter((r) => r.id !== card.id);
@@ -197,9 +200,29 @@ function Review({ cards }: { cards: Card[] }) {
     [card, done],
   );
 
+  const undo = React.useCallback(async () => {
+    const previous = undoStack.current.pop();
+    if (!previous) return;
+    await db.cards.put(previous);
+    relearning.current = relearning.current.filter((r) => r.id !== previous.id);
+    setRevealed(true);
+    setDone((d) => Math.max(0, d - 1));
+  }, []);
+
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (inOverlay(e)) return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        void undo();
+        return;
+      }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "u") {
+        e.preventDefault();
+        void undo();
+        return;
+      }
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
 
@@ -218,7 +241,7 @@ function Review({ cards }: { cards: Card[] }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [revealed, grade]);
+  }, [revealed, grade, undo]);
 
   if (!cards.length) {
     return (
@@ -253,6 +276,16 @@ function Review({ cards }: { cards: Card[] }) {
         <div className="flex items-center gap-2 text-xs text-tertiary tnum">
           <span>{queue.length} left</span>
           {done > 0 && <span>{done} done</span>}
+          {undoStack.current.length > 0 && (
+            <button
+              onClick={undo}
+              className="ml-auto flex items-center gap-1 rounded-sm px-1 text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+            >
+              <Undo2 size={12} />
+              Undo
+              <Kbd keys={["U"]} />
+            </button>
+          )}
           {card.reps === 0 && <span className="text-accent">new</span>}
           {card.lapses > 2 && <span className="text-warning">leech</span>}
         </div>
@@ -260,14 +293,7 @@ function Review({ cards }: { cards: Card[] }) {
 
       <div className="flex min-h-0 flex-1 items-center overflow-y-auto">
         <div className="mx-auto w-full max-w-[var(--measure)] px-4 py-6">
-          <button
-            onClick={() => !revealed && setRevealed(true)}
-            disabled={revealed}
-            className={cn(
-              "w-full rounded-xl border border-line bg-surface p-6 text-left transition-colors duration-[var(--dur-fast)]",
-              !revealed && "cursor-pointer hover:border-line-strong",
-            )}
-          >
+          <div className="w-full rounded-xl border border-line bg-surface p-6">
             <div className="text-lg text-primary">
               <Markdown content={card.front} />
             </div>
@@ -277,9 +303,17 @@ function Review({ cards }: { cards: Card[] }) {
                 <Markdown content={card.back} />
               </div>
             ) : (
-              <p className="mt-5 text-xs text-tertiary">Space to reveal</p>
+              <Button
+                variant="secondary"
+                className="mt-5"
+                onClick={() => setRevealed(true)}
+                autoFocus
+              >
+                Show the answer
+                <Kbd keys={["Space"]} />
+              </Button>
             )}
-          </button>
+          </div>
 
           {revealed && (
             <div className="mt-4 grid grid-cols-4 gap-1.5 anim-rise">
@@ -424,7 +458,7 @@ function CardRow({
       <IconButton
         label="Delete card"
         size={26}
-        className="opacity-0 transition-opacity duration-[var(--dur-fast)] focus-visible:opacity-100 group-hover:opacity-100"
+        className="reveal"
         onClick={() => db.cards.delete(card.id)}
       >
         <Trash2 size={13} />

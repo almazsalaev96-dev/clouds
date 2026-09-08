@@ -50,6 +50,7 @@ export const SHORTCUT_GROUPS: { group: string; items: [string, string[]][] }[] =
     items: [
       ["Reveal the answer", ["Space"]],
       ["Again / Hard / Good / Easy", ["1", "2", "3", "4"]],
+      ["Undo the last grade", ["U"]],
     ],
   },
 ];

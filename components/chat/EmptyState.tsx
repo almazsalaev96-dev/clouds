@@ -92,7 +92,7 @@ export function EmptyState({
                 <span className="min-w-0 flex-1 truncate">{e}</span>
                 <ArrowRight
                   size={13}
-                  className="shrink-0 text-tertiary opacity-0 transition-opacity duration-[var(--dur-fast)] group-hover:opacity-100"
+                  className="shrink-0 text-tertiary reveal"
                 />
               </button>
             ))}

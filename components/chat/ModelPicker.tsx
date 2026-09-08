@@ -181,10 +181,8 @@ function ModelRow({
       <button
         onClick={onToggleFavorite}
         aria-label={favorite ? `Unstar ${m.name}` : `Star ${m.name}`}
-        className={cn(
-          "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-sm text-tertiary transition-opacity duration-[var(--dur-fast)] hover:bg-canvas hover:text-primary",
-          favorite ? "opacity-100" : "opacity-0 focus-visible:opacity-100 group-hover:opacity-100",
-        )}
+        data-visible={favorite || undefined}
+        className="reveal mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-sm text-tertiary hover:bg-canvas hover:text-primary"
       >
         <Star size={12} className={cn(favorite && "fill-current text-warning")} />
       </button>

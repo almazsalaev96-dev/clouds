@@ -89,7 +89,7 @@ export function Sidebar({
             >
               <Plus size={15} className="text-tertiary transition-colors duration-[var(--dur-fast)] group-hover:text-accent" />
               New chat
-              <span className="ml-auto opacity-0 transition-opacity duration-[var(--dur-fast)] group-hover:opacity-100">
+              <span className="ml-auto reveal">
                 <Kbd keys={["mod", "N"]} />
               </span>
             </button>
@@ -335,7 +335,7 @@ function Row({
             </span>
           )}
 
-          <span className="flex shrink-0 items-center opacity-0 transition-opacity duration-[var(--dur-fast)] focus-within:opacity-100 group-hover:opacity-100">
+          <span className="flex shrink-0 items-center reveal">
             {onTogglePin && (
               <Tooltip label={pinned ? "Unpin" : "Pin"}>
                 <button

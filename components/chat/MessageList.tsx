@@ -59,7 +59,20 @@ export function MessageList({
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [pinned, setPinned] = React.useState(true);
   const [unread, setUnread] = React.useState(false);
+  const [announcement, setAnnouncement] = React.useState("");
   const active = streaming !== "idle";
+
+  const wasActive = React.useRef(false);
+  React.useEffect(() => {
+    if (wasActive.current && !active) {
+      const last = messages[messages.length - 1];
+      if (last?.role === "assistant") {
+        const text = last.content.map((b) => (b.type === "text" ? b.text : "")).join("");
+        setAnnouncement(text.slice(0, 600));
+      }
+    }
+    wasActive.current = active;
+  }, [active, messages]);
 
   /**
    * Follow the stream while the user is at the bottom, and let go the moment
@@ -99,12 +112,13 @@ export function MessageList({
         ref={scrollRef}
         onScroll={onScroll}
         className="h-full overflow-y-auto"
-        // Announce completed messages, never individual tokens: a live region
-        // that fires per token is unusable with a screen reader.
-        role="log"
-        aria-live="polite"
-        aria-busy={active}
+        // Not a live region. This element's contents change on every animation
+        // frame of a stream and again wholesale when you switch conversations —
+        // announcing either would be unusable. The status node below announces
+        // one finished answer instead.
+        role="region"
         aria-label="Conversation"
+        aria-busy={active}
       >
         <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-4">
           {messages.map((m, i) => {
@@ -139,6 +153,8 @@ export function MessageList({
 
           {compare && <CompareGrid {...compare} />}
 
+          {/* Hidden from assistive tech while it churns; announced once, below,
+              when it is finished and worth hearing. */}
           {active && (
             <StreamingMessage
               text={streamText}
@@ -160,6 +176,12 @@ export function MessageList({
           )}
         </div>
       </div>
+
+      {/* One polite announcement per finished answer, and nothing while it
+          arrives. */}
+      <p className="sr-only" role="status" aria-live="polite">
+        {announcement}
+      </p>
 
       {/* The pill is the counterweight to releasing the scroll pin: the user is
           never stranded, and never dragged. */}

@@ -155,9 +155,10 @@ export function SectionIndex({
                           onClick={() => onTogglePin(item.id)}
                           aria-label={item.pinned ? `Unpin ${item.title}` : `Pin ${item.title}`}
                           aria-pressed={item.pinned}
+                          data-visible={item.pinned || undefined}
                           className={cn(
-                            "flex size-7 shrink-0 items-center justify-center rounded-md transition-opacity duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary focus-visible:opacity-100 group-hover:opacity-100",
-                            item.pinned ? "text-accent opacity-100" : "text-tertiary opacity-0",
+                            "reveal flex size-7 shrink-0 items-center justify-center rounded-md hover:bg-subtle hover:text-primary",
+                            item.pinned ? "text-accent" : "text-tertiary",
                           )}
                         >
                           {item.pinned ? <PinOff size={14} /> : <Pin size={14} />}
@@ -169,7 +170,7 @@ export function SectionIndex({
                       <button
                         onClick={() => setConfirming(item.id)}
                         aria-label={`Delete ${item.title}`}
-                        className="flex size-7 shrink-0 items-center justify-center rounded-md text-tertiary opacity-0 transition-opacity duration-[var(--dur-fast)] hover:bg-subtle hover:text-danger focus-visible:opacity-100 group-hover:opacity-100"
+                        className="flex size-7 shrink-0 items-center justify-center rounded-md text-tertiary reveal hover:bg-subtle hover:text-danger"
                       >
                         <Trash2 size={14} />
                       </button>
