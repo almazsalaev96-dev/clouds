@@ -48,8 +48,11 @@ export function EmptyState({
   return (
     <div className="flex flex-1 items-center justify-center overflow-y-auto px-4">
       <div className="w-full max-w-[var(--measure)] pb-[8vh]">
+        {/* The placeholder already says "Ask anything". Saying it twice on one
+            screen makes the heading noise, so it says the other useful thing:
+            that this is a blank page and you get to pick what goes on it. */}
         <h1 className="text-2xl font-semibold tracking-[-0.02em] text-primary anim-rise">
-          {isFirstEver ? "Ask anything." : "New chat"}
+          {isFirstEver ? "Where should we start?" : "New chat"}
         </h1>
 
         <p

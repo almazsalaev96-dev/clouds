@@ -95,6 +95,15 @@
   --syn-number: #9f411c;
   --syn-type: #0a6577;
   --syn-punct: #454d68;
+
+  /* The composer's lift. On light it is a real drop shadow; on dark a shadow
+     under a dark box is invisible, so the lift there comes from a lit top
+     edge instead. Both live here so the rule that uses them stays one rule. */
+  --composer-bg: #ffffff;
+  --composer-line: rgba(11, 18, 40, 0.09);
+  --composer-line-focus: rgba(11, 18, 40, 0.16);
+  --composer-lift: 0 1px 2px rgb(15 23 42 / 0.05), 0 10px 28px -14px rgb(15 23 42 / 0.16);
+  --composer-lift-focus: 0 1px 3px rgb(15 23 42 / 0.07), 0 16px 36px -16px rgb(15 23 42 / 0.22);
 }
 
 :root[data-theme="dark"],
@@ -165,6 +174,12 @@
     --syn-number: #ffa05c;
     --syn-type: #5fd0e2;
     --syn-punct: #9aa0c2;
+
+    --composer-bg: #101736;
+    --composer-line: rgba(232, 236, 247, 0.05);
+    --composer-line-focus: rgba(232, 236, 247, 0.12);
+    --composer-lift: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 12px 32px -18px rgb(0 0 0 / 0.7);
+    --composer-lift-focus: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 18px 44px -20px rgb(0 0 0 / 0.8);
   }
 }
 
@@ -226,6 +241,12 @@
   --syn-number: #ff9a52;
   --syn-type: #52c9dd;
   --syn-punct: #98a1bd;
+
+  --composer-bg: #101736;
+  --composer-line: rgba(232, 236, 247, 0.05);
+  --composer-line-focus: rgba(232, 236, 247, 0.12);
+  --composer-lift: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 12px 32px -18px rgb(0 0 0 / 0.7);
+  --composer-lift-focus: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 18px 44px -20px rgb(0 0 0 / 0.8);
 }
 
 :root[data-density="compact"] { --density: 0.75; }
@@ -345,6 +366,27 @@ textarea:focus-visible {
 .focus-inset:focus-visible {
   outline-offset: -2px;
 }
+
+/* ---------------------------------------------------------------------------
+   The composer.
+
+   It is the one surface you look at in every single session, so it earns the
+   quietest treatment in the app: a raised plane, a hairline, and a shadow that
+   deepens slightly when the caret is in it. No accent, no ring. A light that
+   is always on stops being information — and after the fiftieth message an
+   accent border around the box you type in is just glare.
+--------------------------------------------------------------------------- */
+.composer-shell {
+  background: var(--composer-bg);
+  border-color: var(--composer-line);
+  box-shadow: var(--composer-lift);
+}
+
+.composer-shell:focus-within {
+  border-color: var(--composer-line-focus);
+  box-shadow: var(--composer-lift-focus);
+}
+
 
 ::selection {
   background: var(--accent-subtle);

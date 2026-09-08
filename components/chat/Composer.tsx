@@ -2,11 +2,12 @@
 
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
-import { ArrowUp, Columns2, Paperclip, Square, X, FileText, Check } from "lucide-react";
+import { ArrowUp, Brain, Check, FileText, Mic, Paperclip, Plus, SlidersHorizontal, Square, X } from "lucide-react";
 import type { ContentBlock } from "@/lib/types";
 import { getModel, estimateTokens, formatTokens, MODELS } from "@/lib/models";
 import { fileToBase64, formatBytes, cn } from "@/lib/utils";
 import { useSettings, useDrafts } from "@/lib/store";
+import { useDictation } from "@/lib/hooks/useDictation";
 import { Tooltip } from "@/components/ui/primitives";
 import { ProviderMark } from "@/components/ui/ProviderMark";
 
@@ -59,10 +60,29 @@ export function Composer({
   const [dragging, setDragging] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-  const dragDepth = React.useRef(0);
+  const fileRef = React.useRef<HTMLInputElement>(null);
+  const [plusOpen, setPlusOpen] = React.useState(false);
+  const [toolsOpen, setToolsOpen] = React.useState(false);
+
+  /* Tools carries a state, so the pill has to show it: "on" means this thread
+     will not answer the way the defaults would. */
+  const thinkLonger =
+    model.reasoning && (settings.params[modelId]?.reasoningEffort ?? "medium") === "high";
+  const toolsActive = thinkLonger || compareWith.length > 0;
 
   const text = drafts.drafts[conversationId] ?? "";
   const setText = (v: string) => drafts.setDraft(conversationId, v);
+
+  const dictation = useDictation(
+    React.useCallback(
+      (phrase: string) => {
+        const current = useDrafts.getState().drafts[conversationId] ?? "";
+        drafts.setDraft(conversationId, current ? `${current} ${phrase}` : phrase);
+      },
+      [conversationId, drafts],
+    ),
+  );
+  const dragDepth = React.useRef(0);
 
   /* --- Auto-grow. The composer grows upward; the page never shifts. -------- */
   const resize = React.useCallback(() => {
@@ -235,140 +255,166 @@ export function Composer({
         </div>
       )}
 
-      {attachments.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-1.5">
-          {attachments.map((a) => (
-            <div
-              key={a.id}
-              className="group/chip flex items-center gap-2 rounded-md border border-line bg-surface py-1 pl-1 pr-2 anim-pop"
-            >
-              {a.kind === "image" && a.preview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={a.preview} alt="" className="size-7 rounded-sm object-cover" />
-              ) : (
-                <span className="flex size-7 items-center justify-center rounded-sm bg-subtle text-tertiary">
-                  <FileText size={14} />
-                </span>
-              )}
-              <span className="max-w-48 truncate text-xs text-secondary">{a.name}</span>
-              <button
-                onClick={() => setAttachments((list) => list.filter((x) => x.id !== a.id))}
-                aria-label={`Remove ${a.name}`}
-                className="text-tertiary transition-colors hover:text-primary"
-              >
-                <X size={13} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
+      {/* One rounded object: what you attached, what you type, and the controls
+          that act on it. The focus treatment is a lift, not a colour — an
+          accent ring on the thing you type in every single time is a light
+          that never turns off. */}
       <div
-        className={cn(
-          "rounded-xl border bg-surface transition-[border-color,box-shadow] duration-[var(--dur-fast)] ease-[var(--ease-std)]",
-          "border-line-strong shadow-sm focus-within:border-accent focus-within:shadow-md",
-          streaming && "is-live",
-        )}
+        className="composer-shell rounded-[28px] border transition-[box-shadow,border-color] duration-[var(--dur-fast)] ease-[var(--ease-std)]"
       >
-        <div className="flex items-end gap-1 p-1.5">
-          <label className="shrink-0">
-            <input
-              type="file"
-              multiple
-              className="sr-only"
-              onChange={async (e) => {
-                await addFiles(Array.from(e.target.files ?? []));
-                e.target.value = "";
-              }}
-            />
-            <Tooltip label="Attach files">
-              <span
-                role="button"
-                tabIndex={0}
-                aria-label="Attach files"
-                className="flex size-8 cursor-pointer items-center justify-center rounded-md text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+        {/* Attachments live inside the container, above the line you type on,
+            so the whole thing reads as one object rather than a box with a
+            tray balanced on top of it. */}
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 px-3 pb-1 pt-3">
+            {attachments.map((a) => (
+              <div
+                key={a.id}
+                className="group/chip flex items-center gap-2 rounded-xl border border-line bg-canvas py-1 pl-1 pr-2 anim-pop"
               >
-                <Paperclip size={16} />
-              </span>
-            </Tooltip>
-          </label>
-
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={onKeyDown}
-            onPaste={onPaste}
-            rows={1}
-            placeholder={`Message ${model.name}…`}
-            aria-label="Message"
-            className="max-h-[40vh] min-w-0 flex-1 resize-none bg-transparent py-1.5 text-base text-primary outline-none placeholder:text-tertiary"
-          />
-
-          {/* Send becomes stop in place, via a crossfade. A second button that
-              appears elsewhere makes the user re-aim mid-thought. */}
-          <div className="relative size-8 shrink-0">
-            <button
-              onClick={send}
-              disabled={!canSend || streaming}
-              aria-label="Send message"
-              className={cn(
-                "absolute inset-0 flex items-center justify-center rounded-md bg-[var(--accent-fill)] text-accent-fg transition-[opacity,background-color] duration-[var(--dur-fast)] ease-[var(--ease-std)]",
-                "hover:bg-[var(--accent-fill-hover)] disabled:bg-[var(--bg-subtle)] disabled:text-[var(--text-tertiary)]",
-                streaming ? "pointer-events-none opacity-0" : "opacity-100",
-              )}
-            >
-              <ArrowUp size={16} />
-            </button>
-            <button
-              onClick={onStop}
-              aria-label="Stop generating"
-              className={cn(
-                "absolute inset-0 flex items-center justify-center rounded-md bg-primary text-canvas transition-opacity duration-[var(--dur-fast)] ease-[var(--ease-std)]",
-                streaming ? "opacity-100" : "pointer-events-none opacity-0",
-              )}
-              style={{ background: "var(--text-primary)", color: "var(--bg-canvas)" }}
-            >
-              <Square size={12} fill="currentColor" />
-            </button>
+                {a.kind === "image" && a.preview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={a.preview} alt="" className="size-8 rounded-lg object-cover" />
+                ) : (
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-subtle text-tertiary">
+                    <FileText size={14} />
+                  </span>
+                )}
+                <span className="max-w-48 truncate text-xs text-secondary">{a.name}</span>
+                <button
+                  onClick={() => setAttachments((list) => list.filter((x) => x.id !== a.id))}
+                  aria-label={`Remove ${a.name}`}
+                  className="text-tertiary transition-colors hover:text-primary"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
 
-        {/* One quiet 24px strip: what you are talking to, and what it will cost. */}
-        <div className="flex h-6 items-center gap-2 px-3 pb-1.5 text-xs text-tertiary">
-          <button
-            onClick={onOpenModels}
-            className="-ml-1 flex items-center gap-1.5 rounded-sm px-1 transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-secondary"
-          >
-            <ProviderMark provider={model.provider} size={11} />
-            {model.name}
-          </button>
+        {/* The line you type on gets the full width. Nothing shares it. */}
+        <textarea
+          ref={textareaRef}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={onKeyDown}
+          onPaste={onPaste}
+          rows={1}
+          placeholder="Ask anything"
+          aria-label="Message"
+          className="max-h-[45vh] w-full resize-none bg-transparent px-5 pb-1 pt-4 text-[16px] leading-6 text-primary outline-none placeholder:text-tertiary"
+        />
 
-          <Popover.Root>
-            <Tooltip label="Ask several models the same thing">
+        {/* Controls sit under the text, left to right in the order you reach
+            for them: add something, change how it thinks, speak, send. */}
+        <div className="flex items-center gap-1 px-2.5 pb-2.5 pt-0.5">
+          {/* Everything you can add to a message, behind one control. */}
+          <Popover.Root open={plusOpen} onOpenChange={setPlusOpen}>
+            <Tooltip label="Add photos and files">
               <Popover.Trigger asChild>
                 <button
-                  aria-label="Compare models"
-                  className={cn(
-                    "flex h-5 items-center gap-1 rounded-sm px-1 transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-secondary",
-                    compareWith.length && "text-accent hover:text-accent",
-                  )}
+                  aria-label="Add photos and files"
+                  className="focus-inset flex size-9 shrink-0 items-center justify-center rounded-full text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
                 >
-                  <Columns2 size={12} />
-                  {compareWith.length ? `Comparing ${compareWith.length + 1}` : "Compare"}
+                  <Plus size={18} />
                 </button>
               </Popover.Trigger>
             </Tooltip>
             <Popover.Portal>
               <Popover.Content
                 align="start"
+                side="top"
                 sideOffset={8}
-                className="z-50 w-72 rounded-lg border border-line bg-surface p-1 shadow-lg anim-pop"
+                className="z-50 w-60 rounded-2xl border border-line bg-surface p-1.5 shadow-lg anim-pop"
               >
-                <p className="px-2 pb-1 pt-2 text-xs text-tertiary">
-                  Answer alongside {model.name} — pick up to two.
+                <button
+                  onClick={() => {
+                    setPlusOpen(false);
+                    fileRef.current?.click();
+                  }}
+                  className="focus-inset flex h-9 w-full items-center gap-2.5 rounded-xl px-2.5 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                >
+                  <Paperclip size={16} className="text-tertiary" />
+                  Add photos and files
+                </button>
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
+
+          <input
+            ref={fileRef}
+            type="file"
+            multiple
+            className="sr-only"
+            onChange={async (e) => {
+              await addFiles(Array.from(e.target.files ?? []));
+              e.target.value = "";
+            }}
+          />
+
+          {/* The two things that change the shape of the answer, not its
+              content: how hard the model thinks, and how many answer at once. */}
+          <Popover.Root open={toolsOpen} onOpenChange={setToolsOpen}>
+            <Popover.Trigger asChild>
+              <button
+                aria-label="Tools"
+                className={cn(
+                  "focus-inset flex h-9 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-sm transition-colors duration-[var(--dur-fast)]",
+                  toolsActive
+                    ? "bg-accent-subtle text-accent"
+                    : "text-secondary hover:bg-subtle hover:text-primary",
+                )}
+              >
+                <SlidersHorizontal size={17} />
+                <span className="pr-0.5">Tools</span>
+                {compareWith.length > 0 && (
+                  <span className="tnum text-xs opacity-80">{compareWith.length + 1}</span>
+                )}
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content
+                align="start"
+                side="top"
+                sideOffset={8}
+                className="z-50 w-72 rounded-2xl border border-line bg-surface p-1.5 shadow-lg anim-pop"
+              >
+                {model.reasoning ? (
+                  <button
+                    onClick={() =>
+                      settings.setParams(modelId, { reasoningEffort: thinkLonger ? "medium" : "high" })
+                    }
+                    className="focus-inset flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle"
+                  >
+                    <Brain size={16} className={cn("mt-0.5 shrink-0", thinkLonger ? "text-accent" : "text-tertiary")} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm text-primary">Think longer</span>
+                      <span className="block text-xs text-tertiary">
+                        Slower, and better on problems with steps.
+                      </span>
+                    </span>
+                    {thinkLonger && <Check size={14} className="mt-1 shrink-0 text-accent" />}
+                  </button>
+                ) : (
+                  <p className="px-2.5 py-2 text-xs text-tertiary">
+                    {model.name} answers in one pass — there is no thinking step to lengthen.
+                  </p>
+                )}
+
+                <div className="my-1 h-px bg-[var(--border-subtle)]" />
+                <p className="flex items-center justify-between px-2.5 pb-1 pt-1.5 text-xs text-tertiary">
+                  <span>Answer alongside {model.name}</span>
+                  {compareWith.length > 0 && (
+                    <button
+                      onClick={() => onCompareChange([])}
+                      className="text-xs text-accent hover:underline"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </p>
-                <div className="max-h-72 overflow-y-auto">
+                <div className="max-h-56 overflow-y-auto">
                   {MODELS.filter((m) => m.id !== modelId).map((m) => {
                     const on = compareWith.includes(m.id);
                     const usable = availableModels(m.id);
@@ -381,13 +427,13 @@ export function Composer({
                             on ? compareWith.filter((x) => x !== m.id) : [...compareWith, m.id],
                           )
                         }
-                        className="focus-inset flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary disabled:pointer-events-none disabled:opacity-40"
+                        className="focus-inset flex h-9 w-full items-center gap-2.5 rounded-xl px-2.5 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary disabled:pointer-events-none disabled:opacity-40"
                       >
                         <span className="text-tertiary">
                           <ProviderMark provider={m.provider} size={12} />
                         </span>
                         <span className="min-w-0 flex-1 truncate">{m.name}</span>
-                        {on && <Check size={13} className="shrink-0 text-accent" />}
+                        {on && <Check size={14} className="shrink-0 text-accent" />}
                       </button>
                     );
                   })}
@@ -395,13 +441,63 @@ export function Composer({
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
-          {overContext && (
-            <span className="ml-auto flex items-center gap-1.5 text-warning tnum">
-              <span className="size-1 rounded-full bg-[var(--live)]" aria-hidden />
-              {formatTokens(totalTokens)} of {formatTokens(model.contextWindow)}
-            </span>
+
+          <div className="flex-1" />
+
+          {dictation.supported && (
+            <Tooltip label={dictation.listening ? "Stop dictating" : "Dictate"}>
+              <button
+                onClick={dictation.toggle}
+                aria-label={dictation.listening ? "Stop dictating" : "Dictate"}
+                aria-pressed={dictation.listening}
+                className={cn(
+                  "focus-inset flex size-9 shrink-0 items-center justify-center rounded-full transition-colors duration-[var(--dur-fast)]",
+                  dictation.listening
+                    ? "bg-[color-mix(in_srgb,var(--stop)_14%,transparent)] text-[var(--stop)]"
+                    : "text-secondary hover:bg-subtle hover:text-primary",
+                )}
+              >
+                <Mic size={18} />
+              </button>
+            </Tooltip>
           )}
+
+          {/* Send becomes stop in place. A monochrome disc reads as the one
+              terminal action without spending the accent on something the eye
+              already finds by shape and position. */}
+          <div className="relative size-9 shrink-0">
+            <button
+              onClick={send}
+              disabled={!canSend || streaming}
+              aria-label="Send message"
+              className={cn(
+                "focus-inset absolute inset-0 flex items-center justify-center rounded-full transition-[opacity,background-color,color] duration-[var(--dur-fast)] ease-[var(--ease-std)]",
+                "bg-[var(--text-primary)] text-[var(--bg-canvas)] hover:opacity-90",
+                "disabled:bg-[var(--bg-subtle)] disabled:text-[var(--text-faint)]",
+                streaming ? "pointer-events-none opacity-0" : "opacity-100",
+              )}
+            >
+              <ArrowUp size={19} />
+            </button>
+            <button
+              onClick={onStop}
+              aria-label="Stop generating"
+              className={cn(
+                "focus-inset absolute inset-0 flex items-center justify-center rounded-full bg-[var(--text-primary)] text-[var(--bg-canvas)] transition-opacity duration-[var(--dur-fast)] ease-[var(--ease-std)]",
+                streaming ? "opacity-100" : "pointer-events-none opacity-0",
+              )}
+            >
+              <Square size={12} fill="currentColor" />
+            </button>
+          </div>
         </div>
+
+        {overContext && (
+          <p className="flex items-center gap-1.5 px-4 pb-2 text-xs text-warning tnum">
+            <span className="size-1 rounded-full bg-[var(--live)]" aria-hidden />
+            {formatTokens(totalTokens)} of {formatTokens(model.contextWindow)} — this thread is nearly full
+          </p>
+        )}
       </div>
 
       <p className="mt-2 text-center text-xs text-tertiary">
