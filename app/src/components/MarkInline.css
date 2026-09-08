@@ -1,0 +1,12 @@
+/* A Mark inside the thread. It keeps the Mark view's own layout and only gives it the
+   border the deck and the question have, so the three read as one family of things
+   the conversation made. */
+.mark-inline {
+  margin-top: var(--s4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--paper-raised);
+  padding: var(--s4);
+  overflow: hidden;
+}
+.mark-inline > * { max-width: 100%; }

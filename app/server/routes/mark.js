@@ -29,36 +29,7 @@ const MAX_CARDS = 4
 export default function register(router) {
   /** Mark an attempt, or mark an answer and record the attempt behind it. */
   router.post('/api/mark', async ({ req, res }) => {
-    const body = await readBody(req)
-    const { attempt, item, course } = resolveTarget(body)
-    const scheme = mustScheme(item)
-    const answer = str(attempt.body)
-    if (!answer) throw Object.assign(new Error('There is nothing to mark. Write the answer first.'), { status: 400 })
-
-    const route = pick(taskClassFor(item, scheme), MARK_POLICY)
-    const markObj = await runMarker({
-      item, scheme, answer, provider: route.provider, model: route.model,
-      effort: route.effort, budgetMs: route.budgetMs, attemptId: attempt.id,
-      policy: MARK_POLICY, degraded: route.degraded,
-    })
-    if (!markObj || typeof markObj !== 'object') {
-      throw Object.assign(new Error('The marker returned nothing. Try again in a moment.'), { status: 502 })
-    }
-
-    const stored = storeMark({ mark: markObj, attempt, item, course, scheme, model: route.model })
-    const feedbackOnly = isFeedbackOnly(markObj)
-    const mastery = applyMastery({ attempt, item, course, total: stored.total, max: stored.max, feedbackOnly })
-    const cards = cardsFromMark({ mark: markObj, item, course, markId: stored.id })
-
-    logEvent('mark.created', {
-      markId: stored.id, itemId: item.id, total: stored.total, max: stored.max,
-      unaided: mastery.unaided, model: route.model, degraded: route.degraded, cards: cards.length,
-    }, USER, course.id)
-
-    return jsonOk(res, markPayload({
-      row: stored.row, mark: markObj, item, scheme, course,
-      mastery, cardsCreated: cards, degraded: route.degraded,
-    }), 201)
+    return jsonOk(res, await markAnswer(await readBody(req)), 201)
   })
 
   /** One stored Mark, re-rendered from the object that was saved. */
@@ -147,6 +118,45 @@ export default function register(router) {
 }
 
 /* -------------------------------------------------------------- the pipeline */
+
+/**
+ * Mark one answer and store the Mark, exactly as `POST /api/mark` does.
+ *
+ * Exported because the chat marks in the thread: a student who writes an answer to
+ * the question in front of them gets the same Mark, from the same code, whether it
+ * arrives on this route or on a Turn. Two paths to a mark would be two markings.
+ */
+export async function markAnswer(body) {
+  const { attempt, item, course } = resolveTarget(body)
+  const scheme = mustScheme(item)
+  const answer = str(attempt.body)
+  if (!answer) throw Object.assign(new Error('There is nothing to mark. Write the answer first.'), { status: 400 })
+
+  const route = pick(taskClassFor(item, scheme), MARK_POLICY)
+  const markObj = await runMarker({
+    item, scheme, answer, provider: route.provider, model: route.model,
+    effort: route.effort, budgetMs: route.budgetMs, attemptId: attempt.id,
+    policy: MARK_POLICY, degraded: route.degraded,
+  })
+  if (!markObj || typeof markObj !== 'object') {
+    throw Object.assign(new Error('The marker returned nothing. Try again in a moment.'), { status: 502 })
+  }
+
+  const stored = storeMark({ mark: markObj, attempt, item, course, scheme, model: route.model })
+  const feedbackOnly = isFeedbackOnly(markObj)
+  const mastery = applyMastery({ attempt, item, course, total: stored.total, max: stored.max, feedbackOnly })
+  const cards = cardsFromMark({ mark: markObj, item, course, markId: stored.id })
+
+  logEvent('mark.created', {
+    markId: stored.id, itemId: item.id, total: stored.total, max: stored.max,
+    unaided: mastery.unaided, model: route.model, degraded: route.degraded, cards: cards.length,
+  }, USER, course.id)
+
+  return markPayload({
+    row: stored.row, mark: markObj, item, scheme, course,
+    mastery, cardsCreated: cards, degraded: route.degraded,
+  })
+}
 
 function resolveTarget(body) {
   if (body.attemptId) {

@@ -5,6 +5,7 @@ import type { Attachment, Intent } from '../components/Composer'
 import { TurnCard } from '../components/TurnCard'
 import { Deck } from '../components/Deck'
 import { Question } from '../components/Question'
+import { MarkInline } from '../components/MarkInline'
 import { readArtefacts } from '../lib/artefacts'
 import type { Artefact, MaterialArtefact, QuestionArtefact } from '../lib/artefacts'
 import { setSession, useStore } from '../lib/state'
@@ -60,7 +61,10 @@ export function Chat({ courseId, conversationId }: ChatProps) {
     // is what they meant, and it is what sends the next turn through the gate, the
     // ladder and the mark scheme instead of into open chat.
     const question = made.find((a): a is QuestionArtefact => a.kind === 'question')
-    if (question) setAnswering(takeUp(question))
+    if (question) {
+      setAnswering(takeUp(question))
+      setIntent('mark')
+    }
   }, [])
 
   const {
@@ -177,7 +181,9 @@ export function Chat({ courseId, conversationId }: ChatProps) {
     setAdded([])
     setAddProblem(null)
     void send({
-      intent: chosen,
+      // Marking needs something to mark against. Without a question in front of them
+      // the send is a question to the tutor, not an attempt.
+      intent: chosen === 'mark' && !answering ? 'learn' : chosen,
       text,
       itemId: answering?.id ?? null,
       material: added.map(f => ({ name: f.name, text: f.text })),
@@ -245,6 +251,9 @@ export function Chat({ courseId, conversationId }: ChatProps) {
                     if (artefact.kind === 'material') {
                       return <Added key={artefact.id} file={artefact} />
                     }
+                    if (artefact.kind === 'mark') {
+                      return <MarkInline key={artefact.id} mark={artefact} />
+                    }
                     if (artefact.kind === 'question') {
                       return (
                         <Question
@@ -301,8 +310,9 @@ export function Chat({ courseId, conversationId }: ChatProps) {
             onChange={setDraft}
             onSend={submit}
             placeholder="Ask, or paste a question and your answer"
-            intent={intent}
+            intent={answering ? intent : (intent === 'mark' ? 'learn' : intent)}
             onIntentChange={setIntent}
+            intents={answering ? ['learn', 'check', 'answer', 'mark'] : ['learn', 'check', 'answer']}
             streaming={streaming}
             onStop={stop}
             attachments={added.map(chip)}

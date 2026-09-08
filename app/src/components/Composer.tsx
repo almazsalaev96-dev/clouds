@@ -4,8 +4,8 @@ import './Composer.css'
 
 /** The three workspace modes. Learn tutors, Practise poses items, Mark marks a pasted answer. */
 export type Mode = 'learn' | 'practise' | 'mark'
-/** How much help this send is asking for (§04.5). */
-export type Intent = 'learn' | 'check' | 'answer'
+/** How much help this send is asking for (§04.5), plus the one that asks for none. */
+export type Intent = 'learn' | 'check' | 'answer' | 'mark'
 
 const MODES: { id: Mode; label: string }[] = [
   { id: 'learn', label: 'Learn' },
@@ -20,6 +20,11 @@ const INTENTS: { id: Intent; label: string; note: string }[] = [
     id: 'answer',
     label: 'Just the answer',
     note: 'The full answer now. It is labelled as seen and one like it comes back in a few days.',
+  },
+  {
+    id: 'mark',
+    label: 'Mark it',
+    note: 'Marked against the scheme, with every mark quoted from your own words.',
   },
 ]
 
@@ -44,6 +49,8 @@ export interface ComposerProps {
   onModeChange?(next: Mode): void
   /** Omit on Ask: no gradable item, so no intent row. */
   showIntents?: boolean
+  /** Which intents to offer. Omit for the three that ask for help. */
+  intents?: Intent[]
   streaming?: boolean
   onStop?(): void
   /** Offline: the send button says what will happen instead. */
@@ -63,7 +70,7 @@ const COUNT_FROM = 1200
 export function Composer(props: ComposerProps) {
   const {
     value, onChange, onSend, placeholder, intent, onIntentChange,
-    mode, onModeChange, showIntents = true, streaming = false, onStop,
+    mode, onModeChange, showIntents = true, intents, streaming = false, onStop,
     sendLabel = 'Send', hint,
     attachments = [], onAttach, onRemoveAttachment, attachProblem = null,
   } = props
@@ -93,7 +100,8 @@ export function Composer(props: ComposerProps) {
     if (idle) ta.current?.focus()
   }, [streaming])
 
-  const activeIntent = INTENTS.find(i => i.id === intent) ?? INTENTS[0]
+  const offered = intents ? INTENTS.filter(i => intents.includes(i.id)) : INTENTS.filter(i => i.id !== 'mark')
+  const activeIntent = offered.find(i => i.id === intent) ?? offered[0] ?? INTENTS[0]
   const empty = value.trim().length === 0
   const blocked = streaming
     ? 'The tutor is answering. Press Stop to write again.'
@@ -237,7 +245,7 @@ export function Composer(props: ComposerProps) {
       {showIntents && (
         <>
           <div className="composer__intents" role="group" aria-label="How much help">
-            {INTENTS.map(i => (
+            {offered.map(i => (
               <button
                 key={i.id}
                 type="button"

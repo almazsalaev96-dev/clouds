@@ -20,6 +20,7 @@ import { RUNGS, entryRung, nextRung, rungBudget } from '../engine/ladder.js'
 import { vetTurn, handbackFor } from '../engine/orchestrator.js'
 import { makeCards, pointsNamedBy } from '../engine/cardmaker.js'
 import { rankedPoints, nextItemFor } from './practise.js'
+import { markAnswer } from './mark.js'
 import { parseScheme } from '../marking/scheme.js'
 import {
   USER, jsonOk, readBody, str, mustCourse, misconceptionsFor, safeJson, pointsWithState,
@@ -28,7 +29,7 @@ import {
 /** Student answers are personal data, so DeepSeek is never eligible (§08.8). */
 export const TUTOR_POLICY = { residency: 'global', containsPii: true, deepseekAllowed: false }
 
-const INTENTS = new Set(['learn', 'check', 'answer'])
+const INTENTS = new Set(['learn', 'check', 'answer', 'mark'])
 const MAX_TEXT = 8000
 /** Material a student adds in the chat: their notes, a past paper, a page of a book. */
 const MAX_MATERIAL_FILES = 4
@@ -129,6 +130,14 @@ async function runTurn({ stream, started, course, item, sessionId, text, intent,
   // 1b — a request for cards is not a question being worked, so the gate and the
   // ladder have nothing to withhold. It is served here and what it makes is attached
   // to the turn, because the chat is where things are made, not a link to elsewhere.
+  // 1b0 — "Mark it" is not a request for help, so nothing is withheld and the ladder
+  // does not move. It is the same marking the Practise screen does, from the same
+  // code, and the Mark it produces is attached to the Turn.
+  if (item && course && intent === 'mark') {
+    await serveMark({ stream, started, course, item, sessionId, text })
+    return
+  }
+
   if (asksFor(text, item, wantsCards)) {
     await serveCards({ stream, started, course, item, sessionId, text, intent, history, material })
     return
@@ -513,6 +522,87 @@ function sourceOf(deck) {
   if (material) return 'taken from your course material'
   if (thread) return 'taken from what this thread has covered'
   return 'taken from this course'
+}
+
+/* --------------------------------------------------------------------- marking */
+
+/**
+ * The mark, in the thread.
+ *
+ * The Mark object is stored whole by `routes/mark.js`, so what the thread shows is a
+ * reference to it rather than a copy: reopening the conversation, or opening the mark
+ * on its own page, draws the same evidence from the same record.
+ */
+async function serveMark({ stream, started, course, item, sessionId, text }) {
+  const handback = 'Read the evidence, then rewrite the line it names'
+  stream.send('start', {
+    sessionId, rung: 0, gate: gateView({ open: true, reason: 'marking' }),
+    degraded: false, model: 'marker', handback,
+    status: `Marking against the ${item.paper} scheme…`,
+  })
+
+  let payload = null
+  let failure = null
+  try {
+    payload = await markAnswer({ courseId: course.id, itemId: item.id, answer: text })
+  } catch (err) {
+    failure = err
+    if ((err?.status || 500) >= 500) console.error('[mark]', err)
+  }
+
+  const message = markMessage({ payload, failure, item, handback })
+  for (const chunk of chunksOf(message)) stream.send('delta', { text: chunk })
+
+  const id = persistTurn({
+    sessionId, courseId: course.id, itemId: item.id, body: message, rung: 0, intent: 'mark',
+    handback, gate: gateView({ open: true, reason: 'marking' }),
+    lint: { ok: true, violations: [] }, model: payload?.model || 'marker', cost: 0,
+    ttftMs: Date.now() - started,
+  })
+
+  const made = []
+  if (payload?.id) {
+    made.push(persistArtefact({
+      turnId: id, sessionId, courseId: course.id,
+      artefact: {
+        kind: 'mark',
+        markId: payload.id,
+        itemId: item.id,
+        total: payload.total ?? null,
+        max: payload.max ?? null,
+      },
+    }))
+  }
+
+  stream.send('turn', {
+    id, rung: 0, handback, gate: gateView({ open: true, reason: 'marking' }),
+    degraded: payload?.degraded === true, model: payload?.model || null, cost: 0,
+    ttftMs: Date.now() - started, seenSolution: false, retest: null,
+    itemId: item.id, artefacts: made,
+  })
+}
+
+/** The line above the Mark: the number, what it rests on, and what to do next. */
+function markMessage({ payload, failure, item, handback }) {
+  if (failure) {
+    return `${failure.message || 'The marking stopped before it finished.'} ${handback} once it is marked — send it again.`
+  }
+  const total = payload?.total
+  const max = payload?.max ?? item.tariff
+  // The same figure the Mark card shows. A band there and a single number here would
+  // be two different claims about one piece of work.
+  const band = payload?.mark?.total_band
+  const range = band && Number(band.low) !== Number(band.high)
+    ? `${band.low}–${band.high}`
+    : total
+  const head = payload?.feedbackOnly || total == null
+    ? 'Marked for feedback, with no number: this one had help behind it.'
+    : `${range} of ${max}.`
+  const next = str(payload?.next_action?.text) || str(payload?.summary) || ''
+  const unaided = payload?.mastery && payload.mastery.unaided === false
+    ? ' It does not move your mastery, because it was not unaided.'
+    : ''
+  return `${head}${unaided}${next ? `\n\n${next}` : ''}`
 }
 
 /* ----------------------------------------------------------------- questions */
