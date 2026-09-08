@@ -29,6 +29,7 @@ export const SHORTCUT_GROUPS: { group: string; items: [string, string[]][] }[] =
       ["Notes", ["mod", "2"]],
       ["Cards", ["mod", "3"]],
       ["Papers", ["mod", "4"]],
+      ["Practice", ["mod", "5"]],
       ["Back out of what's open", ["Esc"]],
     ],
   },

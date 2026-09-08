@@ -80,6 +80,7 @@ export function CardsView({
             title: d.title || "Untitled deck",
             meta: `${own.length} card${own.length === 1 ? "" : "s"}`,
             preview: own[0]?.front,
+            searchText: own.map((c) => `${c.front} ${c.back}`).join(" "),
             badge: due > 0 ? String(due) : undefined,
           };
         })}

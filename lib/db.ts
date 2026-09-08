@@ -1,5 +1,8 @@
 import Dexie, { type Table } from "dexie";
-import type { Card, Conversation, Deck, Message, Note, Paper, ContentBlock } from "./types";
+import type {
+  Attempt, Card, Conversation, Deck, Message, Note, Paper, Problem, Skill, Trap,
+  ContentBlock,
+} from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 
 /**
@@ -14,6 +17,10 @@ class ChatDB extends Dexie {
   decks!: Table<Deck, string>;
   cards!: Table<Card, string>;
   papers!: Table<Paper, string>;
+  skills!: Table<Skill, string>;
+  traps!: Table<Trap, string>;
+  problems!: Table<Problem, string>;
+  attempts!: Table<Attempt, string>;
 
   constructor() {
     super("clouds");
@@ -28,10 +35,46 @@ class ChatDB extends Dexie {
       cards: "id, deckId, due",
       papers: "id, updatedAt",
     });
+    /**
+     * Version 3 adds practice, and restates the indexes it extends.
+     *
+     * Dexie reads each version's stores() as a delta: an index you still want
+     * but do not restate is a dropped index, and the primary key must match
+     * the previous declaration byte for byte. Rows survive either way; the
+     * index is rebuilt.
+     *
+     * Booleans are deliberately not indexed anywhere here. They are not valid
+     * IndexedDB keys, so a boolean index silently omits every row — which is
+     * why `pinned` and `archived` in version(1) do not do what they look like
+     * they do. Those are filtered in JS, and so is `Problem.retired`.
+     */
+    this.version(3).stores({
+      skills: "id, updatedAt, state",
+      traps: "id, skillId, due, [skillId+due]",
+      problems: "id, skillId, trapId, band, [trapId+band]",
+      attempts: "id, skillId, trapId, problemId, createdAt, [trapId+createdAt]",
+      decks: "id, createdAt, sourceNoteId",
+      cards: "id, deckId, due, [deckId+due]",
+    });
   }
 }
 
 export const db = new ChatDB();
+
+/**
+ * Without these, the first schema change hard-fails for anyone with a second
+ * tab open: the new tab's open() rejects, every live query renders its empty
+ * fallback forever, and the app looks like it lost all of the user's work.
+ */
+if (typeof window !== "undefined") {
+  db.on("versionchange", () => {
+    db.close();
+    location.reload();
+  });
+  db.on("blocked", () => {
+    console.warn("Close Armi's other tabs to finish updating.");
+  });
+}
 
 export const uid = () =>
   `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
@@ -128,7 +171,10 @@ export async function deleteConversation(id: string) {
 export async function deleteAllData() {
   await db.transaction(
     "rw",
-    [db.conversations, db.messages, db.notes, db.decks, db.cards, db.papers],
+    [
+      db.conversations, db.messages, db.notes, db.decks, db.cards, db.papers,
+      db.skills, db.traps, db.problems, db.attempts,
+    ],
     async () => {
       await db.messages.clear();
       await db.conversations.clear();
@@ -136,6 +182,10 @@ export async function deleteAllData() {
       await db.decks.clear();
       await db.cards.clear();
       await db.papers.clear();
+      await db.skills.clear();
+      await db.traps.clear();
+      await db.problems.clear();
+      await db.attempts.clear();
     },
   );
 }
@@ -256,4 +306,38 @@ export async function createPaper(init: Partial<Paper> = {}): Promise<Paper> {
 
 export async function deletePaper(id: string) {
   await db.papers.delete(id);
+}
+
+/* ---------------------------------------------------------------- skills -- */
+
+export async function createSkill(init: Partial<Skill> = {}): Promise<Skill> {
+  const now = Date.now();
+  const skill: Skill = {
+    id: uid(),
+    name: "",
+    goal: "",
+    primer: "",
+    band: 1,
+    state: "sketching",
+    trapCount: 0,
+    createdAt: now,
+    updatedAt: now,
+    ...init,
+  };
+  await db.skills.add(skill);
+  return skill;
+}
+
+export async function deleteSkill(id: string) {
+  await db.transaction("rw", [db.skills, db.traps, db.problems, db.attempts], async () => {
+    await db.attempts.where("skillId").equals(id).delete();
+    await db.problems.where("skillId").equals(id).delete();
+    await db.traps.where("skillId").equals(id).delete();
+    await db.skills.delete(id);
+  });
+}
+
+/** Everything due, across every skill, oldest first. */
+export function dueTraps(traps: Trap[], now = Date.now()): Trap[] {
+  return traps.filter((t) => t.state !== "held" && t.due <= now).sort((a, b) => a.due - b.due);
 }

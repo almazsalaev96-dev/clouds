@@ -13,6 +13,8 @@ export interface IndexItem {
   meta?: string;
   badge?: string;
   pinned?: boolean;
+  /** The full body, searched but never drawn. */
+  searchText?: string;
 }
 
 /**
@@ -54,7 +56,10 @@ export function SectionIndex({
     const q = query.trim().toLowerCase();
     if (!q) return items;
     return items.filter(
-      (i) => i.title.toLowerCase().includes(q) || i.preview?.toLowerCase().includes(q),
+      (i) =>
+        i.title.toLowerCase().includes(q) ||
+        i.preview?.toLowerCase().includes(q) ||
+        i.searchText?.toLowerCase().includes(q),
     );
   }, [items, query]);
 

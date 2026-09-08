@@ -135,6 +135,7 @@ export function NotesView({
             preview: n.content.replace(/^#.*$/m, "").replace(/\s+/g, " ").trim().slice(0, 120),
             meta: new Date(n.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
             pinned: n.pinned,
+            searchText: n.content,
           }))}
         onOpen={onSelect}
         onNew={onNew}

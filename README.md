@@ -104,6 +104,27 @@ will actually produce, and a lapse that returns in ten minutes rather than tomor
 Space reveals, `1`–`4` grade, and the sidebar carries the only number that decides
 whether you open a deck at all — how many are due.
 
+**Practice** — the section the rest of the app could not do: it puts a question in
+front of you that you will get wrong for a reason it can name.
+
+The scheduled unit is not a topic, it is a *trap* — one named wrong move
+("keeps the original limits after substituting"), carrying its own forgetting
+curve. A topic averages over four mistakes decaying at four different rates,
+which loses exactly the information worth having. Paste a note or a worked
+example, and the model proposes four to six traps with the sentence you will see
+the moment you make each one; you throw away the ones that aren't yours before
+anything is written. Then problems are generated to catch one trap each — cloze
+and numeric only, never multiple choice, because recognition puts the answer on
+screen before every attempt and is defeatable by elimination.
+
+Answers are checked locally, so being right or wrong never waits on a network
+call. A miss shows the trap's own sentence and the first step, and lets you retry
+in place — but it still grades as a miss, because the retry is the correction,
+not a second chance. Grades are derived from what happened, never chosen and
+never timed. The queue interleaves, so no two problems in a row share a trap:
+blocked practice feels better and teaches less, since after the first you are
+applying a rule you were just told rather than deciding which rule applies.
+
 **Papers** — a printable document built from the same markdown. Report, essay or
 notes shapes; a title, subtitle and author set on the sheet itself; "Draft it" to have
 a model write it from your material; and Print / PDF to export.

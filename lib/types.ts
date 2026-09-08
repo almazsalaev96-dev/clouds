@@ -178,3 +178,118 @@ export interface Paper {
   updatedAt: number;
   format: "report" | "essay" | "notes";
 }
+
+/* -------------------------------------------------------------- practice -- */
+
+/**
+ * The scheduling state SM-2 owns. Extracted so anything with a forgetting
+ * curve can be scheduled by the same code — a card, or a trap. Card's runtime
+ * shape is unchanged, so this costs no migration.
+ */
+export interface SM2 {
+  ease: number;
+  interval: number;
+  reps: number;
+  lapses: number;
+  due: number;
+  lastReviewed?: number;
+}
+
+/** A folder with a primer. It is not scheduled; its traps are. */
+export interface Skill {
+  id: string;
+  name: string;
+  goal: string;
+  /** Markdown, short by design: the minimum needed to attempt one problem. */
+  primer: string;
+  /** Working difficulty, steered to hold the first-try error rate near 25%. */
+  band: 1 | 2 | 3;
+  state: "sketching" | "ready" | "failed";
+  generationError?: string;
+  sourceText?: string;
+  sourceNoteId?: string;
+  sourceConversationId?: string;
+  /** Denormalised so the index never reads the traps table to draw a row. */
+  trapCount: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/**
+ * The scheduled unit: one named mistake with one forgetting curve.
+ *
+ * A topic is the wrong unit — "integration by parts" is four different things
+ * you can get wrong, decaying at four different rates, and one due date over
+ * them averages out exactly the information worth having.
+ */
+export interface Trap extends SM2 {
+  id: string;
+  skillId: string;
+  /** Minted once and never changed: the join key for problems and evidence. */
+  slug: string;
+  /** The wrong move, phrased as a move — never a topic name. */
+  label: string;
+  /** One sentence, second person. Shown the moment you miss. */
+  diagnosis: string;
+  /** Verbatim from the source, when there was source material. */
+  quote?: string;
+  state: "unseen" | "open" | "held";
+  /** Denormalised evidence, written with the attempt, so no scan to draw a row. */
+  seen: number;
+  firstTry: number;
+  /** Last 8 outcomes, newest last: 1 first try, h hinted, r retried, x missed. */
+  window: string;
+  lastMissAt?: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Problem {
+  id: string;
+  skillId: string;
+  /** Every problem catches exactly one trap. There is no untagged problem. */
+  trapId: string;
+  band: 1 | 2 | 3;
+  /**
+   * No multiple choice. Recognition among four options puts the answer on
+   * screen before every attempt and is defeatable by elimination — the format
+   * least able to help someone who has read the explanation and still cannot
+   * do the exercise.
+   */
+  kind: "cloze" | "numeric";
+  prompt: string;
+  answer: { accept?: string[]; value?: number; tolerance?: number };
+  /** One sentence naming the rule, not a restatement of the steps. */
+  explanation: string;
+  /** A nudge that does not contain the answer. */
+  hint: string;
+  /** The first step performed, supplied for the scaffolded retry. */
+  stepOne: string;
+  /** Twins share this, so the second attempt is never a fresh generation. */
+  pairId: string;
+  servedAt?: number;
+  retired?: boolean;
+  createdAt: number;
+}
+
+/**
+ * Append-only. Everything downstream is derived, so the scoring rule can be
+ * replaced later without throwing away a single answer.
+ */
+export interface Attempt {
+  id: string;
+  skillId: string;
+  trapId: string;
+  problemId: string;
+  kind: "first" | "retry";
+  response: string;
+  correct: boolean;
+  hinted: boolean;
+  /** Used "Show me". Grades as `again`, and the tooltip says so first. */
+  shown: boolean;
+  createdAt: number;
+}
+
+/* No duration field anywhere above. Speed must not enter the grade — slow
+   because tired is indistinguishable from slow because shaky — and collecting
+   a number the design has promised not to use is a tell. */

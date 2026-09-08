@@ -41,7 +41,7 @@ adoptLegacyStorage(DRAFTS_KEY, "drafts");
 
 export type Theme = "light" | "dark" | "system";
 export type Density = "compact" | "comfortable" | "spacious";
-export type Section = "chat" | "notes" | "cards" | "papers";
+export type Section = "chat" | "notes" | "cards" | "papers" | "practice";
 
 interface Settings {
   theme: Theme;

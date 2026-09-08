@@ -17,6 +17,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { NotesView, saveToNote } from "@/components/NotesView";
 import { CardsView } from "@/components/CardsView";
 import { PapersView } from "@/components/PapersView";
+import { PracticeView } from "@/components/PracticeView";
 import { ShortcutsOverlay } from "@/components/ShortcutsOverlay";
 import { InlineError } from "@/components/chat/Message";
 import { TopBar } from "@/components/chat/TopBar";
@@ -55,6 +56,7 @@ export default function Page() {
   const [noteId, setNoteId] = React.useState<string | null>(null);
   const [deckId, setDeckId] = React.useState<string | null>(null);
   const [paperId, setPaperId] = React.useState<string | null>(null);
+  const [skillId, setSkillId] = React.useState<string | null>(null);
   const [comparing, setComparing] = React.useState<{
     parentId: string;
     history: Message[];
@@ -260,6 +262,7 @@ export default function Page() {
       if (target === "notes") setNoteId(null);
       if (target === "cards") setDeckId(null);
       if (target === "papers") setPaperId(null);
+      if (target === "practice") setSkillId(null);
     },
     [settings],
   );
@@ -270,6 +273,9 @@ export default function Page() {
       if (section === "chat") return newChat();
       if (section === "notes") return setNoteId((await createNote()).id);
       if (section === "cards") return setDeckId((await createDeck("New deck")).id);
+      // Practice has no blank state worth creating: a skill without traps
+      // cannot be practised, so New goes through the seed sheet instead.
+      if (section === "practice") return setSkillId(null);
       setPaperId((await createPaper()).id);
     },
     [closeDrawerOnMobile, newChat],
@@ -284,6 +290,7 @@ export default function Page() {
         settings.setSection("chat");
       } else if (section === "notes") setNoteId(id);
       else if (section === "cards") setDeckId(id);
+      else if (section === "practice") setSkillId(id);
       else setPaperId(id);
     },
     [closeDrawerOnMobile, stream, settings],
@@ -404,6 +411,7 @@ export default function Page() {
         if (settings.section === "notes" && noteId) setNoteId(null);
         else if (settings.section === "cards" && deckId) setDeckId(null);
         else if (settings.section === "papers" && paperId) setPaperId(null);
+        else if (settings.section === "practice" && skillId) setSkillId(null);
         else if (stream.phase !== "idle") stream.stop();
         return;
       }
@@ -419,9 +427,10 @@ export default function Page() {
         case "1":
         case "2":
         case "3":
-        case "4": {
+        case "4":
+        case "5": {
           e.preventDefault();
-          const sections = ["chat", "notes", "cards", "papers"] as const;
+          const sections = ["chat", "notes", "cards", "papers", "practice"] as const;
           goToSection(sections[Number(e.key) - 1]);
           break;
         }
@@ -455,7 +464,7 @@ export default function Page() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [createInSection, goToSection, path, settings, stream, noteId, deckId, paperId]);
+  }, [createInSection, goToSection, path, settings, stream, noteId, deckId, paperId, skillId]);
 
   const openKeys = React.useCallback(() => {
     setSettingsTab("keys");
@@ -516,6 +525,14 @@ export default function Page() {
                   onSelect={setDeckId}
                   onNew={() => void createInSection("cards")}
                   onBack={() => setDeckId(null)}
+                />
+              )}
+              {settings.section === "practice" && (
+                <PracticeView
+                  skillId={skillId}
+                  configured={configured}
+                  onSelect={setSkillId}
+                  onBack={() => setSkillId(null)}
                 />
               )}
               {settings.section === "papers" && (

@@ -4,10 +4,10 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   FileText, Keyboard, Layers, PanelLeft, Pin, PinOff, Plus, Printer, Search,
-  Settings2, Trash2, X,
+  Settings2, Target, Trash2, X,
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
-import { db, deleteConversation, groupConversations } from "@/lib/db";
+import { db, deleteConversation, dueTraps, groupConversations } from "@/lib/db";
 import { dueCount } from "@/lib/study";
 import { useSettings, type Section } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ const SECTIONS: { id: Exclude<Section, "chat">; label: string; icon: React.React
   { id: "notes", label: "Notes", icon: <FileText size={15} /> },
   { id: "cards", label: "Cards", icon: <Layers size={15} /> },
   { id: "papers", label: "Papers", icon: <Printer size={15} /> },
+  { id: "practice", label: "Practice", icon: <Target size={15} /> },
 ];
 
 export function Sidebar({
@@ -37,7 +38,9 @@ export function Sidebar({
   const { sidebarOpen, toggleSidebar, section } = useSettings();
   const [query, setQuery] = React.useState("");
   const cards = useLiveQuery(() => db.cards.toArray(), [], []);
+  const traps = useLiveQuery(() => db.traps.toArray(), [], []);
   const due = dueCount(cards ?? []);
+  const trapsDue = dueTraps(traps ?? []).length;
 
   return (
     <>
@@ -127,9 +130,9 @@ export function Sidebar({
                   {s.icon}
                 </span>
                 {s.label}
-                {s.id === "cards" && due > 0 && (
+                {((s.id === "cards" && due > 0) || (s.id === "practice" && trapsDue > 0)) && (
                   <span className="ml-auto rounded-full bg-[var(--go-fill)] px-1.5 text-xs font-semibold text-[var(--on-fill)] tnum">
-                    {due}
+                    {s.id === "cards" ? due : trapsDue}
                   </span>
                 )}
               </button>

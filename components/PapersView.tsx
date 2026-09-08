@@ -110,6 +110,7 @@ export function PapersView({
           title: p.title || "Untitled paper",
           preview: p.content.replace(/^#+\s*/gm, "").replace(/\s+/g, " ").trim().slice(0, 120),
           meta: p.format,
+          searchText: p.content,
         }))}
         onOpen={onSelect}
         onNew={onNew}
