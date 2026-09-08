@@ -4,14 +4,15 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Download, Eye, Layers, Pencil, Printer } from "lucide-react";
 import type { Note } from "@/lib/types";
-import { db, deriveTitle } from "@/lib/db";
+import { db, deleteNote, deriveTitle } from "@/lib/db";
+import { offerUndo } from "@/lib/undo";
 import { generateCards, cheapestAvailable } from "@/lib/generate";
 import { newCard } from "@/lib/study";
 import { createDeck, createPaper } from "@/lib/db";
-import { debounce } from "@/lib/utils";
 import { useAutoGrow } from "@/lib/hooks/useAutoGrow";
+import { useAutosave } from "@/lib/hooks/useAutosave";
 import { Markdown } from "@/components/chat/Markdown";
-import { Button } from "@/components/ui/primitives";
+import { Button, SaveBadge } from "@/components/ui/primitives";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
 
 /**
@@ -64,21 +65,16 @@ export function NotesView({
     }
   }, [note]);
 
-  const persist = React.useMemo(
-    () =>
-      debounce((id: string, content: string) => {
-        void db.notes.update(id, {
-          content,
-          title: deriveTitle(content, ""),
-          updatedAt: Date.now(),
-        });
-      }, 400),
-    [],
+  const autosave = useAutosave<Note>(
+    noteId,
+    React.useCallback((id, patch) => {
+      void db.notes.update(id, { ...patch, updatedAt: Date.now() });
+    }, []),
   );
 
   const onChange = (value: string) => {
     setDraft(value);
-    if (note) persist(note.id, value);
+    if (note) autosave.save(note.id, { content: value, title: deriveTitle(value, "") });
   };
 
   const exportMarkdown = () => {
@@ -139,7 +135,10 @@ export function NotesView({
           }))}
         onOpen={onSelect}
         onNew={onNew}
-        onDelete={(id) => void db.notes.delete(id)}
+        onDelete={async (id) => {
+          const title = notes.find((n) => n.id === id)?.title || "note";
+          offerUndo(title, await deleteNote(id));
+        }}
         onTogglePin={(id) => {
           const note = (notes ?? []).find((n) => n.id === id);
           if (note) void db.notes.update(id, { pinned: !note.pinned });
@@ -153,8 +152,11 @@ export function NotesView({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <DetailBar onBack={onBack} backLabel="All notes">
-        <span className="mr-auto text-xs text-tertiary tnum">
-          {words} word{words === 1 ? "" : "s"}
+        <span className="mr-auto flex items-center gap-2.5">
+          <span className="text-xs text-tertiary tnum">
+            {words} word{words === 1 ? "" : "s"}
+          </span>
+          <SaveBadge state={autosave.state} />
         </span>
         <Button size="sm" variant="ghost" onClick={() => setPreview((p) => !p)}>
           {preview ? <Pencil size={13} /> : <Eye size={13} />}

@@ -5,6 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Check, ChevronRight, List, Plus, RotateCcw, Sparkles, Trash2, Undo2, X } from "lucide-react";
 import type { Card, Deck, Grade } from "@/lib/types";
 import { db, deleteDeck } from "@/lib/db";
+import { offerUndo } from "@/lib/undo";
 import { GRADES, dueCount, formatDue, newCard, orderForReview, schedule } from "@/lib/study";
 import { cn, inOverlay } from "@/lib/utils";
 import { Markdown } from "@/components/chat/Markdown";
@@ -86,7 +87,10 @@ export function CardsView({
         })}
         onOpen={onSelect}
         onNew={onNew}
-        onDelete={(id) => void deleteDeck(id)}
+        onDelete={async (id) => {
+          const title = decks.find((d) => d.id === id)?.title || "deck";
+          offerUndo(title, await deleteDeck(id));
+        }}
         lead={
           dueEverywhere.length > 0 ? (
             <button

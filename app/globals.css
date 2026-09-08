@@ -367,6 +367,19 @@ textarea:focus-visible {
   outline-offset: -2px;
 }
 
+/* The undo bar's clock. Reduced motion keeps the line — it is state, not
+   decoration — and only stops it from travelling. */
+.undo-clock {
+  animation: undo-drain linear forwards;
+}
+@keyframes undo-drain {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .undo-clock { animation: none; transform: scaleX(1); }
+}
+
 /* ---------------------------------------------------------------------------
    The composer.
 

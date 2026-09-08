@@ -4,7 +4,7 @@ import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Copy,
-  NotebookPen, PanelRight, Pencil, RefreshCw, Volume2, X,
+  Download, MoreHorizontal, NotebookPen, PanelRight, Pencil, RefreshCw, Volume2, X,
 } from "lucide-react";
 import type { ChatError, Message as Msg } from "@/lib/types";
 import { getModel, formatTokens, MODELS } from "@/lib/models";
@@ -177,6 +177,7 @@ export function AssistantMessage({
   onRegenerate,
   onSaveToNote,
   entering,
+  isLast,
 }: {
   message: Msg;
   siblings: Msg[];
@@ -185,20 +186,37 @@ export function AssistantMessage({
   onRegenerate: (modelId?: string) => void;
   onSaveToNote: (text: string) => void;
   entering?: boolean;
+  /** The answer you are about to act on keeps its controls on screen. */
+  isLast?: boolean;
 }) {
   const [copied, setCopied] = React.useState(false);
   const [speaking, setSpeaking] = React.useState(false);
   const text = blockText(message.content);
   const model = message.modelId ? getModel(message.modelId) : null;
   const artifact = useArtifact();
-  // Past roughly a screen and a half, an answer stops being part of the
-  // conversation and starts being a document you scroll past to keep talking.
-  const isLong = text.length > 2200;
 
   const copy = () => {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 1600);
+  };
+
+  /* A whole answer, as a file, without going through the thread exporter —
+     the unit people actually want to keep is usually one reply. */
+  const copyAsMarkdown = () => {
+    const stamp = new Date(message.createdAt).toISOString().slice(0, 10);
+    const name = (text.match(/^#{1,3}\s+(.+)$/m)?.[1] ?? model?.name ?? "answer")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 48);
+    const blob = new Blob([text], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${stamp}-${name || "answer"}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const speak = () => {
@@ -240,7 +258,18 @@ export function AssistantMessage({
 
       {message.error && <InlineError message={message.error} onRetry={() => onRegenerate()} />}
 
-      <div className="mt-1.5 flex h-7 items-center gap-0.5 reveal">
+      {/* Not every action is equal, so they are not drawn equal. Copy and
+          regenerate are what people reach for; the rest live one click deeper
+          rather than making you read seven identical icons to find the two.
+
+          The row stays put on the last answer — that is the one you are about
+          to act on, and making it appear only on hover means discovering it by
+          accident. Earlier answers keep it on hover, where it does not compete
+          with the reading. */}
+      <div
+        className="mt-1.5 flex h-7 items-center gap-0.5 reveal"
+        data-visible={isLast ? "true" : undefined}
+      >
         {siblings.length > 1 && <BranchNav siblings={siblings} index={index} onNavigate={onNavigate} />}
         <IconButton label={copied ? "Copied" : "Copy"} size={28} onClick={copy}>
           {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
@@ -253,7 +282,7 @@ export function AssistantMessage({
             <DropdownMenu.Trigger asChild>
               <button
                 aria-label="Regenerate with another model"
-                className="flex size-6 items-center justify-center rounded-md text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                className="focus-inset flex size-6 items-center justify-center rounded-md text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
               >
                 <ChevronDown size={13} />
               </button>
@@ -280,27 +309,79 @@ export function AssistantMessage({
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
         </DropdownMenu.Root>
-        {isLong && artifact && (
-          <IconButton
-            label="Open in side panel"
-            size={28}
-            onClick={() =>
-              artifact.open({
-                kind: "document",
-                title: text.match(/^#{1,3}\s+(.+)$/m)?.[1]?.slice(0, 60) ?? "Answer",
-                content: text,
-              })
-            }
-          >
-            <PanelRight size={14} />
+
+        {/* One overflow, always in the same place, whether or not the answer is
+            long enough to lift into a panel. A control that appears and
+            disappears between messages moves everything next to it. */}
+        <DropdownMenu.Root>
+          <Tooltip label="More">
+            <DropdownMenu.Trigger asChild>
+              <button
+                aria-label="More actions"
+                className="focus-inset flex size-7 items-center justify-center rounded-md text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+              >
+                <MoreHorizontal size={15} />
+              </button>
+            </DropdownMenu.Trigger>
+          </Tooltip>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              align="start"
+              sideOffset={6}
+              className="z-50 w-56 rounded-lg border border-line bg-surface p-1 shadow-md anim-pop"
+            >
+              <DropdownMenu.Item
+                onSelect={() => onSaveToNote(text)}
+                className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-secondary outline-none transition-colors duration-[var(--dur-fast)] data-[highlighted]:bg-subtle data-[highlighted]:text-primary"
+              >
+                <NotebookPen size={15} className="text-tertiary" />
+                Keep as a note
+              </DropdownMenu.Item>
+              {artifact && (
+                <DropdownMenu.Item
+                  onSelect={() =>
+                    artifact.open({
+                      kind: "document",
+                      title: text.match(/^#{1,3}\s+(.+)$/m)?.[1]?.slice(0, 60) ?? "Answer",
+                      content: text,
+                    })
+                  }
+                  className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-secondary outline-none transition-colors duration-[var(--dur-fast)] data-[highlighted]:bg-subtle data-[highlighted]:text-primary"
+                >
+                  <PanelRight size={15} className="text-tertiary" />
+                  Open in side panel
+                </DropdownMenu.Item>
+              )}
+              <DropdownMenu.Item
+                onSelect={(e) => {
+                  e.preventDefault();
+                  speak();
+                }}
+                className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-secondary outline-none transition-colors duration-[var(--dur-fast)] data-[highlighted]:bg-subtle data-[highlighted]:text-primary"
+              >
+                <Volume2 size={15} className={cn(speaking ? "text-accent" : "text-tertiary")} />
+                {speaking ? "Stop reading" : "Read aloud"}
+              </DropdownMenu.Item>
+              <DropdownMenu.Separator className="my-1 h-px bg-[var(--border-subtle)]" />
+              <DropdownMenu.Item
+                onSelect={copyAsMarkdown}
+                className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-secondary outline-none transition-colors duration-[var(--dur-fast)] data-[highlighted]:bg-subtle data-[highlighted]:text-primary"
+              >
+                <Download size={15} className="text-tertiary" />
+                Download as Markdown
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+
+        {/* Reading aloud is the one action with a running state, so it stays
+            visible while it runs rather than hiding in a menu you have to
+            reopen to stop it. */}
+        {speaking && (
+          <IconButton label="Stop reading" size={28} onClick={speak} active>
+            <Volume2 size={14} />
           </IconButton>
         )}
-        <IconButton label="Keep as a note" size={28} onClick={() => onSaveToNote(text)}>
-          <NotebookPen size={14} />
-        </IconButton>
-        <IconButton label={speaking ? "Stop reading" : "Read aloud"} size={28} onClick={speak} active={speaking}>
-          <Volume2 size={14} />
-        </IconButton>
       </div>
     </div>
   );

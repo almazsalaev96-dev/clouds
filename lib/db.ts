@@ -161,10 +161,28 @@ export function deepestLeaf(all: Message[], fromId: string): string {
   }
 }
 
-export async function deleteConversation(id: string) {
-  await db.transaction("rw", db.conversations, db.messages, async () => {
+/**
+ * Every delete in this app goes through one of these, and every one of them
+ * reads the rows before it removes them and hands back a function that puts
+ * them all back — the conversation *and* its messages, the deck *and* its
+ * cards, the skill *and* everything it ever recorded about your practice.
+ *
+ * Returning a restorer rather than taking a confirmation is the whole design:
+ * the caller decides how to offer the way back, and cannot accidentally build
+ * a delete that has none, because there is no other delete to call.
+ */
+export async function deleteConversation(id: string): Promise<() => Promise<void>> {
+  return db.transaction("rw", db.conversations, db.messages, async () => {
+    const conversation = await db.conversations.get(id);
+    const messages = await db.messages.where("conversationId").equals(id).toArray();
     await db.messages.where("conversationId").equals(id).delete();
     await db.conversations.delete(id);
+    return async () => {
+      await db.transaction("rw", db.conversations, db.messages, async () => {
+        if (conversation) await db.conversations.put(conversation);
+        if (messages.length) await db.messages.bulkPut(messages);
+      });
+    };
   });
 }
 
@@ -267,8 +285,12 @@ export function deriveTitle(content: string, fallback = "Untitled note"): string
   return sentence.slice(0, 80) || fallback;
 }
 
-export async function deleteNote(id: string) {
+export async function deleteNote(id: string): Promise<() => Promise<void>> {
+  const note = await db.notes.get(id);
   await db.notes.delete(id);
+  return async () => {
+    if (note) await db.notes.put(note);
+  };
 }
 
 /* ----------------------------------------------------------------- decks -- */
@@ -279,10 +301,20 @@ export async function createDeck(title: string, source: Partial<Deck> = {}): Pro
   return deck;
 }
 
-export async function deleteDeck(id: string) {
-  await db.transaction("rw", db.decks, db.cards, async () => {
+export async function deleteDeck(id: string): Promise<() => Promise<void>> {
+  return db.transaction("rw", db.decks, db.cards, async () => {
+    const deck = await db.decks.get(id);
+    // Scheduling state is the expensive part of a deck. Losing it silently
+    // means every card comes back due tomorrow as if it were new.
+    const cards = await db.cards.where("deckId").equals(id).toArray();
     await db.cards.where("deckId").equals(id).delete();
     await db.decks.delete(id);
+    return async () => {
+      await db.transaction("rw", db.decks, db.cards, async () => {
+        if (deck) await db.decks.put(deck);
+        if (cards.length) await db.cards.bulkPut(cards);
+      });
+    };
   });
 }
 
@@ -303,8 +335,12 @@ export async function createPaper(init: Partial<Paper> = {}): Promise<Paper> {
   return paper;
 }
 
-export async function deletePaper(id: string) {
+export async function deletePaper(id: string): Promise<() => Promise<void>> {
+  const paper = await db.papers.get(id);
   await db.papers.delete(id);
+  return async () => {
+    if (paper) await db.papers.put(paper);
+  };
 }
 
 /* ---------------------------------------------------------------- skills -- */
@@ -327,12 +363,26 @@ export async function createSkill(init: Partial<Skill> = {}): Promise<Skill> {
   return skill;
 }
 
-export async function deleteSkill(id: string) {
-  await db.transaction("rw", [db.skills, db.traps, db.problems, db.attempts], async () => {
+export async function deleteSkill(id: string): Promise<() => Promise<void>> {
+  return db.transaction("rw", [db.skills, db.traps, db.problems, db.attempts], async () => {
+    const skill = await db.skills.get(id);
+    const traps = await db.traps.where("skillId").equals(id).toArray();
+    const problems = await db.problems.where("skillId").equals(id).toArray();
+    // Attempts are the only record of how the practice actually went. They are
+    // not regenerable from anything.
+    const attempts = await db.attempts.where("skillId").equals(id).toArray();
     await db.attempts.where("skillId").equals(id).delete();
     await db.problems.where("skillId").equals(id).delete();
     await db.traps.where("skillId").equals(id).delete();
     await db.skills.delete(id);
+    return async () => {
+      await db.transaction("rw", [db.skills, db.traps, db.problems, db.attempts], async () => {
+        if (skill) await db.skills.put(skill);
+        if (traps.length) await db.traps.bulkPut(traps);
+        if (problems.length) await db.problems.bulkPut(problems);
+        if (attempts.length) await db.attempts.bulkPut(attempts);
+      });
+    };
   });
 }
 

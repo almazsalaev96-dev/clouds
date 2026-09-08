@@ -8,10 +8,11 @@ import {
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { db, deleteConversation, dueTraps, groupConversations } from "@/lib/db";
+import { offerUndo } from "@/lib/undo";
 import { dueCount } from "@/lib/study";
 import { useSettings, type Section } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { ConfirmInline, IconButton, Kbd, Tooltip } from "@/components/ui/primitives";
+import { IconButton, Kbd, Tooltip } from "@/components/ui/primitives";
 
 const SECTIONS: { id: Exclude<Section, "chat">; label: string; icon: React.ReactNode }[] = [
   { id: "notes", label: "Notes", icon: <FileText size={15} /> },
@@ -205,7 +206,6 @@ function ChatList({
   onSelect: (id: string) => void;
   onNew: () => void;
 }) {
-  const [confirming, setConfirming] = React.useState<string | null>(null);
   const conversations = useLiveQuery(
     () => db.conversations.orderBy("updatedAt").reverse().toArray(),
     [],
@@ -245,16 +245,19 @@ function ChatList({
       key={c.id}
       title={c.title || "New chat"}
       active={c.id === activeId}
-      confirming={confirming === c.id}
       pinned={c.pinned}
       onSelect={() => onSelect(c.id)}
       onTogglePin={() => db.conversations.update(c.id, { pinned: !c.pinned })}
-      onAskDelete={() => setConfirming(c.id)}
-      onCancelDelete={() => setConfirming(null)}
       onDelete={async () => {
-        setConfirming(null);
-        await deleteConversation(c.id);
-        if (c.id === activeId) onNew();
+        // No confirmation step: it interrupts every delete to catch the rare
+        // one, and the undo bar catches that one without interrupting any.
+        const wasActive = c.id === activeId;
+        const restore = await deleteConversation(c.id);
+        if (wasActive) onNew();
+        offerUndo(c.title || "New chat", async () => {
+          await restore();
+          if (wasActive) onSelect(c.id);
+        });
       }}
     />
   );
@@ -284,24 +287,18 @@ function Row({
   meta,
   badge,
   active,
-  confirming,
   pinned,
   onSelect,
   onTogglePin,
-  onAskDelete,
-  onCancelDelete,
   onDelete,
 }: {
   title: string;
   meta?: string;
   badge?: string;
   active: boolean;
-  confirming: boolean;
   pinned?: boolean;
   onSelect: () => void;
   onTogglePin?: () => void;
-  onAskDelete: () => void;
-  onCancelDelete: () => void;
   onDelete: () => void;
 }) {
   return (
@@ -313,52 +310,46 @@ function Row({
     >
       {active && <span aria-hidden className="absolute left-0 top-1.5 h-5 w-0.5 rounded-full bg-accent" />}
 
-      {confirming ? (
-        <ConfirmInline question="Delete?" onConfirm={onDelete} onCancel={onCancelDelete} />
-      ) : (
-        <>
-          <button
-            onClick={onSelect}
-            className={cn(
-              "flex min-w-0 flex-1 items-baseline gap-1.5 text-left text-sm",
-              active ? "text-primary" : "text-secondary group-hover:text-primary",
-            )}
-            title={title}
-          >
-            <span className="truncate">{title}</span>
-            {meta && <span className="shrink-0 text-xs text-tertiary">{meta}</span>}
-          </button>
+      <button
+        onClick={onSelect}
+        className={cn(
+          "flex min-w-0 flex-1 items-baseline gap-1.5 text-left text-sm",
+          active ? "text-primary" : "text-secondary group-hover:text-primary",
+        )}
+        title={title}
+      >
+        <span className="truncate">{title}</span>
+        {meta && <span className="shrink-0 text-xs text-tertiary">{meta}</span>}
+      </button>
 
-          {badge && (
-            <span className="mr-1 shrink-0 rounded-full bg-accent px-1.5 text-xs font-medium text-accent-fg tnum group-hover:hidden">
-              {badge}
-            </span>
-          )}
-
-          <span className="flex shrink-0 items-center reveal">
-            {onTogglePin && (
-              <Tooltip label={pinned ? "Unpin" : "Pin"}>
-                <button
-                  onClick={onTogglePin}
-                  aria-label={pinned ? "Unpin" : "Pin"}
-                  className="flex size-6 items-center justify-center rounded-sm text-tertiary hover:bg-subtle hover:text-primary"
-                >
-                  {pinned ? <PinOff size={12} /> : <Pin size={12} />}
-                </button>
-              </Tooltip>
-            )}
-            <Tooltip label="Delete">
-              <button
-                onClick={onAskDelete}
-                aria-label="Delete"
-                className="flex size-6 items-center justify-center rounded-sm text-tertiary hover:bg-subtle hover:text-danger"
-              >
-                <Trash2 size={12} />
-              </button>
-            </Tooltip>
-          </span>
-        </>
+      {badge && (
+        <span className="mr-1 shrink-0 rounded-full bg-accent px-1.5 text-xs font-medium text-accent-fg tnum group-hover:hidden">
+          {badge}
+        </span>
       )}
+
+      <span className="flex shrink-0 items-center reveal">
+        {onTogglePin && (
+          <Tooltip label={pinned ? "Unpin" : "Pin"}>
+            <button
+              onClick={onTogglePin}
+              aria-label={pinned ? "Unpin" : "Pin"}
+              className="focus-inset flex size-6 items-center justify-center rounded-sm text-tertiary hover:bg-subtle hover:text-primary"
+            >
+              {pinned ? <PinOff size={12} /> : <Pin size={12} />}
+            </button>
+          </Tooltip>
+        )}
+        <Tooltip label="Delete">
+          <button
+            onClick={onDelete}
+            aria-label={`Delete ${title}`}
+            className="focus-inset flex size-6 items-center justify-center rounded-sm text-tertiary hover:bg-subtle hover:text-danger"
+          >
+            <Trash2 size={12} />
+          </button>
+        </Tooltip>
+      </span>
     </div>
   );
 }

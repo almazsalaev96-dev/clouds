@@ -7,7 +7,7 @@ import type { Conversation } from "@/lib/types";
 import { useSettings } from "@/lib/store";
 import { formatCost, formatTokens } from "@/lib/models";
 import { cn } from "@/lib/utils";
-import { ConfirmInline, IconButton } from "@/components/ui/primitives";
+import { IconButton } from "@/components/ui/primitives";
 import { ModelPicker } from "./ModelPicker";
 
 export function TopBar({
@@ -21,9 +21,6 @@ export function TopBar({
   onRename,
   onExport,
   onDelete,
-  confirmingDelete,
-  onConfirmDelete,
-  onCancelDelete,
   onTogglePin,
   onSaveAsNote,
   onMakeCards,
@@ -39,9 +36,6 @@ export function TopBar({
   onRename: (title: string) => void;
   onExport: () => void;
   onDelete: () => void;
-  confirmingDelete: boolean;
-  onConfirmDelete: () => void;
-  onCancelDelete: () => void;
   onTogglePin: () => void;
   onSaveAsNote: () => void;
   onMakeCards: () => void;
@@ -108,14 +102,7 @@ export function TopBar({
       )}
 
       <div className="ml-auto flex items-center gap-0.5">
-        {conversation && confirmingDelete && (
-          <ConfirmInline
-            question="Delete this conversation?"
-            onConfirm={onConfirmDelete}
-            onCancel={onCancelDelete}
-          />
-        )}
-        {conversation && !confirmingDelete && (
+        {conversation && (
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
               <button

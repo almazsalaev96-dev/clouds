@@ -3,7 +3,7 @@
 import * as React from "react";
 import { ChevronLeft, Pin, PinOff, Plus, Search, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button, ConfirmInline, IconButton, Tooltip } from "@/components/ui/primitives";
+import { Button, IconButton, Tooltip } from "@/components/ui/primitives";
 
 export interface IndexItem {
   id: string;
@@ -50,7 +50,6 @@ export function SectionIndex({
   lead?: React.ReactNode;
 }) {
   const [query, setQuery] = React.useState("");
-  const [confirming, setConfirming] = React.useState<string | null>(null);
 
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -113,23 +112,9 @@ export function SectionIndex({
             {filtered.map((item) => (
               <li
                 key={item.id}
-                className={cn(
-                  "group flex items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2.5 transition-colors duration-[var(--dur-fast)]",
-                  confirming !== item.id && "hover:border-line-strong",
-                )}
+                className="group flex items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2.5 transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
               >
-                {confirming === item.id ? (
-                  <ConfirmInline
-                    question={`Delete "${item.title}"?`}
-                    onConfirm={() => {
-                      setConfirming(null);
-                      onDelete(item.id);
-                    }}
-                    onCancel={() => setConfirming(null)}
-                  />
-                ) : (
-                  <>
-                    <button onClick={() => onOpen(item.id)} className="min-w-0 flex-1 text-left">
+                    <button onClick={() => onOpen(item.id)} className="focus-inset min-w-0 flex-1 rounded-md text-left">
                       <span className="flex items-baseline gap-2">
                         <span className="truncate text-sm font-medium text-primary">{item.title}</span>
                         {item.meta && <span className="shrink-0 text-xs text-tertiary">{item.meta}</span>}
@@ -166,17 +151,17 @@ export function SectionIndex({
                       </Tooltip>
                     )}
 
+                    {/* Straight to it. The undo bar is the way back, and it is
+                        the same way back everywhere else in the app. */}
                     <Tooltip label="Delete">
                       <button
-                        onClick={() => setConfirming(item.id)}
+                        onClick={() => onDelete(item.id)}
                         aria-label={`Delete ${item.title}`}
-                        className="flex size-7 shrink-0 items-center justify-center rounded-md text-tertiary reveal hover:bg-subtle hover:text-danger"
+                        className="focus-inset flex size-7 shrink-0 items-center justify-center rounded-md text-tertiary reveal hover:bg-subtle hover:text-danger"
                       >
                         <Trash2 size={14} />
                       </button>
                     </Tooltip>
-                  </>
-                )}
               </li>
             ))}
           </ul>

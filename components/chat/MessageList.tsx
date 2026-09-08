@@ -147,6 +147,7 @@ export function MessageList({
                 onRegenerate={(modelId) => onRegenerate(m, modelId)}
                 onSaveToNote={onSaveToNote}
                 entering={entering}
+                isLast={i === messages.length - 1}
               />
             );
           })}

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import type { SaveState } from "@/lib/hooks/useAutosave";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { cn, isMac } from "@/lib/utils";
 
@@ -119,7 +120,20 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
   },
 );
 
-/** Destructive actions confirm inline. Modals are for things needing paragraphs. */
+/**
+ * "Your work is safe" is only reassuring if you can see it, so every editor
+ * says it the same way, in the same place, with the same two words.
+ */
+export function SaveBadge({ state }: { state: SaveState }) {
+  if (state === "idle") return null;
+  return (
+    <span className="text-xs text-tertiary anim-fade" role="status" aria-live="polite">
+      {state === "pending" ? "Saving…" : "Saved"}
+    </span>
+  );
+}
+
+/** Destructive actions confirm inline. Only for what genuinely has no undo. */
 export function ConfirmInline({
   question,
   onConfirm,

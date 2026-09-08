@@ -4,12 +4,14 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft, Download, Eye, Pencil, Printer, Sparkles, Undo2 } from "lucide-react";
 import type { Paper } from "@/lib/types";
-import { db } from "@/lib/db";
+import { db, deletePaper } from "@/lib/db";
+import { offerUndo } from "@/lib/undo";
 import { cheapestAvailable, generatePaper } from "@/lib/generate";
-import { cn, debounce } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useAutoGrow } from "@/lib/hooks/useAutoGrow";
+import { useAutosave } from "@/lib/hooks/useAutosave";
 import { Markdown } from "@/components/chat/Markdown";
-import { Button, IconButton } from "@/components/ui/primitives";
+import { Button, IconButton, SaveBadge } from "@/components/ui/primitives";
 import { SectionIndex } from "@/components/SectionIndex";
 
 const FORMATS: { id: Paper["format"]; label: string; hint: string }[] = [
@@ -66,37 +68,13 @@ export function PapersView({
     }
   }, [paper]);
 
-  /**
-   * One debounced writer serves four fields, and `debounce` holds a single
-   * timer: typing a title and then the body within the window cancelled the
-   * title write, so the title visibly reverted on the next render. Patches
-   * accumulate instead of racing.
-   */
-  const pending = React.useRef<Partial<Paper>>({});
-  const flush = React.useCallback((id: string) => {
-    const patch = pending.current;
-    pending.current = {};
-    if (Object.keys(patch).length) void db.papers.update(id, { ...patch, updatedAt: Date.now() });
-  }, []);
-  const debouncedFlush = React.useMemo(() => debounce((id: string) => flush(id), 400), [flush]);
-  const persist = React.useCallback(
-    (id: string, patch: Partial<Paper>) => {
-      pending.current = { ...pending.current, ...patch };
-      debouncedFlush(id);
-    },
-    [debouncedFlush],
+  const autosave = useAutosave<Paper>(
+    paperId,
+    React.useCallback((id, patch) => {
+      void db.papers.update(id, { ...patch, updatedAt: Date.now() });
+    }, []),
   );
-
-  // A tab closed or backgrounded mid-sentence should not lose it.
-  React.useEffect(() => {
-    if (!paperId) return;
-    const onHide = () => flush(paperId);
-    window.addEventListener("visibilitychange", onHide);
-    return () => {
-      window.removeEventListener("visibilitychange", onHide);
-      flush(paperId);
-    };
-  }, [paperId, flush]);
+  const persist = autosave.save;
 
   if (!paper) {
     return (
@@ -114,7 +92,10 @@ export function PapersView({
         }))}
         onOpen={onSelect}
         onNew={onNew}
-        onDelete={(id) => void db.papers.delete(id)}
+        onDelete={async (id) => {
+          const title = papers.find((p) => p.id === id)?.title || "paper";
+          offerUndo(title, await deletePaper(id));
+        }}
       />
     );
   }
@@ -171,7 +152,7 @@ export function PapersView({
         <IconButton label="All papers" keys={["Esc"]} onClick={onBack}>
           <ChevronLeft size={16} />
         </IconButton>
-        <div className="mr-auto flex rounded-md border border-line-strong bg-canvas p-0.5">
+        <div className="flex rounded-md border border-line-strong bg-canvas p-0.5">
           {FORMATS.map((f) => (
             <button
               key={f.id}
@@ -188,6 +169,10 @@ export function PapersView({
             </button>
           ))}
         </div>
+
+        <span className="mr-auto pl-2.5">
+          <SaveBadge state={autosave.state} />
+        </span>
 
         <Button size="sm" variant="ghost" onClick={() => setEditing((e) => !e)}>
           {editing ? <Eye size={13} /> : <Pencil size={13} />}

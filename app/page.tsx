@@ -14,6 +14,7 @@ import { newCard } from "@/lib/study";
 import { useSettings, useDrafts, type Section } from "@/lib/store";
 import { useStream } from "@/lib/hooks/useStream";
 import { inOverlay } from "@/lib/utils";
+import { offerUndo } from "@/lib/undo";
 import { Sidebar } from "@/components/Sidebar";
 import { NotesView, saveToNote } from "@/components/NotesView";
 import { CardsView } from "@/components/CardsView";
@@ -27,6 +28,7 @@ import { Composer } from "@/components/chat/Composer";
 import { EmptyState } from "@/components/chat/EmptyState";
 import dynamic from "next/dynamic";
 import { IconButton, TooltipProvider } from "@/components/ui/primitives";
+import { UndoBar } from "@/components/ui/UndoBar";
 import { ArtifactPanel, ArtifactProvider, type Artifact } from "@/components/chat/ArtifactPanel";
 
 // Neither of these is on the path to a first message, so neither belongs in
@@ -377,14 +379,16 @@ export default function Page() {
     URL.revokeObjectURL(url);
   }, [conversation, path]);
 
-  const [pendingDelete, setPendingDelete] = React.useState<string | null>(null);
-
   const removeConversation = React.useCallback(async () => {
     if (!activeId) return;
-    await deleteConversation(activeId);
-    setPendingDelete(null);
+    const title = conversation?.title || "this conversation";
+    const restore = await deleteConversation(activeId);
     setActiveId(null);
-  }, [activeId]);
+    offerUndo(title, async () => {
+      await restore();
+      setActiveId(activeId);
+    });
+  }, [activeId, conversation]);
 
   const editLast = React.useCallback(() => {
     const lastUser = [...path].reverse().find((m) => m.role === "user");
@@ -581,10 +585,7 @@ export default function Page() {
             onModelChange={setModel}
             onRename={(title) => activeId && db.conversations.update(activeId, { title })}
             onExport={exportConversation}
-            onDelete={() => setPendingDelete(activeId)}
-            confirmingDelete={pendingDelete !== null && pendingDelete === activeId}
-            onConfirmDelete={removeConversation}
-            onCancelDelete={() => setPendingDelete(null)}
+            onDelete={removeConversation}
             onTogglePin={() =>
               activeId && conversation && db.conversations.update(activeId, { pinned: !conversation.pinned })
             }
@@ -681,13 +682,16 @@ export default function Page() {
           actions={{
             newChat,
             openSettings: openKeys,
-            selectConversation: setActiveId,
+            open: selectInSection,
+            goToSection,
             setModel: settings.setModel,
             exportMarkdown: exportConversation,
-            deleteConversation: () => setPendingDelete(activeId),
+            deleteConversation: removeConversation,
           }}
         />
         )}
+
+        <UndoBar />
 
         <ShortcutsOverlay open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
 

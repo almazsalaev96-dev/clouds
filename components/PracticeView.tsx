@@ -5,6 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { ArrowRight, Check, ChevronRight, Eye, Lightbulb, X } from "lucide-react";
 import type { Problem, Skill, Trap } from "@/lib/types";
 import { createSkill, db, deleteSkill, dueTraps, uid } from "@/lib/db";
+import { offerUndo } from "@/lib/undo";
 import { cheapestAvailable, generateProblems, sketchSkill, type DraftTrap } from "@/lib/generate";
 import { checkAnswer, interleave, recordAttempt, steerBand } from "@/lib/practice";
 import { formatDue, newSchedule } from "@/lib/study";
@@ -115,7 +116,10 @@ export function PracticeView({
       })}
       onOpen={onSelect}
       onNew={() => setSeeding(true)}
-      onDelete={(id) => void deleteSkill(id)}
+      onDelete={async (id) => {
+        const name = skills.find((k) => k.id === id)?.name || "skill";
+        offerUndo(name, await deleteSkill(id));
+      }}
       lead={
         due.length > 0 ? (
           <button

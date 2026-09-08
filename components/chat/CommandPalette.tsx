@@ -4,12 +4,12 @@ import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  Download, MessageSquare, MessageSquarePlus, Moon, PanelLeft, Settings2,
-  Sun, Trash2, Type,
+  Download, FileText, Layers, MessageSquare, MessageSquarePlus, Moon, PanelLeft,
+  Printer, Settings2, Sun, Target, Trash2, Type,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { MODELS } from "@/lib/models";
-import { useSettings } from "@/lib/store";
+import { useSettings, type Section } from "@/lib/store";
 import { cn, fuzzyScore } from "@/lib/utils";
 import { Kbd } from "@/components/ui/primitives";
 
@@ -17,10 +17,31 @@ interface Command {
   id: string;
   label: string;
   hint?: string;
+  /** Searched, never shown whole: the body of a note or paper. */
+  body?: string;
   keys?: string[];
   icon: React.ReactNode;
   group: string;
   run: () => void;
+}
+
+/** Ties broken here when two groups score the same, so the order is stable. */
+const GROUP_ORDER = ["Actions", "Go to", "View", "Models", "Chats", "Notes", "Cards", "Papers", "Practice"];
+/** No single kind of thing may fill the list and bury the rest. */
+const PER_GROUP = 5;
+
+/**
+ * First line with any substance, trimmed of Markdown scaffolding — skipping any
+ * line that just repeats the title, which is most notes, whose first line is
+ * the heading the title was derived from. Printing it twice is noise.
+ */
+function preview(content: string, title: string): string | undefined {
+  const t = title.trim().toLowerCase();
+  const line = content
+    .split("\n")
+    .map((l) => l.replace(/^#{1,6}\s+|^[-*+]\s+|^>\s?/, "").trim())
+    .find((l) => l.length > 0 && l.toLowerCase() !== t);
+  return line ? line.slice(0, 90) : undefined;
 }
 
 /**
@@ -38,7 +59,9 @@ export function CommandPalette({
   actions: {
     newChat: () => void;
     openSettings: () => void;
-    selectConversation: (id: string) => void;
+    /** Opens an item and moves to its section. Both halves, always. */
+    open: (section: Section, id: string) => void;
+    goToSection: (section: Section) => void;
     setModel: (id: string) => void;
     exportMarkdown: () => void;
     deleteConversation: () => void;
@@ -49,11 +72,20 @@ export function CommandPalette({
   const [active, setActive] = React.useState(0);
   const listRef = React.useRef<HTMLDivElement>(null);
 
+  /* Everything you have made, in one index. A palette that finds only your
+     chats is a chat switcher wearing a palette's clothes — and the moment the
+     app grew notes, decks, papers and skills, four fifths of your work became
+     unreachable from the one place you go to find things. Loaded only while
+     the palette is mounted, which is only while it is open. */
   const conversations = useLiveQuery(
-    () => db.conversations.orderBy("updatedAt").reverse().limit(50).toArray(),
+    () => db.conversations.orderBy("updatedAt").reverse().limit(60).toArray(),
     [],
     [],
   );
+  const notes = useLiveQuery(() => db.notes.orderBy("updatedAt").reverse().limit(60).toArray(), [], []);
+  const decks = useLiveQuery(() => db.decks.orderBy("createdAt").reverse().limit(40).toArray(), [], []);
+  const papers = useLiveQuery(() => db.papers.orderBy("updatedAt").reverse().limit(40).toArray(), [], []);
+  const skills = useLiveQuery(() => db.skills.orderBy("updatedAt").reverse().limit(40).toArray(), [], []);
 
   React.useEffect(() => {
     if (open) {
@@ -99,27 +131,130 @@ export function CommandPalette({
       run: () => actions.setModel(m.id),
     }));
 
+    /* Going somewhere is a command too. Without these the only way into a
+       section is the sidebar, which is exactly the mouse the palette exists
+       to replace. */
+    const nav: Command[] = (
+      [
+        ["chat", "Chats", <MessageSquare key="c" size={15} />],
+        ["notes", "Notes", <FileText key="n" size={15} />],
+        ["cards", "Cards", <Layers key="d" size={15} />],
+        ["papers", "Papers", <Printer key="p" size={15} />],
+        ["practice", "Practice", <Target key="s" size={15} />],
+      ] as const
+    ).map(([id, label, icon]) => ({
+      id: `go:${id}`,
+      label: `Go to ${label}`,
+      icon,
+      group: "Go to",
+      run: () => actions.goToSection(id as Section),
+    }));
+
     const chats: Command[] = (conversations ?? [])
       .filter((c) => c.title)
       .map((c) => ({
         id: `chat:${c.id}`,
         label: c.title,
         icon: <MessageSquare size={15} />,
-        group: "Conversations",
-        run: () => actions.selectConversation(c.id),
+        group: "Chats",
+        run: () => actions.open("chat", c.id),
       }));
 
-    return [...base, ...models, ...chats];
-  }, [actions, conversations, settings]);
+    /* Notes and papers are searched by their body as well as their title,
+       because that is how you actually remember a note: by a phrase in it,
+       not by the heading you never wrote. */
+    const noteCmds: Command[] = (notes ?? []).map((n) => ({
+      id: `note:${n.id}`,
+      label: n.title || "Untitled note",
+      hint: preview(n.content, n.title),
+      body: n.content,
+      icon: <FileText size={15} />,
+      group: "Notes",
+      run: () => actions.open("notes", n.id),
+    }));
 
+    const deckCmds: Command[] = (decks ?? []).map((d) => ({
+      id: `deck:${d.id}`,
+      label: d.title,
+      icon: <Layers size={15} />,
+      group: "Cards",
+      run: () => actions.open("cards", d.id),
+    }));
+
+    const paperCmds: Command[] = (papers ?? []).map((p) => ({
+      id: `paper:${p.id}`,
+      label: p.title || "Untitled",
+      hint: p.subtitle || preview(p.content, p.title),
+      body: p.content,
+      icon: <Printer size={15} />,
+      group: "Papers",
+      run: () => actions.open("papers", p.id),
+    }));
+
+    const skillCmds: Command[] = (skills ?? [])
+      .filter((k) => k.state === "ready")
+      .map((k) => ({
+        id: `skill:${k.id}`,
+        label: k.name,
+        hint: k.goal,
+        icon: <Target size={15} />,
+        group: "Practice",
+        run: () => actions.open("practice", k.id),
+      }));
+
+    return [
+      ...base, ...nav, ...models,
+      ...chats, ...noteCmds, ...deckCmds, ...paperCmds, ...skillCmds,
+    ];
+  }, [actions, conversations, notes, decks, papers, skills, settings]);
+
+  /* Ranking has two jobs at once: put the best thing first, and keep each
+     group in one piece. Sorting purely by score interleaves a note between two
+     chats and prints the same heading three times, which reads as a bug. So
+     items are scored individually, groups inherit their best item's score, and
+     the list is ordered by group and then within it. */
   const filtered = React.useMemo(() => {
-    if (!query.trim()) return commands.slice(0, 12);
-    return commands
-      .map((c) => ({ c, score: Math.max(fuzzyScore(query, c.label), fuzzyScore(query, c.group) * 0.4) }))
-      .filter((r) => r.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 20)
-      .map((r) => r.c);
+    const q = query.trim();
+
+    if (!q) {
+      // The resting list is what you would reach for without typing: the
+      // actions, then the few things you touched last.
+      const recent = commands.filter((c) => /^(chat|note|deck|paper|skill):/.test(c.id));
+      return [...commands.filter((c) => c.group === "Actions"), ...recent.slice(0, 8)];
+    }
+
+    const scored = commands
+      .map((c) => ({
+        c,
+        score: Math.max(
+          fuzzyScore(q, c.label),
+          fuzzyScore(q, c.group) * 0.4,
+          // A body match is worth finding but must never outrank a title:
+          // substring only, and heavily discounted.
+          c.body && c.body.toLowerCase().includes(q.toLowerCase()) ? 120 : 0,
+        ),
+      }))
+      .filter((r) => r.score > 0);
+
+    const byGroup = new Map<string, typeof scored>();
+    for (const r of scored) {
+      const list = byGroup.get(r.c.group);
+      if (list) list.push(r);
+      else byGroup.set(r.c.group, [r]);
+    }
+
+    return [...byGroup.entries()]
+      .map(([group, items]) => ({
+        group,
+        items: items.sort((a, b) => b.score - a.score).slice(0, PER_GROUP),
+        best: Math.max(...items.map((i) => i.score)),
+      }))
+      .sort((a, b) =>
+        b.best - a.best ||
+        GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group),
+      )
+      .flatMap((g) => g.items.map((i) => i.c))
+      .slice(0, 24);
   }, [commands, query]);
 
   React.useEffect(() => setActive(0), [query]);
@@ -159,7 +294,7 @@ export function CommandPalette({
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search actions, models and conversations"
+            placeholder="Search everything"
             aria-label="Command palette"
             className="w-full border-b border-line bg-transparent px-4 py-3 text-base text-primary outline-none placeholder:text-tertiary"
           />
