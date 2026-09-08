@@ -6,19 +6,27 @@ import type { ModelParams, ProviderId } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 
 /**
- * The app has been renamed twice: Clouds, then Armi, now Astra. Settings and
- * drafts follow the name rather than resetting with it, and the chain is
- * ordered newest-first so the most recent state wins if several exist.
+ * Storage keys are deliberately not the product name.
+ *
+ * They were, and the app has since been called Clouds, Armi and Astra — each
+ * rename putting everyone's theme, model choice and unsent drafts one typo away
+ * from being orphaned. A brand is a marketing decision; where a user's settings
+ * live should not be. These keys are now fixed, and a rename costs nothing.
+ *
+ * The one-time adoption below walks the old brand keys newest-first, so a
+ * browser that last used any of those names keeps its state.
  */
-const NAME_HISTORY = ["armi", "clouds"];
+export const SETTINGS_KEY = "store.settings.v1";
+export const DRAFTS_KEY = "store.drafts.v1";
 
-function adoptPreviousStorage(suffix: string) {
+const BRAND_HISTORY = ["astra", "armi", "clouds"];
+
+function adoptLegacyStorage(target: string, suffix: string) {
   if (typeof window === "undefined") return;
-  const target = `astra.${suffix}`;
   try {
     if (localStorage.getItem(target)) return;
-    for (const old of NAME_HISTORY) {
-      const value = localStorage.getItem(`${old}.${suffix}`);
+    for (const brand of BRAND_HISTORY) {
+      const value = localStorage.getItem(`${brand}.${suffix}`);
       if (value) {
         localStorage.setItem(target, value);
         return;
@@ -28,8 +36,8 @@ function adoptPreviousStorage(suffix: string) {
     /* private mode, or storage disabled */
   }
 }
-adoptPreviousStorage("settings");
-adoptPreviousStorage("drafts");
+adoptLegacyStorage(SETTINGS_KEY, "settings");
+adoptLegacyStorage(DRAFTS_KEY, "drafts");
 
 export type Theme = "light" | "dark" | "system";
 export type Density = "compact" | "comfortable" | "spacious";
@@ -112,7 +120,7 @@ export const useSettings = create<Settings>()(
         })),
       set: (partial) => set(partial),
     }),
-    { name: "astra.settings", version: 1 },
+    { name: SETTINGS_KEY, version: 1 },
   ),
 );
 
@@ -131,6 +139,6 @@ export const useDrafts = create<DraftState>()(
       drafts: {},
       setDraft: (id, text) => set((s) => ({ drafts: { ...s.drafts, [id]: text } })),
     }),
-    { name: "astra.drafts", version: 1 },
+    { name: DRAFTS_KEY, version: 1 },
   ),
 );

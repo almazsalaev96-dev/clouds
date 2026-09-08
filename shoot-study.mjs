@@ -83,7 +83,7 @@ for (const theme of ["light", "dark"]) {
   page.on("pageerror", (e) => console.log("PAGEERROR:", e.message));
   await page.goto(URL, { waitUntil: "networkidle" });
   await page.evaluate((t) => {
-    localStorage.setItem("astra.settings", JSON.stringify({ state: { theme: t, density: "comfortable", modelId: "claude-sonnet-4-5", section: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: { anthropic: "sk-ant-demo" }, params: {}, favorites: [], recentModels: [], systemPrompt: "" }, version: 1 }));
+    localStorage.setItem("store.settings.v1", JSON.stringify({ state: { theme: t, density: "comfortable", modelId: "claude-sonnet-4-5", section: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: { anthropic: "sk-ant-demo" }, params: {}, favorites: [], recentModels: [], systemPrompt: "" }, version: 1 }));
   }, theme);
 
   await page.evaluate(async ({ note, paper, cards }) => {

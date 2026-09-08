@@ -3,7 +3,7 @@ import "./globals.css";
 import "katex/dist/katex.min.css";
 
 export const metadata: Metadata = {
-  title: "Astra",
+  title: "Armi",
   description:
     "One interface for Claude, GPT, Gemini and DeepSeek — and the notes, cards and papers that come out of them.",
 };
@@ -26,7 +26,12 @@ export const viewport: Viewport = {
 const THEME_SCRIPT = `
 (function () {
   try {
-    var raw = localStorage.getItem("astra.settings") || localStorage.getItem("armi.settings") || localStorage.getItem("clouds.settings") || "{}";
+    var keys = ["store.settings.v1", "astra.settings", "armi.settings", "clouds.settings"];
+    var raw = "{}";
+    for (var i = 0; i < keys.length; i++) {
+      var v = localStorage.getItem(keys[i]);
+      if (v) { raw = v; break; }
+    }
     var s = JSON.parse(raw).state || {};
     if (s.theme && s.theme !== "system") document.documentElement.dataset.theme = s.theme;
     if (s.density && s.density !== "comfortable") document.documentElement.dataset.density = s.density;
