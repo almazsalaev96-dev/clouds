@@ -18,7 +18,10 @@ import './Chat.css'
 const OPENERS = [
   { label: 'Make me flashcards', text: 'Make me flashcards on the topic I am weakest on.' },
   { label: 'Give me a question', text: 'Give me an exam question on the topic I am weakest on.' },
-  { label: 'Mark my answer', text: 'I will paste a question and my answer. Mark it like an examiner.' },
+  // Marking needs something to mark against, so this opener sets the question first
+  // and leaves the composer on "Mark it". An opener that led nowhere would be worse
+  // than one fewer opener.
+  { label: 'Mark what I write', text: 'Set me a question I can answer now, and mark what I write against the scheme.' },
   { label: 'Explain something', text: 'Explain the hardest idea on this course in plain words.' },
 ]
 
