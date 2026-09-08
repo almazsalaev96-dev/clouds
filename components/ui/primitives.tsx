@@ -75,7 +75,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
       className={cn(
         "inline-flex select-none items-center justify-center gap-1.5 rounded-md font-medium transition-colors duration-[var(--dur-fast)] ease-[var(--ease-std)] disabled:pointer-events-none disabled:opacity-40",
         size === "sm" ? "h-7 px-2.5 text-xs" : "h-9 px-3.5 text-sm",
-        variant === "primary" && "bg-[var(--accent-fill)] text-accent-fg hover:brightness-110",
+        variant === "primary" && "bg-[var(--accent-fill)] text-accent-fg hover:bg-[var(--accent-fill-hover)]",
         variant === "secondary" && "border border-line-strong bg-surface text-primary hover:bg-subtle",
         variant === "ghost" && "text-secondary hover:bg-subtle hover:text-primary",
         variant === "danger" && "bg-[var(--stop)] text-white hover:brightness-110",

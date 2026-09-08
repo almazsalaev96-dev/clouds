@@ -60,18 +60,21 @@ answer you chose. The other two are not discarded: they stay under `‹ 2/3 ›`
 copy left in the thread collapses to a one-line reference, so a 900-line answer stops
 burying the conversation that produced it.
 
-**Look** — a Void Navy ground (`#030817`) with Deep AI Blue (`#0B2EFF`) as the only
-hue allowed to cover area, Electric Blue (`#287BFF`) carrying text and icons on top of
-it, and three signals — Acid Lime, Hyper Orange, Signal Red — that never fill anything
+**Look** — a Void Navy ground (`#030817`) and one indigo primary, in two steps: the
+deep step (`#2F45E0`) fills and holds white text, the light step (`#7D90FF`) is the
+same hue raised until it can be read on the navy. Two steps rather than one because no
+single value can do both — white needs the fill below `L 0.183` and the navy needs the
+text above `L 0.186`, and those thresholds cross. Indigo over azure for two reasons
+that are checkable: it holds the widest contrast margin of the families tried, and it
+sits furthest in hue from lime and orange, so the signals never read as a shade of the
+brand. Then three signals — Acid Lime, Hyper Orange, Signal Red — that never fill anything
 larger than a badge, a caret or a 2px rule. That restraint is the palette: a colour
 used everywhere stops meaning anything, so lime marks work waiting, orange marks the
 model running, and red marks something you cannot undo. Failures get a red rule and a
 sentence, not a panel of red.
 
-Two constraints fall out of the ratios and are enforced rather than assumed. Deep AI
-Blue is too dark to read against navy, so it is a *fill* with white on it (7.4:1)
-while Electric Blue carries text (5.1:1) — a primary button in the reading colour
-would have shipped at 3.5:1. And a signal used as text is not the same value as a
+Two constraints are enforced rather than assumed. The primary's two steps exist because
+one value cannot serve both roles, as above. And a signal used as text is not the same value as a
 signal used as a fill: light mode darkens lime to `#4C6B00` for type, while the badge
 keeps the vivid `#D8FF38` with navy on top. Every pair was computed, not eyeballed;
 control borders clear 3:1 against the page, body text 4.5:1, in both themes.
