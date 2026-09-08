@@ -8,6 +8,7 @@ import { siblingsOf } from "@/lib/db";
 import { cn, formatElapsed } from "@/lib/utils";
 import { AssistantMessage, InlineError, UserMessage } from "./Message";
 import { Markdown, useThrottled } from "./Markdown";
+import { CompareGrid } from "./Compare";
 
 /** How far the user must scroll up before we stop following the stream. */
 const RELEASE_PX = 40;
@@ -33,6 +34,7 @@ export function MessageList({
   onSwitchModel,
   onDismissError,
   onScrolledChange,
+  compare,
 }: {
   messages: Msg[];
   allMessages: Msg[];
@@ -44,12 +46,13 @@ export function MessageList({
   error: ChatError | null;
   onNavigate: (id: string) => void;
   onEdit: (message: Msg, text: string) => void;
-  onRegenerate: (message: Msg) => void;
+  onRegenerate: (message: Msg, modelId?: string) => void;
   onRetry: () => void;
   onAddKey: () => void;
   onSwitchModel: () => void;
   onDismissError: () => void;
   onScrolledChange: (scrolled: boolean) => void;
+  compare: React.ComponentProps<typeof CompareGrid> | null;
 }) {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [pinned, setPinned] = React.useState(true);
@@ -76,7 +79,7 @@ export function MessageList({
     if (!el) return;
     if (pinned) el.scrollTop = el.scrollHeight;
     else if (active) setUnread(true);
-  }, [messages.length, streamText, streamReasoning, pinned, active]);
+  }, [messages.length, streamText, streamReasoning, pinned, active, compare]);
 
   const scrollToBottom = () => {
     const el = scrollRef.current;
@@ -121,10 +124,12 @@ export function MessageList({
                 siblings={siblings}
                 index={index}
                 onNavigate={onNavigate}
-                onRegenerate={() => onRegenerate(m)}
+                onRegenerate={(modelId) => onRegenerate(m, modelId)}
               />
             );
           })}
+
+          {compare && <CompareGrid {...compare} />}
 
           {active && (
             <StreamingMessage

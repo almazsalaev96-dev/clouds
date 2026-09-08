@@ -6,3 +6,5 @@ out
 next-env.d.ts
 .DS_Store
 shoot.mjs
+probe.mjs
+probe2.mjs

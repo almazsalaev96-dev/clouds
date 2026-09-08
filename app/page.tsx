@@ -17,6 +17,7 @@ import { Composer } from "@/components/chat/Composer";
 import { EmptyState } from "@/components/chat/EmptyState";
 import dynamic from "next/dynamic";
 import { TooltipProvider } from "@/components/ui/primitives";
+import { ArtifactPanel, ArtifactProvider, type Artifact } from "@/components/chat/ArtifactPanel";
 
 // Neither of these is on the path to a first message, so neither belongs in
 // the bundle the user waits for.
@@ -39,6 +40,13 @@ export default function Page() {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [settingsTab, setSettingsTab] = React.useState<"keys" | "appearance" | "model" | "data" | "shortcuts">("keys");
   const [scrolled, setScrolled] = React.useState(false);
+  const [artifact, setArtifact] = React.useState<Artifact | null>(null);
+  const [compareWith, setCompareWith] = React.useState<string[]>([]);
+  const [comparing, setComparing] = React.useState<{
+    parentId: string;
+    history: Message[];
+    modelIds: string[];
+  } | null>(null);
   const [mounted, setMounted] = React.useState(false);
 
   /* --- Theme and density live on the root element, applied before paint by
@@ -89,6 +97,14 @@ export default function Page() {
 
   const hasAnyKey =
     Object.values(configured).some(Boolean) || Object.values(settings.keys).some(Boolean);
+
+  const modelUsable = React.useCallback(
+    (id: string) => {
+      const p = getModel(id).provider;
+      return Boolean(configured[p] || settings.keys[p]);
+    },
+    [configured, settings.keys],
+  );
 
   const conversationCount = useLiveQuery(() => db.conversations.count(), [], 0);
 
@@ -196,11 +212,20 @@ export default function Page() {
 
       const history = [...path, userMessage];
       const isFirst = path.length === 0;
-      void runTurn(convId, userMessage.id, history, settings.modelId);
+
+      if (compareWith.length) {
+        setComparing({
+          parentId: userMessage.id,
+          history,
+          modelIds: [settings.modelId, ...compareWith],
+        });
+      } else {
+        void runTurn(convId, userMessage.id, history, settings.modelId);
+      }
 
       if (isFirst) void generateTitle(convId, blockText(content));
     },
-    [activeId, conversation?.leafId, path, settings.modelId, runTurn, generateTitle],
+    [activeId, conversation?.leafId, path, settings.modelId, runTurn, generateTitle, compareWith],
   );
 
   /** Regenerating reuses the parent, so the new answer is a sibling of the old. */
@@ -230,6 +255,17 @@ export default function Page() {
       void runTurn(activeId, edited.id, history, settings.modelId);
     },
     [activeId, allMessages, runTurn, settings.modelId],
+  );
+
+  const keepCompared = React.useCallback(
+    async (messageId: string, modelId: string) => {
+      if (!activeId) return;
+      await db.conversations.update(activeId, { leafId: messageId });
+      settings.setModel(modelId);
+      setComparing(null);
+      setCompareWith([]);
+    },
+    [activeId, settings],
   );
 
   const navigate = React.useCallback(
@@ -332,10 +368,16 @@ export default function Page() {
     setSettingsOpen(true);
   }, []);
 
-  const showEmpty = path.length === 0 && stream.phase === "idle";
+  const showEmpty = path.length === 0 && stream.phase === "idle" && !comparing;
+
+  const artifactValue = React.useMemo(
+    () => ({ open: setArtifact, current: artifact }),
+    [artifact],
+  );
 
   return (
     <TooltipProvider>
+      <ArtifactProvider value={artifactValue}>
       <div className="flex h-dvh overflow-hidden bg-canvas">
         <Sidebar
           activeId={activeId}
@@ -384,7 +426,7 @@ export default function Page() {
                 error={stream.error}
                 onNavigate={navigate}
                 onEdit={editMessage}
-                onRegenerate={(m) => regenerate(m)}
+                onRegenerate={(m, modelId) => regenerate(m, modelId)}
                 onRetry={() => {
                   const last = [...path].reverse().find((m) => m.role === "assistant");
                   if (last) regenerate(last);
@@ -393,6 +435,18 @@ export default function Page() {
                 onAddKey={openKeys}
                 onSwitchModel={() => setModelPickerOpen(true)}
                 onDismissError={stream.clearError}
+                compare={
+                  comparing && activeId
+                    ? {
+                        conversationId: activeId,
+                        parentId: comparing.parentId,
+                        history: comparing.history,
+                        modelIds: comparing.modelIds,
+                        onKeep: keepCompared,
+                        onCancel: () => setComparing(null),
+                      }
+                    : null
+                }
               />
             </div>
           )}
@@ -412,11 +466,16 @@ export default function Page() {
                   onStop={stream.stop}
                   onEditLast={editLast}
                   onOpenModels={() => setModelPickerOpen(true)}
+                  compareWith={compareWith}
+                  onCompareChange={setCompareWith}
+                  availableModels={modelUsable}
                 />
               )}
             </div>
           </div>
         </main>
+
+        {artifact && <ArtifactPanel artifact={artifact} onClose={() => setArtifact(null)} />}
 
         {paletteOpen && (
         <CommandPalette
@@ -442,6 +501,7 @@ export default function Page() {
           />
         )}
       </div>
+      </ArtifactProvider>
     </TooltipProvider>
   );
 }

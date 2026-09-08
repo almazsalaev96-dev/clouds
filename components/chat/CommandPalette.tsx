@@ -182,7 +182,7 @@ export function CommandPalette({
                     onMouseMove={() => setActive(i)}
                     onClick={() => run(c)}
                     className={cn(
-                      "flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors duration-[var(--dur-fast)]",
+                      "focus-inset flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors duration-[var(--dur-fast)]",
                       i === active ? "bg-subtle" : "hover:bg-subtle",
                     )}
                   >

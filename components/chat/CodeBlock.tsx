@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { Check, Copy, Download, WrapText, ChevronDown } from "lucide-react";
+import { Check, Copy, Download, WrapText, ChevronDown, PanelRight } from "lucide-react";
 import { highlight, normalizeLang } from "@/lib/highlighter";
 import { useSettings } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/primitives";
+import { useArtifact } from "./ArtifactPanel";
 
 const LINE_NUMBER_THRESHOLD = 12;
 
@@ -21,22 +22,33 @@ export function CodeBlock({
   lang,
   filename,
   streaming,
+  bare,
+  wrap: wrapProp,
 }: {
   code: string;
   lang?: string;
   filename?: string;
   streaming?: boolean;
+  /** Inside the side panel the surrounding chrome already carries the header. */
+  bare?: boolean;
+  /** Lets a host (the side panel) own the wrap toggle instead. */
+  wrap?: boolean;
 }) {
   const settings = useSettings();
+  const artifact = useArtifact();
   const [html, setHtml] = React.useState<string | null>(null);
   const [copied, setCopied] = React.useState(false);
-  const [wrap, setWrap] = React.useState(settings.wrapCode);
+  const [wrapLocal, setWrap] = React.useState(settings.wrapCode);
+  const wrap = wrapProp ?? wrapLocal;
   const [collapsed, setCollapsed] = React.useState(false);
   const normalized = normalizeLang(lang);
   const lines = React.useMemo(() => code.split("\n"), [code]);
   const showNumbers = settings.showLineNumbers || lines.length > LINE_NUMBER_THRESHOLD;
   const isDiff = normalized === "diff";
   const tall = lines.length > 60;
+  // Below this a block is easier to read where it is than in a second column.
+  const worthLifting = lines.length > 24;
+  const liftedHere = artifact?.current?.kind === "code" && artifact.current.content === code;
 
   /**
    * Highlighting a partially-received block on every chunk is expensive and
@@ -84,8 +96,28 @@ export function CodeBlock({
     URL.revokeObjectURL(url);
   }, [code, filename, normalized]);
 
+  if (liftedHere && !bare) {
+    return (
+      <button
+        onClick={() => artifact?.open({ kind: "code", title: filename || (normalized ?? "snippet"), lang: normalized ?? undefined, content: code })}
+        className="my-4 flex w-full items-center gap-2.5 rounded-lg border border-line bg-inset px-3 py-2.5 text-left transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
+      >
+        <PanelRight size={15} className="shrink-0 text-tertiary" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm text-primary">
+            {filename || (normalized ?? "Code")}
+          </span>
+          <span className="block text-xs text-tertiary">
+            {lines.length} lines — open in the side panel
+          </span>
+        </span>
+      </button>
+    );
+  }
+
   return (
-    <figure className="group/code my-4 overflow-hidden rounded-lg border border-line bg-inset">
+    <figure className={cn("group/code overflow-hidden rounded-lg border border-line bg-inset", !bare && "my-4")}>
+      {!bare && (
       <figcaption className="flex h-9 items-center gap-2 border-b border-line px-3">
         <span className="truncate text-xs text-tertiary">
           {filename ? (
@@ -100,6 +132,24 @@ export function CodeBlock({
         </span>
 
         <span className="ml-auto flex items-center gap-0.5">
+          {worthLifting && artifact && !streaming && (
+            <Tooltip label="Open in side panel">
+              <button
+                onClick={() =>
+                  artifact.open({
+                    kind: "code",
+                    title: filename || `${normalized ?? "snippet"}`,
+                    lang: normalized ?? undefined,
+                    content: code,
+                  })
+                }
+                aria-label="Open code in side panel"
+                className="flex size-7 items-center justify-center rounded-sm text-tertiary opacity-0 transition-opacity duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary focus-visible:opacity-100 group-hover/code:opacity-100"
+              >
+                <PanelRight size={14} />
+              </button>
+            </Tooltip>
+          )}
           {tall && (
             <Tooltip label={collapsed ? "Expand" : "Collapse"}>
               <button
@@ -153,6 +203,7 @@ export function CodeBlock({
           </button>
         </span>
       </figcaption>
+      )}
 
       {!collapsed && (
         <div

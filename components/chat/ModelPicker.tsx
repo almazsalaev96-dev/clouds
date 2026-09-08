@@ -161,7 +161,7 @@ function ModelRow({
         !available && "opacity-45",
       )}
     >
-      <button onClick={onSelect} className="min-w-0 flex-1 text-left">
+      <button onClick={onSelect} className="focus-inset min-w-0 flex-1 rounded-md text-left">
         <span className="flex items-center gap-1.5">
           <span className="truncate text-sm font-medium text-primary">{m.name}</span>
           {m.vision && <Cap icon={<Eye size={11} />} label="Reads images" />}

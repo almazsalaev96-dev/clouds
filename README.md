@@ -46,7 +46,17 @@ glyph, and a copy button that works mid-stream and never captures a line number.
 
 **Models** — all four providers behind one adapter interface, a `⌘/` picker with
 context window, price and capability chips, per-model parameters, mid-conversation
-switching, and models without a key dimmed with a reason rather than hidden.
+switching, regenerate-with-a-different-model, and models without a key dimmed with a
+reason rather than hidden. Each provider carries a small geometric mark, so which
+engine answered is legible before you start reading.
+
+**Compare** — send one prompt to up to three models at once. They stream in parallel
+columns, each on its own clock, and "Keep this one" points the conversation at the
+answer you chose. The other two are not discarded: they stay under `‹ 2/3 ›`.
+
+**Side panel** — any code block over 24 lines can be lifted into its own column. The
+copy left in the thread collapses to a one-line reference, so a 900-line answer stops
+burying the conversation that produced it.
 
 **The rest** — command palette (`⌘K`), keyboard operation throughout, light/dark with
 no flash, three densities, and every empty and error state written rather than
@@ -85,6 +95,9 @@ dialect; `classifyError` turns all of them into one sentence plus one action
 (`retry`, `add_key`, `switch_model`, `shorten`). No raw provider string reaches the
 interface — including Google's habit of reporting a bad key as a 400.
 
+Comparison falls out of the tree almost for free: each column writes against the same
+parent, so the three answers are siblings before anyone chooses between them.
+
 ## Verified
 
 - `npm run build` and `tsc --noEmit` clean; no `any`, TypeScript strict.
@@ -95,6 +108,10 @@ interface — including Google's habit of reporting a bad key as a 400.
   key: each returns a correctly classified `bad_key` through the SSE stream, and a
   provider with no key returns `no_key` before any request is made.
 - Rendered and screenshotted in light and dark at 1440×900 and at 390×844.
+- Compare mode driven end to end in a real browser: three columns mount, each opens
+  its own request, and each renders its own classified failure independently.
+- The side panel opens from a code block, collapses the inline copy to a reference,
+  and closes on Escape.
 
 ## Known gaps
 
@@ -107,11 +124,12 @@ Stated plainly, because a checklist you cannot trust is worse than no checklist.
   never runs *during* a stream — blocks stay plain monospace until 60ms after the
   last token — so the streaming frame budget is unaffected either way. Moving it is
   contained behind `lib/highlighter.ts`.
-- **No virtualization yet.** Conversations past a few hundred messages will render
-  every node. The brief puts this at ~80 messages; it belongs in the next pass.
-- **No artifact/right-hand panel.** Long outputs render inline. The layout reserves
-  the column for it.
-- **No side-by-side model comparison.** The adapter layer supports it; the UI
-  doesn't yet.
+- **No true virtualization.** Every turn carries `content-visibility: auto` with an
+  intrinsic size, so the browser skips layout and paint for anything off-screen —
+  most of the benefit, without breaking find-in-page, text selection across messages,
+  or scroll restoration. A conversation in the thousands of messages would still want
+  real windowing.
+- **The side panel holds code, not prose.** Long text answers still render inline;
+  lifting a document is the same mechanism and simply isn't wired up yet.
 - **Screen-reader testing was not run.** Semantics, live regions, labels and focus
   order are implemented to spec but verified by inspection, not with VoiceOver.

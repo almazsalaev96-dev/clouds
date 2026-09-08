@@ -1,12 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { ArrowUp, Paperclip, Square, X, FileText } from "lucide-react";
+import * as Popover from "@radix-ui/react-popover";
+import { ArrowUp, Columns2, Paperclip, Square, X, FileText, Check } from "lucide-react";
 import type { ContentBlock } from "@/lib/types";
-import { getModel, estimateTokens, formatCost, formatTokens } from "@/lib/models";
+import { getModel, estimateTokens, formatCost, formatTokens, MODELS } from "@/lib/models";
 import { fileToBase64, formatBytes, cn } from "@/lib/utils";
 import { useSettings, useDrafts, paramsFor } from "@/lib/store";
-import { IconButton, Tooltip } from "@/components/ui/primitives";
+import { Tooltip } from "@/components/ui/primitives";
+import { ProviderMark } from "@/components/ui/ProviderMark";
 
 /** Longer than this and a paste becomes a chip instead of flooding the box. */
 const PASTE_COLLAPSE_CHARS = 1500;
@@ -30,6 +32,9 @@ export function Composer({
   onStop,
   onEditLast,
   onOpenModels,
+  compareWith,
+  onCompareChange,
+  availableModels,
 }: {
   conversationId: string;
   streaming: boolean;
@@ -38,6 +43,9 @@ export function Composer({
   onStop: () => void;
   onEditLast: () => void;
   onOpenModels: () => void;
+  compareWith: string[];
+  onCompareChange: (ids: string[]) => void;
+  availableModels: (id: string) => boolean;
 }) {
   const settings = useSettings();
   const drafts = useDrafts();
@@ -319,10 +327,63 @@ export function Composer({
         <div className="flex h-6 items-center gap-2 px-3 pb-1.5 text-xs text-tertiary">
           <button
             onClick={onOpenModels}
-            className="-ml-1 rounded-sm px-1 transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-secondary"
+            className="-ml-1 flex items-center gap-1.5 rounded-sm px-1 transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-secondary"
           >
+            <ProviderMark provider={model.provider} size={11} />
             {model.name}
           </button>
+
+          <Popover.Root>
+            <Tooltip label="Ask several models the same thing">
+              <Popover.Trigger asChild>
+                <button
+                  aria-label="Compare models"
+                  className={cn(
+                    "flex h-5 items-center gap-1 rounded-sm px-1 transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-secondary",
+                    compareWith.length && "text-accent hover:text-accent",
+                  )}
+                >
+                  <Columns2 size={12} />
+                  {compareWith.length ? `Comparing ${compareWith.length + 1}` : "Compare"}
+                </button>
+              </Popover.Trigger>
+            </Tooltip>
+            <Popover.Portal>
+              <Popover.Content
+                align="start"
+                sideOffset={8}
+                className="z-50 w-72 rounded-lg border border-line bg-surface p-1 shadow-lg anim-pop"
+              >
+                <p className="px-2 pb-1 pt-2 text-xs text-tertiary">
+                  Answer alongside {model.name} — pick up to two.
+                </p>
+                <div className="max-h-72 overflow-y-auto">
+                  {MODELS.filter((m) => m.id !== settings.modelId).map((m) => {
+                    const on = compareWith.includes(m.id);
+                    const usable = availableModels(m.id);
+                    return (
+                      <button
+                        key={m.id}
+                        disabled={!usable || (!on && compareWith.length >= 2)}
+                        onClick={() =>
+                          onCompareChange(
+                            on ? compareWith.filter((x) => x !== m.id) : [...compareWith, m.id],
+                          )
+                        }
+                        className="focus-inset flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary disabled:pointer-events-none disabled:opacity-40"
+                      >
+                        <span className="text-tertiary">
+                          <ProviderMark provider={m.provider} size={12} />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate">{m.name}</span>
+                        {on && <Check size={13} className="shrink-0 text-accent" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
           <span className="ml-auto flex items-center gap-2 tnum">
             {overContext && (
               <span className="text-warning">

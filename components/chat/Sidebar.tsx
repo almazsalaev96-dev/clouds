@@ -9,7 +9,7 @@ import type { Conversation } from "@/lib/types";
 import { db, deleteConversation, groupConversations } from "@/lib/db";
 import { useSettings } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { ConfirmInline, IconButton, Tooltip } from "@/components/ui/primitives";
+import { ConfirmInline, IconButton, Kbd, Tooltip } from "@/components/ui/primitives";
 
 export function Sidebar({
   activeId,
@@ -103,14 +103,22 @@ export function Sidebar({
           <IconButton label="Hide sidebar" keys={["mod", "\\"]} onClick={toggleSidebar}>
             <PanelLeft size={16} />
           </IconButton>
-          <span className="ml-1 text-sm font-medium text-primary">Clouds</span>
-          <IconButton label="New chat" keys={["mod", "N"]} className="ml-auto" onClick={onNew}>
-            <MessageSquarePlus size={16} />
-          </IconButton>
+          <span className="ml-1 text-sm font-medium tracking-[-0.01em] text-primary">Clouds</span>
         </div>
 
-        <div className="px-2 pb-2">
-          <div className="flex h-8 items-center gap-1.5 rounded-md border border-transparent bg-canvas px-2 transition-colors duration-[var(--dur-fast)] focus-within:border-accent">
+        <div className="space-y-1 px-2 pb-2">
+          <button
+            onClick={onNew}
+            className="group flex h-9 w-full items-center gap-2 rounded-md border border-line bg-canvas px-2.5 text-sm font-medium text-primary transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
+          >
+            <MessageSquarePlus size={15} className="text-tertiary transition-colors duration-[var(--dur-fast)] group-hover:text-accent" />
+            New chat
+            <span className="ml-auto opacity-0 transition-opacity duration-[var(--dur-fast)] group-hover:opacity-100">
+              <Kbd keys={["mod", "N"]} />
+            </span>
+          </button>
+
+          <div className="flex h-8 items-center gap-1.5 rounded-md border border-transparent px-2 transition-colors duration-[var(--dur-fast)] focus-within:border-line-strong focus-within:bg-canvas">
             <Search size={13} className="shrink-0 text-tertiary" />
             <input
               ref={searchRef}
@@ -174,7 +182,9 @@ export function Sidebar({
 
 function GroupLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="px-2 pb-1 pt-2 text-xs font-medium text-tertiary">{children}</h2>
+    <h2 className="sticky top-0 z-10 bg-subtle px-2 pb-1 pt-2 text-xs font-medium text-tertiary">
+      {children}
+    </h2>
   );
 }
 

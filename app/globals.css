@@ -57,7 +57,7 @@
   --measure: 46rem;
   --sidebar-w: 260px;
   --topbar-h: 48px;
-  --panel-w: 360px;
+  --panel-w: clamp(26rem, 34vw, 40rem);
 
   /* --- Syntax. Six hues, low saturation. A code block should read as one
          calm object, not a Christmas tree. --- */
@@ -236,6 +236,13 @@ body {
 input:focus-visible,
 textarea:focus-visible {
   outline: none;
+}
+
+/* Inside a scrolling menu the default 2px offset is clipped by the container,
+   which leaves a stray line under the focused row. Drawing the ring inside the
+   element keeps it whole. */
+.focus-inset:focus-visible {
+  outline-offset: -2px;
 }
 
 ::selection {
@@ -457,3 +464,22 @@ input, textarea { font: inherit; letter-spacing: inherit; }
 
 .shiki, .shiki span { background: transparent !important; }
 .shiki .comment, .shiki .punctuation-comment { color: var(--syn-comment) !important; }
+
+/* ============================================================================
+   MESSAGE RHYTHM
+   ========================================================================= */
+
+/* The browser skips layout and paint for turns that are scrolled out of view.
+   contain-intrinsic-size keeps the scrollbar honest so nothing jumps as they
+   come back in — the win of virtualization without breaking find-in-page,
+   scroll restoration or text selection across messages. */
+.msg {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
+}
+
+/* A turn arriving should read as *arriving* — a short rise, once, never on
+   re-render. Anything longer than this starts to feel like waiting. */
+.msg-enter {
+  animation: rise-in var(--dur-enter) var(--ease-out) both;
+}

@@ -1,16 +1,18 @@
 "use client";
 
 import * as React from "react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
-  Check, ChevronLeft, ChevronRight, ChevronRight as Caret, Copy, Pencil,
-  RefreshCw, ThumbsDown, ThumbsUp, Volume2, X,
+  Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Copy,
+  Pencil, RefreshCw, ThumbsDown, ThumbsUp, Volume2, X,
 } from "lucide-react";
 import type { ChatError, Message as Msg } from "@/lib/types";
-import { getModel, formatTokens } from "@/lib/models";
+import { getModel, formatTokens, MODELS } from "@/lib/models";
 import { blockText } from "@/lib/db";
 import { cn, formatDuration } from "@/lib/utils";
 import { Markdown } from "./Markdown";
 import { IconButton, Button, Tooltip } from "@/components/ui/primitives";
+import { ProviderMark } from "@/components/ui/ProviderMark";
 
 /* ---------------------------------------------------------------- user ---- */
 
@@ -102,7 +104,7 @@ export function UserMessage({
   }
 
   return (
-    <div className="group flex flex-col items-end gap-1.5 py-3">
+    <div className="msg group flex flex-col items-end gap-1.5 py-3">
       {images.length > 0 && (
         <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
           {images.map((img, i) =>
@@ -202,10 +204,15 @@ export function AssistantMessage({
   };
 
   return (
-    <div className="group py-3">
+    <div className="msg group py-3">
       {/* Who is speaking, before you read what they said. In an app with four
           providers this is not metadata — it is context. */}
-      <div className="mb-1.5 flex items-center gap-2 text-xs text-tertiary">
+      <div className="mb-2 flex items-center gap-2 text-xs text-tertiary">
+        {model && (
+          <span className="text-secondary">
+            <ProviderMark provider={model.provider} size={12} />
+          </span>
+        )}
         <span className="font-medium text-secondary">{model?.name ?? "Assistant"}</span>
         {message.latencyMs != null && <span className="tnum">{formatDuration(message.latencyMs)}</span>}
         {message.usage && message.usage.outputTokens > 0 && (
@@ -231,6 +238,38 @@ export function AssistantMessage({
         <IconButton label="Regenerate" size={28} onClick={() => onRegenerate()}>
           <RefreshCw size={14} />
         </IconButton>
+        <DropdownMenu.Root>
+          <Tooltip label="Regenerate with another model">
+            <DropdownMenu.Trigger asChild>
+              <button
+                aria-label="Regenerate with another model"
+                className="flex size-6 items-center justify-center rounded-md text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+              >
+                <ChevronDown size={13} />
+              </button>
+            </DropdownMenu.Trigger>
+          </Tooltip>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              align="start"
+              sideOffset={6}
+              className="z-50 w-60 rounded-lg border border-line bg-surface p-1 shadow-md anim-pop"
+            >
+              {MODELS.filter((m) => m.id !== message.modelId).map((m) => (
+                <DropdownMenu.Item
+                  key={m.id}
+                  onSelect={() => onRegenerate(m.id)}
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-secondary outline-none transition-colors duration-[var(--dur-fast)] data-[highlighted]:bg-subtle data-[highlighted]:text-primary"
+                >
+                  <span className="text-tertiary">
+                    <ProviderMark provider={m.provider} size={12} />
+                  </span>
+                  <span className="truncate">{m.name}</span>
+                </DropdownMenu.Item>
+              ))}
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
         <IconButton label={speaking ? "Stop reading" : "Read aloud"} size={28} onClick={speak} active={speaking}>
           <Volume2 size={14} />
         </IconButton>
