@@ -29,6 +29,7 @@ export function SectionIndex({
   title,
   items,
   newLabel,
+  loading,
   emptyTitle,
   emptyHint,
   onOpen,
@@ -40,6 +41,13 @@ export function SectionIndex({
   title: string;
   items: IndexItem[];
   newLabel: string;
+  /**
+   * True until the query has come back. Dexie hands back `undefined` before it
+   * resolves, and treating that as "none" flashes "No notes yet" at someone
+   * who has fifty. An empty state is a claim about their work; it should not be
+   * made until it is known to be true.
+   */
+  loading?: boolean;
   emptyTitle: string;
   emptyHint: string;
   onOpen: (id: string) => void;
@@ -75,7 +83,7 @@ export function SectionIndex({
 
         {lead}
 
-        {items.length > 0 && (
+        {!loading && items.length > 0 && (
           <div className="mb-3 flex h-9 items-center gap-2 rounded-md border border-line bg-surface px-2.5 transition-colors duration-[var(--dur-fast)] focus-within:border-accent">
             <Search size={14} className="shrink-0 text-tertiary" />
             <input
@@ -94,7 +102,17 @@ export function SectionIndex({
           </div>
         )}
 
-        {items.length === 0 ? (
+        {loading ? (
+          <ul className="space-y-1" aria-hidden>
+            {[0, 1, 2].map((i) => (
+              <li
+                key={i}
+                className="skeleton h-[3.25rem] rounded-lg border border-line"
+                style={{ animationDelay: `${i * 90}ms` }}
+              />
+            ))}
+          </ul>
+        ) : items.length === 0 ? (
           <div className="rounded-lg border border-dashed border-line px-4 py-10 text-center anim-fade">
             <p className="text-base text-primary">{emptyTitle}</p>
             <p className="mx-auto mt-1 max-w-sm text-sm text-secondary">{emptyHint}</p>

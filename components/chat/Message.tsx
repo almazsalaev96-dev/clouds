@@ -23,7 +23,7 @@ import { useArtifact } from "./ArtifactPanel";
  * document and the question as an utterance, which is how people actually
  * think about the exchange.
  */
-export function UserMessage({
+function UserMessageImpl({
   message,
   siblings,
   index,
@@ -35,7 +35,7 @@ export function UserMessage({
   siblings: Msg[];
   index: number;
   onNavigate: (id: string) => void;
-  onEdit: (text: string) => void;
+  onEdit: (message: Msg, text: string) => void;
   entering?: boolean;
 }) {
   const [editing, setEditing] = React.useState(false);
@@ -75,7 +75,7 @@ export function UserMessage({
             onKeyDown={(e) => {
               if (e.key === "Escape") setEditing(false);
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                onEdit(draft);
+                onEdit(message, draft);
                 setEditing(false);
               }
             }}
@@ -91,7 +91,7 @@ export function UserMessage({
               variant="primary"
               disabled={!draft.trim()}
               onClick={() => {
-                onEdit(draft);
+                onEdit(message, draft);
                 setEditing(false);
               }}
             >
@@ -167,9 +167,16 @@ export function UserMessage({
   );
 }
 
+/**
+ * Memoised because the transcript re-renders on every frame of a stream, and
+ * a message that has not changed has no business re-rendering — parsing its
+ * markdown and re-highlighting its code — sixty times a second.
+ */
+export const UserMessage = React.memo(UserMessageImpl);
+
 /* ----------------------------------------------------------- assistant ---- */
 
-export function AssistantMessage({
+function AssistantMessageImpl({
   message,
   siblings,
   index,
@@ -183,7 +190,7 @@ export function AssistantMessage({
   siblings: Msg[];
   index: number;
   onNavigate: (id: string) => void;
-  onRegenerate: (modelId?: string) => void;
+  onRegenerate: (message: Msg, modelId?: string) => void;
   onSaveToNote: (text: string) => void;
   entering?: boolean;
   /** The answer you are about to act on keeps its controls on screen. */
@@ -256,7 +263,7 @@ export function AssistantMessage({
         <p className="text-sm italic text-tertiary">No response.</p>
       )}
 
-      {message.error && <InlineError message={message.error} onRetry={() => onRegenerate()} />}
+      {message.error && <InlineError message={message.error} onRetry={() => onRegenerate(message)} />}
 
       {/* Not every action is equal, so they are not drawn equal. Copy and
           regenerate are what people reach for; the rest live one click deeper
@@ -274,7 +281,7 @@ export function AssistantMessage({
         <IconButton label={copied ? "Copied" : "Copy"} size={28} onClick={copy}>
           {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
         </IconButton>
-        <IconButton label="Regenerate" size={28} onClick={() => onRegenerate()}>
+        <IconButton label="Regenerate" size={28} onClick={() => onRegenerate(message)}>
           <RefreshCw size={14} />
         </IconButton>
         <DropdownMenu.Root>
@@ -297,7 +304,7 @@ export function AssistantMessage({
               {MODELS.filter((m) => m.id !== message.modelId).map((m) => (
                 <DropdownMenu.Item
                   key={m.id}
-                  onSelect={() => onRegenerate(m.id)}
+                  onSelect={() => onRegenerate(message, m.id)}
                   className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-secondary outline-none transition-colors duration-[var(--dur-fast)] data-[highlighted]:bg-subtle data-[highlighted]:text-primary"
                 >
                   <span className="text-tertiary">
@@ -386,6 +393,8 @@ export function AssistantMessage({
     </div>
   );
 }
+
+export const AssistantMessage = React.memo(AssistantMessageImpl);
 
 /* -------------------------------------------------------------- pieces ---- */
 

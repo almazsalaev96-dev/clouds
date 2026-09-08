@@ -31,7 +31,7 @@ export function CardsView({
   onNew: () => void;
   onBack: () => void;
 }) {
-  const decks = useLiveQuery(() => db.decks.orderBy("createdAt").reverse().toArray(), [], [] as Deck[]);
+  const decks = useLiveQuery(() => db.decks.orderBy("createdAt").reverse().toArray(), []);
   const allCards = useLiveQuery(() => db.cards.toArray(), [], [] as Card[]);
   const deck = useLiveQuery(() => (deckId ? db.decks.get(deckId) : undefined), [deckId]);
   const cards = useLiveQuery(
@@ -73,6 +73,7 @@ export function CardsView({
         newLabel="New deck"
         emptyTitle="No decks yet."
         emptyHint="Turn a note or a conversation into a deck, then review it on a spaced schedule — the interval stretches every time you get one right."
+        loading={decks === undefined}
         items={(decks ?? []).map((d) => {
           const own = (allCards ?? []).filter((c) => c.deckId === d.id);
           const due = dueCount(own);
@@ -88,7 +89,7 @@ export function CardsView({
         onOpen={onSelect}
         onNew={onNew}
         onDelete={async (id) => {
-          const title = decks.find((d) => d.id === id)?.title || "deck";
+          const title = decks?.find((d) => d.id === id)?.title || "deck";
           offerUndo(title, await deleteDeck(id));
         }}
         lead={

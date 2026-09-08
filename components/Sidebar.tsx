@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { db, deleteConversation, dueTraps, groupConversations } from "@/lib/db";
+import { useDebounced } from "@/lib/hooks/useDebounced";
 import { offerUndo } from "@/lib/undo";
 import { dueCount } from "@/lib/study";
 import { useSettings, type Section } from "@/lib/store";
@@ -212,9 +213,14 @@ function ChatList({
     [] as Conversation[],
   );
 
-  // Titles alone miss most of what people remember, so bodies are searched too.
+  /* Titles alone miss most of what people remember, so bodies are searched
+     too — but that is a full scan of every message in the database, and run on
+     the raw query it happens once per keystroke. Titles stay instant off the
+     live value; the scan follows the settled one. */
+  const settled = useDebounced(query, 220);
+
   const matchedIds = useLiveQuery(async () => {
-    const q = query.trim().toLowerCase();
+    const q = settled.trim().toLowerCase();
     if (q.length < 2) return null;
     const hits = new Set<string>();
     await db.messages.each((m) => {
@@ -226,14 +232,17 @@ function ChatList({
       }
     });
     return hits;
-  }, [query]);
+  }, [settled]);
 
   const filtered = React.useMemo(() => {
     const list = (conversations ?? []).filter((c) => !c.archived);
     const q = query.trim().toLowerCase();
+    // While the scan is catching up, title matches carry the list rather than
+    // the previous query's body hits leaking into this one.
     if (!q) return list;
-    return list.filter((c) => c.title.toLowerCase().includes(q) || matchedIds?.has(c.id));
-  }, [conversations, query, matchedIds]);
+    const bodies = settled.trim().toLowerCase() === q ? matchedIds : null;
+    return list.filter((c) => c.title.toLowerCase().includes(q) || bodies?.has(c.id));
+  }, [conversations, query, settled, matchedIds]);
 
   if (!filtered.length) return <Empty query={query} noun="conversations" />;
 

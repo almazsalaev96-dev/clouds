@@ -25,6 +25,21 @@ interface Command {
   run: () => void;
 }
 
+/**
+ * How much a hit inside a note or paper body is worth.
+ *
+ * Scored the same way as a title — earlier is better — then scaled to a third,
+ * so it comfortably beats a scattered subsequence match on some other item's
+ * title but always loses to an item whose title actually contains what you
+ * typed. Below two characters it is off entirely: one letter appears in every
+ * document, so matching on it ranks by nothing at all.
+ */
+function bodyScore(query: string, body?: string): number {
+  if (!body || query.length < 2) return 0;
+  const at = body.toLowerCase().indexOf(query.toLowerCase());
+  return at === -1 ? 0 : Math.max(60, (800 - at) / 3);
+}
+
 /** Ties broken here when two groups score the same, so the order is stable. */
 const GROUP_ORDER = ["Actions", "Go to", "View", "Models", "Chats", "Notes", "Cards", "Papers", "Practice"];
 /** No single kind of thing may fill the list and bury the rest. */
@@ -65,6 +80,7 @@ export function CommandPalette({
     setModel: (id: string) => void;
     exportMarkdown: () => void;
     deleteConversation: () => void;
+    hasConversation: boolean;
   };
 }) {
   const settings = useSettings();
@@ -98,8 +114,14 @@ export function CommandPalette({
     const base: Command[] = [
       { id: "new", label: "New chat", keys: ["mod", "N"], icon: <MessageSquarePlus size={15} />, group: "Actions", run: actions.newChat },
       { id: "settings", label: "Open settings", keys: ["mod", ","], icon: <Settings2 size={15} />, group: "Actions", run: actions.openSettings },
-      { id: "export", label: "Export conversation as Markdown", icon: <Download size={15} />, group: "Actions", run: actions.exportMarkdown },
-      { id: "delete", label: "Delete this conversation", icon: <Trash2 size={15} />, group: "Actions", run: actions.deleteConversation },
+      // Offered only when there is one. A command that silently does nothing
+      // teaches you not to trust the list it is in.
+      ...(actions.hasConversation
+        ? [
+            { id: "export", label: "Export conversation as Markdown", icon: <Download size={15} />, group: "Actions", run: actions.exportMarkdown },
+            { id: "delete", label: "Delete this conversation", icon: <Trash2 size={15} />, group: "Actions", run: actions.deleteConversation },
+          ]
+        : []),
       { id: "sidebar", label: settings.sidebarOpen ? "Hide sidebar" : "Show sidebar", keys: ["mod", "\\"], icon: <PanelLeft size={15} />, group: "View", run: settings.toggleSidebar },
       {
         id: "theme",
@@ -224,16 +246,7 @@ export function CommandPalette({
     }
 
     const scored = commands
-      .map((c) => ({
-        c,
-        score: Math.max(
-          fuzzyScore(q, c.label),
-          fuzzyScore(q, c.group) * 0.4,
-          // A body match is worth finding but must never outrank a title:
-          // substring only, and heavily discounted.
-          c.body && c.body.toLowerCase().includes(q.toLowerCase()) ? 120 : 0,
-        ),
-      }))
+      .map((c) => ({ c, score: Math.max(fuzzyScore(q, c.label), fuzzyScore(q, c.group) * 0.4, bodyScore(q, c.body)) }))
       .filter((r) => r.score > 0);
 
     const byGroup = new Map<string, typeof scored>();

@@ -142,11 +142,27 @@ export function pathTo(all: Message[], leafId: string | null): Message[] {
   return out;
 }
 
-/** Siblings share a parent. Editing or regenerating adds one; nothing is lost. */
-export function siblingsOf(all: Message[], m: Message): Message[] {
-  return all
-    .filter((x) => x.parentId === m.parentId && x.role === m.role)
-    .sort((a, b) => a.createdAt - b.createdAt);
+/**
+ * Siblings share a parent. Editing or regenerating adds one; nothing is lost.
+ *
+ * Built as an index rather than answered per message: scanning the thread once
+ * for each message on screen is quadratic, and the transcript re-renders on
+ * every frame of a stream, which is exactly where that cost would land.
+ */
+export function siblingIndex(all: Message[]): Map<string, Message[]> {
+  const index = new Map<string, Message[]>();
+  for (const m of all) {
+    const key = `${m.parentId ?? ""}|${m.role}`;
+    const list = index.get(key);
+    if (list) list.push(m);
+    else index.set(key, [m]);
+  }
+  for (const list of index.values()) list.sort((a, b) => a.createdAt - b.createdAt);
+  return index;
+}
+
+export function siblingsFrom(index: Map<string, Message[]>, m: Message): Message[] {
+  return index.get(`${m.parentId ?? ""}|${m.role}`) ?? [m];
 }
 
 /** Following a branch means walking to its newest tip, not just switching one node. */

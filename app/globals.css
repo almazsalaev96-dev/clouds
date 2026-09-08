@@ -367,6 +367,24 @@ textarea:focus-visible {
   outline-offset: -2px;
 }
 
+/* Placeholder rows, while a query is still out.
+   A skeleton is only honest if it is shaped like what is coming: same height,
+   same radius, same rhythm — otherwise the content arrives and the page jumps,
+   which is the exact thing a skeleton exists to prevent. It breathes rather
+   than sweeps, because a sweep reads as progress and there is no progress to
+   report. */
+.skeleton {
+  background: var(--bg-subtle);
+  animation: skeleton-breathe 1.6s var(--ease-std) infinite;
+}
+@keyframes skeleton-breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; opacity: 0.7; }
+}
+
 /* The undo bar's clock. Reduced motion keeps the line — it is state, not
    decoration — and only stops it from travelling. */
 .undo-clock {

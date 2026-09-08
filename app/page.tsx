@@ -620,7 +620,7 @@ export default function Page() {
                 error={live ? stream.error : null}
                 onNavigate={navigate}
                 onEdit={editMessage}
-                onRegenerate={(m, modelId) => regenerate(m, modelId)}
+                onRegenerate={regenerate}
                 onSaveToNote={keepAsNote}
                 onRetry={() => {
                   const last = [...path].reverse().find((m) => m.role === "assistant");
@@ -687,6 +687,7 @@ export default function Page() {
             setModel: settings.setModel,
             exportMarkdown: exportConversation,
             deleteConversation: removeConversation,
+            hasConversation: Boolean(activeId),
           }}
         />
         )}

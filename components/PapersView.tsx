@@ -41,11 +41,7 @@ export function PapersView({
   onNew: () => void;
   onBack: () => void;
 }) {
-  const papers = useLiveQuery(
-    () => db.papers.orderBy("updatedAt").reverse().toArray(),
-    [],
-    [] as Paper[],
-  );
+  const papers = useLiveQuery(() => db.papers.orderBy("updatedAt").reverse().toArray(), []);
   const paper = useLiveQuery(() => (paperId ? db.papers.get(paperId) : undefined), [paperId]);
   const [draft, setDraft] = React.useState("");
   const [editing, setEditing] = React.useState(true);
@@ -83,6 +79,7 @@ export function PapersView({
         newLabel="New paper"
         emptyTitle="No papers yet."
         emptyHint="A paper is the printable end of a note — pick a shape, let a model draft it from your material, then export it as a PDF."
+        loading={papers === undefined}
         items={(papers ?? []).map((p) => ({
           id: p.id,
           title: p.title || "Untitled paper",
@@ -93,7 +90,7 @@ export function PapersView({
         onOpen={onSelect}
         onNew={onNew}
         onDelete={async (id) => {
-          const title = papers.find((p) => p.id === id)?.title || "paper";
+          const title = papers?.find((p) => p.id === id)?.title || "paper";
           offerUndo(title, await deletePaper(id));
         }}
       />

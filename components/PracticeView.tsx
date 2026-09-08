@@ -42,7 +42,7 @@ export function PracticeView({
   const [seeding, setSeeding] = React.useState(false);
   const [drillingAll, setDrillingAll] = React.useState(false);
 
-  const skills = useLiveQuery(() => db.skills.orderBy("updatedAt").reverse().toArray(), [], [] as Skill[]);
+  const skills = useLiveQuery(() => db.skills.orderBy("updatedAt").reverse().toArray(), []);
   const traps = useLiveQuery(() => db.traps.toArray(), [], [] as Trap[]);
   const skill = useLiveQuery(() => (skillId ? db.skills.get(skillId) : undefined), [skillId]);
 
@@ -102,6 +102,7 @@ export function PracticeView({
       newLabel="New skill"
       emptyTitle="Nothing to practise yet."
       emptyHint="Paste a topic, a lecture note, or a worked example you can follow but can't reproduce. Practice won't solve your problem set — it makes more like it, and names the mistake you keep making."
+      loading={skills === undefined}
       items={(skills ?? []).map((s) => {
         const own = (traps ?? []).filter((t) => t.skillId === s.id);
         const owed = dueTraps(own).length;
@@ -117,7 +118,7 @@ export function PracticeView({
       onOpen={onSelect}
       onNew={() => setSeeding(true)}
       onDelete={async (id) => {
-        const name = skills.find((k) => k.id === id)?.name || "skill";
+        const name = skills?.find((k) => k.id === id)?.name || "skill";
         offerUndo(name, await deleteSkill(id));
       }}
       lead={

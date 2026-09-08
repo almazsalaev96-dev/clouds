@@ -38,11 +38,9 @@ export function NotesView({
   onOpenDeck: (id: string) => void;
   onOpenPaper: (id: string) => void;
 }) {
-  const notes = useLiveQuery(
-    () => db.notes.orderBy("updatedAt").reverse().toArray(),
-    [],
-    [] as Note[],
-  );
+  // No default value: `undefined` has to keep meaning "not back yet", or the
+  // index cannot tell an empty library from an unanswered query.
+  const notes = useLiveQuery(() => db.notes.orderBy("updatedAt").reverse().toArray(), []);
   const note = useLiveQuery(() => (noteId ? db.notes.get(noteId) : undefined), [noteId]);
   const [preview, setPreview] = React.useState(false);
   const [draft, setDraft] = React.useState("");
@@ -123,6 +121,7 @@ export function NotesView({
         newLabel="New note"
         emptyTitle="Nothing written down yet."
         emptyHint="Keep an answer from a chat, or start from a blank page. Notes are markdown, and they feed the flashcards and papers."
+        loading={notes === undefined}
         items={[...(notes ?? [])]
           .sort((a, b) => Number(b.pinned) - Number(a.pinned))
           .map((n) => ({
@@ -136,7 +135,7 @@ export function NotesView({
         onOpen={onSelect}
         onNew={onNew}
         onDelete={async (id) => {
-          const title = notes.find((n) => n.id === id)?.title || "note";
+          const title = notes?.find((n) => n.id === id)?.title || "note";
           offerUndo(title, await deleteNote(id));
         }}
         onTogglePin={(id) => {

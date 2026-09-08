@@ -4,7 +4,7 @@ import * as React from "react";
 import { ArrowDown, Zap } from "lucide-react";
 import type { ChatError, Message as Msg } from "@/lib/types";
 import { getModel } from "@/lib/models";
-import { siblingsOf } from "@/lib/db";
+import { siblingIndex, siblingsFrom } from "@/lib/db";
 import { cn, formatElapsed } from "@/lib/utils";
 import { AssistantMessage, InlineError, UserMessage } from "./Message";
 import { Markdown, useThrottled } from "./Markdown";
@@ -56,6 +56,10 @@ export function MessageList({
   onScrolledChange: (scrolled: boolean) => void;
   compare: React.ComponentProps<typeof CompareGrid> | null;
 }) {
+  /* Rebuilt only when the thread itself changes — not on every frame of a
+     stream, which is when this component re-renders most. */
+  const byParent = React.useMemo(() => siblingIndex(allMessages), [allMessages]);
+
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [pinned, setPinned] = React.useState(true);
   const [unread, setUnread] = React.useState(false);
@@ -122,11 +126,15 @@ export function MessageList({
       >
         <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-4">
           {messages.map((m, i) => {
-            const siblings = siblingsOf(allMessages, m);
+            const siblings = siblingsFrom(byParent, m);
             const index = siblings.findIndex((s) => s.id === m.id);
             // Only the newest turn rises in. Animating the whole transcript on
             // every conversation switch would be motion for its own sake.
             const entering = i === messages.length - 1;
+            // Callbacks take the message rather than closing over it, so they
+            // keep their identity between renders and React.memo can actually
+            // hold: without this, every frame of a stream re-renders every
+            // message in the transcript.
             return m.role === "user" ? (
               <UserMessage
                 key={m.id}
@@ -134,7 +142,7 @@ export function MessageList({
                 siblings={siblings}
                 index={index}
                 onNavigate={onNavigate}
-                onEdit={(text) => onEdit(m, text)}
+                onEdit={onEdit}
                 entering={entering}
               />
             ) : (
@@ -144,7 +152,7 @@ export function MessageList({
                 siblings={siblings}
                 index={index}
                 onNavigate={onNavigate}
-                onRegenerate={(modelId) => onRegenerate(m, modelId)}
+                onRegenerate={onRegenerate}
                 onSaveToNote={onSaveToNote}
                 entering={entering}
                 isLast={i === messages.length - 1}
