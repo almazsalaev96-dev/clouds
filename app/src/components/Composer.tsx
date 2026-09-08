@@ -23,6 +23,13 @@ const INTENTS: { id: Intent; label: string; note: string }[] = [
   },
 ]
 
+/** A file the student has added to this turn but not sent yet. */
+export interface Attachment {
+  id: string
+  name: string
+  chars: number
+}
+
 export interface ComposerProps {
   value: string
   onChange(next: string): void
@@ -43,6 +50,12 @@ export interface ComposerProps {
   sendLabel?: string
   /** Shown under the row when the composer cannot send yet. */
   hint?: string
+  /** What is attached to this turn. Omit the handler and no "+" is drawn. */
+  attachments?: Attachment[]
+  onAttach?(files: File[]): void
+  onRemoveAttachment?(id: string): void
+  /** Said under the row when a file could not be read. */
+  attachProblem?: string | null
 }
 
 const COUNT_FROM = 1200
@@ -52,9 +65,11 @@ export function Composer(props: ComposerProps) {
     value, onChange, onSend, placeholder, intent, onIntentChange,
     mode, onModeChange, showIntents = true, streaming = false, onStop,
     sendLabel = 'Send', hint,
+    attachments = [], onAttach, onRemoveAttachment, attachProblem = null,
   } = props
 
   const ta = useRef<HTMLTextAreaElement | null>(null)
+  const picker = useRef<HTMLInputElement | null>(null)
   const modeRefs = useRef<(HTMLButtonElement | null)[]>([])
   const uid = useId()
   const reasonId = `${uid}-reason`
@@ -133,6 +148,28 @@ export function Composer(props: ComposerProps) {
       )}
 
       <div className="composer__box">
+        {attachments.length > 0 && (
+          <ul className="composer__attached" aria-label="Added to this message">
+            {attachments.map(file => (
+              <li key={file.id} className="composer__attachment">
+                <span className="composer__attachment-name">{file.name}</span>
+                <span className="composer__attachment-size mono">
+                  {file.chars.toLocaleString('en-GB')}
+                </span>
+                {onRemoveAttachment && (
+                  <button
+                    type="button"
+                    className="composer__attachment-drop"
+                    aria-label={`Remove ${file.name}`}
+                    onClick={() => onRemoveAttachment(file.id)}
+                  >
+                    ×
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
         <label className="sr" htmlFor={`${uid}-input`}>Your message</label>
         <textarea
           id={`${uid}-input`}
@@ -148,6 +185,33 @@ export function Composer(props: ComposerProps) {
           onKeyDown={keyDown}
         />
         <div className="composer__actions">
+          {onAttach && (
+            <>
+              <input
+                ref={picker}
+                id={`${uid}-files`}
+                className="sr"
+                type="file"
+                multiple
+                accept=".txt,.md,.markdown,.csv,.json,text/plain,text/markdown,text/csv"
+                onChange={e => {
+                  const files = Array.from(e.target.files || [])
+                  if (files.length) onAttach(files)
+                  e.target.value = ''
+                }}
+              />
+              <button
+                type="button"
+                className="composer__attach"
+                aria-label="Add your own material to this message"
+                title="Add your notes, a question, a page of a book"
+                disabled={streaming}
+                onClick={() => picker.current?.click()}
+              >
+                +
+              </button>
+            </>
+          )}
           {value.length > COUNT_FROM && (
             <span className="composer__count mono" id={countId}>
               {value.length.toLocaleString('en-GB')} characters
@@ -167,6 +231,7 @@ export function Composer(props: ComposerProps) {
         </div>
       </div>
 
+      {attachProblem && <p className="composer__attach-problem" role="alert">{attachProblem}</p>}
       {blocked && <p className="composer__reason" id={reasonId}>{blocked}</p>}
 
       {showIntents && (

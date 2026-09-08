@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { get } from '../lib/api'
 import { Composer } from '../components/Composer'
-import type { Intent } from '../components/Composer'
+import type { Attachment, Intent } from '../components/Composer'
 import { TurnCard } from '../components/TurnCard'
 import { Deck } from '../components/Deck'
 import { Question } from '../components/Question'
 import { readArtefacts } from '../lib/artefacts'
-import type { Artefact, QuestionArtefact } from '../lib/artefacts'
+import type { Artefact, MaterialArtefact, QuestionArtefact } from '../lib/artefacts'
 import { setSession, useStore } from '../lib/state'
 import { newSessionId, readTurn, useSessionStream, useTechnicalFooter } from './Session'
 import type { UiTurn } from './Session'
@@ -20,6 +20,11 @@ const OPENERS = [
   { label: 'Mark my answer', text: 'I will paste a question and my answer. Mark it like an examiner.' },
   { label: 'Explain something', text: 'Explain the hardest idea on this course in plain words.' },
 ]
+
+/** The server's own limits, said here so a file is refused before it is uploaded. */
+const MAX_FILES = 4
+const MAX_CHARS = 20000
+const MAX_TOTAL = 50000
 
 interface ChatProps {
   courseId?: string
@@ -42,6 +47,8 @@ export function Chat({ courseId, conversationId }: ChatProps) {
   const [intent, setIntent] = useState<Intent>('learn')
   const [artefacts, setArtefacts] = useState<Record<string, Artefact[]>>({})
   const [answering, setAnswering] = useState<Answering | null>(null)
+  const [added, setAdded] = useState<Added[]>([])
+  const [addProblem, setAddProblem] = useState<string | null>(null)
   const [resumed, setResumed] = useState(false)
   const [pinnedNew, setPinnedNew] = useState(false)
 
@@ -116,12 +123,66 @@ export function Chat({ courseId, conversationId }: ChatProps) {
     if (atBottom.current) setPinnedNew(false)
   }, [])
 
+  const attach = useCallback(async (files: File[]) => {
+    setAddProblem(null)
+    const problems: string[] = []
+    const read: Added[] = []
+    for (const file of files) {
+      if (added.length + read.length >= MAX_FILES) { problems.push(`Only ${MAX_FILES} files at a time.`); break }
+      let text = ''
+      try {
+        text = await file.text()
+      } catch {
+        problems.push(`${file.name} could not be read.`)
+        continue
+      }
+      const trimmed = text.trim()
+      if (!trimmed) { problems.push(`${file.name} is empty.`); continue }
+      // Read as text, so a PDF or an image arrives as mojibake rather than as words.
+      if (/[\u0000-\u0008\u000e-\u001f]/.test(trimmed.slice(0, 2000))) {
+        problems.push(`${file.name} is not a text file — paste the words instead.`)
+        continue
+      }
+      read.push({
+        id: `${file.name}-${file.size}-${read.length}`,
+        name: file.name,
+        text: trimmed.slice(0, MAX_CHARS),
+        truncated: trimmed.length > MAX_CHARS,
+      })
+    }
+
+    if (read.length) {
+      setAdded(previous => {
+        const next = [...previous]
+        let total = previous.reduce((n, f) => n + f.text.length, 0)
+        for (const file of read) {
+          if (next.length >= MAX_FILES) break
+          if (total + file.text.length > MAX_TOTAL) { problems.push(`${file.name} would take this past ${MAX_TOTAL.toLocaleString('en-GB')} characters.`); continue }
+          if (next.some(f => f.id === file.id)) continue
+          total += file.text.length
+          next.push(file)
+        }
+        return next
+      })
+    }
+    const cut = read.filter(f => f.truncated).map(f => `${f.name} was cut to ${MAX_CHARS.toLocaleString('en-GB')} characters.`)
+    const said = [...problems, ...cut]
+    if (said.length) setAddProblem(said.join(' '))
+  }, [added.length])
+
   const submit = useCallback((chosen: Intent) => {
     const text = draft.trim()
     if (!text || streaming) return
     setDraft('')
-    void send({ intent: chosen, text, itemId: answering?.id ?? null })
-  }, [answering, draft, send, streaming])
+    setAdded([])
+    setAddProblem(null)
+    void send({
+      intent: chosen,
+      text,
+      itemId: answering?.id ?? null,
+      material: added.map(f => ({ name: f.name, text: f.text })),
+    })
+  }, [added, answering, draft, send, streaming])
 
   const empty = turns.length === 0 && !streaming
 
@@ -180,6 +241,9 @@ export function Chat({ courseId, conversationId }: ChatProps) {
                   {(artefacts[turn.id] || []).map(artefact => {
                     if (artefact.kind === 'flashcards') {
                       return <Deck key={artefact.id} deck={artefact} courseId={course} />
+                    }
+                    if (artefact.kind === 'material') {
+                      return <Added key={artefact.id} file={artefact} />
                     }
                     if (artefact.kind === 'question') {
                       return (
@@ -241,6 +305,10 @@ export function Chat({ courseId, conversationId }: ChatProps) {
             onIntentChange={setIntent}
             streaming={streaming}
             onStop={stop}
+            attachments={added.map(chip)}
+            onAttach={files => { void attach(files) }}
+            onRemoveAttachment={id => setAdded(previous => previous.filter(f => f.id !== id))}
+            attachProblem={addProblem}
           />
         </div>
       </div>
@@ -261,6 +329,26 @@ interface Answering {
   stem: string
   commandWord: string | null
   tariff: number | null
+}
+
+/** A file the student has added but not sent. Its text is held here until it goes. */
+interface Added {
+  id: string
+  name: string
+  text: string
+  truncated: boolean
+}
+
+const chip = (file: Added): Attachment => ({ id: file.id, name: file.name, chars: file.text.length })
+
+/** What was added to a turn, shown under it so a reopened thread says where it came from. */
+function Added({ file }: { file: MaterialArtefact }) {
+  return (
+    <p className="chat__material">
+      <span className="chat__material-name">{file.name}</span>
+      <span className="chat__material-size mono">{file.chars.toLocaleString('en-GB')} characters</span>
+    </p>
+  )
 }
 
 const takeUp = (q: QuestionArtefact): Answering => ({

@@ -64,7 +64,50 @@ function overlap(needle, haystack) {
 
 const unhyphen = (s) => String(s == null ? '' : s).replace(/[-\u2010-\u2015]/g, ' ')
 
+/**
+ * The words in this course's own point titles that are too common to name anything.
+ *
+ * "Business structure" and "Business objectives" and "Business strategy" all carry
+ * "business", so a sentence with the word "business" in it — which is most sentences
+ * on this syllabus — would file under whichever of them came first. A word that
+ * appears across a course's titles distinguishes nothing on that course, and the
+ * course itself is what decides which words those are.
+ */
+const COMMON = new WeakMap()
+function commonIn(points) {
+  const held = COMMON.get(points)
+  if (held) return held
+  const seen = new Map()
+  for (const p of points) {
+    for (const w of new Set(contentWords(unhyphen(p.title)))) seen.set(w, (seen.get(w) || 0) + 1)
+  }
+  const limit = Math.max(3, Math.ceil(points.length * 0.15))
+  const common = new Set([...seen].filter(([, n]) => n >= limit).map(([w]) => w))
+  COMMON.set(points, common)
+  return common
+}
+
+/** How much of a title a text carries, counting only the words that distinguish it. */
+function titleMatch(title, text, common) {
+  const want = [...new Set(contentWords(unhyphen(title)))].filter((w) => !common.has(w))
+  if (!want.length) return 0
+  const have = new Set(contentWords(unhyphen(text)))
+  return want.filter((w) => have.has(w)).length / want.length
+}
+
 // ──────────────────────────────────────────────────────────── the course's points
+
+/**
+ * The points a card may be filed under.
+ *
+ * "1 Business and its environment" is a section heading, and its two words are in
+ * every business sentence ever written, so it would claim work that belongs to the
+ * teachable point underneath it. Cards file on leaves.
+ */
+function filingPoints(points) {
+  const leaves = points.filter((p) => String(p.code).includes('.'))
+  return leaves.length ? leaves : points
+}
 
 /** The syllabus points a deck may sit on, as {code, title}. */
 function readPoints(points) {
@@ -138,9 +181,10 @@ function pointFor(ref, points) {
   const head = t.split(/\s+/)[0].replace(/[.:,)]$/, '')
   for (const p of points) if (t === p.code.toLowerCase() || head === p.code.toLowerCase()) return p
   for (const p of points) if (t === p.title.toLowerCase()) return p
+  const common = commonIn(points)
   let best = null
   for (const p of points) {
-    const score = overlap(p.title, t)
+    const score = titleMatch(p.title, t, common)
     if (score >= MATCH_AT && (!best || score > best.score)) best = { point: p, score }
   }
   return best?.point || null
@@ -329,6 +373,11 @@ const lowerLead = (term) => (/^[A-Z](?:[a-z]|\s)/.test(term) ? term[0].toLowerCa
  */
 function fromConversation(turns, points, origin = 'this conversation') {
   const out = []
+  const filing = filingPoints(points)
+  // A page of notes is about one thing. A sentence that names no point on its own
+  // inherits the point the whole passage is about, rather than being dropped — which
+  // is what a student means when they paste three lines and ask for cards.
+  const wide = pointFor(turns.map((t) => t.text).join(' '), filing)
   for (const turn of turns) {
     for (const sentence of sentencesOf(turn.text)) {
       const m = STATES.exec(sentence.replace(/[.!?]+$/, ''))
@@ -339,7 +388,7 @@ function fromConversation(turns, points, origin = 'this conversation') {
       const body = norm(m[3])
       if (!term || NOT_A_TERM.test(term) || NOT_A_LEAD.test(term) || wordCount(term) > 6) continue
       if (wordCount(body) < 3 || wordCount(body) > BACK_MAX_WORDS) continue
-      const point = pointFor(sentence, points) || (points.length === 1 ? points[0] : null)
+      const point = pointFor(sentence, filing) || wide || (filing.length === 1 ? filing[0] : null)
       if (!point) continue
       out.push({
         front: `What ${m[2].toLowerCase() === 'are' ? 'are' : 'is'} ${lowerLead(term)}?`,
@@ -444,8 +493,9 @@ export async function makeCards({ course, topic, transcript, points, provider, m
     warnings.push('Nothing here states a fact plainly enough to make a card from. Ask for the explanation first, then ask again for the cards.')
   }
   // A short deck is not a broken one, but a student who asked for six and got two is
-  // owed the reason rather than left to wonder.
-  if (cards.length && cards.length < want) {
+  // owed the reason rather than left to wonder. Nobody who named no number asked for
+  // the default, so they are not told they fell short of it.
+  if (Number.isFinite(Number(count)) && cards.length && cards.length < want) {
     warnings.push(`You asked for ${want}; ${cards.length} is what this material states plainly enough to be a card. Work the topic and ask again for the rest.`)
   }
 

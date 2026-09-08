@@ -74,3 +74,13 @@
   background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline;
 }
 .chat__answering-drop:hover { color: var(--ink); }
+
+/* A file the student added, shown under the message it came with. */
+.chat__material {
+  display: flex; align-items: baseline; gap: var(--s2);
+  margin: var(--s2) 0 0; padding: var(--s2) var(--s3);
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  background: var(--paper-sunk); font-size: var(--t-sm);
+}
+.chat__material-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat__material-size { font-size: var(--t-xs); color: var(--ink-3); }

@@ -175,6 +175,8 @@ export interface SendOptions {
   requestedRung?: number
   /** false when the send has no student words of its own to paint. */
   echo?: boolean
+  /** Files the student added to this turn: their notes, a question, a page. */
+  material?: { name: string; text: string }[]
 }
 
 export interface LadderState {
@@ -278,6 +280,7 @@ export function useSessionStream(options: {
         mode: sendOptions.mode ?? 'learn',
         studentRequested: sendOptions.studentRequested === true,
         requestedRung: sendOptions.requestedRung,
+        material: sendOptions.material?.length ? sendOptions.material : undefined,
       },
       {
         onStatus(text: string) {
@@ -352,6 +355,16 @@ export function useSessionStream(options: {
       ...(echo ? [{ id: userId, role: 'user' as const, text: sendOptions.text }] : []),
       { id: assistantId, role: 'assistant' as const, text: '', streaming: true },
     ])
+    // What the student attached belongs to the turn they attached it to, and it is
+    // shown there straight away rather than only after the thread is reopened.
+    if (echo && sendOptions.material?.length) {
+      sink.current?.(userId, readArtefacts(sendOptions.material.map(file => ({
+        kind: 'material',
+        name: file.name,
+        chars: file.text.length,
+        preview: file.text.slice(0, 240),
+      }))))
+    }
     run(sendOptions, assistantId)
   }, [online, run])
 

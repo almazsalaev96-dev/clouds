@@ -58,7 +58,16 @@ export interface MarkArtefact {
   max?: number | null
 }
 
-export type Artefact = DeckArtefact | QuestionArtefact | MarkArtefact
+/** A file the student added to the thread. The text stays on the server. */
+export interface MaterialArtefact {
+  id: string
+  kind: 'material'
+  name: string
+  chars: number
+  preview: string
+}
+
+export type Artefact = DeckArtefact | QuestionArtefact | MarkArtefact | MaterialArtefact
 
 const record = (value: unknown): Record<string, unknown> | null =>
   typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : null
@@ -156,6 +165,18 @@ export function readArtefact(value: unknown): Artefact | null {
       stimulus: text(source, 'stimulus'),
       syllabusPoint: text(source, 'syllabusPoint') ?? text(source, 'syllabus_point'),
       why: text(source, 'why'),
+    }
+  }
+
+  if (kind === 'material') {
+    const name = text(source, 'name')
+    if (!name) return null
+    return {
+      id,
+      kind: 'material',
+      name,
+      chars: number(source, 'chars') ?? 0,
+      preview: text(source, 'preview') ?? '',
     }
   }
 
