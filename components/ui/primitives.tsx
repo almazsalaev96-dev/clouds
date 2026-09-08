@@ -78,7 +78,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
         variant === "primary" && "bg-[var(--accent-fill)] text-accent-fg hover:bg-[var(--accent-fill-hover)]",
         variant === "secondary" && "border border-line-strong bg-surface text-primary hover:bg-subtle",
         variant === "ghost" && "text-secondary hover:bg-subtle hover:text-primary",
-        variant === "danger" && "bg-[var(--stop)] text-white hover:brightness-110",
+        variant === "danger" && "bg-[var(--stop-fill)] text-white hover:brightness-110",
         className,
       )}
       {...props}

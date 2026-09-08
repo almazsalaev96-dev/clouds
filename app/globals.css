@@ -25,7 +25,10 @@
 
   --text-primary: #030817;
   --text-secondary: #464a6b;
-  --text-tertiary: #71769a;
+  /* Quiet, but still text: clears 4.5:1 on every ground it can land on. */
+  --text-tertiary: #636889;
+  /* Decoration only — list markers, dividers, disabled icon fills. Never words. */
+  --text-faint: #9aa0bb;
 
   /* One indigo, in two steps. On paper a single value can carry text and hold
      white, so both roles point at the same colour here. */
@@ -41,6 +44,9 @@
   --live: #b84400;
   --go: #4c6b00;
   --stop: #cd2318;
+  /* Signal Red cannot hold white text at 4.5:1, so a destructive button gets a
+     deeper step. The vivid value stays for rules and icons. */
+  --stop-fill: #cd2318;
 
   /* Fills keep the vivid values in both themes, because they are read as
      shapes with dark text on them, not as coloured text. */
@@ -117,7 +123,8 @@
 
     --text-primary: #e9eaf7;
     --text-secondary: #9aa0c2;
-    --text-tertiary: #666c92;
+    --text-tertiary: #7a7fa1;
+    --text-faint: #565c7e;
 
     /* One indigo, two steps — a family, not two colours. The deep step fills
        and holds white text; the light step is the same hue raised until it can
@@ -134,6 +141,7 @@
     --live: #ff6818;
     --go: #d8ff38;
     --stop: #ff3b30;
+    --stop-fill: #de332a;
 
     --go-fill: #d8ff38;
     --on-fill: #030817;
@@ -179,7 +187,8 @@
 
   --text-primary: #e9eaf7;
   --text-secondary: #9aa0c2;
-  --text-tertiary: #666c92;
+  --text-tertiary: #7a7fa1;
+  --text-faint: #565c7e;
 
   /* One indigo, two steps — a family, not two colours. The deep step fills
      and holds white text; the light step is the same hue raised until it can
@@ -196,6 +205,7 @@
   --live: #ff6818;
   --go: #d8ff38;
   --stop: #ff3b30;
+  --stop-fill: #de332a;
 
   --go-fill: #d8ff38;
   --on-fill: #030817;
@@ -236,6 +246,7 @@
   --color-primary: var(--text-primary);
   --color-secondary: var(--text-secondary);
   --color-tertiary: var(--text-tertiary);
+  --color-faint: var(--text-faint);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-subtle: var(--accent-subtle);
@@ -244,6 +255,7 @@
   --color-live: var(--live);
   --color-go: var(--go);
   --color-stop: var(--stop);
+  --color-stop-fill: var(--stop-fill);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
@@ -575,7 +587,7 @@ body {
 .prose ul, .prose ol { padding-left: 1.5em; }
 .prose ul { list-style: disc; }
 .prose ol { list-style: decimal; }
-.prose li::marker { color: var(--text-tertiary); }
+.prose li::marker { color: var(--text-faint); }
 .prose li + li { margin-top: 0.35em; }
 .prose li > ul, .prose li > ol { margin-top: 0.35em; }
 
