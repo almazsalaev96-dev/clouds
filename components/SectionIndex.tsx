@@ -211,14 +211,22 @@ export function SectionIndex({
 export function DetailBar({
   onBack,
   backLabel,
+  wide,
   children,
 }: {
   onBack: () => void;
   backLabel: string;
+  /** For screens whose content is wider than a reading measure — code. */
+  wide?: boolean;
   children?: React.ReactNode;
 }) {
   return (
-    <div className="no-print mx-auto flex w-full max-w-[var(--measure)] items-center gap-1 px-4 pt-3">
+    <div
+      className={cn(
+        "no-print mx-auto flex w-full items-center gap-1 px-4 pt-3",
+        wide ? "max-w-[var(--measure-wide)]" : "max-w-[var(--measure)]",
+      )}
+    >
       <IconButton label={backLabel} keys={["Esc"]} onClick={onBack}>
         <ChevronLeft size={16} />
       </IconButton>

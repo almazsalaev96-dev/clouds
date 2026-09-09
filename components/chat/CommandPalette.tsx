@@ -4,8 +4,8 @@ import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  Download, FileText, Layers, MessageSquare, MessageSquarePlus, Moon, PanelLeft,
-  Printer, Settings2, Sun, Target, Trash2, Type,
+  Code2, Download, FileText, Layers, MessageSquare, MessageSquarePlus, Moon,
+  PanelLeft, Printer, Settings2, Sun, Target, Trash2, Type,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { MODELS } from "@/lib/models";
@@ -41,7 +41,7 @@ function bodyScore(query: string, body?: string): number {
 }
 
 /** Ties broken here when two groups score the same, so the order is stable. */
-const GROUP_ORDER = ["Actions", "Go to", "View", "Models", "Chats", "Notes", "Cards", "Papers", "Practice"];
+const GROUP_ORDER = ["Actions", "Go to", "View", "Models", "Chats", "Code", "Notes", "Cards", "Papers", "Practice"];
 /** No single kind of thing may fill the list and bury the rest. */
 const PER_GROUP = 5;
 
@@ -98,6 +98,7 @@ export function CommandPalette({
     [],
     [],
   );
+  const canvases = useLiveQuery(() => db.canvases.orderBy("updatedAt").reverse().limit(40).toArray(), [], []);
   const notes = useLiveQuery(() => db.notes.orderBy("updatedAt").reverse().limit(60).toArray(), [], []);
   const decks = useLiveQuery(() => db.decks.orderBy("createdAt").reverse().limit(40).toArray(), [], []);
   const papers = useLiveQuery(() => db.papers.orderBy("updatedAt").reverse().limit(40).toArray(), [], []);
@@ -159,6 +160,7 @@ export function CommandPalette({
     const nav: Command[] = (
       [
         ["chat", "Chats", <MessageSquare key="c" size={15} />],
+        ["code", "Code", <Code2 key="k" size={15} />],
         ["notes", "Notes", <FileText key="n" size={15} />],
         ["cards", "Cards", <Layers key="d" size={15} />],
         ["papers", "Papers", <Printer key="p" size={15} />],
@@ -185,6 +187,16 @@ export function CommandPalette({
     /* Notes and papers are searched by their body as well as their title,
        because that is how you actually remember a note: by a phrase in it,
        not by the heading you never wrote. */
+    const canvasCmds: Command[] = (canvases ?? []).map((c) => ({
+      id: `canvas:${c.id}`,
+      label: c.title || "Untitled",
+      hint: c.content.split("\n").find((l) => l.trim()) ?? "Empty",
+      body: c.content,
+      icon: <Code2 size={15} />,
+      group: "Code",
+      run: () => actions.open("code", c.id),
+    }));
+
     const noteCmds: Command[] = (notes ?? []).map((n) => ({
       id: `note:${n.id}`,
       label: n.title || "Untitled note",
@@ -226,9 +238,9 @@ export function CommandPalette({
 
     return [
       ...base, ...nav, ...models,
-      ...chats, ...noteCmds, ...deckCmds, ...paperCmds, ...skillCmds,
+      ...chats, ...canvasCmds, ...noteCmds, ...deckCmds, ...paperCmds, ...skillCmds,
     ];
-  }, [actions, conversations, notes, decks, papers, skills, settings]);
+  }, [actions, conversations, canvases, notes, decks, papers, skills, settings]);
 
   /* Ranking has two jobs at once: put the best thing first, and keep each
      group in one piece. Sorting purely by score interleaves a note between two

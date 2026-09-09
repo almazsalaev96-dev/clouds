@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  ChevronRight, FileText, Keyboard, Layers, PanelLeft, Pin, PinOff, Plus,
+  ChevronRight, Code2, FileText, Keyboard, Layers, PanelLeft, Pin, PinOff, Plus,
   Printer, Search, Settings2, Target, Trash2, X,
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { IconButton, Kbd, Tooltip } from "@/components/ui/primitives";
 
 const SECTIONS: { id: Exclude<Section, "chat">; label: string; icon: React.ReactNode }[] = [
+  { id: "code", label: "Code", icon: <Code2 size={15} /> },
   { id: "notes", label: "Notes", icon: <FileText size={15} /> },
   { id: "cards", label: "Cards", icon: <Layers size={15} /> },
   { id: "papers", label: "Papers", icon: <Printer size={15} /> },
@@ -83,7 +84,7 @@ export function Sidebar({
           <div className="space-y-1 px-2 pb-2">
             <button
               onClick={onNewChat}
-              className="group flex h-9 w-full items-center gap-2 rounded-md border border-line bg-canvas px-2.5 text-sm font-medium text-primary transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
+              className="tap group flex h-9 w-full items-center gap-2 rounded-md border border-line bg-canvas px-2.5 text-sm font-medium text-primary transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
             >
               <Plus size={15} className="text-tertiary transition-colors duration-[var(--dur-fast)] group-hover:text-accent" />
               New chat
@@ -92,7 +93,7 @@ export function Sidebar({
               </span>
             </button>
 
-            <div className="flex h-8 items-center gap-1.5 rounded-md border border-transparent px-2 transition-colors duration-[var(--dur-fast)] focus-within:border-line-strong focus-within:bg-canvas">
+            <div className="tap flex h-8 items-center gap-1.5 rounded-md border border-transparent px-2 transition-colors duration-[var(--dur-fast)] focus-within:border-line-strong focus-within:bg-canvas">
               <Search size={13} className="shrink-0 text-tertiary" />
               <input
                 value={query}
@@ -100,7 +101,7 @@ export function Sidebar({
                 onKeyDown={(e) => e.key === "Escape" && setQuery("")}
                 placeholder="Search chats"
                 aria-label="Search chats"
-                className="min-w-0 flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-tertiary"
+                className="tap h-full min-w-0 flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-tertiary"
               />
               {query && (
                 <button onClick={() => setQuery("")} aria-label="Clear search" className="text-tertiary hover:text-primary">
@@ -118,7 +119,7 @@ export function Sidebar({
                 onClick={() => onGoToSection(s.id)}
                 aria-current={section === s.id}
                 className={cn(
-                  "flex h-8 w-full items-center gap-2 rounded-md px-2 text-sm transition-colors duration-[var(--dur-fast)]",
+                  "tap flex h-8 w-full items-center gap-2 rounded-md px-2 text-sm transition-colors duration-[var(--dur-fast)]",
                   section === s.id
                     ? "bg-accent-subtle font-medium text-primary"
                     : "text-secondary hover:bg-canvas hover:text-primary",
@@ -153,7 +154,7 @@ export function Sidebar({
           <div className="flex items-center gap-1 border-t border-line p-2">
             <button
               onClick={onOpenSettings}
-              className="flex h-8 flex-1 items-center gap-2 rounded-md px-2 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-canvas hover:text-primary"
+              className="tap flex h-8 flex-1 items-center gap-2 rounded-md px-2 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-canvas hover:text-primary"
             >
               <Settings2 size={15} />
               Settings
@@ -296,7 +297,7 @@ function ChatList({
           <button
             onClick={() => setShowArchived((v) => !v)}
             aria-expanded={showArchived}
-            className="focus-inset flex h-8 w-full items-center gap-1.5 rounded-md px-2 text-[11px] font-medium uppercase tracking-[0.06em] text-faint transition-colors duration-[var(--dur-fast)] hover:text-secondary"
+            className="focus-inset tap flex h-8 w-full items-center gap-1.5 rounded-md px-2 text-[11px] font-medium uppercase tracking-[0.06em] text-faint transition-colors duration-[var(--dur-fast)] hover:text-secondary"
           >
             <ChevronRight
               size={12}
@@ -336,7 +337,7 @@ function Row({
   return (
     <div
       className={cn(
-        "group relative flex h-8 items-center rounded-md pl-2 pr-1 transition-colors duration-[var(--dur-fast)]",
+        "tap group relative flex h-8 items-center rounded-md pl-2 pr-1 transition-colors duration-[var(--dur-fast)]",
         active ? "bg-accent-subtle" : "hover:bg-canvas",
       )}
     >

@@ -4,7 +4,8 @@ import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Copy,
-  Download, MoreHorizontal, NotebookPen, PanelRight, Pencil, RefreshCw, Volume2, X,
+  Download, MoreHorizontal, NotebookPen, PanelRight, Pencil, RefreshCw,
+  SquarePen, Volume2, X,
 } from "lucide-react";
 import type { ChatError, Message as Msg } from "@/lib/types";
 import { getModel, formatTokens, MODELS } from "@/lib/models";
@@ -183,6 +184,7 @@ function AssistantMessageImpl({
   onNavigate,
   onRegenerate,
   onSaveToNote,
+  onOpenInCanvas,
   entering,
   settled,
   isLast,
@@ -193,6 +195,8 @@ function AssistantMessageImpl({
   onNavigate: (id: string) => void;
   onRegenerate: (message: Msg, modelId?: string) => void;
   onSaveToNote: (text: string) => void;
+  /** Lift this answer into a canvas and open it there. */
+  onOpenInCanvas: (text: string) => void;
   entering?: boolean;
   /** True for about a second after this answer finished generating. */
   settled?: boolean;
@@ -364,6 +368,15 @@ function AssistantMessageImpl({
                   Open in side panel
                 </DropdownMenu.Item>
               )}
+              {/* The panel shows an answer; the canvas keeps it. This is the
+                  step from reading what the model wrote to working on it. */}
+              <DropdownMenu.Item
+                onSelect={() => onOpenInCanvas(text)}
+                className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-secondary outline-none transition-colors duration-[var(--dur-fast)] data-[highlighted]:bg-subtle data-[highlighted]:text-primary"
+              >
+                <SquarePen size={15} className="text-tertiary" />
+                Edit in a canvas
+              </DropdownMenu.Item>
               <DropdownMenu.Item
                 onSelect={(e) => {
                   e.preventDefault();

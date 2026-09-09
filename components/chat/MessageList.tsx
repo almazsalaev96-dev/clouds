@@ -31,6 +31,7 @@ export function MessageList({
   onEdit,
   onRegenerate,
   onSaveToNote,
+  onOpenInCanvas,
   onRetry,
   onAddKey,
   onSwitchModel,
@@ -52,6 +53,7 @@ export function MessageList({
   onEdit: (message: Msg, text: string) => void;
   onRegenerate: (message: Msg, modelId?: string) => void;
   onSaveToNote: (text: string) => void;
+  onOpenInCanvas: (text: string) => void;
   onRetry: () => void;
   onAddKey: () => void;
   onSwitchModel: () => void;
@@ -192,6 +194,7 @@ export function MessageList({
                 onNavigate={onNavigate}
                 onRegenerate={onRegenerate}
                 onSaveToNote={onSaveToNote}
+                onOpenInCanvas={onOpenInCanvas}
                 entering={entering}
                 settled={m.id === settledId}
                 isLast={i === messages.length - 1}

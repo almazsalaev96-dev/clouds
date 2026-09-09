@@ -7,6 +7,7 @@ import type { ContentBlock, Message } from "@/lib/types";
 import {
   createConversation, createDeck, createNote, createPaper, db, deepestLeaf,
   deleteConversation, exportMarkdown, pathTo, addMessage, blockText,
+  createCanvas,
 } from "@/lib/db";
 import { estimateTokens, getModel } from "@/lib/models";
 import { fitToContext } from "@/lib/context";
@@ -17,6 +18,7 @@ import { useStream } from "@/lib/hooks/useStream";
 import { inOverlay } from "@/lib/utils";
 import { offerUndo } from "@/lib/undo";
 import { Sidebar } from "@/components/Sidebar";
+import { CanvasView } from "@/components/CanvasView";
 import { NotesView, saveToNote } from "@/components/NotesView";
 import { CardsView } from "@/components/CardsView";
 import { PapersView } from "@/components/PapersView";
@@ -86,6 +88,7 @@ export default function Page() {
   /** Where j/k currently sit in the transcript. */
   const cursorRef = React.useRef(0);
   const [compareWith, setCompareWith] = React.useState<string[]>([]);
+  const [canvasId, setCanvasId] = React.useState<string | null>(null);
   const [noteId, setNoteId] = React.useState<string | null>(null);
   const [deckId, setDeckId] = React.useState<string | null>(null);
   const [paperId, setPaperId] = React.useState<string | null>(null);
@@ -321,24 +324,35 @@ export default function Page() {
     // Deliberately does not stop the stream: an answer belongs to the thread it
     // was asked in, not to whatever is on screen.
     setActiveId(null);
+    // And it has to bring you back to the chat. "New chat" pressed from Notes
+    // or a canvas used to clear the thread behind a screen you were still
+    // looking at — a button that reports doing nothing while quietly doing
+    // something is worse than one that is disabled.
+    settings.setSection("chat");
     closeDrawerOnMobile();
-  }, [closeDrawerOnMobile]);
+  }, [closeDrawerOnMobile, settings]);
 
   const goToSection = React.useCallback(
     (target: Section) => {
       settings.setSection(target);
+      // On a phone the nav lives in a drawer over the content, so navigating
+      // without closing it lands you on the screen you asked for with the menu
+      // still on top of it.
+      closeDrawerOnMobile();
+      if (target === "code") setCanvasId(null);
       if (target === "notes") setNoteId(null);
       if (target === "cards") setDeckId(null);
       if (target === "papers") setPaperId(null);
       if (target === "practice") setSkillId(null);
     },
-    [settings],
+    [settings, closeDrawerOnMobile],
   );
 
   const createInSection = React.useCallback(
     async (section: Section) => {
       closeDrawerOnMobile();
       if (section === "chat") return newChat();
+      if (section === "code") return setCanvasId((await createCanvas()).id);
       if (section === "notes") return setNoteId((await createNote()).id);
       if (section === "cards") return setDeckId((await createDeck("New deck")).id);
       // Practice has no blank state worth creating: a skill without traps
@@ -355,12 +369,50 @@ export default function Page() {
       if (section === "chat") {
         setActiveId(id);
         settings.setSection("chat");
-      } else if (section === "notes") setNoteId(id);
+      } else if (section === "code") setCanvasId(id);
+      else if (section === "notes") setNoteId(id);
       else if (section === "cards") setDeckId(id);
       else if (section === "practice") setSkillId(id);
       else setPaperId(id);
     },
     [closeDrawerOnMobile, settings],
+  );
+
+  /** Lift an answer into a canvas and go there. */
+  const keepAsCanvas = React.useCallback(
+    async (text: string) => {
+      /* A fenced block becomes a code canvas in its own language; anything
+         else is prose. Guessing wrong here is cheap to fix, and guessing at all
+         beats making someone pick a type before they can start.
+
+         The info string is everything after the backticks — `ts` but also
+         `ts title="debounce.ts"`, which this app writes and renders. Matching
+         only a bare language would miss exactly the blocks that were labelled
+         carefully enough to be worth keeping. */
+      const fence = text.match(/```([\w.-]*)([^\n]*)\n([\s\S]*?)```/);
+      const heading = text.match(/^#{1,3}\s+(.+)$/m)?.[1];
+      // A code block's own filename names the canvas better than a heading
+      // somewhere else in the answer does.
+      const filename = fence?.[2].match(/title="([^"]+)"/)?.[1];
+      const canvas = fence
+        ? await createCanvas({
+            title: filename ?? heading ?? "Untitled",
+            kind: "code",
+            lang: fence[1] || "ts",
+            content: fence[3].replace(/\s+$/, "") + "\n",
+            sourceConversationId: activeId ?? undefined,
+          })
+        : await createCanvas({
+            title: heading ?? "Untitled",
+            kind: "doc",
+            content: text,
+            sourceConversationId: activeId ?? undefined,
+          });
+      setCanvasId(canvas.id);
+      settings.setSection("code");
+      closeDrawerOnMobile();
+    },
+    [activeId, settings, closeDrawerOnMobile],
   );
 
   const [studyBusy, setStudyBusy] = React.useState(false);
@@ -481,7 +533,8 @@ export default function Page() {
         if (e.key !== "Escape") return;
         const tag = (e.target as HTMLElement)?.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA") return;
-        if (settings.section === "notes" && noteId) setNoteId(null);
+        if (settings.section === "code" && canvasId) setCanvasId(null);
+        else if (settings.section === "notes" && noteId) setNoteId(null);
         else if (settings.section === "cards" && deckId) setDeckId(null);
         else if (settings.section === "papers" && paperId) setPaperId(null);
         else if (settings.section === "practice" && skillId) setSkillId(null);
@@ -501,9 +554,12 @@ export default function Page() {
         case "2":
         case "3":
         case "4":
-        case "5": {
+        case "5":
+        case "6": {
           e.preventDefault();
-          const sections = ["chat", "notes", "cards", "papers", "practice"] as const;
+          // The order the sidebar shows them in, so the number you press is
+          // the position you can see rather than one you have to remember.
+          const sections = ["chat", "code", "notes", "cards", "papers", "practice"] as const;
           goToSection(sections[Number(e.key) - 1]);
           break;
         }
@@ -537,7 +593,7 @@ export default function Page() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [createInSection, goToSection, path, settings, stream, noteId, deckId, paperId, skillId]);
+  }, [createInSection, goToSection, path, settings, stream, canvasId, noteId, deckId, paperId, skillId]);
 
   const openKeys = React.useCallback(() => {
     setSettingsTab("keys");
@@ -606,6 +662,15 @@ export default function Page() {
                 )}
 
               </header>
+              {settings.section === "code" && (
+                <CanvasView
+                  canvasId={canvasId}
+                  configured={configured}
+                  onSelect={setCanvasId}
+                  onNew={() => void createInSection("code")}
+                  onBack={() => setCanvasId(null)}
+                />
+              )}
               {settings.section === "notes" && (
                 <NotesView
                   noteId={noteId}
@@ -708,6 +773,7 @@ export default function Page() {
                 onEdit={editMessage}
                 onRegenerate={regenerate}
                 onSaveToNote={keepAsNote}
+                onOpenInCanvas={keepAsCanvas}
                 onRetry={() => {
                   const last = [...path].reverse().find((m) => m.role === "assistant");
                   if (last) regenerate(last);

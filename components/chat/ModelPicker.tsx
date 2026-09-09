@@ -72,7 +72,7 @@ export function ModelPicker({
     <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger asChild>
         {children ?? (
-          <button className="flex h-8 items-center gap-1 rounded-md px-2 text-sm font-medium text-primary transition-colors duration-[var(--dur-fast)] hover:bg-subtle">
+          <button className="tap flex h-8 items-center gap-1 rounded-md px-2 text-sm font-medium text-primary transition-colors duration-[var(--dur-fast)] hover:bg-subtle">
             {model.name}
             <ChevronDown size={13} className="text-tertiary" />
           </button>

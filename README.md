@@ -60,38 +60,53 @@ answer you chose. The other two are not discarded: they stay under `‹ 2/3 ›`
 copy left in the thread collapses to a one-line reference, so a 900-line answer stops
 burying the conversation that produced it.
 
-**Look** — a Void Navy ground (`#030817`) and one indigo primary, in two steps: the
-deep step (`#2F45E0`) fills and holds white text, the light step (`#7D90FF`) is the
-same hue raised until it can be read on the navy. Two steps rather than one because no
-single value can do both — white needs the fill below `L 0.183` and the navy needs the
-text above `L 0.186`, and those thresholds cross. Indigo over azure for two reasons
-that are checkable: it holds the widest contrast margin of the families tried, and it
-sits furthest in hue from lime and orange, so the signals never read as a shade of the
-brand. Then three signals — Acid Lime, Hyper Orange, Signal Red — that never fill anything
-larger than a badge, a caret or a 2px rule. That restraint is the palette: a colour
-used everywhere stops meaning anything, so lime marks work waiting, orange marks the
-model running, and red marks something you cannot undo. Failures get a red rule and a
-sentence, not a panel of red.
+**Canvas** — a document you and the model both write to. Open a blank one, or lift an
+answer out of a thread ("Edit in a canvas", which takes the fenced block and its
+language rather than the prose around it). Then ask for a change in plain words and it
+comes back *as the document*: a diff with its counts, Discard or Keep, and nothing
+written until you keep it. A long answer in a chat is not help, it is homework — you
+read it, find the three lines that changed, and paste them somewhere by hand.
 
-Two constraints are enforced rather than assumed. The primary's two steps exist because
-one value cannot serve both roles, as above. And a signal used as text is not the same value as a
-signal used as a fill: light mode darkens lime to `#4C6B00` for type, while the badge
-keeps the vivid `#D8FF38` with navy on top. Every pair was computed, not eyeballed;
-control borders clear 3:1 against the page, body text 4.5:1, in both themes.
+Every accepted change is a version, and so is the state it replaced, so reverting is
+always possible even when the first edit came from the model. Reverting writes a *new*
+version rather than deleting the ones after it, because an undo that destroys history
+is how you lose the thing you were trying to get back to. HTML and CSS canvases run in
+a sandboxed frame with no `allow-same-origin`: the preview executes its own scripts and
+can reach nothing else in the browser.
+
+**Look** — the palette is a brand sheet, not a theme picker's output. Light is the
+primary: Manela (`#fffcee`) as the ground and Blue (`#152a32`) as the ink — a warm
+paper and a cold near-black, which is why the page reads as printed rather than as a
+screen turned down. Purple carries structure (links, focus, the active row), Green
+carries the one action you are meant to take, and Lime is reserved for a mark that
+must be seen from across the room — a due count, a highlight — never for a surface.
+
+Dark is a *rotation*, not an inversion: Blue stops being the ink and becomes the
+ground, Manela stops being the ground and becomes the ink. Every colour keeps its job
+and none of them becomes a different colour, which is why switching themes never feels
+like switching apps.
+
+Two constraints are enforced rather than assumed. A colour used as text is not the
+same value as the same colour used as a fill — Purple deepens to `#5b3fc4` and Green
+to `#00703c` on paper, while dark takes them at their true `#c9b5ff` and `#00d477`,
+and the Green in dark carries the ink rather than white because at that brightness it
+is a lit surface. And every pair is computed, not eyeballed: `node contrast.mjs`
+checks 28 text/background pairs in both themes on every change — control borders clear
+3:1, body text 4.5:1.
 
 **Thinking** — one motif wherever the model is running: a ring of field energy that
 turns, and a hairline that travels the width of whatever is live. It says *running*
 without claiming to know how much longer, which a progress bar would, and would be
-lying about. The streaming caret runs blue at its base to orange at its tip; the
-composer border joins the same event, so where you type and where text appears are
-visibly one thing. Under `prefers-reduced-motion` the ring stops turning and the line
+lying about. The streaming caret runs the two purple steps, deep at its base to
+light at its tip; the composer border joins the same event, so where you type and
+where text appears are visibly one thing. Under `prefers-reduced-motion` the ring stops turning and the line
 stops travelling, but both stay visible — reduced motion still needs the state to be
 legible.
 
 **Navigation** — the sidebar belongs to conversations: New chat, search, then the
-history. Notes, Cards and Papers sit above that as destinations, separated by a
-hairline, each opening as its own page with its own index in the main column. Taking
-the chat list away to show a note list would cost more than it buys.
+history. Code, Notes, Cards, Papers and Practice sit above that as destinations,
+separated by a hairline, each opening as its own page with its own index in the main
+column. Taking the chat list away to show a note list would cost more than it buys.
 
 **Notes** — markdown documents, edited in place, searched by body as well as title.
 Keep any answer from a chat with one click, or the whole conversation. Titles derive
@@ -190,6 +205,13 @@ heading, and link URLs printed in full.
   key: each returns a correctly classified `bad_key` through the SSE stream, and a
   provider with no key returns `no_key` before any request is made.
 - Rendered and screenshotted in light and dark at 1440×900 and at 390×844.
+- The canvas driven end to end (`e2e-canvas.mjs`): a revision proposed, shown as a
+  diff with the right counts, refused entry to the database until accepted, recorded
+  as two versions, reverted without losing the newer one, and a preview confirmed to
+  run its own scripts on an opaque origin.
+- Every control in every section measured on a phone (`touch.mjs`), not sampled: the
+  earlier check only covered the chat composer, which is where the icon buttons
+  already met 44pt — while the navigation you go through to reach anything was 32.
 - Compare mode driven end to end in a real browser: three columns mount, each opens
   its own request, and each renders its own classified failure independently.
 - The side panel opens from a code block, collapses the inline copy to a reference,
@@ -252,10 +274,10 @@ Four scripts, each measuring rather than asserting — they read the live DOM an
 the computed tokens, so they cannot drift from what ships. Run the app first.
 
 ```bash
-node audit.mjs        # Apple HIG: targets, safe areas, zoom, names, focus, contrast mode
+node audit.mjs        # Apple HIG: safe areas, zoom, names, focus, contrast mode
 node contrast.mjs     # every text/background pair the app renders, against WCAG
+node touch.mjs        # every control in every section on a phone, against 44pt
 node shoot-smoke.mjs  # every section loads, undo works, no runtime errors
-node shoot-touch.mjs  # nothing under 44px on a phone, nothing changed on desktop
 ```
 
 And the end-to-end run, which needs the app pointed at the mock provider:
@@ -264,6 +286,7 @@ And the end-to-end run, which needs the app pointed at the mock provider:
 node mock-provider.mjs &
 ANTHROPIC_BASE_URL=http://127.0.0.1:8787 ANTHROPIC_API_KEY=sk-ant-mock npx next start -p 3100 &
 node e2e.mjs         # 15 assertions across the whole happy path
+node e2e-canvas.mjs  # 25 assertions: edit, revise, diff, keep, revert, sandbox
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire
 node test-fit.mjs      # a 360k-token thread trimmed to fit and answered
 MOCK_RATE_LIMIT=1 …    # restart the mock this way, then: node test-retry.mjs

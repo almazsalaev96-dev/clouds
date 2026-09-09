@@ -428,7 +428,7 @@ function Segmented({
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded-[6px] px-2.5 py-1 text-xs transition-colors duration-[var(--dur-fast)]",
+            "tap inline-flex items-center rounded-[6px] px-2.5 py-1 text-xs transition-colors duration-[var(--dur-fast)]",
             value === o.value ? "bg-surface font-medium text-primary shadow-sm" : "text-secondary hover:text-primary",
           )}
         >

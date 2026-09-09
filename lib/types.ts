@@ -178,6 +178,50 @@ export interface Paper {
   format: "report" | "essay" | "notes";
 }
 
+/* ---------------------------------------------------------------- canvas -- */
+
+/**
+ * A document you and the model both edit.
+ *
+ * The difference from a note is who may write to it and what happens when they
+ * do. A note is yours; the model can produce one but never touches it again.
+ * A canvas is shared: you type in it directly, and you can ask for a change
+ * and get the file back revised in place rather than pasted into the
+ * conversation as a new copy you then have to reconcile by hand.
+ *
+ * Which is the whole point. Once an answer is longer than a screen, "here is
+ * the updated version" is not help — it is homework.
+ */
+export interface Canvas {
+  id: string;
+  title: string;
+  kind: "code" | "doc";
+  /** Highlighting and the preview mode both key off this. */
+  lang?: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+  /** The conversation it came out of, so it can point back at its origin. */
+  sourceConversationId?: string;
+}
+
+/**
+ * Every accepted state of a canvas, kept.
+ *
+ * A shared document without history is a document you cannot let anything else
+ * write to: one bad revision and the work is gone. History is what makes it
+ * safe to hand the pen over.
+ */
+export interface CanvasVersion {
+  id: string;
+  canvasId: string;
+  content: string;
+  by: "you" | "model";
+  /** The instruction, when the model made it. */
+  note?: string;
+  createdAt: number;
+}
+
 /* -------------------------------------------------------------- practice -- */
 
 /**

@@ -62,7 +62,26 @@ createServer(async (req, res) => {
   // Titles come through as a short one-shot with a low max_tokens; answering
   // them with the essay would make the sidebar unreadable.
   const isTitle = (body.max_tokens ?? 4096) <= 64;
-  const text = isTitle ? "Debouncing a search input" : REPLY;
+
+  /* A canvas revision asks for the whole document back, so answering it with
+     the essay would prove nothing about the diff. Instead the document is
+     returned with one deterministic edit — the first line rewritten and a line
+     appended — which is exactly +2 / −1 and can be asserted on. */
+  const asked = (body.messages ?? [])
+    .flatMap((m) => (Array.isArray(m.content) ? m.content : [{ type: "text", text: m.content }]))
+    .filter((c) => c.type === "text")
+    .map((c) => c.text)
+    .join("\n");
+  const revising = /^Revise the /.test(asked) && asked.includes("\nCURRENT\n");
+
+  let text = isTitle ? "Debouncing a search input" : REPLY;
+  if (revising) {
+    const current = asked.slice(asked.indexOf("\nCURRENT\n") + "\nCURRENT\n".length);
+    const lines = current.replace(/\s+$/, "").split("\n");
+    lines[0] = `// revised: ${lines[0]}`;
+    lines.push("// appended by the mock");
+    text = lines.join("\n");
+  }
 
   res.writeHead(200, {
     "content-type": "text/event-stream",

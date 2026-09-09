@@ -105,7 +105,7 @@ export function EmptyState({
                 key={e}
                 onClick={() => onExample(e)}
                 style={{ animationDelay: `${120 + i * 40}ms` }}
-                className="focus-inset lift anim-rise rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13px] text-secondary hover:border-line-strong hover:text-primary"
+                className="tap focus-inset lift anim-rise inline-flex items-center rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13px] text-secondary hover:border-line-strong hover:text-primary"
               >
                 {e}
               </button>
@@ -115,7 +115,7 @@ export function EmptyState({
           <div className="mt-5 flex justify-center">
             <button
               onClick={onAddKey}
-              className="bloom focus-inset anim-rise flex items-center gap-2 rounded-full bg-[var(--cta)] px-4 py-2 text-sm font-medium text-[var(--cta-fg)]"
+              className="tap bloom focus-inset anim-rise flex items-center gap-2 rounded-full bg-[var(--cta)] px-4 py-2 text-sm font-medium text-[var(--cta-fg)]"
               style={{ animationDelay: "120ms" }}
             >
               <KeyRound size={14} />

@@ -1,7 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import type {
-  Attempt, Card, Conversation, Deck, Message, Note, Paper, Problem, Skill, Trap,
-  ContentBlock,
+  Attempt, Canvas, CanvasVersion, Card, ContentBlock, Conversation, Deck,
+  Message, Note, Paper, Problem, Skill, Trap,
 } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 
@@ -21,6 +21,8 @@ class ChatDB extends Dexie {
   traps!: Table<Trap, string>;
   problems!: Table<Problem, string>;
   attempts!: Table<Attempt, string>;
+  canvases!: Table<Canvas, string>;
+  canvasVersions!: Table<CanvasVersion, string>;
 
   constructor() {
     super("clouds");
@@ -55,6 +57,13 @@ class ChatDB extends Dexie {
       attempts: "id, skillId, trapId, problemId, createdAt, [trapId+createdAt]",
       decks: "id, createdAt, sourceNoteId",
       cards: "id, deckId, due, [deckId+due]",
+    });
+
+    /* Version 4 adds the canvas: a document you and the model both write to,
+       and the history that makes handing the pen over safe. */
+    this.version(4).stores({
+      canvases: "id, updatedAt, kind",
+      canvasVersions: "id, canvasId, createdAt, [canvasId+createdAt]",
     });
   }
 }
@@ -397,6 +406,95 @@ export async function deleteSkill(id: string): Promise<() => Promise<void>> {
         if (traps.length) await db.traps.bulkPut(traps);
         if (problems.length) await db.problems.bulkPut(problems);
         if (attempts.length) await db.attempts.bulkPut(attempts);
+      });
+    };
+  });
+}
+
+/* ---------------------------------------------------------------- canvas -- */
+
+export async function createCanvas(init: Partial<Canvas> = {}): Promise<Canvas> {
+  const now = Date.now();
+  const canvas: Canvas = {
+    id: uid(),
+    title: "Untitled",
+    kind: "code",
+    lang: "ts",
+    content: "",
+    createdAt: now,
+    updatedAt: now,
+    ...init,
+  };
+  await db.transaction("rw", db.canvases, db.canvasVersions, async () => {
+    await db.canvases.add(canvas);
+    // The first state is a version like any other, so reverting to "how it
+    // arrived" is the same operation as reverting to anything else.
+    if (canvas.content) await pushVersion(canvas.id, canvas.content, "model", "first draft");
+  });
+  return canvas;
+}
+
+/**
+ * Record a state.
+ *
+ * Called when a change is *accepted*, not on every keystroke — a history you
+ * cannot read is not history. Consecutive identical states collapse, because a
+ * revision that changed nothing should not look like one that did.
+ */
+export async function pushVersion(
+  canvasId: string,
+  content: string,
+  by: CanvasVersion["by"],
+  note?: string,
+): Promise<void> {
+  const last = await db.canvasVersions
+    .where("[canvasId+createdAt]")
+    .between([canvasId, Dexie.minKey], [canvasId, Dexie.maxKey])
+    .last();
+  if (last?.content === content) return;
+  await db.canvasVersions.add({
+    id: uid(),
+    canvasId,
+    content,
+    by,
+    note,
+    createdAt: Date.now(),
+  });
+}
+
+export async function versionsOf(canvasId: string): Promise<CanvasVersion[]> {
+  return db.canvasVersions
+    .where("[canvasId+createdAt]")
+    .between([canvasId, Dexie.minKey], [canvasId, Dexie.maxKey])
+    .reverse()
+    .toArray();
+}
+
+/**
+ * Go back to an earlier state — by writing it as a *new* version rather than
+ * by deleting the ones after it. Reverting is an edit, and an edit that
+ * destroys history is how you lose the thing you were trying to get back to
+ * when it turns out you reverted one step too far.
+ */
+export async function revertCanvas(canvasId: string, versionId: string): Promise<void> {
+  const v = await db.canvasVersions.get(versionId);
+  if (!v) return;
+  await db.transaction("rw", db.canvases, db.canvasVersions, async () => {
+    await db.canvases.update(canvasId, { content: v.content, updatedAt: Date.now() });
+    await pushVersion(canvasId, v.content, "you", "reverted");
+  });
+}
+
+export async function deleteCanvas(id: string): Promise<() => Promise<void>> {
+  return db.transaction("rw", db.canvases, db.canvasVersions, async () => {
+    const canvas = await db.canvases.get(id);
+    const versions = await db.canvasVersions.where("canvasId").equals(id).toArray();
+    await db.canvasVersions.where("canvasId").equals(id).delete();
+    await db.canvases.delete(id);
+    return async () => {
+      await db.transaction("rw", db.canvases, db.canvasVersions, async () => {
+        if (canvas) await db.canvases.put(canvas);
+        if (versions.length) await db.canvasVersions.bulkPut(versions);
       });
     };
   });

@@ -156,7 +156,7 @@ export function PapersView({
               title={f.hint}
               onClick={() => db.papers.update(paper.id, { format: f.id, updatedAt: Date.now() })}
               className={cn(
-                "rounded-[6px] px-2.5 py-1 text-xs transition-colors duration-[var(--dur-fast)]",
+                "tap inline-flex items-center rounded-[6px] px-2.5 py-1 text-xs transition-colors duration-[var(--dur-fast)]",
                 paper.format === f.id
                   ? "bg-surface font-medium text-primary shadow-sm"
                   : "text-secondary hover:text-primary",
@@ -224,14 +224,14 @@ export function PapersView({
                 }}
                 placeholder="Title"
                 aria-label="Paper title"
-                className="w-full bg-transparent text-2xl font-semibold tracking-[-0.02em] text-primary outline-none placeholder:text-tertiary"
+                className="tap w-full bg-transparent text-2xl font-semibold tracking-[-0.02em] text-primary outline-none placeholder:text-tertiary"
               />
               <input
                 value={paper.subtitle ?? ""}
                 onChange={(e) => persist(paper.id, { subtitle: e.target.value })}
                 placeholder="Subtitle"
                 aria-label="Subtitle"
-                className="mt-1 w-full bg-transparent text-base text-secondary outline-none placeholder:text-tertiary"
+                className="tap mt-1 w-full bg-transparent text-base text-secondary outline-none placeholder:text-tertiary"
               />
               <div className="mt-3 flex items-baseline gap-3 text-xs text-tertiary">
                 <input
@@ -239,7 +239,7 @@ export function PapersView({
                   onChange={(e) => persist(paper.id, { author: e.target.value })}
                   placeholder="Author"
                   aria-label="Author"
-                  className="w-40 bg-transparent outline-none placeholder:text-tertiary"
+                  className="tap w-40 bg-transparent outline-none placeholder:text-tertiary"
                 />
                 <span className="tnum">
                   {new Date(paper.updatedAt).toLocaleDateString(undefined, {

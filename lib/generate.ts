@@ -150,6 +150,57 @@ const PAPER_SHAPES = {
   notes: `structured notes: short headed sections and tight bullet points, built for revision rather than reading aloud`,
 } as const;
 
+/**
+ * Revise a canvas in place.
+ *
+ * The whole point of a canvas is that a change comes back as the document,
+ * not as a message saying "here is the updated version" followed by nine
+ * hundred lines you then have to reconcile by hand. So the model is asked for
+ * the complete file and nothing else, and anything it wraps around it is
+ * stripped before the diff is computed.
+ *
+ * Temperature is low. This is an edit to something that already works, and the
+ * failure mode people actually hit is not "too boring" — it is a rewrite of
+ * parts nobody asked about.
+ */
+export async function reviseCanvas(
+  current: string,
+  instruction: string,
+  kind: "code" | "doc",
+  lang: string | undefined,
+  modelId?: string,
+): Promise<string | null> {
+  const what = kind === "code" ? `${lang ?? "code"} file` : "document";
+  const prompt = `Revise the ${what} below according to the instruction.
+
+Rules:
+- Return the COMPLETE revised ${what} and nothing else. No preamble, no explanation, no "here is".
+- Change only what the instruction asks for. Leave everything else byte for byte as it is — formatting, comments, blank lines, ordering.
+- If the instruction cannot be carried out, return the ${what} unchanged rather than guessing at what was meant.
+${kind === "code" ? "- Do not wrap the answer in a markdown fence unless the file itself is markdown." : ""}
+
+INSTRUCTION
+${instruction}
+
+CURRENT
+${current.slice(0, 60_000)}`;
+
+  const out = await complete(prompt, { modelId, maxTokens: 16_000, temperature: 0.15 });
+  if (!out) return null;
+
+  /* Models fence code even when told not to. Strip one wrapping fence — but
+     only if it wraps the *whole* answer, because a markdown document that
+     happens to open and close with a code block is not a fenced answer. */
+  const fenced = out.match(/^\s*```[\w.-]*\n([\s\S]*?)\n?```\s*$/);
+
+  /* Match the file's own trailing-newline convention rather than imposing one.
+     A revision that silently adds a final newline shows up in the diff as a
+     change nobody asked for, on every single revision, and a diff with a line
+     of noise in it is a diff people stop reading. */
+  const trailing = /\n$/.test(current) ? "\n" : "";
+  return (fenced ? fenced[1] : out).replace(/\s+$/, "") + trailing;
+}
+
 export async function generatePaper(
   source: string,
   format: keyof typeof PAPER_SHAPES,

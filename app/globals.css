@@ -520,6 +520,27 @@ textarea:focus-visible {
   }
 }
 
+/* The same floor for labelled buttons. `min-height` rather than `height` so a
+   button whose label wraps still grows instead of clipping, and the padding
+   goes with it — a 44pt-tall target 20px wide is still a miss. */
+@media (pointer: coarse) {
+  .btn-touch {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    padding-inline: 0.875rem;
+  }
+}
+
+/* And for rows: navigation entries, list items, the search field. Height only —
+   these already run the full width of the drawer, and adding side padding
+   would push their text off the alignment everything else in the column
+   shares. */
+@media (pointer: coarse) {
+  .tap {
+    min-height: 2.75rem;
+  }
+}
+
 /* The undo bar's clock. Reduced motion keeps the line — it is state, not
    decoration — and only stops it from travelling. */
 .undo-clock {
