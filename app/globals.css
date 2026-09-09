@@ -134,7 +134,11 @@
   --density: 1;
   --spacing: calc(0.25rem * var(--density));
 
-  --measure: 46rem;
+  /* 40rem is ChatGPT's own `--thread-content-max-width`, and at 16px body it
+     lands a line at about 75 characters — inside the 60-to-80 band that has
+     been the answer to this question since metal type. It was 46rem, which at
+     15px was already long and at 16px would be 87. */
+  --measure: 40rem;
   /* Wider than prose, for a page-shaped sheet and its toolbar. */
   --measure-wide: 52rem;
   --sidebar-w: 260px;
@@ -317,21 +321,31 @@
   --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo,
     Consolas, monospace;
 
-  /* Mono reads optically larger than sans at equal px, so code is set smaller. */
+  /* The scale, measured against the three apps this one is answering to.
+     ---------------------------------------------------------------------
+     It used to run a step small — 15px body, 13px labels, 13.5px code —
+     which is the single thing that made this read denser than any of them.
+     ChatGPT and Claude both set body at 16 and their UI labels at 14;
+     Claude's published scale is body-md 16/1.55, body-sm 14/1.55, caption
+     13/1.4, code 14/1.6. A step of a pixel sounds like nothing and is the
+     difference between a page you read and a page you scan.
+
+     Code stays a hair under the sans it sits beside, because mono reads
+     optically larger at equal px — but 14, not 13.5. */
   --text-xs: 0.75rem;
   --text-xs--line-height: 1.4;
-  --text-sm: 0.8125rem;
+  --text-sm: 0.875rem;
   --text-sm--line-height: 1.5;
-  --text-base: 0.9375rem;
+  --text-base: 1rem;
   --text-base--line-height: 1.65;
-  --text-lg: 1.0625rem;
-  --text-lg--line-height: 1.5;
-  --text-xl: 1.25rem;
-  --text-xl--line-height: 1.4;
-  --text-2xl: 1.5rem;
-  --text-2xl--line-height: 1.3;
-  --text-code: 0.8438rem;
-  --text-code--line-height: 1.55;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.45;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.35;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 1.25;
+  --text-code: 0.875rem;
+  --text-code--line-height: 1.6;
 }
 
 /* ============================================================================

@@ -99,6 +99,16 @@ is how you lose the thing you were trying to get back to. HTML and CSS canvases 
 a sandboxed frame with no `allow-same-origin`: the preview executes its own scripts and
 can reach nothing else in the browser.
 
+**Type** — the scale was measured against the three apps this one is answering
+to rather than chosen by eye. Body is 16px on a 1.65 line, UI labels are 14, code
+is 14 on 1.6, and the reading column is **40rem** — which is ChatGPT's own
+`--thread-content-max-width`, and lands a line at about 75 characters, inside the
+60-to-80 band. It used to be 15px body, 13px labels and a 46rem column: a step
+small everywhere, and a line already long at 15px that would have been 87
+characters at 16. A pixel sounds like nothing and is the difference between a
+page you read and a page you scan. Claude publishes the same shape — body-md
+16/1.55, body-sm 14, caption 13, code 14/1.6.
+
 **Look** — the palette is a brand sheet, not a theme picker's output. Light is the
 primary: Manela (`#fffcee`) as the ground and Blue (`#152a32`) as the ink — a warm
 paper and a cold near-black, which is why the page reads as printed rather than as a
