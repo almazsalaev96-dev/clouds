@@ -66,6 +66,26 @@ export function MessageList({
   const [announcement, setAnnouncement] = React.useState("");
   const active = streaming !== "idle";
 
+  /* Which message, if any, has just stopped generating. Set on the falling
+     edge of `active` so the glow marks an arrival rather than firing on every
+     mount — opening an old conversation must not make its last answer pretend
+     to have just landed. */
+  const [settledId, setSettledId] = React.useState<string | null>(null);
+  const wasStreaming = React.useRef(false);
+  React.useEffect(() => {
+    if (active) {
+      wasStreaming.current = true;
+      return;
+    }
+    if (!wasStreaming.current) return;
+    wasStreaming.current = false;
+    const last = messages[messages.length - 1];
+    if (last?.role !== "assistant") return;
+    setSettledId(last.id);
+    const t = setTimeout(() => setSettledId(null), 1300);
+    return () => clearTimeout(t);
+  }, [active, messages]);
+
   const wasActive = React.useRef(false);
   React.useEffect(() => {
     if (wasActive.current && !active) {
@@ -155,6 +175,7 @@ export function MessageList({
                 onRegenerate={onRegenerate}
                 onSaveToNote={onSaveToNote}
                 entering={entering}
+                settled={m.id === settledId}
                 isLast={i === messages.length - 1}
               />
             );

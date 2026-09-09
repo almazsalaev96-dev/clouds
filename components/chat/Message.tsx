@@ -184,6 +184,7 @@ function AssistantMessageImpl({
   onRegenerate,
   onSaveToNote,
   entering,
+  settled,
   isLast,
 }: {
   message: Msg;
@@ -193,6 +194,8 @@ function AssistantMessageImpl({
   onRegenerate: (message: Msg, modelId?: string) => void;
   onSaveToNote: (text: string) => void;
   entering?: boolean;
+  /** True for about a second after this answer finished generating. */
+  settled?: boolean;
   /** The answer you are about to act on keeps its controls on screen. */
   isLast?: boolean;
 }) {
@@ -239,7 +242,7 @@ function AssistantMessageImpl({
   };
 
   return (
-    <div id={`m-${message.id}`} className={cn("msg group pb-4 pt-3", entering && "msg-enter")}>
+    <div id={`m-${message.id}`} className={cn("msg group rounded-2xl pb-4 pt-3", entering && "msg-enter", settled && "msg-settled")}>
       {/* Who is speaking, before you read what they said. In an app with four
           providers this is not metadata — it is context. */}
       <div className="mb-2 flex items-center gap-2 text-xs text-tertiary">

@@ -9,6 +9,7 @@ import {
 import type { Conversation } from "@/lib/types";
 import { db, deleteConversation, dueTraps, groupConversations } from "@/lib/db";
 import { useDebounced } from "@/lib/hooks/useDebounced";
+import { usePointerAngle } from "@/lib/hooks/usePointerAngle";
 import { offerUndo } from "@/lib/undo";
 import { dueCount } from "@/lib/study";
 import { useSettings, type Section } from "@/lib/store";
@@ -38,6 +39,7 @@ export function Sidebar({
   onOpenShortcuts: () => void;
 }) {
   const { sidebarOpen, toggleSidebar, section } = useSettings();
+  const markRef = usePointerAngle<HTMLSpanElement>();
   const [query, setQuery] = React.useState("");
   const cards = useLiveQuery(() => db.cards.toArray(), [], []);
   const traps = useLiveQuery(() => db.traps.toArray(), [], []);
@@ -70,12 +72,18 @@ export function Sidebar({
               <PanelLeft size={16} />
             </IconButton>
             <span className="ml-1 flex items-center gap-1.5">
+              {/* The mark is the only thing on screen that is idle rather than
+                  waiting for you: it breathes at a resting human rate, and its
+                  gradient leans toward the pointer. Attention, not a pet — it
+                  never moves toward the cursor and never grows when
+                  approached, because a control that chases you is harder to
+                  hit and one that reacts to being near rather than pressed
+                  teaches you to distrust what its states mean. */}
               <span
+                ref={markRef}
                 aria-hidden
-                className="size-[13px] rounded-full"
+                className="point-aware pulse-soft size-[13px] rounded-full"
                 style={{
-                  background:
-                    "conic-gradient(from 210deg, var(--accent), var(--live), var(--accent))",
                   WebkitMask: "radial-gradient(closest-side, transparent 52%, #000 54%)",
                   mask: "radial-gradient(closest-side, transparent 52%, #000 54%)",
                 }}

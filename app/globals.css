@@ -6,66 +6,67 @@
    If you need a new value, you add a token here. That rule is the whole
    reason the app stays coherent as it grows.
    ========================================================================= */
-
 :root {
   color-scheme: light;
 
   /* ---------------------------------------------------------------------
-     DEEP SPACE — light.
+     MAX LEVEL — light.
 
-     Three hues, each with one job, and the jobs never swap:
+     Four colours and white, each with exactly one job:
 
-       Quantum Blue    structure. Links, focus, the active row, anything
-                       that is simply *there* and reliable.
-       Hyper Violet    thinking. Only ever appears while the machine is
-                       working — the streaming ring, the caret, the rule
-                       under a reply still arriving. It is never a surface.
-       Neon Cyan       act. The one control on a screen you are meant to
-                       press, and nothing else.
+       Obsidian Void        the ground. 60%.
+       Cyber Graphite       structure. Cards, panels, borders. 20%.
+       Electric Ultraviolet core intelligence. 10%. Links, focus, the active
+                            row, and everything the machine does while it is
+                            thinking. Purple carries authority without the
+                            aggression of a red, and it is the only hue in
+                            the system allowed to describe the machine.
+       Laser Cyan           high voltage. 10%. Interactive states, glowing
+                            borders, data streams, and the one control you
+                            are meant to press. Nothing else, ever — the
+                            eye tracks it as the live point of the screen,
+                            and a second cyan thing would split that.
+       Titanium White       type.
 
-     By area that lands near 60 / 30 / 10: the ground and its surfaces carry
-     most of the screen, blue and violet hold the structure and the live
-     states, and cyan is a tenth of a percent of pixels — which is exactly
-     why it reads as "press this" without a label saying so.
-
-     Light is the same system in daylight: every hue darkens enough to hold
-     4.5:1 on paper, and keeps its role.
+     Light is the same system in daylight. Both hues darken far enough to
+     hold 4.5:1 on paper — Laser Cyan especially, which at its true value is
+     a lamp and unreadable as text on anything pale — and neither changes
+     job.
      --------------------------------------------------------------------- */
-  --bg-canvas: #f6f7fb;
+  --bg-canvas: #f5f5f8;
   --bg-surface: #ffffff;
-  --bg-subtle: #eceff7;
-  --bg-inset: #e5e9f3;
-  --bg-overlay: rgba(11, 15, 25, 0.42);
+  --bg-subtle: #ececf1;
+  --bg-inset: #e5e5ec;
+  --bg-overlay: rgba(5, 5, 10, 0.44);
 
-  --border-subtle: #dde2ee;
+  --border-subtle: #dedee6;
   /* Control boundaries clear 3:1 against the page. Hairlines do not have to,
      which is why there are two of these. */
-  --border-strong: #7e8aa5;
+  --border-strong: #85859a;
 
-  --text-primary: #0b0f19;
-  --text-secondary: #414d68;
-  --text-tertiary: #5b6683;
-  --text-faint: #78829c;
+  --text-primary: #05050a;
+  --text-secondary: #45455c;
+  --text-tertiary: #5d5d77;
+  --text-faint: #7b7b93;
 
-  /* Structure. */
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
-  --accent-fill: #2563eb;
-  --accent-fill-hover: #1d4ed8;
-  --accent-subtle: #eef3ff;
+  /* Core intelligence. */
+  --accent: #5a48d6;
+  --accent-hover: #4a39bd;
+  --accent-fill: #5a48d6;
+  --accent-fill-hover: #4a39bd;
+  --accent-subtle: #eeecfd;
   --accent-fg: #ffffff;
-  --accent-rgb: 37 99 235;
+  --accent-rgb: 90 72 214;
 
-  /* Thinking. Never a surface, so it only ever has to be legible as a line,
-     a ring or a glow. */
-  --accent-2: #7c3aed;
-  --accent-2-rgb: 124 58 237;
+  /* Thinking states read as the same family, one step brighter. */
+  --accent-2: #6c5ce7;
+  --accent-2-rgb: 108 92 231;
 
-  /* Act. */
-  --cta: #0e7490;
-  --cta-hover: #155e75;
+  /* High voltage. */
+  --cta: #00707a;
+  --cta-hover: #005a63;
   --cta-fg: #ffffff;
-  --cta-rgb: 14 116 144;
+  --cta-rgb: 0 112 122;
 
   /* --- Status. Darkened here only as far as legibility on paper demands. --- */
   --live: #b4530a;
@@ -81,25 +82,24 @@
   --danger: var(--stop);
   --danger-subtle: #fdecea;
 
-  /* The mesh behind everything: the two structural hues, kept to a whisper on
-     a near-white ground where any real colour reads as a stain. */
-  --mesh-a: rgba(37, 99, 235, 0.10);
-  --mesh-b: rgba(124, 58, 237, 0.08);
-  --mesh-c: rgba(11, 15, 25, 0.04);
+  /* The field behind everything: the two hues, kept to a whisper on a
+     near-white ground where any real colour reads as a stain. */
+  --mesh-a: rgba(90, 72, 214, 0.10);
+  --mesh-b: rgba(0, 112, 122, 0.07);
+  --mesh-c: rgba(5, 5, 10, 0.04);
   --grain-opacity: 0.035;
   --glass: rgba(255, 255, 255, 0.72);
-  --glass-line: rgba(11, 15, 25, 0.08);
+  --glass-line: rgba(5, 5, 10, 0.08);
   --glow: none;
 
   /* --- Elevation. --- */
-  --shadow-sm: 0 1px 2px rgba(11, 15, 25, 0.05), 0 1px 1px rgba(11, 15, 25, 0.03);
-  --shadow-md: 0 4px 12px rgba(11, 15, 25, 0.07), 0 1px 3px rgba(11, 15, 25, 0.04);
-  --shadow-lg: 0 16px 44px rgba(11, 15, 25, 0.12), 0 2px 8px rgba(11, 15, 25, 0.06);
+  --shadow-sm: 0 1px 2px rgba(5, 5, 10, 0.05), 0 1px 1px rgba(5, 5, 10, 0.03);
+  --shadow-md: 0 4px 12px rgba(5, 5, 10, 0.07), 0 1px 3px rgba(5, 5, 10, 0.04);
+  --shadow-lg: 0 16px 44px rgba(5, 5, 10, 0.12), 0 2px 8px rgba(5, 5, 10, 0.06);
   --highlight-top: none;
 
   /* --- Motion. 100–200ms for a control answering a press, 300–400ms for the
-         screen changing under you: fast enough to feel instant, slow enough
-         that the eye can follow what moved where. --- */
+         screen changing under you. --- */
   --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-std: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-spring: linear(
@@ -129,24 +129,24 @@
 
   /* --- Syntax. Six hues, low saturation. A code block should read as one
          calm object, not a Christmas tree. --- */
-  --syn-comment: #545f7a;
-  --syn-keyword: #7c3aed;
+  --syn-comment: #5c5c74;
+  --syn-keyword: #6b3fd0;
   --syn-string: #15683e;
-  --syn-function: #1d4ed8;
+  --syn-function: #3c48c9;
   --syn-number: #9c4708;
-  --syn-type: #0b5f78;
-  --syn-punct: #5b6683;
+  --syn-type: #00707a;
+  --syn-punct: #5d5d77;
 
   /* The composer. On light it lifts with a real drop shadow; on dark a shadow
      under a dark box is invisible, so the lift there comes from a lit top edge
      instead. Both live here so the rule that uses them stays one rule. */
   --composer-bg: rgba(255, 255, 255, 0.86);
-  --composer-line: rgba(11, 15, 25, 0.09);
-  --composer-line-focus: rgba(37, 99, 235, 0.45);
-  --composer-lift: 0 1px 2px rgb(11 15 25 / 0.05), 0 12px 32px -16px rgb(11 15 25 / 0.18);
+  --composer-line: rgba(5, 5, 10, 0.09);
+  --composer-line-focus: rgba(90, 72, 214, 0.45);
+  --composer-lift: 0 1px 2px rgb(5 5 10 / 0.05), 0 12px 32px -16px rgb(5 5 10 / 0.18);
   --composer-lift-focus:
-    0 1px 3px rgb(11 15 25 / 0.07),
-    0 20px 44px -18px rgb(11 15 25 / 0.24),
+    0 1px 3px rgb(5 5 10 / 0.07),
+    0 20px 44px -18px rgb(5 5 10 / 0.24),
     0 0 0 4px rgb(var(--accent-rgb) / 0.10);
 }
 
@@ -154,51 +154,58 @@
   color-scheme: dark;
 
   /* ---------------------------------------------------------------------
-     DEEP SPACE — dark. The only dark palette.
+     MAX LEVEL — dark. The only dark palette.
 
      `data-theme` is resolved before first paint, so the system preference
      becomes a concrete value there rather than being answered by a second
-     copy of this block behind a media query. Two copies is how an earlier
-     palette came to disagree with itself about shadows and syntax.
+     copy of this block behind a media query.
+
+     Obsidian Void is nearly black on purpose: at this depth the two hues
+     stop being colours on a surface and start reading as light sources.
+     That is the whole effect, and it only works if the ground gives them
+     nothing to compete with — which is also why the surfaces above it are
+     graphite rather than tinted.
      --------------------------------------------------------------------- */
-  --bg-canvas: #0b0f19;
-  --bg-surface: #131b2e;
-  --bg-subtle: #1b2439;
-  --bg-inset: #080c15;
-  --bg-overlay: rgba(5, 8, 14, 0.72);
+  --bg-canvas: #05050a;
+  --bg-surface: #12131c;
+  --bg-subtle: #1b1c28;
+  --bg-inset: #0a0a12;
+  --bg-overlay: rgba(2, 2, 5, 0.74);
 
-  --border-subtle: #202b44;
-  --border-strong: #57668b;
+  --border-subtle: #24252f;
+  --border-strong: #5a5b6d;
 
-  --text-primary: #e9edf6;
-  --text-secondary: #a6b1c9;
-  --text-tertiary: #8e99b3;
-  --text-faint: #6f7b96;
+  /* Titanium White. Pure, because on a void anything less reads as grey. */
+  --text-primary: #ffffff;
+  --text-secondary: #a8a9bb;
+  --text-tertiary: #8f90a4;
+  --text-faint: #71728a;
 
-  --accent: #3b82f6;
-  --accent-hover: #60a5fa;
-  --accent-fill: #2563eb;
-  --accent-fill-hover: #3b82f6;
-  --accent-subtle: #121a30;
+  --accent: #8b7cff;
+  --accent-hover: #a99dff;
+  --accent-fill: #6c5ce7;
+  --accent-fill-hover: #7d6ff0;
+  --accent-subtle: #171630;
   --accent-fg: #ffffff;
-  --accent-rgb: 59 130 246;
+  --accent-rgb: 139 124 255;
 
-  --accent-2: #8b5cf6;
-  --accent-2-rgb: 139 92 246;
+  /* Electric Ultraviolet at its true value: fills and glows, never text. */
+  --accent-2: #6c5ce7;
+  --accent-2-rgb: 108 92 231;
 
-  /* Neon Cyan carries dark text, not white: at this brightness it is a lamp,
-     and putting white on a lamp is unreadable. */
-  --cta: #06b6d4;
-  --cta-hover: #22d3ee;
-  --cta-fg: #04121a;
-  --cta-rgb: 6 182 212;
+  /* Laser Cyan. It carries near-black text, not white: at this brightness it
+     is a lamp, and white on a lamp is unreadable. */
+  --cta: #00f9ff;
+  --cta-hover: #6cfcff;
+  --cta-fg: #01141a;
+  --cta-rgb: 0 249 255;
 
   --live: #fb923c;
   --go: #34d399;
   --stop: #f87171;
 
   --go-fill: #10b981;
-  --on-fill: #04121a;
+  --on-fill: #01141a;
   --stop-fill: #dc2626;
 
   --success: var(--go);
@@ -206,40 +213,38 @@
   --danger: var(--stop);
   --danger-subtle: #2a1113;
 
-  --mesh-a: rgba(59, 130, 246, 0.20);
-  --mesh-b: rgba(139, 92, 246, 0.17);
-  --mesh-c: rgba(6, 182, 212, 0.07);
+  --mesh-a: rgba(108, 92, 231, 0.22);
+  --mesh-b: rgba(0, 249, 255, 0.09);
+  --mesh-c: rgba(139, 124, 255, 0.10);
   --grain-opacity: 0.05;
-  --glass: rgba(19, 27, 46, 0.72);
+  --glass: rgba(18, 19, 28, 0.74);
   --glass-line: rgba(255, 255, 255, 0.07);
-  --glow: 0 0 24px -6px var(--accent);
+  --glow: 0 0 24px -6px var(--accent-2);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.55);
-  --shadow-lg: 0 20px 52px rgba(0, 0, 0, 0.62);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.55);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 20px 52px rgba(0, 0, 0, 0.68);
   --highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 
-  --syn-comment: #7b87a3;
-  --syn-keyword: #c4a2ff;
+  --syn-comment: #7e7f95;
+  --syn-keyword: #b9a9ff;
   --syn-string: #6ee7b7;
-  --syn-function: #7fb0ff;
+  --syn-function: #8b7cff;
   --syn-number: #fdba74;
-  --syn-type: #67e8f9;
-  --syn-punct: #9aa5bf;
+  --syn-type: #5ef2f8;
+  --syn-punct: #9b9cb0;
 
-  --composer-bg: rgba(24, 33, 55, 0.72);
+  --composer-bg: rgba(24, 25, 36, 0.74);
   --composer-line: rgba(255, 255, 255, 0.08);
-  --composer-line-focus: rgba(59, 130, 246, 0.55);
-  --composer-lift: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 16px 40px -20px rgb(0 0 0 / 0.8);
-  /* The glow the brief asks for around the box you type in: a soft ring in the
-     structural hue, only while the caret is actually in it. */
+  --composer-line-focus: rgba(139, 124, 255, 0.55);
+  --composer-lift: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 16px 40px -20px rgb(0 0 0 / 0.85);
+  /* The glow around the box you type in, only while the caret is in it. */
   --composer-lift-focus:
     inset 0 1px 0 rgb(255 255 255 / 0.09),
     0 24px 56px -22px rgb(0 0 0 / 0.9),
     0 0 0 4px rgb(var(--accent-rgb) / 0.14),
-    0 0 32px -6px rgb(var(--accent-rgb) / 0.35);
+    0 0 34px -6px rgb(var(--accent-2-rgb) / 0.45);
 }
-
 
 :root[data-density="compact"] { --density: 0.75; }
 :root[data-density="spacious"] { --density: 1.25; }
@@ -441,24 +446,6 @@ textarea:focus-visible {
   }
 }
 
-/* Placeholder rows, while a query is still out.
-   A skeleton is only honest if it is shaped like what is coming: same height,
-   same radius, same rhythm — otherwise the content arrives and the page jumps,
-   which is the exact thing a skeleton exists to prevent. It breathes rather
-   than sweeps, because a sweep reads as progress and there is no progress to
-   report. */
-.skeleton {
-  background: var(--bg-subtle);
-  animation: skeleton-breathe 1.6s var(--ease-std) infinite;
-}
-@keyframes skeleton-breathe {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .skeleton { animation: none; opacity: 0.7; }
-}
-
 /* The undo bar's clock. Reduced motion keeps the line — it is state, not
    decoration — and only stops it from travelling. */
 .undo-clock {
@@ -642,9 +629,12 @@ body::after {
    ========================================================================= */
 
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+/* Arriving content should grow out of the screen, not shoot into it: a short
+   rise with a touch of scale reads as something coming into being, where a
+   plain fade reads as something that was already there and you missed it. */
 @keyframes rise-in {
-  from { opacity: 0; translate: 0 4px; }
-  to { opacity: 1; translate: 0 0; }
+  from { opacity: 0; translate: 0 6px; scale: 0.99; }
+  to { opacity: 1; translate: 0 0; scale: 1; }
 }
 /* Only `opacity` and `scale`. Not `translate`, and never `transform`: Tailwind
    centres dialogs with `-translate-x-1/2 -translate-y-1/2`, which compiles to
@@ -671,16 +661,28 @@ body::after {
    the click that follows. */
 .anim-pop { animation: pop-in var(--dur-spring) var(--ease-spring) both; }
 
+/* Placeholder rows, while a query is still out.
+   A skeleton is only honest if it is shaped like what is coming: same height,
+   same radius, same rhythm — otherwise the content arrives and the page jumps,
+   which is the exact thing a skeleton exists to prevent.
+
+   The sweep carries a trace of the intelligence hue. A blank grey block says
+   "nothing here"; a lit edge travelling across the shape of the text that is
+   coming says "the structure is already built, the words are on their way",
+   which is both true and the reason waiting stops feeling like a stall. */
 .skeleton {
   background: linear-gradient(
     90deg,
     var(--bg-subtle) 25%,
-    color-mix(in srgb, var(--bg-subtle) 60%, var(--border-subtle)) 37%,
+    color-mix(in srgb, var(--bg-subtle) 55%, rgb(var(--accent-2-rgb) / 0.5)) 37%,
     var(--bg-subtle) 63%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.4s var(--ease-std) infinite;
+  animation: shimmer 1.6s var(--ease-std) infinite;
   border-radius: var(--radius-sm);
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; background: var(--bg-subtle); }
 }
 
 /* The caret runs hot: blue at rest, orange where the text is being written.
@@ -829,6 +831,29 @@ body::after {
   to { --ring-angle: 360deg; }
 }
 
+/* The moment an answer lands.
+   A soft halo in the intelligence hue blooms around the finished reply and
+   fades over about a second. It marks the transition — this stopped being
+   generated and became something you can read — at the one moment your eye is
+   already there, and then it gets out of the way. It runs once, on arrival,
+   never on a re-render, and never on anything already on screen. */
+.msg-settled {
+  animation: settle-glow 1100ms var(--ease-out) both;
+}
+
+@keyframes settle-glow {
+  0% {
+    box-shadow:
+      0 0 0 1px rgb(var(--accent-2-rgb) / 0.35),
+      0 0 34px -4px rgb(var(--accent-2-rgb) / 0.5);
+  }
+  100% {
+    box-shadow:
+      0 0 0 1px rgb(var(--accent-2-rgb) / 0),
+      0 0 34px -4px rgb(var(--accent-2-rgb) / 0);
+  }
+}
+
 /* Text that is still arriving. A slow sheen travels through the last words so
    the eye can tell "still coming" from "finished and short". */
 .streaming-text {
@@ -882,6 +907,22 @@ body::after {
 .bloom:active:not(:disabled) {
   transform: translateY(0) scale(0.97);
   transition-duration: var(--dur-fast);
+}
+
+/* The idle mark watches the pointer.
+   Its gradient rotates to face wherever the cursor is, which is the cheapest
+   possible way to say "this is attending to you" without a face or a voice.
+   `--point-angle` is written by the pointer hook; with no pointer it never
+   changes and the mark simply breathes. */
+.point-aware {
+  background: conic-gradient(
+    from calc(var(--point-angle, 0deg) - 90deg),
+    transparent 0deg,
+    rgb(var(--accent-rgb) / 0.95) 100deg,
+    rgb(var(--cta-rgb) / 0.9) 190deg,
+    transparent 320deg
+  );
+  transition: background var(--dur-fast) linear;
 }
 
 /* Cards lift and tilt toward the pointer. The tilt is tiny — under a degree —
