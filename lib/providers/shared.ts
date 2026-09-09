@@ -129,3 +129,25 @@ export function textOf(m: Message): string {
 export function imagesOf(m: Message) {
   return m.content.filter((b): b is Extract<typeof b, { type: "image" }> => b.type === "image");
 }
+
+/**
+ * Where a provider actually lives.
+ *
+ * Defaults are the real APIs. An override exists because plenty of people do
+ * not talk to those directly: Azure fronts OpenAI, LiteLLM and OpenRouter
+ * front everything, companies put a gateway in the middle for logging and
+ * spend control, and anyone running a local model wants an OpenAI-shaped
+ * endpoint on their own machine. Hard-coding the host makes all of that
+ * impossible for no benefit.
+ *
+ * Read on the server only. A base URL is not a secret, but it is deployment
+ * configuration and has no business in the browser bundle.
+ */
+export function baseUrlFor(provider: string, fallback: string): string {
+  const raw = process.env[`${provider.toUpperCase()}_BASE_URL`];
+  const v = raw?.trim();
+  if (!v) return fallback;
+  // A trailing slash here turns every request path into a double slash, which
+  // some gateways 404 rather than normalise.
+  return v.replace(/\/+$/, "");
+}

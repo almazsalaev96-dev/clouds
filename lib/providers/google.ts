@@ -1,6 +1,6 @@
 import type { ChatRequest, StreamEvent, StopReason } from "../types";
 import { getModel, estimateCost } from "../models";
-import { classifyError, sseData, sseLines, textOf, imagesOf } from "./shared";
+import { classifyError, sseData, sseLines, textOf, imagesOf, baseUrlFor } from "./shared";
 import { thinkingBudget } from "./thinking";
 
 export async function* streamGoogle(
@@ -54,7 +54,7 @@ export async function* streamGoogle(
   }
 
   const url =
-    `https://generativelanguage.googleapis.com/v1beta/models/${model.apiName}:streamGenerateContent?alt=sse`;
+    `${baseUrlFor("google", "https://generativelanguage.googleapis.com/v1beta")}/models/${model.apiName}:streamGenerateContent?alt=sse`;
 
   const res = await fetch(url, {
     method: "POST",

@@ -47,6 +47,8 @@ interface Settings {
   theme: Theme;
   density: Density;
   section: Section;
+  /** Where you were. Restored on load, so a reload does not lose your place. */
+  lastConversationId: string | null;
   modelId: string;
   systemPrompt: string;
   sidebarOpen: boolean;
@@ -62,6 +64,7 @@ interface Settings {
   setTheme: (t: Theme) => void;
   setDensity: (d: Density) => void;
   setSection: (s: Section) => void;
+  setLastConversation: (id: string | null) => void;
   setModel: (id: string) => void;
   setSystemPrompt: (s: string) => void;
   toggleSidebar: () => void;
@@ -85,6 +88,7 @@ export const useSettings = create<Settings>()(
       theme: "system",
       density: "comfortable",
       section: "chat",
+      lastConversationId: null,
       modelId: DEFAULT_MODEL_ID,
       systemPrompt: "",
       sidebarOpen: true,
@@ -99,6 +103,7 @@ export const useSettings = create<Settings>()(
       setTheme: (theme) => set({ theme }),
       setDensity: (density) => set({ density }),
       setSection: (section) => set({ section }),
+      setLastConversation: (lastConversationId) => set({ lastConversationId }),
       setModel: (modelId) =>
         set((s) => ({
           modelId,

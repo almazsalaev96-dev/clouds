@@ -211,18 +211,23 @@ heading, and link URLs printed in full.
 
 Stated plainly, because a checklist you cannot trust is worse than no checklist.
 
-- **The happy path is untested against a live provider.** No valid key was available
-  in this environment. Every failure path was exercised end to end; token streaming
-  was not.
+- **No successful call to a real provider has been observed.** No valid key was
+  available in this environment. Every *failure* path was exercised against the
+  real APIs — Anthropic and Google both answered and were classified correctly.
+  The success path is covered by `e2e.mjs`, which runs the whole app against a
+  mock speaking Anthropic's documented SSE format: streaming, markdown,
+  highlighting, usage, cost, titling, persistence and branching all verified.
+  What remains unproven is only that the real API's bytes match its own docs.
 - **No true virtualization.** Every turn carries `content-visibility: auto` with an
   intrinsic size, so the browser skips layout and paint for anything off-screen —
   most of the benefit, without breaking find-in-page, text selection across messages,
   or scroll restoration. A conversation in the thousands of messages would still want
   real windowing.
-- **Flashcard and paper generation is untested against a live model** for the same
-  reason as the chat happy path: no valid key here. The prompts, the JSON extraction
-  (which tolerates fences and surrounding prose) and the failure messages are written;
-  what has not been observed is a real model's output flowing through them.
+- **Flashcard and paper generation has not been run against a real model.** The
+  prompts, the JSON extraction (which tolerates fences and surrounding prose)
+  and the failure messages are written, and the transport underneath them is
+  now proven by `e2e.mjs`; what has not been observed is a real model's *output*
+  flowing through the extraction.
 - **No page numbers in the PDF.** Chrome does not support content in `@page` margin
   boxes, so numbering would mean shipping a layout engine. The browser's own print
   dialog can add headers and footers.
@@ -252,3 +257,27 @@ node contrast.mjs     # every text/background pair the app renders, against WCAG
 node shoot-smoke.mjs  # every section loads, undo works, no runtime errors
 node shoot-touch.mjs  # nothing under 44px on a phone, nothing changed on desktop
 ```
+
+And the end-to-end run, which needs the app pointed at the mock provider:
+
+```bash
+node mock-provider.mjs &
+ANTHROPIC_BASE_URL=http://127.0.0.1:8787 ANTHROPIC_API_KEY=sk-ant-mock npx next start -p 3100 &
+node e2e.mjs         # 15 assertions across the whole happy path
+```
+
+## Pointing at something other than the real API
+
+Each provider's host is overridable, because plenty of deployments do not talk
+to the real one directly — Azure fronts OpenAI, LiteLLM and OpenRouter front
+everything, companies put a gateway in the middle for logging and spend
+control, and a local model wants an OpenAI-shaped endpoint on its own machine.
+
+```
+ANTHROPIC_BASE_URL=https://gateway.internal/anthropic
+OPENAI_BASE_URL=https://my-azure.openai.azure.com/openai/deployments/gpt-5
+GOOGLE_BASE_URL=...
+DEEPSEEK_BASE_URL=...
+```
+
+Unset, each falls back to the provider's own API.

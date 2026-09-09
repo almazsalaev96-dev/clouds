@@ -1,6 +1,6 @@
 import type { ChatRequest, StreamEvent, StopReason } from "../types";
 import { getModel, estimateCost } from "../models";
-import { classifyError, sseData, sseLines, textOf, imagesOf } from "./shared";
+import { classifyError, sseData, sseLines, textOf, imagesOf, baseUrlFor } from "./shared";
 import { thinkingBudget } from "./thinking";
 
 export async function* streamAnthropic(
@@ -47,7 +47,7 @@ export async function* streamAnthropic(
     body.top_p = req.params.topP;
   }
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await fetch(`${baseUrlFor("anthropic", "https://api.anthropic.com")}/v1/messages`, {
     method: "POST",
     signal,
     headers: {

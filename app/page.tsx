@@ -46,6 +46,35 @@ export default function Page() {
   const drafts = useDrafts();
 
   const [activeId, setActiveId] = React.useState<string | null>(null);
+
+  /* Reloading should not lose your place. The last conversation is written to
+     settings on every change and read back once on mount — but only after
+     confirming it still exists, because it may have been deleted in another
+     tab, and opening a thread that is gone shows an empty transcript with no
+     way to tell whether it failed to load or was always empty. */
+  const restored = React.useRef(false);
+  React.useEffect(() => {
+    if (restored.current) return;
+    const id = useSettings.getState().lastConversationId;
+    if (!id) {
+      restored.current = true;
+      return;
+    }
+    let cancelled = false;
+    void db.conversations.get(id).then((c) => {
+      if (cancelled) return;
+      restored.current = true;
+      if (c && !c.archived) setActiveId(id);
+      else useSettings.getState().setLastConversation(null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (restored.current) useSettings.getState().setLastConversation(activeId);
+  }, [activeId]);
   const [configured, setConfigured] = React.useState<Record<string, boolean>>({});
   const [paletteOpen, setPaletteOpen] = React.useState(false);
   const [modelPickerOpen, setModelPickerOpen] = React.useState(false);

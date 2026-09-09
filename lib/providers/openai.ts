@@ -1,6 +1,6 @@
 import type { ChatRequest, StreamEvent, StopReason, ProviderId } from "../types";
 import { getModel, estimateCost } from "../models";
-import { classifyError, sseData, sseLines, textOf, imagesOf } from "./shared";
+import { classifyError, sseData, sseLines, textOf, imagesOf, baseUrlFor } from "./shared";
 
 /**
  * OpenAI and DeepSeek share a wire format, so one adapter serves both. The
@@ -106,7 +106,7 @@ export async function* streamOpenAICompatible(
 }
 
 export const streamOpenAI = (req: ChatRequest, key: string, signal: AbortSignal) =>
-  streamOpenAICompatible(req, key, signal, "openai", "https://api.openai.com/v1");
+  streamOpenAICompatible(req, key, signal, "openai", baseUrlFor("openai", "https://api.openai.com/v1"));
 
 export const streamDeepSeek = (req: ChatRequest, key: string, signal: AbortSignal) =>
-  streamOpenAICompatible(req, key, signal, "deepseek", "https://api.deepseek.com/v1");
+  streamOpenAICompatible(req, key, signal, "deepseek", baseUrlFor("deepseek", "https://api.deepseek.com/v1"));
