@@ -10,7 +10,7 @@ import type { Conversation } from "@/lib/types";
 import { db, deleteConversation, dueTraps, groupConversations } from "@/lib/db";
 import { useDebounced } from "@/lib/hooks/useDebounced";
 import { usePointerAngle } from "@/lib/hooks/usePointerAngle";
-import { Wordmark } from "@/components/brand/Logo";
+import { Lockup } from "@/components/brand/Logo";
 import { offerUndo } from "@/lib/undo";
 import { dueCount } from "@/lib/study";
 import { useSettings, type Section } from "@/lib/store";
@@ -75,8 +75,8 @@ export function Sidebar({
             {/* The drawn word, not the name set in the interface font. A
                 product's own name is the one string it should never render in
                 whatever the operating system happened to load. */}
-            <span ref={markRef} className="ml-1.5 flex items-center text-primary">
-              <Wordmark height={17} />
+            <span ref={markRef} className="ml-1.5">
+              <Lockup />
             </span>
           </div>
 

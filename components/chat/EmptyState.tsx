@@ -56,25 +56,40 @@ export function EmptyState({
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
       <div className="w-full max-w-[var(--measure)] pb-[6vh]">
-        <div className="mb-6 text-center">
+        {/* Set the way the name is set: capitals, letterspaced, between two
+            hairlines. An engraved heading rather than a dashboard title —
+            which costs nothing, needs no second typeface, and makes the blank
+            page feel like the first page of something rather than an empty
+            state waiting to be filled. */}
+        <div className="mb-7 text-center">
+          <div
+            className="mx-auto flex max-w-md items-center gap-4 anim-rise"
+            style={{ animationDelay: "20ms" }}
+          >
+            <span className="h-px flex-1 bg-[var(--border-subtle)]" aria-hidden />
+            <h1 className="text-[13px] font-medium uppercase tracking-[0.28em] text-tertiary">
+              Armi
+            </h1>
+            <span className="h-px flex-1 bg-[var(--border-subtle)]" aria-hidden />
+          </div>
+
           {/* The placeholder already says "Ask anything". Saying it twice on
               one screen makes the heading noise, so it says the other useful
               thing: this is a blank page and you get to pick what goes on it. */}
-          <h1 className="text-[1.75rem] font-semibold tracking-[-0.025em] text-primary anim-rise">
+          <p className="mt-5 text-[1.75rem] font-medium tracking-[-0.02em] text-primary anim-rise">
             Where should we start?
-          </h1>
+          </p>
           <p
-            className="mt-2 flex items-center justify-center gap-1.5 text-sm text-tertiary anim-rise"
-            style={{ animationDelay: "40ms" }}
+            className="mt-2.5 flex items-center justify-center gap-1.5 text-xs uppercase tracking-[0.1em] text-faint anim-rise"
+            style={{ animationDelay: "60ms" }}
           >
             {hasAnyKey ? (
               <>
-                <ProviderMark provider={model.provider} size={13} />
+                <ProviderMark provider={model.provider} size={12} />
                 {model.name}
-                <span className="hidden md:inline">— ⌘/ to switch</span>
               </>
             ) : (
-              "Bring your own API key. Nothing is stored anywhere but your browser."
+              "Bring your own key — nothing leaves this browser"
             )}
           </p>
         </div>

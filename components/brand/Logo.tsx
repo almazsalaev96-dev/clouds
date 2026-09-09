@@ -2,100 +2,119 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import {
-  A_BAR, A_LEFT, A_RIGHT, GRID, I_DOT, I_STEM,
-  M_ARCH_1, M_ARCH_2, M_STEM, OFFSET, R_SHOULDER, R_STEM,
-} from "./geometry";
+import { A_BAR, A_LEFT, A_RIGHT, DISPLAY, GRID, WORD } from "./geometry";
 
 /**
  * The Armi identity.
  *
- * The thing worth keeping from a fountain pen is not the cursive — it is the
- * modulation. A nib is thin where it lifts and thick where it presses, and
- * that contrast is what makes handwriting look considered. Script itself is a
- * poor wordmark: it collapses to mush at 16px in a sidebar, and it claims the
- * work was done by a hand, which is the wrong claim for this product.
+ * French, in the sense the word actually carries in typography: Didot, cut in
+ * Paris in the 1780s, and the engraved register every maison has set its name
+ * in since. A vertical axis, stems that go heavy while the joins go to a
+ * hairline, flat unbracketed serifs, and the whole thing letterspaced wide
+ * enough that the word reads as an object rather than as a label.
  *
- * So the letterforms are geometric and the contrast is calligraphic. The A is
- * drawn with a light left diagonal and a heavy right one, the way a broad nib
- * at a fixed angle actually behaves. Everything after it is monoline at the
- * weight the A averages, so the A reads as the display letter it is rather
- * than as an inconsistency.
+ * That register also happens to be the right answer to the brief. A fountain
+ * pen on cream deckle paper is not asking for a software logotype; it is
+ * asking for something engraved. And the palette was already halfway there —
+ * Manela is paper, not white.
  *
- * Exactly one thing in the whole identity carries colour: the dot on the i.
- * In a single-colour lockup it becomes ink and nothing is lost, which is the
- * test any accent has to pass.
+ * There are two cuts, which is not a compromise but standard practice: a
+ * display cut for anywhere the name is the subject, and a small cut for UI
+ * chrome, because a hairline at 16px is a third of a pixel and a screen
+ * cannot draw it.
  */
 
-/** The A alone. The app icon, the favicon, and the first letter of the word. */
-export function Mark({ size = 20, className }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden className={cn("shrink-0", className)}>
-      <MarkPaths />
-    </svg>
-  );
-}
-
-function MarkPaths() {
-  return (
-    <>
-      <path d={A_LEFT} fill="currentColor" />
-      <path d={A_RIGHT} fill="currentColor" />
-      <path d={A_BAR} fill="currentColor" />
-    </>
-  );
-}
-
-const strokeProps = {
-  stroke: "currentColor",
-  strokeWidth: GRID.stem,
-  strokeLinecap: "round",
-  strokeLinejoin: "round",
-  fill: "none",
-} as const;
+/* ------------------------------------------------------------- display ---- */
 
 /**
- * The full word. `tone="ink"` draws it in one colour for stamps, print and
- * anywhere the accent would be wrong.
+ * The name, set. `tone="rule"` adds the hairlines above and below — the
+ * engraved treatment, for anywhere the word is standing alone rather than
+ * sitting in a row of interface.
  */
 export function Wordmark({
-  height = 24,
-  tone = "duo",
+  height = 26,
+  tone = "plain",
   className,
 }: {
   height?: number;
-  tone?: "duo" | "ink";
+  tone?: "plain" | "rule";
   className?: string;
 }) {
+  const inner = WORD.reduce((n, l) => n + l.width, 0) + DISPLAY.tracking * (WORD.length - 1);
+  const pad = tone === "rule" ? 34 : 0;
+  const w = inner;
+  const h = DISPLAY.height + pad * 2;
+
+  let x = 0;
   return (
     <svg
       height={height}
-      viewBox={`0 0 ${GRID.wordWidth} ${GRID.height}`}
+      viewBox={`0 0 ${w} ${h}`}
       fill="none"
       role="img"
       aria-label="Armi"
       className={cn("shrink-0", className)}
-      style={{ width: (GRID.wordWidth / GRID.height) * height }}
+      style={{ width: (w / h) * height }}
     >
-      <MarkPaths />
-      <g transform={`translate(${OFFSET.r} 0)`} {...strokeProps}>
-        <path d={R_STEM} />
-        <path d={R_SHOULDER} />
-      </g>
-      <g transform={`translate(${OFFSET.m} 0)`} {...strokeProps}>
-        <path d={M_STEM} />
-        <path d={M_ARCH_1} />
-        <path d={M_ARCH_2} />
-      </g>
-      <g transform={`translate(${OFFSET.i} 0)`}>
-        <path d={I_STEM} {...strokeProps} />
-        <circle
-          cx={I_DOT.cx}
-          cy={I_DOT.cy}
-          r={I_DOT.r}
-          fill={tone === "duo" ? "var(--brand-accent, currentColor)" : "currentColor"}
-        />
+      {tone === "rule" && (
+        <>
+          {/* Two hairlines at the weight of the letters' own thins, so the
+              rules read as part of the setting rather than as a box drawn
+              around it. */}
+          <rect x="0" y="6" width={w} height="4" fill="currentColor" />
+          <rect x="0" y={h - 10} width={w} height="4" fill="currentColor" />
+        </>
+      )}
+      <g transform={`translate(0 ${pad})`}>
+        {WORD.map((letter, i) => {
+          const at = x;
+          x += letter.width + DISPLAY.tracking;
+          return (
+            <g key={i} transform={`translate(${at} 0)`}>
+              {letter.paths.map((d, j) => (
+                <path key={j} d={d} fill="currentColor" />
+              ))}
+            </g>
+          );
+        })}
       </g>
     </svg>
+  );
+}
+
+/* --------------------------------------------------------------- small ---- */
+
+/**
+ * The A alone, at the small cut. Same skeleton and the same thick/thin logic
+ * as the display A; no serifs, less contrast, because at this size those are
+ * not legible detail but noise.
+ */
+export function Mark({ size = 20, className }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden className={cn("shrink-0", className)}>
+      <path d={A_LEFT} fill="currentColor" />
+      <path d={A_RIGHT} fill="currentColor" />
+      <path d={A_BAR} fill="currentColor" />
+    </svg>
+  );
+}
+
+/**
+ * Mark plus name, for the sidebar. The name is set in the interface font here
+ * rather than drawn: at 15px the display cut would be illegible and the small
+ * cut has no lowercase, and a lockup that lies about which cut it is is worse
+ * than one that simply sets the word.
+ */
+export function Lockup({ className }: { className?: string }) {
+  return (
+    <span className={cn("flex items-center gap-2 text-primary", className)}>
+      <Mark size={17} />
+      <span
+        className="text-[15px] font-medium"
+        style={{ letterSpacing: `${0.13 * (GRID.stem / 11)}em` }}
+      >
+        ARMI
+      </span>
+    </span>
   );
 }
