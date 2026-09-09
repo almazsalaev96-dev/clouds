@@ -264,7 +264,36 @@ And the end-to-end run, which needs the app pointed at the mock provider:
 node mock-provider.mjs &
 ANTHROPIC_BASE_URL=http://127.0.0.1:8787 ANTHROPIC_API_KEY=sk-ant-mock npx next start -p 3100 &
 node e2e.mjs         # 15 assertions across the whole happy path
+node test-context.mjs  # context fitting and cache breakpoints, read at the wire
+node test-fit.mjs      # a 360k-token thread trimmed to fit and answered
+MOCK_RATE_LIMIT=1 …    # restart the mock this way, then: node test-retry.mjs
 ```
+
+## What the app does to make answers better
+
+Three things happen between pressing enter and the provider seeing the request.
+
+**The thread is trimmed to fit.** Past the context window a provider answers
+with an error, which is the worst available outcome — the conversation still
+exists and the model could still answer. Older turns are dropped from the
+front, whole messages only, with room reserved for the reply, and the last
+message never dropped. What was left out is stated above the transcript rather
+than hidden: an assistant that quietly forgets the first half of a
+conversation and carries on is far more disorienting than one that says so.
+
+**Long prefixes are cached.** Every turn re-sends everything before it, so by
+the tenth exchange the same opening has been paid for and re-read ten times.
+A cache breakpoint on the second-to-last message lets Anthropic keep the
+prefix; later turns reuse it at a tenth of the price and skip re-reading it.
+It only engages once the prefix is big enough to pay back the 25% a cache
+write costs. Cached reads and writes are priced into the running cost, so the
+number on screen stays true.
+
+**A rate limit is waited out, once.** The provider usually says exactly how
+long. Surfacing that as an error to click through turns a two-second wait into
+a manual step at the moment someone is already annoyed. Once — not until it
+works, because retrying a hard limit in a loop is how an account gets
+throttled harder. Stop cancels the wait.
 
 ## Pointing at something other than the real API
 

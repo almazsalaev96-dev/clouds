@@ -27,6 +27,9 @@ export function debounce<A extends unknown[]>(fn: (...a: A) => void, ms: number)
 
 A **throttle** enforces a floor between calls instead.`;
 
+let lastSeen = null;
+let rateLimitOnce = process.env.MOCK_RATE_LIMIT === "1";
+
 const send = (res, type, data) =>
   res.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`);
 
@@ -34,6 +37,28 @@ createServer(async (req, res) => {
   let raw = "";
   for await (const c of req) raw += c;
   const body = JSON.parse(raw || "{}");
+
+  // /__last lets a test read what the app actually sent — how many turns
+  // survived the context fitter, and whether a cache breakpoint was placed.
+  if (req.url === "/__last") {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify(lastSeen ?? {}));
+    return;
+  }
+  lastSeen = {
+    turns: (body.messages ?? []).length,
+    cachedBlocks: JSON.stringify(body).split('"cache_control"').length - 1,
+    system: typeof body.system,
+  };
+
+  // One 429 with a Retry-After, then behave. Proves the automatic retry both
+  // waits and succeeds rather than surfacing an error the person must clear.
+  if (rateLimitOnce && (body.max_tokens ?? 4096) > 64) {
+    rateLimitOnce = false;
+    res.writeHead(429, { "content-type": "application/json", "retry-after": "1" });
+    res.end(JSON.stringify({ type: "error", error: { type: "rate_limit_error", message: "retry-after 1" } }));
+    return;
+  }
   // Titles come through as a short one-shot with a low max_tokens; answering
   // them with the essay would make the sidebar unreadable.
   const isTitle = (body.max_tokens ?? 4096) <= 64;

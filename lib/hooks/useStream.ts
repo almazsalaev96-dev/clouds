@@ -5,11 +5,14 @@ import type { ChatError, ContentBlock, Message, StreamEvent, Usage } from "../ty
 import { getModel, estimateTokens } from "../models";
 import { db, addMessage, uid } from "../db";
 import { useSettings, paramsFor } from "../store";
+import { fitToContext } from "../context";
 
 export type Phase = "idle" | "waiting" | "streaming";
 
 interface StreamState {
   phase: Phase;
+  /** Set while waiting out a rate limit before trying again. */
+  retryingInMs: number;
   /**
    * Which conversation this stream belongs to.
    *
@@ -30,6 +33,7 @@ interface StreamState {
 
 const EMPTY: StreamState = {
   phase: "idle",
+  retryingInMs: 0,
   conversationId: null,
   text: "",
   reasoning: "",
@@ -51,6 +55,11 @@ const EMPTY: StreamState = {
  */
 export function useStream(onFinish?: (m: Message) => void) {
   const [state, setState] = useState<StreamState>(EMPTY);
+  // setState is async; the retry wrapper needs the error the moment the run
+  // returns, not on the next render.
+  const errorRef = useRef<ChatError | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const retryCancelRef = useRef<(() => void) | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const bufferRef = useRef("");
@@ -96,11 +105,19 @@ export function useStream(onFinish?: (m: Message) => void) {
 
   const stop = useCallback(() => {
     abortRef.current?.abort();
+    // Stop has to reach a request that has not been sent yet. During the wait
+    // after a rate limit there is no socket to abort, and a Stop button that
+    // does nothing — then watches the request fire anyway — is worse than no
+    // button at all.
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = undefined;
+    retryCancelRef.current?.();
+    retryCancelRef.current = null;
   }, []);
 
   const clearError = useCallback(() => setState((s) => ({ ...s, error: null })), []);
 
-  const send = useCallback(
+  const runOnce = useCallback(
     async (opts: {
       conversationId: string;
       parentId: string | null;
@@ -136,6 +153,12 @@ export function useStream(onFinish?: (m: Message) => void) {
       let error: ChatError | null = null;
       let stopReason: Message["stopReason"] = "stop";
 
+      /* Trim to what the window can hold before asking. Sending a thread that
+         cannot fit and letting the provider reject it wastes a round trip and
+         hands back an error instead of an answer. */
+      const params = paramsFor(opts.modelId);
+      const fitted = fitToContext(opts.history, model, params, opts.systemPrompt ?? "");
+
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
@@ -143,9 +166,9 @@ export function useStream(onFinish?: (m: Message) => void) {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             modelId: opts.modelId,
-            messages: opts.history,
+            messages: fitted.messages,
             systemPrompt: opts.systemPrompt || undefined,
-            params: paramsFor(opts.modelId),
+            params,
             clientKey: settings.keys[model.provider] || undefined,
           }),
         });
@@ -265,10 +288,42 @@ export function useStream(onFinish?: (m: Message) => void) {
         finishRef.current?.(saved);
       }
 
+      errorRef.current = error;
       setState({ ...EMPTY, error });
       return saved;
     },
     [drain, stopLoops],
+  );
+
+  /**
+   * One automatic retry when the provider says to wait.
+   *
+   * A rate limit is the provider telling us, precisely, that the request would
+   * have worked a few seconds later — and it usually says how many. Surfacing
+   * that as an error the person has to notice and click through turns a
+   * two-second wait into a manual step at exactly the moment they are already
+   * annoyed. So the wait is taken once, visibly, and the request goes again.
+   *
+   * Once, not until it works. A second failure is a real one, and retrying a
+   * hard limit in a loop is how an account gets throttled harder.
+   */
+  const send = useCallback(
+    async (opts: Parameters<typeof runOnce>[0]) => {
+      const first = await runOnce(opts);
+      const err = errorRef.current;
+      if (!err || err.kind !== "rate_limit" || !err.retryAfterMs) return first;
+
+      const wait = Math.min(err.retryAfterMs, 20_000);
+      setState({ ...EMPTY, phase: "waiting", error: err, retryingInMs: wait });
+      const cancelled = await new Promise<boolean>((resolve) => {
+        retryTimerRef.current = setTimeout(() => resolve(false), wait);
+        retryCancelRef.current = () => resolve(true);
+      });
+      if (cancelled) return first;
+
+      return runOnce(opts);
+    },
+    [runOnce],
   );
 
   return { ...state, send, stop, clearError };

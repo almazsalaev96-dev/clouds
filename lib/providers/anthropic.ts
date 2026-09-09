@@ -34,7 +34,44 @@ export async function* streamAnthropic(
     messages,
     stream: true,
   };
-  if (req.systemPrompt) body.system = req.systemPrompt;
+
+  /* Prompt caching.
+     ---------------------------------------------------------------------
+     Every turn in a conversation re-sends everything before it. By the tenth
+     exchange the same opening is being paid for and re-read ten times, and it
+     is the dominant cost and the dominant wait on any long thread.
+
+     A cache breakpoint tells Anthropic to keep the prefix up to that point;
+     later turns reuse it at a tenth of the price and skip the work of reading
+     it again. The breakpoint goes on the *second to last* message rather than
+     the last: the last one changes every turn, so caching it would write a new
+     entry that is never read.
+
+     Writing to the cache costs 25% more than not caching, so it is only worth
+     doing once the prefix is big enough to pay that back — which is also
+     roughly where Anthropic's own minimum sits. Below that this does nothing. */
+  const CACHE_MIN_CHARS = 8_000;
+  const prefixChars = messages
+    .slice(0, -1)
+    .reduce((n, m) => n + JSON.stringify(m.content).length, 0);
+
+  if (prefixChars >= CACHE_MIN_CHARS && messages.length >= 3) {
+    const mark = messages[messages.length - 2];
+    const last = mark.content[mark.content.length - 1];
+    if (last && typeof last === "object") {
+      (last as Record<string, unknown>).cache_control = { type: "ephemeral" };
+    }
+  }
+
+  if (req.systemPrompt) {
+    // A system prompt is the same on every single turn, so it is the one part
+    // of the request that is always worth caching when it is long enough to
+    // qualify.
+    body.system =
+      req.systemPrompt.length >= 2_000
+        ? [{ type: "text", text: req.systemPrompt, cache_control: { type: "ephemeral" } }]
+        : req.systemPrompt;
+  }
   // Anthropic rejects temperature alongside extended thinking, so the two are
   // mutually exclusive rather than both sent and hoping for the best.
   const budget = model.reasoning
@@ -73,9 +110,20 @@ export async function* streamAnthropic(
     if (!ev) continue;
 
     switch (ev.type) {
-      case "message_start":
-        inputTokens = ev.message?.usage?.input_tokens ?? 0;
+      case "message_start": {
+        /* Cached input is reported separately and priced differently: a read
+           from the cache is a tenth of the normal rate, a write is a quarter
+           more. Counting only `input_tokens` would under-report a cached turn
+           by most of its prompt and make the running cost quietly wrong — and
+           a cost readout that is wrong in the cheap direction is the kind of
+           thing nobody notices until the bill. */
+        const u = ev.message?.usage ?? {};
+        const fresh = u.input_tokens ?? 0;
+        const read = u.cache_read_input_tokens ?? 0;
+        const written = u.cache_creation_input_tokens ?? 0;
+        inputTokens = fresh + Math.round(read * 0.1) + Math.round(written * 1.25);
         break;
+      }
       case "content_block_start":
         block = ev.content_block?.type === "thinking" ? "thinking" : "text";
         break;

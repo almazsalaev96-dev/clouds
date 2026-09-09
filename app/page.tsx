@@ -9,9 +9,10 @@ import {
   deleteConversation, exportMarkdown, pathTo, addMessage, blockText,
 } from "@/lib/db";
 import { estimateTokens, getModel } from "@/lib/models";
+import { fitToContext } from "@/lib/context";
 import { cheapestAvailable, complete, generateCards } from "@/lib/generate";
 import { newCard } from "@/lib/study";
-import { useSettings, useDrafts, type Section } from "@/lib/store";
+import { useSettings, useDrafts, paramsFor, type Section } from "@/lib/store";
 import { useStream } from "@/lib/hooks/useStream";
 import { inOverlay } from "@/lib/utils";
 import { offerUndo } from "@/lib/undo";
@@ -545,6 +546,16 @@ export default function Page() {
 
   /** Is the one live stream the one this screen is showing? */
   const live = stream.conversationId !== null && stream.conversationId === activeId;
+  /* How much of this thread will not fit the window it is going into.
+     Derived from the thread rather than remembered from the last request: it
+     is a fact about the conversation as it now stands, so it stays true after
+     the answer lands, and it updates the moment you switch to a model with a
+     different window. */
+  const droppedFromContext = React.useMemo(
+    () => fitToContext(path, getModel(threadModelId), paramsFor(threadModelId), threadPrompt).dropped,
+    [path, threadModelId, threadPrompt],
+  );
+
   const showEmpty = path.length === 0 && !live && !comparing;
 
   /* Built once and placed in one of two homes: centred inside the empty state,
@@ -689,6 +700,7 @@ export default function Page() {
                 streaming={live ? stream.phase : "idle"}
                 streamText={live ? stream.text : ""}
                 streamReasoning={live ? stream.reasoning : ""}
+                dropped={droppedFromContext}
                 streamModelId={threadModelId}
                 elapsed={live ? stream.elapsed : 0}
                 error={live ? stream.error : null}

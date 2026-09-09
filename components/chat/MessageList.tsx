@@ -23,6 +23,7 @@ export function MessageList({
   streaming,
   streamText,
   streamReasoning,
+  dropped,
   streamModelId,
   elapsed,
   error,
@@ -42,6 +43,8 @@ export function MessageList({
   streaming: "idle" | "waiting" | "streaming";
   streamText: string;
   streamReasoning: string;
+  /** Turns left out of the request to make it fit the window. */
+  dropped: number;
   streamModelId: string;
   elapsed: number;
   error: ChatError | null;
@@ -145,6 +148,21 @@ export function MessageList({
         aria-busy={active}
       >
         <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-4">
+          {/* Said once, at the top of what is left, in the place the missing
+              turns used to be. A conversation that quietly forgets its own
+              beginning and carries on is the most disorienting thing an
+              assistant can do; the fix is not to hide it better. */}
+          {dropped > 0 && (
+            <div className="mb-4 flex items-center gap-3 anim-fade">
+              <span className="h-px flex-1 bg-[var(--border-subtle)]" aria-hidden />
+              <span className="text-[11px] uppercase tracking-[0.08em] text-faint">
+                {dropped} earlier {dropped === 1 ? "message" : "messages"} not sent — too long for {" "}
+                {getModel(streamModelId).name}
+              </span>
+              <span className="h-px flex-1 bg-[var(--border-subtle)]" aria-hidden />
+            </div>
+          )}
+
           {messages.map((m, i) => {
             const siblings = siblingsFrom(byParent, m);
             const index = siblings.findIndex((s) => s.id === m.id);
