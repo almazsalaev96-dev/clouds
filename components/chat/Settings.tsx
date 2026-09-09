@@ -209,6 +209,15 @@ function AppearancePanel() {
   const s = useSettings();
   return (
     <Panel title="Appearance">
+      <Field label="Your name" hint="For the greeting. It stays in this browser and is never sent to a model.">
+        <input
+          value={s.name}
+          onChange={(e) => s.set({ name: e.target.value, nameAsked: true })}
+          placeholder="What should Armi call you?"
+          aria-label="Your name"
+          className="focus-inset h-9 w-full max-w-xs rounded-md border border-line bg-canvas px-3 text-sm text-primary outline-none placeholder:text-tertiary"
+        />
+      </Field>
       <Field label="Theme">
         <Segmented
           value={s.theme}

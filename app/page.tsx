@@ -47,6 +47,10 @@ const Settings = dynamic(() => import("@/components/chat/Settings").then((m) => 
   ssr: false,
 });
 
+/** What "Continue" sends. Phrased so the model picks up mid-sentence. */
+const CONTINUE_PROMPT =
+  "Continue exactly where you left off, from the last character you wrote. Do not repeat anything, and do not summarise what came before.";
+
 export default function Page() {
   const settings = useSettings();
   const drafts = useDrafts();
@@ -856,6 +860,7 @@ export default function Page() {
                 onEdit={editMessage}
                 onRegenerate={regenerate}
                 onSaveToNote={keepAsNote}
+                onContinue={() => void send([{ type: "text", text: CONTINUE_PROMPT }])}
                 onOpenInCanvas={keepAsCanvas}
                 onRetry={() => {
                   const last = [...path].reverse().find((m) => m.role === "assistant");

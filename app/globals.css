@@ -5,69 +5,107 @@
    Nothing in this codebase hardcodes a color, radius, duration or shadow.
    If you need a new value, you add a token here. That rule is the whole
    reason the app stays coherent as it grows.
-   ========================================================================= */:root {
+   ========================================================================= *//* ============================================================================
+   TYPE — self-hosted
+   ----------------------------------------------------------------------------
+   Four faces, all served from /fonts, latin subset, one file per weight:
+
+     Inter              the interface and body. It was named in the stack for
+                        a year and never shipped, so every screenshot in this
+                        repo was actually DejaVu Sans, and so was the app for
+                        anyone without Inter installed. A font you name but do
+                        not serve is a wish.
+     Cormorant Garamond display and greeting. A Garamond, because the brief is
+                        a fountain pen on deckle paper and the register that
+                        goes with that is a book, not a dashboard. Claude's own
+                        product does the same split — a serif where the words
+                        are the subject, a sans where they are the controls.
+     Pinyon Script      the name, and nothing else. A copperplate script is a
+                        signature, and a signature that appears more than once
+                        a screen is a watermark.
+     JetBrains Mono     code.
+
+   `font-display: swap` for the text faces so nothing waits on them; `optional`
+   for the script, because a wordmark that pops in a second after the page is
+   worse than one set in the fallback for that one visit. The two used above
+   the fold are preloaded from the layout.
+   ========================================================================= */
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 400; font-display: swap; src: url("/fonts/inter-400.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 500; font-display: swap; src: url("/fonts/inter-500.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 600; font-display: swap; src: url("/fonts/inter-600.woff2") format("woff2"); }
+@font-face { font-family: "Cormorant Garamond"; font-style: normal; font-weight: 500; font-display: swap; src: url("/fonts/cormorant-500.woff2") format("woff2"); }
+@font-face { font-family: "Cormorant Garamond"; font-style: normal; font-weight: 600; font-display: swap; src: url("/fonts/cormorant-600.woff2") format("woff2"); }
+@font-face { font-family: "Cormorant Garamond"; font-style: italic; font-weight: 500; font-display: swap; src: url("/fonts/cormorant-500italic.woff2") format("woff2"); }
+@font-face { font-family: "Pinyon Script"; font-style: normal; font-weight: 400; font-display: optional; src: url("/fonts/pinyon-script-400.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 400; font-display: swap; src: url("/fonts/jetbrains-mono-400.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 500; font-display: swap; src: url("/fonts/jetbrains-mono-500.woff2") format("woff2"); }
+
+:root {
   color-scheme: light;
 
   /* ---------------------------------------------------------------------
-     THE BRAND PALETTE — light, which is the primary theme here.
+     THE PALETTE — light, the primary theme.
 
-       Manela        #FFFCEE   the ground. Cream, not white: paper rather
-                               than screen, and it takes the glare off a
-                               surface you look at all day.
-       Blue          #152A32   the ink. Every word on the page.
-       White         #FFFFFF   surfaces that lift off the ground — cards,
-                               the composer, menus.
-       Purple        #C9B5FF   thinking. Streaming, live states, the ring
-                               round a reply still arriving.
-       Green         #00D477   act. The one control you are meant to press.
-       Bright Green  #91FF00   a badge and nothing larger. It is the loudest
-                               colour in the set and the only discipline that
-                               keeps it useful is never letting it cover area.
-       Cream         #FFFBB5   a highlighter. Marked text, warm callouts.
+     Taken from the object the brand is: a fountain pen on cream paper.
 
-     Two of these change value on paper and nowhere else. Purple at #C9B5FF
-     is a tint — beautiful as a glow on a dark ground, invisible as text on
-     cream — so anything that has to be *read* uses a deep version of the
-     same hue, and #C9B5FF returns at full strength in the dark theme. Green
-     does the same: a button has to hold its own edge against the page, which
-     #00D477 cannot do on cream, so light gets the deep shade and dark gets
-     the brand value.
+       Paper   #F7F3EA   the ground. Ivory, not white and not yellow — the
+                         deckle sheet in the photograph, under warm light.
+       Ink     #1A2650   the words. A saturated navy, the colour a good blue
+                         ink dries to, and the only colour most of a screen
+                         is ever made of.
+       Gold    #D4AF5A   the nib. A jewel, never a surface: the dot on the i,
+                         a badge, the tip of the caret, the edge of the ring
+                         while a reply is arriving.
+       Leather #8A4B1D   the desk. Warmth in the field behind everything, and
+                         the colour of "thinking" — a state that is warm and
+                         slow rather than electric.
+
+     Two hues for two jobs, and the difference is the whole grammar of the
+     interface: royal blue (#3450B5) is *structure* — links, focus, the active
+     row — and the deep ink (#1F2D66) is *action*, the one control on a
+     screen you are meant to press. You write with the ink. Gold on paper
+     cannot carry text at 4.5:1 at any value that also holds a 3:1 edge, so
+     gold is never asked to; it is a detail, which is what a nib is.
+
+     Success is forest, danger is oxblood: the greens and reds of the same
+     desk, not of a traffic light. Every pair below is computed against WCAG
+     (`node contrast.mjs`), not judged by eye.
      --------------------------------------------------------------------- */
-  --bg-canvas: #fffcee;
-  --bg-surface: #ffffff;
-  --bg-subtle: #f6f1de;
-  --bg-inset: #f1ebd5;
-  --bg-overlay: rgba(21, 42, 50, 0.42);
+  --bg-canvas: #f7f3ea;
+  --bg-surface: #fffdf8;
+  --bg-subtle: #efe9db;
+  --bg-inset: #e9e2d0;
+  --bg-overlay: rgba(26, 38, 80, 0.42);
 
-  --border-subtle: #e9e2ca;
+  --border-subtle: #e3dccb;
   /* Control boundaries clear 3:1 against the page. Hairlines do not have to,
      which is why there are two of these. */
-  --border-strong: #7f8479;
+  --border-strong: #7d7f88;
 
-  --text-primary: #152a32;
-  --text-secondary: #3d545e;
-  --text-tertiary: #53686f;
-  --text-faint: #6f8189;
+  --text-primary: #1a2650;
+  --text-secondary: #3d4a72;
+  --text-tertiary: #55607f;
+  --text-faint: #6f7890;
 
   /* Thinking, deepened for paper. */
-  --accent: #5b3fc4;
-  --accent-hover: #4a31a6;
-  --accent-fill: #5b3fc4;
-  --accent-fill-hover: #4a31a6;
-  --accent-subtle: #efeaff;
+  --accent: #3450b5;
+  --accent-hover: #28409a;
+  --accent-fill: #3450b5;
+  --accent-fill-hover: #28409a;
+  --accent-subtle: #e9ebf6;
   --accent-fg: #ffffff;
-  --accent-rgb: 91 63 196;
+  --accent-rgb: 52 80 181;
   /* The one coloured element in the wordmark. */
   --brand-accent: var(--accent);
 
-  --accent-2: #7c5ce0;
-  --accent-2-rgb: 124 92 224;
+  --accent-2: #a8801f;
+  --accent-2-rgb: 168 128 31;
 
   /* Act, deepened for paper. */
-  --cta: #00703c;
-  --cta-hover: #005a30;
-  --cta-fg: #ffffff;
-  --cta-rgb: 0 112 60;
+  --cta: #1f2d66;
+  --cta-hover: #16204c;
+  --cta-fg: #f7f3ea;
+  --cta-rgb: 31 45 102;
 
   /* The loud one. Only ever a badge, only ever with the ink on top. */
   /* Bright Green sits at 1.2:1 against Manela — on cream it is a shape with
@@ -75,41 +113,41 @@
      keeps its true value and borrows the ink for an outline instead, which is
      both what the palette sheet itself does and cheaper than inventing a
      duller green nobody specified. */
-  --highlight: #91ff00;
-  --highlight-fg: #152a32;
-  --highlight-edge: #152a32;
+  --highlight: #d4af5a;
+  --highlight-fg: #1a2650;
+  --highlight-edge: #1a2650;
   /* The highlighter. */
-  --mark: #fffbb5;
-  --mark-fg: #152a32;
+  --mark: #f6e7b8;
+  --mark-fg: #1a2650;
 
   /* --- Status. --- */
-  --live: #a3560c;
-  --go: #00703c;
-  --stop: #bd2b21;
+  --live: #8a4b1d;
+  --go: #2f6b46;
+  --stop: #a6342a;
 
-  --go-fill: #00703c;
+  --go-fill: #2f6b46;
   --on-fill: #ffffff;
-  --stop-fill: #bd2b21;
+  --stop-fill: #a6342a;
 
   --success: var(--go);
   --warning: var(--live);
   --danger: var(--stop);
-  --danger-subtle: #fdeae8;
+  --danger-subtle: #f8e6e2;
 
   /* The field behind everything. On cream, colour reads as a stain long
      before it reads as depth, so this is barely there on purpose. */
-  --mesh-a: rgba(124, 92, 224, 0.10);
-  --mesh-b: rgba(0, 212, 119, 0.08);
-  --mesh-c: rgba(21, 42, 50, 0.035);
-  --grain-opacity: 0.03;
-  --glass: rgba(255, 252, 238, 0.74);
-  --glass-line: rgba(21, 42, 50, 0.08);
+  --mesh-a: rgba(184, 144, 46, 0.10);
+  --mesh-b: rgba(31, 45, 102, 0.06);
+  --mesh-c: rgba(122, 74, 42, 0.05);
+  --grain-opacity: 0.035;
+  --glass: rgba(247, 243, 234, 0.74);
+  --glass-line: rgba(26, 38, 80, 0.08);
   --glow: none;
 
   /* --- Elevation. --- */
-  --shadow-sm: 0 1px 2px rgba(21, 42, 50, 0.05), 0 1px 1px rgba(21, 42, 50, 0.03);
-  --shadow-md: 0 4px 12px rgba(21, 42, 50, 0.08), 0 1px 3px rgba(21, 42, 50, 0.04);
-  --shadow-lg: 0 16px 44px rgba(21, 42, 50, 0.13), 0 2px 8px rgba(21, 42, 50, 0.06);
+  --shadow-sm: 0 1px 2px rgba(26, 38, 80, 0.06), 0 1px 1px rgba(26, 38, 80, 0.03);
+  --shadow-md: 0 4px 12px rgba(26, 38, 80, 0.09), 0 1px 3px rgba(26, 38, 80, 0.04);
+  --shadow-lg: 0 16px 44px rgba(26, 38, 80, 0.14), 0 2px 8px rgba(26, 38, 80, 0.06);
   --highlight-top: none;
 
   /* --- Motion. 100–200ms for a control answering a press, 300–400ms for the
@@ -147,13 +185,13 @@
 
   /* --- Syntax. Six hues, low saturation. A code block should read as one
          calm object, not a Christmas tree. --- */
-  --syn-comment: #556970;
-  --syn-keyword: #6b3fbd;
-  --syn-string: #00633a;
-  --syn-function: #2a5a8f;
-  --syn-number: #9c4708;
-  --syn-type: #0d6472;
-  --syn-punct: #53686f;
+  --syn-comment: #5a6070;
+  --syn-keyword: #3450b5;
+  --syn-string: #2f6b46;
+  --syn-function: #1f5f8a;
+  --syn-number: #8a4b1d;
+  --syn-type: #6b3d8f;
+  --syn-punct: #55607f;
 
   /* The composer. On light it lifts with a real drop shadow; on dark a shadow
      under a dark box is invisible, so the lift there comes from a lit top edge
@@ -172,91 +210,92 @@
   color-scheme: dark;
 
   /* ---------------------------------------------------------------------
-     THE BRAND PALETTE — dark. The only dark palette.
+     THE PALETTE — dark.
 
-     Derived by rotation rather than inversion: Blue stops being the ink and
-     becomes the ground, Manela stops being the ground and becomes the ink.
-     Every colour in the set keeps a job; none of them is a different colour
-     here.
+     A rotation rather than an inversion. The ink becomes the ground and the
+     paper becomes the words: a page written in white on the navy the pen is
+     filled with. Every colour keeps its job.
 
-     This is also where the two tints come home. Purple at #C9B5FF and Green
-     at #00D477 are their true values on this ground, and both are legible on
-     it without adjustment — which is what they were mixed for.
+     The one thing that changes hands is the action colour. On paper the
+     action is the ink; in the dark the ink is everywhere, so the action is
+     the nib — gold at its true value (#D9B45A), lit, with the navy on top.
+     It is the same pen either way. Royal blue lifts to periwinkle (#A9B8FF)
+     for structure, because at its paper value it would vanish here.
      --------------------------------------------------------------------- */
-  --bg-canvas: #0c191f;
-  --bg-surface: #152a32;
-  --bg-subtle: #1e3841;
-  --bg-inset: #091419;
-  --bg-overlay: rgba(6, 15, 19, 0.74);
+  --bg-canvas: #0e1633;
+  --bg-surface: #172046;
+  --bg-subtle: #1f2a56;
+  --bg-inset: #0a1028;
+  --bg-overlay: rgba(5, 9, 28, 0.74);
 
-  --border-subtle: #24424c;
-  --border-strong: #6d868f;
+  --border-subtle: #2a3563;
+  --border-strong: #7d86ad;
 
-  --text-primary: #fffcee;
-  --text-secondary: #b2c3c9;
-  --text-tertiary: #9aabb2;
-  --text-faint: #7e9199;
+  --text-primary: #f7f3ea;
+  --text-secondary: #c3c8dd;
+  --text-tertiary: #a9b0cc;
+  --text-faint: #8b93b3;
 
-  --accent: #c9b5ff;
-  --accent-hover: #ddd0ff;
-  --accent-fill: #7c5ce0;
-  --accent-fill-hover: #8f72e8;
-  --accent-subtle: #1e2440;
+  --accent: #a9b8ff;
+  --accent-hover: #c2cdff;
+  --accent-fill: #4a63c9;
+  --accent-fill-hover: #5b74d8;
+  --accent-subtle: #1c2757;
   --accent-fg: #ffffff;
-  --accent-rgb: 201 181 255;
+  --accent-rgb: 169 184 255;
   /* The one coloured element in the wordmark. */
   --brand-accent: var(--accent);
 
-  --accent-2: #c9b5ff;
-  --accent-2-rgb: 201 181 255;
+  --accent-2: #d9b45a;
+  --accent-2-rgb: 217 180 90;
 
   /* Green at its true value, carrying the ink rather than white: at this
      brightness it is a lit surface, and white on it is unreadable. */
-  --cta: #00d477;
-  --cta-hover: #3ae297;
-  --cta-fg: #062018;
-  --cta-rgb: 0 212 119;
+  --cta: #d9b45a;
+  --cta-hover: #e6c576;
+  --cta-fg: #0e1633;
+  --cta-rgb: 217 180 90;
 
   /* On the deep teal it carries its own edge, so the outline is the colour. */
-  --highlight: #91ff00;
-  --highlight-fg: #152a32;
-  --highlight-edge: #91ff00;
-  --mark: #fffbb5;
-  --mark-fg: #152a32;
+  --highlight: #d9b45a;
+  --highlight-fg: #0e1633;
+  --highlight-edge: #d9b45a;
+  --mark: #4a4022;
+  --mark-fg: #f7f3ea;
 
-  --live: #ffb968;
-  --go: #00d477;
+  --live: #e0a060;
+  --go: #5fc98a;
   --stop: #ff8a80;
 
-  --go-fill: #00d477;
-  --on-fill: #062018;
-  --stop-fill: #d9453a;
+  --go-fill: #2f6b46;
+  --on-fill: #f7f3ea;
+  --stop-fill: #c0392b;
 
   --success: var(--go);
   --warning: var(--live);
   --danger: var(--stop);
-  --danger-subtle: #331615;
+  --danger-subtle: #3a1a1a;
 
-  --mesh-a: rgba(201, 181, 255, 0.16);
-  --mesh-b: rgba(0, 212, 119, 0.10);
-  --mesh-c: rgba(255, 252, 238, 0.05);
+  --mesh-a: rgba(217, 180, 90, 0.14);
+  --mesh-b: rgba(169, 184, 255, 0.10);
+  --mesh-c: rgba(247, 243, 234, 0.04);
   --grain-opacity: 0.045;
-  --glass: rgba(21, 42, 50, 0.74);
-  --glass-line: rgba(255, 252, 238, 0.08);
-  --glow: 0 0 24px -6px var(--accent);
+  --glass: rgba(23, 32, 70, 0.74);
+  --glass-line: rgba(247, 243, 234, 0.08);
+  --glow: 0 0 24px -6px var(--accent-2);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.55);
   --shadow-lg: 0 20px 52px rgba(0, 0, 0, 0.62);
-  --highlight-top: inset 0 1px 0 rgba(255, 252, 238, 0.07);
+  --highlight-top: inset 0 1px 0 rgba(247, 243, 234, 0.07);
 
-  --syn-comment: #7e939b;
-  --syn-keyword: #c9b5ff;
-  --syn-string: #5ee6a5;
+  --syn-comment: #8b93b3;
+  --syn-keyword: #a9b8ff;
+  --syn-string: #5fc98a;
   --syn-function: #9fc4ff;
   --syn-number: #ffbd7d;
-  --syn-type: #6fd8e0;
-  --syn-punct: #9aabb2;
+  --syn-type: #d9b45a;
+  --syn-punct: #a9b0cc;
 
   --composer-bg: rgba(26, 50, 59, 0.76);
   --composer-line: rgba(255, 252, 238, 0.09);
@@ -318,6 +357,10 @@
 
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
     "Helvetica Neue", sans-serif;
+  --font-serif: "Cormorant Garamond", "Iowan Old Style", "Palatino Linotype", Palatino,
+    Georgia, serif;
+  --font-script: "Pinyon Script", "Snell Roundhand", "Apple Chancery", "URW Chancery L",
+    cursive;
   --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo,
     Consolas, monospace;
 
@@ -1417,4 +1460,40 @@ body::after {
   .paper-sheet a svg {
     display: none !important;
   }
+}
+
+/* ============================================================================
+   DISPLAY
+   ----------------------------------------------------------------------------
+   Where the words are the subject rather than the controls: the greeting on a
+   blank page, a section title standing alone. Cormorant at these sizes wants
+   the optical corrections a book gets — tighter tracking as it grows, a hair
+   of extra weight so the thins hold on a screen — which is what these two
+   classes are.
+   ========================================================================= */
+.display {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+  font-feature-settings: "kern", "liga", "onum";
+}
+.display-italic {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+}
+
+/* The signature. Set once per screen at most. `text-rendering` because a
+   script face is all joins, and geometric precision is what keeps the joins
+   from breaking at small sizes. */
+.signature {
+  font-family: var(--font-script);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
 }

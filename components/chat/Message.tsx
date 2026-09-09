@@ -185,6 +185,7 @@ function AssistantMessageImpl({
   onRegenerate,
   onSaveToNote,
   onOpenInCanvas,
+  onContinue,
   entering,
   settled,
   isLast,
@@ -197,6 +198,8 @@ function AssistantMessageImpl({
   onSaveToNote: (text: string) => void;
   /** Lift this answer into a canvas and open it there. */
   onOpenInCanvas: (text: string) => void;
+  /** Ask for the rest, when the answer ran out of room. */
+  onContinue?: () => void;
   entering?: boolean;
   /** True for about a second after this answer finished generating. */
   settled?: boolean;
@@ -263,7 +266,24 @@ function AssistantMessageImpl({
           )}
         </span>
         {message.stopReason === "aborted" && <span className="text-warning">stopped</span>}
-        {message.stopReason === "length" && <span className="text-warning">hit length limit</span>}
+        {message.stopReason === "length" && (
+          <span className="flex items-center gap-2">
+            <span className="text-warning">ran out of room</span>
+            {/* The answer stopped mid-thought because it hit the output cap,
+                not because it was finished. Every one of the big three offers
+                the rest in one press; making someone type "continue" is
+                making them do the app's job. Only on the latest answer —
+                continuing an older one would fork the thread. */}
+            {isLast && onContinue && (
+              <button
+                onClick={onContinue}
+                className="focus-inset rounded-md px-1.5 py-0.5 font-medium text-accent transition-colors duration-[var(--dur-fast)] hover:bg-accent-subtle"
+              >
+                Continue
+              </button>
+            )}
+          </span>
+        )}
       </div>
 
       {message.reasoning && <Reasoning text={message.reasoning} />}

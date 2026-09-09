@@ -9,12 +9,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // Manela and the deep teal it becomes in the dark. These were still set to
-  // the colours of a palette two revisions ago, which meant the iOS status bar
-  // and the Android chrome were painting a band of the wrong app above ours.
+  // The paper, and the ink it becomes in the dark. Kept in step with the
+  // palette by hand, because the last time they drifted the iOS status bar
+  // was painting a band of the previous app above this one.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fffcee" },
-    { media: "(prefers-color-scheme: dark)", color: "#0c191f" },
+    { media: "(prefers-color-scheme: light)", color: "#f7f3ea" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e1633" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -61,6 +61,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        {/* The two faces on screen before anyone has done anything: the
+            interface, and the signature in the corner. Preloaded so the first
+            paint is already in them rather than swapping a moment later. */}
+        <link rel="preload" href="/fonts/inter-400.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/pinyon-script-400.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       </head>
       <body>{children}</body>
     </html>

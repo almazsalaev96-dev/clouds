@@ -99,35 +99,44 @@ is how you lose the thing you were trying to get back to. HTML and CSS canvases 
 a sandboxed frame with no `allow-same-origin`: the preview executes its own scripts and
 can reach nothing else in the browser.
 
-**Type** — the scale was measured against the three apps this one is answering
-to rather than chosen by eye. Body is 16px on a 1.65 line, UI labels are 14, code
-is 14 on 1.6, and the reading column is **40rem** — which is ChatGPT's own
-`--thread-content-max-width`, and lands a line at about 75 characters, inside the
-60-to-80 band. It used to be 15px body, 13px labels and a 46rem column: a step
-small everywhere, and a line already long at 15px that would have been 87
-characters at 16. A pixel sounds like nothing and is the difference between a
-page you read and a page you scan. Claude publishes the same shape — body-md
-16/1.55, body-sm 14, caption 13, code 14/1.6.
+**Look** — taken from the object the brand is: a fountain pen on cream paper.
+Paper (`#f7f3ea`) is the ground — ivory, not white and not yellow. Ink (`#1a2650`)
+is the words: a saturated navy, the colour a good blue ink dries to, and the only
+colour most of a screen is ever made of. Gold (`#d4af5a`) is the nib — a jewel,
+never a surface: the dot on the i, a badge, the tip of the caret, the edge of the
+ring while an answer is arriving. Leather (`#8a4b1d`) is the desk: warmth in the
+field behind everything, and the colour of *thinking*, a state that is warm and
+slow rather than electric.
 
-**Look** — the palette is a brand sheet, not a theme picker's output. Light is the
-primary: Manela (`#fffcee`) as the ground and Blue (`#152a32`) as the ink — a warm
-paper and a cold near-black, which is why the page reads as printed rather than as a
-screen turned down. Purple carries structure (links, focus, the active row), Green
-carries the one action you are meant to take, and Lime is reserved for a mark that
-must be seen from across the room — a due count, a highlight — never for a surface.
+Two blues for two jobs, and the difference is the grammar of the interface: royal
+(`#3450b5`) is *structure* — links, focus, the active row — and the deep ink
+(`#1f2d66`) is *action*, the one control on a screen you are meant to press. You
+write with the ink. Gold on paper cannot carry text at 4.5:1 at any value that
+also holds a 3:1 edge, so gold is never asked to; it is a detail, which is what a
+nib is.
 
-Dark is a *rotation*, not an inversion: Blue stops being the ink and becomes the
-ground, Manela stops being the ground and becomes the ink. Every colour keeps its job
-and none of them becomes a different colour, which is why switching themes never feels
-like switching apps.
+Dark is a rotation, not an inversion: the ink becomes the ground and the paper
+becomes the words — a page written in white on the navy the pen is filled with.
+The one thing that changes hands is the action colour. On paper the action is the
+ink; in the dark the ink is everywhere, so the action is the nib, gold at its true
+value, lit, with the navy on top. It is the same pen either way. Every pair is
+computed, not eyeballed: `node contrast.mjs` checks 28 text/background pairs in
+both themes on every change.
 
-Two constraints are enforced rather than assumed. A colour used as text is not the
-same value as the same colour used as a fill — Purple deepens to `#5b3fc4` and Green
-to `#00703c` on paper, while dark takes them at their true `#c9b5ff` and `#00d477`,
-and the Green in dark carries the ink rather than white because at that brightness it
-is a lit surface. And every pair is computed, not eyeballed: `node contrast.mjs`
-checks 28 text/background pairs in both themes on every change — control borders clear
-3:1, body text 4.5:1.
+**Type** — four faces, self-hosted from `/fonts`, latin subsets, one file per
+weight, 240 KB in all. Inter for the interface and body. Cormorant Garamond for
+the greeting and anywhere the words are the subject — a Garamond, because the
+register that goes with a pen on deckle paper is a book, not a dashboard, and
+Claude's own product makes the same split. Pinyon Script for the name and nothing
+else: a copperplate script is a signature, and a signature that appears more than
+once a screen is a watermark. JetBrains Mono for code. Inter had been *named* in
+the font stack for a year and never served, so every screenshot in this repo, and
+the app for anyone without it installed, was actually DejaVu Sans. A font you name
+but do not ship is a wish.
+
+**The mark** — the word in the ink, in a hand, with the dot on the i in gold,
+which is where the pen lifts. Once per screen at most. The app icon is the initial
+in the same hand on the navy, with the same gold dot.
 
 **Thinking** — one motif wherever the model is running: a ring of field energy that
 turns, and a hairline that travels the width of whatever is live. It says *running*
@@ -179,9 +188,15 @@ applying a rule you were just told rather than deciding which rule applies.
 notes shapes; a title, subtitle and author set on the sheet itself; "Draft it" to have
 a model write it from your material; and Print / PDF to export.
 
+**The blank page** — a greeting that knows what time it is and, once you have
+said so, what you are called. It asks once, inline, after the keys are in, and
+never as a modal. A name is the cheapest thing an interface can know about you and
+the one that changes the most about how it reads back; it stays in the browser and
+is never sent to a model.
+
 **The rest** — command palette (`⌘K`), keyboard operation throughout, light/dark with
-no flash, three densities, and every empty and error state written rather than
-defaulted.
+no flash, three densities, *Continue* on any answer that ran out of room, and
+every empty and error state written rather than defaulted.
 
 ## How it's put together
 

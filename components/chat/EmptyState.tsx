@@ -1,10 +1,36 @@
 "use client";
 
 import * as React from "react";
-import { KeyRound } from "lucide-react";
+import { KeyRound, X } from "lucide-react";
 import { getModel } from "@/lib/models";
 import { useSettings } from "@/lib/store";
 import { ProviderMark } from "@/components/ui/ProviderMark";
+import { Wordmark } from "@/components/brand/Logo";
+
+/**
+ * The time of day, as a greeting.
+ *
+ * Read on the client, because the server has no idea what time it is where
+ * you are. The first render carries a neutral word and the real one lands
+ * before paint; the hydration warning that would otherwise fire on the
+ * mismatch is suppressed on that one element and nowhere else.
+ */
+function useGreeting(): string {
+  // Starts as the server's word on the client too — deliberately. With
+  // `suppressHydrationWarning` React keeps the server's text and does not
+  // re-render unless state actually changes, so an initial state that already
+  // held the right answer would leave "Hello" on screen forever. The layout
+  // effect changes it before paint.
+  const [g, setG] = React.useState("Hello");
+  useIsoLayoutEffect(() => {
+    const h = new Date().getHours();
+    setG(h < 5 ? "Working late" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening");
+  }, []);
+  return g;
+}
+
+/** useLayoutEffect on the client, a no-op on the server, without the warning. */
+const useIsoLayoutEffect = typeof window === "undefined" ? React.useEffect : React.useLayoutEffect;
 
 /**
  * A thread with nothing in it yet.
@@ -43,8 +69,11 @@ export function EmptyState({
   /** The composer. */
   children: React.ReactNode;
 }) {
-  const { modelId } = useSettings();
+  const settings = useSettings();
+  const { modelId, name, nameAsked } = settings;
   const model = getModel(modelId);
+  const greeting = useGreeting();
+  const [draftName, setDraftName] = React.useState("");
 
   // Chosen once per mount: examples that reshuffle while you read them are a
   // distraction, not a feature.
@@ -56,27 +85,27 @@ export function EmptyState({
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
       <div className="w-full max-w-[var(--measure)] pb-[6vh]">
-        {/* Set the way the name is set: capitals, letterspaced, between two
-            hairlines. An engraved heading rather than a dashboard title —
-            which costs nothing, needs no second typeface, and makes the blank
-            page feel like the first page of something rather than an empty
-            state waiting to be filled. */}
+        {/* The signature, then a greeting that knows what time it is and — once
+            you have said so — what you are called. The two are the whole of
+            the "brand moment" on a blank page: a name in a hand, and a page
+            that is addressed to you. Nothing else on this screen is allowed
+            to be decorative. */}
         <div className="mb-7 text-center">
-          <div
-            className="mx-auto flex max-w-md items-center gap-4 anim-rise"
-            style={{ animationDelay: "20ms" }}
-          >
-            <span className="h-px flex-1 bg-[var(--border-subtle)]" aria-hidden />
-            <h1 className="text-[13px] font-medium uppercase tracking-[0.28em] text-tertiary">
-              Armi
-            </h1>
-            <span className="h-px flex-1 bg-[var(--border-subtle)]" aria-hidden />
+          <div className="flex justify-center anim-rise" style={{ animationDelay: "20ms" }}>
+            <Wordmark height={46} className="text-primary" />
           </div>
 
-          {/* The placeholder already says "Ask anything". Saying it twice on
-              one screen makes the heading noise, so it says the other useful
-              thing: this is a blank page and you get to pick what goes on it. */}
-          <p className="mt-5 text-[1.75rem] font-medium tracking-[-0.02em] text-primary anim-rise">
+          <h1
+            className="display mt-4 text-[2.125rem] text-primary anim-rise sm:text-[2.5rem]"
+            suppressHydrationWarning
+          >
+            {greeting}
+            {name ? `, ${name.trim()}` : ""}.
+          </h1>
+          <p
+            className="display-italic mt-1 text-[1.3rem] text-secondary anim-rise"
+            style={{ animationDelay: "40ms" }}
+          >
             Where should we start?
           </p>
           <p
@@ -122,6 +151,43 @@ export function EmptyState({
               Add your API keys
             </button>
           </div>
+        )}
+        {/* Asked once, on the blank page, after the keys are in — never as a
+            modal and never again after an answer either way. A name is the
+            cheapest thing an interface can know about you and the one that
+            changes the most about how it reads back. */}
+        {hasAnyKey && !name && !nameAsked && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              settings.set({ name: draftName.trim(), nameAsked: true });
+            }}
+            className="mx-auto mt-5 flex w-full max-w-xs items-center gap-1.5 anim-rise"
+            style={{ animationDelay: "280ms" }}
+          >
+            <input
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              placeholder="What should I call you?"
+              aria-label="Your name"
+              className="tap focus-inset h-10 min-w-0 flex-1 rounded-full border border-line bg-surface px-4 text-sm text-primary outline-none placeholder:text-tertiary"
+            />
+            <button
+              type="submit"
+              disabled={!draftName.trim()}
+              className="tap focus-inset h-10 rounded-full px-3.5 text-sm font-medium text-accent transition-colors duration-[var(--dur-fast)] hover:bg-accent-subtle disabled:opacity-40"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              aria-label="Not now"
+              onClick={() => settings.set({ nameAsked: true })}
+              className="ctl focus-inset flex [--ctl:2.5rem] items-center justify-center rounded-full text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+            >
+              <X size={15} />
+            </button>
+          </form>
         )}
         <p className="mt-6 text-center text-xs text-faint">
           Models make mistakes. Check anything that matters.

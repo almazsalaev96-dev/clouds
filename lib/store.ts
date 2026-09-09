@@ -55,6 +55,10 @@ interface Settings {
   systemPrompt: string;
   /** The response style new chats start with. Threads can override it. */
   styleId: string;
+  /** What to call you. Used in the greeting; stays in this browser. */
+  name: string;
+  /** Whether the blank page has asked yet. It asks once. */
+  nameAsked: boolean;
   sidebarOpen: boolean;
   sendOnEnter: boolean;
   showLineNumbers: boolean;
@@ -97,6 +101,8 @@ export const useSettings = create<Settings>()(
       modelId: DEFAULT_MODEL_ID,
       systemPrompt: "",
       styleId: DEFAULT_STYLE_ID,
+      name: "",
+      nameAsked: false,
       sidebarOpen: true,
       sendOnEnter: true,
       showLineNumbers: false,

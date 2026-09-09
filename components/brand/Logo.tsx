@@ -2,119 +2,92 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { A_BAR, A_LEFT, A_RIGHT, DISPLAY, GRID, WORD } from "./geometry";
 
 /**
  * The Armi identity.
  *
- * French, in the sense the word actually carries in typography: Didot, cut in
- * Paris in the 1780s, and the engraved register every maison has set its name
- * in since. A vertical axis, stems that go heavy while the joins go to a
- * hairline, flat unbracketed serifs, and the whole thing letterspaced wide
- * enough that the word reads as an object rather than as a label.
+ * A signature. The brief was a fountain pen on deckle paper, and what a pen
+ * writes is not a logotype — it is a name in someone's hand. So the mark is
+ * the word set in a copperplate script (Pinyon, the engraved round hand of
+ * nineteenth-century correspondence), in the ink, with one thing in gold: the
+ * dot on the i, which is where the pen lifts.
  *
- * That register also happens to be the right answer to the brief. A fountain
- * pen on cream deckle paper is not asking for a software logotype; it is
- * asking for something engraved. And the palette was already halfway there —
- * Manela is paper, not white.
+ * It appears at most once per screen. A signature repeated is a watermark.
  *
- * There are two cuts, which is not a compromise but standard practice: a
- * display cut for anywhere the name is the subject, and a small cut for UI
- * chrome, because a hairline at 16px is a third of a pixel and a screen
- * cannot draw it.
+ * The dot is drawn rather than typed. Colouring one glyph of a font a
+ * different colour is not something text can do, and a dotless i drawn from
+ * a different subset is a fallback waiting to happen — so the word is set as
+ * "Arm" plus a dotless "ı", and the dot is a circle placed where the face
+ * puts it. If the script ever fails to load the fallback is a plain cursive
+ * with its own dot, and the gold one simply sits on top of it.
  */
 
-/* ------------------------------------------------------------- display ---- */
-
-/**
- * The name, set. `tone="rule"` adds the hairlines above and below — the
- * engraved treatment, for anywhere the word is standing alone rather than
- * sitting in a row of interface.
- */
+/** The name, set. */
 export function Wordmark({
-  height = 26,
-  tone = "plain",
+  height = 32,
+  gold = true,
   className,
 }: {
+  /** Cap height of the A, in px. The word is about 2.6× as wide. */
   height?: number;
-  tone?: "plain" | "rule";
+  /** The gold dot. Off where the mark is on a coloured ground. */
+  gold?: boolean;
   className?: string;
 }) {
-  const inner = WORD.reduce((n, l) => n + l.width, 0) + DISPLAY.tracking * (WORD.length - 1);
-  const pad = tone === "rule" ? 34 : 0;
-  const w = inner;
-  const h = DISPLAY.height + pad * 2;
-
-  let x = 0;
+  // Pinyon's ascenders run well above the cap; sizing the font at the height
+  // asked for keeps the flourish inside the box the caller allotted.
+  const size = height * 0.98;
   return (
-    <svg
-      height={height}
-      viewBox={`0 0 ${w} ${h}`}
-      fill="none"
+    <span
       role="img"
       aria-label="Armi"
-      className={cn("shrink-0", className)}
-      style={{ width: (w / h) * height }}
+      className={cn("signature relative inline-block select-none whitespace-nowrap", className)}
+      style={{ fontSize: size, height: size * 1.05, lineHeight: 1 }}
     >
-      {tone === "rule" && (
-        <>
-          {/* Two hairlines at the weight of the letters' own thins, so the
-              rules read as part of the setting rather than as a box drawn
-              around it. */}
-          <rect x="0" y="6" width={w} height="4" fill="currentColor" />
-          <rect x="0" y={h - 10} width={w} height="4" fill="currentColor" />
-        </>
+      <span aria-hidden className="text-current">
+        Arm{"ı"}
+      </span>
+      {gold && (
+        <span
+          aria-hidden
+          className="absolute rounded-full bg-[var(--accent-2)]"
+          style={{
+            width: size * 0.085,
+            height: size * 0.085,
+            right: size * 0.075,
+            top: size * 0.3,
+          }}
+        />
       )}
-      <g transform={`translate(0 ${pad})`}>
-        {WORD.map((letter, i) => {
-          const at = x;
-          x += letter.width + DISPLAY.tracking;
-          return (
-            <g key={i} transform={`translate(${at} 0)`}>
-              {letter.paths.map((d, j) => (
-                <path key={j} d={d} fill="currentColor" />
-              ))}
-            </g>
-          );
-        })}
-      </g>
-    </svg>
+    </span>
   );
 }
 
-/* --------------------------------------------------------------- small ---- */
-
 /**
- * The A alone, at the small cut. Same skeleton and the same thick/thin logic
- * as the display A; no serifs, less contrast, because at this size those are
- * not legible detail but noise.
+ * The initial, for the app icon and anywhere the whole name would not fit.
+ * Same script, same ink, same gold dot standing in for the one on the i.
  */
 export function Mark({ size = 20, className }: { size?: number; className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden className={cn("shrink-0", className)}>
-      <path d={A_LEFT} fill="currentColor" />
-      <path d={A_RIGHT} fill="currentColor" />
-      <path d={A_BAR} fill="currentColor" />
-    </svg>
+    <span
+      aria-hidden
+      className={cn("signature relative inline-flex shrink-0 items-end justify-center", className)}
+      style={{ width: size, height: size, fontSize: size * 0.92, lineHeight: 1 }}
+    >
+      <span style={{ marginBottom: -size * 0.02 }}>A</span>
+      <span
+        className="absolute rounded-full bg-[var(--accent-2)]"
+        style={{ width: size * 0.13, height: size * 0.13, right: size * 0.02, top: size * 0.18 }}
+      />
+    </span>
   );
 }
 
-/**
- * Mark plus name, for the sidebar. The name is set in the interface font here
- * rather than drawn: at 15px the display cut would be illegible and the small
- * cut has no lowercase, and a lockup that lies about which cut it is is worse
- * than one that simply sets the word.
- */
+/** The sidebar header. Just the signature; it does not need a mark beside it. */
 export function Lockup({ className }: { className?: string }) {
   return (
-    <span className={cn("flex items-center gap-2 text-primary", className)}>
-      <Mark size={17} />
-      <span
-        className="text-[15px] font-medium"
-        style={{ letterSpacing: `${0.13 * (GRID.stem / 11)}em` }}
-      >
-        ARMI
-      </span>
+    <span className={cn("flex items-center text-primary", className)}>
+      <Wordmark height={30} />
     </span>
   );
 }
