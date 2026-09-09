@@ -518,6 +518,25 @@ export default function Page() {
   const live = stream.conversationId !== null && stream.conversationId === activeId;
   const showEmpty = path.length === 0 && !live && !comparing;
 
+  /* Built once and placed in one of two homes: centred inside the empty state,
+     or docked under the transcript. Same element either way, so the draft and
+     everything else in it survives the move. */
+  const composer = mounted ? (
+    <Composer
+      conversationId={activeId ?? "new"}
+      streaming={live && stream.phase !== "idle"}
+      contextTokens={contextTokens}
+      modelId={threadModelId}
+      onSend={send}
+      onStop={stream.stop}
+      onEditLast={editLast}
+      onOpenModels={() => setModelPickerOpen(true)}
+      compareWith={compareWith}
+      onCompareChange={setCompareWith}
+      availableModels={modelUsable}
+    />
+  ) : null;
+
   const artifactValue = React.useMemo(
     () => ({ open: setArtifact, current: artifact }),
     [artifact],
@@ -614,10 +633,11 @@ export default function Page() {
           {showEmpty ? (
             <EmptyState
               hasAnyKey={hasAnyKey}
-              isFirstEver={(conversationCount ?? 0) === 0}
               onExample={(text) => drafts.setDraft(activeId ?? "new", text)}
               onAddKey={openKeys}
-            />
+            >
+              {composer}
+            </EmptyState>
           ) : (
             <div className="flex min-h-0 flex-1 flex-col">
               {notice && (
@@ -663,25 +683,18 @@ export default function Page() {
             </div>
           )}
 
-          <div className="composer-dock no-print relative shrink-0 px-4 pb-3 pt-2">
-            <div className="mx-auto w-full max-w-[var(--measure)]">
-              {mounted && (
-                <Composer
-                  conversationId={activeId ?? "new"}
-                  streaming={live && stream.phase !== "idle"}
-                  contextTokens={contextTokens}
-                  modelId={threadModelId}
-                  onSend={send}
-                  onStop={stream.stop}
-                  onEditLast={editLast}
-                  onOpenModels={() => setModelPickerOpen(true)}
-                  compareWith={compareWith}
-                  onCompareChange={setCompareWith}
-                  availableModels={modelUsable}
-                />
-              )}
+          {/* Only once there is a transcript for it to sit under. On an empty
+              thread the composer lives inside the centred block above. */}
+          {!showEmpty && (
+            <div className="composer-dock no-print relative shrink-0 px-4 pb-3 pt-2">
+              <div className="mx-auto w-full max-w-[var(--measure)]">
+                {composer}
+                <p className="mt-2 text-center text-xs text-faint">
+                  Models make mistakes. Check anything that matters.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
           </>
           )}
         </main>

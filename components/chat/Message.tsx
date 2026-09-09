@@ -107,7 +107,7 @@ function UserMessageImpl({
   }
 
   return (
-    <div id={`m-${message.id}`} className={cn("msg group flex flex-col items-end gap-1.5 py-3", entering && "msg-enter")}>
+    <div id={`m-${message.id}`} className={cn("msg group flex flex-col items-end gap-1.5 pb-3 pt-6", entering && "msg-enter")}>
       {images.length > 0 && (
         <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
           {images.map((img, i) =>
@@ -136,7 +136,7 @@ function UserMessageImpl({
       )}
 
       {text && (
-        <div className="max-w-[85%] whitespace-pre-wrap rounded-lg bg-subtle px-3.5 py-2.5 text-base [overflow-wrap:anywhere]">
+        <div className="max-w-[85%] whitespace-pre-wrap rounded-[20px] bg-subtle px-4 py-2.5 text-base [overflow-wrap:anywhere]">
           {text}
         </div>
       )}
@@ -239,7 +239,7 @@ function AssistantMessageImpl({
   };
 
   return (
-    <div id={`m-${message.id}`} className={cn("msg group py-3", entering && "msg-enter")}>
+    <div id={`m-${message.id}`} className={cn("msg group pb-4 pt-3", entering && "msg-enter")}>
       {/* Who is speaking, before you read what they said. In an app with four
           providers this is not metadata — it is context. */}
       <div className="mb-2 flex items-center gap-2 text-xs text-tertiary">
@@ -249,10 +249,12 @@ function AssistantMessageImpl({
           </span>
         )}
         <span className="font-medium text-secondary">{model?.name ?? "Assistant"}</span>
-        {message.latencyMs != null && <span className="tnum">{formatDuration(message.latencyMs)}</span>}
-        {message.usage && message.usage.outputTokens > 0 && (
-          <span className="tnum">{formatTokens(message.usage.outputTokens)} tok</span>
-        )}
+        <span className="reveal flex items-center gap-2">
+          {message.latencyMs != null && <span className="tnum">{formatDuration(message.latencyMs)}</span>}
+          {message.usage && message.usage.outputTokens > 0 && (
+            <span className="tnum">{formatTokens(message.usage.outputTokens)} tok</span>
+          )}
+        </span>
         {message.stopReason === "aborted" && <span className="text-warning">stopped</span>}
         {message.stopReason === "length" && <span className="text-warning">hit length limit</span>}
       </div>

@@ -503,9 +503,6 @@ export function Composer({
         )}
       </div>
 
-      <p className="mt-2 text-center text-xs text-tertiary">
-        Models make mistakes. Check anything that matters.
-      </p>
     </div>
   );
 }

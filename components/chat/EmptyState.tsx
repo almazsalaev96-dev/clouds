@@ -1,19 +1,24 @@
 "use client";
 
 import * as React from "react";
-import { ArrowRight, KeyRound } from "lucide-react";
+import { KeyRound } from "lucide-react";
 import { getModel } from "@/lib/models";
 import { useSettings } from "@/lib/store";
 import { ProviderMark } from "@/components/ui/ProviderMark";
 
 /**
- * The first thing anyone sees, so it is a page rather than a pitch: no hero, no
- * feature grid, no mascot, no tour. It sits at optical centre — slightly above
- * true centre, where the eye expects a title — and hands over to the composer.
+ * A thread with nothing in it yet.
  *
- * The example prompts exist only to solve the blank-page problem, so they
- * disappear the moment there is any history at all: a returning user knows what
- * they came to do, and suggesting otherwise is condescending.
+ * The composer is rendered *inside* this block rather than docked at the
+ * bottom of the window, because an empty thread has no transcript to sit under
+ * — leaving the box at the bottom puts half a screen of nothing between the
+ * greeting and the only thing you can do, and asks you to travel that distance
+ * to start. Centred, the greeting, the box and the suggestions are one object,
+ * and the first thing you read is directly above the first thing you type.
+ *
+ * On the first send the composer moves to the dock. That transition is the
+ * app telling you the room changed: there is a conversation now, and the
+ * conversation is the thing on screen.
  */
 const EXAMPLES = [
   "Explain this error and how to fix it",
@@ -22,18 +27,21 @@ const EXAMPLES = [
   "Compare two approaches and pick one",
   "Turn these notes into a short summary",
   "Write a regex for this, and explain each part",
+  "Find the bug in this function",
+  "Draft a reply to this message",
 ];
 
 export function EmptyState({
   hasAnyKey,
-  isFirstEver,
   onExample,
   onAddKey,
+  children,
 }: {
   hasAnyKey: boolean;
-  isFirstEver: boolean;
   onExample: (text: string) => void;
   onAddKey: () => void;
+  /** The composer. */
+  children: React.ReactNode;
 }) {
   const { modelId } = useSettings();
   const model = getModel(modelId);
@@ -46,61 +54,63 @@ export function EmptyState({
   );
 
   return (
-    <div className="flex flex-1 items-center justify-center overflow-y-auto px-4">
-      <div className="w-full max-w-[var(--measure)] pb-[8vh]">
-        {/* The placeholder already says "Ask anything". Saying it twice on one
-            screen makes the heading noise, so it says the other useful thing:
-            that this is a blank page and you get to pick what goes on it. */}
-        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-primary anim-rise">
-          {isFirstEver ? "Where should we start?" : "New chat"}
-        </h1>
-
-        <p
-          className="mt-1.5 flex items-center gap-1.5 text-sm text-secondary anim-rise"
-          style={{ animationDelay: "40ms" }}
-        >
-          {hasAnyKey ? (
-            <>
-              <span className="text-tertiary">
-                <ProviderMark provider={model.provider} size={13} />
-              </span>
-              {model.name}
-              <span className="hidden text-tertiary md:inline">— ⌘/ to switch</span>
-            </>
-          ) : (
-            "Bring your own API key. Nothing is stored anywhere but your browser."
-          )}
-        </p>
-
-        {!hasAnyKey && (
-          <button
-            onClick={onAddKey}
-            className="mt-5 flex items-center gap-2 rounded-md bg-accent px-3.5 py-2 text-sm font-medium text-accent-fg transition-colors duration-[var(--dur-fast)] hover:bg-accent-hover anim-rise"
-            style={{ animationDelay: "80ms" }}
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
+      <div className="w-full max-w-[var(--measure)] pb-[6vh]">
+        <div className="mb-6 text-center">
+          {/* The placeholder already says "Ask anything". Saying it twice on
+              one screen makes the heading noise, so it says the other useful
+              thing: this is a blank page and you get to pick what goes on it. */}
+          <h1 className="text-[1.75rem] font-semibold tracking-[-0.025em] text-primary anim-rise">
+            Where should we start?
+          </h1>
+          <p
+            className="mt-2 flex items-center justify-center gap-1.5 text-sm text-tertiary anim-rise"
+            style={{ animationDelay: "40ms" }}
           >
-            <KeyRound size={14} />
-            Add your API keys
-          </button>
-        )}
+            {hasAnyKey ? (
+              <>
+                <ProviderMark provider={model.provider} size={13} />
+                {model.name}
+                <span className="hidden md:inline">— ⌘/ to switch</span>
+              </>
+            ) : (
+              "Bring your own API key. Nothing is stored anywhere but your browser."
+            )}
+          </p>
+        </div>
 
-        {hasAnyKey && isFirstEver && (
-          <div className="mt-6 flex flex-col gap-px">
+        <div className="anim-rise" style={{ animationDelay: "70ms" }}>
+          {children}
+        </div>
+
+        {hasAnyKey ? (
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
             {examples.map((e, i) => (
               <button
                 key={e}
                 onClick={() => onExample(e)}
-                style={{ animationDelay: `${80 + i * 35}ms` }}
-                className="group -mx-2 flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary anim-rise"
+                style={{ animationDelay: `${120 + i * 40}ms` }}
+                className="focus-inset lift anim-rise rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13px] text-secondary hover:border-line-strong hover:text-primary"
               >
-                <span className="min-w-0 flex-1 truncate">{e}</span>
-                <ArrowRight
-                  size={13}
-                  className="shrink-0 text-tertiary reveal"
-                />
+                {e}
               </button>
             ))}
           </div>
+        ) : (
+          <div className="mt-5 flex justify-center">
+            <button
+              onClick={onAddKey}
+              className="bloom focus-inset anim-rise flex items-center gap-2 rounded-full bg-[var(--accent-fill)] px-4 py-2 text-sm font-medium text-accent-fg"
+              style={{ animationDelay: "120ms" }}
+            >
+              <KeyRound size={14} />
+              Add your API keys
+            </button>
+          </div>
         )}
+        <p className="mt-6 text-center text-xs text-faint">
+          Models make mistakes. Check anything that matters.
+        </p>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, Pin, PinOff, Plus, Search, Trash2, X } from "lucide-react";
+import { ChevronLeft, Pin, Plus, Search, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button, IconButton, Tooltip } from "@/components/ui/primitives";
 
@@ -70,20 +70,32 @@ export function SectionIndex({
     );
   }, [items, query]);
 
+  // A search box over three rows is furniture. It appears when the list is long
+  // enough that scanning it stops being the faster way to find something.
+  const searchable = !loading && items.length >= 5;
+
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-6">
-        <header className="mb-4 flex items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-primary">{title}</h1>
-          <Button size="sm" variant="secondary" className="ml-auto" onClick={onNew}>
+      {/* Sticky, because a title that scrolls away takes the primary action
+          with it, and on a long list that means scrolling back to the top to
+          make the next one. */}
+      <header className="glass sticky top-0 z-10 border-b border-line">
+        <div className="mx-auto flex w-full max-w-[var(--measure)] items-center gap-3 px-4 py-3">
+          <h1 className="text-lg font-semibold tracking-[-0.02em] text-primary">{title}</h1>
+          {!loading && items.length > 0 && (
+            <span className="tnum text-sm text-faint">{items.length}</span>
+          )}
+          <Button size="sm" variant="primary" className="bloom ml-auto" onClick={onNew}>
             <Plus size={14} />
             {newLabel}
           </Button>
-        </header>
+        </div>
+      </header>
 
+      <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-4">
         {lead}
 
-        {!loading && items.length > 0 && (
+        {searchable && (
           <div className="mb-3 flex h-9 items-center gap-2 rounded-md border border-line bg-surface px-2.5 transition-colors duration-[var(--dur-fast)] focus-within:border-accent">
             <Search size={14} className="shrink-0 text-tertiary" />
             <input
@@ -160,11 +172,17 @@ export function SectionIndex({
                           aria-pressed={item.pinned}
                           data-visible={item.pinned || undefined}
                           className={cn(
-                            "reveal flex size-7 shrink-0 items-center justify-center rounded-md hover:bg-subtle hover:text-primary",
-                            item.pinned ? "text-accent" : "text-tertiary",
+                            "ctl reveal flex [--ctl:1.75rem] shrink-0 items-center justify-center rounded-md hover:bg-subtle",
+                            item.pinned ? "text-accent" : "text-tertiary hover:text-primary",
                           )}
                         >
-                          {item.pinned ? <PinOff size={14} /> : <Pin size={14} />}
+                          {/* A pin, whether or not it is pinned. At rest this
+                              icon reports state, and the accent is the report;
+                              swapping in a crossed-out pin would show the
+                              action instead, which reads as "this is unpinned"
+                              at exactly the moment it is not. The action lives
+                              in the tooltip and the accessible name. */}
+                          <Pin size={14} className={cn(item.pinned && "fill-current")} />
                         </button>
                       </Tooltip>
                     )}

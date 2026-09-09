@@ -176,7 +176,10 @@ export function Sidebar({
 
 function GroupLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="sticky top-0 z-10 bg-subtle px-2 pb-1 pt-2 text-xs font-medium text-tertiary">
+    // Sticky, but with no fill of its own: the sidebar is glass now, and an
+    // opaque strip inside it reads as a row rather than a label for the rows
+    // under it. Blur alone keeps the text legible over whatever scrolls past.
+    <h2 className="glass sticky top-0 z-10 px-2 pb-1 pt-3 text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
       {children}
     </h2>
   );

@@ -271,29 +271,30 @@ function Review({ cards }: { cards: Card[] }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* Progress is the count remaining, not a percentage: what matters is how
-          many more, and a bar that barely moves is discouraging. */}
-      <div className="mx-auto mt-2 w-full max-w-[var(--measure)] px-4">
-        <div className="flex items-center gap-2 text-xs text-tertiary tnum">
-          <span>{queue.length} left</span>
-          {done > 0 && <span>{done} done</span>}
-          {undoStack.current.length > 0 && (
-            <button
-              onClick={undo}
-              className="ml-auto flex items-center gap-1 rounded-sm px-1 text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
-            >
-              <Undo2 size={12} />
-              Undo
-              <Kbd keys={["U"]} />
-            </button>
-          )}
-          {card.reps === 0 && <span className="text-accent">new</span>}
-          {card.lapses > 2 && <span className="text-warning">leech</span>}
-        </div>
-      </div>
-
+      {/* The count travels with the card rather than sitting at the top of the
+          window. A study screen is one object — how many are left, the question,
+          and what you do about it — and splitting it across half a screen of
+          empty space makes you look in two places for one thought. */}
       <div className="flex min-h-0 flex-1 items-center overflow-y-auto">
         <div className="mx-auto w-full max-w-[var(--measure)] px-4 py-6">
+          <div className="mb-3 flex items-center gap-2 text-xs text-tertiary tnum">
+            {/* Progress is the count remaining, not a percentage: what matters
+                is how many more, and a bar that barely moves is discouraging. */}
+            <span>{queue.length} left</span>
+            {done > 0 && <span>{done} done</span>}
+            {card.reps === 0 && <span className="text-accent">new</span>}
+            {card.lapses > 2 && <span className="text-warning">leech</span>}
+            {undoStack.current.length > 0 && (
+              <button
+                onClick={undo}
+                className="ml-auto flex items-center gap-1 rounded-sm px-1 text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+              >
+                <Undo2 size={12} />
+                Undo
+                <Kbd keys={["U"]} />
+              </button>
+            )}
+          </div>
           <div className="w-full rounded-xl border border-line bg-surface p-6">
             <div className="text-lg text-primary">
               <Markdown content={card.front} />
