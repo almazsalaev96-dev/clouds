@@ -62,7 +62,19 @@ export function classifyError(
     /api[ _-]?key[ _-]?(not valid|invalid)|invalid[ _-]?api[ _-]?key|api_key_invalid|unauthenticated|permission[ _-]?denied/.test(
       lower,
     );
-  if (status === 401 || status === 403 || looksLikeKeyProblem) kind = "bad_key";
+  /* A 403 is ambiguous: providers use it for a rejected key, but so does every
+     corporate proxy, VPN and egress allowlist standing between the server and
+     the internet. Telling someone their key is wrong when the request never
+     left the building sends them to re-issue a key that was always fine. If
+     the body reads like a network refusal rather than an auth failure, say so
+     — and point at retrying rather than at the key. */
+  const looksLikeBlockedEgress =
+    /not in allowlist|blocked by|proxy|firewall|egress|enotfound|econnrefused|etimedout|getaddrinfo|tunneling socket|certificate/.test(
+      lower,
+    ) && !looksLikeKeyProblem;
+
+  if (looksLikeBlockedEgress) kind = "network";
+  else if (status === 401 || (status === 403 && !looksLikeBlockedEgress) || looksLikeKeyProblem) kind = "bad_key";
   else if (status === 429) kind = lower.includes("quota") || lower.includes("billing") ? "quota" : "rate_limit";
   else if (status === 400 && (lower.includes("context") || lower.includes("too long") || lower.includes("max_tokens"))) kind = "context_length";
   else if (status === 400 && (lower.includes("safety") || lower.includes("blocked") || lower.includes("filter"))) kind = "content_filter";
@@ -79,7 +91,7 @@ export function classifyError(
     content_filter: `${name} declined to answer this one.`,
     unsupported_content: `This model can't read the attachments in this conversation.`,
     provider_down: `${name} is having trouble on their end.`,
-    network: `Couldn't reach ${name}.`,
+    network: `Couldn't reach ${name}. Check the connection — this did not look like a key problem.`,
     timeout: `${name} took too long to respond.`,
     unknown: `Something went wrong talking to ${name}.`,
   };

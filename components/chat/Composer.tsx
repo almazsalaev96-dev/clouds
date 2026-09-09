@@ -346,6 +346,11 @@ export function Composer({
             ref={fileRef}
             type="file"
             multiple
+            // Visually hidden but still in the accessibility tree, so it needs
+            // a name like any other control — a screen reader landing on an
+            // unnamed file input is told only "file, button".
+            aria-label="Choose photos and files to attach"
+            tabIndex={-1}
             className="sr-only"
             onChange={async (e) => {
               await addFiles(Array.from(e.target.files ?? []));

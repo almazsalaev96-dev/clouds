@@ -9,12 +9,19 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // Manela and the deep teal it becomes in the dark. These were still set to
+  // the colours of a palette two revisions ago, which meant the iOS status bar
+  // and the Android chrome were painting a band of the wrong app above ours.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#faf8f3" },
-    { media: "(prefers-color-scheme: dark)", color: "#100f0c" },
+    { media: "(prefers-color-scheme: light)", color: "#fffcee" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c191f" },
   ],
   width: "device-width",
   initialScale: 1,
+  // The app paints to the edges on a notched phone; every element that needs
+  // to stay clear of the notch or the home indicator does so with env() insets
+  // rather than by letting the system letterbox the whole page.
+  viewportFit: "cover",
   // Keeps the composer above the on-screen keyboard instead of behind it.
   interactiveWidget: "resizes-content",
 };

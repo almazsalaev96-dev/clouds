@@ -625,6 +625,14 @@ export default function Page() {
             onTogglePin={() =>
               activeId && conversation && db.conversations.update(activeId, { pinned: !conversation.pinned })
             }
+            onToggleArchive={async () => {
+              if (!activeId || !conversation) return;
+              const archived = !conversation.archived;
+              // Archiving also unpins: a conversation cannot be both filed
+              // away and held at the top of the list you filed it out of.
+              await db.conversations.update(activeId, { archived, pinned: archived ? false : conversation.pinned });
+              if (archived) setActiveId(null);
+            }}
             onSaveAsNote={conversationToNote}
             onMakeCards={conversationToCards}
             busy={studyBusy}
@@ -686,7 +694,7 @@ export default function Page() {
           {/* Only once there is a transcript for it to sit under. On an empty
               thread the composer lives inside the centred block above. */}
           {!showEmpty && (
-            <div className="composer-dock no-print relative shrink-0 px-4 pb-3 pt-2">
+            <div className="composer-dock no-print relative shrink-0 px-4 pt-2">
               <div className="mx-auto w-full max-w-[var(--measure)]">
                 {composer}
                 <p className="mt-2 text-center text-xs text-faint">

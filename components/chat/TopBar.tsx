@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Download, Layers, MoreHorizontal, NotebookPen, PanelLeft, Pin, PinOff, Trash2 } from "lucide-react";
+import { Download, Layers, MoreHorizontal, NotebookPen, PanelLeft, Pin, PinOff, Trash2, Archive, ArchiveRestore,
+} from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { useSettings } from "@/lib/store";
 import { formatCost, formatTokens } from "@/lib/models";
@@ -22,6 +23,7 @@ export function TopBar({
   onExport,
   onDelete,
   onTogglePin,
+  onToggleArchive,
   onSaveAsNote,
   onMakeCards,
   busy,
@@ -37,6 +39,7 @@ export function TopBar({
   onExport: () => void;
   onDelete: () => void;
   onTogglePin: () => void;
+  onToggleArchive: () => void;
   onSaveAsNote: () => void;
   onMakeCards: () => void;
   busy: boolean;
@@ -48,7 +51,7 @@ export function TopBar({
   return (
     <header
       className={cn(
-        "glass no-print sticky top-0 z-20 flex h-[var(--topbar-h)] shrink-0 items-center gap-1 px-2 transition-[border-color] duration-[var(--dur-fast)]",
+        "glass safe-top no-print sticky top-0 z-20 flex h-[calc(var(--topbar-h)+env(safe-area-inset-top))] shrink-0 items-center gap-1 px-2 transition-[border-color] duration-[var(--dur-fast)]",
         "border-b",
         // The hairline only exists once there is content above it to separate.
         scrolled ? "border-line" : "border-transparent",
@@ -126,6 +129,16 @@ export function TopBar({
                 </Item>
                 <Item onSelect={onMakeCards} icon={<Layers size={14} />}>
                   {busy ? "Making flashcards…" : "Make flashcards"}
+                </Item>
+                {/* Between keeping and deleting. A conversation you are done
+                    with but do not want to lose does not belong in a list you
+                    scan every day, and deleting it to tidy up is a decision
+                    you cannot take back. */}
+                <Item
+                  onSelect={onToggleArchive}
+                  icon={conversation.archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                >
+                  {conversation.archived ? "Unarchive" : "Archive"}
                 </Item>
                 <Item onSelect={onExport} icon={<Download size={14} />}>
                   Export as Markdown

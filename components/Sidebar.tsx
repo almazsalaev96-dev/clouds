@@ -3,8 +3,8 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  FileText, Keyboard, Layers, PanelLeft, Pin, PinOff, Plus, Printer, Search,
-  Settings2, Target, Trash2, X,
+  ChevronRight, FileText, Keyboard, Layers, PanelLeft, Pin, PinOff, Plus,
+  Printer, Search, Settings2, Target, Trash2, X,
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { db, deleteConversation, dueTraps, groupConversations } from "@/lib/db";
@@ -58,7 +58,7 @@ export function Sidebar({
       )}
       <aside
         className={cn(
-          "glass no-print z-40 flex shrink-0 flex-col overflow-hidden border-r border-line",
+          "glass safe-y no-print z-40 flex shrink-0 flex-col overflow-hidden border-r border-line",
           "fixed inset-y-0 left-0 w-[var(--sidebar-w)] transition-transform duration-[var(--dur-layout)] ease-[var(--ease-out)]",
           "md:relative md:z-auto md:transition-[width]",
           sidebarOpen
@@ -206,6 +206,7 @@ function ChatList({
   onSelect: (id: string) => void;
   onNew: () => void;
 }) {
+  const [showArchived, setShowArchived] = React.useState(false);
   const conversations = useLiveQuery(
     () => db.conversations.orderBy("updatedAt").reverse().toArray(),
     [],
@@ -243,7 +244,9 @@ function ChatList({
     return list.filter((c) => c.title.toLowerCase().includes(q) || bodies?.has(c.id));
   }, [conversations, query, settled, matchedIds]);
 
-  if (!filtered.length) return <Empty query={query} noun="conversations" />;
+  const archived = (conversations ?? []).filter((c) => c.archived);
+
+  if (!filtered.length && !archived.length) return <Empty query={query} noun="conversations" />;
 
   const pinned = filtered.filter((c) => c.pinned);
   const groups = groupConversations(filtered.filter((c) => !c.pinned));
@@ -284,7 +287,28 @@ function ChatList({
           {items.map(row)}
         </section>
       ))}
-    </>
+
+      {/* Archived conversations, out of the way but not out of reach. Closed
+          by default and silent when there are none, so it costs nothing to
+          anyone who never archives anything. */}
+      {archived.length > 0 && !query && (
+        <section className="mt-1 border-t border-line pt-1">
+          <button
+            onClick={() => setShowArchived((v) => !v)}
+            aria-expanded={showArchived}
+            className="focus-inset flex h-8 w-full items-center gap-1.5 rounded-md px-2 text-[11px] font-medium uppercase tracking-[0.06em] text-faint transition-colors duration-[var(--dur-fast)] hover:text-secondary"
+          >
+            <ChevronRight
+              size={12}
+              className={cn("transition-transform duration-[var(--dur-fast)]", showArchived && "rotate-90")}
+            />
+            Archived
+            <span className="tnum ml-auto pr-1">{archived.length}</span>
+          </button>
+          {showArchived && archived.map(row)}
+        </section>
+      )}
+</>
   );
 }
 

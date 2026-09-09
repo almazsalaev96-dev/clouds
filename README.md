@@ -230,4 +230,25 @@ Stated plainly, because a checklist you cannot trust is worse than no checklist.
   no history of what you reviewed, no retention curve, and no notion of a daily new-card
   limit — all of which a serious reviewer eventually wants.
 - **Screen-reader testing was not run.** Semantics, live regions, labels and focus
-  order are implemented to spec but verified by inspection, not with VoiceOver.
+  order are implemented to spec and every control is confirmed to carry an
+  accessible name (`node audit.mjs`), but nothing has been driven with VoiceOver.
+- **Not an App Store app.** The interface is built to Apple's Human Interface
+  Guidelines — 44pt targets on coarse pointers, safe-area insets under
+  `viewport-fit=cover`, no zoom-on-focus, reduced-motion and forced-colors
+  support, a manifest so it installs to the Home Screen as a standalone app.
+  That is design conformance. Shipping to the App Store is a different question:
+  it needs a native container, and Apple rejects thin web wrappers under
+  guideline 4.2, so it would need to earn its place as an app rather than be one
+  by packaging.
+
+## Checks
+
+Four scripts, each measuring rather than asserting — they read the live DOM and
+the computed tokens, so they cannot drift from what ships. Run the app first.
+
+```bash
+node audit.mjs        # Apple HIG: targets, safe areas, zoom, names, focus, contrast mode
+node contrast.mjs     # every text/background pair the app renders, against WCAG
+node shoot-smoke.mjs  # every section loads, undo works, no runtime errors
+node shoot-touch.mjs  # nothing under 44px on a phone, nothing changed on desktop
+```

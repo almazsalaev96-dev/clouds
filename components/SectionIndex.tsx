@@ -79,7 +79,7 @@ export function SectionIndex({
       {/* Sticky, because a title that scrolls away takes the primary action
           with it, and on a long list that means scrolling back to the top to
           make the next one. */}
-      <header className="glass sticky top-0 z-10 border-b border-line">
+      <header className="glass safe-top sticky top-0 z-10 border-b border-line">
         <div className="mx-auto flex w-full max-w-[var(--measure)] items-center gap-3 px-4 py-3">
           <h1 className="text-lg font-semibold tracking-[-0.02em] text-primary">{title}</h1>
           {!loading && items.length > 0 && (
