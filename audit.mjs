@@ -101,6 +101,27 @@ const seed = (page, theme = "dark") => page.evaluate((t) => localStorage.setItem
   await ctx.close();
 }
 
+/* ---- The blur actually reaches the browser ----------------------------- */
+/* Not a style question. The production minifier once replaced the standard
+   `backdrop-filter` with the `-webkit-` alias alone, and in a browser that has
+   the property but not the alias every frosted surface in the app — the
+   sidebar, the top bar, every popover and dialog — became a 74%-transparent
+   panel you could read the page straight through. It only happened in the
+   built CSS, so nothing in dev would ever have shown it. */
+{
+  const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  await page.goto(URL, { waitUntil: "networkidle" });
+  await page.waitForTimeout(700);
+  const blurred = await page.evaluate(() => {
+    const el = document.querySelector(".glass");
+    if (!el) return "no .glass on the page";
+    return getComputedStyle(el).backdropFilter;
+  });
+  note(/blur\(/.test(blurred), "glass surfaces are actually blurred in the built CSS", blurred);
+  await ctx.close();
+}
+
 /* ---- Forced-colors / high contrast ------------------------------------ */
 {
   const ctx = await b.newContext({ viewport: { width: 1200, height: 800 }, forcedColors: "active" });

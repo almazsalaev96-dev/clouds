@@ -49,6 +49,12 @@ createServer(async (req, res) => {
     turns: (body.messages ?? []).length,
     cachedBlocks: JSON.stringify(body).split('"cache_control"').length - 1,
     system: typeof body.system,
+    // The system prompt as it actually arrived, flattened across both shapes
+    // the adapter can send it in. A test that asks the app what it thinks it
+    // sent proves nothing; this is the wire.
+    systemText: Array.isArray(body.system)
+      ? body.system.map((b) => b.text ?? "").join("\n")
+      : (body.system ?? ""),
   };
 
   // One 429 with a Retry-After, then behave. Proves the automatic retry both

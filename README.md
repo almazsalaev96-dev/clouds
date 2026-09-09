@@ -60,6 +60,31 @@ answer you chose. The other two are not discarded: they stay under `‹ 2/3 ›`
 copy left in the thread collapses to a one-line reference, so a 900-line answer stops
 burying the conversation that produced it.
 
+**Projects** — a place with a memory. Standing instructions that go out with every
+chat started inside it, and material those chats can see without being pasted in
+again. The knowledge has a meter, and the meter is honest: files are fitted whole,
+in the order they were added, and one that does not fit is shown greyed with
+"over the limit" rather than quietly truncated — half a document is worse than
+none, because the model reads the cut as the end and answers confidently about a
+spec that stops mid-sentence. Deleting a project does not delete its chats; they
+come out of the folder and stay. Undo puts them back inside it.
+
+**Styles** — Normal, Concise, Explanatory, Formal, Learning, and any you write.
+A style changes the *shape* of an answer and nothing about what the model knows,
+which is why it is a separate control from the system prompt: "you are a tutor for
+my thermodynamics course" and "keep it short" should not be edited, forgotten and
+lost together. Normal carries no instructions at all — a style that says "be
+balanced and natural" makes the model self-conscious about being balanced and
+natural, which reads as neither. Custom styles start from a built-in you can read
+rather than from a blank box titled Instructions.
+
+Everything a chat is told before your first word is assembled in one place and in
+one order — your instructions, then the project and its material, then the style.
+Style last because it is the only layer that governs form, and a "keep it short"
+that arrives before three pages of project knowledge is one the model has stopped
+thinking about by the time it answers. It also makes the whole block a stable
+prefix, which is what the provider's cache is for.
+
 **Canvas** — a document you and the model both write to. Open a blank one, or lift an
 answer out of a thread ("Edit in a canvas", which takes the fenced block and its
 language rather than the prose around it). Then ask for a change in plain words and it
@@ -104,7 +129,7 @@ stops travelling, but both stay visible — reduced motion still needs the state
 legible.
 
 **Navigation** — the sidebar belongs to conversations: New chat, search, then the
-history. Code, Notes, Cards, Papers and Practice sit above that as destinations,
+history. Projects, Code, Notes, Cards, Papers and Practice sit above that as destinations,
 separated by a hairline, each opening as its own page with its own index in the main
 column. Taking the chat list away to show a note list would cost more than it buys.
 
@@ -209,6 +234,18 @@ heading, and link URLs printed in full.
   diff with the right counts, refused entry to the database until accepted, recorded
   as two versions, reverted without losing the newer one, and a preview confirmed to
   run its own scripts on an opaque origin.
+- Projects and styles verified **at the wire** (`e2e-project.mjs`): the browser is
+  driven, then the mock provider is asked what system prompt it actually received —
+  the project's instructions, its knowledge wrapped one `<document>` per file, and
+  the chosen style last. A test that asks the app what it believes it sent proves
+  nothing.
+- A shipping bug the production build had been hiding: the CSS minifier replaced
+  the standard `backdrop-filter` with the `-webkit-` alias alone, and in a browser
+  that has the property but not the alias every frosted surface in the app — the
+  sidebar, the top bar, every popover and dialog — rendered as a 74%-transparent
+  panel with no blur, which you could read the page straight through. It only
+  happened in the built CSS, so nothing in dev would ever have shown it. `audit.mjs`
+  now reads the computed value so it cannot come back.
 - Every control in every section measured on a phone (`touch.mjs`), not sampled: the
   earlier check only covered the chat composer, which is where the icon buttons
   already met 44pt — while the navigation you go through to reach anything was 32.
@@ -287,6 +324,7 @@ node mock-provider.mjs &
 ANTHROPIC_BASE_URL=http://127.0.0.1:8787 ANTHROPIC_API_KEY=sk-ant-mock npx next start -p 3100 &
 node e2e.mjs         # 15 assertions across the whole happy path
 node e2e-canvas.mjs  # 25 assertions: edit, revise, diff, keep, revert, sandbox
+node e2e-project.mjs # 21 assertions: projects and styles, read at the wire
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire
 node test-fit.mjs      # a 360k-token thread trimmed to fit and answered
 MOCK_RATE_LIMIT=1 …    # restart the mock this way, then: node test-retry.mjs

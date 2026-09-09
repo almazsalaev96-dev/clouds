@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ModelParams, ProviderId } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
+import { DEFAULT_STYLE_ID } from "./styles";
 
 /**
  * Storage keys are deliberately not the product name.
@@ -41,7 +42,8 @@ adoptLegacyStorage(DRAFTS_KEY, "drafts");
 
 export type Theme = "light" | "dark" | "system";
 export type Density = "compact" | "comfortable" | "spacious";
-export type Section = "chat" | "code" | "notes" | "cards" | "papers" | "practice";
+export type Section =
+  | "chat" | "projects" | "code" | "notes" | "cards" | "papers" | "practice";
 
 interface Settings {
   theme: Theme;
@@ -51,6 +53,8 @@ interface Settings {
   lastConversationId: string | null;
   modelId: string;
   systemPrompt: string;
+  /** The response style new chats start with. Threads can override it. */
+  styleId: string;
   sidebarOpen: boolean;
   sendOnEnter: boolean;
   showLineNumbers: boolean;
@@ -67,6 +71,7 @@ interface Settings {
   setLastConversation: (id: string | null) => void;
   setModel: (id: string) => void;
   setSystemPrompt: (s: string) => void;
+  setStyle: (id: string) => void;
   toggleSidebar: () => void;
   setSidebar: (open: boolean) => void;
   setKey: (p: ProviderId, key: string) => void;
@@ -91,6 +96,7 @@ export const useSettings = create<Settings>()(
       lastConversationId: null,
       modelId: DEFAULT_MODEL_ID,
       systemPrompt: "",
+      styleId: DEFAULT_STYLE_ID,
       sidebarOpen: true,
       sendOnEnter: true,
       showLineNumbers: false,
@@ -110,6 +116,7 @@ export const useSettings = create<Settings>()(
           recentModels: [modelId, ...s.recentModels.filter((m) => m !== modelId)].slice(0, 5),
         })),
       setSystemPrompt: (systemPrompt) => set({ systemPrompt }),
+      setStyle: (styleId) => set({ styleId }),
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
       setSidebar: (sidebarOpen) => set({ sidebarOpen }),
       setKey: (p, key) => set((s) => ({ keys: { ...s.keys, [p]: key } })),

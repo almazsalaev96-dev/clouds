@@ -7,8 +7,10 @@ import type { ContentBlock, Message } from "@/lib/types";
 import {
   createConversation, createDeck, createNote, createPaper, db, deepestLeaf,
   deleteConversation, exportMarkdown, pathTo, addMessage, blockText,
-  createCanvas,
+  createCanvas, createProject, filesOf,
 } from "@/lib/db";
+import { composeSystemPrompt } from "@/lib/prompt";
+import { findStyle } from "@/lib/styles";
 import { estimateTokens, getModel } from "@/lib/models";
 import { fitToContext } from "@/lib/context";
 import { cheapestAvailable, complete, generateCards } from "@/lib/generate";
@@ -19,6 +21,7 @@ import { inOverlay } from "@/lib/utils";
 import { offerUndo } from "@/lib/undo";
 import { Sidebar } from "@/components/Sidebar";
 import { CanvasView } from "@/components/CanvasView";
+import { ProjectsView } from "@/components/ProjectsView";
 import { NotesView, saveToNote } from "@/components/NotesView";
 import { CardsView } from "@/components/CardsView";
 import { PapersView } from "@/components/PapersView";
@@ -82,13 +85,14 @@ export default function Page() {
   const [paletteOpen, setPaletteOpen] = React.useState(false);
   const [modelPickerOpen, setModelPickerOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
-  const [settingsTab, setSettingsTab] = React.useState<"keys" | "appearance" | "model" | "data" | "shortcuts">("keys");
+  const [settingsTab, setSettingsTab] = React.useState<"keys" | "appearance" | "model" | "styles" | "data" | "shortcuts">("keys");
   const [scrolled, setScrolled] = React.useState(false);
   const [artifact, setArtifact] = React.useState<Artifact | null>(null);
   /** Where j/k currently sit in the transcript. */
   const cursorRef = React.useRef(0);
   const [compareWith, setCompareWith] = React.useState<string[]>([]);
   const [canvasId, setCanvasId] = React.useState<string | null>(null);
+  const [projectId, setProjectId] = React.useState<string | null>(null);
   const [noteId, setNoteId] = React.useState<string | null>(null);
   const [deckId, setDeckId] = React.useState<string | null>(null);
   const [paperId, setPaperId] = React.useState<string | null>(null);
@@ -179,6 +183,8 @@ export default function Page() {
   );
 
   const conversationCount = useLiveQuery(() => db.conversations.count(), [], 0);
+  const customStyles = useLiveQuery(() => db.styles.orderBy("updatedAt").toArray(), [], []);
+  const projects = useLiveQuery(() => db.projects.orderBy("updatedAt").reverse().toArray(), [], []);
 
   /* --- Titles are generated quietly, on the cheapest model with a key, and
          never block anything the user is doing. -------------------------- */
@@ -202,19 +208,42 @@ export default function Page() {
   /** The model and instructions belong to the thread, not to the app. */
   const threadModelId = conversation?.modelId ?? settings.modelId;
   const threadPrompt = conversation?.systemPrompt ?? settings.systemPrompt;
+  const threadStyleId = conversation?.styleId ?? settings.styleId;
 
   const runTurn = React.useCallback(
     async (conversationId: string, parentId: string | null, history: Message[], modelId: string) => {
       const conv = await db.conversations.get(conversationId);
+      /* Read the layers at send time rather than holding them in state. A
+         project's instructions can be edited in another tab, and a turn should
+         go out with what the project says now, not what it said when this
+         screen mounted. */
+      const project = conv?.projectId ? await db.projects.get(conv.projectId) : undefined;
+      const files = project ? await filesOf(project.id) : [];
+      const style = findStyle(conv?.styleId ?? settings.styleId, customStyles);
+      const composed = composeSystemPrompt({
+        base: conv?.systemPrompt ?? settings.systemPrompt,
+        project,
+        files,
+        style,
+      });
       await stream.send({
         conversationId,
         parentId,
         modelId,
         history,
-        systemPrompt: (conv?.systemPrompt ?? settings.systemPrompt) || undefined,
+        systemPrompt: composed.text || undefined,
       });
     },
-    [stream, settings.systemPrompt],
+    [stream, settings.systemPrompt, settings.styleId, customStyles],
+  );
+
+  /** Same rule as the model: the open thread owns it, the app holds the default. */
+  const setStyle = React.useCallback(
+    (id: string) => {
+      settings.setStyle(id);
+      if (activeId) void db.conversations.update(activeId, { styleId: id });
+    },
+    [settings, activeId],
   );
 
   /** Switching model writes to the open thread; with none open, to the default. */
@@ -234,7 +263,12 @@ export default function Page() {
       // Conversations are created on first send, not on "New chat", so the
       // sidebar never fills with empty rows the user did not mean to make.
       if (!convId) {
-        const created = await createConversation(settings.modelId);
+        // The style comes along, so the first answer is already in the style
+        // the picker is showing rather than one turn behind it.
+        const created = await createConversation({
+          modelId: settings.modelId,
+          styleId: settings.styleId,
+        });
         convId = created.id;
         leaf = null;
         setActiveId(created.id);
@@ -332,6 +366,28 @@ export default function Page() {
     closeDrawerOnMobile();
   }, [closeDrawerOnMobile, settings]);
 
+  /**
+   * A chat that belongs to a project from its first word.
+   *
+   * The project is stamped at creation rather than inferred later, because the
+   * first turn is the one that most needs the instructions and the knowledge —
+   * and a chat that picks up its project on the second message answers the
+   * first one as a stranger.
+   */
+  const newChatInProject = React.useCallback(
+    async (pid: string) => {
+      const conv = await createConversation({
+        modelId: settings.modelId,
+        projectId: pid,
+        styleId: settings.styleId,
+      });
+      setActiveId(conv.id);
+      settings.setSection("chat");
+      closeDrawerOnMobile();
+    },
+    [settings, closeDrawerOnMobile],
+  );
+
   const goToSection = React.useCallback(
     (target: Section) => {
       settings.setSection(target);
@@ -339,6 +395,7 @@ export default function Page() {
       // without closing it lands you on the screen you asked for with the menu
       // still on top of it.
       closeDrawerOnMobile();
+      if (target === "projects") setProjectId(null);
       if (target === "code") setCanvasId(null);
       if (target === "notes") setNoteId(null);
       if (target === "cards") setDeckId(null);
@@ -352,6 +409,7 @@ export default function Page() {
     async (section: Section) => {
       closeDrawerOnMobile();
       if (section === "chat") return newChat();
+      if (section === "projects") return setProjectId((await createProject()).id);
       if (section === "code") return setCanvasId((await createCanvas()).id);
       if (section === "notes") return setNoteId((await createNote()).id);
       if (section === "cards") return setDeckId((await createDeck("New deck")).id);
@@ -369,7 +427,8 @@ export default function Page() {
       if (section === "chat") {
         setActiveId(id);
         settings.setSection("chat");
-      } else if (section === "code") setCanvasId(id);
+      } else if (section === "projects") setProjectId(id);
+      else if (section === "code") setCanvasId(id);
       else if (section === "notes") setNoteId(id);
       else if (section === "cards") setDeckId(id);
       else if (section === "practice") setSkillId(id);
@@ -533,7 +592,8 @@ export default function Page() {
         if (e.key !== "Escape") return;
         const tag = (e.target as HTMLElement)?.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA") return;
-        if (settings.section === "code" && canvasId) setCanvasId(null);
+        if (settings.section === "projects" && projectId) setProjectId(null);
+        else if (settings.section === "code" && canvasId) setCanvasId(null);
         else if (settings.section === "notes" && noteId) setNoteId(null);
         else if (settings.section === "cards" && deckId) setDeckId(null);
         else if (settings.section === "papers" && paperId) setPaperId(null);
@@ -555,11 +615,12 @@ export default function Page() {
         case "3":
         case "4":
         case "5":
-        case "6": {
+        case "6":
+        case "7": {
           e.preventDefault();
           // The order the sidebar shows them in, so the number you press is
           // the position you can see rather than one you have to remember.
-          const sections = ["chat", "code", "notes", "cards", "papers", "practice"] as const;
+          const sections = ["chat", "projects", "code", "notes", "cards", "papers", "practice"] as const;
           goToSection(sections[Number(e.key) - 1]);
           break;
         }
@@ -630,6 +691,13 @@ export default function Page() {
       compareWith={compareWith}
       onCompareChange={setCompareWith}
       availableModels={modelUsable}
+      styleId={threadStyleId}
+      customStyles={customStyles}
+      onStyleChange={setStyle}
+      onEditStyles={() => {
+        setSettingsTab("styles");
+        setSettingsOpen(true);
+      }}
     />
   ) : null;
 
@@ -662,6 +730,16 @@ export default function Page() {
                 )}
 
               </header>
+              {settings.section === "projects" && (
+                <ProjectsView
+                  projectId={projectId}
+                  onSelect={setProjectId}
+                  onNew={() => void createInSection("projects")}
+                  onBack={() => setProjectId(null)}
+                  onOpenChat={(id) => selectInSection("chat", id)}
+                  onNewChatHere={(pid) => void newChatInProject(pid)}
+                />
+              )}
               {settings.section === "code" && (
                 <CanvasView
                   canvasId={canvasId}
@@ -738,6 +816,11 @@ export default function Page() {
               await db.conversations.update(activeId, { archived, pinned: archived ? false : conversation.pinned });
               if (archived) setActiveId(null);
             }}
+            projects={projects}
+            onMoveToProject={(pid) => {
+              if (activeId) void db.conversations.update(activeId, { projectId: pid ?? undefined });
+            }}
+            onOpenProject={(pid) => selectInSection("projects", pid)}
             onSaveAsNote={conversationToNote}
             onMakeCards={conversationToCards}
             busy={studyBusy}

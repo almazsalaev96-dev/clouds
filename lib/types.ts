@@ -49,6 +49,10 @@ export interface Conversation {
   archived: boolean;
   modelId: string;
   systemPrompt?: string;
+  /** The project this belongs to, if any. Its instructions and knowledge apply. */
+  projectId?: string;
+  /** The response style. Unset means the app default, which is Normal. */
+  styleId?: string;
   /** The current path through the message tree: the last message shown. */
   leafId: string | null;
   inputTokens: number;
@@ -334,3 +338,50 @@ export interface Attempt {
 /* No duration field anywhere above. Speed must not enter the grade — slow
    because tired is indistinguishable from slow because shaky — and collecting
    a number the design has promised not to use is a tell. */
+
+/* ---------------------------------------------------------------- styles -- */
+
+/**
+ * A response style: how an answer is shaped, kept apart from what the model is
+ * told to know. Built-ins are code, not rows, so they improve when the app does
+ * rather than being frozen in whatever state a browser first saw them in.
+ */
+export interface Style {
+  id: string;
+  name: string;
+  /** One line for the picker. */
+  blurb: string;
+  instructions: string;
+  builtin?: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/* -------------------------------------------------------------- projects -- */
+
+/**
+ * A project is a place with a memory: instructions that apply to every chat
+ * started inside it, and material those chats can see without being re-pasted.
+ */
+export interface Project {
+  id: string;
+  name: string;
+  /** One line, for the index. Not sent to the model. */
+  description: string;
+  /** Sent with every chat in the project. */
+  instructions: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** A piece of project knowledge: a file, a note, anything with text in it. */
+export interface ProjectFile {
+  id: string;
+  projectId: string;
+  name: string;
+  mimeType: string;
+  text: string;
+  /** Bytes of the original, for the capacity meter. */
+  size: number;
+  createdAt: number;
+}

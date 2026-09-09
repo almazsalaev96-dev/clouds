@@ -3,8 +3,8 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  ChevronRight, Code2, FileText, Keyboard, Layers, PanelLeft, Pin, PinOff, Plus,
-  Printer, Search, Settings2, Target, Trash2, X,
+  ChevronRight, Code2, FileText, FolderOpen, Keyboard, Layers, PanelLeft, Pin,
+  PinOff, Plus, Printer, Search, Settings2, Target, Trash2, X,
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { db, deleteConversation, dueTraps, groupConversations } from "@/lib/db";
@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { IconButton, Kbd, Tooltip } from "@/components/ui/primitives";
 
 const SECTIONS: { id: Exclude<Section, "chat">; label: string; icon: React.ReactNode }[] = [
+  { id: "projects", label: "Projects", icon: <FolderOpen size={15} /> },
   { id: "code", label: "Code", icon: <Code2 size={15} /> },
   { id: "notes", label: "Notes", icon: <FileText size={15} /> },
   { id: "cards", label: "Cards", icon: <Layers size={15} /> },

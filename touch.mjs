@@ -58,7 +58,7 @@ await report("the navigation drawer");
 await page.mouse.click(370, 400);
 await page.waitForTimeout(500);
 
-for (const [name, open] of [["Code", true], ["Notes", true], ["Cards", true], ["Papers", true], ["Practice", false]]) {
+for (const [name, open] of [["Projects", true], ["Code", true], ["Notes", true], ["Cards", true], ["Papers", true], ["Practice", false]]) {
   await page.getByRole("button", { name: /Show sidebar/i }).first().click();
   await page.waitForTimeout(450);
   await page.getByRole("button", { name, exact: true }).first().click();

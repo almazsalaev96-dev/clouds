@@ -2,21 +2,25 @@
 
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Check, ExternalLink, Eye, EyeOff, X } from "lucide-react";
+import { Check, ExternalLink, Eye, EyeOff, Trash2, X } from "lucide-react";
+import { useLiveQuery } from "dexie-react-hooks";
 import type { ProviderId } from "@/lib/types";
 import { PROVIDERS, getModel } from "@/lib/models";
-import { deleteAllData } from "@/lib/db";
+import { createStyle, db, deleteAllData, deleteStyle } from "@/lib/db";
+import { BUILT_IN_STYLES } from "@/lib/styles";
+import { offerUndo } from "@/lib/undo";
 import { useSettings, paramsFor, DEFAULT_PARAMS } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
 import { SHORTCUT_GROUPS } from "@/components/ShortcutsOverlay";
 
-type Tab = "keys" | "appearance" | "model" | "data" | "shortcuts";
+type Tab = "keys" | "appearance" | "model" | "styles" | "data" | "shortcuts";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "keys", label: "API keys" },
   { id: "appearance", label: "Appearance" },
   { id: "model", label: "Model" },
+  { id: "styles", label: "Styles" },
   { id: "shortcuts", label: "Shortcuts" },
   { id: "data", label: "Data" },
 ];
@@ -62,6 +66,7 @@ export function Settings({
             {tab === "keys" && <KeysPanel configured={configured} />}
             {tab === "appearance" && <AppearancePanel />}
             {tab === "model" && <ModelPanel />}
+            {tab === "styles" && <StylesPanel />}
             {tab === "shortcuts" && <ShortcutsPanel />}
             {tab === "data" && <DataPanel />}
           </div>
@@ -476,3 +481,144 @@ function Toggle({
   );
 }
 
+/* ---------------------------------------------------------------- styles -- */
+
+/**
+ * Built-ins are shown but not editable, and that is the point of showing them:
+ * a style you can read is a style you can copy, and "start from Explanatory and
+ * change two lines" is how most people would rather write one than from a blank
+ * box titled Instructions.
+ */
+function StylesPanel() {
+  const settings = useSettings();
+  const custom = useLiveQuery(() => db.styles.orderBy("updatedAt").toArray(), [], []);
+  const [editing, setEditing] = React.useState<string | null>(null);
+
+  const startFrom = async (name: string, instructions: string) => {
+    const style = await createStyle({ name, instructions, blurb: "Yours." });
+    setEditing(style.id);
+  };
+
+  return (
+    <div className="space-y-5">
+      <section>
+        <h3 className="text-sm font-medium text-primary">Response styles</h3>
+        <p className="mt-1 text-xs text-tertiary">
+          A style changes the shape of an answer — how long, how formal, how much it
+          explains — and nothing about what the model knows. Pick one per chat from the
+          composer.
+        </p>
+      </section>
+
+      <section className="space-y-1.5">
+        <p className="text-xs font-medium uppercase tracking-[0.06em] text-faint">Built in</p>
+        {BUILT_IN_STYLES.map((st) => (
+          <div key={st.id} className="rounded-lg border border-line bg-surface p-3">
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm font-medium text-primary">{st.name}</span>
+              <span className="text-xs text-tertiary">{st.blurb}</span>
+              {st.instructions && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="ml-auto"
+                  onClick={() => void startFrom(`${st.name} (mine)`, st.instructions)}
+                >
+                  Start from this
+                </Button>
+              )}
+            </div>
+            {st.instructions && (
+              <p className="mt-1.5 whitespace-pre-wrap text-xs leading-relaxed text-secondary">
+                {st.instructions}
+              </p>
+            )}
+          </div>
+        ))}
+      </section>
+
+      <section className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <p className="text-xs font-medium uppercase tracking-[0.06em] text-faint">Yours</p>
+          <Button
+            size="sm"
+            variant="primary"
+            className="ml-auto"
+            onClick={() => void startFrom("New style", "")}
+          >
+            Write a style
+          </Button>
+        </div>
+
+        {custom.length === 0 ? (
+          <p className="text-xs text-tertiary">None yet.</p>
+        ) : (
+          custom.map((st) => (
+            <div key={st.id} className="rounded-lg border border-line bg-surface p-3">
+              <div className="flex items-center gap-2">
+                <input
+                  value={st.name}
+                  onChange={(e) =>
+                    void db.styles.update(st.id, { name: e.target.value, updatedAt: Date.now() })
+                  }
+                  aria-label="Style name"
+                  className="focus-inset min-w-0 flex-1 rounded-md bg-transparent px-1 py-0.5 text-sm font-medium text-primary outline-none"
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setEditing(editing === st.id ? null : st.id)}
+                >
+                  {editing === st.id ? "Done" : "Edit"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  aria-label={`Delete ${st.name}`}
+                  onClick={async () => {
+                    // A chat pointing at a deleted style would answer in no
+                    // style at all and never say why, so the default takes over.
+                    if (settings.styleId === st.id) settings.setStyle("normal");
+                    offerUndo(st.name, await deleteStyle(st.id));
+                  }}
+                >
+                  <Trash2 size={13} />
+                </Button>
+              </div>
+              {editing === st.id ? (
+                <>
+                  <input
+                    value={st.blurb}
+                    onChange={(e) =>
+                      void db.styles.update(st.id, { blurb: e.target.value, updatedAt: Date.now() })
+                    }
+                    placeholder="One line, for the picker"
+                    aria-label="Style description"
+                    className="focus-inset mt-2 w-full rounded-md border border-line bg-canvas px-2 py-1.5 text-xs text-primary outline-none placeholder:text-tertiary"
+                  />
+                  <textarea
+                    value={st.instructions}
+                    onChange={(e) =>
+                      void db.styles.update(st.id, {
+                        instructions: e.target.value,
+                        updatedAt: Date.now(),
+                      })
+                    }
+                    rows={6}
+                    placeholder="Write it as instructions to the model: “Answer in as few words as the question takes. No preamble.”"
+                    aria-label="Style instructions"
+                    className="focus-inset mt-1.5 w-full resize-y rounded-md border border-line bg-canvas px-2 py-1.5 text-xs leading-relaxed text-primary outline-none placeholder:text-tertiary"
+                  />
+                </>
+              ) : (
+                <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-xs text-secondary">
+                  {st.instructions || "No instructions yet."}
+                </p>
+              )}
+            </div>
+          ))
+        )}
+      </section>
+    </div>
+  );
+}

@@ -2,11 +2,14 @@
 
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
-import { ArrowUp, Brain, Check, FileText, Mic, Paperclip, Plus, SlidersHorizontal, Square, X } from "lucide-react";
-import type { ContentBlock } from "@/lib/types";
+import {
+  ArrowUp, Brain, Check, FileText, Mic, Paperclip, Palette, Plus, SlidersHorizontal, Square, X,
+} from "lucide-react";
+import type { ContentBlock, Style } from "@/lib/types";
 import { getModel, estimateTokens, formatTokens, MODELS } from "@/lib/models";
 import { fileToBase64, formatBytes, cn } from "@/lib/utils";
 import { useSettings, useDrafts } from "@/lib/store";
+import { allStyles, findStyle, DEFAULT_STYLE_ID } from "@/lib/styles";
 import { useDictation } from "@/lib/hooks/useDictation";
 import { Tooltip } from "@/components/ui/primitives";
 import { ProviderMark } from "@/components/ui/ProviderMark";
@@ -37,6 +40,10 @@ export function Composer({
   compareWith,
   onCompareChange,
   availableModels,
+  styleId,
+  customStyles,
+  onStyleChange,
+  onEditStyles,
 }: {
   conversationId: string;
   streaming: boolean;
@@ -52,6 +59,11 @@ export function Composer({
   compareWith: string[];
   onCompareChange: (ids: string[]) => void;
   availableModels: (id: string) => boolean;
+  /** The style this thread answers in. */
+  styleId: string;
+  customStyles: Style[];
+  onStyleChange: (id: string) => void;
+  onEditStyles: () => void;
 }) {
   const settings = useSettings();
   const drafts = useDrafts();
@@ -63,6 +75,9 @@ export function Composer({
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [plusOpen, setPlusOpen] = React.useState(false);
   const [toolsOpen, setToolsOpen] = React.useState(false);
+  const [stylesOpen, setStylesOpen] = React.useState(false);
+  const styles = React.useMemo(() => allStyles(customStyles), [customStyles]);
+  const style = findStyle(styleId, customStyles) ?? styles[0];
 
   /* Tools carries a state, so the pill has to show it: "on" means this thread
      will not answer the way the defaults would. */
@@ -443,6 +458,67 @@ export function Composer({
                     );
                   })}
                 </div>
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
+
+          {/* The style sits beside Tools because it belongs to the same class
+              of decision — it changes the shape of the answer, not its content
+              — and because a control you have to open Settings to reach is one
+              nobody changes twice. */}
+          <Popover.Root open={stylesOpen} onOpenChange={setStylesOpen}>
+            <Popover.Trigger asChild>
+              <button
+                aria-label={`Response style: ${style?.name ?? "Normal"}`}
+                className={cn(
+                  // btn-touch, not just ctl-h: the label hides on a phone, and
+                  // a height floor alone leaves a 37px-wide icon behind it.
+                  "btn-touch ctl-h focus-inset flex shrink-0 items-center gap-1.5 rounded-full px-2.5 text-sm transition-colors duration-[var(--dur-fast)]",
+                  styleId !== DEFAULT_STYLE_ID
+                    ? "bg-accent-subtle text-accent"
+                    : "text-secondary hover:bg-subtle hover:text-primary",
+                )}
+              >
+                <Palette size={17} />
+                <span className="hidden pr-0.5 sm:inline">{style?.name ?? "Normal"}</span>
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content
+                align="start"
+                side="top"
+                sideOffset={8}
+                className="z-50 w-72 rounded-2xl glass border border-line p-1.5 shadow-lg anim-pop"
+              >
+                <div className="max-h-72 overflow-y-auto">
+                  {styles.map((st) => (
+                    <button
+                      key={st.id}
+                      onClick={() => {
+                        onStyleChange(st.id);
+                        setStylesOpen(false);
+                      }}
+                      className="focus-inset flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm text-primary">{st.name}</span>
+                        {st.blurb && <span className="block text-xs text-tertiary">{st.blurb}</span>}
+                      </span>
+                      {st.id === styleId && <Check size={14} className="mt-1 shrink-0 text-accent" />}
+                    </button>
+                  ))}
+                </div>
+                <div className="my-1 h-px bg-[var(--border-subtle)]" />
+                <button
+                  onClick={() => {
+                    setStylesOpen(false);
+                    onEditStyles();
+                  }}
+                  className="focus-inset flex h-9 w-full items-center gap-2.5 rounded-xl px-2.5 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                >
+                  <Plus size={16} className="text-tertiary" />
+                  Write a style
+                </button>
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>

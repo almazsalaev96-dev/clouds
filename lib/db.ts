@@ -1,7 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import type {
   Attempt, Canvas, CanvasVersion, Card, ContentBlock, Conversation, Deck,
-  Message, Note, Paper, Problem, Skill, Trap,
+  Message, Note, Paper, Problem, Project, ProjectFile, Skill, Style, Trap,
 } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 
@@ -23,6 +23,9 @@ class ChatDB extends Dexie {
   attempts!: Table<Attempt, string>;
   canvases!: Table<Canvas, string>;
   canvasVersions!: Table<CanvasVersion, string>;
+  projects!: Table<Project, string>;
+  projectFiles!: Table<ProjectFile, string>;
+  styles!: Table<Style, string>;
 
   constructor() {
     super("clouds");
@@ -65,6 +68,19 @@ class ChatDB extends Dexie {
       canvases: "id, updatedAt, kind",
       canvasVersions: "id, canvasId, createdAt, [canvasId+createdAt]",
     });
+
+    /* Version 5 adds projects — a place with instructions and material that
+       every chat inside it can see — and custom response styles.
+
+       `conversations` is restated because Dexie reads each version's stores()
+       as a delta: the existing indexes have to be named again alongside the
+       new `projectId`, or they are dropped. */
+    this.version(5).stores({
+      conversations: "id, updatedAt, pinned, archived, projectId",
+      projects: "id, updatedAt",
+      projectFiles: "id, projectId, createdAt, [projectId+createdAt]",
+      styles: "id, updatedAt",
+    });
   }
 }
 
@@ -88,8 +104,11 @@ if (typeof window !== "undefined") {
 export const uid = () =>
   `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
 
-export async function createConversation(modelId = DEFAULT_MODEL_ID): Promise<Conversation> {
+export async function createConversation(
+  init: string | Partial<Conversation> = DEFAULT_MODEL_ID,
+): Promise<Conversation> {
   const now = Date.now();
+  const patch = typeof init === "string" ? { modelId: init } : init;
   const c: Conversation = {
     id: uid(),
     title: "",
@@ -97,11 +116,12 @@ export async function createConversation(modelId = DEFAULT_MODEL_ID): Promise<Co
     updatedAt: now,
     pinned: false,
     archived: false,
-    modelId,
+    modelId: DEFAULT_MODEL_ID,
     leafId: null,
     inputTokens: 0,
     outputTokens: 0,
     costUsd: 0,
+    ...patch,
   };
   await db.conversations.add(c);
   return c;
@@ -503,4 +523,105 @@ export async function deleteCanvas(id: string): Promise<() => Promise<void>> {
 /** Everything due, across every skill, oldest first. */
 export function dueTraps(traps: Trap[], now = Date.now()): Trap[] {
   return traps.filter((t) => t.state !== "held" && t.due <= now).sort((a, b) => a.due - b.due);
+}
+
+/* -------------------------------------------------------------- projects -- */
+
+export async function createProject(init: Partial<Project> = {}): Promise<Project> {
+  const now = Date.now();
+  const project: Project = {
+    id: uid(),
+    name: "Untitled project",
+    description: "",
+    instructions: "",
+    createdAt: now,
+    updatedAt: now,
+    ...init,
+  };
+  await db.projects.add(project);
+  return project;
+}
+
+export function filesOf(projectId: string): Promise<ProjectFile[]> {
+  return db.projectFiles
+    .where("[projectId+createdAt]")
+    .between([projectId, Dexie.minKey], [projectId, Dexie.maxKey])
+    .toArray();
+}
+
+export async function addProjectFile(
+  projectId: string,
+  file: { name: string; mimeType: string; text: string; size: number },
+): Promise<ProjectFile> {
+  const row: ProjectFile = { id: uid(), projectId, createdAt: Date.now(), ...file };
+  await db.transaction("rw", db.projectFiles, db.projects, async () => {
+    await db.projectFiles.add(row);
+    await db.projects.update(projectId, { updatedAt: Date.now() });
+  });
+  return row;
+}
+
+export async function removeProjectFile(id: string): Promise<() => Promise<void>> {
+  const row = await db.projectFiles.get(id);
+  await db.projectFiles.delete(id);
+  return async () => {
+    if (row) await db.projectFiles.put(row);
+  };
+}
+
+/**
+ * Delete a project without deleting its conversations.
+ *
+ * A project is a folder, and emptying a folder into the bin along with it is
+ * how people lose work they meant to keep. The chats survive with no project;
+ * the restorer puts them back where they were.
+ */
+export async function deleteProject(id: string): Promise<() => Promise<void>> {
+  return db.transaction("rw", db.projects, db.projectFiles, db.conversations, async () => {
+    const project = await db.projects.get(id);
+    const files = await db.projectFiles.where("projectId").equals(id).toArray();
+    const chatIds = (await db.conversations.where("projectId").equals(id).toArray()).map((c) => c.id);
+
+    await db.projectFiles.where("projectId").equals(id).delete();
+    await db.conversations.where("projectId").equals(id).modify((c) => {
+      delete c.projectId;
+    });
+    await db.projects.delete(id);
+
+    return async () => {
+      await db.transaction("rw", db.projects, db.projectFiles, db.conversations, async () => {
+        if (project) await db.projects.put(project);
+        if (files.length) await db.projectFiles.bulkPut(files);
+        for (const cid of chatIds) await db.conversations.update(cid, { projectId: id });
+      });
+    };
+  });
+}
+
+/* ---------------------------------------------------------------- styles -- */
+
+export async function createStyle(init: Partial<Style> = {}): Promise<Style> {
+  const now = Date.now();
+  const style: Style = {
+    id: uid(),
+    name: "New style",
+    blurb: "",
+    instructions: "",
+    createdAt: now,
+    updatedAt: now,
+    ...init,
+    // A row can never claim to be a built-in: built-ins are code, and one that
+    // could be shadowed by a row would be unfixable from the app.
+    builtin: false,
+  };
+  await db.styles.add(style);
+  return style;
+}
+
+export async function deleteStyle(id: string): Promise<() => Promise<void>> {
+  const row = await db.styles.get(id);
+  await db.styles.delete(id);
+  return async () => {
+    if (row) await db.styles.put(row);
+  };
 }

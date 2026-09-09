@@ -415,9 +415,31 @@ textarea:focus-visible {
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
+/* The unprefixed property, restated where the build cannot take it away.
+   ---------------------------------------------------------------------
+   Lightning CSS decides which vendor prefixes a property needs from its own
+   browser-support data, and for `backdrop-filter` it concludes that
+   `-webkit-` alone covers every target — so it deletes the standard property
+   from the production bundle. In a browser that has the standard property and
+   not the alias, the result is a `.glass` surface with a 74%-opaque background
+   and no blur at all: the sidebar, every popover and every dialog rendering as
+   frosted-looking panels you can read the page straight through.
+
+   Only the production build does this, which is why it never showed in dev.
+   A declaration inside `@supports` naming the standard property survives,
+   because the condition pins the property the rule is about. */
+@supports (backdrop-filter: blur(1px)) {
+  .glass {
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+  .composer-dock {
+    backdrop-filter: blur(12px);
+  }
+}
+
 /* Where the blur is unsupported the translucency alone would let text show
    through and turn the bar into mush, so those browsers get an opaque bar. */
-@supports not (backdrop-filter: blur(1px)) {
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glass {
     background: var(--bg-surface);
   }
