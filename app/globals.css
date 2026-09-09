@@ -5,97 +5,109 @@
    Nothing in this codebase hardcodes a color, radius, duration or shadow.
    If you need a new value, you add a token here. That rule is the whole
    reason the app stays coherent as it grows.
-   ========================================================================= */
-:root {
+   ========================================================================= */:root {
   color-scheme: light;
 
   /* ---------------------------------------------------------------------
-     MAX LEVEL — light.
+     THE BRAND PALETTE — light, which is the primary theme here.
 
-     Four colours and white, each with exactly one job:
+       Manela        #FFFCEE   the ground. Cream, not white: paper rather
+                               than screen, and it takes the glare off a
+                               surface you look at all day.
+       Blue          #152A32   the ink. Every word on the page.
+       White         #FFFFFF   surfaces that lift off the ground — cards,
+                               the composer, menus.
+       Purple        #C9B5FF   thinking. Streaming, live states, the ring
+                               round a reply still arriving.
+       Green         #00D477   act. The one control you are meant to press.
+       Bright Green  #91FF00   a badge and nothing larger. It is the loudest
+                               colour in the set and the only discipline that
+                               keeps it useful is never letting it cover area.
+       Cream         #FFFBB5   a highlighter. Marked text, warm callouts.
 
-       Obsidian Void        the ground. 60%.
-       Cyber Graphite       structure. Cards, panels, borders. 20%.
-       Electric Ultraviolet core intelligence. 10%. Links, focus, the active
-                            row, and everything the machine does while it is
-                            thinking. Purple carries authority without the
-                            aggression of a red, and it is the only hue in
-                            the system allowed to describe the machine.
-       Laser Cyan           high voltage. 10%. Interactive states, glowing
-                            borders, data streams, and the one control you
-                            are meant to press. Nothing else, ever — the
-                            eye tracks it as the live point of the screen,
-                            and a second cyan thing would split that.
-       Titanium White       type.
-
-     Light is the same system in daylight. Both hues darken far enough to
-     hold 4.5:1 on paper — Laser Cyan especially, which at its true value is
-     a lamp and unreadable as text on anything pale — and neither changes
-     job.
+     Two of these change value on paper and nowhere else. Purple at #C9B5FF
+     is a tint — beautiful as a glow on a dark ground, invisible as text on
+     cream — so anything that has to be *read* uses a deep version of the
+     same hue, and #C9B5FF returns at full strength in the dark theme. Green
+     does the same: a button has to hold its own edge against the page, which
+     #00D477 cannot do on cream, so light gets the deep shade and dark gets
+     the brand value.
      --------------------------------------------------------------------- */
-  --bg-canvas: #f5f5f8;
+  --bg-canvas: #fffcee;
   --bg-surface: #ffffff;
-  --bg-subtle: #ececf1;
-  --bg-inset: #e5e5ec;
-  --bg-overlay: rgba(5, 5, 10, 0.44);
+  --bg-subtle: #f6f1de;
+  --bg-inset: #f1ebd5;
+  --bg-overlay: rgba(21, 42, 50, 0.42);
 
-  --border-subtle: #dedee6;
+  --border-subtle: #e9e2ca;
   /* Control boundaries clear 3:1 against the page. Hairlines do not have to,
      which is why there are two of these. */
-  --border-strong: #85859a;
+  --border-strong: #7f8479;
 
-  --text-primary: #05050a;
-  --text-secondary: #45455c;
-  --text-tertiary: #5d5d77;
-  --text-faint: #7b7b93;
+  --text-primary: #152a32;
+  --text-secondary: #3d545e;
+  --text-tertiary: #53686f;
+  --text-faint: #6f8189;
 
-  /* Core intelligence. */
-  --accent: #5a48d6;
-  --accent-hover: #4a39bd;
-  --accent-fill: #5a48d6;
-  --accent-fill-hover: #4a39bd;
-  --accent-subtle: #eeecfd;
+  /* Thinking, deepened for paper. */
+  --accent: #5b3fc4;
+  --accent-hover: #4a31a6;
+  --accent-fill: #5b3fc4;
+  --accent-fill-hover: #4a31a6;
+  --accent-subtle: #efeaff;
   --accent-fg: #ffffff;
-  --accent-rgb: 90 72 214;
+  --accent-rgb: 91 63 196;
 
-  /* Thinking states read as the same family, one step brighter. */
-  --accent-2: #6c5ce7;
-  --accent-2-rgb: 108 92 231;
+  --accent-2: #7c5ce0;
+  --accent-2-rgb: 124 92 224;
 
-  /* High voltage. */
-  --cta: #00707a;
-  --cta-hover: #005a63;
+  /* Act, deepened for paper. */
+  --cta: #00703c;
+  --cta-hover: #005a30;
   --cta-fg: #ffffff;
-  --cta-rgb: 0 112 122;
+  --cta-rgb: 0 112 60;
 
-  /* --- Status. Darkened here only as far as legibility on paper demands. --- */
-  --live: #b4530a;
-  --go: #15683e;
-  --stop: #c62a20;
+  /* The loud one. Only ever a badge, only ever with the ink on top. */
+  /* Bright Green sits at 1.2:1 against Manela — on cream it is a shape with
+     no edge, and a badge you cannot find the boundary of is not a badge. It
+     keeps its true value and borrows the ink for an outline instead, which is
+     both what the palette sheet itself does and cheaper than inventing a
+     duller green nobody specified. */
+  --highlight: #91ff00;
+  --highlight-fg: #152a32;
+  --highlight-edge: #152a32;
+  /* The highlighter. */
+  --mark: #fffbb5;
+  --mark-fg: #152a32;
 
-  --go-fill: #15683e;
+  /* --- Status. --- */
+  --live: #a3560c;
+  --go: #00703c;
+  --stop: #bd2b21;
+
+  --go-fill: #00703c;
   --on-fill: #ffffff;
-  --stop-fill: #c62a20;
+  --stop-fill: #bd2b21;
 
   --success: var(--go);
   --warning: var(--live);
   --danger: var(--stop);
-  --danger-subtle: #fdecea;
+  --danger-subtle: #fdeae8;
 
-  /* The field behind everything: the two hues, kept to a whisper on a
-     near-white ground where any real colour reads as a stain. */
-  --mesh-a: rgba(90, 72, 214, 0.10);
-  --mesh-b: rgba(0, 112, 122, 0.07);
-  --mesh-c: rgba(5, 5, 10, 0.04);
-  --grain-opacity: 0.035;
-  --glass: rgba(255, 255, 255, 0.72);
-  --glass-line: rgba(5, 5, 10, 0.08);
+  /* The field behind everything. On cream, colour reads as a stain long
+     before it reads as depth, so this is barely there on purpose. */
+  --mesh-a: rgba(124, 92, 224, 0.10);
+  --mesh-b: rgba(0, 212, 119, 0.08);
+  --mesh-c: rgba(21, 42, 50, 0.035);
+  --grain-opacity: 0.03;
+  --glass: rgba(255, 252, 238, 0.74);
+  --glass-line: rgba(21, 42, 50, 0.08);
   --glow: none;
 
   /* --- Elevation. --- */
-  --shadow-sm: 0 1px 2px rgba(5, 5, 10, 0.05), 0 1px 1px rgba(5, 5, 10, 0.03);
-  --shadow-md: 0 4px 12px rgba(5, 5, 10, 0.07), 0 1px 3px rgba(5, 5, 10, 0.04);
-  --shadow-lg: 0 16px 44px rgba(5, 5, 10, 0.12), 0 2px 8px rgba(5, 5, 10, 0.06);
+  --shadow-sm: 0 1px 2px rgba(21, 42, 50, 0.05), 0 1px 1px rgba(21, 42, 50, 0.03);
+  --shadow-md: 0 4px 12px rgba(21, 42, 50, 0.08), 0 1px 3px rgba(21, 42, 50, 0.04);
+  --shadow-lg: 0 16px 44px rgba(21, 42, 50, 0.13), 0 2px 8px rgba(21, 42, 50, 0.06);
   --highlight-top: none;
 
   /* --- Motion. 100–200ms for a control answering a press, 300–400ms for the
@@ -129,121 +141,125 @@
 
   /* --- Syntax. Six hues, low saturation. A code block should read as one
          calm object, not a Christmas tree. --- */
-  --syn-comment: #5c5c74;
-  --syn-keyword: #6b3fd0;
-  --syn-string: #15683e;
-  --syn-function: #3c48c9;
+  --syn-comment: #556970;
+  --syn-keyword: #6b3fbd;
+  --syn-string: #00633a;
+  --syn-function: #2a5a8f;
   --syn-number: #9c4708;
-  --syn-type: #00707a;
-  --syn-punct: #5d5d77;
+  --syn-type: #0d6472;
+  --syn-punct: #53686f;
 
   /* The composer. On light it lifts with a real drop shadow; on dark a shadow
      under a dark box is invisible, so the lift there comes from a lit top edge
      instead. Both live here so the rule that uses them stays one rule. */
-  --composer-bg: rgba(255, 255, 255, 0.86);
-  --composer-line: rgba(5, 5, 10, 0.09);
-  --composer-line-focus: rgba(90, 72, 214, 0.45);
-  --composer-lift: 0 1px 2px rgb(5 5 10 / 0.05), 0 12px 32px -16px rgb(5 5 10 / 0.18);
+  --composer-bg: rgba(255, 255, 255, 0.88);
+  --composer-line: rgba(21, 42, 50, 0.10);
+  --composer-line-focus: rgba(91, 63, 196, 0.45);
+  --composer-lift: 0 1px 2px rgb(21 42 50 / 0.05), 0 12px 32px -16px rgb(21 42 50 / 0.18);
   --composer-lift-focus:
-    0 1px 3px rgb(5 5 10 / 0.07),
-    0 20px 44px -18px rgb(5 5 10 / 0.24),
-    0 0 0 4px rgb(var(--accent-rgb) / 0.10);
+    0 1px 3px rgb(21 42 50 / 0.07),
+    0 20px 44px -18px rgb(21 42 50 / 0.24),
+    0 0 0 4px rgb(var(--accent-rgb) / 0.11);
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
 
   /* ---------------------------------------------------------------------
-     MAX LEVEL — dark. The only dark palette.
+     THE BRAND PALETTE — dark. The only dark palette.
 
-     `data-theme` is resolved before first paint, so the system preference
-     becomes a concrete value there rather than being answered by a second
-     copy of this block behind a media query.
+     Derived by rotation rather than inversion: Blue stops being the ink and
+     becomes the ground, Manela stops being the ground and becomes the ink.
+     Every colour in the set keeps a job; none of them is a different colour
+     here.
 
-     Obsidian Void is nearly black on purpose: at this depth the two hues
-     stop being colours on a surface and start reading as light sources.
-     That is the whole effect, and it only works if the ground gives them
-     nothing to compete with — which is also why the surfaces above it are
-     graphite rather than tinted.
+     This is also where the two tints come home. Purple at #C9B5FF and Green
+     at #00D477 are their true values on this ground, and both are legible on
+     it without adjustment — which is what they were mixed for.
      --------------------------------------------------------------------- */
-  --bg-canvas: #05050a;
-  --bg-surface: #12131c;
-  --bg-subtle: #1b1c28;
-  --bg-inset: #0a0a12;
-  --bg-overlay: rgba(2, 2, 5, 0.74);
+  --bg-canvas: #0c191f;
+  --bg-surface: #152a32;
+  --bg-subtle: #1e3841;
+  --bg-inset: #091419;
+  --bg-overlay: rgba(6, 15, 19, 0.74);
 
-  --border-subtle: #24252f;
-  --border-strong: #5a5b6d;
+  --border-subtle: #24424c;
+  --border-strong: #6d868f;
 
-  /* Titanium White. Pure, because on a void anything less reads as grey. */
-  --text-primary: #ffffff;
-  --text-secondary: #a8a9bb;
-  --text-tertiary: #8f90a4;
-  --text-faint: #71728a;
+  --text-primary: #fffcee;
+  --text-secondary: #b2c3c9;
+  --text-tertiary: #9aabb2;
+  --text-faint: #7e9199;
 
-  --accent: #8b7cff;
-  --accent-hover: #a99dff;
-  --accent-fill: #6c5ce7;
-  --accent-fill-hover: #7d6ff0;
-  --accent-subtle: #171630;
+  --accent: #c9b5ff;
+  --accent-hover: #ddd0ff;
+  --accent-fill: #7c5ce0;
+  --accent-fill-hover: #8f72e8;
+  --accent-subtle: #1e2440;
   --accent-fg: #ffffff;
-  --accent-rgb: 139 124 255;
+  --accent-rgb: 201 181 255;
 
-  /* Electric Ultraviolet at its true value: fills and glows, never text. */
-  --accent-2: #6c5ce7;
-  --accent-2-rgb: 108 92 231;
+  --accent-2: #c9b5ff;
+  --accent-2-rgb: 201 181 255;
 
-  /* Laser Cyan. It carries near-black text, not white: at this brightness it
-     is a lamp, and white on a lamp is unreadable. */
-  --cta: #00f9ff;
-  --cta-hover: #6cfcff;
-  --cta-fg: #01141a;
-  --cta-rgb: 0 249 255;
+  /* Green at its true value, carrying the ink rather than white: at this
+     brightness it is a lit surface, and white on it is unreadable. */
+  --cta: #00d477;
+  --cta-hover: #3ae297;
+  --cta-fg: #062018;
+  --cta-rgb: 0 212 119;
 
-  --live: #fb923c;
-  --go: #34d399;
-  --stop: #f87171;
+  /* On the deep teal it carries its own edge, so the outline is the colour. */
+  --highlight: #91ff00;
+  --highlight-fg: #152a32;
+  --highlight-edge: #91ff00;
+  --mark: #fffbb5;
+  --mark-fg: #152a32;
 
-  --go-fill: #10b981;
-  --on-fill: #01141a;
-  --stop-fill: #dc2626;
+  --live: #ffb968;
+  --go: #00d477;
+  --stop: #ff8a80;
+
+  --go-fill: #00d477;
+  --on-fill: #062018;
+  --stop-fill: #d9453a;
 
   --success: var(--go);
   --warning: var(--live);
   --danger: var(--stop);
-  --danger-subtle: #2a1113;
+  --danger-subtle: #331615;
 
-  --mesh-a: rgba(108, 92, 231, 0.22);
-  --mesh-b: rgba(0, 249, 255, 0.09);
-  --mesh-c: rgba(139, 124, 255, 0.10);
-  --grain-opacity: 0.05;
-  --glass: rgba(18, 19, 28, 0.74);
-  --glass-line: rgba(255, 255, 255, 0.07);
-  --glow: 0 0 24px -6px var(--accent-2);
+  --mesh-a: rgba(201, 181, 255, 0.16);
+  --mesh-b: rgba(0, 212, 119, 0.10);
+  --mesh-c: rgba(255, 252, 238, 0.05);
+  --grain-opacity: 0.045;
+  --glass: rgba(21, 42, 50, 0.74);
+  --glass-line: rgba(255, 252, 238, 0.08);
+  --glow: 0 0 24px -6px var(--accent);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.55);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6);
-  --shadow-lg: 0 20px 52px rgba(0, 0, 0, 0.68);
-  --highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 20px 52px rgba(0, 0, 0, 0.62);
+  --highlight-top: inset 0 1px 0 rgba(255, 252, 238, 0.07);
 
-  --syn-comment: #7e7f95;
-  --syn-keyword: #b9a9ff;
-  --syn-string: #6ee7b7;
-  --syn-function: #8b7cff;
-  --syn-number: #fdba74;
-  --syn-type: #5ef2f8;
-  --syn-punct: #9b9cb0;
+  --syn-comment: #7e939b;
+  --syn-keyword: #c9b5ff;
+  --syn-string: #5ee6a5;
+  --syn-function: #9fc4ff;
+  --syn-number: #ffbd7d;
+  --syn-type: #6fd8e0;
+  --syn-punct: #9aabb2;
 
-  --composer-bg: rgba(24, 25, 36, 0.74);
-  --composer-line: rgba(255, 255, 255, 0.08);
-  --composer-line-focus: rgba(139, 124, 255, 0.55);
-  --composer-lift: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 16px 40px -20px rgb(0 0 0 / 0.85);
+  --composer-bg: rgba(26, 50, 59, 0.76);
+  --composer-line: rgba(255, 252, 238, 0.09);
+  --composer-line-focus: rgba(201, 181, 255, 0.55);
+  --composer-lift: inset 0 1px 0 rgb(255 252 238 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
   /* The glow around the box you type in, only while the caret is in it. */
   --composer-lift-focus:
-    inset 0 1px 0 rgb(255 255 255 / 0.09),
+    inset 0 1px 0 rgb(255 252 238 / 0.10),
     0 24px 56px -22px rgb(0 0 0 / 0.9),
     0 0 0 4px rgb(var(--accent-rgb) / 0.14),
-    0 0 34px -6px rgb(var(--accent-2-rgb) / 0.45);
+    0 0 34px -6px rgb(var(--accent-rgb) / 0.30);
 }
 
 :root[data-density="compact"] { --density: 0.75; }
@@ -270,6 +286,10 @@
   --color-cta: var(--cta);
   --color-cta-hover: var(--cta-hover);
   --color-cta-fg: var(--cta-fg);
+  --color-highlight: var(--highlight);
+  --color-highlight-fg: var(--highlight-fg);
+  --color-mark: var(--mark);
+  --color-mark-fg: var(--mark-fg);
   --color-live: var(--live);
   --color-go: var(--go);
   --color-stop: var(--stop);
@@ -829,6 +849,17 @@ body::after {
 
 @keyframes ring-spin {
   to { --ring-angle: 360deg; }
+}
+
+/* Marked text. The one place Cream appears — as a highlighter behind words,
+   which is the job that colour was mixed for and the only one it can do at
+   that lightness. */
+.msg mark,
+.paper-sheet mark {
+  background: var(--mark);
+  color: var(--mark-fg);
+  border-radius: 3px;
+  padding: 0 0.15em;
 }
 
 /* The moment an answer lands.

@@ -51,6 +51,9 @@ for (const theme of ["dark", "light"]) {
       ["accent-2 / canvas", v("--accent-2"), canvas, 3],
       ["cta / canvas", v("--cta"), canvas, 3],
       ["cta-fg / cta", v("--cta-fg"), v("--cta"), 4.5],
+      ["highlight-fg / highlight", v("--highlight-fg"), v("--highlight"), 4.5],
+      ["highlight-edge / canvas", v("--highlight-edge"), canvas, 3],
+      ["mark-fg / mark", v("--mark-fg"), v("--mark"), 4.5],
       ["text-secondary / subtle", v("--text-secondary"), subtle, 4.5],
     ];
     return pairs.map(([name, fg, bg, need]) => ({ name, r: +ratio(fg,bg).toFixed(2), need, pass: ratio(fg,bg) >= need }));
