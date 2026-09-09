@@ -57,6 +57,8 @@
   --accent-subtle: #efeaff;
   --accent-fg: #ffffff;
   --accent-rgb: 91 63 196;
+  /* The one coloured element in the wordmark. */
+  --brand-accent: var(--accent);
 
   --accent-2: #7c5ce0;
   --accent-2-rgb: 124 92 224;
@@ -198,6 +200,8 @@
   --accent-subtle: #1e2440;
   --accent-fg: #ffffff;
   --accent-rgb: 201 181 255;
+  /* The one coloured element in the wordmark. */
+  --brand-accent: var(--accent);
 
   --accent-2: #c9b5ff;
   --accent-2-rgb: 201 181 255;

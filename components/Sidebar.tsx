@@ -10,6 +10,7 @@ import type { Conversation } from "@/lib/types";
 import { db, deleteConversation, dueTraps, groupConversations } from "@/lib/db";
 import { useDebounced } from "@/lib/hooks/useDebounced";
 import { usePointerAngle } from "@/lib/hooks/usePointerAngle";
+import { Wordmark } from "@/components/brand/Logo";
 import { offerUndo } from "@/lib/undo";
 import { dueCount } from "@/lib/study";
 import { useSettings, type Section } from "@/lib/store";
@@ -71,24 +72,11 @@ export function Sidebar({
             <IconButton label="Hide sidebar" keys={["mod", "\\"]} onClick={toggleSidebar}>
               <PanelLeft size={16} />
             </IconButton>
-            <span className="ml-1 flex items-center gap-1.5">
-              {/* The mark is the only thing on screen that is idle rather than
-                  waiting for you: it breathes at a resting human rate, and its
-                  gradient leans toward the pointer. Attention, not a pet — it
-                  never moves toward the cursor and never grows when
-                  approached, because a control that chases you is harder to
-                  hit and one that reacts to being near rather than pressed
-                  teaches you to distrust what its states mean. */}
-              <span
-                ref={markRef}
-                aria-hidden
-                className="point-aware pulse-soft size-[13px] rounded-full"
-                style={{
-                  WebkitMask: "radial-gradient(closest-side, transparent 52%, #000 54%)",
-                  mask: "radial-gradient(closest-side, transparent 52%, #000 54%)",
-                }}
-              />
-              <span className="text-sm font-semibold tracking-[-0.01em] text-primary">Armi</span>
+            {/* The drawn word, not the name set in the interface font. A
+                product's own name is the one string it should never render in
+                whatever the operating system happened to load. */}
+            <span ref={markRef} className="ml-1.5 flex items-center text-primary">
+              <Wordmark height={17} />
             </span>
           </div>
 
