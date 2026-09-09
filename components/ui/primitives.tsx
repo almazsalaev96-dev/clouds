@@ -76,7 +76,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
       className={cn(
         "inline-flex select-none items-center justify-center gap-1.5 rounded-md font-medium transition-colors duration-[var(--dur-fast)] ease-[var(--ease-std)] disabled:pointer-events-none disabled:opacity-40",
         size === "sm" ? "h-7 px-2.5 text-xs" : "h-9 px-3.5 text-sm",
-        variant === "primary" && "bg-[var(--accent-fill)] text-accent-fg hover:bg-[var(--accent-fill-hover)]",
+        // The one control on a screen you are meant to press wears the CTA
+        // hue and nothing else does. Blue is structure — links, focus, the
+        // active row — and if the button that starts the work were also blue
+        // it would be one more blue thing among many.
+        variant === "primary" && "bg-[var(--cta)] text-[var(--cta-fg)] hover:bg-[var(--cta-hover)]",
         variant === "secondary" && "border border-line-strong bg-surface text-primary hover:bg-subtle",
         variant === "ghost" && "text-secondary hover:bg-subtle hover:text-primary",
         variant === "danger" && "bg-[var(--stop-fill)] text-white hover:brightness-110",

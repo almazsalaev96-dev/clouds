@@ -11,52 +11,68 @@
   color-scheme: light;
 
   /* ---------------------------------------------------------------------
-     INK — light.
+     DEEP SPACE — light.
 
-     The whole palette is neutral. Greys carry every surface, every border
-     and every piece of text; the one hue in the system is the accent, and
-     it appears only where you can act. That constraint is the look: when
-     nothing else is coloured, a single blue button reads as the answer to
-     "what do I press", without anything having to shout.
+     Three hues, each with one job, and the jobs never swap:
+
+       Quantum Blue    structure. Links, focus, the active row, anything
+                       that is simply *there* and reliable.
+       Hyper Violet    thinking. Only ever appears while the machine is
+                       working — the streaming ring, the caret, the rule
+                       under a reply still arriving. It is never a surface.
+       Neon Cyan       act. The one control on a screen you are meant to
+                       press, and nothing else.
+
+     By area that lands near 60 / 30 / 10: the ground and its surfaces carry
+     most of the screen, blue and violet hold the structure and the live
+     states, and cyan is a tenth of a percent of pixels — which is exactly
+     why it reads as "press this" without a label saying so.
+
+     Light is the same system in daylight: every hue darkens enough to hold
+     4.5:1 on paper, and keeps its role.
      --------------------------------------------------------------------- */
-  --bg-canvas: #f6f6f8;
+  --bg-canvas: #f6f7fb;
   --bg-surface: #ffffff;
-  --bg-subtle: #eeeef1;
-  --bg-inset: #e7e7ec;
-  --bg-overlay: rgba(10, 10, 12, 0.42);
+  --bg-subtle: #eceff7;
+  --bg-inset: #e5e9f3;
+  --bg-overlay: rgba(11, 15, 25, 0.42);
 
-  --border-subtle: #e3e3e8;
+  --border-subtle: #dde2ee;
   /* Control boundaries clear 3:1 against the page. Hairlines do not have to,
      which is why there are two of these. */
-  --border-strong: #8d8d98;
+  --border-strong: #7e8aa5;
 
-  --text-primary: #0a0a0c;
-  --text-secondary: #4a4a55;
-  --text-tertiary: #6e6e7a;
-  --text-faint: #8a8a97;
+  --text-primary: #0b0f19;
+  --text-secondary: #414d68;
+  --text-tertiary: #5b6683;
+  --text-faint: #78829c;
 
-  /* The only hue in the system. */
-  --accent: #2a63e4;
-  --accent-hover: #1c4fc7;
-  --accent-fill: #2f6bf0;
-  --accent-fill-hover: #1f57d8;
-  --accent-subtle: #ecf1ff;
+  /* Structure. */
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-fill: #2563eb;
+  --accent-fill-hover: #1d4ed8;
+  --accent-subtle: #eef3ff;
   --accent-fg: #ffffff;
-  /* Space-separated on purpose: these exist so effects can write
-     `rgb(var(--accent-rgb) / 0.4)`, and that slash syntax is invalid against a
-     comma-separated list — the whole declaration is dropped, silently. */
-  --accent-rgb: 47 107 240;
+  --accent-rgb: 37 99 235;
 
-  /* Second signal — live and streaming states only, never a surface. */
-  --accent-2: #7b5cf0;
-  --accent-2-rgb: 123 92 240;
+  /* Thinking. Never a surface, so it only ever has to be legible as a line,
+     a ring or a glow. */
+  --accent-2: #7c3aed;
+  --accent-2-rgb: 124 58 237;
+
+  /* Act. */
+  --cta: #0e7490;
+  --cta-hover: #155e75;
+  --cta-fg: #ffffff;
+  --cta-rgb: 14 116 144;
 
   /* --- Status. Darkened here only as far as legibility on paper demands. --- */
   --live: #b4530a;
-  --go: #17693f;
+  --go: #15683e;
   --stop: #c62a20;
 
-  --go-fill: #17693f;
+  --go-fill: #15683e;
   --on-fill: #ffffff;
   --stop-fill: #c62a20;
 
@@ -65,35 +81,39 @@
   --danger: var(--stop);
   --danger-subtle: #fdecea;
 
-  /* The mesh behind everything. Kept to a whisper on light, where any real
-     colour on a near-white ground reads as a stain rather than depth. */
-  --mesh-a: rgba(47, 107, 240, 0.13);
-  --mesh-b: rgba(123, 92, 240, 0.11);
-  --mesh-c: rgba(20, 20, 24, 0.045);
+  /* The mesh behind everything: the two structural hues, kept to a whisper on
+     a near-white ground where any real colour reads as a stain. */
+  --mesh-a: rgba(37, 99, 235, 0.10);
+  --mesh-b: rgba(124, 58, 237, 0.08);
+  --mesh-c: rgba(11, 15, 25, 0.04);
   --grain-opacity: 0.035;
   --glass: rgba(255, 255, 255, 0.72);
-  --glass-line: rgba(10, 10, 12, 0.08);
+  --glass-line: rgba(11, 15, 25, 0.08);
   --glow: none;
 
   /* --- Elevation. --- */
-  --shadow-sm: 0 1px 2px rgba(10, 10, 12, 0.05), 0 1px 1px rgba(10, 10, 12, 0.03);
-  --shadow-md: 0 4px 12px rgba(10, 10, 12, 0.07), 0 1px 3px rgba(10, 10, 12, 0.04);
-  --shadow-lg: 0 16px 44px rgba(10, 10, 12, 0.12), 0 2px 8px rgba(10, 10, 12, 0.06);
+  --shadow-sm: 0 1px 2px rgba(11, 15, 25, 0.05), 0 1px 1px rgba(11, 15, 25, 0.03);
+  --shadow-md: 0 4px 12px rgba(11, 15, 25, 0.07), 0 1px 3px rgba(11, 15, 25, 0.04);
+  --shadow-lg: 0 16px 44px rgba(11, 15, 25, 0.12), 0 2px 8px rgba(11, 15, 25, 0.06);
   --highlight-top: none;
 
-  /* --- Motion. Springs where something arrives; linear easing where
-         something merely changes colour. --- */
+  /* --- Motion. 100–200ms for a control answering a press, 300–400ms for the
+         screen changing under you: fast enough to feel instant, slow enough
+         that the eye can follow what moved where. --- */
   --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-std: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-spring: linear(
     0, 0.006, 0.025, 0.101, 0.539 27.4%, 0.721, 0.849, 0.937, 0.991 52.9%,
     1.023, 1.037, 1.043 65%, 1.04, 1.03, 1.017, 1.006 82.2%, 1.001, 0.999, 1
   );
-  --dur-fast: 120ms;
-  --dur-enter: 180ms;
-  --dur-layout: 240ms;
-  --dur-slow: 320ms;
+  --dur-fast: 140ms;
+  --dur-enter: 200ms;
+  --dur-layout: 320ms;
+  --dur-slow: 380ms;
   --dur-spring: 420ms;
+  /* One human breath, so anything that idles does it at a rate a body reads
+     as calm rather than as a machine ticking. 15 per minute. */
+  --dur-breath: 4s;
 
   /* --- Density. One multiplier drives every spacing utility in the app,
          because Tailwind v4 derives its numeric scale from --spacing. --- */
@@ -109,104 +129,117 @@
 
   /* --- Syntax. Six hues, low saturation. A code block should read as one
          calm object, not a Christmas tree. --- */
-  --syn-comment: #60606f;
-  --syn-keyword: #7b3fd4;
-  --syn-string: #17693f;
-  --syn-function: #2554cc;
+  --syn-comment: #545f7a;
+  --syn-keyword: #7c3aed;
+  --syn-string: #15683e;
+  --syn-function: #1d4ed8;
   --syn-number: #9c4708;
-  --syn-type: #0d6b85;
-  --syn-punct: #62626e;
+  --syn-type: #0b5f78;
+  --syn-punct: #5b6683;
 
   /* The composer. On light it lifts with a real drop shadow; on dark a shadow
      under a dark box is invisible, so the lift there comes from a lit top edge
      instead. Both live here so the rule that uses them stays one rule. */
   --composer-bg: rgba(255, 255, 255, 0.86);
-  --composer-line: rgba(10, 10, 12, 0.09);
-  --composer-line-focus: rgba(10, 10, 12, 0.17);
-  --composer-lift: 0 1px 2px rgb(10 10 12 / 0.05), 0 12px 32px -16px rgb(10 10 12 / 0.18);
-  --composer-lift-focus: 0 1px 3px rgb(10 10 12 / 0.07), 0 20px 44px -18px rgb(10 10 12 / 0.24);
+  --composer-line: rgba(11, 15, 25, 0.09);
+  --composer-line-focus: rgba(37, 99, 235, 0.45);
+  --composer-lift: 0 1px 2px rgb(11 15 25 / 0.05), 0 12px 32px -16px rgb(11 15 25 / 0.18);
+  --composer-lift-focus:
+    0 1px 3px rgb(11 15 25 / 0.07),
+    0 20px 44px -18px rgb(11 15 25 / 0.24),
+    0 0 0 4px rgb(var(--accent-rgb) / 0.10);
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
 
   /* ---------------------------------------------------------------------
-     INK — dark. The only dark palette.
+     DEEP SPACE — dark. The only dark palette.
 
      `data-theme` is resolved before first paint, so the system preference
      becomes a concrete value there rather than being answered by a second
-     copy of this block behind a media query. Two copies is how the palette
-     this replaces came to disagree with itself about shadows and syntax.
-
-     Near-black with no hue in it. Every step from canvas to surface to
-     subtle is a step in lightness alone — a tinted dark reads as murk, and
-     it makes the one hue in the system compete instead of stand out.
+     copy of this block behind a media query. Two copies is how an earlier
+     palette came to disagree with itself about shadows and syntax.
      --------------------------------------------------------------------- */
-  --bg-canvas: #0a0a0c;
-  --bg-surface: #141417;
-  --bg-subtle: #1c1c20;
-  --bg-inset: #0e0e11;
-  --bg-overlay: rgba(6, 6, 8, 0.72);
+  --bg-canvas: #0b0f19;
+  --bg-surface: #131b2e;
+  --bg-subtle: #1b2439;
+  --bg-inset: #080c15;
+  --bg-overlay: rgba(5, 8, 14, 0.72);
 
-  --border-subtle: #26262b;
-  --border-strong: #5f5f6a;
+  --border-subtle: #202b44;
+  --border-strong: #57668b;
 
-  --text-primary: #ededf0;
-  --text-secondary: #a1a1ad;
-  --text-tertiary: #8a8a94;
-  --text-faint: #6b6b76;
+  --text-primary: #e9edf6;
+  --text-secondary: #a6b1c9;
+  --text-tertiary: #8e99b3;
+  --text-faint: #6f7b96;
 
-  --accent: #3d7bff;
-  --accent-hover: #6a9bff;
-  --accent-fill: #2f6bf0;
-  --accent-fill-hover: #4881ff;
-  --accent-subtle: #101a2e;
+  --accent: #3b82f6;
+  --accent-hover: #60a5fa;
+  --accent-fill: #2563eb;
+  --accent-fill-hover: #3b82f6;
+  --accent-subtle: #121a30;
   --accent-fg: #ffffff;
-  --accent-rgb: 61 123 255;
+  --accent-rgb: 59 130 246;
 
-  --accent-2: #9b7bff;
-  --accent-2-rgb: 155 123 255;
+  --accent-2: #8b5cf6;
+  --accent-2-rgb: 139 92 246;
 
-  --live: #ff9142;
-  --go: #4ade80;
-  --stop: #ff6259;
+  /* Neon Cyan carries dark text, not white: at this brightness it is a lamp,
+     and putting white on a lamp is unreadable. */
+  --cta: #06b6d4;
+  --cta-hover: #22d3ee;
+  --cta-fg: #04121a;
+  --cta-rgb: 6 182 212;
 
-  --go-fill: #22c55e;
-  --on-fill: #0a0a0c;
-  --stop-fill: #e0483e;
+  --live: #fb923c;
+  --go: #34d399;
+  --stop: #f87171;
+
+  --go-fill: #10b981;
+  --on-fill: #04121a;
+  --stop-fill: #dc2626;
 
   --success: var(--go);
   --warning: var(--live);
   --danger: var(--stop);
-  --danger-subtle: #2a100e;
+  --danger-subtle: #2a1113;
 
-  --mesh-a: rgba(61, 123, 255, 0.20);
-  --mesh-b: rgba(155, 123, 255, 0.17);
-  --mesh-c: rgba(255, 255, 255, 0.05);
-  --grain-opacity: 0.055;
-  --glass: rgba(22, 22, 26, 0.72);
+  --mesh-a: rgba(59, 130, 246, 0.20);
+  --mesh-b: rgba(139, 92, 246, 0.17);
+  --mesh-c: rgba(6, 182, 212, 0.07);
+  --grain-opacity: 0.05;
+  --glass: rgba(19, 27, 46, 0.72);
   --glass-line: rgba(255, 255, 255, 0.07);
-  --glow: 0 0 22px -6px var(--accent);
+  --glow: 0 0 24px -6px var(--accent);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.55);
   --shadow-lg: 0 20px 52px rgba(0, 0, 0, 0.62);
-  --highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --highlight-top: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 
-  --syn-comment: #82828f;
+  --syn-comment: #7b87a3;
   --syn-keyword: #c4a2ff;
-  --syn-string: #7ee3a6;
-  --syn-function: #7fa8ff;
-  --syn-number: #ffb07a;
-  --syn-type: #6fd4e8;
-  --syn-punct: #9a9aa6;
+  --syn-string: #6ee7b7;
+  --syn-function: #7fb0ff;
+  --syn-number: #fdba74;
+  --syn-type: #67e8f9;
+  --syn-punct: #9aa5bf;
 
-  --composer-bg: rgba(26, 26, 30, 0.72);
-  --composer-line: rgba(255, 255, 255, 0.07);
-  --composer-line-focus: rgba(255, 255, 255, 0.15);
+  --composer-bg: rgba(24, 33, 55, 0.72);
+  --composer-line: rgba(255, 255, 255, 0.08);
+  --composer-line-focus: rgba(59, 130, 246, 0.55);
   --composer-lift: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 16px 40px -20px rgb(0 0 0 / 0.8);
-  --composer-lift-focus: inset 0 1px 0 rgb(255 255 255 / 0.09), 0 24px 56px -22px rgb(0 0 0 / 0.9);
+  /* The glow the brief asks for around the box you type in: a soft ring in the
+     structural hue, only while the caret is actually in it. */
+  --composer-lift-focus:
+    inset 0 1px 0 rgb(255 255 255 / 0.09),
+    0 24px 56px -22px rgb(0 0 0 / 0.9),
+    0 0 0 4px rgb(var(--accent-rgb) / 0.14),
+    0 0 32px -6px rgb(var(--accent-rgb) / 0.35);
 }
+
 
 :root[data-density="compact"] { --density: 0.75; }
 :root[data-density="spacious"] { --density: 1.25; }
@@ -228,6 +261,10 @@
   --color-accent-subtle: var(--accent-subtle);
   --color-accent-fg: var(--accent-fg);
   --color-accent-fill: var(--accent-fill);
+  --color-accent-2: var(--accent-2);
+  --color-cta: var(--cta);
+  --color-cta-hover: var(--cta-hover);
+  --color-cta-fg: var(--cta-fg);
   --color-live: var(--live);
   --color-go: var(--go);
   --color-stop: var(--stop);
@@ -684,9 +721,15 @@ body::after {
   to { background-position: -200% 0; }
 }
 
+/* Breathing, not blinking.
+   Scale and opacity move together on a four-second cycle — fifteen a minute,
+   which is a resting human breath. Anything faster reads as a machine ticking
+   and quietly raises the pulse of whoever is watching it; anything slower
+   reads as stalled. The scale change is 3%, small enough that you feel it
+   rather than see it. */
 @keyframes field-breathe {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
+  0%, 100% { opacity: 0.6; scale: 1; }
+  50% { opacity: 1; scale: 1.03; }
 }
 
 .think-orb {
@@ -830,9 +873,9 @@ body::after {
 
 .bloom:hover:not(:disabled) {
   box-shadow:
-    0 0 0 1px rgb(var(--accent-rgb) / 0.35),
-    0 6px 20px -6px rgb(var(--accent-rgb) / 0.55),
-    0 2px 6px -2px rgb(var(--accent-rgb) / 0.4);
+    0 0 0 1px rgb(var(--bloom-rgb, var(--cta-rgb)) / 0.35),
+    0 6px 22px -6px rgb(var(--bloom-rgb, var(--cta-rgb)) / 0.6),
+    0 2px 6px -2px rgb(var(--bloom-rgb, var(--cta-rgb)) / 0.45);
   transform: translateY(-1px);
 }
 
@@ -883,7 +926,7 @@ body::after {
 }
 
 .pulse-soft {
-  animation: field-breathe 2s var(--ease-std) infinite;
+  animation: field-breathe var(--dur-breath) var(--ease-std) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -100,7 +100,7 @@ export function EmptyState({
           <div className="mt-5 flex justify-center">
             <button
               onClick={onAddKey}
-              className="bloom focus-inset anim-rise flex items-center gap-2 rounded-full bg-[var(--accent-fill)] px-4 py-2 text-sm font-medium text-accent-fg"
+              className="bloom focus-inset anim-rise flex items-center gap-2 rounded-full bg-[var(--cta)] px-4 py-2 text-sm font-medium text-[var(--cta-fg)]"
               style={{ animationDelay: "120ms" }}
             >
               <KeyRound size={14} />

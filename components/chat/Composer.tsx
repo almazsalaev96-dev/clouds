@@ -472,7 +472,7 @@ export function Composer({
               aria-label="Send message"
               className={cn(
                 "bloom focus-inset absolute inset-0 flex items-center justify-center rounded-full transition-[opacity,background-color,color,box-shadow,transform] duration-[var(--dur-fast)] ease-[var(--ease-std)]",
-                "bg-[var(--text-primary)] text-[var(--bg-canvas)] hover:opacity-90",
+                "bg-[var(--cta)] text-[var(--cta-fg)] hover:bg-[var(--cta-hover)]",
                 // The disabled disc has to stay a disc. On a translucent
                 // composer, a fill this close to the surface behind it just
                 // disappears, so it borrows the border instead of the surface.
@@ -486,7 +486,7 @@ export function Composer({
               onClick={onStop}
               aria-label="Stop generating"
               className={cn(
-                "focus-inset absolute inset-0 flex items-center justify-center rounded-full bg-[var(--text-primary)] text-[var(--bg-canvas)] transition-opacity duration-[var(--dur-fast)] ease-[var(--ease-std)]",
+                "focus-inset absolute inset-0 flex items-center justify-center rounded-full bg-[var(--cta)] text-[var(--cta-fg)] transition-opacity duration-[var(--dur-fast)] ease-[var(--ease-std)]",
                 streaming ? "opacity-100" : "pointer-events-none opacity-0",
               )}
             >
