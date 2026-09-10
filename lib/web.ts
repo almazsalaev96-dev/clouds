@@ -56,6 +56,16 @@ const bridgeFor = (run: string) => `<script>(function(){
   window.addEventListener("unhandledrejection", function(e){
     post("error", ["Unhandled promise rejection: " + fmt(e.reason)]);
   });
+  /* One key, forwarded.
+     A sandboxed frame keeps its own keyboard: press Escape inside a running
+     page and the app around it never hears about it. That is fine everywhere
+     except the one screen where the page has the whole window and Escape is
+     how you leave. Exactly Escape and nothing else — a page in here is not
+     given a way to drive the app, it is given a way to hand the window back. */
+  window.addEventListener("keydown", function(e){
+    if (e.key !== "Escape") return;
+    try { parent.postMessage({ __armiKey: "Escape" }, "*"); } catch (err) {}
+  });
 })();</script>`;
 
 const esc = (s: string) => s.replace(/<\/script>/gi, "<\\/script>");

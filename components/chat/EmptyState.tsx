@@ -183,7 +183,10 @@ export function EmptyState({
               Or make something you can use
             </p>
             <div className="flex flex-wrap justify-center gap-2">
-              <MakeRow onSelect={(id, seed) => onMake(id, seed)} />
+              <MakeRow
+                onSelect={(id, seed) => onMake(id, seed)}
+                onAnything={() => onExample("Make me a ")}
+              />
             </div>
           </div>
         )}

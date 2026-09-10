@@ -6,7 +6,7 @@ import { PanelLeft } from "lucide-react";
 import type { ContentBlock, Message } from "@/lib/types";
 import {
   createConversation, createNote, db, deepestLeaf, deleteConversation,
-  exportMarkdown, pathTo, addMessage, blockText, createCanvas, createProject,
+  exportMarkdown, pathTo, addMessage, blockText, createCanvas, createWebCanvas, createProject,
   filesOf,
 } from "@/lib/db";
 import { composeSystemPrompt } from "@/lib/prompt";
@@ -17,7 +17,7 @@ import { fitToContext } from "@/lib/context";
 import { cheapestAvailable, complete } from "@/lib/generate";
 import { useSettings, useDrafts, paramsFor, type Section } from "@/lib/store";
 import { useStream } from "@/lib/hooks/useStream";
-import { inOverlay } from "@/lib/utils";
+import { cn, inOverlay } from "@/lib/utils";
 import { offerUndo } from "@/lib/undo";
 import { Sidebar } from "@/components/Sidebar";
 import { CanvasView } from "@/components/CanvasView";
@@ -30,6 +30,7 @@ import { MessageList } from "@/components/chat/MessageList";
 import { Composer } from "@/components/chat/Composer";
 import { EmptyState } from "@/components/chat/EmptyState";
 import { withTransition } from "@/lib/transition";
+import { ENTRY } from "@/lib/web";
 import dynamic from "next/dynamic";
 import { IconButton, TooltipProvider } from "@/components/ui/primitives";
 import { UndoBar } from "@/components/ui/UndoBar";
@@ -97,6 +98,10 @@ export default function Page() {
   /* The half-sentence a starter leaves in the canvas composer. Cleared as soon
      as you leave, so it seeds the canvas it was made for and no other. */
   const [canvasSeed, setCanvasSeed] = React.useState<string | undefined>();
+  /* A made thing has the window. The sidebar and the top bar are the app
+     talking about itself, and someone working through a deck of cards is not
+     using the app, they are using the thing the app made. */
+  const [inUse, setInUse] = React.useState(false);
   const [projectId, setProjectId] = React.useState<string | null>(null);
   const [noteId, setNoteId] = React.useState<string | null>(null);
   const [comparing, setComparing] = React.useState<{
@@ -471,6 +476,31 @@ export default function Page() {
       // A code block's own filename names the canvas better than a heading
       // somewhere else in the answer does.
       const filename = fence?.[2].match(/title="([^"]+)"/)?.[1];
+
+      /* A whole page is not a snippet. Asked to make a timer, Creative replies
+         with a complete HTML document, and keeping that as a *code* canvas
+         gave you the source of a working thing and made you press Run to find
+         out. It lands as a web app instead: it opens running, it has a
+         console, and "Use it" hands it the window. This is the difference
+         between "Creative can build you anything" being a claim and being
+         true. */
+      const body = fence?.[3].replace(/\s+$/, "") ?? "";
+      const wholePage = fence && /^\s*(<!doctype html|<html[\s>])/i.test(body);
+      if (wholePage) {
+        const title =
+          body.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim() || heading || "Untitled";
+        const made = await createWebCanvas([{ name: ENTRY, lang: "html", content: body + "\n" }], {
+          title: title.slice(0, 80),
+          sourceConversationId: activeId ?? undefined,
+        });
+        withTransition(() => {
+          setCanvasId(made.id);
+          settings.setSection("code");
+          closeDrawerOnMobile();
+        }, "forward");
+        return;
+      }
+
       const canvas = fence
         ? await createCanvas({
             title: filename ?? heading ?? "Untitled",
@@ -603,6 +633,9 @@ export default function Page() {
         if (e.key !== "Escape") return;
         const tag = (e.target as HTMLElement)?.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA") return;
+        // Not while something made here has the window: there, Escape hands it
+        // back, and this handler would carry you out of the canvas as well.
+        if (inUse) return;
         // Escape backs out of an item, and backing out travels the other way.
         if (settings.section === "projects" && projectId)
           withTransition(() => setProjectId(null), "back");
@@ -664,7 +697,7 @@ export default function Page() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [createInSection, goToSection, path, settings, stream, canvasId, noteId, projectId]);
+  }, [createInSection, goToSection, path, settings, stream, canvasId, noteId, projectId, inUse]);
 
   const openKeys = React.useCallback(() => {
     setSettingsTab("keys");
@@ -726,6 +759,7 @@ export default function Page() {
     <TooltipProvider>
       <ArtifactProvider value={artifactValue}>
       <div className="app-shell flex h-dvh overflow-hidden">
+        {!inUse && (
         <Sidebar
           activeChatId={activeId}
           onSelectChat={(id) => selectInSection("chat", id)}
@@ -734,13 +768,19 @@ export default function Page() {
           onOpenSettings={openKeys}
           onOpenShortcuts={() => setShortcutsOpen(true)}
         />
+        )}
 
         {/* The room. Named for the view transition, so a section change slides
             in the direction you travelled instead of cutting. */}
         <main className="vt-room relative flex min-w-0 flex-1 flex-col">
           {settings.section !== "chat" ? (
             <>
-              <header className="no-print flex h-[var(--topbar-h)] shrink-0 items-center gap-1 border-b border-transparent px-2">
+              <header
+                className={cn(
+                  "no-print h-[var(--topbar-h)] shrink-0 items-center gap-1 border-b border-transparent px-2",
+                  inUse ? "hidden" : "flex",
+                )}
+              >
                 {!settings.sidebarOpen && (
                   <IconButton label="Show sidebar" keys={["mod", "\\"]} onClick={settings.toggleSidebar}>
                     <PanelLeft size={16} />
@@ -770,6 +810,7 @@ export default function Page() {
                     }, "forward")
                   }
                   onNew={() => void createInSection("code")}
+                  onFocus={setInUse}
                   onBack={() =>
                     withTransition(() => {
                       setCanvasSeed(undefined);

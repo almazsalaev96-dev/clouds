@@ -122,7 +122,16 @@ button {
 button:hover { border-color: color-mix(in srgb, var(--ink) 25%, transparent); }
 button:active { transform: scale(0.97); }
 
-.wrap { max-width: 720px; margin: 0 auto; }
+/* Centred in whatever height it is given.
+   These are made in a panel a few hundred pixels tall and then used on a whole
+   screen, and a page that only knows how to start at the top leaves the thing
+   you are using stranded in a corner with half a window of nothing under it.
+   "safe" is the important half: when the content is taller than the window it
+   goes back to starting at the top, rather than centring and cutting the first
+   lines off where nothing can scroll to them. */
+body { display: grid; align-content: safe center; justify-items: center; }
+
+.wrap { width: 100%; max-width: 720px; margin: 0 auto; }
 
 h1 {
   margin: 0 0 2px;

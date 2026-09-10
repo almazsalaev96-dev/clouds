@@ -114,6 +114,53 @@ is mapped back to `app.js:2`. A number that looks like a line number and is not
 is worse than no number, because people go to line 76 of the file they are in and
 find something innocent there.
 
+**Making it, then using it.** A deck of cards is made once and studied twenty
+times, and on the twentieth the tab strip, the editor and the box for asking
+for changes are all furniture standing between you and the card. **Use it**
+hands the whole window to the thing: no sidebar, no title, no console, no
+composer. The trick is that none of that is unmounted — it hides in place —
+because React reconciles by position, and returning a smaller tree would take
+the iframe with it and reload the page inside. A deck that reshuffles itself
+every time you go full-screen is worse than no full-screen.
+
+Escape gives the window back, which needed one more piece: a sandboxed frame
+keeps its own keyboard, so a key pressed inside a running page never reaches
+the app around it. The console bridge forwards exactly Escape and nothing else
+— a page in here is not given a way to drive the app, it is given a way to hand
+the window back. And while something has the window, Escape means only that:
+the app's own Escape used to fire as well, so one press both handed the window
+back *and* left the canvas, and the thing you were using vanished behind the
+list it came from.
+
+**Anything, not five things.** The five starters are five answers to a question
+with no end of them, so there is a sixth that is honest about it: say what you
+want. It works because a whole page now lands as a working page. Asked to make
+a timer, Creative replies with a complete HTML document; keeping that used to
+produce a *code* canvas — the source of a working thing, with a Run button to
+find out. It becomes a web app instead: it opens running, it has a console, and
+it can take the window like anything else made here. That is the difference
+between "Creative can build you anything" being a claim and being true.
+
+**A book becomes lessons.** The notebook takes a source — attach a PDF and its
+text is pulled out, or hand it a text file — and what you can do with the page
+changes with it. With a book attached the offer is not proofreading: it is
+lessons, a summary, the vocabulary, or questions. The instructions behind those
+four are the feature. "Summarise this" gets a summary from any model on any
+day; what makes a page worth keeping is being asked for the right shape, so
+each one says what it must *not* do as well as what it must — work out what has
+to be understood before what and order the lessons that way, not the way the
+book happens to present things; show the working in the example; give the
+answers rather than omitting them; never write a lesson that can be read
+without teaching anything. The failure mode of all four is a table of contents
+wearing a costume.
+
+The source goes to the model as reference material and is sliced at 120,000
+characters rather than the 12,000 that is right for a sibling file in a folder
+— cutting a book to three pages would produce lessons about three pages while
+looking like lessons about the book. It is held for the session and never
+written to the database: what is worth keeping is the lessons, and they end up
+in the page like anything else you wrote there.
+
 **The motion.** Three things in the app changed state by cutting. A segmented
 control moved a background colour from one button to another, which is not a
 transition — the old pill vanishes, a new one appears elsewhere, and the eye
@@ -419,6 +466,17 @@ heading, and link URLs printed in full.
   preview counts, a `console.log` and an uncaught `ReferenceError` come back out
   with the error mapped to `app.js:2`, and `window.origin` inside the frame is
   `null` with `localStorage` throwing `SecurityError`.
+- Using a made thing, driven as someone would use it (`e2e-use.mjs`): a deck is
+  taken two cards in, handed the window, and asked whether it is still on card
+  two — the one thing that would silently break, because it is what a reload
+  looks like. Then that everything else has stood down, asked by *visibility*
+  rather than presence, since hiding in place is the whole point. Then Escape,
+  from inside the frame. Then a request to make something, checked for coming
+  back as a page rather than a description of one, for landing as a web app
+  rather than a file, for being named from its own `<title>`, and for already
+  running. Then a book: attached, and the prompt read back off the mock to
+  confirm the book itself went — 200 passages of it, not three pages — under an
+  instruction that asks for a course rather than a summary.
 - The motion asked for rather than admired (`e2e-motion.mjs`). Animation is the
   easiest thing in an interface to believe you have shipped: it looks right in
   the browser you wrote it in and is silently absent in production because a
@@ -583,6 +641,7 @@ node e2e-editor.mjs  # 13 assertions: the code editor's two layers, measured
 node e2e-makes.mjs   # 33 assertions: every starter opened, run and actually used
 node e2e-bar.mjs     # 24 assertions: the message bar, measured in all three rooms
 node e2e-motion.mjs  # 17 assertions: the motion, asked for rather than admired
+node e2e-use.mjs     # 21 assertions: using a made thing, and making one from a book
 node mock-slow.mjs &   # the mock with the gap between tokens stretched, then:
 node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs the slow mock)
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire

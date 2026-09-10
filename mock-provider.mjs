@@ -13,6 +13,41 @@
  */
 import { createServer } from "node:http";
 
+/** A whole page, the way Creative answers a request to make something. */
+const MADE = `Here it is.
+
+\`\`\`html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Two minutes</title>
+    <style>
+      body { margin: 0; display: grid; place-items: center; min-height: 100vh; font: 16px system-ui; }
+      output { font-size: 4rem; font-variant-numeric: tabular-nums; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <output id="t">02:00</output>
+      <button id="go">Start</button>
+    </main>
+    <script>
+      var left = 120;
+      document.getElementById("go").addEventListener("click", function () {
+        setInterval(function () {
+          left = Math.max(0, left - 1);
+          document.getElementById("t").textContent =
+            String(Math.floor(left / 60)).padStart(2, "0") + ":" + String(left % 60).padStart(2, "0");
+        }, 1000);
+      });
+    <\/script>
+  </body>
+</html>
+\`\`\`
+
+Change the number at the top of the script to make it longer.`;
+
 const REPLY = `A **debounce** waits for silence: the call fires once the input has stopped changing for a set interval.
 
 \`\`\`ts title="debounce.ts"
@@ -92,7 +127,16 @@ createServer(async (req, res) => {
     .join("\n");
   const revising = /^Revise the /.test(asked) && asked.includes("\nCURRENT\n");
 
-  let text = isTitle ? "Debouncing a search input" : REPLY;
+
+
+  /* Asked to make a thing, answer with a thing.
+     Creative's whole claim is that "make me a timer" comes back as a timer,
+     and the app decides from the shape of the block whether it has been handed
+     a snippet or a working page. A mock that always answers with an essay
+     cannot exercise the branch that tells them apart. */
+  const making = /\bmake me a\b|\bbuild me a\b/i.test(asked);
+
+  let text = isTitle ? "Debouncing a search input" : making ? MADE : REPLY;
   if (revising) {
     const current = asked.slice(asked.indexOf("\nCURRENT\n") + "\nCURRENT\n".length);
     const lines = current.replace(/\s+$/, "").split("\n");

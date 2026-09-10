@@ -5,8 +5,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   Braces, Bug, Check, Eye, FileCode2, FilePlus2, FileText, FileType2, History,
   LayoutTemplate, MessageSquareCode, Palette, Pencil, Play, RotateCcw,
-  Terminal, X,
-  CalendarRange, CheckCheck, ListChecks, Sparkles, Timer,
+  Maximize2, Minimize2, Terminal, X,
+  CalendarRange, CheckCheck, ListChecks, Sparkles, Timer, Wand2,
 } from "lucide-react";
 import type { Canvas, CanvasFile, CanvasVersion } from "@/lib/types";
 import {
@@ -28,7 +28,7 @@ import { useDebounced } from "@/lib/hooks/useDebounced";
 import { CodeBlock } from "@/components/chat/CodeBlock";
 import { CodeEditor, type Jump } from "@/components/CodeEditor";
 import { Markdown } from "@/components/chat/Markdown";
-import { Button, IconButton, SaveBadge } from "@/components/ui/primitives";
+import { Button, IconButton, Kbd, SaveBadge } from "@/components/ui/primitives";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
 
 /**
@@ -77,6 +77,7 @@ export function CanvasView({
   seed,
   onSelect,
   onNew,
+  onFocus,
   onBack,
 }: {
   canvasId: string | null;
@@ -86,6 +87,8 @@ export function CanvasView({
   seed?: string;
   onSelect: (id: string, seed?: string) => void;
   onNew: () => void;
+  /** Raised while a made thing has the window to itself. */
+  onFocus?: (on: boolean) => void;
   onBack: () => void;
 }) {
   const canvases = useLiveQuery(() => db.canvases.orderBy("updatedAt").reverse().toArray(), []);
@@ -120,7 +123,16 @@ export function CanvasView({
     );
   }
 
-  return <Editor key={canvas.id} canvas={canvas} configured={configured} seed={seed} onBack={onBack} />;
+  return (
+    <Editor
+      key={canvas.id}
+      canvas={canvas}
+      configured={configured}
+      seed={seed}
+      onFocus={onFocus}
+      onBack={onBack}
+    />
+  );
 }
 
 /**
@@ -191,7 +203,14 @@ export function MakeMark({ icon, size = 15 }: { icon: string; size?: number }) {
  * a second later, already running, with your half-written instruction waiting
  * in the box under it.
  */
-export function MakeRow({ onSelect }: { onSelect: (id: string, seed: string) => void }) {
+export function MakeRow({
+  onSelect,
+  onAnything,
+}: {
+  onSelect: (id: string, seed: string) => void;
+  /** Anything not on the list — which is most things. */
+  onAnything?: () => void;
+}) {
   return (
     <div className="flex flex-wrap gap-2">
       {MAKES.map((m) => (
@@ -210,6 +229,19 @@ export function MakeRow({ onSelect }: { onSelect: (id: string, seed: string) => 
           {m.name}
         </button>
       ))}
+      {/* Five starters is five answers to a question with no end of them. This
+          is the honest sixth: say what you want and it gets built, because
+          that is what Creative does with anything you ask it to make. */}
+      {onAnything && (
+        <button
+          onClick={onAnything}
+          title="Describe anything and it gets built"
+          className="lift focus-inset tap inline-flex items-center gap-2 rounded-full border border-dashed border-line bg-transparent px-3.5 py-1.5 text-[13px] text-tertiary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
+        >
+          <Wand2 size={14} />
+          Anything else…
+        </button>
+      )}
     </div>
   );
 }
@@ -222,11 +254,14 @@ function Editor({
   canvas,
   configured,
   seed,
+  onFocus,
   onBack,
 }: {
   canvas: Canvas;
   configured: Record<string, boolean>;
   seed?: string;
+  /** The window belongs to the made thing now; the app gets out of the way. */
+  onFocus?: (on: boolean) => void;
   onBack: () => void;
 }) {
   const web = canvas.kind === "web";
@@ -257,6 +292,45 @@ function Editor({
   const [instruction, setInstruction] = React.useState(seed ?? "");
   const reviseModel = useReviseModel(configured);
   const [busy, setBusy] = React.useState<false | "revise" | "explain">(false);
+  /* Using the thing rather than building it. A deck of cards, a timer, a quiz
+     — these are made once and then used, and everything that helps you make
+     one is in the way of using it. */
+  const [focused, setFocused] = React.useState(false);
+
+  const enterFocus = React.useCallback(() => {
+    setMode("run");
+    setFocused(true);
+    onFocus?.(true);
+  }, [onFocus]);
+
+  const leaveFocus = React.useCallback(() => {
+    setFocused(false);
+    onFocus?.(false);
+  }, [onFocus]);
+
+  /* Escape leaves, because a screen with one way out and no visible chrome has
+     to answer the key everybody presses. The listener is on the document
+     rather than a wrapper: focus is usually inside the frame by then, and a
+     frame on an opaque origin does not bubble its keys to us. */
+  React.useEffect(() => {
+    if (!focused) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      /* Captured and stopped. The app's own Escape backs you out of the item
+         you are in, and without this one press did both: it handed the window
+         back *and* left the canvas, so the thing you were using vanished
+         behind the list it came from. While something has the window, Escape
+         means one thing. */
+      e.preventDefault();
+      e.stopPropagation();
+      leaveFocus();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [focused, leaveFocus]);
+
+  // Leaving the canvas while focused would strand the app with no chrome.
+  React.useEffect(() => () => onFocus?.(false), [onFocus]);
   const [proposal, setProposal] = React.useState<{ content: string; note: string } | null>(null);
   const [report, setReport] = React.useState<string | null>(null);
   const [showHistory, setShowHistory] = React.useState(false);
@@ -319,7 +393,9 @@ function Editor({
     [web, files, activeFile?.id],
   );
 
-  const run = async (text: string) => {
+  /* `label` is what this is called afterwards, on the diff and in the file's
+     history. A shortcut sends three sentences and means two words. */
+  const run = async (text: string, label?: string) => {
     if (!text.trim() || busy) return;
     const modelId = reviseModel;
     if (!modelId) {
@@ -336,7 +412,7 @@ function Editor({
       if (!out) setNotice("The model didn't return a usable revision. Try saying it differently.");
       else if (out.trim() === draft.trim())
         setNotice("It came back unchanged — the instruction may not apply here.");
-      else setProposal({ content: out, note: text });
+      else setProposal({ content: out, note: label ?? text });
     } catch {
       setNotice("That request failed. Check the key and the connection.");
     } finally {
@@ -389,8 +465,27 @@ function Editor({
 
   const column = canvas.kind === "doc" ? "max-w-[var(--measure)]" : "max-w-[var(--measure-wide)]";
 
+  /* Using it.
+     Not a different tree — the same one with its chrome stood down. React
+     reconciles by position, so returning a smaller tree here would unmount the
+     preview and mount a new one, which reloads the iframe: the deck reshuffles
+     and the timer starts again the moment you go full-screen. Everything
+     below hides in place, and the frame never moves. */
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      {focused && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-end p-3">
+          <button
+            onClick={leaveFocus}
+            className="pointer-events-auto tap focus-inset flex items-center gap-1.5 rounded-full border border-line bg-surface/90 px-3 py-1.5 text-xs text-secondary shadow-md backdrop-blur transition-colors duration-[var(--dur-fast)] hover:text-primary"
+          >
+            <Minimize2 size={13} />
+            Done
+            <Kbd keys={["Esc"]} />
+          </button>
+        </div>
+      )}
+      <div className={cn(focused && "hidden")}>
       <DetailBar onBack={onBack} backLabel="All canvases" wide={canvas.kind !== "doc"}>
         {/* On a phone the title and five controls do not fit on one line, and
             what loses the fight is the title — the one thing that says which
@@ -443,6 +538,17 @@ function Editor({
                     {mode === "run" ? "Stop" : "Run"}
                   </Button>
                 )}
+                {/* The other half of making something: using it. A deck is
+                    made once and studied twenty times, and on the twentieth
+                    the tab strip, the editor and the box for asking for
+                    changes are all furniture standing between you and the
+                    card. This hands the whole window over. */}
+                {runnable && (
+                  <Button size="sm" variant="ghost" onClick={() => enterFocus()}>
+                    <Maximize2 size={13} />
+                    Use it
+                  </Button>
+                )}
                 <IconButton
                   label="Version history"
                   active={showHistory}
@@ -455,7 +561,9 @@ function Editor({
           </div>
         </div>
       </DetailBar>
+      </div>
 
+      <div className={cn(focused && "hidden")}>
       {web && !proposal && (
         <FileTabs
           files={files}
@@ -475,10 +583,11 @@ function Editor({
           }}
         />
       )}
+      </div>
 
       <div className="flex min-h-0 flex-1">
         <div className="flex min-h-0 flex-1 flex-col">
-          {notice && (
+          {notice && !focused && (
             <p className={cn("mx-auto w-full px-4 pt-2 text-xs text-warning anim-fade", column)}>
               {notice}
             </p>
@@ -499,6 +608,8 @@ function Editor({
                 files={files}
                 draft={draft}
                 activeName={doc.name}
+                full={focused}
+                onEscape={leaveFocus}
                 onOpenAt={(name, line) => {
                   const target = files.find((f) => f.name === name);
                   if (!target) return;
@@ -566,7 +677,7 @@ function Editor({
               in the tray above the line, where chat keeps its attachments:
               both are about the message rather than in it. */}
           {!proposal && (
-            <div className="composer-dock shrink-0 px-4 pt-2">
+            <div className={cn("composer-dock shrink-0 px-4 pt-2", focused && "hidden")}>
               <div className={cn("mx-auto w-full", column)}>
                 <MessageBar
                   value={instruction}
@@ -737,7 +848,7 @@ function Shortcuts({
   kind: Canvas["kind"];
   lang?: string;
   busy: false | "revise" | "explain";
-  onRun: (instruction: string) => void;
+  onRun: (instruction: string, label?: string) => void;
   onExplain: () => void;
 }) {
   const [portOpen, setPortOpen] = React.useState(false);
@@ -745,13 +856,13 @@ function Shortcuts({
   if (kind === "doc") {
     return (
       <Row>
-        <Chip busy={busy === "revise"} onClick={() => onRun("Tighten this. Cut every word that is not doing work, and keep every fact.")}>
+        <Chip busy={busy === "revise"} onClick={() => onRun("Tighten this. Cut every word that is not doing work, and keep every fact.", "Tighten")}>
           Tighten
         </Chip>
-        <Chip busy={busy === "revise"} onClick={() => onRun("Fix the spelling, grammar and punctuation. Change nothing else — not the wording, not the structure.")}>
+        <Chip busy={busy === "revise"} onClick={() => onRun("Fix the spelling, grammar and punctuation. Change nothing else — not the wording, not the structure.", "Proofread")}>
           Proofread
         </Chip>
-        <Chip busy={busy === "revise"} onClick={() => onRun("Add headings and a little structure where the document has grown long enough to need them. Do not rewrite the prose.")}>
+        <Chip busy={busy === "revise"} onClick={() => onRun("Add headings and a little structure where the document has grown long enough to need them. Do not rewrite the prose.", "Add structure")}>
           Add structure
         </Chip>
         <Chip busy={busy === "explain"} onClick={onExplain}>
@@ -765,20 +876,20 @@ function Shortcuts({
     <Row>
       <Chip
         busy={busy === "revise"}
-        onClick={() => onRun("Add comments. Explain why the non-obvious parts are the way they are, not what each line does. Change no code.")}
+        onClick={() => onRun("Add comments. Explain why the non-obvious parts are the way they are, not what each line does. Change no code.", "Add comments")}
       >
         Add comments
       </Chip>
       <Chip
         busy={busy === "revise"}
-        onClick={() => onRun("Add logging at the points that would tell someone what went wrong: inputs at each boundary, the value of anything the logic branches on, and errors. Change no behaviour.")}
+        onClick={() => onRun("Add logging at the points that would tell someone what went wrong: inputs at each boundary, the value of anything the logic branches on, and errors. Change no behaviour.", "Add logs")}
       >
         <Terminal size={12} />
         Add logs
       </Chip>
       <Chip
         busy={busy === "revise"}
-        onClick={() => onRun("Find the bugs and fix them. Change only what is broken. If nothing is broken, return the file unchanged.")}
+        onClick={() => onRun("Find the bugs and fix them. Change only what is broken. If nothing is broken, return the file unchanged.", "Fix bugs")}
       >
         <Bug size={12} />
         Fix bugs
@@ -797,7 +908,10 @@ function Shortcuts({
                   key={p}
                   onClick={() => {
                     setPortOpen(false);
-                    onRun(`Port this to ${p}. Keep the same behaviour, the same names, and the same structure where the language allows it. Return only the ported file.`);
+                    onRun(
+                      `Port this to ${p}. Keep the same behaviour, the same names, and the same structure where the language allows it. Return only the ported file.`,
+                      `Port to ${p}`,
+                    );
                   }}
                   className="focus-inset rounded-lg px-2.5 py-1.5 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
                 >
@@ -1032,12 +1146,18 @@ function WebPreview({
   draft,
   activeName,
   onOpenAt,
+  full,
+  onEscape,
 }: {
   files: CanvasFile[];
   draft: string;
   activeName: string;
   /** Take me to where that error is. */
   onOpenAt: (name: string, line: number) => void;
+  /** Using it rather than building it: no console, no margins, no border. */
+  full?: boolean;
+  /** Escape, pressed inside the frame and forwarded out by the bridge. */
+  onEscape?: () => void;
 }) {
   const frameRef = React.useRef<HTMLIFrameElement>(null);
   const [lines, setLines] = React.useState<Line[]>([]);
@@ -1066,13 +1186,25 @@ function WebPreview({
   runRef.current = run;
   const mapRef = React.useRef(map);
   mapRef.current = map;
+  const escapeRef = React.useRef(onEscape);
+  escapeRef.current = onEscape;
 
   React.useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       // Identified by window, not by origin: a sandboxed frame has none.
       if (e.source !== frameRef.current?.contentWindow) return;
-      const d = e.data as { __armiConsole?: number; run?: string; level?: string; text?: string };
-      if (!d || d.__armiConsole !== 1) return;
+      const d = e.data as {
+        __armiConsole?: number;
+        __armiKey?: string;
+        run?: string;
+        level?: string;
+        text?: string;
+      };
+      if (!d) return;
+      // Not gated on the run: a key pressed a moment after a reload is still
+      // the key you pressed, and Escape has to work on the first try.
+      if (d.__armiKey === "Escape") return escapeRef.current?.();
+      if (d.__armiConsole !== 1) return;
       /* From the run being shown, or from nowhere. A reload racing a message
          already in flight used to leave an error from a version of the file
          you had already fixed sitting in the drawer under the new one. */
@@ -1100,6 +1232,10 @@ function WebPreview({
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
+    // Registered once. Everything it needs that can change is read through a
+    // ref, because re-registering on a prop change is how a message ends up
+    // delivered twice.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Every run starts with a clean console; keeping the last run's errors is
@@ -1111,17 +1247,28 @@ function WebPreview({
   const errors = lines.filter((l) => l.level === "error").length;
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-[var(--measure-wide)] flex-1 flex-col px-4 py-3">
+    <div
+      className={cn(
+        "flex min-h-0 w-full flex-1 flex-col",
+        full ? "p-0" : "mx-auto max-w-[var(--measure-wide)] px-4 py-3",
+      )}
+    >
       <iframe
         key={nonce}
         ref={frameRef}
         title="Preview"
         sandbox="allow-scripts allow-forms"
         srcDoc={srcDoc}
-        className="min-h-0 w-full flex-1 rounded-lg border border-line bg-white"
+        className={cn(
+          "min-h-0 w-full flex-1 bg-white",
+          !full && "rounded-lg border border-line",
+        )}
       />
 
-      <div className="mt-2 shrink-0">
+      {/* No console in a room you are using rather than building. The error
+          count is a builder's instrument; someone studying a deck of cards has
+          no use for it and every reason not to see it. */}
+      <div className={cn("mt-2 shrink-0", full && "hidden")}>
         <div className="flex items-center gap-1.5">
           <Button size="sm" variant="ghost" onClick={() => setOpen((v) => !v)}>
             <Terminal size={13} />

@@ -112,12 +112,22 @@ export async function reviseCanvas(
    * and confidently writes a selector for something that does not exist.
    */
   siblings?: { name: string; content: string }[],
+  /**
+   * How much of each reference to send.
+   *
+   * Twelve thousand characters is right for a sibling file in a folder — it is
+   * there so a model wiring up a button can see the markup the button lives
+   * in. It is far too little for a book: the notebook sends a whole source and
+   * asks for lessons from it, and cutting that to three pages would produce
+   * lessons about three pages while looking like lessons about the book.
+   */
+  perSibling = 12_000,
 ): Promise<string | null> {
   const what = kind === "doc" ? "document" : `${lang ?? "code"} file`;
   const context = siblings?.length
-    ? `\n\nThe other files in this folder, for reference only. Do NOT return them.\n\n` +
+    ? `\n\nReference material, to read and not to return. Do NOT include any of it in your answer.\n\n` +
       siblings
-        .map((f) => `--- ${f.name} ---\n${f.content.slice(0, 12_000)}`)
+        .map((f) => `--- ${f.name} ---\n${f.content.slice(0, perSibling)}`)
         .join("\n\n")
     : "";
   const prompt = `Revise the ${what} below according to the instruction.
@@ -162,6 +172,16 @@ export async function explainCode(
   lang: string | undefined,
   modelId?: string,
   siblings?: { name: string; content: string }[],
+  /**
+   * How much of each reference to send.
+   *
+   * Twelve thousand characters is right for a sibling file in a folder — it is
+   * there so a model wiring up a button can see the markup the button lives
+   * in. It is far too little for a book: the notebook sends a whole source and
+   * asks for lessons from it, and cutting that to three pages would produce
+   * lessons about three pages while looking like lessons about the book.
+   */
+  perSibling = 12_000,
 ): Promise<string | null> {
   const context = siblings?.length
     ? `\n\nThe other files in the same folder:\n\n` +
