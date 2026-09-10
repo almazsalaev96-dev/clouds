@@ -1,4 +1,5 @@
 import type { Project, ProjectFile, Style } from "./types";
+import type { ModeSpec } from "./modes";
 import { estimateTokens } from "./models";
 
 /**
@@ -27,6 +28,7 @@ export interface PromptParts {
   project?: Project;
   files?: ProjectFile[];
   style?: Style;
+  mode?: ModeSpec;
 }
 
 export interface ComposedPrompt {
@@ -80,6 +82,11 @@ export function composeSystemPrompt(parts: PromptParts): ComposedPrompt {
 
   const style = parts.style?.instructions.trim();
   if (style) sections.push(`## Response style\n\n${style}`);
+
+  // Last of all. The mode is the narrowest instruction in the stack and the
+  // one that should win a disagreement with anything above it.
+  const mode = parts.mode?.instructions.trim();
+  if (mode) sections.push(`## Mode: ${parts.mode?.label}\n\n${mode}`);
 
   return { text: sections.join("\n\n"), droppedFiles };
 }

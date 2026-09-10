@@ -1,8 +1,7 @@
 # Armi
 
-One interface for Claude, GPT, Gemini and DeepSeek — plus the notes,
-flashcards and printable papers that come out of talking to them. You bring the
-API keys.
+One interface for Claude, GPT, Gemini and DeepSeek — plus the projects, the web
+apps and the notebook that come out of talking to them. You bring the API keys.
 
 Built against [`prompts/MASTER_PROMPT.md`](prompts/MASTER_PROMPT.md), which is the
 design and engineering brief this repository implements. Where the code departs from
@@ -162,8 +161,11 @@ the app for anyone without it installed, was actually DejaVu Sans. A font you na
 but do not ship is a wish.
 
 **The mark** — the word in the ink, in a hand, with the dot on the i in gold,
-which is where the pen lifts. Once per screen at most. The app icon is the initial
-in the same hand on the navy, with the same gold dot.
+which is where the pen lifts. Once per screen at most: it has the blank page. The
+sidebar corner gets the initial beside the name set in the book face instead — a
+copperplate script is all hairlines and joins, and at the 30px a sidebar gives it
+those joins fall below a pixel, so it stopped being a name and became a squiggle.
+The app icon is the initial in the same hand on the navy, with the same gold dot.
 
 **Thinking** — one motif wherever the model is running: a ring of field energy that
 turns, and a hairline that travels the width of whatever is live. It says *running*
@@ -175,45 +177,22 @@ stops travelling, but both stay visible — reduced motion still needs the state
 legible.
 
 **Navigation** — the sidebar belongs to conversations: New chat, search, then the
-history. Projects, Code, Notes, Cards, Papers and Practice sit above that as destinations,
-separated by a hairline, each opening as its own page with its own index in the main
-column. Taking the chat list away to show a note list would cost more than it buys.
+history. Three destinations sit above that, separated by a hairline: **Code**
+first, because it is the one you go to with something already in mind; then
+**Projects**, then **Notebook**. Each opens as its own page with its own index in
+the main column. Taking the chat list away to show a note list would cost more
+than it buys.
 
-**Notes** — markdown documents, edited in place, searched by body as well as title.
-Keep any answer from a chat with one click, or the whole conversation. Titles derive
-themselves from the first heading, so nothing is ever called "Untitled" that says what
-it is in its first line.
+**Notebook** — markdown pages, edited in place, searched by body as well as by
+title. Keep an answer from a chat with one click, or the whole conversation.
+Titles derive themselves from the first heading, so nothing is called "Untitled"
+that says what it is in its first line.
 
-**Flashcards** — turn a note or a conversation into a deck, then review it on the
-SM-2 schedule that Anki and SuperMemo use: four grades, each showing the interval it
-will actually produce, and a lapse that returns in ten minutes rather than tomorrow.
-Space reveals, `1`–`4` grade, and the sidebar carries the only number that decides
-whether you open a deck at all — how many are due.
-
-**Practice** — the section the rest of the app could not do: it puts a question in
-front of you that you will get wrong for a reason it can name.
-
-The scheduled unit is not a topic, it is a *trap* — one named wrong move
-("keeps the original limits after substituting"), carrying its own forgetting
-curve. A topic averages over four mistakes decaying at four different rates,
-which loses exactly the information worth having. Paste a note or a worked
-example, and the model proposes four to six traps with the sentence you will see
-the moment you make each one; you throw away the ones that aren't yours before
-anything is written. Then problems are generated to catch one trap each — cloze
-and numeric only, never multiple choice, because recognition puts the answer on
-screen before every attempt and is defeatable by elimination.
-
-Answers are checked locally, so being right or wrong never waits on a network
-call. A miss shows the trap's own sentence and the first step, and lets you retry
-in place — but it still grades as a miss, because the retry is the correction,
-not a second chance. Grades are derived from what happened, never chosen and
-never timed. The queue interleaves, so no two problems in a row share a trap:
-blocked practice feels better and teaches less, since after the first you are
-applying a rule you were just told rather than deciding which rule applies.
-
-**Papers** — a printable document built from the same markdown. Report, essay or
-notes shapes; a title, subtitle and author set on the sheet itself; "Draft it" to have
-a model write it from your material; and Print / PDF to export.
+It replaced four sections. Flashcards, Papers and Practice were three study
+features in an app whose centre of gravity turned out to be chat, projects and
+code — five destinations for one activity, and more sidebar than the activity was
+getting used. They are gone, and so are their tables: the code is in git, the
+rows are not.
 
 **The blank page** — the mark and the greeting on one line, the way a letter is
 signed at the head of the page rather than announced above it. The greeting knows
@@ -226,6 +205,23 @@ your name once, inline, after the keys are in, and never as a modal. A name is t
 cheapest thing an interface can know about you and the one that changes the most
 about how it reads back; it stays in the browser and is never sent to a model. The
 sidebar signs off with it too.
+
+**Chat or Creative** — two ways to ask, side by side in the composer. Chat is the
+default and adds nothing at all. Creative changes the two things that actually
+change an answer: it asks for range, for the specific over the general, and for
+the option that was not obvious — and it widens the sampling, which is the half a
+prompt cannot do. Temperature is the width of the distribution the next token is
+drawn from, and asking for "creative" writing at 0.7 gets you the most probable
+phrasing of an unusual instruction, which is exactly the flat, competent prose
+people mean when they say an answer sounds like AI. It keeps accuracy
+non-negotiable: invent freely in what you write, never in what you claim is true.
+
+The sampling half does not always land, and that is the provider's rule rather
+than a bug — Anthropic rejects `temperature` alongside extended thinking, so on a
+reasoning model the instructions do the work alone. Creative does not turn
+thinking off to win that argument; trading reasoning for sampling width would be a
+silent downgrade nobody asked for. Both paths are asserted at the wire in
+`e2e-mode.mjs`.
 
 **The model sits in the composer** — an inch from the box you are typing in, and
 changeable there, with the reasoning effort beside it. It used to live in the
@@ -248,11 +244,12 @@ app/
 lib/
   providers/       One adapter per provider, one normalized event stream.
   hooks/useStream  The streaming controller and the reveal buffer.
-  db.ts            Dexie. The message tree, notes, decks, cards, papers.
-  study.ts         SM-2 scheduling.
-  generate.ts      One-shot generation: titles, flashcards, paper drafts.
+  db.ts            Dexie. The message tree, notebook, projects, canvases.
+  prompt.ts        Where instructions, project, style and mode are assembled.
+  web.ts           The web-canvas assembler, console bridge and source map.
+  generate.ts      One-shot generation: titles, revisions, explanations.
   store.ts         Settings, section, drafts — persisted.
-components/        Sidebar and the four section views.
+components/        Sidebar and the three section views.
 components/chat/   Composer, message list, code blocks, compare, dialogs.
 ```
 
@@ -303,6 +300,11 @@ heading, and link URLs printed in full.
   preview counts, a `console.log` and an uncaught `ReferenceError` come back out
   with the error mapped to `app.js:2`, and `window.origin` inside the frame is
   `null` with `localStorage` throwing `SecurityError`.
+- Chat and Creative verified **at the wire** (`e2e-mode.mjs`): Chat adds nothing to
+  the prompt and nothing to the sampling; Creative's instructions arrive, and on a
+  model without a thinking budget so does `temperature: 1, top_p: 0.98`. On a
+  reasoning model the temperature is correctly absent, because Anthropic rejects it
+  alongside extended thinking.
 - Projects and styles verified **at the wire** (`e2e-project.mjs`): the browser is
   driven, then the mock provider is asked what system prompt it actually received —
   the project's instructions, its knowledge wrapped one `<document>` per file, and
@@ -322,8 +324,8 @@ heading, and link URLs printed in full.
   its own request, and each renders its own classified failure independently.
 - The side panel opens from a code block, collapses the inline copy to a reference,
   and closes on Escape.
-- Notes, decks and papers all seeded and driven in a browser; the print layout was
-  captured through Chromium's print media emulation rather than assumed.
+- The notebook seeded and driven in a browser; the print layout was captured
+  through Chromium's print media emulation rather than assumed.
 - Highlighting confirmed to run in a real Web Worker (counted at construction, not
   assumed), producing 240 themed spans on a 40-line block.
 - Three bugs found by measuring rather than by looking, all of them cascade problems:
@@ -351,17 +353,6 @@ Stated plainly, because a checklist you cannot trust is worse than no checklist.
   most of the benefit, without breaking find-in-page, text selection across messages,
   or scroll restoration. A conversation in the thousands of messages would still want
   real windowing.
-- **Flashcard and paper generation has not been run against a real model.** The
-  prompts, the JSON extraction (which tolerates fences and surrounding prose)
-  and the failure messages are written, and the transport underneath them is
-  now proven by `e2e.mjs`; what has not been observed is a real model's *output*
-  flowing through the extraction.
-- **No page numbers in the PDF.** Chrome does not support content in `@page` margin
-  boxes, so numbering would mean shipping a layout engine. The browser's own print
-  dialog can add headers and footers.
-- **No cross-deck statistics.** There is a single "everything due today" queue, but
-  no history of what you reviewed, no retention curve, and no notion of a daily new-card
-  limit — all of which a serious reviewer eventually wants.
 - **Screen-reader testing was not run.** Semantics, live regions, labels and focus
   order are implemented to spec and every control is confirmed to carry an
   accessible name (`node audit.mjs`), but nothing has been driven with VoiceOver.
@@ -395,6 +386,7 @@ node e2e.mjs         # 15 assertions across the whole happy path
 node e2e-canvas.mjs  # 25 assertions: edit, revise, diff, keep, revert, sandbox
 node e2e-project.mjs # 21 assertions: projects and styles, read at the wire
 node e2e-web.mjs     # 26 assertions: a web app runs, and its console comes back
+node e2e-mode.mjs    # 12 assertions: Chat and Creative, read at the wire
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire
 node test-fit.mjs      # a 360k-token thread trimmed to fit and answered
 MOCK_RATE_LIMIT=1 …    # restart the mock this way, then: node test-retry.mjs

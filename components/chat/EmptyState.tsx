@@ -205,7 +205,7 @@ export function EmptyState({
           </form>
         )}
         <p className="mt-6 text-center text-xs text-faint">
-          Models make mistakes. Check anything that matters.
+          May make mistakes. Check anything that matters.
         </p>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import type {
-  Attempt, Canvas, CanvasFile, CanvasVersion, Card, ContentBlock, Conversation,
-  Deck, Message, Note, Paper, Problem, Project, ProjectFile, Skill, Style, Trap,
+  Canvas, CanvasFile, CanvasVersion, ContentBlock, Conversation, Message, Note,
+  Project, ProjectFile, Style,
 } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 
@@ -14,13 +14,6 @@ class ChatDB extends Dexie {
   conversations!: Table<Conversation, string>;
   messages!: Table<Message, string>;
   notes!: Table<Note, string>;
-  decks!: Table<Deck, string>;
-  cards!: Table<Card, string>;
-  papers!: Table<Paper, string>;
-  skills!: Table<Skill, string>;
-  traps!: Table<Trap, string>;
-  problems!: Table<Problem, string>;
-  attempts!: Table<Attempt, string>;
   canvases!: Table<Canvas, string>;
   canvasFiles!: Table<CanvasFile, string>;
   canvasVersions!: Table<CanvasVersion, string>;
@@ -88,6 +81,25 @@ class ChatDB extends Dexie {
        three files and a preview that pretends otherwise is a toy. */
     this.version(6).stores({
       canvasFiles: "id, canvasId, [canvasId+order], [canvasId+name]",
+    });
+
+    /* Version 7 removes flashcards, papers and practice.
+       ---------------------------------------------------------------------
+       Three study features in an app whose centre of gravity turned out to be
+       chat, projects, code and notes. Five destinations for one activity was
+       more sidebar than the activity was getting used.
+
+       `null` is how Dexie drops a store, and dropping it takes its rows with
+       it. That is deliberate and it is not reversible from inside the app —
+       the code is in git, the rows are not. */
+    this.version(7).stores({
+      decks: null,
+      cards: null,
+      papers: null,
+      skills: null,
+      traps: null,
+      problems: null,
+      attempts: null,
     });
   }
 }
@@ -243,20 +255,12 @@ export async function deleteAllData() {
   await db.transaction(
     "rw",
     [
-      db.conversations, db.messages, db.notes, db.decks, db.cards, db.papers,
-      db.skills, db.traps, db.problems, db.attempts,
+      db.conversations, db.messages, db.notes,
     ],
     async () => {
       await db.messages.clear();
       await db.conversations.clear();
       await db.notes.clear();
-      await db.decks.clear();
-      await db.cards.clear();
-      await db.papers.clear();
-      await db.skills.clear();
-      await db.traps.clear();
-      await db.problems.clear();
-      await db.attempts.clear();
     },
   );
 }
@@ -344,99 +348,6 @@ export async function deleteNote(id: string): Promise<() => Promise<void>> {
   return async () => {
     if (note) await db.notes.put(note);
   };
-}
-
-/* ----------------------------------------------------------------- decks -- */
-
-export async function createDeck(title: string, source: Partial<Deck> = {}): Promise<Deck> {
-  const deck: Deck = { id: uid(), title, createdAt: Date.now(), ...source };
-  await db.decks.add(deck);
-  return deck;
-}
-
-export async function deleteDeck(id: string): Promise<() => Promise<void>> {
-  return db.transaction("rw", db.decks, db.cards, async () => {
-    const deck = await db.decks.get(id);
-    // Scheduling state is the expensive part of a deck. Losing it silently
-    // means every card comes back due tomorrow as if it were new.
-    const cards = await db.cards.where("deckId").equals(id).toArray();
-    await db.cards.where("deckId").equals(id).delete();
-    await db.decks.delete(id);
-    return async () => {
-      await db.transaction("rw", db.decks, db.cards, async () => {
-        if (deck) await db.decks.put(deck);
-        if (cards.length) await db.cards.bulkPut(cards);
-      });
-    };
-  });
-}
-
-/* ---------------------------------------------------------------- papers -- */
-
-export async function createPaper(init: Partial<Paper> = {}): Promise<Paper> {
-  const now = Date.now();
-  const paper: Paper = {
-    id: uid(),
-    title: "",
-    content: "",
-    createdAt: now,
-    updatedAt: now,
-    format: "report",
-    ...init,
-  };
-  await db.papers.add(paper);
-  return paper;
-}
-
-export async function deletePaper(id: string): Promise<() => Promise<void>> {
-  const paper = await db.papers.get(id);
-  await db.papers.delete(id);
-  return async () => {
-    if (paper) await db.papers.put(paper);
-  };
-}
-
-/* ---------------------------------------------------------------- skills -- */
-
-export async function createSkill(init: Partial<Skill> = {}): Promise<Skill> {
-  const now = Date.now();
-  const skill: Skill = {
-    id: uid(),
-    name: "",
-    goal: "",
-    primer: "",
-    band: 1,
-    state: "sketching",
-    trapCount: 0,
-    createdAt: now,
-    updatedAt: now,
-    ...init,
-  };
-  await db.skills.add(skill);
-  return skill;
-}
-
-export async function deleteSkill(id: string): Promise<() => Promise<void>> {
-  return db.transaction("rw", [db.skills, db.traps, db.problems, db.attempts], async () => {
-    const skill = await db.skills.get(id);
-    const traps = await db.traps.where("skillId").equals(id).toArray();
-    const problems = await db.problems.where("skillId").equals(id).toArray();
-    // Attempts are the only record of how the practice actually went. They are
-    // not regenerable from anything.
-    const attempts = await db.attempts.where("skillId").equals(id).toArray();
-    await db.attempts.where("skillId").equals(id).delete();
-    await db.problems.where("skillId").equals(id).delete();
-    await db.traps.where("skillId").equals(id).delete();
-    await db.skills.delete(id);
-    return async () => {
-      await db.transaction("rw", [db.skills, db.traps, db.problems, db.attempts], async () => {
-        if (skill) await db.skills.put(skill);
-        if (traps.length) await db.traps.bulkPut(traps);
-        if (problems.length) await db.problems.bulkPut(problems);
-        if (attempts.length) await db.attempts.bulkPut(attempts);
-      });
-    };
-  });
 }
 
 /* ---------------------------------------------------------------- canvas -- */
@@ -628,11 +539,6 @@ export async function deleteCanvas(id: string): Promise<() => Promise<void>> {
       });
     };
   });
-}
-
-/** Everything due, across every skill, oldest first. */
-export function dueTraps(traps: Trap[], now = Date.now()): Trap[] {
-  return traps.filter((t) => t.state !== "held" && t.due <= now).sort((a, b) => a.due - b.due);
 }
 
 /* -------------------------------------------------------------- projects -- */

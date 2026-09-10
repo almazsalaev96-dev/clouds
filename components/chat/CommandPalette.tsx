@@ -4,9 +4,8 @@ import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  Code2, Download, FileText, FolderOpen, Layers, MessageSquare,
-  MessageSquarePlus, Moon, PanelLeft, Printer, Settings2, Sun, Target, Trash2,
-  Type,
+  Code2, Download, FileText, FolderOpen, MessageSquare, MessageSquarePlus, Moon,
+  NotebookPen, PanelLeft, Settings2, Sun, Trash2, Type,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { MODELS } from "@/lib/models";
@@ -42,7 +41,7 @@ function bodyScore(query: string, body?: string): number {
 }
 
 /** Ties broken here when two groups score the same, so the order is stable. */
-const GROUP_ORDER = ["Actions", "Go to", "View", "Models", "Chats", "Projects", "Code", "Notes", "Cards", "Papers", "Practice"];
+const GROUP_ORDER = ["Actions", "Go to", "View", "Models", "Chats", "Projects", "Code", "Notebook"];
 /** No single kind of thing may fill the list and bury the rest. */
 const PER_GROUP = 5;
 
@@ -102,9 +101,6 @@ export function CommandPalette({
   const projects = useLiveQuery(() => db.projects.orderBy("updatedAt").reverse().limit(40).toArray(), [], []);
   const canvases = useLiveQuery(() => db.canvases.orderBy("updatedAt").reverse().limit(40).toArray(), [], []);
   const notes = useLiveQuery(() => db.notes.orderBy("updatedAt").reverse().limit(60).toArray(), [], []);
-  const decks = useLiveQuery(() => db.decks.orderBy("createdAt").reverse().limit(40).toArray(), [], []);
-  const papers = useLiveQuery(() => db.papers.orderBy("updatedAt").reverse().limit(40).toArray(), [], []);
-  const skills = useLiveQuery(() => db.skills.orderBy("updatedAt").reverse().limit(40).toArray(), [], []);
 
   React.useEffect(() => {
     if (open) {
@@ -162,12 +158,9 @@ export function CommandPalette({
     const nav: Command[] = (
       [
         ["chat", "Chats", <MessageSquare key="c" size={15} />],
-        ["projects", "Projects", <FolderOpen key="j" size={15} />],
         ["code", "Code", <Code2 key="k" size={15} />],
-        ["notes", "Notes", <FileText key="n" size={15} />],
-        ["cards", "Cards", <Layers key="d" size={15} />],
-        ["papers", "Papers", <Printer key="p" size={15} />],
-        ["practice", "Practice", <Target key="s" size={15} />],
+        ["projects", "Projects", <FolderOpen key="j" size={15} />],
+        ["notebook", "Notebook", <NotebookPen key="n" size={15} />],
       ] as const
     ).map(([id, label, icon]) => ({
       id: `go:${id}`,
@@ -212,49 +205,19 @@ export function CommandPalette({
 
     const noteCmds: Command[] = (notes ?? []).map((n) => ({
       id: `note:${n.id}`,
-      label: n.title || "Untitled note",
+      label: n.title || "Untitled page",
       hint: preview(n.content, n.title),
       body: n.content,
       icon: <FileText size={15} />,
-      group: "Notes",
-      run: () => actions.open("notes", n.id),
+      group: "Notebook",
+      run: () => actions.open("notebook", n.id),
     }));
-
-    const deckCmds: Command[] = (decks ?? []).map((d) => ({
-      id: `deck:${d.id}`,
-      label: d.title,
-      icon: <Layers size={15} />,
-      group: "Cards",
-      run: () => actions.open("cards", d.id),
-    }));
-
-    const paperCmds: Command[] = (papers ?? []).map((p) => ({
-      id: `paper:${p.id}`,
-      label: p.title || "Untitled",
-      hint: p.subtitle || preview(p.content, p.title),
-      body: p.content,
-      icon: <Printer size={15} />,
-      group: "Papers",
-      run: () => actions.open("papers", p.id),
-    }));
-
-    const skillCmds: Command[] = (skills ?? [])
-      .filter((k) => k.state === "ready")
-      .map((k) => ({
-        id: `skill:${k.id}`,
-        label: k.name,
-        hint: k.goal,
-        icon: <Target size={15} />,
-        group: "Practice",
-        run: () => actions.open("practice", k.id),
-      }));
 
     return [
       ...base, ...nav, ...models,
-      ...chats, ...projectCmds, ...canvasCmds, ...noteCmds, ...deckCmds, ...paperCmds,
-      ...skillCmds,
+      ...chats, ...projectCmds, ...canvasCmds, ...noteCmds,
     ];
-  }, [actions, conversations, projects, canvases, notes, decks, papers, skills, settings]);
+  }, [actions, conversations, projects, canvases, notes, settings]);
 
   /* Ranking has two jobs at once: put the best thing first, and keep each
      group in one piece. Sorting purely by score interleaves a note between two

@@ -2,13 +2,10 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Download, Eye, Layers, Pencil, Printer } from "lucide-react";
+import { Download, Eye, Pencil } from "lucide-react";
 import type { Note } from "@/lib/types";
 import { db, deleteNote, deriveTitle } from "@/lib/db";
 import { offerUndo } from "@/lib/undo";
-import { generateCards, cheapestAvailable } from "@/lib/generate";
-import { newCard } from "@/lib/study";
-import { createDeck, createPaper } from "@/lib/db";
 import { useAutoGrow } from "@/lib/hooks/useAutoGrow";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { Markdown } from "@/components/chat/Markdown";
@@ -16,27 +13,23 @@ import { Button, SaveBadge } from "@/components/ui/primitives";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
 
 /**
- * A note is markdown, edited in place. There is no rich-text layer, no toolbar
+ * The notebook.
+ *
+ * A page is markdown, edited in place. There is no rich-text layer, no toolbar
  * and no block menu, because the same text has to survive being sent to a
- * model, laid out as a paper, and cut into flashcards — and markdown is the
- * only format that does all three without a converter in between.
+ * model, exported, and read back a year later — and markdown is the only
+ * format that does all three without a converter in between.
  */
-export function NotesView({
+export function NotebookView({
   noteId,
-  configured,
   onSelect,
   onNew,
   onBack,
-  onOpenDeck,
-  onOpenPaper,
 }: {
   noteId: string | null;
-  configured: Record<string, boolean>;
   onSelect: (id: string) => void;
   onNew: () => void;
   onBack: () => void;
-  onOpenDeck: (id: string) => void;
-  onOpenPaper: (id: string) => void;
 }) {
   // No default value: `undefined` has to keep meaning "not back yet", or the
   // index cannot tell an empty library from an unanswered query.
@@ -44,8 +37,6 @@ export function NotesView({
   const note = useLiveQuery(() => (noteId ? db.notes.get(noteId) : undefined), [noteId]);
   const [preview, setPreview] = React.useState(false);
   const [draft, setDraft] = React.useState("");
-  const [busy, setBusy] = React.useState<null | "cards" | "paper">(null);
-  const [result, setResult] = React.useState<string | null>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const loadedFor = React.useRef<string | null>(null);
 
@@ -58,7 +49,6 @@ export function NotesView({
       loadedFor.current = note.id;
       setDraft(note.content);
       setPreview(false);
-      setResult(null);
       requestAnimationFrame(() => textareaRef.current?.focus());
     }
   }, [note]);
@@ -86,41 +76,13 @@ export function NotesView({
     URL.revokeObjectURL(url);
   };
 
-  const makeCards = async () => {
-    if (!note || !draft.trim()) return;
-    setBusy("cards");
-    setResult(null);
-    const drafts = await generateCards(draft, { modelId: cheapestAvailable(configured), count: 12 });
-    setBusy(null);
-    if (!drafts?.length) {
-      setResult("Couldn't turn this into cards — check your API key, or add more to the note.");
-      return;
-    }
-    const deck = await createDeck(note.title || "Untitled note", { sourceNoteId: note.id });
-    await db.cards.bulkAdd(drafts.map((c) => newCard(deck.id, c.front, c.back)));
-    onOpenDeck(deck.id);
-  };
-
-  const makePaper = async () => {
-    if (!note || !draft.trim()) return;
-    setBusy("paper");
-    setResult(null);
-    const paper = await createPaper({
-      title: note.title || "Untitled",
-      content: draft,
-      format: "report",
-    });
-    setBusy(null);
-    onOpenPaper(paper.id);
-  };
-
   if (!note) {
     return (
       <SectionIndex
-        title="Notes"
-        newLabel="New note"
+        title="Notebook"
+        newLabel="New page"
         emptyTitle="Nothing written down yet."
-        emptyHint="Keep an answer from a chat, or start from a blank page. Notes are markdown, and they feed the flashcards and papers."
+        emptyHint="Keep an answer from a chat, or start from a blank page. Pages are markdown — the same text you can send back to a model, export, and still read in a year."
         loading={notes === undefined}
         items={[...(notes ?? [])]
           .sort((a, b) => Number(b.pinned) - Number(a.pinned))
@@ -150,7 +112,7 @@ export function NotesView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <DetailBar onBack={onBack} backLabel="All notes">
+      <DetailBar onBack={onBack} backLabel="All pages">
         <span className="mr-auto flex items-center gap-2.5">
           <span className="text-xs text-tertiary tnum">
             {words} word{words === 1 ? "" : "s"}
@@ -161,26 +123,11 @@ export function NotesView({
           {preview ? <Pencil size={13} /> : <Eye size={13} />}
           {preview ? "Edit" : "Preview"}
         </Button>
-        <Button size="sm" variant="ghost" onClick={makeCards} disabled={busy !== null || !draft.trim()}>
-          {busy === "cards" ? <span className="think-orb" aria-hidden /> : <Layers size={13} />}
-          Flashcards
-        </Button>
-        <Button size="sm" variant="ghost" onClick={makePaper} disabled={busy !== null || !draft.trim()}>
-          {busy === "paper" ? <span className="think-orb" aria-hidden /> : <Printer size={13} />}
-          Make paper
-        </Button>
         <Button size="sm" variant="ghost" onClick={exportMarkdown}>
           <Download size={13} />
         </Button>
       </DetailBar>
 
-      {result && (
-        <div className="mx-auto mt-2 w-full max-w-[var(--measure)] px-4">
-          <p className="border-l-2 border-[var(--stop)] py-1 pl-3 text-sm text-primary anim-fade">
-            {result}
-          </p>
-        </div>
-      )}
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-4">

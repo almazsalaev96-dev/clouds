@@ -12,6 +12,7 @@ import { ModelPicker } from "./ModelPicker";
 import { fileToBase64, formatBytes, cn } from "@/lib/utils";
 import { useSettings, useDrafts } from "@/lib/store";
 import { allStyles, findStyle, DEFAULT_STYLE_ID } from "@/lib/styles";
+import { MODES } from "@/lib/modes";
 import { useDictation } from "@/lib/hooks/useDictation";
 import { Tooltip } from "@/components/ui/primitives";
 import { ProviderMark } from "@/components/ui/ProviderMark";
@@ -42,6 +43,8 @@ export function Composer({
   compareWith,
   onCompareChange,
   availableModels,
+  mode,
+  onModeChange,
   styleId,
   customStyles,
   onStyleChange,
@@ -65,6 +68,9 @@ export function Composer({
   compareWith: string[];
   onCompareChange: (ids: string[]) => void;
   availableModels: (id: string) => boolean;
+  /** Chat or Creative. */
+  mode: string;
+  onModeChange: (id: string) => void;
   /** The style this thread answers in. */
   styleId: string;
   customStyles: Style[];
@@ -368,6 +374,38 @@ export function Composer({
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
+
+          {/* Two ways to ask, side by side. It is a segmented control rather
+              than a menu because there are two of them and the one you are in
+              has to be readable without opening anything — and because the
+              difference is worth advertising: Creative is not a label, it
+              widens the sampling distribution and asks for range. */}
+          <div
+            role="radiogroup"
+            aria-label="Mode"
+            className="ctl-h flex shrink-0 items-center rounded-full bg-inset p-0.5"
+          >
+            {MODES.map((m) => {
+              const on = m.id === mode;
+              return (
+                <Tooltip key={m.id} label={m.blurb}>
+                  <button
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => onModeChange(m.id)}
+                    className={cn(
+                      "btn-touch focus-inset rounded-full px-3 py-1 text-sm transition-colors duration-[var(--dur-fast)]",
+                      on
+                        ? "bg-surface font-medium text-primary shadow-[var(--shadow-sm)]"
+                        : "text-tertiary hover:text-primary",
+                    )}
+                  >
+                    {m.label}
+                  </button>
+                </Tooltip>
+              );
+            })}
+          </div>
 
           <input
             ref={fileRef}

@@ -49,6 +49,8 @@ createServer(async (req, res) => {
     turns: (body.messages ?? []).length,
     cachedBlocks: JSON.stringify(body).split('"cache_control"').length - 1,
     system: typeof body.system,
+    temperature: body.temperature,
+    topP: body.top_p,
     // The system prompt as it actually arrived, flattened across both shapes
     // the adapter can send it in. A test that asks the app what it thinks it
     // sent proves nothing; this is the wire.

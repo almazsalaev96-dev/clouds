@@ -5,6 +5,7 @@ import { persist } from "zustand/middleware";
 import type { ModelParams, ProviderId } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 import { DEFAULT_STYLE_ID } from "./styles";
+import { DEFAULT_MODE } from "./modes";
 
 /**
  * Storage keys are deliberately not the product name.
@@ -42,8 +43,7 @@ adoptLegacyStorage(DRAFTS_KEY, "drafts");
 
 export type Theme = "light" | "dark" | "system";
 export type Density = "compact" | "comfortable" | "spacious";
-export type Section =
-  | "chat" | "projects" | "code" | "notes" | "cards" | "papers" | "practice";
+export type Section = "chat" | "code" | "projects" | "notebook";
 
 interface Settings {
   theme: Theme;
@@ -55,6 +55,8 @@ interface Settings {
   systemPrompt: string;
   /** The response style new chats start with. Threads can override it. */
   styleId: string;
+  /** Chat or Creative, likewise. */
+  mode: string;
   /** What to call you. Used in the greeting; stays in this browser. */
   name: string;
   /** Whether the blank page has asked yet. It asks once. */
@@ -76,6 +78,7 @@ interface Settings {
   setModel: (id: string) => void;
   setSystemPrompt: (s: string) => void;
   setStyle: (id: string) => void;
+  setMode: (id: string) => void;
   toggleSidebar: () => void;
   setSidebar: (open: boolean) => void;
   setKey: (p: ProviderId, key: string) => void;
@@ -101,6 +104,7 @@ export const useSettings = create<Settings>()(
       modelId: DEFAULT_MODEL_ID,
       systemPrompt: "",
       styleId: DEFAULT_STYLE_ID,
+      mode: DEFAULT_MODE,
       name: "",
       nameAsked: false,
       sidebarOpen: true,
@@ -123,6 +127,7 @@ export const useSettings = create<Settings>()(
         })),
       setSystemPrompt: (systemPrompt) => set({ systemPrompt }),
       setStyle: (styleId) => set({ styleId }),
+      setMode: (mode) => set({ mode }),
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
       setSidebar: (sidebarOpen) => set({ sidebarOpen }),
       setKey: (p, key) => set((s) => ({ keys: { ...s.keys, [p]: key } })),

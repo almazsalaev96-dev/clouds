@@ -83,11 +83,25 @@ export function Mark({ size = 20, className }: { size?: number; className?: stri
   );
 }
 
-/** The sidebar header. Just the signature; it does not need a mark beside it. */
+/**
+ * The sidebar header.
+ *
+ * Not the signature. A copperplate script is all hairlines and joins, and at
+ * the 30px a sidebar gives it those joins fall below a pixel — it stopped
+ * being a name and became a squiggle. So the corner gets the initial, which
+ * survives at that size, beside the word set in the book face. The signature
+ * keeps the blank page, where it is big enough to read as one.
+ */
 export function Lockup({ className }: { className?: string }) {
   return (
-    <span className={cn("flex items-center text-primary", className)}>
-      <Wordmark height={30} />
+    <span className={cn("flex items-center gap-1.5 text-primary", className)}>
+      <Mark size={20} />
+      <span
+        className="display text-[1.35rem] leading-none"
+        style={{ letterSpacing: "-0.005em" }}
+      >
+        Armi
+      </span>
     </span>
   );
 }

@@ -5,16 +5,16 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { PanelLeft } from "lucide-react";
 import type { ContentBlock, Message } from "@/lib/types";
 import {
-  createConversation, createDeck, createNote, createPaper, db, deepestLeaf,
-  deleteConversation, exportMarkdown, pathTo, addMessage, blockText,
-  createCanvas, createProject, filesOf,
+  createConversation, createNote, db, deepestLeaf, deleteConversation,
+  exportMarkdown, pathTo, addMessage, blockText, createCanvas, createProject,
+  filesOf,
 } from "@/lib/db";
 import { composeSystemPrompt } from "@/lib/prompt";
 import { findStyle } from "@/lib/styles";
+import { findMode } from "@/lib/modes";
 import { estimateTokens, getModel } from "@/lib/models";
 import { fitToContext } from "@/lib/context";
-import { cheapestAvailable, complete, generateCards } from "@/lib/generate";
-import { newCard } from "@/lib/study";
+import { cheapestAvailable, complete } from "@/lib/generate";
 import { useSettings, useDrafts, paramsFor, type Section } from "@/lib/store";
 import { useStream } from "@/lib/hooks/useStream";
 import { inOverlay } from "@/lib/utils";
@@ -22,10 +22,7 @@ import { offerUndo } from "@/lib/undo";
 import { Sidebar } from "@/components/Sidebar";
 import { CanvasView } from "@/components/CanvasView";
 import { ProjectsView } from "@/components/ProjectsView";
-import { NotesView, saveToNote } from "@/components/NotesView";
-import { CardsView } from "@/components/CardsView";
-import { PapersView } from "@/components/PapersView";
-import { PracticeView } from "@/components/PracticeView";
+import { NotebookView, saveToNote } from "@/components/NotebookView";
 import { ShortcutsOverlay } from "@/components/ShortcutsOverlay";
 import { InlineError } from "@/components/chat/Message";
 import { TopBar } from "@/components/chat/TopBar";
@@ -98,9 +95,6 @@ export default function Page() {
   const [canvasId, setCanvasId] = React.useState<string | null>(null);
   const [projectId, setProjectId] = React.useState<string | null>(null);
   const [noteId, setNoteId] = React.useState<string | null>(null);
-  const [deckId, setDeckId] = React.useState<string | null>(null);
-  const [paperId, setPaperId] = React.useState<string | null>(null);
-  const [skillId, setSkillId] = React.useState<string | null>(null);
   const [comparing, setComparing] = React.useState<{
     parentId: string;
     history: Message[];
@@ -213,6 +207,7 @@ export default function Page() {
   const threadModelId = conversation?.modelId ?? settings.modelId;
   const threadPrompt = conversation?.systemPrompt ?? settings.systemPrompt;
   const threadStyleId = conversation?.styleId ?? settings.styleId;
+  const threadMode = conversation?.mode ?? settings.mode;
 
   const runTurn = React.useCallback(
     async (conversationId: string, parentId: string | null, history: Message[], modelId: string) => {
@@ -224,11 +219,13 @@ export default function Page() {
       const project = conv?.projectId ? await db.projects.get(conv.projectId) : undefined;
       const files = project ? await filesOf(project.id) : [];
       const style = findStyle(conv?.styleId ?? settings.styleId, customStyles);
+      const mode = findMode(conv?.mode ?? settings.mode);
       const composed = composeSystemPrompt({
         base: conv?.systemPrompt ?? settings.systemPrompt,
         project,
         files,
         style,
+        mode,
       });
       await stream.send({
         conversationId,
@@ -236,9 +233,10 @@ export default function Page() {
         modelId,
         history,
         systemPrompt: composed.text || undefined,
+        params: mode.params,
       });
     },
-    [stream, settings.systemPrompt, settings.styleId, customStyles],
+    [stream, settings.systemPrompt, settings.styleId, settings.mode, customStyles],
   );
 
   /** Same rule as the model: the open thread owns it, the app holds the default. */
@@ -246,6 +244,15 @@ export default function Page() {
     (id: string) => {
       settings.setStyle(id);
       if (activeId) void db.conversations.update(activeId, { styleId: id });
+    },
+    [settings, activeId],
+  );
+
+  /** Same rule again: the open thread owns it, the app holds the default. */
+  const setMode = React.useCallback(
+    (id: string) => {
+      settings.setMode(id);
+      if (activeId) void db.conversations.update(activeId, { mode: id });
     },
     [settings, activeId],
   );
@@ -272,6 +279,7 @@ export default function Page() {
         const created = await createConversation({
           modelId: settings.modelId,
           styleId: settings.styleId,
+          mode: settings.mode,
         });
         convId = created.id;
         leaf = null;
@@ -384,6 +392,7 @@ export default function Page() {
         modelId: settings.modelId,
         projectId: pid,
         styleId: settings.styleId,
+        mode: settings.mode,
       });
       setActiveId(conv.id);
       settings.setSection("chat");
@@ -401,10 +410,7 @@ export default function Page() {
       closeDrawerOnMobile();
       if (target === "projects") setProjectId(null);
       if (target === "code") setCanvasId(null);
-      if (target === "notes") setNoteId(null);
-      if (target === "cards") setDeckId(null);
-      if (target === "papers") setPaperId(null);
-      if (target === "practice") setSkillId(null);
+      if (target === "notebook") setNoteId(null);
     },
     [settings, closeDrawerOnMobile],
   );
@@ -415,12 +421,7 @@ export default function Page() {
       if (section === "chat") return newChat();
       if (section === "projects") return setProjectId((await createProject()).id);
       if (section === "code") return setCanvasId((await createCanvas()).id);
-      if (section === "notes") return setNoteId((await createNote()).id);
-      if (section === "cards") return setDeckId((await createDeck("New deck")).id);
-      // Practice has no blank state worth creating: a skill without traps
-      // cannot be practised, so New goes through the seed sheet instead.
-      if (section === "practice") return setSkillId(null);
-      setPaperId((await createPaper()).id);
+      setNoteId((await createNote()).id);
     },
     [closeDrawerOnMobile, newChat],
   );
@@ -433,10 +434,7 @@ export default function Page() {
         settings.setSection("chat");
       } else if (section === "projects") setProjectId(id);
       else if (section === "code") setCanvasId(id);
-      else if (section === "notes") setNoteId(id);
-      else if (section === "cards") setDeckId(id);
-      else if (section === "practice") setSkillId(id);
-      else setPaperId(id);
+      else setNoteId(id);
     },
     [closeDrawerOnMobile, settings],
   );
@@ -478,33 +476,8 @@ export default function Page() {
     [activeId, settings, closeDrawerOnMobile],
   );
 
-  const [studyBusy, setStudyBusy] = React.useState(false);
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
-
-  /** A whole conversation is often the study material, not one answer in it. */
-  const conversationToCards = React.useCallback(async () => {
-    if (!path.length) return;
-    setStudyBusy(true);
-    setNotice(null);
-    const source = path
-      .map((m) => `${m.role === "user" ? "Q" : "A"}: ${blockText(m.content)}`)
-      .join("\n\n");
-    const drafts = await generateCards(source, { modelId: cheapestAvailable(configured), count: 12 });
-    setStudyBusy(false);
-    if (!drafts?.length) {
-      setNotice(
-        "Couldn't turn this conversation into cards. Check the API key for the model, or try again once there's more in the thread.",
-      );
-      return;
-    }
-    const deck = await createDeck(conversation?.title || "From a conversation", {
-      sourceConversationId: activeId ?? undefined,
-    });
-    await db.cards.bulkAdd(drafts.map((c) => newCard(deck.id, c.front, c.back)));
-    setDeckId(deck.id);
-    settings.setSection("cards");
-  }, [path, configured, conversation?.title, activeId, settings]);
 
   const conversationToNote = React.useCallback(async () => {
     if (!path.length) return;
@@ -516,7 +489,7 @@ export default function Page() {
       activeId ?? undefined,
     );
     setNoteId(note.id);
-    settings.setSection("notes");
+    settings.setSection("notebook");
   }, [path, conversation?.title, activeId, settings]);
 
   /** Lift an answer out of the conversation and into something you keep. */
@@ -598,10 +571,7 @@ export default function Page() {
         if (tag === "INPUT" || tag === "TEXTAREA") return;
         if (settings.section === "projects" && projectId) setProjectId(null);
         else if (settings.section === "code" && canvasId) setCanvasId(null);
-        else if (settings.section === "notes" && noteId) setNoteId(null);
-        else if (settings.section === "cards" && deckId) setDeckId(null);
-        else if (settings.section === "papers" && paperId) setPaperId(null);
-        else if (settings.section === "practice" && skillId) setSkillId(null);
+        else if (settings.section === "notebook" && noteId) setNoteId(null);
         else if (stream.phase !== "idle") stream.stop();
         return;
       }
@@ -618,13 +588,11 @@ export default function Page() {
         case "2":
         case "3":
         case "4":
-        case "5":
-        case "6":
-        case "7": {
+        case "4": {
           e.preventDefault();
           // The order the sidebar shows them in, so the number you press is
           // the position you can see rather than one you have to remember.
-          const sections = ["chat", "projects", "code", "notes", "cards", "papers", "practice"] as const;
+          const sections = ["chat", "code", "projects", "notebook"] as const;
           goToSection(sections[Number(e.key) - 1]);
           break;
         }
@@ -658,7 +626,7 @@ export default function Page() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [createInSection, goToSection, path, settings, stream, canvasId, noteId, deckId, paperId, skillId]);
+  }, [createInSection, goToSection, path, settings, stream, canvasId, noteId, projectId]);
 
   const openKeys = React.useCallback(() => {
     setSettingsTab("keys");
@@ -699,6 +667,8 @@ export default function Page() {
       modelPickerOpen={modelPickerOpen}
       onModelPickerOpenChange={setModelPickerOpen}
       onModelChange={setModel}
+      mode={threadMode}
+      onModeChange={setMode}
       styleId={threadStyleId}
       customStyles={customStyles}
       onStyleChange={setStyle}
@@ -757,46 +727,12 @@ export default function Page() {
                   onBack={() => setCanvasId(null)}
                 />
               )}
-              {settings.section === "notes" && (
-                <NotesView
+              {settings.section === "notebook" && (
+                <NotebookView
                   noteId={noteId}
-                  configured={configured}
                   onSelect={setNoteId}
-                  onNew={() => void createInSection("notes")}
+                  onNew={() => void createInSection("notebook")}
                   onBack={() => setNoteId(null)}
-                  onOpenDeck={(id) => {
-                    setDeckId(id);
-                    settings.setSection("cards");
-                  }}
-                  onOpenPaper={(id) => {
-                    setPaperId(id);
-                    settings.setSection("papers");
-                  }}
-                />
-              )}
-              {settings.section === "cards" && (
-                <CardsView
-                  deckId={deckId}
-                  onSelect={setDeckId}
-                  onNew={() => void createInSection("cards")}
-                  onBack={() => setDeckId(null)}
-                />
-              )}
-              {settings.section === "practice" && (
-                <PracticeView
-                  skillId={skillId}
-                  configured={configured}
-                  onSelect={setSkillId}
-                  onBack={() => setSkillId(null)}
-                />
-              )}
-              {settings.section === "papers" && (
-                <PapersView
-                  paperId={paperId}
-                  configured={configured}
-                  onSelect={setPaperId}
-                  onNew={() => void createInSection("papers")}
-                  onBack={() => setPaperId(null)}
                 />
               )}
             </>
@@ -825,8 +761,6 @@ export default function Page() {
             }}
             onOpenProject={(pid) => selectInSection("projects", pid)}
             onSaveAsNote={conversationToNote}
-            onMakeCards={conversationToCards}
-            busy={studyBusy}
           />
 
           {showEmpty ? (
@@ -892,7 +826,7 @@ export default function Page() {
               <div className="mx-auto w-full max-w-[var(--measure)]">
                 {composer}
                 <p className="mt-2 text-center text-xs text-faint">
-                  Models make mistakes. Check anything that matters.
+                  May make mistakes. Check anything that matters.
                 </p>
               </div>
             </div>

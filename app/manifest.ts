@@ -11,7 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Armi",
     short_name: "Armi",
     description:
-      "One interface for Claude, GPT, Gemini and DeepSeek — and the notes, cards and papers that come out of them.",
+      "One interface for Claude, GPT, Gemini and DeepSeek — and the projects, web apps and notebook that come out of them.",
     start_url: "/",
     display: "standalone",
     orientation: "any",

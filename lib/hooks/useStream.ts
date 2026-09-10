@@ -124,6 +124,8 @@ export function useStream(onFinish?: (m: Message) => void) {
       modelId: string;
       history: Message[];
       systemPrompt?: string;
+      /** A mode's sampling overrides, layered over the model's own. */
+      params?: Partial<import("../types").ModelParams>;
       /** False while comparing: the column writes, the user chooses. */
       advanceLeaf?: boolean;
     }) => {
@@ -156,7 +158,7 @@ export function useStream(onFinish?: (m: Message) => void) {
       /* Trim to what the window can hold before asking. Sending a thread that
          cannot fit and letting the provider reject it wastes a round trip and
          hands back an error instead of an answer. */
-      const params = paramsFor(opts.modelId);
+      const params = { ...paramsFor(opts.modelId), ...(opts.params ?? {}) };
       const fitted = fitToContext(opts.history, model, params, opts.systemPrompt ?? "");
 
       try {

@@ -3,27 +3,25 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  ChevronRight, Code2, FileText, FolderOpen, Keyboard, Layers, PanelLeft, Pin,
-  PinOff, Plus, Printer, Search, Settings2, Target, Trash2, X,
+  ChevronRight, Code2, FolderOpen, Keyboard, NotebookPen, PanelLeft, Pin,
+  PinOff, Plus, Search, Settings2, Trash2, X,
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
-import { db, deleteConversation, dueTraps, groupConversations } from "@/lib/db";
+import { db, deleteConversation, groupConversations } from "@/lib/db";
 import { useDebounced } from "@/lib/hooks/useDebounced";
 import { usePointerAngle } from "@/lib/hooks/usePointerAngle";
 import { Lockup } from "@/components/brand/Logo";
 import { offerUndo } from "@/lib/undo";
-import { dueCount } from "@/lib/study";
 import { useSettings, type Section } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { IconButton, Kbd, Tooltip } from "@/components/ui/primitives";
 
+/* Code first: it is the one you go to with something already in mind, and the
+   one that used to be four rows down. */
 const SECTIONS: { id: Exclude<Section, "chat">; label: string; icon: React.ReactNode }[] = [
-  { id: "projects", label: "Projects", icon: <FolderOpen size={15} /> },
   { id: "code", label: "Code", icon: <Code2 size={15} /> },
-  { id: "notes", label: "Notes", icon: <FileText size={15} /> },
-  { id: "cards", label: "Cards", icon: <Layers size={15} /> },
-  { id: "papers", label: "Papers", icon: <Printer size={15} /> },
-  { id: "practice", label: "Practice", icon: <Target size={15} /> },
+  { id: "projects", label: "Projects", icon: <FolderOpen size={15} /> },
+  { id: "notebook", label: "Notebook", icon: <NotebookPen size={15} /> },
 ];
 
 export function Sidebar({
@@ -44,10 +42,6 @@ export function Sidebar({
   const { sidebarOpen, toggleSidebar, section, name } = useSettings();
   const markRef = usePointerAngle<HTMLSpanElement>();
   const [query, setQuery] = React.useState("");
-  const cards = useLiveQuery(() => db.cards.toArray(), [], []);
-  const traps = useLiveQuery(() => db.traps.toArray(), [], []);
-  const due = dueCount(cards ?? []);
-  const trapsDue = dueTraps(traps ?? []).length;
 
   return (
     <>
@@ -130,11 +124,6 @@ export function Sidebar({
                   {s.icon}
                 </span>
                 {s.label}
-                {((s.id === "cards" && due > 0) || (s.id === "practice" && trapsDue > 0)) && (
-                  <span className="ml-auto rounded-full border border-[var(--highlight-edge)] bg-[var(--highlight)] px-1.5 text-xs font-semibold text-[var(--highlight-fg)] tnum">
-                    {s.id === "cards" ? due : trapsDue}
-                  </span>
-                )}
               </button>
             ))}
           </nav>

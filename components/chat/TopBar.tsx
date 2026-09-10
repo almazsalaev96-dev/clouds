@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
-  Archive, ArchiveRestore, Check, Download, FolderOpen, Layers, MoreHorizontal,
+  Archive, ArchiveRestore, Check, Download, FolderOpen, MoreHorizontal,
   NotebookPen, PanelLeft, Pin, PinOff, Trash2,
 } from "lucide-react";
 import type { Conversation, Project } from "@/lib/types";
@@ -21,11 +21,9 @@ export function TopBar({
   onTogglePin,
   onToggleArchive,
   onSaveAsNote,
-  onMakeCards,
   projects,
   onMoveToProject,
   onOpenProject,
-  busy,
 }: {
   conversation: Conversation | null;
   scrolled: boolean;
@@ -35,12 +33,10 @@ export function TopBar({
   onTogglePin: () => void;
   onToggleArchive: () => void;
   onSaveAsNote: () => void;
-  onMakeCards: () => void;
   projects: Project[];
   /** null takes the conversation out of whatever project it is in. */
   onMoveToProject: (projectId: string | null) => void;
   onOpenProject: (projectId: string) => void;
-  busy: boolean;
 }) {
   const { sidebarOpen, toggleSidebar } = useSettings();
   const [editing, setEditing] = React.useState(false);
@@ -168,9 +164,6 @@ export function TopBar({
                 )}
                 <Item onSelect={onSaveAsNote} icon={<NotebookPen size={14} />}>
                   Save as a note
-                </Item>
-                <Item onSelect={onMakeCards} icon={<Layers size={14} />}>
-                  {busy ? "Making flashcards…" : "Make flashcards"}
                 </Item>
                 {/* Between keeping and deleting. A conversation you are done
                     with but do not want to lose does not belong in a list you

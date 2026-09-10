@@ -5,7 +5,7 @@ import "katex/dist/katex.min.css";
 export const metadata: Metadata = {
   title: "Armi",
   description:
-    "One interface for Claude, GPT, Gemini and DeepSeek — and the notes, cards and papers that come out of them.",
+    "One interface for Claude, GPT, Gemini and DeepSeek — and the projects, web apps and notebook that come out of them.",
 };
 
 export const viewport: Viewport = {
