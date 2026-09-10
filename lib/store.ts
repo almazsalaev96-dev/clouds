@@ -52,6 +52,15 @@ interface Settings {
   /** Where you were. Restored on load, so a reload does not lose your place. */
   lastConversationId: string | null;
   modelId: string;
+  /**
+   * Which model rewrites a canvas or a notebook page.
+   *
+   * Null means "whichever is cheapest that has a key", which is what the app
+   * used to do silently — a reasonable default and a bad secret, since the
+   * thing being chosen for you is what edits your file. Now it is shown on the
+   * bar and it is yours to change.
+   */
+  reviseModelId: string | null;
   systemPrompt: string;
   /** The response style new chats start with. Threads can override it. */
   styleId: string;
@@ -82,6 +91,7 @@ interface Settings {
   toggleSidebar: () => void;
   setSidebar: (open: boolean) => void;
   setKey: (p: ProviderId, key: string) => void;
+  setReviseModel: (id: string | null) => void;
   setParams: (modelId: string, p: Partial<ModelParams>) => void;
   toggleFavorite: (id: string) => void;
   set: (partial: Partial<Settings>) => void;
@@ -102,6 +112,7 @@ export const useSettings = create<Settings>()(
       section: "chat",
       lastConversationId: null,
       modelId: DEFAULT_MODEL_ID,
+      reviseModelId: null,
       systemPrompt: "",
       styleId: DEFAULT_STYLE_ID,
       mode: DEFAULT_MODE,
@@ -125,6 +136,7 @@ export const useSettings = create<Settings>()(
           modelId,
           recentModels: [modelId, ...s.recentModels.filter((m) => m !== modelId)].slice(0, 5),
         })),
+      setReviseModel: (reviseModelId) => set({ reviseModelId }),
       setSystemPrompt: (systemPrompt) => set({ systemPrompt }),
       setStyle: (styleId) => set({ styleId }),
       setMode: (mode) => set({ mode }),

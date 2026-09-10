@@ -2,15 +2,20 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Download, Eye, Pencil } from "lucide-react";
+import { Download, Eye, ListTree, Pencil, Scissors, SpellCheck2 } from "lucide-react";
 import type { Note } from "@/lib/types";
 import { db, deleteNote, deriveTitle } from "@/lib/db";
 import { offerUndo } from "@/lib/undo";
 import { useAutoGrow } from "@/lib/hooks/useAutoGrow";
 import { useAutosave } from "@/lib/hooks/useAutosave";
+import { reviseCanvas } from "@/lib/generate";
 import { Markdown } from "@/components/chat/Markdown";
+import { MessageBar } from "@/components/chat/MessageBar";
+import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
+import { DiffView } from "@/components/CanvasView";
 import { Button, SaveBadge } from "@/components/ui/primitives";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
+import { cn } from "@/lib/utils";
 
 /**
  * The notebook.
@@ -19,14 +24,22 @@ import { DetailBar, SectionIndex } from "@/components/SectionIndex";
  * and no block menu, because the same text has to survive being sent to a
  * model, exported, and read back a year later — and markdown is the only
  * format that does all three without a converter in between.
+ *
+ * It has the same box at the bottom as every other room. It used to be the one
+ * place in the app where there was nothing to type into — you could write a
+ * page here and you could send it nowhere, which made the notebook the only
+ * room where the model was not in the room. A revision arrives the way it does
+ * on a canvas: as the page, with a diff, kept or discarded.
  */
 export function NotebookView({
   noteId,
+  configured,
   onSelect,
   onNew,
   onBack,
 }: {
   noteId: string | null;
+  configured: Record<string, boolean>;
   onSelect: (id: string) => void;
   onNew: () => void;
   onBack: () => void;
@@ -37,6 +50,11 @@ export function NotebookView({
   const note = useLiveQuery(() => (noteId ? db.notes.get(noteId) : undefined), [noteId]);
   const [preview, setPreview] = React.useState(false);
   const [draft, setDraft] = React.useState("");
+  const [instruction, setInstruction] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [proposal, setProposal] = React.useState<{ content: string; note: string } | null>(null);
+  const [notice, setNotice] = React.useState<string | null>(null);
+  const reviseModel = useReviseModel(configured);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const loadedFor = React.useRef<string | null>(null);
 
@@ -49,6 +67,9 @@ export function NotebookView({
       loadedFor.current = note.id;
       setDraft(note.content);
       setPreview(false);
+      setProposal(null);
+      setNotice(null);
+      setInstruction("");
       requestAnimationFrame(() => textareaRef.current?.focus());
     }
   }, [note]);
@@ -63,6 +84,39 @@ export function NotebookView({
   const onChange = (value: string) => {
     setDraft(value);
     if (note) autosave.save(note.id, { content: value, title: deriveTitle(value, "") });
+  };
+
+  /* The same revise the canvas does, on the same terms: the draft rather than
+     the saved copy, because revising a version you can see and the model
+     cannot is the fastest way to lose an edit. */
+  const run = async (text: string) => {
+    if (!text.trim() || busy || !note) return;
+    const modelId = reviseModel;
+    if (!modelId) {
+      setNotice("No key configured yet — add one in Settings to ask for a revision.");
+      return;
+    }
+    setBusy(true);
+    setNotice(null);
+    try {
+      const out = await reviseCanvas(draft, text, "doc", undefined, modelId);
+      if (!out) setNotice("The model didn't return a usable revision. Try saying it differently.");
+      else if (out.trim() === draft.trim())
+        setNotice("It came back unchanged — the instruction may not apply here.");
+      else setProposal({ content: out, note: text });
+    } catch {
+      setNotice("That request failed. Check the key and the connection.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const accept = () => {
+    if (!proposal || !note) return;
+    setDraft(proposal.content);
+    autosave.save(note.id, { content: proposal.content, title: deriveTitle(proposal.content, "") });
+    setProposal(null);
+    setInstruction("");
   };
 
   const exportMarkdown = () => {
@@ -129,29 +183,103 @@ export function NotebookView({
       </DetailBar>
 
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-4">
-          {preview ? (
-            draft.trim() ? (
-              <Markdown content={draft} />
-            ) : (
-              <p className="text-sm text-tertiary">Nothing to preview yet.</p>
-            )
-          ) : (
-            <textarea
-              ref={textareaRef}
-              value={draft}
-              onChange={(e) => onChange(e.target.value)}
-              placeholder={"# Title\n\nStart writing. Markdown works — headings, lists, tables, code, $math$."}
-              spellCheck
-              // Field-sizing keeps the box exactly as tall as the text, so the
-              // page scrolls rather than a box inside the page.
-              className="min-h-[60vh] w-full resize-none overflow-hidden bg-transparent font-sans text-base leading-[1.65] text-primary outline-none placeholder:text-tertiary"
-            />
-          )}
-        </div>
-      </div>
+      {proposal ? (
+        <DiffView
+          before={draft}
+          after={proposal.content}
+          note={proposal.note}
+          onAccept={accept}
+          onReject={() => setProposal(null)}
+        />
+      ) : (
+        <>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-8 pt-4">
+              {preview ? (
+                draft.trim() ? (
+                  <Markdown content={draft} />
+                ) : (
+                  <p className="text-sm text-tertiary">Nothing to preview yet.</p>
+                )
+              ) : (
+                <textarea
+                  ref={textareaRef}
+                  value={draft}
+                  onChange={(e) => onChange(e.target.value)}
+                  placeholder={"# Title\n\nStart writing. Markdown works — headings, lists, tables, code, $math$."}
+                  spellCheck
+                  aria-label="Page content"
+                  // Field-sizing keeps the box exactly as tall as the text, so the
+                  // page scrolls rather than a box inside the page.
+                  className="min-h-[50vh] w-full resize-none overflow-hidden bg-transparent font-sans text-base leading-[1.65] text-primary outline-none placeholder:text-tertiary"
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="composer-dock shrink-0 px-4 pt-2">
+            <div className="mx-auto w-full max-w-[var(--measure)]">
+              {notice && (
+                <p className="mb-2 rounded-lg bg-subtle px-3 py-1.5 text-xs text-secondary">{notice}</p>
+              )}
+              <MessageBar
+                value={instruction}
+                onChange={setInstruction}
+                onSubmit={() => void run(instruction)}
+                busy={busy}
+                ariaLabel="Ask for a change"
+                placeholder="Ask for a change — “tighten the second section”"
+                above={
+                  <div
+                    className="flex flex-wrap items-center gap-1.5 px-3 pb-1 pt-3"
+                    role="group"
+                    aria-label="Shortcuts"
+                  >
+                    <NoteChip busy={busy} icon={<Scissors size={12} />} onClick={() => void run("Tighten this. Cut every word that is not doing work, and keep every fact.")}>
+                      Tighten
+                    </NoteChip>
+                    <NoteChip busy={busy} icon={<SpellCheck2 size={12} />} onClick={() => void run("Fix the spelling, grammar and punctuation. Change nothing else — not the wording, not the structure.")}>
+                      Proofread
+                    </NoteChip>
+                    <NoteChip busy={busy} icon={<ListTree size={12} />} onClick={() => void run("Add headings and a little structure where the page has grown long enough to need them. Do not rewrite the prose.")}>
+                      Add structure
+                    </NoteChip>
+                  </div>
+                }
+                right={<RevisePicker configured={configured} />}
+              />
+            </div>
+          </div>
+        </>
+      )}
     </div>
+  );
+}
+
+/** The same chip the canvas uses, kept here so the notebook owns its own row. */
+function NoteChip({
+  children,
+  icon,
+  busy,
+  onClick,
+}: {
+  children: React.ReactNode;
+  icon: React.ReactNode;
+  busy: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={busy}
+      className={cn(
+        "tap focus-inset inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-xs text-secondary transition-colors duration-[var(--dur-fast)]",
+        "hover:border-line-strong hover:text-primary disabled:opacity-50",
+      )}
+    >
+      <span className="text-tertiary">{icon}</span>
+      {children}
+    </button>
   );
 }
 

@@ -503,12 +503,20 @@ textarea:focus-visible {
   .composer-dock {
     backdrop-filter: blur(12px);
   }
+  /* The box itself, not only the strip behind it. Docked under a transcript
+     the strip was doing the work and the box looked solid; on a blank page
+     there is no strip, and the same 76% fill sat over the background with
+     nothing behind it. One box everywhere means the same box in both. */
+  .composer-shell {
+    backdrop-filter: blur(20px) saturate(140%);
+  }
 }
 
 /* Where the blur is unsupported the translucency alone would let text show
    through and turn the bar into mush, so those browsers get an opaque bar. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass {
+  .glass,
+  .composer-shell {
     background: var(--bg-surface);
   }
 }
@@ -657,6 +665,7 @@ textarea:focus-visible {
   background: var(--composer-bg);
   border-color: var(--composer-line);
   box-shadow: var(--composer-lift);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
 }
 
 .composer-shell:focus-within {

@@ -114,6 +114,35 @@ is mapped back to `app.js:2`. A number that looks like a line number and is not
 is worse than no number, because people go to line 76 of the file they are in and
 find something innocent there.
 
+**One box, in every room.** There used to be two, and they disagreed about
+almost everything. Chat had a 28px-radius container with the text on its own
+line and the controls beneath it; a canvas had a 44px-tall pill with the send
+button floating outside it and no microphone at all; the notebook had nothing —
+you could write a page there and send it nowhere, which made it the one room
+the model was not in. They were all the same request wearing different faces,
+and moving between rooms meant re-learning where send lives.
+
+Now the shell, the typography, the growth, the keyboard, the microphone and the
+send button live in one component, and a room supplies only what is genuinely
+its own: what the placeholder says, and which controls belong on the row. Three
+slots, in the order they are read — a tray above the line for what is *about*
+the message (attachments in chat, one-press edits on a canvas), a left group
+that wraps, and a right group that never does.
+
+Two things came out of unifying it. The box turned out never to have had a blur
+of its own: docked under a transcript the strip behind it was doing that work,
+so it looked solid there and translucent-over-nothing on a blank page. And both
+the canvas and the notebook were choosing the model that rewrites your file
+silently — cheapest-with-a-key, which is a good default and a bad secret, since
+"why did it rewrite the whole thing" has a different answer depending on which
+model did it. It is on the bar now, and one press to change. A canvas also says
+which file it is about to change, which on a folder of three is a live question.
+
+The notebook got the whole loop, not just the box: ask for a change and the
+revision arrives as the page, with a diff, kept or discarded — the same promise
+a canvas makes, because nothing a model wrote should land in your file before
+you have seen what it touched.
+
 **Things you can make.** Asked for a timetable, an AI writes you a description
 of a timetable. Creative can hand you the timetable: five starters — flashcards,
 a timetable, a quiz, a checklist, a timer — that are not sketches but working
@@ -366,6 +395,16 @@ heading, and link URLs printed in full.
   preview counts, a `console.log` and an uncaught `ReferenceError` come back out
   with the error mapped to `app.js:2`, and `window.origin` inside the frame is
   `null` with `localStorage` throwing `SecurityError`.
+- The message bar measured in all three rooms (`e2e-bar.mjs`) rather than
+  compared by eye — two bars four pixels apart in radius look identical side by
+  side and wrong when you move between them. The browser is asked for the
+  shell's radius, border, fill, blur and shadow, the typing line's padding,
+  size, leading and family, and the send disc's size, radius and inset from the
+  corner, in chat, on a canvas and on a notebook page; all three have to match
+  exactly, at rest *and* focused. The first version of the test measured a
+  focused chat bar against two resting ones and reported a difference that was
+  the focus ring — the fix was to read both states, which is what "the same"
+  has to mean for something you click into.
 - Every starter opened, run, and *used* (`e2e-makes.mjs`) — a card flipped and
   the transform read back, an arrow pressed and the deck checked for having
   moved, a block clicked and its sheet closed with Escape, a quiz answered
@@ -499,6 +538,7 @@ node e2e-mode.mjs    # 14 assertions: Chat and Creative, read at the wire
 node e2e-pdf.mjs     #  9 assertions: a PDF read, a scan refused, both at the wire
 node e2e-editor.mjs  # 13 assertions: the code editor's two layers, measured
 node e2e-makes.mjs   # 33 assertions: every starter opened, run and actually used
+node e2e-bar.mjs     # 24 assertions: the message bar, measured in all three rooms
 node mock-slow.mjs &   # the mock with the gap between tokens stretched, then:
 node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs the slow mock)
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire

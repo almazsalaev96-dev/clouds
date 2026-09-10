@@ -758,6 +758,7 @@ export default function Page() {
               {settings.section === "notebook" && (
                 <NotebookView
                   noteId={noteId}
+                  configured={configured}
                   onSelect={setNoteId}
                   onNew={() => void createInSection("notebook")}
                   onBack={() => setNoteId(null)}

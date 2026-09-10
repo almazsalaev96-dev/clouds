@@ -4,7 +4,7 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   Braces, Bug, Check, Eye, FileCode2, FilePlus2, FileText, FileType2, History,
-  LayoutTemplate, MessageSquareCode, Palette, Pencil, Play, RotateCcw, Send,
+  LayoutTemplate, MessageSquareCode, Palette, Pencil, Play, RotateCcw,
   Terminal, X,
   CalendarRange, CheckCheck, ListChecks, Sparkles, Timer,
 } from "lucide-react";
@@ -15,10 +15,12 @@ import {
 } from "@/lib/db";
 import { offerUndo } from "@/lib/undo";
 import { useSettings } from "@/lib/store";
-import { cheapestAvailable, explainCode, reviseCanvas } from "@/lib/generate";
+import { explainCode, reviseCanvas } from "@/lib/generate";
 import { collapse, diffStat, lineDiff, type DiffOp } from "@/lib/diff";
 import { assembleWeb, ENTRY, locate, webTemplate } from "@/lib/web";
 import { MAKES } from "@/lib/makes";
+import { MessageBar } from "@/components/chat/MessageBar";
+import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
 import { cn } from "@/lib/utils";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useDebounced } from "@/lib/hooks/useDebounced";
@@ -252,6 +254,7 @@ function Editor({
      half-sentence the starter belongs to, with the caret after it. A blank box
      under a working demo asks "now what"; a sentence to finish answers it. */
   const [instruction, setInstruction] = React.useState(seed ?? "");
+  const reviseModel = useReviseModel(configured);
   const [busy, setBusy] = React.useState<false | "revise" | "explain">(false);
   const [proposal, setProposal] = React.useState<{ content: string; note: string } | null>(null);
   const [report, setReport] = React.useState<string | null>(null);
@@ -317,7 +320,7 @@ function Editor({
 
   const run = async (text: string) => {
     if (!text.trim() || busy) return;
-    const modelId = cheapestAvailable(configured);
+    const modelId = reviseModel;
     if (!modelId) {
       setNotice("No key configured yet — add one in Settings to ask for a revision.");
       return;
@@ -341,7 +344,7 @@ function Editor({
   };
 
   const explain = async () => {
-    const modelId = cheapestAvailable(configured);
+    const modelId = reviseModel;
     if (!modelId) {
       setNotice("No key configured yet — add one in Settings.");
       return;
@@ -556,45 +559,48 @@ function Editor({
             <Report text={report} column={column} onClose={() => setReport(null)} />
           )}
 
-          {/* Asking for a change is the point of the room, so it sits where
-              the composer sits everywhere else in the app. */}
+          {/* Asking for a change is the point of the room, and it is the same
+              act as asking anything else — so it is the same box, with this
+              room's controls in it rather than chat's. The one-press edits go
+              in the tray above the line, where chat keeps its attachments:
+              both are about the message rather than in it. */}
           {!proposal && (
             <div className="composer-dock shrink-0 px-4 pt-2">
               <div className={cn("mx-auto w-full", column)}>
-                <Shortcuts
-                  kind={canvas.kind}
-                  busy={busy}
-                  onRun={run}
-                  onExplain={explain}
-                  lang={doc.lang}
+                <MessageBar
+                  value={instruction}
+                  onChange={setInstruction}
+                  onSubmit={() => void run(instruction)}
+                  busy={busy === "revise"}
+                  canSend={!busy}
+                  ariaLabel="Ask for a change"
+                  placeholder={
+                    canvas.kind === "doc"
+                      ? "Ask for a change — “tighten the second section”"
+                      : "Ask for a change — “add retry with backoff”"
+                  }
+                  above={
+                    <Shortcuts
+                      kind={canvas.kind}
+                      busy={busy}
+                      onRun={run}
+                      onExplain={explain}
+                      lang={doc.lang}
+                    />
+                  }
+                  left={
+                    /* Which file is about to change. On a folder of three that
+                       is a live question, and answering it in the box you are
+                       typing the instruction into is the only place it helps. */
+                    web && doc.name ? (
+                      <span className="flex items-center gap-1.5 px-2 text-sm text-tertiary">
+                        <FileMark lang={doc.lang ?? "txt"} />
+                        <span className="truncate font-mono text-xs">{doc.name}</span>
+                      </span>
+                    ) : null
+                  }
+                  right={<RevisePicker configured={configured} />}
                 />
-                <div className="flex w-full items-end gap-2">
-                  <input
-                    value={instruction}
-                    onChange={(e) => setInstruction(e.target.value)}
-                    onKeyDown={(e) =>
-                      e.key === "Enter" && !e.shiftKey && (e.preventDefault(), void run(instruction))
-                    }
-                    placeholder={
-                      canvas.kind === "doc"
-                        ? "Ask for a change — “tighten the second section”"
-                        : "Ask for a change — “add retry with backoff”"
-                    }
-                    aria-label="Ask for a change"
-                    className="composer-shell focus-inset h-11 min-w-0 flex-1 rounded-full border px-4 text-[15px] text-primary outline-none placeholder:text-tertiary"
-                  />
-                  <button
-                    onClick={() => void run(instruction)}
-                    disabled={Boolean(busy) || !instruction.trim()}
-                    /* Not "Ask for a change" — that is the box's name, and two
-                       controls with one name is a screen reader reading the
-                       same words twice with no way to tell which is which. */
-                    aria-label="Send the request"
-                    className="bloom focus-inset flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--cta)] text-[var(--cta-fg)] transition-colors disabled:bg-subtle disabled:text-faint"
-                  >
-                    {busy === "revise" ? <span className="think-orb" aria-hidden /> : <Send size={17} />}
-                  </button>
-                </div>
               </div>
             </div>
           )}
@@ -618,7 +624,10 @@ function Editor({
 
 /* ------------------------------------------------------------------ diff -- */
 
-function DiffView({
+/* Exported: the notebook shows a revision the same way, because it is the
+   same promise — nothing a model wrote lands in your file until you have seen
+   what it touched. */
+export function DiffView({
   before,
   after,
   note,
@@ -806,9 +815,16 @@ function Shortcuts({
   );
 }
 
+/* The tray inside the box, above the line you type on — the same slot chat
+   uses for attachments, and padded the same, so the whole thing reads as one
+   object rather than a strip balanced on top of another one. */
 function Row({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-2 flex flex-wrap items-center gap-1.5" role="group" aria-label="Shortcuts">
+    <div
+      className="flex flex-wrap items-center gap-1.5 px-3 pb-1 pt-3"
+      role="group"
+      aria-label="Shortcuts"
+    >
       {children}
     </div>
   );

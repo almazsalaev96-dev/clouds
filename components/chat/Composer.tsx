@@ -3,19 +3,19 @@
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
-  ArrowUp, Brain, Check, FileText, MessageSquare, Mic, Paperclip, Palette, Plus,
-  SlidersHorizontal, Sparkles, Square, X,
+  Brain, Check, FileText, MessageSquare, Paperclip, Palette, Plus,
+  SlidersHorizontal, Sparkles, X,
 } from "lucide-react";
 import type { ContentBlock, Style } from "@/lib/types";
 import { getModel, estimateTokens, formatTokens, MODELS } from "@/lib/models";
 import { paramsFor } from "@/lib/store";
 import { ModelPicker } from "./ModelPicker";
+import { MessageBar } from "./MessageBar";
 import { fileToBase64, formatBytes, cn } from "@/lib/utils";
 import { isPdf, pdfBlock } from "@/lib/pdf";
 import { useSettings, useDrafts } from "@/lib/store";
 import { allStyles, findStyle, DEFAULT_STYLE_ID } from "@/lib/styles";
 import { MODES, findMode } from "@/lib/modes";
-import { useDictation } from "@/lib/hooks/useDictation";
 import { Tooltip } from "@/components/ui/primitives";
 import { ProviderMark } from "@/components/ui/ProviderMark";
 
@@ -89,7 +89,6 @@ export function Composer({
   const [attachments, setAttachments] = React.useState<Attachment[]>([]);
   const [dragging, setDragging] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [plusOpen, setPlusOpen] = React.useState(false);
   const [toolsOpen, setToolsOpen] = React.useState(false);
@@ -109,34 +108,12 @@ export function Composer({
   const text = drafts.drafts[conversationId] ?? "";
   const setText = (v: string) => drafts.setDraft(conversationId, v);
 
-  const dictation = useDictation(
-    React.useCallback(
-      (phrase: string) => {
-        const current = useDrafts.getState().drafts[conversationId] ?? "";
-        drafts.setDraft(conversationId, current ? `${current} ${phrase}` : phrase);
-      },
-      [conversationId, drafts],
-    ),
-  );
   const dragDepth = React.useRef(0);
 
-  /* --- Auto-grow. The composer grows upward; the page never shifts. -------- */
-  const resize = React.useCallback(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, window.innerHeight * 0.4)}px`;
-  }, []);
-
-  React.useEffect(resize, [text, resize]);
-
-  /* --- Drafts survive switching conversations, cursor position included. --- */
+  /* The draft survives switching conversations, caret included — that part is
+     the bar's, keyed on the conversation. What is left here is the tray: an
+     attachment belongs to the message it was added to and to no other. */
   React.useEffect(() => {
-    const el = textareaRef.current;
-    if (el) {
-      el.focus();
-      el.setSelectionRange(el.value.length, el.value.length);
-    }
     setAttachments([]);
   }, [conversationId]);
 
@@ -217,33 +194,6 @@ export function Composer({
     onSend(content);
     setText("");
     setAttachments([]);
-    requestAnimationFrame(resize);
-  };
-
-  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      send();
-      return;
-    }
-    if (e.key === "Enter" && !e.shiftKey && settings.sendOnEnter && !e.nativeEvent.isComposing) {
-      e.preventDefault();
-      send();
-      return;
-    }
-    // Escape steps out of the composer. Everything that only works when you are
-    // not typing — j/k, ?, backing out of a section — depends on being able to
-    // leave, and a text box you cannot leave with the keyboard is a trap.
-    if (e.key === "Escape") {
-      e.currentTarget.blur();
-      return;
-    }
-    // ↑ on an empty box edits the last thing you said — the fastest possible
-    // path to the most common correction.
-    if (e.key === "ArrowUp" && !text) {
-      e.preventDefault();
-      onEditLast();
-    }
   };
 
   const onPaste = async (e: React.ClipboardEvent) => {
@@ -310,17 +260,25 @@ export function Composer({
         </div>
       )}
 
-      {/* One rounded object: what you attached, what you type, and the controls
-          that act on it. The focus treatment is a lift, not a colour — an
-          accent ring on the thing you type in every single time is a light
-          that never turns off. */}
-      <div
-        className="composer-shell rounded-[28px] border transition-[box-shadow,border-color] duration-[var(--dur-fast)] ease-[var(--ease-std)]"
-      >
-        {/* Attachments live inside the container, above the line you type on,
-            so the whole thing reads as one object rather than a box with a
-            tray balanced on top of it. */}
-        {attachments.length > 0 && (
+      {/* The same box that is in every other room, given this room's controls.
+          The focus treatment is a lift, not a colour — an accent ring on the
+          thing you type in every single time is a light that never turns off. */}
+      <MessageBar
+        value={text}
+        onChange={setText}
+        onSubmit={send}
+        onStop={onStop}
+        streaming={streaming}
+        canSend={canSend}
+        placeholder={spec.placeholder}
+        onArrowUp={onEditLast}
+        onPaste={onPaste}
+        focusKey={conversationId}
+        above={
+          /* Attachments live inside the container, above the line you type on,
+             so the whole thing reads as one object rather than a box with a
+             tray balanced on top of it. */
+          attachments.length > 0 ? (
           <div className="flex flex-wrap gap-1.5 px-3 pb-1 pt-3">
             {attachments.map((a) => (
               <div
@@ -346,30 +304,13 @@ export function Composer({
               </div>
             ))}
           </div>
-        )}
-
-        {/* The line you type on gets the full width. Nothing shares it. */}
-        <textarea
-          ref={textareaRef}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={onKeyDown}
-          onPaste={onPaste}
-          rows={1}
-          placeholder={spec.placeholder}
-          aria-label="Message"
-          className="max-h-[45vh] w-full resize-none bg-transparent px-5 pb-1 pt-4 text-[16px] leading-6 text-primary outline-none placeholder:text-tertiary"
-        />
-
-        {/* Controls sit under the text, left to right in the order you reach
-            for them: add something, change how it thinks, speak, send. */}
-        {/* Two groups, not one wrapping row. Only the left group wraps — send
-            is the one control this row exists for, and when the row was a
-            single wrapping line it fell to a second line on its own at 1440px
-            and off the right edge entirely at 390px. Anchored here it can do
-            neither: the settings above it stack instead. */}
-        <div className="flex items-center gap-1 px-2.5 pb-2.5 pt-0.5">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+          ) : null
+        }
+        /* Controls sit under the text, left to right in the order you reach
+           for them: add something, change how it thinks, then — on the right,
+           where they never move — who is answering, speak, send. */
+        left={
+          <>
           {/* Everything you can add to a message, behind one control. */}
           <Popover.Root open={plusOpen} onOpenChange={setPlusOpen}>
             <Tooltip label="Add photos and files">
@@ -617,11 +558,10 @@ export function Composer({
             </Popover.Portal>
           </Popover.Root>
 
-          </div>
-
-          {/* Model, dictation and send: the right-hand group, which never
-              wraps and never leaves the right edge. */}
-          <div className="flex min-w-0 items-center gap-1">
+          </>
+        }
+        right={
+          <>
           {/* Which model is about to answer, an inch from the box you are
               typing in — and changeable there. It used to live in the header,
               two feet away from the decision it belongs to, which is how
@@ -646,66 +586,16 @@ export function Composer({
             </button>
           </ModelPicker>
 
-          {dictation.supported && (
-            <Tooltip label={dictation.listening ? "Stop dictating" : "Dictate"}>
-              <button
-                onClick={dictation.toggle}
-                aria-label={dictation.listening ? "Stop dictating" : "Dictate"}
-                aria-pressed={dictation.listening}
-                className={cn(
-                  "ctl focus-inset flex [--ctl:2.25rem] shrink-0 items-center justify-center rounded-full transition-colors duration-[var(--dur-fast)]",
-                  dictation.listening
-                    ? "bg-[color-mix(in_srgb,var(--stop)_14%,transparent)] text-[var(--stop)]"
-                    : "text-secondary hover:bg-subtle hover:text-primary",
-                )}
-              >
-                <Mic size={18} />
-              </button>
-            </Tooltip>
-          )}
+          </>
+        }
+      />
 
-          {/* Send becomes stop in place. A monochrome disc reads as the one
-              terminal action without spending the accent on something the eye
-              already finds by shape and position. */}
-          <div className="ctl relative [--ctl:2.25rem] shrink-0">
-            <button
-              onClick={send}
-              disabled={!canSend || streaming}
-              aria-label="Send message"
-              className={cn(
-                "bloom focus-inset absolute inset-0 flex items-center justify-center rounded-full transition-[opacity,background-color,color,box-shadow,transform] duration-[var(--dur-fast)] ease-[var(--ease-std)]",
-                "bg-[var(--cta)] text-[var(--cta-fg)] hover:bg-[var(--cta-hover)]",
-                // The disabled disc has to stay a disc. On a translucent
-                // composer, a fill this close to the surface behind it just
-                // disappears, so it borrows the border instead of the surface.
-                "disabled:bg-[color-mix(in_srgb,var(--text-primary)_16%,transparent)] disabled:text-[var(--text-faint)]",
-                streaming ? "pointer-events-none opacity-0" : "opacity-100",
-              )}
-            >
-              <ArrowUp size={19} />
-            </button>
-            <button
-              onClick={onStop}
-              aria-label="Stop generating"
-              className={cn(
-                "focus-inset absolute inset-0 flex items-center justify-center rounded-full bg-[var(--cta)] text-[var(--cta-fg)] transition-opacity duration-[var(--dur-fast)] ease-[var(--ease-std)]",
-                streaming ? "opacity-100" : "pointer-events-none opacity-0",
-              )}
-            >
-              <Square size={12} fill="currentColor" />
-            </button>
-          </div>
-          </div>
-        </div>
-
-        {overContext && (
-          <p className="flex items-center gap-1.5 px-4 pb-2 text-xs text-warning tnum">
-            <span className="size-1 rounded-full bg-[var(--live)]" aria-hidden />
-            {formatTokens(totalTokens)} of {formatTokens(model.contextWindow)} — this thread is nearly full
-          </p>
-        )}
-      </div>
-
+      {overContext && (
+        <p className="mt-1.5 flex items-center gap-1.5 px-4 text-xs text-warning tnum">
+          <span className="size-1 rounded-full bg-[var(--live)]" aria-hidden />
+          {formatTokens(totalTokens)} of {formatTokens(model.contextWindow)} — this thread is nearly full
+        </p>
+      )}
     </div>
   );
 }
