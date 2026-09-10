@@ -114,6 +114,36 @@ is mapped back to `app.js:2`. A number that looks like a line number and is not
 is worse than no number, because people go to line 76 of the file they are in and
 find something innocent there.
 
+**Things you can make.** Asked for a timetable, an AI writes you a description
+of a timetable. Creative can hand you the timetable: five starters — flashcards,
+a timetable, a quiz, a checklist, a timer — that are not sketches but working
+folders. Press one and a second later there is a deck that flips in 3D on the
+space bar and pushes "again" cards back three places; a week grid with a line
+that says where you are in the day, moving every half minute; a quiz that marks
+answers with a tick as well as a colour and draws the score round a ring; a list
+whose ticks draw themselves; a ring that sweeps down twenty-five minutes and
+keeps its time from the clock rather than from counting frames.
+
+They share a shape, and the shape is the point. The top of each `app.js` is a
+plain list of data with a rule above it saying so, and everything below is
+machinery nobody has to read — so "cards for Spanish verbs" is an edit to six
+lines rather than a rewrite. Pressing a starter also leaves its half of the
+sentence in the box underneath ("Fill this deck with cards for …"), because a
+blank field under a working demo asks *now what* and a sentence to finish
+answers it.
+
+Two rules they all obey, and both are the sandbox rather than taste. No
+`localStorage`: the preview runs on an opaque origin, so touching storage
+throws — the file *is* the storage, and keeping a version is how state is
+saved. And no network: a folder that reaches a CDN stops working the moment
+someone saves it and opens it somewhere without internet.
+
+The same instructions went to the model. Ask Creative for a thing rather than
+for words and it now builds one — a single self-contained document, in a block
+this app runs — under the same constraints, plus motion that honours
+`prefers-reduced-motion`, 44px targets, and never colour alone to mean right or
+wrong.
+
 Code and web files get a real editor, not a textarea. Syntax colour, a line
 gutter, Tab to indent and Shift-Tab to outdent, a band on the line you are on,
 and a status line that says where the caret is — the things that make a file
@@ -336,6 +366,23 @@ heading, and link URLs printed in full.
   preview counts, a `console.log` and an uncaught `ReferenceError` come back out
   with the error mapped to `app.js:2`, and `window.origin` inside the frame is
   `null` with `localStorage` throwing `SecurityError`.
+- Every starter opened, run, and *used* (`e2e-makes.mjs`) — a card flipped and
+  the transform read back, an arrow pressed and the deck checked for having
+  moved, a block clicked and its sheet closed with Escape, a quiz answered
+  wrongly and checked for a mark rather than only a colour, a list finished, a
+  timer started and then paused and checked for staying where it stopped. A
+  starter that renders is not a starter that works, and a screenshot cannot tell
+  a card that flips instantly from one that does not flip at all. Each one is
+  also asked whether it ran clean: the console bridge means an uncaught error
+  inside the sandbox shows up as a count on a button, and a starter that throws
+  on load is the worst first impression the app can make.
+  Two real faults came out of writing it. `hidden` does not hide when your own
+  CSS sets `display` — the browser's `display: none` is a UA rule and any author
+  rule beats it — so a full-screen dialog marked hidden was invisible and still
+  swallowing every click aimed at the week behind it; every starter now carries
+  one line that makes hidden mean hidden. And the canvas's "ask for a change"
+  box and its send button answered to the same accessible name, which is a
+  screen reader reading the same words twice with no way to tell which is which.
 - The code editor measured rather than eyeballed (`e2e-editor.mjs`). A highlighted
   textarea is two layers pretending to be one, and the failure is silent — the
   caret drifts a fraction of a pixel per line until it sits between two characters
@@ -451,6 +498,7 @@ node e2e-web.mjs     # 26 assertions: a web app runs, and its console comes back
 node e2e-mode.mjs    # 14 assertions: Chat and Creative, read at the wire
 node e2e-pdf.mjs     #  9 assertions: a PDF read, a scan refused, both at the wire
 node e2e-editor.mjs  # 13 assertions: the code editor's two layers, measured
+node e2e-makes.mjs   # 33 assertions: every starter opened, run and actually used
 node mock-slow.mjs &   # the mock with the gap between tokens stretched, then:
 node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs the slow mock)
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire

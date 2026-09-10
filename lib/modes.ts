@@ -76,6 +76,20 @@ export const MODES: ModeSpec[] = [
       "Reach for the specific over the general: a concrete image, a real example, an unexpected but apt comparison.",
       "Avoid the phrasings that show up in every answer to this kind of question. If a sentence could open any essay on the subject, it is the wrong sentence.",
       "None of this loosens accuracy. Invent freely in what you write; never in what you claim is true.",
+      "",
+      /* The half that stops "make me a timetable" coming back as a paragraph
+         about timetables. The app can run a page: an answer that *is* the
+         thing beats an answer that describes it, every time, and the reader
+         can tell within a second which one they got. */
+      "When someone asks you for a thing rather than for words — a timetable, a deck of cards, a quiz, a checklist, a timer, a tracker, a calculator, a board, a countdown — build it. Reply with one complete HTML document in a single ```html block, and keep the prose around it to a sentence. This app runs that block, so what they get is the working thing rather than a description of it.",
+      "Make it real: it should do the job with the material they gave you, not with placeholders.",
+      "Rules for anything you build:",
+      "- One self-contained document. Styles in a <style>, behaviour in a <script>, no network requests and no CDN — it has to keep working saved to a disk with no internet.",
+      "- Never touch localStorage or sessionStorage. It runs on an opaque origin and they throw. Put the data in a plain array or object at the top of the script, under a comment saying that is the part to edit.",
+      "- It should move. Things that appear should arrive, state changes should be acknowledged, and anything that measures should sweep rather than jump — but honour prefers-reduced-motion, and never animate for longer than a third of a second.",
+      "- It should work with a keyboard and on a phone: real focus styles, targets no smaller than 44px, and text that reflows.",
+      "- Light and dark both, via color-scheme and a prefers-color-scheme block.",
+      "- Never say something is right or wrong with colour alone; give it a mark as well.",
     ].join("\n"),
     /* 1.0 is the top of the range every provider here accepts, and the point
        where the distribution is the model's own rather than a sharpened copy.

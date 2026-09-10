@@ -6,6 +6,7 @@ import {
   Braces, Bug, Check, Eye, FileCode2, FilePlus2, FileText, FileType2, History,
   LayoutTemplate, MessageSquareCode, Palette, Pencil, Play, RotateCcw, Send,
   Terminal, X,
+  CalendarRange, CheckCheck, ListChecks, Sparkles, Timer,
 } from "lucide-react";
 import type { Canvas, CanvasFile, CanvasVersion } from "@/lib/types";
 import {
@@ -13,9 +14,11 @@ import {
   filesOfCanvas, pushVersion, revertCanvas, versionsOf,
 } from "@/lib/db";
 import { offerUndo } from "@/lib/undo";
+import { useSettings } from "@/lib/store";
 import { cheapestAvailable, explainCode, reviseCanvas } from "@/lib/generate";
 import { collapse, diffStat, lineDiff, type DiffOp } from "@/lib/diff";
 import { assembleWeb, ENTRY, locate, webTemplate } from "@/lib/web";
+import { MAKES } from "@/lib/makes";
 import { cn } from "@/lib/utils";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useDebounced } from "@/lib/hooks/useDebounced";
@@ -68,13 +71,17 @@ function FileMark({ lang }: { lang: string }) {
 export function CanvasView({
   canvasId,
   configured,
+  seed,
   onSelect,
   onNew,
   onBack,
 }: {
   canvasId: string | null;
   configured: Record<string, boolean>;
-  onSelect: (id: string) => void;
+  /** Typed into "ask for a change" when a canvas has just been made from a
+      starter, so the next step is a sentence to finish rather than a blank. */
+  seed?: string;
+  onSelect: (id: string, seed?: string) => void;
   onNew: () => void;
   onBack: () => void;
 }) {
@@ -110,7 +117,7 @@ export function CanvasView({
     );
   }
 
-  return <Editor key={canvas.id} canvas={canvas} configured={configured} onBack={onBack} />;
+  return <Editor key={canvas.id} canvas={canvas} configured={configured} seed={seed} onBack={onBack} />;
 }
 
 /**
@@ -118,7 +125,7 @@ export function CanvasView({
  * shapes are not variations of a setting you would go looking for — they are
  * different rooms, and the only moment anyone is deciding between them is now.
  */
-function Starters({ onSelect }: { onSelect: (id: string) => void }) {
+function Starters({ onSelect }: { onSelect: (id: string, seed?: string) => void }) {
   const start = [
     {
       icon: <LayoutTemplate size={16} />,
@@ -141,16 +148,63 @@ function Starters({ onSelect }: { onSelect: (id: string) => void }) {
   ];
 
   return (
-    <div className="mb-5 grid gap-2 sm:grid-cols-3">
-      {start.map((s) => (
+    <div className="mb-5">
+      <div className="grid gap-2 sm:grid-cols-3">
+        {start.map((s) => (
+          <button
+            key={s.title}
+            onClick={async () => onSelect(await s.make())}
+            className="lift focus-inset tap flex flex-col items-start gap-0.5 rounded-xl border border-line bg-surface p-3 text-left transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
+          >
+            <span className="text-accent">{s.icon}</span>
+            <span className="mt-1 text-sm font-medium text-primary">{s.title}</span>
+            <span className="text-xs text-tertiary">{s.blurb}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* And the five that are already something. An empty folder is a fair
+          place to start only if you already know what you are building. */}
+      <p className="mb-2 mt-5 text-xs uppercase tracking-[0.08em] text-faint">Or make one of these</p>
+      <MakeRow onSelect={onSelect} />
+    </div>
+  );
+}
+
+/** A lucide mark per make, resolved here so the catalogue stays a plain module. */
+export function MakeMark({ icon, size = 15 }: { icon: string; size?: number }) {
+  if (icon === "CalendarRange") return <CalendarRange size={size} />;
+  if (icon === "ListChecks") return <ListChecks size={size} />;
+  if (icon === "CheckCheck") return <CheckCheck size={size} />;
+  if (icon === "Timer") return <Timer size={size} />;
+  return <Sparkles size={size} />;
+}
+
+/**
+ * The things you can make, as one row of buttons.
+ *
+ * Shared between the Code index and a blank Creative page, because it is the
+ * same offer in both places: press one and there is a working thing on screen
+ * a second later, already running, with your half-written instruction waiting
+ * in the box under it.
+ */
+export function MakeRow({ onSelect }: { onSelect: (id: string, seed: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {MAKES.map((m) => (
         <button
-          key={s.title}
-          onClick={async () => onSelect(await s.make())}
-          className="lift focus-inset tap flex flex-col items-start gap-0.5 rounded-xl border border-line bg-surface p-3 text-left transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
+          key={m.id}
+          title={m.blurb}
+          onClick={async () => {
+            const canvas = await createWebCanvas(m.files(), { title: m.title });
+            onSelect(canvas.id, m.ask);
+          }}
+          className="lift focus-inset tap inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13px] text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
         >
-          <span className="text-accent">{s.icon}</span>
-          <span className="mt-1 text-sm font-medium text-primary">{s.title}</span>
-          <span className="text-xs text-tertiary">{s.blurb}</span>
+          <span className="text-[var(--accent-2)]">
+            <MakeMark icon={m.icon} size={14} />
+          </span>
+          {m.name}
         </button>
       ))}
     </div>
@@ -164,10 +218,12 @@ type Mode = "edit" | "preview" | "run";
 function Editor({
   canvas,
   configured,
+  seed,
   onBack,
 }: {
   canvas: Canvas;
   configured: Record<string, boolean>;
+  seed?: string;
   onBack: () => void;
 }) {
   const web = canvas.kind === "web";
@@ -192,7 +248,10 @@ function Editor({
 
   const [draft, setDraft] = React.useState(doc.content);
   const [mode, setMode] = React.useState<Mode>(web ? "run" : "edit");
-  const [instruction, setInstruction] = React.useState("");
+  /* Seeded, not empty, when this canvas was just made from a starter: the
+     half-sentence the starter belongs to, with the caret after it. A blank box
+     under a working demo asks "now what"; a sentence to finish answers it. */
+  const [instruction, setInstruction] = React.useState(seed ?? "");
   const [busy, setBusy] = React.useState<false | "revise" | "explain">(false);
   const [proposal, setProposal] = React.useState<{ content: string; note: string } | null>(null);
   const [report, setReport] = React.useState<string | null>(null);
@@ -527,7 +586,10 @@ function Editor({
                   <button
                     onClick={() => void run(instruction)}
                     disabled={Boolean(busy) || !instruction.trim()}
-                    aria-label="Ask for a change"
+                    /* Not "Ask for a change" — that is the box's name, and two
+                       controls with one name is a screen reader reading the
+                       same words twice with no way to tell which is which. */
+                    aria-label="Send the request"
                     className="bloom focus-inset flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--cta)] text-[var(--cta-fg)] transition-colors disabled:bg-subtle disabled:text-faint"
                   >
                     {busy === "revise" ? <span className="think-orb" aria-hidden /> : <Send size={17} />}
@@ -887,6 +949,29 @@ function FileTabs({
   );
 }
 
+/**
+ * Light or dark, as it stands right now — the same answer the boot script
+ * writes onto the root, including when the setting is "system" and the machine
+ * flips at sunset. The preview needs it as a value rather than as CSS, because
+ * what it is styling lives in a frame the app's stylesheet cannot reach.
+ */
+function useResolvedTheme(): "light" | "dark" {
+  const setting = useSettings((s) => s.theme);
+  const [theme, setTheme] = React.useState<"light" | "dark">("light");
+  React.useEffect(() => {
+    if (setting !== "system") {
+      setTheme(setting === "dark" ? "dark" : "light");
+      return;
+    }
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const apply = () => setTheme(mq.matches ? "dark" : "light");
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, [setting]);
+  return theme;
+}
+
 /* --------------------------------------------------------------- preview -- */
 
 interface Line {
@@ -934,7 +1019,8 @@ function WebPreview({
     [files, draft, activeName],
   );
   const settled = useDebounced(merged, 500);
-  const { html: srcDoc, map } = React.useMemo(() => assembleWeb(settled), [settled]);
+  const theme = useResolvedTheme();
+  const { html: srcDoc, map } = React.useMemo(() => assembleWeb(settled, theme), [settled, theme]);
   const mapRef = React.useRef(map);
   mapRef.current = map;
 

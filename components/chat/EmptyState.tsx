@@ -5,6 +5,7 @@ import { KeyRound, X } from "lucide-react";
 import { useSettings } from "@/lib/store";
 import { findMode } from "@/lib/modes";
 import { Mark } from "@/components/brand/Logo";
+import { MakeRow } from "@/components/CanvasView";
 
 /**
  * The time of day, as a greeting.
@@ -66,11 +67,14 @@ const useIsoLayoutEffect = typeof window === "undefined" ? React.useEffect : Rea
 export function EmptyState({
   hasAnyKey,
   onExample,
+  onMake,
   onAddKey,
   children,
 }: {
   hasAnyKey: boolean;
   onExample: (text: string) => void;
+  /** A working thing was made; go and open it. */
+  onMake: (canvasId: string, seed: string) => void;
   onAddKey: () => void;
   /** The composer. */
   children: React.ReactNode;
@@ -162,6 +166,28 @@ export function EmptyState({
             </button>
           </div>
         )}
+
+        {/* And then, in Creative, the things you can have as a *thing* rather
+            than as a paragraph. "Make me a timetable" answered with a
+            description of a timetable is the app not understanding the
+            request, so the five shapes it can actually build are offered as
+            buttons: press one and a working, animated version is on screen a
+            second later, with your half-written instruction under it.
+
+            Below the sentences and not above them, because "or" has to come
+            after the thing it is an alternative to. Chat does not get this
+            row — it is a different question. */}
+        {hasAnyKey && spec.id === "creative" && (
+          <div className="mt-6 anim-rise" style={{ animationDelay: "300ms" }}>
+            <p className="mb-2.5 text-center text-xs uppercase tracking-[0.08em] text-faint">
+              Or make something you can use
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              <MakeRow onSelect={(id, seed) => onMake(id, seed)} />
+            </div>
+          </div>
+        )}
+
         {/* Asked once, on the blank page, after the keys are in — never as a
             modal and never again after an answer either way. A name is the
             cheapest thing an interface can know about you and the one that

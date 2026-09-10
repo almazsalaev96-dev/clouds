@@ -93,6 +93,9 @@ export default function Page() {
   const cursorRef = React.useRef(0);
   const [compareWith, setCompareWith] = React.useState<string[]>([]);
   const [canvasId, setCanvasId] = React.useState<string | null>(null);
+  /* The half-sentence a starter leaves in the canvas composer. Cleared as soon
+     as you leave, so it seeds the canvas it was made for and no other. */
+  const [canvasSeed, setCanvasSeed] = React.useState<string | undefined>();
   const [projectId, setProjectId] = React.useState<string | null>(null);
   const [noteId, setNoteId] = React.useState<string | null>(null);
   const [comparing, setComparing] = React.useState<{
@@ -476,6 +479,24 @@ export default function Page() {
     [activeId, settings, closeDrawerOnMobile],
   );
 
+  /**
+   * A starter was pressed on a blank Creative page.
+   *
+   * The canvas already exists by the time this runs — the row makes it — so
+   * this is only the move: go to Code, open it, and leave the starter's
+   * half-sentence in the box. A web canvas opens running, so what lands on
+   * screen is the working thing rather than its source.
+   */
+  const openMade = React.useCallback(
+    (id: string, seed: string) => {
+      setCanvasSeed(seed);
+      setCanvasId(id);
+      settings.setSection("code");
+      closeDrawerOnMobile();
+    },
+    [settings, closeDrawerOnMobile],
+  );
+
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
 
@@ -722,9 +743,16 @@ export default function Page() {
                 <CanvasView
                   canvasId={canvasId}
                   configured={configured}
-                  onSelect={setCanvasId}
+                  seed={canvasSeed}
+                  onSelect={(id, seed) => {
+                    setCanvasSeed(seed);
+                    setCanvasId(id);
+                  }}
                   onNew={() => void createInSection("code")}
-                  onBack={() => setCanvasId(null)}
+                  onBack={() => {
+                    setCanvasSeed(undefined);
+                    setCanvasId(null);
+                  }}
                 />
               )}
               {settings.section === "notebook" && (
@@ -767,6 +795,7 @@ export default function Page() {
             <EmptyState
               hasAnyKey={hasAnyKey}
               onExample={(text) => drafts.setDraft(activeId ?? "new", text)}
+              onMake={openMade}
               onAddKey={openKeys}
             >
               {composer}

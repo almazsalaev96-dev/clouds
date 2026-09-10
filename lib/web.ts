@@ -42,6 +42,22 @@ const BRIDGE = `<script>(function(){
 
 const esc = (s: string) => s.replace(/<\/script>/gi, "<\\/script>");
 
+/**
+ * The host's theme, stamped on the root before anything paints.
+ *
+ * A page in here follows `prefers-color-scheme`, which is the reader's system
+ * setting — the right answer once the folder is saved and opened somewhere
+ * else, and the wrong one while it sits inside an app the reader has
+ * explicitly put into dark. So the host says which it is and a page that cares
+ * can answer to it. It is inert on a page that does not: an attribute nothing
+ * styles changes nothing, which is why this is safe to put on markup someone
+ * else wrote.
+ */
+const themeTag = (theme?: string) =>
+  theme
+    ? `<script>document.documentElement.setAttribute("data-theme", ${JSON.stringify(theme)});</script>`
+    : "";
+
 /** Where one file's text ended up in the assembled document, in lines. */
 export interface SourceSpan {
   name: string;
@@ -72,7 +88,7 @@ export function locate(map: SourceSpan[], line: number): { name: string; line: n
 
 const lineOf = (text: string, index: number) => text.slice(0, index).split("\n").length;
 
-export function assembleWeb(files: CanvasFile[]): Assembled {
+export function assembleWeb(files: CanvasFile[], theme?: string): Assembled {
   const byName = new Map(files.map((f) => [f.name.replace(/^\.?\//, ""), f]));
   const entry = byName.get(ENTRY) ?? files.find((f) => f.lang === "html");
   if (!entry) {
@@ -106,9 +122,10 @@ export function assembleWeb(files: CanvasFile[]): Assembled {
   );
 
   // The bridge goes first inside <head>, or at the top when there is no head.
+  const head = BRIDGE + themeTag(theme);
   html = /<head[^>]*>/i.test(html)
-    ? html.replace(/<head([^>]*)>/i, `<head$1>${BRIDGE}`)
-    : BRIDGE + html;
+    ? html.replace(/<head([^>]*)>/i, `<head$1>${head}`)
+    : head + html;
 
   /* Each file's text was inserted verbatim, so finding it again gives its line
      range. Done after the fact rather than tracked during, because the two
