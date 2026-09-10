@@ -14,7 +14,7 @@ export const viewport: Viewport = {
   // was painting a band of the previous app above this one.
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f7f3ea" },
-    { media: "(prefers-color-scheme: dark)", color: "#0e1633" },
+    { media: "(prefers-color-scheme: dark)", color: "#1a1917" },
   ],
   width: "device-width",
   initialScale: 1,

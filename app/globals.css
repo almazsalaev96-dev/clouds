@@ -197,13 +197,13 @@
      under a dark box is invisible, so the lift there comes from a lit top edge
      instead. Both live here so the rule that uses them stays one rule. */
   --composer-bg: rgba(255, 255, 255, 0.88);
-  --composer-line: rgba(21, 42, 50, 0.10);
-  --composer-line-focus: rgba(91, 63, 196, 0.45);
-  --composer-lift: 0 1px 2px rgb(21 42 50 / 0.05), 0 12px 32px -16px rgb(21 42 50 / 0.18);
+  --composer-line: rgba(26, 38, 80, 0.10);
+  --composer-line-focus: rgba(168, 128, 31, 0.55);
+  --composer-lift: 0 1px 2px rgb(26 38 80 / 0.05), 0 12px 32px -16px rgb(26 38 80 / 0.18);
   --composer-lift-focus:
-    0 1px 3px rgb(21 42 50 / 0.07),
-    0 20px 44px -18px rgb(21 42 50 / 0.24),
-    0 0 0 4px rgb(var(--accent-rgb) / 0.11);
+    0 1px 2px rgb(26 38 80 / 0.05),
+    0 16px 40px -18px rgb(26 38 80 / 0.22),
+    0 0 0 3px rgb(var(--accent-2-rgb) / 0.20);
 }
 
 :root[data-theme="dark"] {
@@ -212,37 +212,43 @@
   /* ---------------------------------------------------------------------
      THE PALETTE — dark.
 
-     A rotation rather than an inversion. The ink becomes the ground and the
-     paper becomes the words: a page written in white on the navy the pen is
-     filled with. Every colour keeps its job.
+     Not a rotation of the light one. That was the first answer — ink becomes
+     the ground, paper becomes the words — and it was a tidy idea that put a
+     navy wash over every screen in the app. A dark theme is not a colour; it
+     is the absence of one. Every tool this is measured against reaches the
+     same conclusion, ChatGPT to near-black and Claude to a warm charcoal, and
+     for the same reason: at eleven at night the ground has one job, which is
+     to get out of the way of the words.
 
-     The one thing that changes hands is the action colour. On paper the
-     action is the ink; in the dark the ink is everywhere, so the action is
-     the nib — gold at its true value (#D9B45A), lit, with the navy on top.
-     It is the same pen either way. Royal blue lifts to periwinkle (#A9B8FF)
-     for structure, because at its paper value it would vanish here.
+     So the ground is a true neutral — three points of channel spread, leaning
+     warm because the brand is warm, the desk rather than the ink. The brand
+     is carried by everything on top of it and nothing underneath: the paper
+     is the text, the gold is the action and the nib, and the blue stays where
+     it is in the light theme, structure.
+
+     Every pair below is computed against WCAG (`node contrast.mjs`).
      --------------------------------------------------------------------- */
-  --bg-canvas: #0e1633;
-  --bg-surface: #172046;
-  --bg-subtle: #1f2a56;
-  --bg-inset: #0a1028;
-  --bg-overlay: rgba(5, 9, 28, 0.74);
+  --bg-canvas: #1a1917;
+  --bg-surface: #232220;
+  --bg-subtle: #2c2a27;
+  --bg-inset: #121110;
+  --bg-overlay: rgba(10, 9, 8, 0.74);
 
-  --border-subtle: #2a3563;
-  --border-strong: #7d86ad;
+  --border-subtle: #35332f;
+  --border-strong: #807c73;
 
   --text-primary: #f7f3ea;
-  --text-secondary: #c3c8dd;
-  --text-tertiary: #a9b0cc;
-  --text-faint: #8b93b3;
+  --text-secondary: #cbc6bb;
+  --text-tertiary: #afaa9f;
+  --text-faint: #918c83;
 
-  --accent: #a9b8ff;
-  --accent-hover: #c2cdff;
+  --accent: #aab9ff;
+  --accent-hover: #c3ccff;
   --accent-fill: #4a63c9;
   --accent-fill-hover: #5b74d8;
-  --accent-subtle: #1c2757;
+  --accent-subtle: #2e2c2f;
   --accent-fg: #ffffff;
-  --accent-rgb: 169 184 255;
+  --accent-rgb: 170 185 255;
   /* The one coloured element in the wordmark. */
   --brand-accent: var(--accent);
 
@@ -253,12 +259,12 @@
      brightness it is a lit surface, and white on it is unreadable. */
   --cta: #d9b45a;
   --cta-hover: #e6c576;
-  --cta-fg: #0e1633;
+  --cta-fg: #1a1917;
   --cta-rgb: 217 180 90;
 
   /* On the deep teal it carries its own edge, so the outline is the colour. */
   --highlight: #d9b45a;
-  --highlight-fg: #0e1633;
+  --highlight-fg: #1a1917;
   --highlight-edge: #d9b45a;
   --mark: #4a4022;
   --mark-fg: #f7f3ea;
@@ -274,39 +280,44 @@
   --success: var(--go);
   --warning: var(--live);
   --danger: var(--stop);
-  --danger-subtle: #3a1a1a;
+  --danger-subtle: #3a201c;
 
-  --mesh-a: rgba(217, 180, 90, 0.14);
-  --mesh-b: rgba(169, 184, 255, 0.10);
-  --mesh-c: rgba(247, 243, 234, 0.04);
+  --mesh-a: rgba(217, 180, 90, 0.10);
+  --mesh-b: rgba(170, 185, 255, 0.07);
+  --mesh-c: rgba(247, 243, 234, 0.035);
   --grain-opacity: 0.045;
-  --glass: rgba(23, 32, 70, 0.74);
+  --glass: rgba(26, 25, 23, 0.74);
   --glass-line: rgba(247, 243, 234, 0.08);
   --glow: 0 0 24px -6px var(--accent-2);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.55);
-  --shadow-lg: 0 20px 52px rgba(0, 0, 0, 0.62);
-  --highlight-top: inset 0 1px 0 rgba(247, 243, 234, 0.07);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.55);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 20px 52px rgba(0, 0, 0, 0.66);
+  --highlight-top: inset 0 1px 0 rgba(247, 243, 234, 0.06);
 
-  --syn-comment: #8b93b3;
-  --syn-keyword: #a9b8ff;
+  --syn-comment: #918c83;
+  --syn-keyword: #aab9ff;
   --syn-string: #5fc98a;
   --syn-function: #9fc4ff;
   --syn-number: #ffbd7d;
   --syn-type: #d9b45a;
-  --syn-punct: #a9b0cc;
+  --syn-punct: #afaa9f;
 
-  --composer-bg: rgba(26, 50, 59, 0.76);
-  --composer-line: rgba(255, 252, 238, 0.09);
-  --composer-line-focus: rgba(201, 181, 255, 0.55);
-  --composer-lift: inset 0 1px 0 rgb(255 252 238 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
-  /* The glow around the box you type in, only while the caret is in it. */
+  /* This was still `rgba(26, 50, 59, …)` — a teal from a palette two
+     revisions ago that nothing pointed at any more, which is why the one
+     element you look at most sat in a blue pool on an otherwise neutral
+     ground. It is the lifted surface now, like every other raised thing. */
+  --composer-bg: rgba(44, 42, 39, 0.76);
+  --composer-line: rgba(247, 243, 234, 0.09);
+  --composer-line-focus: rgba(217, 180, 90, 0.55);
+  --composer-lift: inset 0 1px 0 rgb(247 243 234 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
+  /* The ring around the box you type in, only while the caret is in it, and
+     in the gold of the nib rather than in the structural blue: it marks where
+     you are writing, which is the one thing a nib does. */
   --composer-lift-focus:
-    inset 0 1px 0 rgb(255 252 238 / 0.10),
+    inset 0 1px 0 rgb(247 243 234 / 0.10),
     0 24px 56px -22px rgb(0 0 0 / 0.9),
-    0 0 0 4px rgb(var(--accent-rgb) / 0.14),
-    0 0 34px -6px rgb(var(--accent-rgb) / 0.30);
+    0 0 0 3px rgb(var(--accent-2-rgb) / 0.16);
 }
 
 :root[data-density="compact"] { --density: 0.75; }

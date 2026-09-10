@@ -141,13 +141,21 @@ write with the ink. Gold on paper cannot carry text at 4.5:1 at any value that
 also holds a 3:1 edge, so gold is never asked to; it is a detail, which is what a
 nib is.
 
-Dark is a rotation, not an inversion: the ink becomes the ground and the paper
-becomes the words — a page written in white on the navy the pen is filled with.
-The one thing that changes hands is the action colour. On paper the action is the
-ink; in the dark the ink is everywhere, so the action is the nib, gold at its true
-value, lit, with the navy on top. It is the same pen either way. Every pair is
-computed, not eyeballed: `node contrast.mjs` checks 28 text/background pairs in
-both themes on every change.
+Dark is **not** a rotation of that. That was the first answer — ink becomes the
+ground, paper becomes the words — and it was a tidy idea that put a navy wash over
+every screen in the app. A dark theme is not a colour; it is the absence of one.
+Every tool this is measured against reaches the same conclusion, ChatGPT to
+near-black and Claude to a warm charcoal, for the same reason: at eleven at night
+the ground has one job, which is to get out of the way of the words.
+
+So the ground is a true neutral — `#1a1917`, three points of channel spread,
+leaning warm because the brand is warm. The desk, not the ink. The brand is
+carried entirely by what sits on top of it: the paper is the text, the gold is
+the action and the nib, and the blue stays where it is in the light theme,
+structure. `node contrast.mjs` checks 28 text/background pairs in both themes on
+every change, and a separate pass measures the channel spread of every surface
+the eye lands on — a neutral has almost none, and the teal that had been sitting
+under the composer had twenty.
 
 **Type** — four faces, self-hosted from `/fonts`, latin subsets, one file per
 weight, 240 KB in all. Inter for the interface and body. Cormorant Garamond for
