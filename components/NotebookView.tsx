@@ -6,12 +6,13 @@ import {
   BookOpen, Download, Eye, GraduationCap, HelpCircle, ListTree, Paperclip, Pencil,
   Scissors, SpellCheck2, Tags, X,
 } from "lucide-react";
-import type { Note } from "@/lib/types";
-import { db, deleteNote, deriveTitle } from "@/lib/db";
+import type { Note, Source } from "@/lib/types";
+import { addSource, db, deleteNote, deriveTitle, removeSource, sourcesOf } from "@/lib/db";
 import { offerUndo } from "@/lib/undo";
 import { useAutoGrow } from "@/lib/hooks/useAutoGrow";
 import { useAutosave } from "@/lib/hooks/useAutosave";
-import { reviseCanvas } from "@/lib/generate";
+import { makeFromSources, reviseCanvas } from "@/lib/generate";
+import { citeScore, extractCitations, type Citation } from "@/lib/cite";
 import { extractPdf, isPdf } from "@/lib/pdf";
 import { Markdown } from "@/components/chat/Markdown";
 import { MessageBar } from "@/components/chat/MessageBar";
@@ -103,18 +104,32 @@ export function NotebookView({
   const [draft, setDraft] = React.useState("");
   const [instruction, setInstruction] = React.useState("");
   const [busy, setBusy] = React.useState(false);
-  const [proposal, setProposal] = React.useState<{ content: string; note: string } | null>(null);
+  const [proposal, setProposal] = React.useState<
+    { content: string; note: string; citations?: Citation[] } | null
+  >(null);
   const [notice, setNotice] = React.useState<string | null>(null);
   const reviseModel = useReviseModel(configured);
   /**
-   * A book, or a paper, or a chapter — whatever you want the page made out of.
+   * What the page is made out of. However many of them there are.
    *
-   * Held for the session and not written to the database. What is worth
-   * keeping is the lessons, and they end up in the page like anything else you
-   * wrote there; storing the source as well would double the size of a
-   * notebook to keep a copy of a file you already have.
+   * These used to be one file held in memory for as long as you stayed on the
+   * page — attach a book, get lessons, and the book was gone the moment you
+   * left. Which made this a converter rather than a place: everything it
+   * produced was cut loose from what it came from the instant it existed, so
+   * the only question worth asking about a generated page — where did that
+   * come from — had no answer.
+   *
+   * Kept now, and kept in full, because the text is the thing a claim gets
+   * checked against. A source you cannot re-read is a citation you have to
+   * take on trust, which is the thing this is for not doing.
    */
-  const [source, setSource] = React.useState<{ name: string; text: string; pages?: number } | null>(null);
+  const sources = useLiveQuery(
+    () => (noteId ? sourcesOf(noteId) : Promise.resolve([] as Source[])),
+    [noteId],
+    [] as Source[],
+  );
+  /* The citations of the page as it stands, and the one being read. */
+  const [openCite, setOpenCite] = React.useState<Citation | null>(null);
   const [reading, setReading] = React.useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
@@ -132,7 +147,7 @@ export function NotebookView({
       setProposal(null);
       setNotice(null);
       setInstruction("");
-      setSource(null);
+      setOpenCite(null);
       requestAnimationFrame(() => textareaRef.current?.focus());
     }
   }, [note]);
@@ -166,18 +181,36 @@ export function NotebookView({
     setBusy(true);
     setNotice(null);
     try {
-      /* The source goes as reference material, generously sliced. The page
-         itself is still what comes back — asking for lessons rewrites the
-         page, it does not append the book to it. */
-      const out = await reviseCanvas(
-        draft,
-        text,
-        "doc",
-        undefined,
-        modelId,
-        source ? [{ name: source.name, content: source.text }] : undefined,
-        120_000,
-      );
+      /* Two different jobs wearing one box.
+         With material in the room, this is "make me something out of what I
+         brought", and what comes back has to be traceable to it. With none, it
+         is the ordinary revision every other room does to the thing on screen.
+         Sending the second down the first path would ask a model to cite a
+         page against sources that do not exist. */
+      if (sources.length) {
+        const raw = await makeFromSources(
+          text,
+          sources.map((s) => ({ name: s.name, text: s.text })),
+          modelId,
+        );
+        if (!raw) {
+          setNotice("Nothing usable came back. Try saying it differently.");
+          return;
+        }
+        /* Checked here rather than trusted. A citation the app has not looked
+           for is a footnote, and a footnote nobody can check is decoration. */
+        const { text: body, citations } = extractCitations(raw, sources);
+        const score = citeScore(citations);
+        setProposal({ content: body, note: label ?? text, citations });
+        if (score.total && score.found < score.total) {
+          setNotice(
+            `${score.total - score.found} of ${score.total} citations could not be found in the sources — those are marked with a “?”.`,
+          );
+        }
+        return;
+      }
+
+      const out = await reviseCanvas(draft, text, "doc", undefined, modelId, undefined, 120_000);
       if (!out) setNotice("The model didn't return a usable revision. Try saying it differently.");
       else if (out.trim() === draft.trim())
         setNotice("It came back unchanged — the instruction may not apply here.");
@@ -189,9 +222,10 @@ export function NotebookView({
     }
   };
 
-  /** Read a file into the session. PDFs get their text pulled out; the rest
+  /** Read a file in and keep it. PDFs get their text pulled out; the rest
       are read as text, which covers markdown, plain notes and source. */
   const attach = async (file: File) => {
+    if (!noteId) return;
     setReading(true);
     setNotice(null);
     try {
@@ -201,14 +235,14 @@ export function NotebookView({
           setNotice(`${file.name} is a scan — pictures of pages with no text in them. There is nothing to read.`);
           return;
         }
-        setSource({ name: file.name, text: got.text, pages: got.pages });
+        await addSource(noteId, { name: file.name, text: got.text, pages: got.pages, size: file.size });
       } else {
         const text = await file.text();
         if (!text.trim()) {
           setNotice(`${file.name} is empty.`);
           return;
         }
-        setSource({ name: file.name, text });
+        await addSource(noteId, { name: file.name, text, size: file.size });
       }
     } catch {
       setNotice(`Could not read ${file.name}.`);
@@ -221,8 +255,56 @@ export function NotebookView({
     if (!proposal || !note) return;
     setDraft(proposal.content);
     autosave.save(note.id, { content: proposal.content, title: deriveTitle(proposal.content, "") });
+    /* What it was made from and when, written straight through rather than
+       through autosave: this is not something the reader typed, and it has to
+       be true of the page the moment the page is true. Together they answer
+       "is this still an account of what it was made from" — a source added or
+       removed since is a page that may now be wrong, and saying so costs less
+       than a reader finding out. */
+    void db.notes.update(note.id, {
+      citations: proposal.citations ?? [],
+      madeAt: proposal.citations ? Date.now() : undefined,
+      madeFrom: proposal.citations ? sources.map((s) => s.id) : undefined,
+    });
     setProposal(null);
     setInstruction("");
+  };
+
+  /**
+   * Whether the page still matches what it was made from.
+   *
+   * Only for pages that *were* made from something: a page you wrote yourself
+   * has no such claim to be out of date about, and telling everyone their own
+   * writing is stale is how a notice gets ignored.
+   */
+  const stale = React.useMemo(() => {
+    const was = note?.madeFrom;
+    if (!was || !note?.madeAt) return null;
+    const now = new Set(sources.map((s) => s.id));
+    const gone = was.filter((id) => !now.has(id)).length;
+    const added = sources.filter((s) => !was.includes(s.id)).length;
+    if (!gone && !added) return null;
+    const parts: string[] = [];
+    if (added) parts.push(`${added} source${added === 1 ? " was" : "s were"} added`);
+    if (gone) parts.push(`${gone} ${gone === 1 ? "was" : "were"} removed`);
+    return parts.join(" and ");
+  }, [note?.madeFrom, note?.madeAt, sources]);
+
+  /**
+   * A citation, opened.
+   *
+   * Caught on the container rather than given to every marker, because the
+   * markers are produced by the markdown renderer and are ordinary links by
+   * the time they reach the page. One listener, and the href says which.
+   */
+  const onCiteClick = (e: React.MouseEvent) => {
+    const link = (e.target as HTMLElement).closest("a");
+    const href = link?.getAttribute("href") ?? "";
+    const m = href.match(/^#armi-cite-(\d+)$/);
+    if (!m) return;
+    e.preventDefault();
+    const found = (note?.citations ?? []).find((c) => c.n === Number(m[1]));
+    if (found) setOpenCite(found);
   };
 
   const exportMarkdown = () => {
@@ -289,6 +371,22 @@ export function NotebookView({
       </DetailBar>
 
 
+      {openCite && <CitePanel cite={openCite} onClose={() => setOpenCite(null)} />}
+
+      {/* A word about the change, shown *with* the change.
+          This used to live only in the composer, which is hidden while a diff
+          is up — so "three of these citations could not be found" appeared at
+          the exact moment it could not be read, and then vanished when you
+          accepted. The one thing you need before deciding belongs where the
+          deciding happens. */}
+      {proposal && notice && (
+        <div className="mx-auto w-full max-w-[var(--measure)] shrink-0 px-4 pt-3">
+          <p className="rounded-lg border border-[var(--warning)] bg-inset px-3 py-2 text-xs text-warning">
+            {notice}
+          </p>
+        </div>
+      )}
+
       {proposal ? (
         <DiffView
           before={draft}
@@ -301,9 +399,19 @@ export function NotebookView({
         <>
           <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-8 pt-4">
+              {/* Whether this is still an account of what it was made from.
+                  Not a warning about the page being wrong — it may be fine —
+                  but the one fact a reader cannot work out for themselves. */}
+              {stale && (
+                <p className="mb-3 rounded-lg border border-line bg-inset px-3 py-2 text-xs text-warning">
+                  {stale} since this page was made. What is on it still says what it said then.
+                </p>
+              )}
               {preview ? (
                 draft.trim() ? (
-                  <Markdown content={draft} />
+                  <div onClick={onCiteClick}>
+                    <Markdown content={draft} />
+                  </div>
                 ) : (
                   <p className="text-sm text-tertiary">Nothing to preview yet.</p>
                 )
@@ -345,7 +453,7 @@ export function NotebookView({
                         book attached the page is not a draft to tidy, it is an
                         empty seat in front of the material — so the offer is
                         lessons, not proofreading. */}
-                    {source ? (
+                    {sources.length ? (
                       <>
                         <NoteChip busy={busy} icon={<GraduationCap size={12} />} onClick={() => void run(LESSONS, "Make lessons")}>
                           Make lessons
@@ -390,31 +498,40 @@ export function NotebookView({
                         if (f) await attach(f);
                       }}
                     />
-                    {source ? (
-                      <span className="flex min-w-0 items-center gap-1.5 rounded-full bg-inset py-1 pl-2.5 pr-1 text-sm">
+                    {/* Every source, and always the way to add another. One
+                        was the old limit and it was the wrong shape: things
+                        worth understanding usually arrive as several files,
+                        and a page made from three of them is the ordinary
+                        case, not an advanced one. */}
+                    {sources.map((src) => (
+                      <span
+                        key={src.id}
+                        className="flex min-w-0 items-center gap-1.5 rounded-full bg-inset py-1 pl-2.5 pr-1 text-sm"
+                      >
                         <BookOpen size={13} className="shrink-0 text-[var(--accent-2)]" />
-                        <span className="min-w-0 truncate text-secondary">{source.name}</span>
+                        <span className="min-w-0 max-w-[9rem] truncate text-secondary">{src.name}</span>
                         <span className="shrink-0 text-xs text-faint tnum">
-                          {source.pages ? `${source.pages}p` : `${Math.round(source.text.length / 1000)}k`}
+                          {src.pages ? `${src.pages}p` : `${Math.round(src.text.length / 1000)}k`}
                         </span>
                         <button
-                          onClick={() => setSource(null)}
-                          aria-label={`Put ${source.name} away`}
+                          onClick={async () => offerUndo(src.name, await removeSource(src.id))}
+                          aria-label={`Put ${src.name} away`}
                           className="ctl focus-inset flex [--ctl:1.5rem] shrink-0 items-center justify-center rounded-full text-tertiary transition-colors duration-[var(--dur-fast)] hover:text-primary"
                         >
                           <X size={13} />
                         </button>
                       </span>
-                    ) : (
-                      <button
-                        onClick={() => fileRef.current?.click()}
-                        disabled={reading}
-                        className="btn-touch ctl-h focus-inset flex shrink-0 items-center gap-1.5 rounded-full px-2.5 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary disabled:opacity-50"
-                      >
-                        <Paperclip size={16} />
-                        <span className="hidden sm:inline">{reading ? "Reading…" : "Read something"}</span>
-                      </button>
-                    )}
+                    ))}
+                    <button
+                      onClick={() => fileRef.current?.click()}
+                      disabled={reading}
+                      className="btn-touch ctl-h focus-inset flex shrink-0 items-center gap-1.5 rounded-full px-2.5 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary disabled:opacity-50"
+                    >
+                      <Paperclip size={16} />
+                      <span className="hidden sm:inline">
+                        {reading ? "Reading…" : sources.length ? "Add another" : "Read something"}
+                      </span>
+                    </button>
                   </>
                 }
                 right={<RevisePicker configured={configured} />}
@@ -428,6 +545,85 @@ export function NotebookView({
 }
 
 /** The same chip the canvas uses, kept here so the notebook owns its own row. */
+/**
+ * The passage behind a claim.
+ *
+ * The whole point of the citation, and the reason it is worth the machinery:
+ * a reader can go from a sentence on a generated page to the words in the file
+ * it came from, in one press, without leaving the page or trusting anybody.
+ *
+ * A citation that could not be found gets a panel too, and it says so plainly
+ * instead of quietly not opening. A failed check is information — it is the
+ * one claim on the page a reader most needs to look at themselves — and a
+ * marker that does nothing when pressed reads as a bug rather than a warning.
+ */
+function CitePanel({ cite, onClose }: { cite: Citation; onClose: () => void }) {
+  return (
+    <div className="mx-auto w-full max-w-[var(--measure)] shrink-0 px-4 pt-3">
+      <div
+        className={cn(
+          "rounded-xl border bg-surface p-3",
+          cite.found ? "border-line" : "border-[var(--warning)]",
+        )}
+      >
+        <div className="mb-1 flex items-center gap-2">
+          <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+            {cite.found ? "In the source" : "Not found in the source"}
+          </span>
+          <span className="min-w-0 flex-1 truncate text-xs text-tertiary">
+            {cite.sourceName}
+            {cite.at?.page ? ` · around page ${cite.at.page}` : ""}
+          </span>
+          <button
+            onClick={onClose}
+            aria-label="Close the source"
+            className="ctl focus-inset flex [--ctl:1.625rem] shrink-0 items-center justify-center rounded-full text-tertiary transition-colors duration-[var(--dur-fast)] hover:text-primary"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {cite.found ? (
+          <p className="max-h-40 overflow-y-auto text-sm leading-relaxed text-secondary">
+            {/* The quoted words, marked inside the passage they came from, so
+                you read them where they sit rather than on their own. */}
+            {splitAround(cite.context ?? "", cite.quote).map((part, i) =>
+              part.hit ? (
+                <mark key={i} className="rounded bg-accent-subtle px-0.5 text-primary">
+                  {part.text}
+                </mark>
+              ) : (
+                <span key={i}>{part.text}</span>
+              ),
+            )}
+          </p>
+        ) : (
+          <>
+            <p className="text-sm text-secondary">
+              These words are not in {cite.sourceName}. Whatever this sentence says, it
+              was not read there — treat it as the model&rsquo;s own and check it yourself.
+            </p>
+            <p className="mt-1.5 rounded-lg bg-inset px-2.5 py-1.5 text-sm text-tertiary">
+              &ldquo;{cite.quote}&rdquo;
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** The quote inside its context, for marking it — matched loosely, shown exactly. */
+function splitAround(context: string, quote: string): { text: string; hit: boolean }[] {
+  const at = context.toLowerCase().indexOf(quote.toLowerCase().replace(/\s+/g, " ").trim());
+  if (at === -1 || !quote) return [{ text: context, hit: false }];
+  return [
+    { text: context.slice(0, at), hit: false },
+    { text: context.slice(at, at + quote.length), hit: true },
+    { text: context.slice(at + quote.length), hit: false },
+  ].filter((p) => p.text);
+}
+
 function NoteChip({
   children,
   icon,

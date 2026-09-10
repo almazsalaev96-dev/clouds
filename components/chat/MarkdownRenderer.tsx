@@ -44,12 +44,23 @@ function makeComponents(streaming: boolean): Components {
         <table>{children}</table>
       </div>
     ),
-    a: ({ href, children }) => (
-      <a href={href} target="_blank" rel="noopener noreferrer">
-        {children}
-        <ExternalLink size={11} className="ml-0.5 inline-block align-baseline opacity-50" />
-      </a>
-    ),
+    /* An in-page link is not an outward one.
+       Everything here used to open in a new tab and wear the little arrow that
+       promises it will, which is right for a URL and wrong for an anchor —
+       a citation marker pointing at a passage on this very page announced
+       itself as leaving, and would have opened a blank tab if it were not
+       intercepted. Anchors stay where they are and keep the arrow off. */
+    a: ({ href, children }) => {
+      const inPage = (href ?? "").startsWith("#");
+      return inPage ? (
+        <a href={href}>{children}</a>
+      ) : (
+        <a href={href} target="_blank" rel="noopener noreferrer">
+          {children}
+          <ExternalLink size={11} className="ml-0.5 inline-block align-baseline opacity-50" />
+        </a>
+      );
+    },
     li: ({ children, className, ...props }) => {
       const isTask = className?.includes("task-list-item");
       return (

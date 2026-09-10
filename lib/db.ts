@@ -1,7 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import type {
   Canvas, CanvasFile, CanvasVersion, ContentBlock, Conversation, Message, Note,
-  Project, ProjectFile, Style,
+  Project, ProjectFile, Source, Style,
 } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 
@@ -20,6 +20,7 @@ class ChatDB extends Dexie {
   projects!: Table<Project, string>;
   projectFiles!: Table<ProjectFile, string>;
   styles!: Table<Style, string>;
+  sources!: Table<Source, string>;
 
   constructor() {
     super("clouds");
@@ -114,6 +115,17 @@ class ChatDB extends Dexie {
        every render of that page. */
     this.version(8).stores({
       canvases: "id, updatedAt, kind, projectId",
+    });
+
+    /* Version 9 keeps what a page was made from.
+       ---------------------------------------------------------------------
+       A notebook page could be built from a book and then had no idea the book
+       existed — the source lived in memory for as long as you stayed on the
+       page. Which makes the notebook a converter rather than a place: it could
+       never answer "where did that come from", which is the only question
+       worth asking about a page somebody else wrote. */
+    this.version(9).stores({
+      sources: "id, noteId, addedAt, [noteId+addedAt]",
     });
   }
 }
@@ -394,6 +406,40 @@ export async function deleteNote(id: string): Promise<() => Promise<void>> {
   return async () => {
     if (note) await db.notes.put(note);
   };
+}
+
+/* --------------------------------------------------------------- sources -- */
+
+/** Bring something in for a page to be made from. */
+export async function addSource(
+  noteId: string,
+  init: { name: string; text: string; pages?: number; size?: number },
+): Promise<Source> {
+  const source: Source = {
+    id: uid(),
+    noteId,
+    name: init.name,
+    text: init.text,
+    pages: init.pages,
+    size: init.size ?? init.text.length,
+    addedAt: Date.now(),
+  };
+  await db.sources.add(source);
+  return source;
+}
+
+/** Undoable, like everything else that removes something you brought here. */
+export async function removeSource(id: string): Promise<() => Promise<void>> {
+  const source = await db.sources.get(id);
+  await db.sources.delete(id);
+  return async () => {
+    if (source) await db.sources.put(source);
+  };
+}
+
+/** Everything a page was made from. */
+export function sourcesOf(noteId: string): Promise<Source[]> {
+  return db.sources.where("noteId").equals(noteId).sortBy("addedAt");
 }
 
 /* ---------------------------------------------------------------- canvas -- */

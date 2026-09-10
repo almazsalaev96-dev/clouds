@@ -152,6 +152,64 @@ export interface Note {
   pinned: boolean;
   /** Where it came from, so a page can point back at its conversation. */
   sourceConversationId?: string;
+  /**
+   * When this page was last made from its sources, and which ones.
+   *
+   * Together these answer "is this still true of what it was made from" — a
+   * source added or removed since is a page that may now be wrong, and saying
+   * so is cheaper than a reader discovering it.
+   */
+  madeAt?: number;
+  madeFrom?: string[];
+  /** What was quoted for each claim, and whether it was really there. */
+  citations?: Citation[];
+}
+
+/**
+ * One claim, and where it was checked against.
+ *
+ * Stored with the page rather than re-derived, because what the model quoted
+ * is not recoverable from the finished text — the page keeps a marker and the
+ * evidence lives here beside it.
+ */
+export interface Citation {
+  /** 1-based, matching the marker in the page. */
+  n: number;
+  sourceId?: string;
+  sourceName: string;
+  quote: string;
+  at?: { start: number; end: number; page?: number };
+  context?: string;
+  /** False when the quoted words are not in the source it named. */
+  found: boolean;
+}
+
+/**
+ * Something a page was made from.
+ *
+ * The notebook used to hold exactly one of these, in memory, for as long as
+ * you stayed on the page — attach a book, get lessons, and the book was gone
+ * the moment you left. That makes the notebook a converter rather than a
+ * place: everything it produced was cut loose from what it came from the
+ * instant it existed, so there was no answering the only question that matters
+ * about a generated page, which is "where did that come from".
+ *
+ * Kept, plural, and belonging to the page they made. The text is stored in
+ * full — it is the thing a claim gets checked against, and a source you cannot
+ * re-read is a citation you have to take on trust.
+ */
+export interface Source {
+  id: string;
+  /** The page this was brought in for. */
+  noteId: string;
+  name: string;
+  /** Everything readable in it, as text. */
+  text: string;
+  /** For a PDF, so a location can be given as a page rather than an offset. */
+  pages?: number;
+  /** Bytes of the original, for the list. */
+  size: number;
+  addedAt: number;
 }
 
 /* ---------------------------------------------------------------- canvas -- */

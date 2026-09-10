@@ -184,12 +184,50 @@ answers rather than omitting them; never write a lesson that can be read
 without teaching anything. The failure mode of all four is a table of contents
 wearing a costume.
 
-The source goes to the model as reference material and is sliced at 120,000
-characters rather than the 12,000 that is right for a sibling file in a folder
-— cutting a book to three pages would produce lessons about three pages while
-looking like lessons about the book. It is held for the session and never
-written to the database: what is worth keeping is the lessons, and they end up
-in the page like anything else you wrote there.
+The source goes to the model as reference material and is sliced generously
+rather than at the 12,000 characters that is right for a sibling file in a
+folder — cutting a book to three pages would produce lessons about three pages
+while looking like lessons about the book.
+
+**Bring more than one thing, and keep it.** That source used to be exactly one
+file, held in memory for as long as you stayed on the page: attach a book, get
+lessons, and the book was gone the moment you left. Which made the notebook a
+converter rather than a place — everything it produced was cut loose from what
+it came from the instant it existed, so the only question worth asking about a
+page a model wrote had no answer. A page now holds as many sources as you give
+it, they survive a reload, and they are kept in full, because the text is the
+thing a claim gets checked against.
+
+**Every claim is checkable, and the app is what checks it.** Asking a model to
+cite its sources gets you citations. It does not get you *true* ones: a
+plausible page reference is as easy to produce as a plausible sentence and
+considerably harder to notice, and a footnote nobody can check is decoration —
+decoration that looks like evidence, which is worse than none.
+
+So the model is not asked for a reference. It is asked to **quote the words it
+is relying on**, and `lib/cite.ts` goes and finds them. A quote that is in the
+source becomes a marker you can press, which opens the passage with the quoted
+words highlighted inside it and says roughly which page. A quote that is *not*
+there becomes a visible failure: the marker reads `3?` rather than `3`, the
+page says so before you open anything — *1 of 3 citations could not be found* —
+and pressing it says the words are not in that file and to treat the sentence
+as the model's own. Unfound citations are kept rather than quietly deleted:
+removing them would make the page look better and be worth less, since the
+claim whose evidence turned out not to exist is exactly the one a reader most
+needs flagged.
+
+The guarantee therefore does not rest on the model being honest, only on it
+being quotable. The matching is forgiving in the ways that do not matter —
+line breaks, doubled spaces, curly quotes, `--` for an em dash, a word
+hyphenated across a line break — and strict in the one that does: if the words
+are not there, nothing pretends they are. A quote under twelve characters is
+refused outright rather than matched, because it is not evidence of anything.
+
+**And a page knows when its sources have moved on.** It records what it was
+made from and when. Add or remove a source afterwards and it says so — *1 was
+removed since this page was made; what is on it still says what it said then*.
+Only for pages that were actually made from something: telling people their own
+writing is stale is how a notice gets ignored.
 
 **The motion.** Three things in the app changed state by cutting. A segmented
 control moved a background colour from one button to another, which is not a
@@ -819,6 +857,23 @@ heading, and link URLs printed in full.
   through Chromium's print media emulation rather than assumed.
 - Highlighting confirmed to run in a real Web Worker (counted at construction, not
   assumed), producing 240 themed spans on a 40-line block.
+- **The citation matcher, tested on its own** (`test-cite.mts`, 18 assertions,
+  run with `node --experimental-strip-types`). Not through the UI, because the
+  interesting cases are the ones a PDF actually produces and they are cheaper to
+  state directly: a quote broken across a line break, a word hyphenated across
+  one, curly quotes against straight, `--` against an em dash, offsets that must
+  index the real text rather than the normalised copy, a number that was never
+  there, a source name that does not exist, and a quote too short to be evidence.
+- **Sources and citations driven end to end** (`e2e-sources.mjs`, 20 assertions).
+  The mock **deliberately invents one of its three citations**, which is the
+  assertion this suite exists for: if the app were trusting the model, the false
+  one would look exactly like the two true ones. It does not — it is marked
+  before it is opened, counted out loud on the diff, and explained when pressed.
+- A real defect the suite caught rather than confirmed: the "1 of 3 could not be
+  found" notice lived only in the composer, which is hidden while a diff is up —
+  so it appeared at the exact moment it could not be read, and vanished on
+  accept. The one fact you need before deciding now sits where the deciding
+  happens.
 - **A project reaching its own code, read at the wire** (`e2e-whole.mjs`, 19
   assertions): a canvas made inside a project belongs to it and says so; the
   project's instructions arrive with an edit to its code, labelled and marked
@@ -909,6 +964,20 @@ Stated plainly, because a checklist you cannot trust is worse than no checklist.
   here. The rest would need a server, and a server is the one thing this app
   promises not to have. Said plainly because the alternative is a feature list
   that sounds like a coding agent and behaves like a text box.
+- **A citation proves a quote exists, not that it supports the claim.** The check
+  is that the words are in the file. Whether the sentence they are attached to is
+  a fair reading of them is a judgement no string match makes, and a green marker
+  should be read as "this is really in there, go and look" rather than as "this
+  is true". Nor is there any check on what was *left out*.
+- **Page numbers are estimates.** A PDF's text has no page boundaries left in it
+  by the time it is one string, so "around page 212" is an even division, not a
+  lookup. It is the difference between "somewhere in a 400-page book" and a place
+  to start, which is the difference between a citation you check and one you do
+  not — but it is not a reference.
+- **Sources are text only.** PDFs are read for their text and a scan is refused
+  with a reason rather than accepted as an empty book. Images, audio and video —
+  the photographs, recordings and meetings that a notebook meant as "bring your
+  world" would have to take — need transcription this app has nowhere to run.
 - **A project is not a repository.** It groups canvases, knowledge and chats, and
   a question can be asked across all of it — but there is no dependency graph, no
   "this change affects 17 components", no project map, and no rename that follows
@@ -946,6 +1015,9 @@ node audit.mjs        # Apple HIG: safe areas, zoom, names, focus, contrast mode
 node contrast.mjs     # every text/background pair the app renders, against WCAG
 node touch.mjs        # every control in every section on a phone, against 44pt
 node shoot-smoke.mjs  # every section loads, undo works, no runtime errors
+
+# and one that needs no browser at all:
+node --experimental-strip-types test-cite.mts   # the citation matcher, on its own
 ```
 
 And the end-to-end run, which needs the app pointed at the mock provider:
@@ -970,6 +1042,7 @@ node e2e-code.mjs    # 20 assertions: find, review, and changing only a selectio
 node e2e-agent.mjs   # 26 assertions: plan, house rules, check, and fix-from-error
 node e2e-point.mjs   # 18 assertions: pointing at a running page and changing it
 node e2e-whole.mjs   # 19 assertions: code inside a project, and asking across it
+node e2e-sources.mjs # 20 assertions: many sources, and citations that are checked
 node mock-slow.mjs &   # the mock with the gap between tokens stretched, then:
 node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs the slow mock)
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire

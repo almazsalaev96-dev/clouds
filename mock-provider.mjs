@@ -176,6 +176,31 @@ The behaviour is in **Counter / app.js**, which wires \`#up\` and \`#down\` to i
 
 Nothing in **notes.md** touches it.`;
 
+  /* Something made out of sources, with citations in it.
+     One of the three is deliberately a quote that is NOT in the material. The
+     app's claim is that it checks citations rather than trusting them, and a
+     mock that only ever produces true ones would leave the half that matters —
+     what happens when a model invents evidence — untested. */
+  const making_from = /^Make what is asked for below, out of the material/.test(asked);
+  let MADE_FROM = "";
+  if (making_from) {
+    const material = asked.slice(asked.indexOf("\nTHE MATERIAL\n") + "\nTHE MATERIAL\n".length);
+    const body = material.replace(/^--- [^\n]* ---\n/, "");
+    const name = (material.match(/^--- ([^\n]*) ---/) ?? [, "source"])[1];
+    const sentences = body.split(/(?<=\.)\s+/).map((x) => x.trim()).filter((x) => x.length > 24);
+    const one = sentences[0] ?? body.slice(0, 80);
+    const two = sentences[1] ?? sentences[0] ?? body.slice(0, 80);
+    MADE_FROM = `## What it says
+
+The first thing it establishes [[cite: ${name} | ${one}]]
+
+It goes on from there [[cite: ${name} | ${two}]]
+
+## A claim with no basis
+
+It also reports a figure of nine hundred percent [[cite: ${name} | the result was nine hundred percent higher than anyone expected in the third quarter]]`;
+  }
+
   const checking = /^A change was just made to this/.test(asked);
   const CHECK = `It does what was asked: the concat is gone and the loop pushes instead.
 
@@ -185,6 +210,8 @@ Nothing here looks like it breaks a caller — the return type is the same array
 
   let text = isTitle
     ? "Debouncing a search input"
+    : making_from
+    ? MADE_FROM
     : asking
     ? ASK
     : pointing

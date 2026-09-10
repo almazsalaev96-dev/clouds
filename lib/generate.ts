@@ -696,3 +696,56 @@ ${body}`,
   );
   return out ? { text: out, dropped } : null;
 }
+
+/* --------------------------------------------------------------- sources -- */
+
+/**
+ * Make something out of what you brought, and say where each claim came from.
+ *
+ * The instruction is whatever the person asked for — a summary, a plan, a set
+ * of lessons, a comparison, a page they can hand to somebody else. The shape
+ * is theirs to choose; what is fixed is that the result has to be traceable.
+ *
+ * It is asked to **quote** rather than to reference, and that is the whole
+ * design. A page number is as easy to invent as a sentence and much harder to
+ * notice; a quotation can be looked for, and `lib/cite.ts` looks for it. So
+ * the guarantee does not rest on the model being honest, only on it being
+ * quotable — and where it is not, the reader is told rather than reassured.
+ */
+export async function makeFromSources(
+  instruction: string,
+  sources: { name: string; text: string }[],
+  modelId?: string,
+  perSource = 90_000,
+): Promise<string | null> {
+  const material = sources
+    .map((s) => `--- ${s.name} ---\n${s.text.slice(0, perSource)}`)
+    .join("\n\n");
+
+  return complete(
+    `Make what is asked for below, out of the material at the end. Nothing else.
+
+WHAT IS WANTED
+${instruction}
+
+SAYING WHERE IT CAME FROM
+Every claim that comes from the material must carry a citation, written exactly like this:
+
+[[cite: the file's name | a short exact quotation from it]]
+
+- Quote, do not paraphrase. The words between the bar and the closing brackets are checked against the file character by character, and a citation whose words are not in it is shown to the reader as a failure. An approximation is worse than no citation.
+- Keep quotations short — one sentence, or the clause that carries the point.
+- Cite the thing that supports the claim, not the paragraph it sits near.
+- Put the citation immediately after the sentence it supports.
+- Do not cite your own connecting sentences, your headings, or anything you worked out yourself rather than read.
+- If something worth saying is not in the material, say it and say plainly that it is not from the material. Do not attach a citation to it.
+
+Also:
+- Markdown. No preamble about what you are about to do.
+- Where the material is unclear or contradicts itself, say so rather than resolving it silently.
+
+THE MATERIAL
+${material}`,
+    { modelId, maxTokens: 16_000, temperature: 0.3 },
+  );
+}
