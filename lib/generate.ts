@@ -178,6 +178,101 @@ ${current.slice(0, 60_000)}`;
  * must not touch the file, and a feature that sometimes edits and sometimes
  * does not is one people stop trusting with either.
  */
+/**
+ * Rewrite one selected span, and nothing else.
+ *
+ * The whole-file revision is the right tool for "add retry with backoff" and
+ * the wrong one for "make this a loop": it asks a model to reproduce four
+ * hundred lines it was not asked to touch, which is slow, expensive, and the
+ * one way a change you did want arrives alongside three you did not. Sending
+ * the file for context and asking only for the replacement of the marked span
+ * makes the blast radius the thing you selected.
+ *
+ * The rest of the file is still sent — a model asked to rewrite six lines
+ * without seeing what they are called from will invent a signature.
+ */
+export async function reviseSelection(
+  whole: string,
+  selection: { start: number; end: number },
+  instruction: string,
+  lang: string | undefined,
+  modelId?: string,
+): Promise<string | null> {
+  const before = whole.slice(0, selection.start);
+  const chosen = whole.slice(selection.start, selection.end);
+  const after = whole.slice(selection.end);
+
+  const out = await complete(
+    `Rewrite ONLY the selected part of this ${lang ?? "code"} according to the instruction.
+
+Rules:
+- Return the replacement for the selected part alone. No prose, no fences, no explanation.
+- Do not return the surrounding code. Do not return the whole file.
+- Match the surrounding indentation and style exactly.
+- Keep it a drop-in replacement: whatever is spliced back in must leave the file valid.
+- If the instruction cannot be satisfied within the selection alone, return the selection unchanged.
+
+INSTRUCTION
+${instruction}
+
+BEFORE THE SELECTION (context only — do not return this)
+${before.slice(-4000)}
+
+THE SELECTION (rewrite this)
+${chosen}
+
+AFTER THE SELECTION (context only — do not return this)
+${after.slice(0, 4000)}`,
+    { modelId, maxTokens: 4096, temperature: 0.2 },
+  );
+  if (!out) return null;
+
+  /* Models fence code even when told not to, and a fence spliced into a file
+     is a syntax error. Stripped rather than refused: the answer is right and
+     the wrapper is habit. */
+  const body = out.replace(/^\s*```[\w-]*\n?/, "").replace(/\n?```\s*$/, "");
+  return before + body.replace(/\s+$/, "") + after;
+}
+
+/**
+ * A review, not a rewrite.
+ *
+ * The fifth of the one-press edits, and the only one that does not touch the
+ * file. "Fix bugs" answers "what is broken"; this answers "what would someone
+ * who has to maintain this say about it" — which is a different question and
+ * the one you want before you have a bug rather than after.
+ *
+ * It comes back as findings you read and decide about, because a review that
+ * silently rewrote the file would be "fix bugs" with a longer name.
+ */
+export async function reviewCode(
+  current: string,
+  lang: string | undefined,
+  modelId?: string,
+  siblings?: { name: string; content: string }[],
+): Promise<string | null> {
+  const context = siblings?.length
+    ? `\n\nThe other files in the same folder, for reference:\n\n` +
+      siblings.map((f) => `--- ${f.name} ---\n${f.content.slice(0, 8_000)}`).join("\n\n")
+    : "";
+  return complete(
+    `Review this ${lang ?? "code"} the way a careful colleague would, and report what you find.
+
+For each finding: what is wrong, what it would cost, and the smallest change that fixes it. Show the fix as a short code snippet where a snippet is clearer than a sentence.
+
+Order by what would actually hurt: correctness first, then things that will break under load or on bad input, then clarity. Say where each one is — the function or the line.
+
+Rules:
+- Do not rewrite the file. This is a review.
+- If something is fine, do not invent a criticism of it. A short review of good code is the correct output, and "nothing here worries me" is an allowed answer.
+- Skip style opinions the language's own formatter would settle.
+- Markdown, headings and short paragraphs. No preamble.
+
+${current}${context}`,
+    { modelId, maxTokens: 2048, temperature: 0.2 },
+  );
+}
+
 export async function explainCode(
   current: string,
   lang: string | undefined,

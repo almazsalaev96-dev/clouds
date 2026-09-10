@@ -5,7 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   Braces, Bug, Check, Eye, FileCode2, FilePlus2, FileText, FileType2, History,
   LayoutTemplate, MessageSquareCode, Palette, Pencil, Play, RotateCcw,
-  Maximize2, Minimize2, Terminal, X,
+  Maximize2, Minimize2, ScanSearch, Terminal, TextSelect, X,
   CalendarRange, CheckCheck, ListChecks, Sparkles, Timer, Wand2,
 } from "lucide-react";
 import type { Canvas, CanvasFile, CanvasVersion } from "@/lib/types";
@@ -15,7 +15,7 @@ import {
 } from "@/lib/db";
 import { offerUndo } from "@/lib/undo";
 import { useSettings } from "@/lib/store";
-import { explainCode, reviseCanvas } from "@/lib/generate";
+import { explainCode, reviewCode, reviseCanvas, reviseSelection } from "@/lib/generate";
 import { collapse, diffStat, lineDiff, type DiffOp } from "@/lib/diff";
 import { assembleWeb, ENTRY, locate, runToken, webTemplate } from "@/lib/web";
 import { MAKES } from "@/lib/makes";
@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useDebounced } from "@/lib/hooks/useDebounced";
 import { CodeBlock } from "@/components/chat/CodeBlock";
-import { CodeEditor, type Jump } from "@/components/CodeEditor";
+import { CodeEditor, type Jump, type Selection } from "@/components/CodeEditor";
 import { Markdown } from "@/components/chat/Markdown";
 import { Button, IconButton, Kbd, SaveBadge } from "@/components/ui/primitives";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
@@ -292,11 +292,15 @@ function Editor({
      under a working demo asks "now what"; a sentence to finish answers it. */
   const [instruction, setInstruction] = React.useState(seed ?? "");
   const reviseModel = useReviseModel(configured);
-  const [busy, setBusy] = React.useState<false | "revise" | "explain">(false);
+  const [busy, setBusy] = React.useState<false | "revise" | "explain" | "review">(false);
   /* Using the thing rather than building it. A deck of cards, a timer, a quiz
      — these are made once and then used, and everything that helps you make
      one is in the way of using it. */
   const [focused, setFocused] = React.useState(false);
+  /* What is highlighted in the editor. When there is something, a change is
+     asked for that alone rather than for the file — which is the difference
+     between "make this a loop" costing six lines and costing four hundred. */
+  const [selection, setSelection] = React.useState<Selection | null>(null);
 
   const enterFocus = React.useCallback(() => {
     setMode("run");
@@ -333,7 +337,7 @@ function Editor({
   // Leaving the canvas while focused would strand the app with no chrome.
   React.useEffect(() => () => onFocus?.(false), [onFocus]);
   const [proposal, setProposal] = React.useState<{ content: string; note: string } | null>(null);
-  const [report, setReport] = React.useState<string | null>(null);
+  const [report, setReport] = React.useState<{ kind: "explain" | "review"; text: string } | null>(null);
   const [showHistory, setShowHistory] = React.useState(false);
   const [versions, setVersions] = React.useState<CanvasVersion[]>([]);
   const [notice, setNotice] = React.useState<string | null>(null);
@@ -409,11 +413,32 @@ function Editor({
     try {
       // The draft, not the saved copy: revising a version of the file you can
       // see on screen but the model cannot is the fastest way to lose an edit.
-      const out = await reviseCanvas(draft, text, canvas.kind, doc.lang, modelId, siblings);
+      const out = selection
+        ? await reviseSelection(draft, selection, text, doc.lang, modelId)
+        : await reviseCanvas(draft, text, canvas.kind, doc.lang, modelId, siblings);
       if (!out) setNotice("The model didn't return a usable revision. Try saying it differently.");
       else if (out.trim() === draft.trim())
         setNotice("It came back unchanged — the instruction may not apply here.");
       else setProposal({ content: out, note: label ?? text });
+    } catch {
+      setNotice("That request failed. Check the key and the connection.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const review = async () => {
+    const modelId = reviseModel;
+    if (!modelId) {
+      setNotice("No key configured yet — add one in Settings.");
+      return;
+    }
+    setBusy("review");
+    setNotice(null);
+    try {
+      const out = await reviewCode(draft, doc.lang, modelId, siblings);
+      if (out) setReport({ kind: "review", text: out });
+      else setNotice("The model didn't return a review. Try again.");
     } catch {
       setNotice("That request failed. Check the key and the connection.");
     } finally {
@@ -430,7 +455,7 @@ function Editor({
     setBusy("explain");
     setNotice(null);
     try {
-      setReport((await explainCode(draft, doc.lang, modelId, siblings)) ?? "Nothing came back.");
+      setReport({ kind: "explain", text: (await explainCode(draft, doc.lang, modelId, siblings)) ?? "Nothing came back." });
     } catch {
       setNotice("That request failed. Check the key and the connection.");
     } finally {
@@ -461,6 +486,7 @@ function Editor({
     await pushVersion(canvas.id, proposal.content, "model", proposal.note, doc.fileName);
     setProposal(null);
     setInstruction("");
+    setSelection(null);
     void loadVersions();
   };
 
@@ -659,6 +685,7 @@ function Editor({
                 value={draft}
                 lang={doc.lang}
                 jump={jump}
+                onSelect={setSelection}
                 onChange={(next) => {
                   setDraft(next);
                   autosave.save(doc.key, { content: next });
@@ -669,7 +696,7 @@ function Editor({
           )}
 
           {report && !proposal && (
-            <Report text={report} column={column} onClose={() => setReport(null)} />
+            <Report kind={report.kind} text={report.text} column={column} onClose={() => setReport(null)} />
           )}
 
           {/* Asking for a change is the point of the room, and it is the same
@@ -688,9 +715,11 @@ function Editor({
                   canSend={!busy}
                   ariaLabel="Ask for a change"
                   placeholder={
-                    canvas.kind === "doc"
-                      ? "Ask for a change — “tighten the second section”"
-                      : "Ask for a change — “add retry with backoff”"
+                    selection
+                      ? "Change just these lines — “make this a loop”"
+                      : canvas.kind === "doc"
+                        ? "Ask for a change — “tighten the second section”"
+                        : "Ask for a change — “add retry with backoff”"
                   }
                   above={
                     <Shortcuts
@@ -698,14 +727,32 @@ function Editor({
                       busy={busy}
                       onRun={run}
                       onExplain={explain}
+                      onReview={review}
                       lang={doc.lang}
                     />
                   }
                   left={
-                    /* Which file is about to change. On a folder of three that
-                       is a live question, and answering it in the box you are
-                       typing the instruction into is the only place it helps. */
-                    web && doc.name ? (
+                    /* What is about to change: the selection if there is one,
+                       otherwise the file. Both are the same question — "what
+                       will this touch" — and the box you are typing the
+                       instruction into is the only place answering it helps. */
+                    selection ? (
+                      <span className="flex items-center gap-1.5 rounded-full bg-accent-subtle py-1 pl-2.5 pr-1 text-sm text-accent">
+                        <TextSelect size={13} className="shrink-0" />
+                        <span className="tnum text-xs">
+                          {selection.fromLine === selection.toLine
+                            ? `Line ${selection.fromLine}`
+                            : `Lines ${selection.fromLine}–${selection.toLine}`}
+                        </span>
+                        <button
+                          onClick={() => setSelection(null)}
+                          aria-label="Change the whole file instead"
+                          className="ctl focus-inset flex [--ctl:1.5rem] shrink-0 items-center justify-center rounded-full transition-colors duration-[var(--dur-fast)] hover:text-primary"
+                        >
+                          <X size={13} />
+                        </button>
+                      </span>
+                    ) : web && doc.name ? (
                       <span className="flex items-center gap-1.5 px-2 text-sm text-tertiary">
                         <FileMark lang={doc.lang ?? "txt"} />
                         <span className="truncate font-mono text-xs">{doc.name}</span>
@@ -845,12 +892,14 @@ function Shortcuts({
   busy,
   onRun,
   onExplain,
+  onReview,
 }: {
   kind: Canvas["kind"];
   lang?: string;
-  busy: false | "revise" | "explain";
+  busy: false | "revise" | "explain" | "review";
   onRun: (instruction: string, label?: string) => void;
   onExplain: () => void;
+  onReview: () => void;
 }) {
   const [portOpen, setPortOpen] = React.useState(false);
 
@@ -924,6 +973,14 @@ function Shortcuts({
         )}
       </span>
 
+      {/* A review, not a rewrite. "Fix bugs" answers what is broken; this
+          answers what someone who has to maintain it would say — the question
+          you want before there is a bug rather than after. With Explain, one
+          of the two shortcuts that never touches the file. */}
+      <Chip busy={busy === "review"} onClick={onReview}>
+        <ScanSearch size={12} />
+        Review
+      </Chip>
       <Chip busy={busy === "explain"} onClick={onExplain}>
         Explain
       </Chip>
@@ -970,10 +1027,12 @@ function Chip({
 
 /** What Explain came back with. Prose, never applied to anything. */
 function Report({
+  kind,
   text,
   column,
   onClose,
 }: {
+  kind: "explain" | "review";
   text: string;
   column: string;
   onClose: () => void;
@@ -983,9 +1042,9 @@ function Report({
       <div className="rounded-xl border border-line bg-surface p-3">
         <div className="mb-1 flex items-center gap-2">
           <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
-            Explanation
+            {kind === "review" ? "Review" : "Explanation"}
           </span>
-          <IconButton label="Close explanation" size={26} className="ml-auto" onClick={onClose}>
+          <IconButton label={`Close ${kind}`} size={26} className="ml-auto" onClick={onClose}>
             <X size={14} />
           </IconButton>
         </div>

@@ -291,14 +291,52 @@ this app's — not the conversations, not the keys, not storage. That is tested,
 not asserted: `e2e-web.mjs` reads `window.origin` inside the frame and confirms
 `localStorage` throws.
 
-**Five one-press edits** — Add comments, Add logs, Fix bugs, Port to…, Explain.
-Taken from ChatGPT's canvas, which settled on exactly this set, because they are
+**Six one-press edits** — Review, Add comments, Add logs, Fix bugs, Port to…,
+Explain. Taken from ChatGPT's canvas, which settled on this set, because they are
 the things people ask for over and over and typing "add comments explaining what
 each function does" for the hundredth time is the app failing to notice a
 pattern. A document gets its own four instead: Tighten, Proofread, Add structure,
 Explain — "Add logs" means nothing in prose. Every one of them lands as a diff
-you keep or discard, except Explain, which never touches the file: a shortcut
-that sometimes edits and sometimes does not is one nobody trusts with either.
+you keep or discard, except Explain and Review, which never touch the file: a
+shortcut that sometimes edits and sometimes does not is one nobody trusts with
+either.
+
+**Review** was the one missing from that set, and it is the one that changes what
+the surface is for. The other five all assume you have already decided what is
+wrong; a review is what you press when you have not. It reads the file the way a
+colleague would and reports what it finds — and it is asked, in as many words, to
+be allowed to find nothing, because a reviewer who must produce a finding will
+produce one, and an invented objection costs more than silence. On a canvas that
+has siblings it gets them as context, so "this duplicates the helper in utils" is
+available to it. It is on code and web files only: a prose page does not want a
+code review, and the four writing shortcuts already cover what it would say.
+
+**Changing only what you selected.** Select six lines, and the message bar stops
+asking about the file and starts asking about the six lines: the chip reads
+*Lines 5–11*, the placeholder becomes "Change just these lines", and what goes to
+the model is the selection marked as the thing to rewrite with the rest of the
+file attached as context it is told not to return. Claude's artifacts added this
+in June 2026, and the reason is arithmetic: "make this a loop" against a
+four-hundred-line file is four hundred lines regenerated, which is slow, costs
+four hundred lines of tokens, and gives the model four hundred chances to change
+something you did not ask about. Against eleven lines it is eleven. The context
+either side is not optional — six lines rewritten blind invent a signature that
+does not match the call two hundred lines up.
+
+The threshold is twelve characters. Below that a "selection" is a double-clicked
+variable name or a caret being dragged, and a bar that changes what it is asking
+every time you double-click a word is wrong more often than right. Accepting the
+change lets the selection go, because the lines you selected are not the lines
+you now have.
+
+**Find in this file** — `⌘F`, the key everybody presses, intercepted before the
+browser gets it. It counts what it found ("3 of 7"), Enter walks forward,
+Shift-Enter walks back, Escape closes it, and each match is *selected* in the
+textarea rather than merely scrolled to, so the next thing you type replaces it.
+Opening it with something already selected seeds the box with that. None of this
+is novel; its absence was the problem. A file past about fifty lines without find
+is a file you hunt through, and both surfaces this was measured against have had
+it for years.
 
 Every accepted change is a version, and so is the state it replaced, so reverting
 is always possible even when the first edit came from the model. History is per
@@ -660,6 +698,19 @@ heading, and link URLs printed in full.
   through Chromium's print media emulation rather than assumed.
 - Highlighting confirmed to run in a real Web Worker (counted at construction, not
   assumed), producing 240 themed spans on a 40-line block.
+- The three coding additions driven in a browser and read at the wire
+  (`e2e-code.mjs`, 20 assertions): the find bar counts and walks matches and lands
+  the caret *on* them; Review is asked for a review twice over and leaves the file
+  byte-identical; and a selection sends the selection — the prompt is checked for
+  the marked selection, for the surrounding file labelled as context, and for the
+  instruction not to return it.
+- A test of mine that was wrong rather than an app that was: the selection suite
+  failed five assertions because it set `selectionStart` by hand and dispatched a
+  `select` event, and React emulates `onSelect` from `selectionchange` and the
+  pointer and key events around it — so the hand-made event arrived at nobody, and
+  the app was never told about the selection the test was asserting against.
+  Driven with real keystrokes it passes untouched. Worth writing down: a synthetic
+  event that looks equivalent to a real one is the fastest way to test nothing.
 - Three bugs found by measuring rather than by looking, all of them cascade problems:
   unlayered `button`/`input` rules were overriding every Tailwind text-size utility,
   because unlayered CSS beats every `@layer`; the `pop-in` keyframe ended on
@@ -727,6 +778,7 @@ node e2e-motion.mjs  # 17 assertions: the motion, asked for rather than admired
 node e2e-use.mjs     # 21 assertions: using a made thing, and making one from a book
 node e2e-scale.mjs   #  6 assertions: what it costs to open, and 400 turns deep
 node e2e-backup.mjs  # 14 assertions: a copy of everything, and everything back
+node e2e-code.mjs    # 20 assertions: find, review, and changing only a selection
 node mock-slow.mjs &   # the mock with the gap between tokens stretched, then:
 node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs the slow mock)
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire
