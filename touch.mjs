@@ -61,7 +61,11 @@ await page.waitForTimeout(500);
 for (const [name, open] of [["Code", true], ["Projects", true], ["Notebook", true]]) {
   await page.getByRole("button", { name: /Show sidebar/i }).first().click();
   await page.waitForTimeout(450);
-  await page.getByRole("button", { name, exact: true }).first().click();
+  // Code lives in the header switch; the other two are rows in the list.
+  const go = name === "Code"
+    ? page.getByRole("radio", { name: "Code" })
+    : page.getByRole("button", { name, exact: true });
+  await go.first().click();
   await page.waitForTimeout(700);
   await report(`${name} — the index`);
   if (open) {

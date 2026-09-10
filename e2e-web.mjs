@@ -38,7 +38,7 @@ await page.waitForTimeout(900);
 
 /* --------------------------------------------------------------- create -- */
 
-await page.getByRole("button", { name: "Code", exact: true }).first().click();
+await page.getByRole("radio", { name: "Code" }).first().click();
 await page.waitForTimeout(400);
 check(await page.getByRole("button", { name: /Web app/ }).isVisible().catch(() => false), "the index offers the three shapes a canvas can be");
 

@@ -3,8 +3,8 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  ChevronRight, Code2, FolderOpen, Keyboard, NotebookPen, PanelLeft, Pin,
-  PinOff, Plus, Search, Settings2, Trash2, X,
+  ChevronRight, Code2, FolderOpen, Keyboard, MessagesSquare, NotebookPen,
+  PanelLeft, Pin, PinOff, Plus, Search, Settings2, Trash2, X,
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { db, deleteConversation, groupConversations } from "@/lib/db";
@@ -16,10 +16,11 @@ import { useSettings, type Section } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { IconButton, Kbd, Tooltip } from "@/components/ui/primitives";
 
-/* Code first: it is the one you go to with something already in mind, and the
-   one that used to be four rows down. */
+/* Code is not in this list. It sits in the header as one half of a switch,
+   because chat and code are not two destinations among several — they are the
+   two things the app is, and the one you are in should be readable and
+   changeable without travelling down a list to find out. */
 const SECTIONS: { id: Exclude<Section, "chat">; label: string; icon: React.ReactNode }[] = [
-  { id: "code", label: "Code", icon: <Code2 size={15} /> },
   { id: "projects", label: "Projects", icon: <FolderOpen size={15} /> },
   { id: "notebook", label: "Notebook", icon: <NotebookPen size={15} /> },
 ];
@@ -74,6 +75,43 @@ export function Sidebar({
             <span ref={markRef} className="ml-1.5">
               <Lockup />
             </span>
+
+            {/* The switch. Two icons, the live one filled — the same shape the
+                reference uses, and the right one: it takes no row in the list
+                and it says which of the two rooms you are standing in. */}
+            <div
+              role="radiogroup"
+              aria-label="Chat or code"
+              className="ml-auto flex items-center gap-0.5 rounded-lg bg-inset p-0.5"
+            >
+              {([
+                // "Conversations", not "Chats": the composer has a mode called
+                // Chat, and two controls a syllable apart on one screen is a
+                // screen reader announcing the same word for different things.
+                ["chat", "Conversations", <MessagesSquare key="c" size={15} />],
+                ["code", "Code", <Code2 key="k" size={15} />],
+              ] as const).map(([id, label, icon]) => {
+                const on = section === id;
+                return (
+                  <Tooltip key={id} label={label}>
+                    <button
+                      role="radio"
+                      aria-checked={on}
+                      aria-label={label}
+                      onClick={() => onGoToSection(id)}
+                      className={cn(
+                        "ctl focus-inset flex [--ctl:1.75rem] items-center justify-center rounded-md transition-colors duration-[var(--dur-fast)]",
+                        on
+                          ? "bg-surface text-primary shadow-[var(--shadow-sm)]"
+                          : "text-tertiary hover:text-primary",
+                      )}
+                    >
+                      {icon}
+                    </button>
+                  </Tooltip>
+                );
+              })}
+            </div>
           </div>
 
           <div className="space-y-1 px-2 pb-2">

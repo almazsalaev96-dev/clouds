@@ -24,8 +24,8 @@ await page.evaluate(() => localStorage.setItem("store.settings.v1", JSON.stringi
 await page.reload({ waitUntil: "networkidle" });
 await page.waitForTimeout(900);
 
-check(await page.getByRole("radio", { name: "Chat" }).isVisible(), "the composer offers two ways to ask");
-check((await page.getByRole("radio", { name: "Chat" }).getAttribute("aria-checked")) === "true", "Chat is the one you start in");
+check(await page.getByRole("radio", { name: "Chat", exact: true }).isVisible(), "the composer offers two ways to ask");
+check((await page.getByRole("radio", { name: "Chat", exact: true }).getAttribute("aria-checked")) === "true", "Chat is the one you start in");
 
 const ta = page.locator("textarea").first();
 await ta.click(); await ta.type("write me an opening line", { delay: 4 });
@@ -36,9 +36,9 @@ const chat = await last();
 check(!/## Mode/.test(chat.systemText ?? ""), "Chat adds nothing to the prompt at all");
 check(chat.temperature === 1 || chat.temperature === undefined, "and does not touch the sampling", String(chat.temperature));
 
-await page.getByRole("radio", { name: "Creative" }).click();
+await page.getByRole("radio", { name: "Creative", exact: true }).click();
 await page.waitForTimeout(400);
-check((await page.getByRole("radio", { name: "Creative" }).getAttribute("aria-checked")) === "true", "switching is one press");
+check((await page.getByRole("radio", { name: "Creative", exact: true }).getAttribute("aria-checked")) === "true", "switching is one press");
 
 await ta.click(); await ta.type("again, differently", { delay: 4 });
 await page.keyboard.press("Enter");

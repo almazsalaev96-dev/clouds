@@ -160,12 +160,18 @@ the font stack for a year and never served, so every screenshot in this repo, an
 the app for anyone without it installed, was actually DejaVu Sans. A font you name
 but do not ship is a wish.
 
-**The mark** — the word in the ink, in a hand, with the dot on the i in gold,
-which is where the pen lifts. Once per screen at most: it has the blank page. The
-sidebar corner gets the initial beside the name set in the book face instead — a
-copperplate script is all hairlines and joins, and at the 30px a sidebar gives it
-those joins fall below a pixel, so it stopped being a name and became a squiggle.
-The app icon is the initial in the same hand on the navy, with the same gold dot.
+**The mark** — the word in a hand, in two tones: *Ar* in the ink, *mi* in the gold
+of the nib, and the dot on the i where the pen lifts. It is two spans rather than
+one gradient, because a gradient needs `color: transparent` and `background-clip:
+text`, and in forced-colors mode that is a wordmark which renders as nothing at
+all. Pinyon joins its letters, so the second half is pulled back by the width of
+the connector between the r and the m to put that join back.
+
+It sits at 38px in the sidebar corner, not the 30 it started at. A copperplate
+script is all hairlines and joins, and at 30 those joins fall below a pixel and
+the name reads as a squiggle — the answer was never a different typeface, it was
+more room. The app icon is the initial in the same hand on the navy, with the
+same gold dot.
 
 **Thinking** — one motif wherever the model is running: a ring of field energy that
 turns, and a hairline that travels the width of whatever is live. It says *running*
@@ -176,12 +182,13 @@ where text appears are visibly one thing. Under `prefers-reduced-motion` the rin
 stops travelling, but both stay visible — reduced motion still needs the state to be
 legible.
 
-**Navigation** — the sidebar belongs to conversations: New chat, search, then the
-history. Three destinations sit above that, separated by a hairline: **Code**
-first, because it is the one you go to with something already in mind; then
-**Projects**, then **Notebook**. Each opens as its own page with its own index in
-the main column. Taking the chat list away to show a note list would cost more
-than it buys.
+**Navigation** — chat and code are not two destinations among several; they are
+the two things the app *is*. So they sit in the header as a switch, beside the
+name, where the one you are in is readable and changeable without travelling down
+a list to find out. **Projects** and **Notebook** are rows below it. Each opens as
+its own page with its own index in the main column. The rest of the sidebar
+belongs to conversations: New chat, search, then the history — taking the chat
+list away to show a note list would cost more than it buys.
 
 **Notebook** — markdown pages, edited in place, searched by body as well as by
 title. Keep an answer from a chat with one click, or the whole conversation.

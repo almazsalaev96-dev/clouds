@@ -30,7 +30,7 @@ export function Wordmark({
 }: {
   /** Cap height of the A, in px. The word is about 2.6× as wide. */
   height?: number;
-  /** The gold dot. Off where the mark is on a coloured ground. */
+  /** The gold. Off where the mark sits on a coloured ground of its own. */
   gold?: boolean;
   className?: string;
 }) {
@@ -44,21 +44,32 @@ export function Wordmark({
       className={cn("signature relative inline-block select-none whitespace-nowrap", className)}
       style={{ fontSize: size, height: size * 1.05, lineHeight: 1 }}
     >
-      <span aria-hidden className="text-current">
-        Arm{"ı"}
+      {/* Two tones, split at the halfway point of the word: the first half in
+          the ink, the last two letters in the gold of the nib. Two spans and
+          not one gradient, because a gradient needs `color: transparent` and
+          `background-clip: text`, and in forced-colors mode that is a wordmark
+          that renders as nothing at all. */}
+      <span aria-hidden className="text-current">Ar</span>
+      <span
+        aria-hidden
+        className={gold ? "text-[var(--accent-2)]" : "text-current"}
+        // Pinyon joins its letters, and splitting the run drops the join
+        // between the r and the m. Pulling the second half back by the width
+        // of that connector puts it back.
+        style={{ marginLeft: -size * 0.055 }}
+      >
+        m{"ı"}
       </span>
-      {gold && (
-        <span
-          aria-hidden
-          className="absolute rounded-full bg-[var(--accent-2)]"
-          style={{
-            width: size * 0.085,
-            height: size * 0.085,
-            right: size * 0.075,
-            top: size * 0.3,
-          }}
-        />
-      )}
+      <span
+        aria-hidden
+        className={gold ? "absolute rounded-full bg-[var(--accent-2)]" : "absolute rounded-full bg-current"}
+        style={{
+          width: size * 0.085,
+          height: size * 0.085,
+          right: size * 0.075,
+          top: size * 0.3,
+        }}
+      />
     </span>
   );
 }
@@ -86,22 +97,15 @@ export function Mark({ size = 20, className }: { size?: number; className?: stri
 /**
  * The sidebar header.
  *
- * Not the signature. A copperplate script is all hairlines and joins, and at
- * the 30px a sidebar gives it those joins fall below a pixel — it stopped
- * being a name and became a squiggle. So the corner gets the initial, which
- * survives at that size, beside the word set in the book face. The signature
- * keeps the blank page, where it is big enough to read as one.
+ * The signature, and bigger than it was. A copperplate script is all hairlines
+ * and joins, and the first cut of this sat at 30px, where those joins fall
+ * below a pixel and the name reads as a squiggle. The answer was never a
+ * different typeface — it was more room.
  */
 export function Lockup({ className }: { className?: string }) {
   return (
-    <span className={cn("flex items-center gap-1.5 text-primary", className)}>
-      <Mark size={20} />
-      <span
-        className="display text-[1.35rem] leading-none"
-        style={{ letterSpacing: "-0.005em" }}
-      >
-        Armi
-      </span>
+    <span className={cn("flex items-center text-primary", className)}>
+      <Wordmark height={38} />
     </span>
   );
 }
