@@ -52,7 +52,13 @@ const CONTINUE_PROMPT =
 
 export default function Page() {
   const settings = useSettings();
-  const drafts = useDrafts();
+  /* Not `useDrafts()`.
+     This page writes a draft in exactly one place and never reads one, and
+     subscribing to the store to do that put every keystroke in the composer
+     through a re-render of this component — which rebuilds the transcript.
+     At four hundred turns that was 217ms a character: the composer became
+     unusable in exactly the conversations long enough to be worth keeping.
+     Reading the store imperatively writes without listening. */
 
   const [activeId, setActiveId] = React.useState<string | null>(null);
 
@@ -197,9 +203,13 @@ export default function Page() {
          never block anything the user is doing. -------------------------- */
   const generateTitle = React.useCallback(
     async (conversationId: string, firstUserText: string) => {
+      // Nothing can answer: a thread keeps the name it derived from its first
+      // line, which is the cosmetic loss this whole path is allowed to take.
+      const modelId = cheapestAvailable(configured);
+      if (!modelId) return;
       const title = await complete(
         `Give this conversation a title of at most six words. Reply with the title alone — no quotes, no punctuation at the end.\n\n${firstUserText.slice(0, 800)}`,
-        { modelId: cheapestAvailable(configured), maxTokens: 64, temperature: 0.3 },
+        { modelId, maxTokens: 64, temperature: 0.3 },
       );
       // A missing title is a cosmetic loss and must never surface as an error.
       const clean = title?.trim().replace(/^["'#\s]+|["'.\s]+$/g, "").slice(0, 60);
@@ -859,7 +869,7 @@ export default function Page() {
           {showEmpty ? (
             <EmptyState
               hasAnyKey={hasAnyKey}
-              onExample={(text) => drafts.setDraft(activeId ?? "new", text)}
+              onExample={(text) => useDrafts.getState().setDraft(activeId ?? "new", text)}
               onMake={openMade}
               onAddKey={openKeys}
             >

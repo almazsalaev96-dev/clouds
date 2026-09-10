@@ -97,8 +97,13 @@ console.log("\nRooms have a direction");
   check(runs[0]?.startsWith("forward"), "down the list is forward", runs[0] ?? "");
   check(runs[1]?.startsWith("back"), "and back up it is back", runs[1] ?? "");
   check(runs.every((r) => r.endsWith("!")), "and the browser really started them, not just accepted the call");
-  check(await page.evaluate(() => document.documentElement.dataset.nav) === undefined,
-    "the direction is cleared afterwards, so an unrelated change is never accidentally directional");
+  /* Waited for rather than guessed at. The attribute is cleared when the
+     transition finishes, and a fixed sleep asserts "within 700ms" — which is a
+     statement about this machine's load, not about the app. */
+  const cleared = await page
+    .waitForFunction(() => document.documentElement.dataset.nav === undefined, null, { timeout: 5000 })
+    .then(() => true, () => false);
+  check(cleared, "the direction is cleared afterwards, so an unrelated change is never accidentally directional");
 }
 
 console.log("\nThe bar travels with you");

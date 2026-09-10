@@ -30,6 +30,13 @@ type WithVT = Document & { startViewTransition?: (cb: () => void) => ViewTransit
 /** Which way you went. The stylesheet slides the room accordingly. */
 export type Direction = "forward" | "back";
 
+/* Which transition is the current one.
+   The first version cleared the attribute only if it still held the direction
+   it had set, which is right until two moves in the same direction overlap —
+   then the older one's clear matches and wipes the newer one's. A counter says
+   "am I still the latest" without caring what the value is. */
+let latest = 0;
+
 export function withTransition(update: () => void, direction: Direction = "forward"): void {
   const doc = document as WithVT;
   const reduced =
@@ -45,11 +52,12 @@ export function withTransition(update: () => void, direction: Direction = "forwa
      rule can reach them from. It is removed when the transition ends so a
      transition that is not a room change is never accidentally directional. */
   const root = document.documentElement;
+  const token = ++latest;
   root.dataset.nav = direction;
 
   const transition = doc.startViewTransition(update);
   const clear = () => {
-    if (root.dataset.nav === direction) delete root.dataset.nav;
+    if (latest === token) delete root.dataset.nav;
   };
   transition.finished.then(clear, clear);
 }

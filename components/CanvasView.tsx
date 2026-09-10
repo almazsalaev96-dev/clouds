@@ -218,7 +218,8 @@ export function MakeRow({
           key={m.id}
           title={m.blurb}
           onClick={async () => {
-            const canvas = await createWebCanvas(m.files(), { title: m.title });
+            // The folder arrives now rather than at load; see lib/makes.ts.
+            const canvas = await createWebCanvas(await m.files(), { title: m.title });
             onSelect(canvas.id, m.ask);
           }}
           className="lift focus-inset tap inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13px] text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"

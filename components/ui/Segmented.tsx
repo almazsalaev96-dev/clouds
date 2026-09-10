@@ -35,7 +35,7 @@ export function Segmented({
   children: React.ReactNode;
 } & Omit<React.HTMLAttributes<HTMLDivElement>, "children">) {
   const ref = React.useRef<HTMLDivElement>(null);
-  const [box, setBox] = React.useState<{ x: number; w: number; h: number } | null>(null);
+  const [box, setBox] = React.useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const settled = React.useRef(false);
 
   React.useLayoutEffect(() => {
@@ -56,9 +56,17 @@ export function Segmented({
         setBox((prev) => (prev === null ? prev : null));
         return;
       }
-      const next = { x: on.offsetLeft, w: on.offsetWidth, h: on.offsetHeight };
+      /* Both axes, from the button.
+         The first version pinned the indicator to the middle of the container
+         — fine while everything is on one line, and 22px wrong the moment the
+         row wraps, which it does in the composer at 390px. A control that
+         marks the wrong option on a phone is worse than one that does not
+         move at all. */
+      const next = { x: on.offsetLeft, y: on.offsetTop, w: on.offsetWidth, h: on.offsetHeight };
       setBox((prev) =>
-        prev && prev.x === next.x && prev.w === next.w && prev.h === next.h ? prev : next,
+        prev && prev.x === next.x && prev.y === next.y && prev.w === next.w && prev.h === next.h
+          ? prev
+          : next,
       );
     };
 
@@ -91,11 +99,12 @@ export function Segmented({
         <span
           aria-hidden
           className={cn(
-            "absolute left-0 top-1/2 -z-10 -translate-y-1/2 rounded-full bg-surface shadow-[var(--shadow-sm)]",
-            settled.current && "transition-[transform,width] duration-[var(--dur-enter)] ease-[var(--ease-spring)]",
+            "absolute left-0 top-0 -z-10 rounded-full bg-surface shadow-[var(--shadow-sm)]",
+            settled.current &&
+              "transition-[transform,width,height] duration-[var(--dur-enter)] ease-[var(--ease-spring)]",
             indicatorClassName,
           )}
-          style={{ width: box.w, height: box.h, transform: `translate(${box.x}px, -50%)` }}
+          style={{ width: box.w, height: box.h, transform: `translate(${box.x}px, ${box.y}px)` }}
         />
       )}
       {children}

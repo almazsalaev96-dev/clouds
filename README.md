@@ -450,9 +450,16 @@ heading, and link URLs printed in full.
 ## Verified
 
 - `npm run build` and `tsc --noEmit` clean; no `any`, TypeScript strict.
-- First Load JS **203 kB** for the app route, under the 250 kB budget. The markdown
-  pipeline (micromark, GFM, KaTeX) is a separate chunk, and Shiki grammars load per
-  language on demand.
+- First Load JS **245 kB** for the app route, under the 250 kB budget, and 179 kB
+  actually across the wire. It went *over* at one point and nothing noticed: the
+  catalogue of starters is forty-eight kilobytes of markup, styling and behaviour,
+  it was imported where the row that lists them is rendered, and so everybody paid
+  for five folders most people never press. The list and the folders are separate
+  modules now; the folders arrive when one is chosen, which is a round trip nobody
+  notices against a database write and a page load. `e2e-scale.mjs` weighs the
+  first load on every run, because that is the only way this stays true.
+  The markdown pipeline (micromark, GFM, KaTeX) is a separate chunk, Shiki grammars
+  load per language on demand, and Settings is dynamic.
 - All four adapters exercised against their live APIs with a deliberately invalid
   key: each returns a correctly classified `bad_key` through the SSE stream, and a
   provider with no key returns `no_key` before any request is made.
@@ -466,6 +473,21 @@ heading, and link URLs printed in full.
   preview counts, a `console.log` and an uncaught `ReferenceError` come back out
   with the error mapped to `app.js:2`, and `window.origin` inside the frame is
   `null` with `localStorage` throwing `SecurityError`.
+- **The app under weight** (`e2e-scale.mjs`), which is where two things had
+  silently gone wrong. Everything else here is tested at three messages, where
+  nothing is slow and nothing is heavy.
+  Typing in the composer took **217ms a character** in a four-hundred-turn
+  conversation. The page writes a draft in exactly one place and never reads
+  one, and it had subscribed itself to the store it wrote to — so every
+  keystroke re-rendered the page, which rebuilt the transcript: four hundred
+  elements mapped and reconciled between one letter and the next. Reading the
+  store imperatively writes without listening, and the transcript is memoised
+  so an unrelated render cannot rebuild it either. 2386ms → 246ms for eleven
+  characters. The gate asserts both a wall-clock budget and that no keystroke
+  blocks the main thread for more than a tenth of a second — a stopwatch alone
+  is a flake waiting for a slow machine, and "did anything block" is the
+  question a person actually feels. It was checked by putting the bug back:
+  2558ms, worst task 252ms, two assertions red.
 - Using a made thing, driven as someone would use it (`e2e-use.mjs`): a deck is
   taken two cards in, handed the window, and asked whether it is still on card
   two — the one thing that would silently break, because it is what a reload
@@ -477,6 +499,21 @@ heading, and link URLs printed in full.
   running. Then a book: attached, and the prompt read back off the mock to
   confirm the book itself went — 200 passages of it, not three pages — under an
   instruction that asks for a course rather than a summary.
+- A sweep for what was never checked rather than what was: every starter in
+  both themes at 1440 and 390, a real PDF and a real scan into the notebook,
+  keyboard-only operation reaching *into* a sandboxed frame, 200% text zoom, and
+  the app with no key at all. Four faults came out of it. The sliding indicator
+  was pinned to the middle of its container, which is right on one line and 22px
+  wrong the moment the row wraps — as the composer's does at 390px, so on a
+  phone it marked the wrong option. The week grid dragged the whole page wide on
+  a phone, because a grid item's automatic minimum size is its content and a
+  640px child ignores however narrow you say the column may be. `cheapestAvailable`
+  ended `?? settings.modelId` — a sensible-looking default that is a lie when no
+  provider has a key, so it returned a model that could not be called and every
+  caller's "tell them there is no key" branch was unreachable: asking a canvas
+  for a change with no key did *nothing at all*. And a view transition's
+  direction was cleared only if the attribute still held the value it had set,
+  which two overlapping moves in the same direction would get wrong.
 - The motion asked for rather than admired (`e2e-motion.mjs`). Animation is the
   easiest thing in an interface to believe you have shipped: it looks right in
   the browser you wrote it in and is silently absent in production because a
@@ -642,6 +679,7 @@ node e2e-makes.mjs   # 33 assertions: every starter opened, run and actually use
 node e2e-bar.mjs     # 24 assertions: the message bar, measured in all three rooms
 node e2e-motion.mjs  # 17 assertions: the motion, asked for rather than admired
 node e2e-use.mjs     # 21 assertions: using a made thing, and making one from a book
+node e2e-scale.mjs   #  6 assertions: what it costs to open, and 400 turns deep
 node mock-slow.mjs &   # the mock with the gap between tokens stretched, then:
 node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs the slow mock)
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire

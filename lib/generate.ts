@@ -70,14 +70,25 @@ export async function complete(
 }
 
 /** The cheapest model the user actually has a key for. */
-export function cheapestAvailable(configured: Record<string, boolean>): string {
+/**
+ * The cheapest model that can actually answer, or nothing.
+ *
+ * It used to end `?? settings.modelId` — fall back to whatever chat is set to
+ * — which reads as a sensible default and is a lie when no provider has a key
+ * at all: it hands back a model that cannot be called, so every caller's
+ * `if (!modelId) tell them` branch was unreachable and asking a canvas for a
+ * change with no key configured did nothing at all. Silence is the worst
+ * possible answer; the honest one is null.
+ */
+export function cheapestAvailable(configured: Record<string, boolean>): string | null {
   const settings = useSettings.getState();
   const preference = ["claude-haiku-4-5", "gemini-2.5-flash", "gpt-5.1-mini", "deepseek-chat"];
   const usable = (id: string) => {
     const p = getModel(id).provider as ProviderId;
     return Boolean(configured[p] || settings.keys[p]);
   };
-  return preference.find(usable) ?? settings.modelId;
+  // The chosen chat model is the fallback only when it is one that can answer.
+  return preference.find(usable) ?? (usable(settings.modelId) ? settings.modelId : null);
 }
 
 /** Models like to wrap JSON in prose or a fence. Both are stripped here. */

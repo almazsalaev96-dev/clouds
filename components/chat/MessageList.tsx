@@ -17,7 +17,7 @@ const PATIENCE_MS = 5000;
 /** Past this, offer a way out rather than asking for more patience. */
 const IMPATIENCE_MS = 20_000;
 
-export function MessageList({
+function MessageListImpl({
   messages,
   allMessages,
   streaming,
@@ -257,6 +257,15 @@ export function MessageList({
     </div>
   );
 }
+
+/**
+ * Memoised, because a transcript is the most expensive thing on the page and
+ * the cheapest thing to rebuild by accident. Even with every message memoised,
+ * mapping four hundred of them into four hundred elements and reconciling them
+ * is real work, and it was happening on every keystroke in the composer — a
+ * component two levels away that this one has nothing to do with.
+ */
+export const MessageList = React.memo(MessageListImpl);
 
 function StreamingMessage({
   text,
