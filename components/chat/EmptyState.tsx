@@ -228,9 +228,6 @@ export function EmptyState({
             </button>
           </form>
         )}
-        <p className="mt-6 text-center text-xs text-faint">
-          May make mistakes. Check anything that matters.
-        </p>
       </div>
     </div>
   );

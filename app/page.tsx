@@ -927,12 +927,7 @@ export default function Page() {
               thread the composer lives inside the centred block above. */}
           {!showEmpty && (
             <div className="composer-dock no-print relative shrink-0 px-4 pt-2">
-              <div className="mx-auto w-full max-w-[var(--measure)]">
-                {composer}
-                <p className="mt-2 text-center text-xs text-faint">
-                  May make mistakes. Check anything that matters.
-                </p>
-              </div>
+              <div className="mx-auto w-full max-w-[var(--measure)]">{composer}</div>
             </div>
           )}
           </>
