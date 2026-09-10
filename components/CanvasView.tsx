@@ -21,6 +21,7 @@ import {
   fixInstruction,
   nameOf,
   planChanges,
+  standingRules,
   reviewCode,
   reviseElement,
   reviseCanvas,
@@ -106,6 +107,13 @@ export function CanvasView({
 }) {
   const canvases = useLiveQuery(() => db.canvases.orderBy("updatedAt").reverse().toArray(), []);
   const canvas = useLiveQuery(() => (canvasId ? db.canvases.get(canvasId) : undefined), [canvasId]);
+  /* Every project, by id, so the index can say which one a canvas is in. One
+     query for the list rather than one per row. */
+  const projects = useLiveQuery(() => db.projects.toArray(), [], []);
+  const projectName = React.useMemo(
+    () => new Map(projects.map((p) => [p.id, p.name || "Untitled project"])),
+    [projects],
+  );
 
   if (!canvas) {
     return (
@@ -123,7 +131,15 @@ export function CanvasView({
             c.kind === "web"
               ? "A web app — markup, styling and behaviour"
               : (c.content.split("\n").find((l) => l.trim()) ?? "Empty"),
-          meta: c.kind === "web" ? "web app" : c.kind === "code" ? (c.lang ?? "code") : "doc",
+          /* Which project it is in, when it is in one — the fact that changes
+             what an edit here will obey, so it belongs on the row rather than
+             two screens away. */
+          meta: [
+            c.projectId ? projectName.get(c.projectId) : undefined,
+            c.kind === "web" ? "web app" : c.kind === "code" ? (c.lang ?? "code") : "doc",
+          ]
+            .filter(Boolean)
+            .join(" · "),
           searchText: c.content,
         }))}
         onOpen={onSelect}
@@ -309,7 +325,28 @@ function Editor({
   /* Standing rules for this canvas. Held in state as well as in the row so the
      textarea stays responsive; written through on close. */
   const [rulesOpen, setRulesOpen] = React.useState(false);
-  const rules = canvas.rules ?? "";
+
+  /* The project this canvas belongs to, if it belongs to one.
+     A project already held instructions every chat inside it could see; its
+     own code could not, which made the conventions you wrote for the thing you
+     were building the one context missing from every edit to it. */
+  const project = useLiveQuery(
+    () => (canvas.projectId ? db.projects.get(canvas.projectId) : undefined),
+    [canvas.projectId],
+  );
+  /* Widest first, narrowest last, so the file can overrule the project. */
+  const rules = React.useMemo(
+    () =>
+      standingRules({
+        projectName: project?.name,
+        projectInstructions: project?.instructions,
+        fileRules: canvas.rules,
+      }) ?? "",
+    [project?.name, project?.instructions, canvas.rules],
+  );
+  /** Only what was typed for this file — the box edits that, not the project's. */
+  const fileRules = canvas.rules ?? "";
+  const allProjects = useLiveQuery(() => db.projects.orderBy("updatedAt").reverse().toArray(), [], []);
   const [showHistory, setShowHistory] = React.useState(false);
   const [versions, setVersions] = React.useState<CanvasVersion[]>([]);
   const [notice, setNotice] = React.useState<string | null>(null);
@@ -688,6 +725,29 @@ function Editor({
                     Use it
                   </Button>
                 )}
+                {/* Which project this belongs to. A select rather than a
+                    dialog: there are rarely many projects, the change is one
+                    field, and anything heavier makes "put this where it
+                    belongs" a task rather than a thought. */}
+                <select
+                  value={canvas.projectId ?? ""}
+                  onChange={(e) =>
+                    void db.canvases.update(canvas.id, {
+                      projectId: e.target.value || undefined,
+                      updatedAt: Date.now(),
+                    })
+                  }
+                  aria-label="Project this belongs to"
+                  className="tap focus-inset max-w-[9rem] shrink-0 truncate rounded-md border border-line bg-surface px-2 py-1 text-xs text-secondary outline-none"
+                >
+                  <option value="">No project</option>
+                  {allProjects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name || "Untitled project"}
+                    </option>
+                  ))}
+                </select>
+
                 {/* Standing rules. In the header rather than the composer
                     because they are set once and then true, and a control for
                     a thing you do once a month sitting next to the box you
@@ -850,7 +910,8 @@ function Editor({
 
           {rulesOpen && !proposal && (
             <RulesPanel
-              value={rules}
+              value={fileRules}
+              project={project?.name}
               column={column}
               onChange={(next) => void db.canvases.update(canvas.id, { rules: next })}
               onClose={() => setRulesOpen(false)}
@@ -1199,11 +1260,14 @@ function Report({
  */
 function RulesPanel({
   value,
+  project,
   column,
   onChange,
   onClose,
 }: {
   value: string;
+  /** Named when there is one, so it is clear these are the *second* layer. */
+  project?: string;
   column: string;
   onChange: (next: string) => void;
   onClose: () => void;
@@ -1216,7 +1280,9 @@ function RulesPanel({
             House rules
           </span>
           <span className="min-w-0 flex-1 truncate text-xs text-tertiary">
-            Always in force — every edit, review and plan obeys these.
+            {project
+              ? `Always in force, on top of what “${project}” already says.`
+              : "Always in force — every edit, review and plan obeys these."}
           </span>
           <IconButton label="Close house rules" size={26} onClick={onClose}>
             <X size={14} />

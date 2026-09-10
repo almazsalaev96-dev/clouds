@@ -133,8 +133,10 @@ console.log("\nThings that are true every time");
   const asked = await last();
   check(/Never use var\. Every function gets a JSDoc block\./.test(asked),
     "and they ride along with a change asked for after a reload");
-  check(/STANDING RULES FOR THIS FILE/.test(asked),
-    "marked as standing rather than mixed into the request");
+  /* The heading is no longer "for this file": rules now arrive in two layers,
+     the project's and the file's, and the body says which is which. */
+  check(/STANDING RULES/.test(asked) && /For this file in particular/.test(asked),
+    "marked as standing, and as being this file's rather than the project's");
   check(asked.indexOf("STANDING RULES") > asked.indexOf("add a second helper"),
     "after the instruction, so the rule wins when the two disagree");
 }

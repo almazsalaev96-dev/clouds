@@ -101,6 +101,20 @@ class ChatDB extends Dexie {
       problems: null,
       attempts: null,
     });
+
+    /* Version 8 lets a canvas belong to a project.
+       ---------------------------------------------------------------------
+       The Code section had no idea it was part of anything: a project held
+       instructions, knowledge and chats, and a canvas sat outside all of it,
+       so the rules you wrote once for the project were the one thing every
+       edit to the project's own code could not see.
+
+       Indexed because the project page asks for its canvases by id, and an
+       unindexed `where` is a full scan of every canvas in the database on
+       every render of that page. */
+    this.version(8).stores({
+      canvases: "id, updatedAt, kind, projectId",
+    });
   }
 }
 
@@ -625,22 +639,31 @@ export async function removeProjectFile(id: string): Promise<() => Promise<void>
  * the restorer puts them back where they were.
  */
 export async function deleteProject(id: string): Promise<() => Promise<void>> {
-  return db.transaction("rw", db.projects, db.projectFiles, db.conversations, async () => {
+  return db.transaction("rw", db.projects, db.projectFiles, db.conversations, db.canvases, async () => {
     const project = await db.projects.get(id);
     const files = await db.projectFiles.where("projectId").equals(id).toArray();
     const chatIds = (await db.conversations.where("projectId").equals(id).toArray()).map((c) => c.id);
+    /* Canvases are released, not deleted — exactly as chats already were.
+       Deleting a project is saying "I am done with this grouping", not "burn
+       the work that was in it", and code is the last thing anyone means to
+       throw away by tidying a folder. */
+    const canvasIds = (await db.canvases.where("projectId").equals(id).toArray()).map((c) => c.id);
 
     await db.projectFiles.where("projectId").equals(id).delete();
     await db.conversations.where("projectId").equals(id).modify((c) => {
       delete c.projectId;
     });
+    await db.canvases.where("projectId").equals(id).modify((c) => {
+      delete c.projectId;
+    });
     await db.projects.delete(id);
 
     return async () => {
-      await db.transaction("rw", db.projects, db.projectFiles, db.conversations, async () => {
+      await db.transaction("rw", db.projects, db.projectFiles, db.conversations, db.canvases, async () => {
         if (project) await db.projects.put(project);
         if (files.length) await db.projectFiles.bulkPut(files);
         for (const cid of chatIds) await db.conversations.update(cid, { projectId: id });
+        for (const cid of canvasIds) await db.canvases.update(cid, { projectId: id });
       });
     };
   });

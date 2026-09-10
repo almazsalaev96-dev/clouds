@@ -501,6 +501,21 @@ export default function Page() {
     [closeDrawerOnMobile, newChat],
   );
 
+  /* Code made inside a project belongs to it from the first keystroke.
+     Making it somewhere else and moving it later is the version of this that
+     nobody does, so the project's own rules never reach the file they were
+     written for. */
+  const newCanvasInProject = React.useCallback(
+    async (pid: string) => {
+      const canvas = await createCanvas({ projectId: pid });
+      setCanvasSeed(undefined);
+      setCanvasId(canvas.id);
+      settings.setSection("code");
+      closeDrawerOnMobile();
+    },
+    [settings, closeDrawerOnMobile],
+  );
+
   const selectInSection = React.useCallback(
     (section: Section, id: string) => {
       withTransition(() => {
@@ -852,6 +867,9 @@ export default function Page() {
                   onBack={() => withTransition(() => setProjectId(null), "back")}
                   onOpenChat={(id) => selectInSection("chat", id)}
                   onNewChatHere={(pid) => void newChatInProject(pid)}
+                  onOpenCanvas={(id) => selectInSection("code", id)}
+                  onNewCanvasHere={(pid) => void newCanvasInProject(pid)}
+                  configured={configured}
                 />
               )}
               {settings.section === "code" && (

@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { FileText, MessageSquare, Paperclip, Trash2 } from "lucide-react";
-import type { Project, ProjectFile } from "@/lib/types";
+import { FileCode2, FileText, MessageSquare, Paperclip, Search, Trash2, X } from "lucide-react";
+import type { Canvas, Project, ProjectFile } from "@/lib/types";
 import {
   addProjectFile, db, deleteProject, filesOf, removeProjectFile,
 } from "@/lib/db";
@@ -14,6 +14,9 @@ import { cn, formatBytes } from "@/lib/utils";
 import { isPdf, extractPdf } from "@/lib/pdf";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { Button, IconButton, SaveBadge } from "@/components/ui/primitives";
+import { Markdown } from "@/components/chat/Markdown";
+import { askProject, type Source } from "@/lib/generate";
+import { useReviseModel } from "@/components/chat/RevisePicker";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
 
 /**
@@ -42,6 +45,9 @@ export function ProjectsView({
   onBack,
   onOpenChat,
   onNewChatHere,
+  onOpenCanvas,
+  onNewCanvasHere,
+  configured,
 }: {
   projectId: string | null;
   onSelect: (id: string) => void;
@@ -49,6 +55,10 @@ export function ProjectsView({
   onBack: () => void;
   onOpenChat: (id: string) => void;
   onNewChatHere: (projectId: string) => void;
+  onOpenCanvas: (id: string) => void;
+  onNewCanvasHere: (projectId: string) => void;
+  /** Which providers have a key, for the question box. */
+  configured: Record<string, boolean>;
 }) {
   const projects = useLiveQuery(() => db.projects.orderBy("updatedAt").reverse().toArray(), []);
   const project = useLiveQuery(
@@ -87,12 +97,141 @@ export function ProjectsView({
       onBack={onBack}
       onOpenChat={onOpenChat}
       onNewChatHere={onNewChatHere}
+      onOpenCanvas={onOpenCanvas}
+      onNewCanvasHere={onNewCanvasHere}
+      configured={configured}
     />
   );
 }
 
 function firstLine(s: string): string {
   return s.split("\n").find((l) => l.trim())?.trim() ?? "";
+}
+
+/* ------------------------------------------------------------------- ask -- */
+
+/**
+ * A question about the project, rather than about one open file.
+ *
+ * "Where is the subscription system?" is the question people actually have,
+ * and until this existed the app could only be asked about the file already
+ * open — which means you had to know the answer in order to ask. A project is
+ * the only place that knows what all of it is: several canvases, each possibly
+ * a folder, plus whatever material was added to it.
+ *
+ * It never edits, and it is not a chat. A chat inside the project can already
+ * do the talking; this is the "explain my project" half — one question, one
+ * answer, naming files.
+ *
+ * What did not fit is named rather than dropped in silence. An answer that
+ * says "not in this project" because the file was quietly cut is worse than no
+ * answer at all, because you believe it.
+ */
+function AskPanel({
+  project,
+  canvases,
+  files,
+  configured,
+}: {
+  project: Project;
+  canvases: Canvas[];
+  files: ProjectFile[];
+  configured: Record<string, boolean>;
+}) {
+  const [question, setQuestion] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [answer, setAnswer] = React.useState<{ text: string; dropped: string[] } | null>(null);
+  const [notice, setNotice] = React.useState<string | null>(null);
+  const modelId = useReviseModel(configured);
+
+  const ask = async () => {
+    if (!question.trim() || busy) return;
+    if (!modelId) {
+      setNotice("No key configured yet — add one in Settings.");
+      return;
+    }
+    setBusy(true);
+    setNotice(null);
+    try {
+      /* Read at the moment of asking rather than held in state: a canvas
+         edited in the Code section while this page sat open would otherwise be
+         answered about as it was when you arrived. */
+      const sources: Source[] = [];
+      for (const c of canvases) {
+        const kids = await db.canvasFiles.where("canvasId").equals(c.id).sortBy("order");
+        const title = c.title || "Untitled";
+        if (kids.length) {
+          for (const k of kids) sources.push({ name: `${title} / ${k.name}`, text: k.content, canvasId: c.id });
+        } else if (c.content.trim()) {
+          sources.push({ name: title, text: c.content, canvasId: c.id });
+        }
+      }
+      for (const f of files) sources.push({ name: f.name, text: f.text });
+
+      if (!sources.length) {
+        setNotice("There is nothing in this project to read yet.");
+        return;
+      }
+      const out = await askProject(question, sources, modelId);
+      if (out) setAnswer(out);
+      else setNotice("Nothing came back. Try again.");
+    } catch {
+      setNotice("That request failed. Check the key and the connection.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section>
+      <h2 className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+        Ask about this project
+      </h2>
+      <p className="mt-1 text-xs text-tertiary">
+        Read across every file in it at once. &ldquo;Where is the subscription
+        system?&rdquo; — nothing gets changed.
+      </p>
+      <div className="mt-2 flex items-center gap-1.5">
+        <span className="relative flex min-w-0 flex-1 items-center">
+          <Search size={14} className="pointer-events-none absolute left-3 text-tertiary" />
+          <input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void ask();
+            }}
+            placeholder="Where is…? How does…? What calls…?"
+            aria-label="Ask about this project"
+            className="focus-inset tap w-full rounded-lg border border-line bg-surface py-2 pl-9 pr-3 text-sm text-primary outline-none placeholder:text-tertiary"
+          />
+        </span>
+        <Button size="sm" variant="secondary" onClick={() => void ask()} disabled={busy || !question.trim()}>
+          {busy ? "Reading…" : "Ask"}
+        </Button>
+      </div>
+
+      {notice && <p className="mt-2 text-xs text-warning anim-fade">{notice}</p>}
+
+      {answer && (
+        <div className="mt-2 rounded-xl border border-line bg-surface p-3">
+          <div className="mb-1 flex items-center gap-2">
+            <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+              Answer
+            </span>
+            <IconButton label="Close answer" size={26} className="ml-auto" onClick={() => setAnswer(null)}>
+              <X size={14} />
+            </IconButton>
+          </div>
+          <Markdown content={answer.text} />
+          {answer.dropped.length > 0 && (
+            <p className="mt-2 text-xs text-warning">
+              Too large to read this time: {answer.dropped.join(", ")}.
+            </p>
+          )}
+        </div>
+      )}
+    </section>
+  );
 }
 
 /* ------------------------------------------------------------------ page -- */
@@ -102,11 +241,17 @@ function ProjectPage({
   onBack,
   onOpenChat,
   onNewChatHere,
+  onOpenCanvas,
+  onNewCanvasHere,
+  configured,
 }: {
   project: Project;
   onBack: () => void;
   onOpenChat: (id: string) => void;
   onNewChatHere: (projectId: string) => void;
+  onOpenCanvas: (id: string) => void;
+  onNewCanvasHere: (projectId: string) => void;
+  configured: Record<string, boolean>;
 }) {
   const [instructions, setInstructions] = React.useState(project.instructions);
   const [notice, setNotice] = React.useState<string | null>(null);
@@ -115,6 +260,11 @@ function ProjectPage({
   const files = useLiveQuery(() => filesOf(project.id), [project.id]);
   const chats = useLiveQuery(
     () => db.conversations.where("projectId").equals(project.id).toArray(),
+    [project.id],
+    [],
+  );
+  const canvases = useLiveQuery(
+    () => db.canvases.where("projectId").equals(project.id).toArray(),
     [project.id],
     [],
   );
@@ -185,6 +335,7 @@ function ProjectPage({
   };
 
   const sortedChats = [...chats].sort((a, b) => b.updatedAt - a.updatedAt);
+  const sortedCanvases = [...canvases].sort((a, b) => b.updatedAt - a.updatedAt);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -326,6 +477,53 @@ function ProjectPage({
                 </p>
               </div>
             )}
+          </section>
+
+          {/* Ask about the whole thing */}
+          <AskPanel project={project} canvases={sortedCanvases} files={files ?? []} configured={configured} />
+
+          {/* Code */}
+          <section>
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+                Code in this project
+              </h2>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="ml-auto"
+                onClick={() => onNewCanvasHere(project.id)}
+              >
+                <FileCode2 size={13} />
+                New code here
+              </Button>
+            </div>
+            <p className="mt-1 text-xs text-tertiary">
+              Every edit made here obeys the instructions above, the same way a chat does.
+            </p>
+            <div className="mt-2 space-y-1">
+              {sortedCanvases.length === 0 ? (
+                <p className="text-xs text-tertiary">
+                  None yet. Code made here can see the project&rsquo;s instructions and its material.
+                </p>
+              ) : (
+                sortedCanvases.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => onOpenCanvas(c.id)}
+                    className="focus-inset lift tap flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle"
+                  >
+                    <FileCode2 size={14} className="shrink-0 text-tertiary" />
+                    <span className="min-w-0 flex-1 truncate text-sm text-primary">
+                      {c.title || "Untitled"}
+                    </span>
+                    <span className="shrink-0 text-xs text-faint">
+                      {c.kind === "web" ? "web" : c.kind === "doc" ? "doc" : (c.lang ?? "code")}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
           </section>
 
           {/* Chats */}

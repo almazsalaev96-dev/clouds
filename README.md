@@ -329,6 +329,41 @@ every time you double-click a word is wrong more often than right. Accepting the
 change lets the selection go, because the lines you selected are not the lines
 you now have.
 
+**Code that belongs to a project.** A project already held instructions and
+material that every chat started inside it could see. The code in that same
+project could not — so the conventions you wrote once, for the thing you were
+building, were the one context missing from every edit to the thing you were
+building. A canvas can now belong to a project, and when it does, the project's
+instructions ride along with every revision, selection rewrite, review, plan and
+element change made in it.
+
+Two layers, widest first, because the narrower one has to be able to win: the
+project says *TypeScript everywhere*, and a file is still allowed to say *except
+this one, it is a build script*. They arrive labelled — `From the project
+“Counter course”:` and `For this file in particular:` — so it is clear what is
+speaking when they disagree.
+
+Deleting a project **releases** its canvases rather than deleting them, exactly
+as it already did for its chats. Deleting a project says "I am done with this
+grouping", not "burn the work that was in it", and code is the last thing
+anyone means to throw away by tidying a folder.
+
+**Ask about this project.** "Where is the subscription system?" is the question
+people actually have, and until now this app could only be asked about the file
+already open — which means you had to know the answer in order to ask the
+question. A project is the only place that knows what all of it is: several
+canvases, each possibly a folder, plus whatever material was added to it. One
+box on the project page reads across all of it at once and answers by **naming
+files** — "the markup is in Counter / index.html, the behaviour is in Counter /
+app.js" — because "it is handled in the billing logic" is not an answer.
+
+It never edits: a feature that sometimes answers and sometimes rewrites four
+files is one nobody asks anything. It is told that a confident guess about
+somebody's own code is worse than nothing, because it is checkable and they will
+not check it. And what did not fit in the budget is **named** rather than
+dropped in silence — an answer that says "not in this project" because the file
+was quietly cut is worse than no answer, because you believe it.
+
 **Point at it.** The page is running in a frame beside the editor. Press *Point
 at it*, and the next click on that page chooses an element instead of pressing
 it: the thing under the cursor lights up as you move, the composer's chip
@@ -784,6 +819,14 @@ heading, and link URLs printed in full.
   through Chromium's print media emulation rather than assumed.
 - Highlighting confirmed to run in a real Web Worker (counted at construction, not
   assumed), producing 240 themed spans on a 40-line block.
+- **A project reaching its own code, read at the wire** (`e2e-whole.mjs`, 19
+  assertions): a canvas made inside a project belongs to it and says so; the
+  project's instructions arrive with an edit to its code, labelled and marked
+  standing; a file's own rules arrive *after* them so the narrower layer wins;
+  a question is answered across every file without the file ever being opened;
+  and deleting the project leaves the canvas alive with its `projectId` gone —
+  which is also what proves the delete actually ran rather than the assertion
+  passing on a button that was never found.
 - **Pointing at a running page, driven for real** (`e2e-point.mjs`, 18
   assertions). The browser clicks a button inside the sandboxed frame, and the
   suite asserts what a screenshot never could: with the picker off the counter
@@ -866,6 +909,11 @@ Stated plainly, because a checklist you cannot trust is worse than no checklist.
   here. The rest would need a server, and a server is the one thing this app
   promises not to have. Said plainly because the alternative is a feature list
   that sounds like a coding agent and behaves like a text box.
+- **A project is not a repository.** It groups canvases, knowledge and chats, and
+  a question can be asked across all of it — but there is no dependency graph, no
+  "this change affects 17 components", no project map, and no rename that follows
+  a symbol across files. The question box reads the files; it does not understand
+  the edges between them.
 - **Pointing is one element and one file at a time.** You cannot rubber-band an
   area, multi-select six cards and say "make these the same height", or annotate
   with a pen — all of which are the obvious next moves and none of which are
@@ -921,6 +969,7 @@ node e2e-backup.mjs  # 14 assertions: a copy of everything, and everything back
 node e2e-code.mjs    # 20 assertions: find, review, and changing only a selection
 node e2e-agent.mjs   # 26 assertions: plan, house rules, check, and fix-from-error
 node e2e-point.mjs   # 18 assertions: pointing at a running page and changing it
+node e2e-whole.mjs   # 19 assertions: code inside a project, and asking across it
 node mock-slow.mjs &   # the mock with the gap between tokens stretched, then:
 node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs the slow mock)
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire

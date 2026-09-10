@@ -128,11 +128,36 @@ export interface DraftCard {
 function houseRules(rules?: string): string {
   const body = rules?.trim();
   if (!body) return "";
-  return `\n\nSTANDING RULES FOR THIS FILE
+  return `\n\nSTANDING RULES
 These are always in force, whether or not the instruction mentions them. Where an
 instruction and a rule disagree, follow the rule and say nothing about it.
 
-${body.slice(0, 4000)}`;
+${body.slice(0, 8000)}`;
+}
+
+/**
+ * The project a file belongs to, folded into the rules that always apply.
+ *
+ * A project already held instructions and material that every chat inside it
+ * could see. The code in that same project could not — so the conventions you
+ * wrote once, for the thing you were building, were the one context missing
+ * from every edit to the thing you were building. This closes that.
+ *
+ * Two layers, widest first, because the narrower one has to be able to win: the
+ * project says "TypeScript everywhere", the file is allowed to say "except this
+ * one, which is a build script".
+ */
+export function standingRules(parts: {
+  projectName?: string;
+  projectInstructions?: string;
+  fileRules?: string;
+}): string | undefined {
+  const out: string[] = [];
+  const project = parts.projectInstructions?.trim();
+  if (project) out.push(`From the project “${parts.projectName ?? "this project"}”:\n${project}`);
+  const file = parts.fileRules?.trim();
+  if (file) out.push(`For this file in particular:\n${file}`);
+  return out.length ? out.join("\n\n") : undefined;
 }
 
 export async function reviseCanvas(
@@ -601,4 +626,73 @@ ${folder}`,
 
   const trailing = /\n$/.test(target.content) ? "\n" : "";
   return { file: target.name, content: raw.content.replace(/\s+$/, "") + trailing };
+}
+
+/* --------------------------------------------------------------- project -- */
+
+/** One readable thing in a project: a file of a canvas, or a piece of knowledge. */
+export interface Source {
+  /** "counter / app.js" or "syllabus.md" — what the answer should call it. */
+  name: string;
+  text: string;
+  /** So an answer can be turned back into somewhere to go. */
+  canvasId?: string;
+}
+
+/**
+ * A question about the whole project rather than about the file you are in.
+ *
+ * "Where is the subscription system?" is the question you actually have, and
+ * until now this app could only be asked about the file already open — which
+ * means you had to know the answer to ask the question. A project holds
+ * several canvases, each of which may be a folder, plus whatever knowledge was
+ * added to it, and the useful thing is to read across all of it at once.
+ *
+ * It never edits. This is the "explain my project" half of a project, and a
+ * feature that sometimes answers and sometimes rewrites four files is one
+ * nobody asks anything.
+ *
+ * Fitted whole files at a time, widest budget first, and what did not fit is
+ * *reported* rather than dropped in silence — an answer that says "not in this
+ * project" because the file was quietly cut is worse than no answer, because
+ * you believe it.
+ */
+export async function askProject(
+  question: string,
+  sources: Source[],
+  modelId?: string,
+  budget = 120_000,
+): Promise<{ text: string; dropped: string[] } | null> {
+  const kept: Source[] = [];
+  const dropped: string[] = [];
+  let spent = 0;
+  for (const s of sources) {
+    const cost = s.text.length + s.name.length + 16;
+    if (spent + cost > budget) {
+      dropped.push(s.name);
+      continue;
+    }
+    spent += cost;
+    kept.push(s);
+  }
+
+  const body = kept.map((s) => `--- ${s.name} ---\n${s.text}`).join("\n\n");
+  const out = await complete(
+    `Answer a question about this project. Everything in it is below.
+
+THE QUESTION
+${question}
+
+Rules:
+- Name the files. "The subscription check is in billing/checkout.js, and the UI that calls it is in app.js" is the answer; "it is handled in the billing logic" is not.
+- Trace it where tracing helps: what calls what, in the order it happens.
+- If the answer is not in these files, say so plainly. Do not fill the gap with what such a project usually looks like — a confident guess about somebody's own code is worse than nothing, because it is checkable and they will not check it.${dropped.length ? `\n- Some files were too large to include: ${dropped.join(", ")}. If the answer likely lives in one of those, say which.` : ""}
+- Do not rewrite anything. This is a question.
+- Markdown, short paragraphs, no preamble.
+
+THE PROJECT
+${body}`,
+    { modelId, maxTokens: 2048, temperature: 0.2 },
+  );
+  return out ? { text: out, dropped } : null;
 }

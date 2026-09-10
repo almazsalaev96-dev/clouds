@@ -164,6 +164,18 @@ createServer(async (req, res) => {
     POINTED = JSON.stringify({ file: "style.css", content: body.replace(/\s+$/, "") + "\n\n.picked-by-the-mock { font-size: 12px; }" });
   }
 
+  /* A question about the whole project. Answered by naming files, because the
+     assertion worth making is that the app fed it every file in the project —
+     not that something came back. */
+  const asking = /^Answer a question about this project/.test(asked);
+  const ASK = `The counter lives in two places.
+
+The markup is in **Counter / index.html** — the \`#value\` output and the two buttons.
+
+The behaviour is in **Counter / app.js**, which wires \`#up\` and \`#down\` to it.
+
+Nothing in **notes.md** touches it.`;
+
   const checking = /^A change was just made to this/.test(asked);
   const CHECK = `It does what was asked: the concat is gone and the loop pushes instead.
 
@@ -173,6 +185,8 @@ Nothing here looks like it breaks a caller — the return type is the same array
 
   let text = isTitle
     ? "Debouncing a search input"
+    : asking
+    ? ASK
     : pointing
       ? POINTED
       : planning

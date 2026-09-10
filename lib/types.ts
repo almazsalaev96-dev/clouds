@@ -189,6 +189,12 @@ export interface Canvas {
    * existed, which is the correct reading of "no rules set".
    */
   rules?: string;
+  /**
+   * The project this belongs to, if any — so its instructions and knowledge
+   * reach every edit made here, the same way they reach every chat started
+   * inside it. Indexed, because the project page asks for its canvases by it.
+   */
+  projectId?: string;
   createdAt: number;
   updatedAt: number;
   /** The conversation it came out of, so it can point back at its origin. */
