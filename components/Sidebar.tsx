@@ -41,7 +41,7 @@ export function Sidebar({
   onOpenSettings: () => void;
   onOpenShortcuts: () => void;
 }) {
-  const { sidebarOpen, toggleSidebar, section } = useSettings();
+  const { sidebarOpen, toggleSidebar, section, name } = useSettings();
   const markRef = usePointerAngle<HTMLSpanElement>();
   const [query, setQuery] = React.useState("");
   const cards = useLiveQuery(() => db.cards.toArray(), [], []);
@@ -152,13 +152,29 @@ export function Sidebar({
             />
           </div>
 
+          {/* The account row. An app that has asked your name and then signs
+              its own footer "Settings" has forgotten it again; this is the one
+              place the answer is worth showing back. It is still the settings
+              button — the name is the label, not a second control. */}
           <div className="flex items-center gap-1 border-t border-line p-2">
             <button
               onClick={onOpenSettings}
-              className="tap flex h-8 flex-1 items-center gap-2 rounded-md px-2 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-canvas hover:text-primary"
+              aria-label="Settings"
+              className="tap group flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 text-left transition-colors duration-[var(--dur-fast)] hover:bg-canvas"
             >
-              <Settings2 size={15} />
-              Settings
+              <span
+                aria-hidden
+                className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-subtle text-[11px] font-semibold uppercase text-accent"
+              >
+                {(name.trim()[0] ?? "").toUpperCase() || <Settings2 size={13} />}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm text-secondary group-hover:text-primary">
+                {name.trim() || "Settings"}
+              </span>
+              <Settings2
+                size={14}
+                className="shrink-0 text-tertiary opacity-0 transition-opacity duration-[var(--dur-fast)] group-hover:opacity-100"
+              />
             </button>
             <IconButton label="Keyboard shortcuts" keys={["?"]} onClick={onOpenShortcuts}>
               <Keyboard size={15} />
@@ -177,7 +193,11 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
     // Sticky, but with no fill of its own: the sidebar is glass now, and an
     // opaque strip inside it reads as a row rather than a label for the rows
     // under it. Blur alone keeps the text legible over whatever scrolls past.
-    <h2 className="glass sticky top-0 z-10 px-2 pb-1 pt-3 text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+    /* Sentence case, not micro-caps. "TODAY" set in 11px capitals with
+       letterspacing is a label shouting its own name; "Today" is a word you
+       read past on the way to the thing under it, which is what a group
+       heading is for. */
+    <h2 className="glass sticky top-0 z-10 px-2 pb-1 pt-3 text-[13px] font-medium text-faint">
       {children}
     </h2>
   );
@@ -298,7 +318,7 @@ function ChatList({
           <button
             onClick={() => setShowArchived((v) => !v)}
             aria-expanded={showArchived}
-            className="focus-inset tap flex h-8 w-full items-center gap-1.5 rounded-md px-2 text-[11px] font-medium uppercase tracking-[0.06em] text-faint transition-colors duration-[var(--dur-fast)] hover:text-secondary"
+            className="focus-inset tap flex h-8 w-full items-center gap-1.5 rounded-md px-2 text-[13px] font-medium text-faint transition-colors duration-[var(--dur-fast)] hover:text-secondary"
           >
             <ChevronRight
               size={12}
@@ -347,11 +367,21 @@ function Row({
       <button
         onClick={onSelect}
         className={cn(
-          "flex min-w-0 flex-1 items-baseline gap-1.5 text-left text-sm",
+          "flex min-w-0 flex-1 items-baseline gap-2 text-left text-sm",
           active ? "text-primary" : "text-secondary group-hover:text-primary",
         )}
         title={title}
       >
+        {/* A hollow bullet, at the weight of a hairline. The rows had nothing
+            down their left edge, so a long title and a short one started in
+            the same place but did not look like they did. */}
+        <span
+          aria-hidden
+          className={cn(
+            "size-1.5 shrink-0 translate-y-[-1px] rounded-full border",
+            active ? "border-accent bg-accent" : "border-[var(--border-strong)]",
+          )}
+        />
         <span className="truncate">{title}</span>
         {meta && <span className="shrink-0 text-xs text-tertiary">{meta}</span>}
       </button>

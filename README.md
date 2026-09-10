@@ -215,11 +215,23 @@ applying a rule you were just told rather than deciding which rule applies.
 notes shapes; a title, subtitle and author set on the sheet itself; "Draft it" to have
 a model write it from your material; and Print / PDF to export.
 
-**The blank page** — a greeting that knows what time it is and, once you have
-said so, what you are called. It asks once, inline, after the keys are in, and
-never as a modal. A name is the cheapest thing an interface can know about you and
-the one that changes the most about how it reads back; it stays in the browser and
-is never sent to a model.
+**The blank page** — the mark and the greeting on one line, the way a letter is
+signed at the head of the page rather than announced above it. The greeting knows
+what time it is and, once you have said so, what you are called, and it alternates
+between the hour and the day — "Good evening" every single evening becomes
+wallpaper by the third one. Which of the two you get is taken from the date, not
+from a coin toss: it is the same all day and changes when the day does, because
+randomness that reshuffles while you read is not warmth, it is a glitch. It asks
+your name once, inline, after the keys are in, and never as a modal. A name is the
+cheapest thing an interface can know about you and the one that changes the most
+about how it reads back; it stays in the browser and is never sent to a model. The
+sidebar signs off with it too.
+
+**The model sits in the composer** — an inch from the box you are typing in, and
+changeable there, with the reasoning effort beside it. It used to live in the
+header, two feet from the decision it belongs to, which is how a long prompt ends
+up going to the wrong one. On a blank page the header is now empty, as it should
+be: there is nothing to say about a conversation that does not exist.
 
 **The rest** — command palette (`⌘K`), keyboard operation throughout, light/dark with
 no flash, three densities, *Continue* on any answer that ran out of room, and

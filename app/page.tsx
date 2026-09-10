@@ -695,6 +695,10 @@ export default function Page() {
       compareWith={compareWith}
       onCompareChange={setCompareWith}
       availableModels={modelUsable}
+      configured={configured}
+      modelPickerOpen={modelPickerOpen}
+      onModelPickerOpenChange={setModelPickerOpen}
+      onModelChange={setModel}
       styleId={threadStyleId}
       customStyles={customStyles}
       onStyleChange={setStyle}
@@ -801,11 +805,6 @@ export default function Page() {
           <TopBar
             conversation={conversation ?? null}
             scrolled={scrolled}
-            configured={configured}
-            modelPickerOpen={modelPickerOpen}
-            onModelPickerOpenChange={setModelPickerOpen}
-            modelId={threadModelId}
-            onModelChange={setModel}
             onRename={(title) => activeId && db.conversations.update(activeId, { title })}
             onExport={exportConversation}
             onDelete={removeConversation}

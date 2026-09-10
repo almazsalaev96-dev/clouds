@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import type { ContentBlock, Style } from "@/lib/types";
 import { getModel, estimateTokens, formatTokens, MODELS } from "@/lib/models";
+import { paramsFor } from "@/lib/store";
+import { ModelPicker } from "./ModelPicker";
 import { fileToBase64, formatBytes, cn } from "@/lib/utils";
 import { useSettings, useDrafts } from "@/lib/store";
 import { allStyles, findStyle, DEFAULT_STYLE_ID } from "@/lib/styles";
@@ -44,6 +46,10 @@ export function Composer({
   customStyles,
   onStyleChange,
   onEditStyles,
+  configured,
+  modelPickerOpen,
+  onModelPickerOpenChange,
+  onModelChange,
 }: {
   conversationId: string;
   streaming: boolean;
@@ -64,6 +70,10 @@ export function Composer({
   customStyles: Style[];
   onStyleChange: (id: string) => void;
   onEditStyles: () => void;
+  configured: Record<string, boolean>;
+  modelPickerOpen: boolean;
+  onModelPickerOpenChange: (o: boolean) => void;
+  onModelChange: (id: string) => void;
 }) {
   const settings = useSettings();
   const drafts = useDrafts();
@@ -76,6 +86,8 @@ export function Composer({
   const [plusOpen, setPlusOpen] = React.useState(false);
   const [toolsOpen, setToolsOpen] = React.useState(false);
   const [stylesOpen, setStylesOpen] = React.useState(false);
+  const reasoning = paramsFor(modelId).reasoningEffort;
+  const effort = reasoning ? reasoning[0].toUpperCase() + reasoning.slice(1) : "";
   const styles = React.useMemo(() => allStyles(customStyles), [customStyles]);
   const style = findStyle(styleId, customStyles) ?? styles[0];
 
@@ -316,7 +328,7 @@ export function Composer({
           onKeyDown={onKeyDown}
           onPaste={onPaste}
           rows={1}
-          placeholder="Ask anything"
+          placeholder="How can I help you today?"
           aria-label="Message"
           className="max-h-[45vh] w-full resize-none bg-transparent px-5 pb-1 pt-4 text-[16px] leading-6 text-primary outline-none placeholder:text-tertiary"
         />
@@ -524,6 +536,30 @@ export function Composer({
           </Popover.Root>
 
           <div className="flex-1" />
+
+          {/* Which model is about to answer, an inch from the box you are
+              typing in — and changeable there. It used to live in the header,
+              two feet away from the decision it belongs to, which is how
+              people end up sending a long prompt to the wrong one. */}
+          <ModelPicker
+            open={modelPickerOpen}
+            onOpenChange={onModelPickerOpenChange}
+            value={modelId}
+            onChange={onModelChange}
+            configured={configured}
+            align="end"
+          >
+            <button
+              aria-label={`Model: ${model.name}`}
+              className="btn-touch ctl-h focus-inset flex min-w-0 shrink items-center gap-1.5 rounded-full px-2 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+            >
+              <ProviderMark provider={model.provider} size={13} />
+              <span className="truncate">{model.name}</span>
+              {model.reasoning && effort && (
+                <span className="hidden text-tertiary sm:inline">{effort}</span>
+              )}
+            </button>
+          </ModelPicker>
 
           {dictation.supported && (
             <Tooltip label={dictation.listening ? "Stop dictating" : "Dictate"}>

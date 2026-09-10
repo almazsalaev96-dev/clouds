@@ -2,10 +2,8 @@
 
 import * as React from "react";
 import { KeyRound, X } from "lucide-react";
-import { getModel } from "@/lib/models";
 import { useSettings } from "@/lib/store";
-import { ProviderMark } from "@/components/ui/ProviderMark";
-import { Wordmark } from "@/components/brand/Logo";
+import { Mark } from "@/components/brand/Logo";
 
 /**
  * The time of day, as a greeting.
@@ -15,16 +13,33 @@ import { Wordmark } from "@/components/brand/Logo";
  * before paint; the hydration warning that would otherwise fire on the
  * mismatch is suppressed on that one element and nowhere else.
  */
+const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/**
+ * Two greetings, alternating: the hour, and the day.
+ *
+ * "Good evening" every single evening becomes wallpaper by the third one, and
+ * a page that greets you the same way forever has stopped saying anything. So
+ * it alternates with "Happy Thursday" — picked from the date rather than at
+ * random, so it is the same all day and changes when the day does. Randomness
+ * that reshuffles under you while you read is not warmth, it is a glitch.
+ *
+ * Starts as the server's word on the client too — deliberately. With
+ * `suppressHydrationWarning` React keeps the server's text and does not
+ * re-render unless state actually changes, so an initial state that already
+ * held the right answer would leave "Hello" on screen forever. The layout
+ * effect changes it before paint.
+ */
 function useGreeting(): string {
-  // Starts as the server's word on the client too — deliberately. With
-  // `suppressHydrationWarning` React keeps the server's text and does not
-  // re-render unless state actually changes, so an initial state that already
-  // held the right answer would leave "Hello" on screen forever. The layout
-  // effect changes it before paint.
   const [g, setG] = React.useState("Hello");
   useIsoLayoutEffect(() => {
-    const h = new Date().getHours();
-    setG(h < 5 ? "Working late" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening");
+    const now = new Date();
+    const h = now.getHours();
+    const hour =
+      h < 5 ? "Working late" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+    // Odd days get the weekday, even days the hour. Late at night the hour is
+    // the more useful of the two, and it always wins.
+    setG(h < 5 || now.getDate() % 2 === 0 ? hour : `Happy ${DAYS[now.getDay()]}`);
   }, []);
   return g;
 }
@@ -70,8 +85,7 @@ export function EmptyState({
   children: React.ReactNode;
 }) {
   const settings = useSettings();
-  const { modelId, name, nameAsked } = settings;
-  const model = getModel(modelId);
+  const { name, nameAsked } = settings;
   const greeting = useGreeting();
   const [draftName, setDraftName] = React.useState("");
 
@@ -91,36 +105,37 @@ export function EmptyState({
             that is addressed to you. Nothing else on this screen is allowed
             to be decorative. */}
         <div className="mb-7 text-center">
-          <div className="flex justify-center anim-rise" style={{ animationDelay: "20ms" }}>
-            <Wordmark height={46} className="text-primary" />
-          </div>
-
+          {/* The mark sits *in* the line rather than above it. Stacked, the
+              name and the greeting are two announcements; on one line they are
+              a signature at the head of a letter, which is the whole idea. */}
           <h1
-            className="display mt-4 text-[2.125rem] text-primary anim-rise sm:text-[2.5rem]"
+            className="display flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[2rem] text-primary anim-rise sm:text-[2.5rem]"
             suppressHydrationWarning
           >
-            {greeting}
-            {name ? `, ${name.trim()}` : ""}.
+            <Mark size={42} className="text-primary" />
+            <span>
+              {greeting}
+              {name ? `, ${name.trim()}` : ""}
+            </span>
           </h1>
           <p
-            className="display-italic mt-1 text-[1.3rem] text-secondary anim-rise"
+            className="display-italic mt-1.5 text-[1.25rem] text-secondary anim-rise"
             style={{ animationDelay: "40ms" }}
           >
             Where should we start?
           </p>
-          <p
-            className="mt-2.5 flex items-center justify-center gap-1.5 text-xs uppercase tracking-[0.1em] text-faint anim-rise"
-            style={{ animationDelay: "60ms" }}
-          >
-            {hasAnyKey ? (
-              <>
-                <ProviderMark provider={model.provider} size={12} />
-                {model.name}
-              </>
-            ) : (
-              "Bring your own key — nothing leaves this browser"
-            )}
-          </p>
+          {/* Which model is answering is no longer announced here: it lives in
+              the composer, next to the box you are about to type in, where it
+              is both visible and changeable. Saying it twice on one screen
+              made the second one furniture. */}
+          {!hasAnyKey && (
+            <p
+              className="mt-2.5 text-xs uppercase tracking-[0.1em] text-faint anim-rise"
+              style={{ animationDelay: "60ms" }}
+            >
+              Bring your own key — nothing leaves this browser
+            </p>
+          )}
         </div>
 
         <div className="anim-rise" style={{ animationDelay: "70ms" }}>

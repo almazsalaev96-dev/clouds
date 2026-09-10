@@ -11,16 +11,10 @@ import { useSettings } from "@/lib/store";
 import { formatCost, formatTokens } from "@/lib/models";
 import { cn } from "@/lib/utils";
 import { IconButton } from "@/components/ui/primitives";
-import { ModelPicker } from "./ModelPicker";
 
 export function TopBar({
   conversation,
   scrolled,
-  configured,
-  modelPickerOpen,
-  onModelPickerOpenChange,
-  modelId,
-  onModelChange,
   onRename,
   onExport,
   onDelete,
@@ -35,11 +29,6 @@ export function TopBar({
 }: {
   conversation: Conversation | null;
   scrolled: boolean;
-  configured: Record<string, boolean>;
-  modelPickerOpen: boolean;
-  onModelPickerOpenChange: (o: boolean) => void;
-  modelId: string;
-  onModelChange: (id: string) => void;
   onRename: (title: string) => void;
   onExport: () => void;
   onDelete: () => void;
@@ -72,13 +61,8 @@ export function TopBar({
         </IconButton>
       )}
 
-      <ModelPicker
-        open={modelPickerOpen}
-        onOpenChange={onModelPickerOpenChange}
-        value={modelId}
-        onChange={onModelChange}
-        configured={configured}
-      />
+      {/* The model picker is not here. It sits in the composer, next to the
+          box you are about to type in, where the decision actually is. */}
 
       {/* Which project you are inside, where you can see it while you type.
           A chat that silently carries three pages of instructions and says
