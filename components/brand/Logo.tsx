@@ -9,17 +9,15 @@ import { cn } from "@/lib/utils";
  * A signature. The brief was a fountain pen on deckle paper, and what a pen
  * writes is not a logotype — it is a name in someone's hand. So the mark is
  * the word set in a copperplate script (Pinyon, the engraved round hand of
- * nineteenth-century correspondence), in the ink, with one thing in gold: the
- * dot on the i, which is where the pen lifts.
+ * nineteenth-century correspondence), in the ink, with the last two letters in
+ * the gold of the nib.
  *
  * It appears at most once per screen. A signature repeated is a watermark.
  *
- * The dot is drawn rather than typed. Colouring one glyph of a font a
- * different colour is not something text can do, and a dotless i drawn from
- * a different subset is a fallback waiting to happen — so the word is set as
- * "Arm" plus a dotless "ı", and the dot is a circle placed where the face
- * puts it. If the script ever fails to load the fallback is a plain cursive
- * with its own dot, and the gold one simply sits on top of it.
+ * There is no dot. The i is set as a dotless "ı" — the letter as a pen leaves
+ * it when it does not come back up — so the word ends on the stroke rather
+ * than on a punctuation mark. Nothing is drawn over the type, which also means
+ * nothing to sit in the wrong place if the script ever fails to load.
  */
 
 /** The name, set. */
@@ -60,23 +58,13 @@ export function Wordmark({
       >
         m{"ı"}
       </span>
-      <span
-        aria-hidden
-        className={gold ? "absolute rounded-full bg-[var(--accent-2)]" : "absolute rounded-full bg-current"}
-        style={{
-          width: size * 0.085,
-          height: size * 0.085,
-          right: size * 0.075,
-          top: size * 0.3,
-        }}
-      />
     </span>
   );
 }
 
 /**
  * The initial, for the app icon and anywhere the whole name would not fit.
- * Same script, same ink, same gold dot standing in for the one on the i.
+ * Same script, same ink, and nothing beside it.
  */
 export function Mark({ size = 20, className }: { size?: number; className?: string }) {
   return (
@@ -86,10 +74,6 @@ export function Mark({ size = 20, className }: { size?: number; className?: stri
       style={{ width: size, height: size, fontSize: size * 0.92, lineHeight: 1 }}
     >
       <span style={{ marginBottom: -size * 0.02 }}>A</span>
-      <span
-        className="absolute rounded-full bg-[var(--accent-2)]"
-        style={{ width: size * 0.13, height: size * 0.13, right: size * 0.02, top: size * 0.18 }}
-      />
     </span>
   );
 }

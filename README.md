@@ -310,8 +310,8 @@ to get back to.
 Paper (`#f7f3ea`) is the ground — ivory, not white and not yellow. Ink (`#1a2650`)
 is the words: a saturated navy, the colour a good blue ink dries to, and the only
 colour most of a screen is ever made of. Gold (`#d4af5a`) is the nib — a jewel,
-never a surface: the dot on the i, a badge, the tip of the caret, the edge of the
-ring while an answer is arriving. Leather (`#8a4b1d`) is the desk: warmth in the
+never a surface: the last letters of the signature, a badge, the tip of the caret,
+the edge of the ring while an answer is arriving. Leather (`#8a4b1d`) is the desk: warmth in the
 field behind everything, and the colour of *thinking*, a state that is warm and
 slow rather than electric.
 
@@ -349,18 +349,24 @@ the font stack for a year and never served, so every screenshot in this repo, an
 the app for anyone without it installed, was actually DejaVu Sans. A font you name
 but do not ship is a wish.
 
-**The mark** — the word in a hand, in two tones: *Ar* in the ink, *mi* in the gold
-of the nib, and the dot on the i where the pen lifts. It is two spans rather than
-one gradient, because a gradient needs `color: transparent` and `background-clip:
-text`, and in forced-colors mode that is a wordmark which renders as nothing at
-all. Pinyon joins its letters, so the second half is pulled back by the width of
-the connector between the r and the m to put that join back.
+**The mark** — the word in a hand, in two tones: *Ar* in the ink, *mı* in the gold
+of the nib. It is two spans rather than one gradient, because a gradient needs
+`color: transparent` and `background-clip: text`, and in forced-colors mode that
+is a wordmark which renders as nothing at all. Pinyon joins its letters, so the
+second half is pulled back by the width of the connector between the r and the m
+to put that join back.
+
+There is no dot. The i is set as a dotless *ı* — the letter as a pen leaves it
+when it does not come back up — so the word ends on the stroke rather than on a
+piece of punctuation. It used to be a gold circle drawn over the type, which
+also meant one thing on the screen that was not the typeface and could sit in
+the wrong place if the script failed to load. Nothing is drawn over the word now.
 
 It sits at 38px in the sidebar corner, not the 30 it started at. A copperplate
 script is all hairlines and joins, and at 30 those joins fall below a pixel and
 the name reads as a squiggle — the answer was never a different typeface, it was
-more room. The app icon is the initial in the same hand on the navy, with the
-same gold dot.
+more room. The app icon is the initial in the same hand on the navy, and nothing
+beside it.
 
 **Thinking** — one motif wherever the model is running: a ring of field energy that
 turns, and a hairline that travels the width of whatever is live. It says *running*
