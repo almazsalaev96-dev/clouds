@@ -1,7 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import type {
-  Attempt, Canvas, CanvasVersion, Card, ContentBlock, Conversation, Deck,
-  Message, Note, Paper, Problem, Project, ProjectFile, Skill, Style, Trap,
+  Attempt, Canvas, CanvasFile, CanvasVersion, Card, ContentBlock, Conversation,
+  Deck, Message, Note, Paper, Problem, Project, ProjectFile, Skill, Style, Trap,
 } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 
@@ -22,6 +22,7 @@ class ChatDB extends Dexie {
   problems!: Table<Problem, string>;
   attempts!: Table<Attempt, string>;
   canvases!: Table<Canvas, string>;
+  canvasFiles!: Table<CanvasFile, string>;
   canvasVersions!: Table<CanvasVersion, string>;
   projects!: Table<Project, string>;
   projectFiles!: Table<ProjectFile, string>;
@@ -80,6 +81,13 @@ class ChatDB extends Dexie {
       projects: "id, updatedAt",
       projectFiles: "id, projectId, createdAt, [projectId+createdAt]",
       styles: "id, updatedAt",
+    });
+
+    /* Version 6 makes a canvas able to be a folder rather than only a file, so
+       the Code section can hold a web page — markup, styling and behaviour are
+       three files and a preview that pretends otherwise is a toy. */
+    this.version(6).stores({
+      canvasFiles: "id, canvasId, [canvasId+order], [canvasId+name]",
     });
   }
 }
@@ -433,6 +441,93 @@ export async function deleteSkill(id: string): Promise<() => Promise<void>> {
 
 /* ---------------------------------------------------------------- canvas -- */
 
+/** A web canvas: the record, plus the folder that is its actual content. */
+export async function createWebCanvas(
+  files: { name: string; lang: string; content: string }[],
+  init: Partial<Canvas> = {},
+): Promise<Canvas> {
+  const now = Date.now();
+  const canvas: Canvas = {
+    id: uid(),
+    title: "Untitled",
+    kind: "web",
+    content: "",
+    createdAt: now,
+    updatedAt: now,
+    ...init,
+    // A web canvas keeps its text in canvasFiles; a stray `content` here would
+    // be a second source of truth nothing reads.
+    ...(init.kind ? {} : {}),
+  };
+  await db.transaction("rw", db.canvases, db.canvasFiles, db.canvasVersions, async () => {
+    await db.canvases.add(canvas);
+    for (const [i, f] of files.entries()) {
+      await db.canvasFiles.add({
+        id: uid(),
+        canvasId: canvas.id,
+        name: f.name,
+        lang: f.lang,
+        content: f.content,
+        order: i,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await pushVersion(canvas.id, f.content, "model", "first draft", f.name);
+    }
+  });
+  return canvas;
+}
+
+export function filesOfCanvas(canvasId: string): Promise<CanvasFile[]> {
+  return db.canvasFiles
+    .where("[canvasId+order]")
+    .between([canvasId, Dexie.minKey], [canvasId, Dexie.maxKey])
+    .toArray();
+}
+
+export async function addCanvasFile(
+  canvasId: string,
+  file: { name: string; lang: string; content?: string },
+): Promise<CanvasFile> {
+  const now = Date.now();
+  const existing = await filesOfCanvas(canvasId);
+  const row: CanvasFile = {
+    id: uid(),
+    canvasId,
+    name: uniqueName(file.name, existing.map((f) => f.name)),
+    lang: file.lang,
+    content: file.content ?? "",
+    order: existing.length,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await db.transaction("rw", db.canvasFiles, db.canvases, async () => {
+    await db.canvasFiles.add(row);
+    await db.canvases.update(canvasId, { updatedAt: now });
+  });
+  return row;
+}
+
+/** "app.js" beside an existing "app.js" becomes "app-2.js". */
+function uniqueName(name: string, taken: string[]): string {
+  if (!taken.includes(name)) return name;
+  const dot = name.lastIndexOf(".");
+  const stem = dot > 0 ? name.slice(0, dot) : name;
+  const ext = dot > 0 ? name.slice(dot) : "";
+  for (let n = 2; ; n++) {
+    const candidate = `${stem}-${n}${ext}`;
+    if (!taken.includes(candidate)) return candidate;
+  }
+}
+
+export async function deleteCanvasFile(id: string): Promise<() => Promise<void>> {
+  const row = await db.canvasFiles.get(id);
+  await db.canvasFiles.delete(id);
+  return async () => {
+    if (row) await db.canvasFiles.put(row);
+  };
+}
+
 export async function createCanvas(init: Partial<Canvas> = {}): Promise<Canvas> {
   const now = Date.now();
   const canvas: Canvas = {
@@ -466,15 +561,15 @@ export async function pushVersion(
   content: string,
   by: CanvasVersion["by"],
   note?: string,
+  /** Which file, on a web canvas. History is per file, as it is in an editor. */
+  fileName?: string,
 ): Promise<void> {
-  const last = await db.canvasVersions
-    .where("[canvasId+createdAt]")
-    .between([canvasId, Dexie.minKey], [canvasId, Dexie.maxKey])
-    .last();
-  if (last?.content === content) return;
+  const mine = (await versionsOf(canvasId, fileName))[0];
+  if (mine?.content === content) return;
   await db.canvasVersions.add({
     id: uid(),
     canvasId,
+    fileName,
     content,
     by,
     note,
@@ -482,12 +577,18 @@ export async function pushVersion(
   });
 }
 
-export async function versionsOf(canvasId: string): Promise<CanvasVersion[]> {
-  return db.canvasVersions
+/**
+ * Newest first. `fileName` narrows to one file's history; omitting it on a
+ * single-document canvas gets that document's, because those rows carry no
+ * file name at all.
+ */
+export async function versionsOf(canvasId: string, fileName?: string): Promise<CanvasVersion[]> {
+  const all = await db.canvasVersions
     .where("[canvasId+createdAt]")
     .between([canvasId, Dexie.minKey], [canvasId, Dexie.maxKey])
     .reverse()
     .toArray();
+  return all.filter((v) => (v.fileName ?? undefined) === fileName);
 }
 
 /**
@@ -499,21 +600,30 @@ export async function versionsOf(canvasId: string): Promise<CanvasVersion[]> {
 export async function revertCanvas(canvasId: string, versionId: string): Promise<void> {
   const v = await db.canvasVersions.get(versionId);
   if (!v) return;
-  await db.transaction("rw", db.canvases, db.canvasVersions, async () => {
-    await db.canvases.update(canvasId, { content: v.content, updatedAt: Date.now() });
-    await pushVersion(canvasId, v.content, "you", "reverted");
+  await db.transaction("rw", db.canvases, db.canvasFiles, db.canvasVersions, async () => {
+    if (v.fileName) {
+      const file = (await filesOfCanvas(canvasId)).find((f) => f.name === v.fileName);
+      if (file) await db.canvasFiles.update(file.id, { content: v.content, updatedAt: Date.now() });
+      await db.canvases.update(canvasId, { updatedAt: Date.now() });
+    } else {
+      await db.canvases.update(canvasId, { content: v.content, updatedAt: Date.now() });
+    }
+    await pushVersion(canvasId, v.content, "you", "reverted", v.fileName);
   });
 }
 
 export async function deleteCanvas(id: string): Promise<() => Promise<void>> {
-  return db.transaction("rw", db.canvases, db.canvasVersions, async () => {
+  return db.transaction("rw", db.canvases, db.canvasFiles, db.canvasVersions, async () => {
     const canvas = await db.canvases.get(id);
+    const files = await db.canvasFiles.where("canvasId").equals(id).toArray();
     const versions = await db.canvasVersions.where("canvasId").equals(id).toArray();
+    await db.canvasFiles.where("canvasId").equals(id).delete();
     await db.canvasVersions.where("canvasId").equals(id).delete();
     await db.canvases.delete(id);
     return async () => {
-      await db.transaction("rw", db.canvases, db.canvasVersions, async () => {
+      await db.transaction("rw", db.canvases, db.canvasFiles, db.canvasVersions, async () => {
         if (canvas) await db.canvases.put(canvas);
+        if (files.length) await db.canvasFiles.bulkPut(files);
         if (versions.length) await db.canvasVersions.bulkPut(versions);
       });
     };

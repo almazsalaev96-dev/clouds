@@ -85,19 +85,46 @@ that arrives before three pages of project knowledge is one the model has stoppe
 thinking about by the time it answers. It also makes the whole block a stable
 prefix, which is what the provider's cache is for.
 
-**Canvas** — a document you and the model both write to. Open a blank one, or lift an
-answer out of a thread ("Edit in a canvas", which takes the fenced block and its
-language rather than the prose around it). Then ask for a change in plain words and it
-comes back *as the document*: a diff with its counts, Discard or Keep, and nothing
-written until you keep it. A long answer in a chat is not help, it is homework — you
-read it, find the three lines that changed, and paste them somewhere by hand.
+**Canvas** — a document you and the model both write to. It comes in three
+shapes, and the shape is the first thing you pick, not a setting you go looking
+for: a **document**, a **code file**, or a **web app**.
 
-Every accepted change is a version, and so is the state it replaced, so reverting is
-always possible even when the first edit came from the model. Reverting writes a *new*
-version rather than deleting the ones after it, because an undo that destroys history
-is how you lose the thing you were trying to get back to. HTML and CSS canvases run in
-a sandboxed frame with no `allow-same-origin`: the preview executes its own scripts and
-can reach nothing else in the browser.
+A web app is a folder — `index.html`, `style.css`, `app.js` — running in a frame
+beside the editor. The preview resolves the page's own `<link href>` and
+`<script src>` against the other files and inlines them, so what you write is a
+real page that would work if you saved the folder, rather than three panes whose
+relationship only exists inside this app.
+
+Its console comes back out. An error inside a sandboxed frame is otherwise
+invisible — no devtools panel points at it, and "it just doesn't work" with
+nothing on screen is where people give up — so logs, warnings, uncaught errors
+and unhandled rejections are piped to a drawer under the preview, with the error
+count on the button so you do not have to open it to know. And the line numbers
+are translated: the browser only ever sees the assembled document, so "line 76"
+is mapped back to `app.js:2`. A number that looks like a line number and is not
+is worse than no number, because people go to line 76 of the file they are in and
+find something innocent there.
+
+The frame is sandboxed with `allow-scripts` and no `allow-same-origin`, so the
+page runs on an opaque origin: it executes its own code and reaches nothing of
+this app's — not the conversations, not the keys, not storage. That is tested,
+not asserted: `e2e-web.mjs` reads `window.origin` inside the frame and confirms
+`localStorage` throws.
+
+**Five one-press edits** — Add comments, Add logs, Fix bugs, Port to…, Explain.
+Taken from ChatGPT's canvas, which settled on exactly this set, because they are
+the things people ask for over and over and typing "add comments explaining what
+each function does" for the hundredth time is the app failing to notice a
+pattern. A document gets its own four instead: Tighten, Proofread, Add structure,
+Explain — "Add logs" means nothing in prose. Every one of them lands as a diff
+you keep or discard, except Explain, which never touches the file: a shortcut
+that sometimes edits and sometimes does not is one nobody trusts with either.
+
+Every accepted change is a version, and so is the state it replaced, so reverting
+is always possible even when the first edit came from the model. History is per
+file. Reverting writes a *new* version rather than deleting the ones after it,
+because an undo that destroys history is how you lose the thing you were trying
+to get back to.
 
 **Look** — taken from the object the brand is: a fountain pen on cream paper.
 Paper (`#f7f3ea`) is the ground — ivory, not white and not yellow. Ink (`#1a2650`)
@@ -259,6 +286,11 @@ heading, and link URLs printed in full.
   diff with the right counts, refused entry to the database until accepted, recorded
   as two versions, reverted without losing the newer one, and a preview confirmed to
   run its own scripts on an opaque origin.
+- The web canvas driven end to end (`e2e-web.mjs`): the folder runs, the `<link>`
+  and `<script>` resolve against the other files, clicking a button in the
+  preview counts, a `console.log` and an uncaught `ReferenceError` come back out
+  with the error mapped to `app.js:2`, and `window.origin` inside the frame is
+  `null` with `localStorage` throwing `SecurityError`.
 - Projects and styles verified **at the wire** (`e2e-project.mjs`): the browser is
   driven, then the mock provider is asked what system prompt it actually received —
   the project's instructions, its knowledge wrapped one `<document>` per file, and
@@ -350,6 +382,7 @@ ANTHROPIC_BASE_URL=http://127.0.0.1:8787 ANTHROPIC_API_KEY=sk-ant-mock npx next 
 node e2e.mjs         # 15 assertions across the whole happy path
 node e2e-canvas.mjs  # 25 assertions: edit, revise, diff, keep, revert, sandbox
 node e2e-project.mjs # 21 assertions: projects and styles, read at the wire
+node e2e-web.mjs     # 26 assertions: a web app runs, and its console comes back
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire
 node test-fit.mjs      # a 360k-token thread trimmed to fit and answered
 MOCK_RATE_LIMIT=1 …    # restart the mock this way, then: node test-retry.mjs

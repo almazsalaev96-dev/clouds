@@ -166,11 +166,23 @@ const PAPER_SHAPES = {
 export async function reviseCanvas(
   current: string,
   instruction: string,
-  kind: "code" | "doc",
+  kind: "code" | "doc" | "web",
   lang: string | undefined,
   modelId?: string,
+  /**
+   * The rest of the folder, on a web canvas. Without it a model asked to wire
+   * up a button in app.js cannot see that the button has no id in index.html,
+   * and confidently writes a selector for something that does not exist.
+   */
+  siblings?: { name: string; content: string }[],
 ): Promise<string | null> {
-  const what = kind === "code" ? `${lang ?? "code"} file` : "document";
+  const what = kind === "doc" ? "document" : `${lang ?? "code"} file`;
+  const context = siblings?.length
+    ? `\n\nThe other files in this folder, for reference only. Do NOT return them.\n\n` +
+      siblings
+        .map((f) => `--- ${f.name} ---\n${f.content.slice(0, 12_000)}`)
+        .join("\n\n")
+    : "";
   const prompt = `Revise the ${what} below according to the instruction.
 
 Rules:
@@ -180,7 +192,7 @@ Rules:
 ${kind === "code" ? "- Do not wrap the answer in a markdown fence unless the file itself is markdown." : ""}
 
 INSTRUCTION
-${instruction}
+${instruction}${context}
 
 CURRENT
 ${current.slice(0, 60_000)}`;
@@ -199,6 +211,38 @@ ${current.slice(0, 60_000)}`;
      of noise in it is a diff people stop reading. */
   const trailing = /\n$/.test(current) ? "\n" : "";
   return (fenced ? fenced[1] : out).replace(/\s+$/, "") + trailing;
+}
+
+/**
+ * What this code does, in prose.
+ *
+ * Deliberately not a revision: "explain" is the one shortcut of the five that
+ * must not touch the file, and a feature that sometimes edits and sometimes
+ * does not is one people stop trusting with either.
+ */
+export async function explainCode(
+  current: string,
+  lang: string | undefined,
+  modelId?: string,
+  siblings?: { name: string; content: string }[],
+): Promise<string | null> {
+  const context = siblings?.length
+    ? `\n\nThe other files in the same folder:\n\n` +
+      siblings.map((f) => `--- ${f.name} ---\n${f.content.slice(0, 8_000)}`).join("\n\n")
+    : "";
+  return complete(
+    `Explain the ${lang ?? "code"} below to the person who wrote it.
+
+Rules:
+- Start with one sentence saying what it does overall. No preamble before that.
+- Then walk the parts that carry the logic, in the order they run, not top to bottom.
+- Name anything that looks wrong, fragile, or surprising, and say why. If nothing does, say so in one line rather than inventing something.
+- Markdown. Short paragraphs. Do not paste the code back.
+
+CODE
+${current.slice(0, 40_000)}${context}`,
+    { modelId, maxTokens: 2_000, temperature: 0.3 },
+  );
 }
 
 export async function generatePaper(

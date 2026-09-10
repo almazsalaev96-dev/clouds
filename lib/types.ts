@@ -199,8 +199,14 @@ export interface Paper {
 export interface Canvas {
   id: string;
   title: string;
-  kind: "code" | "doc";
-  /** Highlighting and the preview mode both key off this. */
+  /**
+   * "doc" and "code" are one document. "web" is a folder: its text lives in
+   * `canvasFiles` and `content` stays empty, because a web page is never one
+   * file — the markup, the styling and the behaviour are three, and pretending
+   * otherwise is what makes a preview a toy.
+   */
+  kind: "code" | "doc" | "web";
+  /** Highlighting and the preview mode both key off this. Unused by "web". */
   lang?: string;
   content: string;
   createdAt: number;
@@ -216,9 +222,31 @@ export interface Canvas {
  * write to: one bad revision and the work is gone. History is what makes it
  * safe to hand the pen over.
  */
+/**
+ * One file of a web canvas.
+ *
+ * `name` is the path as it appears in the markup — "index.html", "style.css" —
+ * because the preview resolves `<link href>` and `<script src>` against these
+ * names. What you write is real HTML that would work if you saved the folder,
+ * rather than three panes that only mean anything inside this app.
+ */
+export interface CanvasFile {
+  id: string;
+  canvasId: string;
+  name: string;
+  lang: string;
+  content: string;
+  /** Tab order. index.html first, by convention and by construction. */
+  order: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface CanvasVersion {
   id: string;
   canvasId: string;
+  /** Which file this state belongs to. Absent on a single-document canvas. */
+  fileName?: string;
   content: string;
   by: "you" | "model";
   /** The instruction, when the model made it. */
