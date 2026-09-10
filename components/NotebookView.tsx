@@ -16,7 +16,7 @@ import { extractPdf, isPdf } from "@/lib/pdf";
 import { Markdown } from "@/components/chat/Markdown";
 import { MessageBar } from "@/components/chat/MessageBar";
 import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
-import { DiffView } from "@/components/CanvasView";
+import { DiffView } from "@/components/DiffView";
 import { Button, SaveBadge } from "@/components/ui/primitives";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
 import { cn } from "@/lib/utils";
@@ -454,18 +454,3 @@ function NoteChip({
   );
 }
 
-/** Saving a chat answer into a note — used from the message action row. */
-export async function saveToNote(text: string, conversationId?: string): Promise<Note> {
-  const now = Date.now();
-  const note: Note = {
-    id: `${now.toString(36)}${Math.random().toString(36).slice(2, 10)}`,
-    title: deriveTitle(text, "Saved from chat"),
-    content: text,
-    createdAt: now,
-    updatedAt: now,
-    pinned: false,
-    sourceConversationId: conversationId,
-  };
-  await db.notes.add(note);
-  return note;
-}

@@ -5,7 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   Braces, Bug, Check, Eye, FileCode2, FilePlus2, FileText, FileType2, History,
   LayoutTemplate, MessageSquareCode, Palette, Pencil, Play, RotateCcw,
-  Maximize2, Minimize2, ScanSearch, Terminal, TextSelect, X,
+  Maximize2, Minimize2, ScanSearch, Scroll, Terminal, TextSelect, X,
   CalendarRange, CheckCheck, ListChecks, Sparkles, Timer, Wand2,
 } from "lucide-react";
 import type { Canvas, CanvasFile, CanvasVersion } from "@/lib/types";
@@ -15,10 +15,20 @@ import {
 } from "@/lib/db";
 import { offerUndo } from "@/lib/undo";
 import { useSettings } from "@/lib/store";
-import { explainCode, reviewCode, reviseCanvas, reviseSelection } from "@/lib/generate";
+import {
+  checkChange,
+  explainCode,
+  fixInstruction,
+  planChanges,
+  reviewCode,
+  reviseCanvas,
+  reviseSelection,
+  type PlanStep,
+} from "@/lib/generate";
 import { collapse, diffStat, lineDiff, type DiffOp } from "@/lib/diff";
 import { assembleWeb, ENTRY, locate, runToken, webTemplate } from "@/lib/web";
-import { MAKES } from "@/lib/makes";
+import { MakeRow } from "@/components/MakeRow";
+import { DiffView } from "@/components/DiffView";
 import { MessageBar } from "@/components/chat/MessageBar";
 import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
 import { Segmented } from "@/components/ui/Segmented";
@@ -186,67 +196,6 @@ function Starters({ onSelect }: { onSelect: (id: string, seed?: string) => void 
   );
 }
 
-/** A lucide mark per make, resolved here so the catalogue stays a plain module. */
-export function MakeMark({ icon, size = 15 }: { icon: string; size?: number }) {
-  if (icon === "CalendarRange") return <CalendarRange size={size} />;
-  if (icon === "ListChecks") return <ListChecks size={size} />;
-  if (icon === "CheckCheck") return <CheckCheck size={size} />;
-  if (icon === "Timer") return <Timer size={size} />;
-  return <Sparkles size={size} />;
-}
-
-/**
- * The things you can make, as one row of buttons.
- *
- * Shared between the Code index and a blank Creative page, because it is the
- * same offer in both places: press one and there is a working thing on screen
- * a second later, already running, with your half-written instruction waiting
- * in the box under it.
- */
-export function MakeRow({
-  onSelect,
-  onAnything,
-}: {
-  onSelect: (id: string, seed: string) => void;
-  /** Anything not on the list — which is most things. */
-  onAnything?: () => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {MAKES.map((m) => (
-        <button
-          key={m.id}
-          title={m.blurb}
-          onClick={async () => {
-            // The folder arrives now rather than at load; see lib/makes.ts.
-            const canvas = await createWebCanvas(await m.files(), { title: m.title });
-            onSelect(canvas.id, m.ask);
-          }}
-          className="lift focus-inset tap inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13px] text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
-        >
-          <span className="text-[var(--accent-2)]">
-            <MakeMark icon={m.icon} size={14} />
-          </span>
-          {m.name}
-        </button>
-      ))}
-      {/* Five starters is five answers to a question with no end of them. This
-          is the honest sixth: say what you want and it gets built, because
-          that is what Creative does with anything you ask it to make. */}
-      {onAnything && (
-        <button
-          onClick={onAnything}
-          title="Describe anything and it gets built"
-          className="lift focus-inset tap inline-flex items-center gap-2 rounded-full border border-dashed border-line bg-transparent px-3.5 py-1.5 text-[13px] text-tertiary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
-        >
-          <Wand2 size={14} />
-          Anything else…
-        </button>
-      )}
-    </div>
-  );
-}
-
 /* ---------------------------------------------------------------- editor -- */
 
 type Mode = "edit" | "preview" | "run";
@@ -292,7 +241,7 @@ function Editor({
      under a working demo asks "now what"; a sentence to finish answers it. */
   const [instruction, setInstruction] = React.useState(seed ?? "");
   const reviseModel = useReviseModel(configured);
-  const [busy, setBusy] = React.useState<false | "revise" | "explain" | "review">(false);
+  const [busy, setBusy] = React.useState<false | "revise" | "explain" | "review" | "plan" | "check">(false);
   /* Using the thing rather than building it. A deck of cards, a timer, a quiz
      — these are made once and then used, and everything that helps you make
      one is in the way of using it. */
@@ -336,8 +285,18 @@ function Editor({
 
   // Leaving the canvas while focused would strand the app with no chrome.
   React.useEffect(() => () => onFocus?.(false), [onFocus]);
-  const [proposal, setProposal] = React.useState<{ content: string; note: string } | null>(null);
-  const [report, setReport] = React.useState<{ kind: "explain" | "review"; text: string } | null>(null);
+  /* What was there before the proposal, and what was asked for. Kept so the
+     change can be checked against the request rather than admired on its own:
+     a reviewer handed only the result reviews the result. */
+  const [proposal, setProposal] = React.useState<{ content: string; note: string; before: string } | null>(null);
+  const [report, setReport] = React.useState<{ kind: ReportKind; text: string } | null>(null);
+  /* The plan, when one has been asked for. Separate from `report` because its
+     steps are pressable and a report is prose. */
+  const [plan, setPlan] = React.useState<{ summary: string; steps: PlanStep[]; done: string[] } | null>(null);
+  /* Standing rules for this canvas. Held in state as well as in the row so the
+     textarea stays responsive; written through on close. */
+  const [rulesOpen, setRulesOpen] = React.useState(false);
+  const rules = canvas.rules ?? "";
   const [showHistory, setShowHistory] = React.useState(false);
   const [versions, setVersions] = React.useState<CanvasVersion[]>([]);
   const [notice, setNotice] = React.useState<string | null>(null);
@@ -414,12 +373,16 @@ function Editor({
       // The draft, not the saved copy: revising a version of the file you can
       // see on screen but the model cannot is the fastest way to lose an edit.
       const out = selection
-        ? await reviseSelection(draft, selection, text, doc.lang, modelId)
-        : await reviseCanvas(draft, text, canvas.kind, doc.lang, modelId, siblings);
+        ? await reviseSelection(draft, selection, text, doc.lang, modelId, rules)
+        : /* `undefined` is perSibling left at its default. Rules ride behind it
+             because the notebook calls this positionally with a much larger
+             one, and reordering to make this call site prettier would quietly
+             cut a book down to a folder's worth of context. */
+          await reviseCanvas(draft, text, canvas.kind, doc.lang, modelId, siblings, undefined, rules);
       if (!out) setNotice("The model didn't return a usable revision. Try saying it differently.");
       else if (out.trim() === draft.trim())
         setNotice("It came back unchanged — the instruction may not apply here.");
-      else setProposal({ content: out, note: label ?? text });
+      else setProposal({ content: out, note: label ?? text, before: draft });
     } catch {
       setNotice("That request failed. Check the key and the connection.");
     } finally {
@@ -436,7 +399,7 @@ function Editor({
     setBusy("review");
     setNotice(null);
     try {
-      const out = await reviewCode(draft, doc.lang, modelId, siblings);
+      const out = await reviewCode(draft, doc.lang, modelId, siblings, rules);
       if (out) setReport({ kind: "review", text: out });
       else setNotice("The model didn't return a review. Try again.");
     } catch {
@@ -445,6 +408,89 @@ function Editor({
       setBusy(false);
     }
   };
+
+  /**
+   * Plan it before it touches anything.
+   *
+   * Deliberately clears the box it was asked from. The goal has moved into the
+   * plan; leaving it sitting in the composer invites sending it a second time
+   * as a whole-file rewrite, which is the exact thing planning was meant to
+   * avoid doing by accident.
+   */
+  const makePlan = async () => {
+    const modelId = reviseModel;
+    if (!modelId) {
+      setNotice("No key configured yet — add one in Settings.");
+      return;
+    }
+    setBusy("plan");
+    setNotice(null);
+    setReport(null);
+    try {
+      const out = await planChanges(draft, instruction, canvas.kind, doc.lang, modelId, siblings, rules);
+      if (!out) setNotice("The plan didn't come back in a usable shape. Try again.");
+      else if (!out.steps.length)
+        setNotice(out.summary || "It didn't find anything here worth changing.");
+      else {
+        setPlan({ ...out, done: [] });
+        setInstruction("");
+      }
+    } catch {
+      setNotice("That request failed. Check the key and the connection.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /* One step, sent as the edit it was written to be. Marked done when it has
+     been *kept*, not when it has been asked for — a step whose diff you
+     discarded did not happen, and a plan that says otherwise is lying about
+     the state of the file. */
+  const runStep = (step: PlanStep) => run(step.instruction, step.title);
+
+  /**
+   * Check the change before keeping it.
+   *
+   * Reviewing is a different task from writing, which is why this is worth a
+   * second call rather than a longer first one: the same model that produced a
+   * diff will, asked to check one, notice the call site it did not update.
+   */
+  const check = async () => {
+    if (!proposal) return;
+    const modelId = reviseModel;
+    if (!modelId) {
+      setNotice("No key configured yet — add one in Settings.");
+      return;
+    }
+    setBusy("check");
+    setNotice(null);
+    try {
+      const out = await checkChange(proposal.before, proposal.content, proposal.note, doc.lang, modelId);
+      if (out) setReport({ kind: "check", text: out });
+      else setNotice("The check didn't come back. Try again.");
+    } catch {
+      setNotice("That request failed. Check the key and the connection.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /* An error the running page actually produced, turned into an edit.
+     The nearest thing a browser has to "run the tests and fix what fails", and
+     the reason it is worth having is that this is a real failure from a real
+     execution rather than a reading of the code. It goes down the ordinary
+     revision path, so it arrives as a diff like everything else. */
+  const fixError = React.useCallback(
+    (message: string, where?: string) => {
+      setMode("edit");
+      void run(fixInstruction(message, where), "Fix the error");
+    },
+    // `run` is redefined every render and depends on most of this component;
+    // listing it would rebuild this on every keystroke in the composer, and
+    // the preview takes it as a prop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [draft, rules, siblings, reviseModel, busy, selection],
+  );
 
   const explain = async () => {
     const modelId = reviseModel;
@@ -484,7 +530,16 @@ function Editor({
     setDraft(proposal.content);
     await commit(proposal.content);
     await pushVersion(canvas.id, proposal.content, "model", proposal.note, doc.fileName);
+    /* A step is ticked here and nowhere else: when its change was kept. Asking
+       for it is not doing it, and a plan that ticks on the request would show
+       a list of things done for a file that was never touched. */
+    setPlan((p) =>
+      p && p.steps.some((st) => st.title === proposal.note) && !p.done.includes(proposal.note)
+        ? { ...p, done: [...p.done, proposal.note] }
+        : p,
+    );
     setProposal(null);
+    setReport(null);
     setInstruction("");
     setSelection(null);
     void loadVersions();
@@ -576,6 +631,26 @@ function Editor({
                     Use it
                   </Button>
                 )}
+                {/* Standing rules. In the header rather than the composer
+                    because they are set once and then true, and a control for
+                    a thing you do once a month sitting next to the box you
+                    type in every minute is a control in the way. The dot says
+                    there are some without opening it. */}
+                <IconButton
+                  label={rules ? "House rules (set)" : "House rules"}
+                  active={rulesOpen}
+                  onClick={() => setRulesOpen((v) => !v)}
+                >
+                  <span className="relative">
+                    <Scroll size={15} />
+                    {rules && (
+                      <span
+                        aria-hidden
+                        className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[var(--gold)]"
+                      />
+                    )}
+                  </span>
+                </IconButton>
                 <IconButton
                   label="Version history"
                   active={showHistory}
@@ -627,7 +702,12 @@ function Editor({
               after={proposal.content}
               note={proposal.note}
               onAccept={accept}
-              onReject={() => setProposal(null)}
+              onCheck={check}
+              checking={busy === "check"}
+              onReject={() => {
+                setProposal(null);
+                setReport(null);
+              }}
             />
           ) : mode === "run" ? (
             web ? (
@@ -637,6 +717,7 @@ function Editor({
                 activeName={doc.name}
                 full={focused}
                 onEscape={leaveFocus}
+                onFix={fixError}
                 onOpenAt={(name, line) => {
                   const target = files.find((f) => f.name === name);
                   if (!target) return;
@@ -695,7 +776,30 @@ function Editor({
             </div>
           )}
 
-          {report && !proposal && (
+          {rulesOpen && !proposal && (
+            <RulesPanel
+              value={rules}
+              column={column}
+              onChange={(next) => void db.canvases.update(canvas.id, { rules: next })}
+              onClose={() => setRulesOpen(false)}
+            />
+          )}
+
+          {plan && !proposal && (
+            <PlanPanel
+              plan={plan}
+              column={column}
+              busy={busy === "revise"}
+              onStep={runStep}
+              onClose={() => setPlan(null)}
+            />
+          )}
+
+          {/* A check belongs *under the diff it is about*, which is the one
+              report that shows while a proposal is up. Explanations and
+              reviews are about the file and step aside when a change is
+              waiting on a decision. */}
+          {report && (!proposal || report.kind === "check") && (
             <Report kind={report.kind} text={report.text} column={column} onClose={() => setReport(null)} />
           )}
 
@@ -728,6 +832,7 @@ function Editor({
                       onRun={run}
                       onExplain={explain}
                       onReview={review}
+                      onPlan={makePlan}
                       lang={doc.lang}
                     />
                   }
@@ -782,95 +887,6 @@ function Editor({
   );
 }
 
-/* ------------------------------------------------------------------ diff -- */
-
-/* Exported: the notebook shows a revision the same way, because it is the
-   same promise — nothing a model wrote lands in your file until you have seen
-   what it touched. */
-export function DiffView({
-  before,
-  after,
-  note,
-  wide,
-  onAccept,
-  onReject,
-}: {
-  before: string;
-  after: string;
-  note: string;
-  wide?: boolean;
-  onAccept: () => void;
-  onReject: () => void;
-}) {
-  const ops = React.useMemo(() => lineDiff(before, after), [before, after]);
-  const stat = React.useMemo(() => diffStat(ops), [ops]);
-  const rows = React.useMemo(() => collapse(ops), [ops]);
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="glass sticky top-0 z-10 border-b border-line">
-        <div
-          className={cn(
-            "mx-auto flex w-full flex-wrap items-center gap-3 px-4 py-2.5",
-            wide ? "max-w-[var(--measure-wide)]" : "max-w-[var(--measure)]",
-          )}
-        >
-          <span className="min-w-0 flex-1 truncate text-sm text-secondary">{note}</span>
-          <span className="tnum shrink-0 text-xs">
-            <span className="text-success">+{stat.added}</span>{" "}
-            <span className="text-danger">−{stat.removed}</span>
-          </span>
-          <Button size="sm" variant="ghost" onClick={onReject}>
-            <X size={13} />
-            Discard
-          </Button>
-          <Button size="sm" variant="primary" className="bloom" onClick={onAccept}>
-            <Check size={13} />
-            Keep
-          </Button>
-        </div>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
-        <div
-          className={cn(
-            "mx-auto w-full overflow-x-auto rounded-lg border border-line bg-inset",
-            wide ? "max-w-[var(--measure-wide)]" : "max-w-[var(--measure)]",
-          )}
-        >
-          <pre className="min-w-max font-mono text-[12.5px] leading-[1.65]">
-            {rows.map((row, i) =>
-              row.type === "gap" ? (
-                <div
-                  key={i}
-                  className="select-none bg-subtle px-3 py-0.5 text-center text-[11px] text-faint"
-                >
-                  {row.count} unchanged {row.count === 1 ? "line" : "lines"}
-                </div>
-              ) : (
-                <div
-                  key={i}
-                  className={cn(
-                    "px-3",
-                    row.type === "add" && "bg-[color-mix(in_srgb,var(--go)_16%,transparent)] text-primary",
-                    row.type === "remove" && "bg-[color-mix(in_srgb,var(--stop)_14%,transparent)] text-secondary",
-                    row.type === "same" && "text-tertiary",
-                  )}
-                >
-                  <span className="mr-2 inline-block w-3 select-none text-faint">
-                    {row.type === "add" ? "+" : row.type === "remove" ? "−" : " "}
-                  </span>
-                  {(row as DiffOp).text || " "}
-                </div>
-              ),
-            )}
-          </pre>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ------------------------------------------------------------- shortcuts -- */
 
 /**
@@ -893,13 +909,15 @@ function Shortcuts({
   onRun,
   onExplain,
   onReview,
+  onPlan,
 }: {
   kind: Canvas["kind"];
   lang?: string;
-  busy: false | "revise" | "explain" | "review";
+  busy: false | "revise" | "explain" | "review" | "plan" | "check";
   onRun: (instruction: string, label?: string) => void;
   onExplain: () => void;
   onReview: () => void;
+  onPlan: () => void;
 }) {
   const [portOpen, setPortOpen] = React.useState(false);
 
@@ -914,6 +932,10 @@ function Shortcuts({
         </Chip>
         <Chip busy={busy === "revise"} onClick={() => onRun("Add headings and a little structure where the document has grown long enough to need them. Do not rewrite the prose.", "Add structure")}>
           Add structure
+        </Chip>
+        <Chip busy={busy === "plan"} onClick={onPlan}>
+          <ListChecks size={12} />
+          Plan
         </Chip>
         <Chip busy={busy === "explain"} onClick={onExplain}>
           Explain
@@ -981,6 +1003,14 @@ function Shortcuts({
         <ScanSearch size={12} />
         Review
       </Chip>
+      {/* Before anything is touched. A review tells you what it thinks; a plan
+          tells you what it would *do*, one pressable step at a time, and the
+          expensive mistake is never a bad edit — it is a plausible edit to the
+          wrong thing, noticed after it has landed. */}
+      <Chip busy={busy === "plan"} onClick={onPlan}>
+        <ListChecks size={12} />
+        Plan
+      </Chip>
       <Chip busy={busy === "explain"} onClick={onExplain}>
         Explain
       </Chip>
@@ -1026,13 +1056,22 @@ function Chip({
 }
 
 /** What Explain came back with. Prose, never applied to anything. */
+/** What a report is *about*, which is the only thing its heading says. */
+type ReportKind = "explain" | "review" | "check";
+
+const REPORT_TITLE: Record<ReportKind, string> = {
+  explain: "Explanation",
+  review: "Review",
+  check: "Check of this change",
+};
+
 function Report({
   kind,
   text,
   column,
   onClose,
 }: {
-  kind: "explain" | "review";
+  kind: ReportKind;
   text: string;
   column: string;
   onClose: () => void;
@@ -1042,13 +1081,156 @@ function Report({
       <div className="rounded-xl border border-line bg-surface p-3">
         <div className="mb-1 flex items-center gap-2">
           <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
-            {kind === "review" ? "Review" : "Explanation"}
+            {REPORT_TITLE[kind]}
           </span>
           <IconButton label={`Close ${kind}`} size={26} className="ml-auto" onClick={onClose}>
             <X size={14} />
           </IconButton>
         </div>
         <Markdown content={text} />
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------------------------------------------------- rules -- */
+
+/**
+ * The things that are true of this file every time.
+ *
+ * `CLAUDE.md` for one canvas. The observation both terminal agents are built
+ * on is that most of what you tell a model is not about the request at all —
+ * it is the language, the framework, the conventions, the one thing nobody is
+ * allowed to touch — and retyping it at the top of every message is how it
+ * ends up half-said and then not said at all. Written once, it rides along
+ * with every edit, every selection rewrite, every review and every plan.
+ *
+ * Written straight to the row on each keystroke rather than on close. A panel
+ * with a save button is a panel you can lose work in by pressing Escape, and
+ * the write is a field on a record that is already being written on every
+ * revision. There is no undo here on purpose: rules are short, and a history
+ * of them would be more machinery than the thing itself.
+ */
+function RulesPanel({
+  value,
+  column,
+  onChange,
+  onClose,
+}: {
+  value: string;
+  column: string;
+  onChange: (next: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className={cn("mx-auto w-full shrink-0 px-4 pt-2", column)}>
+      <div className="rounded-xl border border-line bg-surface p-3">
+        <div className="mb-1.5 flex items-center gap-2">
+          <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+            House rules
+          </span>
+          <span className="min-w-0 flex-1 truncate text-xs text-tertiary">
+            Always in force — every edit, review and plan obeys these.
+          </span>
+          <IconButton label="Close house rules" size={26} onClick={onClose}>
+            <X size={14} />
+          </IconButton>
+        </div>
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          rows={4}
+          aria-label="House rules for this file"
+          placeholder={"Use TypeScript. No inline styles — the design system only.\nNever change the auth flow without saying why.\nEvery exported function gets a test."}
+          className="w-full resize-y rounded-lg border border-line bg-inset px-3 py-2 text-[13px] leading-[1.6] text-primary outline-none placeholder:text-faint focus:border-accent"
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ plan -- */
+
+/**
+ * A plan you can carry out a step at a time.
+ *
+ * The point of separating this from a review is that the steps are pressable.
+ * A review hands you prose and leaves you to translate it back into a request,
+ * and the translation is where the intent leaks: you read "the concat in the
+ * loop is quadratic", type "make it faster", and get something else. Here the
+ * request is already written, so approving a step is a press.
+ *
+ * One at a time, in order, each arriving as its own diff. "Do all of it" is
+ * deliberately absent — a plan whose only button applies four changes at once
+ * is a whole-file rewrite wearing a list, which is the thing planning exists
+ * to stop you doing by accident.
+ *
+ * A step is ticked when its change was *kept*. A step whose diff you discarded
+ * did not happen, and a list that says otherwise is lying about the file.
+ */
+function PlanPanel({
+  plan,
+  column,
+  busy,
+  onStep,
+  onClose,
+}: {
+  plan: { summary: string; steps: PlanStep[]; done: string[] };
+  column: string;
+  busy: boolean;
+  onStep: (step: PlanStep) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className={cn("mx-auto max-h-[38vh] w-full shrink-0 overflow-y-auto px-4", column)}>
+      <div className="rounded-xl border border-line bg-surface p-3">
+        <div className="mb-1 flex items-center gap-2">
+          <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+            Plan — nothing has changed yet
+          </span>
+          <IconButton label="Close plan" size={26} className="ml-auto" onClick={onClose}>
+            <X size={14} />
+          </IconButton>
+        </div>
+        {plan.summary && <p className="mb-2 text-sm text-secondary">{plan.summary}</p>}
+        <ol className="flex flex-col gap-1.5">
+          {plan.steps.map((step, i) => {
+            const done = plan.done.includes(step.title);
+            return (
+              <li
+                key={`${step.title}-${i}`}
+                className="flex items-start gap-2.5 rounded-lg border border-line bg-inset p-2.5"
+              >
+                <span
+                  className={cn(
+                    "tnum mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px]",
+                    done ? "bg-accent-subtle text-accent" : "bg-subtle text-tertiary",
+                  )}
+                  aria-hidden
+                >
+                  {done ? <Check size={12} /> : i + 1}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-primary">{step.title}</span>
+                  {step.why && <span className="block text-xs text-tertiary">{step.why}</span>}
+                </span>
+                <button
+                  onClick={() => onStep(step)}
+                  disabled={busy}
+                  /* Named for the step, not "Do this". Four buttons that read
+                     identically are four buttons a screen reader cannot tell
+                     apart, and the name is the only thing announced. */
+                  aria-label={done ? `Do again: ${step.title}` : `Do this step: ${step.title}`}
+                  /* nowrap, because "Do this" broke across two lines the
+                     moment a step title was long enough to squeeze it. */
+                  className="ctl focus-inset shrink-0 whitespace-nowrap rounded-full border border-line px-3 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary disabled:opacity-40"
+                >
+                  {done ? "Again" : "Do this"}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
       </div>
     </div>
   );
@@ -1208,6 +1390,7 @@ function WebPreview({
   onOpenAt,
   full,
   onEscape,
+  onFix,
 }: {
   files: CanvasFile[];
   draft: string;
@@ -1218,6 +1401,8 @@ function WebPreview({
   full?: boolean;
   /** Escape, pressed inside the frame and forwarded out by the bridge. */
   onEscape?: () => void;
+  /** Hand this error, and where it happened, to an edit. */
+  onFix?: (message: string, where?: string) => void;
 }) {
   const frameRef = React.useRef<HTMLIFrameElement>(null);
   const [lines, setLines] = React.useState<Line[]>([]);
@@ -1375,6 +1560,22 @@ function WebPreview({
                     </span>
                   )}
                   <Where text={l.text} onOpenAt={onOpenAt} />
+                  {/* The loop the terminal agents are built around — run, read
+                      the failure, fix — as far as a browser can take it. There
+                      is no shell here and there are no tests, but this page
+                      genuinely ran and this error genuinely happened, which is
+                      worth more than any amount of reading the code and
+                      imagining what it would do. Errors only: a console.log is
+                      not a thing to fix. */}
+                  {l.level === "error" && onFix && (
+                    <button
+                      onClick={() => onFix(l.text, fileIn(l.text))}
+                      aria-label={`Fix this error: ${l.text.slice(0, 80)}`}
+                      className="focus-inset ml-2 rounded-full border border-line px-2 py-px align-middle font-sans text-[11px] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                    >
+                      Fix this
+                    </button>
+                  )}
                 </p>
               ))
             )}
@@ -1383,6 +1584,11 @@ function WebPreview({
       </div>
     </div>
   );
+}
+
+/** The file a console line points at, for telling an edit where to look. */
+function fileIn(text: string): string | undefined {
+  return text.match(/\(([\w.-]+):(\d+)\)/)?.[0].slice(1, -1).replace(":", " line ");
 }
 
 /**

@@ -136,7 +136,36 @@ createServer(async (req, res) => {
      cannot exercise the branch that tells them apart. */
   const making = /\bmake me a\b|\bbuild me a\b/i.test(asked);
 
-  let text = isTitle ? "Debouncing a search input" : making ? MADE : REPLY;
+  /* A plan has to come back as JSON with runnable steps in it, because the
+     whole claim of the feature is that a step can be pressed. An essay here
+     would pass a test of "something came back" and prove nothing. */
+  const planning = /^Plan how you would change this/.test(asked);
+  const PLAN = JSON.stringify({
+    summary: "Two things: the loop rebuilds the array on every pass, and there is no guard on bad input.",
+    steps: [
+      { title: "Push instead of concat", why: "concat copies the whole array each time round, which makes the loop quadratic.", instruction: "Replace the concat in the loop with a push so the array is not copied on every pass." },
+      { title: "Guard the input", why: "A non-array argument throws deep inside the loop rather than at the boundary.", instruction: "Throw a clear TypeError at the top of the function when items is not an array." },
+    ],
+  });
+
+  /* A check is about a diff and is prose, not a file: answering it with the
+     revision machinery below would hand back a "checked" document. */
+  const checking = /^A change was just made to this/.test(asked);
+  const CHECK = `It does what was asked: the concat is gone and the loop pushes instead.
+
+It also renamed \`out\` to \`result\`, which was not asked for.
+
+Nothing here looks like it breaks a caller — the return type is the same array.`;
+
+  let text = isTitle
+    ? "Debouncing a search input"
+    : planning
+      ? PLAN
+      : checking
+        ? CHECK
+        : making
+          ? MADE
+          : REPLY;
   if (revising) {
     const current = asked.slice(asked.indexOf("\nCURRENT\n") + "\nCURRENT\n".length);
     const lines = current.replace(/\s+$/, "").split("\n");

@@ -181,6 +181,14 @@ export interface Canvas {
   /** Highlighting and the preview mode both key off this. Unused by "web". */
   lang?: string;
   content: string;
+  /**
+   * Standing rules every edit to this canvas obeys — the language, the
+   * conventions, the thing nobody is allowed to touch. `CLAUDE.md` for one
+   * file: said once instead of retyped at the top of every request. Not
+   * indexed, so it needs no migration; absent on everything made before it
+   * existed, which is the correct reading of "no rules set".
+   */
+  rules?: string;
   createdAt: number;
   updatedAt: number;
   /** The conversation it came out of, so it can point back at its origin. */

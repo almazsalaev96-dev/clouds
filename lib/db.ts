@@ -350,6 +350,30 @@ export function deriveTitle(content: string, fallback = "Untitled note"): string
   return sentence.slice(0, 80) || fallback;
 }
 
+/**
+ * Saving a chat answer into a note.
+ *
+ * Here rather than in the notebook component, which is where it used to live:
+ * it is two database writes and a title, it is called from the message action
+ * row in chat, and having it exported from a view meant every chat pulled in
+ * the whole notebook — the editor, the lesson maker, the print layout — to
+ * reach one function.
+ */
+export async function saveToNote(text: string, conversationId?: string): Promise<Note> {
+  const now = Date.now();
+  const note: Note = {
+    id: `${now.toString(36)}${Math.random().toString(36).slice(2, 10)}`,
+    title: deriveTitle(text, "Saved from chat"),
+    content: text,
+    createdAt: now,
+    updatedAt: now,
+    pinned: false,
+    sourceConversationId: conversationId,
+  };
+  await db.notes.add(note);
+  return note;
+}
+
 export async function deleteNote(id: string): Promise<() => Promise<void>> {
   const note = await db.notes.get(id);
   await db.notes.delete(id);

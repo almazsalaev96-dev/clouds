@@ -111,6 +111,30 @@ export interface DraftCard {
   back: string;
 }
 
+/**
+ * Standing rules for one file, folded into a prompt.
+ *
+ * The idea is Claude Code's `CLAUDE.md` and Codex's skills: the things that are
+ * true of this project every single time — the language, the framework, the
+ * conventions, the thing nobody is allowed to touch — said once rather than
+ * retyped at the top of every request. An instruction is what you want now; a
+ * rule is what has been true since before you asked.
+ *
+ * Placed *before* the instruction and marked as standing, because the order
+ * matters when the two disagree: a rule that arrives after the request reads as
+ * an afterthought to it, and a model resolves the conflict in favour of
+ * whichever it saw as the actual ask.
+ */
+function houseRules(rules?: string): string {
+  const body = rules?.trim();
+  if (!body) return "";
+  return `\n\nSTANDING RULES FOR THIS FILE
+These are always in force, whether or not the instruction mentions them. Where an
+instruction and a rule disagree, follow the rule and say nothing about it.
+
+${body.slice(0, 4000)}`;
+}
+
 export async function reviseCanvas(
   current: string,
   instruction: string,
@@ -133,6 +157,8 @@ export async function reviseCanvas(
    * lessons about three pages while looking like lessons about the book.
    */
   perSibling = 12_000,
+  /** Standing rules for this file. See `houseRules`. */
+  rules?: string,
 ): Promise<string | null> {
   const what = kind === "doc" ? "document" : `${lang ?? "code"} file`;
   const context = siblings?.length
@@ -150,7 +176,7 @@ Rules:
 ${kind === "code" ? "- Do not wrap the answer in a markdown fence unless the file itself is markdown." : ""}
 
 INSTRUCTION
-${instruction}${context}
+${instruction}${houseRules(rules)}${context}
 
 CURRENT
 ${current.slice(0, 60_000)}`;
@@ -197,6 +223,7 @@ export async function reviseSelection(
   instruction: string,
   lang: string | undefined,
   modelId?: string,
+  rules?: string,
 ): Promise<string | null> {
   const before = whole.slice(0, selection.start);
   const chosen = whole.slice(selection.start, selection.end);
@@ -213,7 +240,7 @@ Rules:
 - If the instruction cannot be satisfied within the selection alone, return the selection unchanged.
 
 INSTRUCTION
-${instruction}
+${instruction}${houseRules(rules)}
 
 BEFORE THE SELECTION (context only — do not return this)
 ${before.slice(-4000)}
@@ -250,6 +277,7 @@ export async function reviewCode(
   lang: string | undefined,
   modelId?: string,
   siblings?: { name: string; content: string }[],
+  rules?: string,
 ): Promise<string | null> {
   const context = siblings?.length
     ? `\n\nThe other files in the same folder, for reference:\n\n` +
@@ -267,7 +295,7 @@ Rules:
 - If something is fine, do not invent a criticism of it. A short review of good code is the correct output, and "nothing here worries me" is an allowed answer.
 - Skip style opinions the language's own formatter would settle.
 - Markdown, headings and short paragraphs. No preamble.
-
+${houseRules(rules)}
 ${current}${context}`,
     { modelId, maxTokens: 2048, temperature: 0.2 },
   );
@@ -306,4 +334,175 @@ CODE
 ${current.slice(0, 40_000)}${context}`,
     { modelId, maxTokens: 2_000, temperature: 0.3 },
   );
+}
+
+/* ------------------------------------------------------------------ plan -- */
+
+/**
+ * What it *would* change, before it changes anything.
+ *
+ * The step in an agent workflow everybody skips and then wishes they had not:
+ * "analyse this, do not modify anything, tell me what you would do." Both of
+ * the terminal agents this was measured against treat it as a first-class mode
+ * rather than a phrasing, and the reason is that the expensive mistake is not a
+ * bad edit — it is a *plausible* edit to the wrong thing, which you only catch
+ * after it has landed on four hundred lines.
+ *
+ * The difference between this and a review is that a plan is executable. A
+ * review hands you prose and leaves you to translate it back into a request; a
+ * plan hands back the request already written, one per step, so approving a
+ * step is a press rather than a paraphrase. That is the whole point: the
+ * translation step is where the intent gets lost.
+ *
+ * Steps come back as JSON because they have to be pressable. Prose that
+ * describes three changes cannot be approved one at a time, and "do all of it
+ * or none of it" is the thing plan mode exists to avoid.
+ */
+export interface PlanStep {
+  /** A few words, for the row. */
+  title: string;
+  /** Why it is worth doing — the sentence you decide on. */
+  why: string;
+  /** Written to be sent back as an instruction, unedited. */
+  instruction: string;
+}
+
+export async function planChanges(
+  current: string,
+  goal: string,
+  kind: "code" | "doc" | "web",
+  lang: string | undefined,
+  modelId?: string,
+  siblings?: { name: string; content: string }[],
+  rules?: string,
+): Promise<{ summary: string; steps: PlanStep[] } | null> {
+  const what = kind === "doc" ? "document" : `${lang ?? "code"} file`;
+  const context = siblings?.length
+    ? `\n\nThe other files in the same folder, for reference:\n\n` +
+      siblings.map((f) => `--- ${f.name} ---\n${f.content.slice(0, 8_000)}`).join("\n\n")
+    : "";
+
+  const out = await complete(
+    `Plan how you would change this ${what}. Do NOT write the change.
+
+${goal.trim() ? `WHAT IS WANTED\n${goal.trim()}` : "No goal was given. Plan what you would do to make this file better, and be specific to this file rather than generic."}${houseRules(rules)}
+
+Answer with JSON and nothing else:
+
+{"summary": "one or two sentences on the shape of the work",
+ "steps": [{"title": "a few words",
+            "why": "one sentence on why this is worth doing",
+            "instruction": "the request, written so it can be sent back verbatim as an edit to this file"}]}
+
+Rules:
+- Between one and five steps. Fewer, larger steps beat a long list of trivia.
+- Each step must stand alone: it will be carried out on its own, in order, and a step that only makes sense after another has silently happened will be carried out wrongly.
+- "instruction" is addressed to whoever makes the edit, not to the reader. Imperative, concrete, and about this file: "replace the concat in the loop with push" rather than "improve performance".
+- If the file genuinely needs nothing, return an empty steps array. An invented step costs more than an honest nothing.
+- No prose outside the JSON.
+
+CURRENT
+${current.slice(0, 60_000)}${context}`,
+    { modelId, maxTokens: 2048, temperature: 0.2 },
+  );
+  if (!out) return null;
+
+  const raw = extractJson(out) as { summary?: unknown; steps?: unknown } | null;
+  if (!raw || typeof raw !== "object") return null;
+  const steps = Array.isArray(raw.steps) ? raw.steps : [];
+  /* Filtered rather than trusted. A step with no instruction is a row with a
+     button that would send an empty request, which is worse than not offering
+     the row: the press appears to work and nothing happens. */
+  const clean: PlanStep[] = steps
+    .map((s) => s as Record<string, unknown>)
+    .filter((s) => s && typeof s.instruction === "string" && s.instruction.trim())
+    .map((s) => ({
+      title: String(s.title ?? "").trim() || "Change",
+      why: String(s.why ?? "").trim(),
+      instruction: String(s.instruction).trim(),
+    }))
+    .slice(0, 5);
+
+  return { summary: String(raw.summary ?? "").trim(), steps: clean };
+}
+
+/* ----------------------------------------------------------------- check -- */
+
+/**
+ * A second look at a change, before you keep it.
+ *
+ * "Before you finish, review your own work" is the cheapest quality step there
+ * is, and the reason it works is that reviewing is a different task from
+ * writing: the same model that confidently produced a diff will, asked to
+ * check one, notice the call site it did not update.
+ *
+ * It is asked about the *diff* and not the file. A reviewer handed the whole
+ * result reviews the whole result and reports on code that was already there
+ * and was not up for discussion, which buries the one sentence that matters —
+ * did this do what was asked, and what else did it touch.
+ */
+export async function checkChange(
+  before: string,
+  after: string,
+  asked: string,
+  lang: string | undefined,
+  modelId?: string,
+): Promise<string | null> {
+  return complete(
+    `A change was just made to this ${lang ?? "code"} and has not been accepted yet. Check it.
+
+Answer three things, briefly, in this order:
+1. Does it do what was asked? Yes, no, or partly — and if not fully, what is missing.
+2. What else did it change that was not asked for?
+3. What could it break — call sites, edge cases, behaviour that quietly differs?
+
+Rules:
+- Be short. Three or four sentences per point at most, and fewer where there is nothing to say.
+- "It does what was asked and I cannot see anything it breaks" is a correct and welcome answer. Do not manufacture a concern to fill the space.
+- Do not rewrite anything. This is a check.
+- No preamble.
+
+WHAT WAS ASKED FOR
+${asked}
+
+BEFORE
+${before.slice(0, 30_000)}
+
+AFTER
+${after.slice(0, 30_000)}`,
+    { modelId, maxTokens: 1024, temperature: 0.2 },
+  );
+}
+
+/* ------------------------------------------------------------------- fix -- */
+
+/**
+ * The request that turns something that actually went wrong into an edit.
+ *
+ * This is as close as a browser gets to the loop the terminal agents are built
+ * around — write, run, read the failure, fix, run again. There is no shell here
+ * and there are no tests, but a web canvas genuinely *runs*, and its console
+ * genuinely comes back with the file and line already translated out of the
+ * assembled page. That is a real failure from a real execution, which is worth
+ * more than any amount of reading the code and imagining what it would do.
+ *
+ * A string rather than its own call, so the fix goes down the same revision
+ * path as everything else: it arrives as a diff you keep or discard, it is
+ * recorded in history with a name, and it obeys the file's standing rules.
+ * A "fix" that bypassed the diff would be the one edit in the app that lands
+ * unseen, and it would be the one made in the most hurried moment.
+ */
+export function fixInstruction(error: string, where?: string): string {
+  return `This file was just run and it produced the error below${where ? ` in ${where}` : ""}.
+
+Fix the cause of it. Not the symptom — do not wrap it in a try/catch or guard the
+line the error names unless that genuinely is the fix. Work out why the value is
+wrong or the call fails, and correct that.
+
+Change as little as possible: the error and what it is caused by, nothing else.
+If the cause is in another file and not this one, say so by leaving this file
+unchanged rather than inventing a change here that hides it.
+
+THE ERROR
+${error.slice(0, 2000)}`;
 }

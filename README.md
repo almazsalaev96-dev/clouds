@@ -329,6 +329,53 @@ every time you double-click a word is wrong more often than right. Accepting the
 change lets the selection go, because the lines you selected are not the lines
 you now have.
 
+**Plan, before it touches anything.** The step everybody skips and then wishes
+they had not: *analyse this, do not modify anything, tell me what you would do.*
+Both terminal agents treat it as a mode rather than a phrasing, and the reason
+is that the expensive mistake is never a bad edit — it is a *plausible* edit to
+the wrong thing, which you catch after it has landed on four hundred lines.
+
+The difference between this and Review is that a plan is **executable**. A review
+hands you prose and leaves you to translate it back into a request, and the
+translation is where the intent leaks: you read "the concat in the loop is
+quadratic", type "make it faster", and get something else. Here each step comes
+back with its request already written, so approving one is a press. They run one
+at a time, in order, each arriving as its own diff, and a step is ticked when its
+change was *kept* — a step whose diff you discarded did not happen. There is
+deliberately no "do all of it": a plan whose only button applies four changes at
+once is a whole-file rewrite wearing a list, which is the thing planning exists
+to stop you doing by accident.
+
+**House rules** — `CLAUDE.md` for one canvas. The observation both agents are
+built on is that most of what you tell a model is not about the request at all:
+it is the language, the framework, the conventions, the one thing nobody is
+allowed to touch. Retyped at the top of every message, it ends up half-said and
+then not said. Written once here, it rides along with every edit, every selection
+rewrite, every review and every plan — marked as *standing* and placed after the
+instruction, because when the two disagree the rule has to win, and a rule that
+arrives first reads as background to the actual ask.
+
+**Check it, before you keep it.** Reviewing is a different task from writing,
+which is why it is worth a second call rather than a longer first one: the same
+model that confidently produced a diff will, asked to check one, notice the call
+site it did not update. It is asked about the *diff* and not the file — a
+reviewer handed the whole result reports on code that was already there and was
+not up for discussion, which buries the one sentence that matters. Three
+questions: did it do what was asked, what else did it change, what could it
+break. "It does what was asked and I cannot see anything it breaks" is a correct
+answer and it is told so.
+
+**Fix this** — the loop the terminal agents are built around, as far as a browser
+goes. There is no shell here and there are no tests, so most of what makes an
+agent an agent is simply not available and pretending otherwise would be theatre.
+But a web canvas genuinely *runs*, in a sandboxed frame, and its console
+genuinely comes back with the file and line already translated out of the
+assembled page. An error there gets a button, and pressing it sends what actually
+happened — the error, and where — rather than a reading of the code. It asks for
+the cause and says so: not a `try`/`catch` round the line that threw. It arrives
+as a diff like everything else, because the one edit made in the most hurried
+moment is the last one that should land unseen.
+
 **Find in this file** — `⌘F`, the key everybody presses, intercepted before the
 browser gets it. It counts what it found ("3 of 7"), Enter walks forward,
 Shift-Enter walks back, Escape closes it, and each match is *selected* in the
@@ -698,6 +745,27 @@ heading, and link URLs printed in full.
   through Chromium's print media emulation rather than assumed.
 - Highlighting confirmed to run in a real Web Worker (counted at construction, not
   assumed), producing 240 themed spans on a 40-line block.
+- The four agent-workflow additions driven end to end and read at the wire
+  (`e2e-agent.mjs`, 26 assertions): a plan comes back as pressable steps with the
+  file untouched, and pressing one sends the step's own instruction verbatim;
+  house rules survive a reload and arrive marked as standing, *after* the
+  instruction; a check is given both sides of the diff and no licence to edit;
+  and a real error from a real run reaches the request with "not the symptom" in
+  it. The last section breaks the page on purpose, so it raises a flag rather
+  than filtering errors by message — a suite that ignores errors matching a
+  pattern ignores the regression that happens to match it.
+- **A bundle trade measured rather than assumed.** Three features had pushed the
+  first load to 249 kB against its own 250 kB budget, which is not a margin, it
+  is a coincidence. The obvious fix — load the Code section on demand — saved
+  eleven kilobytes and put **half a second onto pressing the tab** (430ms → 965ms,
+  measured both ways), and an idle prefetch did not recover it. That is the wrong
+  trade in both directions: nobody ever noticed the kilobytes and everybody
+  notices a tab that hangs, so it was reverted. What worked instead was fixing
+  why the modules were stuck together at all: the blank chat page borrowed one
+  row of buttons from the canvas, and chat imported `saveToNote` from the whole
+  notebook. Both moved to modules of their own, and the Notebook and Projects —
+  138ms and 185ms to open, measured — became genuinely free to defer. 244 kB,
+  which is *lower* than before the three features were added.
 - The three coding additions driven in a browser and read at the wire
   (`e2e-code.mjs`, 20 assertions): the find bar counts and walks matches and lands
   the caret *on* them; Review is asked for a review twice over and leaves the file
@@ -739,6 +807,25 @@ Stated plainly, because a checklist you cannot trust is worse than no checklist.
 - **Screen-reader testing was not run.** Semantics, live regions, labels and focus
   order are implemented to spec and every control is confirmed to carry an
   accessible name (`node audit.mjs`), but nothing has been driven with VoiceOver.
+- **Most of an agent workflow is not possible here, and is not pretended at.**
+  Measured against what Codex and Claude Code actually do, the list of what a
+  browser tab cannot have is longer than the list of what it can: there is no
+  shell, so no running the test suite and fixing what fails; no filesystem, so no
+  repository to search or refactor across; no Git, so no branches, worktrees,
+  commits, or "find the commit that introduced this bug"; no background or
+  scheduled work; no parallel agents on isolated copies of the same project; no
+  MCP, because MCP servers are processes and this has nowhere to run one. Four
+  things from that list *did* translate — plan-before-edit, standing rules, check
+  your own change, and fix from a failure that really happened — and they are
+  here. The rest would need a server, and a server is the one thing this app
+  promises not to have. Said plainly because the alternative is a feature list
+  that sounds like a coding agent and behaves like a text box.
+- **The one real loop is one file deep.** "Fix this" sends the error and the file
+  it names. It does not re-run the page and check the error is gone, and it does
+  not chase a cause into a sibling file — it is told to leave the file unchanged
+  and say so rather than invent a local change that hides the real problem. A
+  genuine run → fix → re-run cycle is buildable on top of the sandbox and is not
+  built.
 - **Not an App Store app.** The interface is built to Apple's Human Interface
   Guidelines — 44pt targets on coarse pointers, safe-area insets under
   `viewport-fit=cover`, no zoom-on-focus, reduced-motion and forced-colors
@@ -779,6 +866,7 @@ node e2e-use.mjs     # 21 assertions: using a made thing, and making one from a 
 node e2e-scale.mjs   #  6 assertions: what it costs to open, and 400 turns deep
 node e2e-backup.mjs  # 14 assertions: a copy of everything, and everything back
 node e2e-code.mjs    # 20 assertions: find, review, and changing only a selection
+node e2e-agent.mjs   # 26 assertions: plan, house rules, check, and fix-from-error
 node mock-slow.mjs &   # the mock with the gap between tokens stretched, then:
 node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs the slow mock)
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire

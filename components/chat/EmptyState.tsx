@@ -5,7 +5,7 @@ import { KeyRound, X } from "lucide-react";
 import { useSettings } from "@/lib/store";
 import { findMode } from "@/lib/modes";
 import { Mark } from "@/components/brand/Logo";
-import { MakeRow } from "@/components/CanvasView";
+import { MakeRow } from "@/components/MakeRow";
 
 /**
  * The time of day, as a greeting.
