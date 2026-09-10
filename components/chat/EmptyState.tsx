@@ -3,6 +3,7 @@
 import * as React from "react";
 import { KeyRound, X } from "lucide-react";
 import { useSettings } from "@/lib/store";
+import { findMode } from "@/lib/modes";
 import { Mark } from "@/components/brand/Logo";
 
 /**
@@ -61,16 +62,6 @@ const useIsoLayoutEffect = typeof window === "undefined" ? React.useEffect : Rea
  * app telling you the room changed: there is a conversation now, and the
  * conversation is the thing on screen.
  */
-const EXAMPLES = [
-  "Explain this error and how to fix it",
-  "What's wrong with my SQL query?",
-  "Rewrite this so a beginner understands it",
-  "Compare two approaches and pick one",
-  "Turn these notes into a short summary",
-  "Write a regex for this, and explain each part",
-  "Find the bug in this function",
-  "Draft a reply to this message",
-];
 
 export function EmptyState({
   hasAnyKey,
@@ -87,13 +78,17 @@ export function EmptyState({
   const settings = useSettings();
   const { name, nameAsked } = settings;
   const greeting = useGreeting();
+  const spec = findMode(settings.mode);
   const [draftName, setDraftName] = React.useState("");
 
   // Chosen once per mount: examples that reshuffle while you read them are a
   // distraction, not a feature.
+  /* Reshuffled when the mode changes and at no other time: openers that
+     rearrange themselves while you are reading them are a distraction, and
+     openers that stay put when you switch modes are the app not noticing. */
   const examples = React.useMemo(
-    () => [...EXAMPLES].sort(() => Math.random() - 0.5).slice(0, 4),
-    [],
+    () => [...spec.openers].sort(() => Math.random() - 0.5).slice(0, 4),
+    [spec.id],
   );
 
   return (

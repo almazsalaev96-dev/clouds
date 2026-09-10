@@ -22,6 +22,15 @@ export interface ModeSpec {
   id: Mode;
   label: string;
   blurb: string;
+  /** What the composer asks, so the box itself says which mode you are in. */
+  placeholder: string;
+  /**
+   * What a blank page offers. Chat's openers are diagnostic — bring me a
+   * thing that is broken. Creative's are generative, because "Explain this
+   * error" under a mode that widens the sampling distribution is the app
+   * offering you the one job the mode is worst at.
+   */
+  openers: string[];
   /** Layered after the style, closest to the answer. */
   instructions: string;
   /** Applied over the model's own parameters. */
@@ -33,12 +42,34 @@ export const MODES: ModeSpec[] = [
     id: "chat",
     label: "Chat",
     blurb: "Straight answers.",
+    placeholder: "How can I help you today?",
+    openers: [
+      "Explain this error and how to fix it",
+      "What's wrong with my SQL query?",
+      "Rewrite this so a beginner understands it",
+      "Compare two approaches and pick one",
+      "Turn these notes into a short summary",
+      "Write a regex for this, and explain each part",
+      "Find the bug in this function",
+      "Draft a reply to this message",
+    ],
     instructions: "",
   },
   {
     id: "creative",
     label: "Creative",
     blurb: "Range, options, the unobvious one.",
+    placeholder: "What should we make?",
+    openers: [
+      "Give me ten names, and say what each one promises",
+      "Write the opening line six different ways",
+      "What would this look like if it were wrong on purpose?",
+      "Pitch three directions, then argue against your favourite",
+      "Describe this without using any of the obvious words",
+      "Turn this into something someone would forward",
+      "What is the version of this nobody has tried?",
+      "Same idea, half the length, twice the nerve",
+    ],
     instructions: [
       "Work in a creative register.",
       "Where there is more than one good answer, give more than one, and say what each is good for — do not silently pick the safe one.",

@@ -114,6 +114,17 @@ is mapped back to `app.js:2`. A number that looks like a line number and is not
 is worse than no number, because people go to line 76 of the file they are in and
 find something innocent there.
 
+Code and web files get a real editor, not a textarea. Syntax colour, a line
+gutter, Tab to indent and Shift-Tab to outdent, a band on the line you are on,
+and a status line that says where the caret is — the things that make a file
+navigable rather than merely typeable. It is a transparent textarea over a
+highlighted `<pre>`: you keep the caret, the selection, undo, IME, autoscroll
+and every native shortcut, and the colour is painted underneath. The catch is
+that the two layers must be typographically identical or the caret drifts, so
+they share one style object and a test measures them against each other rather
+than trusting the eye. Escape leaves the editor — a box that eats Tab must
+give the keyboard back, or it is a trap.
+
 The frame is sandboxed with `allow-scripts` and no `allow-same-origin`, so the
 page runs on an opaque origin: it executes its own code and reaches nothing of
 this app's — not the conversations, not the keys, not storage. That is tested,
@@ -325,7 +336,16 @@ heading, and link URLs printed in full.
   preview counts, a `console.log` and an uncaught `ReferenceError` come back out
   with the error mapped to `app.js:2`, and `window.origin` inside the frame is
   `null` with `localStorage` throwing `SecurityError`.
-- Stopping mid-answer driven for real (`e2e-stop.mjs`, with `MOCK_SLOW=1` so the
+- The code editor measured rather than eyeballed (`e2e-editor.mjs`). A highlighted
+  textarea is two layers pretending to be one, and the failure is silent — the
+  caret drifts a fraction of a pixel per line until it sits between two characters
+  twenty lines down. So the test reads both layers' computed font, size, leading,
+  tracking, tab size and padding and asserts they are identical, then asks the
+  browser for both bounding boxes and asserts the offset is 0.00px in each axis.
+  It also drives the whole loop the feature exists for: an uncaught error opens the
+  console by itself, its `(app.js:2)` is a link, and clicking it switches file,
+  scrolls, and puts the caret on that line with the line selected.
+- Stopping mid-answer driven for real (`e2e-stop.mjs`, with `node mock-slow.mjs` so the
   stream lasts long enough to interrupt): mid-flight, the button under the cursor
   is asked of the browser by hit-testing rather than read off a class; the partial
   text is kept, `stopReason` is `aborted`, Send comes back, and the thread still
@@ -334,7 +354,14 @@ heading, and link URLs printed in full.
 - The composer's control row measured at seven widths from 1440 down to 390. It
   had been truncating the model name at *every* one of them and overflowing by
   127px on a phone — pushing the send button off the screen — since Creative was
-  added beside it.
+  added beside it. Fixing the overflow with `flex-wrap` then produced a second,
+  quieter fault, visible only in a screenshot: at 1440px the send button fell to a
+  line of its own, alone under a row of settings. The row is now two groups —
+  a left group that wraps and a right group, pinned to the edge, that cannot — so
+  the settings stack and send never moves. What made it fit on one line again was
+  deleting a word: the style control read "Normal", which is the name for *no
+  style*, and it was the last 62px in the way. The name shows once there is one
+  worth showing; the accessible label carries it either way.
 - Chat and Creative verified **at the wire** (`e2e-mode.mjs`): Chat adds nothing to
   the prompt and nothing to the sampling; Creative's instructions arrive, and on a
   model without a thinking budget so does `temperature: 1, top_p: 0.98`. On a
@@ -421,9 +448,11 @@ node e2e.mjs         # 15 assertions across the whole happy path
 node e2e-canvas.mjs  # 25 assertions: edit, revise, diff, keep, revert, sandbox
 node e2e-project.mjs # 21 assertions: projects and styles, read at the wire
 node e2e-web.mjs     # 26 assertions: a web app runs, and its console comes back
-node e2e-mode.mjs    # 12 assertions: Chat and Creative, read at the wire
+node e2e-mode.mjs    # 14 assertions: Chat and Creative, read at the wire
 node e2e-pdf.mjs     #  9 assertions: a PDF read, a scan refused, both at the wire
-node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs MOCK_SLOW=1)
+node e2e-editor.mjs  # 13 assertions: the code editor's two layers, measured
+node mock-slow.mjs &   # the mock with the gap between tokens stretched, then:
+node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs the slow mock)
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire
 node test-fit.mjs      # a 360k-token thread trimmed to fit and answered
 MOCK_RATE_LIMIT=1 …    # restart the mock this way, then: node test-retry.mjs

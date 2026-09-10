@@ -3,8 +3,9 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  Bug, Check, Eye, FilePlus2, FileText, History, LayoutTemplate, MessageSquareCode,
-  Pencil, Play, RotateCcw, Send, Terminal, Trash2, X,
+  Braces, Bug, Check, Eye, FileCode2, FilePlus2, FileText, FileType2, History,
+  LayoutTemplate, MessageSquareCode, Palette, Pencil, Play, RotateCcw, Send,
+  Terminal, X,
 } from "lucide-react";
 import type { Canvas, CanvasFile, CanvasVersion } from "@/lib/types";
 import {
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useDebounced } from "@/lib/hooks/useDebounced";
 import { CodeBlock } from "@/components/chat/CodeBlock";
+import { CodeEditor, type Jump } from "@/components/CodeEditor";
 import { Markdown } from "@/components/chat/Markdown";
 import { Button, IconButton, SaveBadge } from "@/components/ui/primitives";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
@@ -50,6 +52,16 @@ const LANG_OF: Record<string, string> = {
 };
 
 const langOfName = (name: string) => LANG_OF[name.split(".").pop()?.toLowerCase() ?? ""] ?? "txt";
+
+/** A mark per kind of file, so the tab strip is scannable at a glance. */
+function FileMark({ lang }: { lang: string }) {
+  const size = 12;
+  if (lang === "html") return <FileType2 size={size} />;
+  if (lang === "css") return <Palette size={size} />;
+  if (lang === "json") return <Braces size={size} />;
+  if (lang === "md" || lang === "txt") return <FileText size={size} />;
+  return <FileCode2 size={size} />;
+}
 
 /* ----------------------------------------------------------------- index -- */
 
@@ -187,6 +199,7 @@ function Editor({
   const [showHistory, setShowHistory] = React.useState(false);
   const [versions, setVersions] = React.useState<CanvasVersion[]>([]);
   const [notice, setNotice] = React.useState<string | null>(null);
+  const [jump, setJump] = React.useState<Jump | undefined>();
 
   // Switching file is switching document: the draft follows, and anything
   // half-decided about the old one is dropped rather than applied to the new.
@@ -419,7 +432,20 @@ function Editor({
             />
           ) : mode === "run" ? (
             web ? (
-              <WebPreview files={files} draft={draft} activeName={doc.name} />
+              <WebPreview
+                files={files}
+                draft={draft}
+                activeName={doc.name}
+                onOpenAt={(name, line) => {
+                  const target = files.find((f) => f.name === name);
+                  if (!target) return;
+                  if (target.id !== activeFile?.id) setActiveFileId(target.id);
+                  setMode("edit");
+                  // After the file switch has landed and the draft has been
+                  // replaced, or the caret goes to a line of the old file.
+                  setTimeout(() => setJump({ line, nonce: Date.now() }), 60);
+                }}
+              />
             ) : (
               <DocPreview canvas={canvas} content={draft} />
             )
@@ -433,7 +459,7 @@ function Editor({
                 )}
               </div>
             </div>
-          ) : (
+          ) : canvas.kind === "doc" ? (
             <textarea
               value={draft}
               onChange={(e) => {
@@ -441,20 +467,30 @@ function Editor({
                 autosave.save(doc.key, { content: e.target.value });
               }}
               onBlur={() => void pushVersion(canvas.id, draft, "you", undefined, doc.fileName)}
-              spellCheck={canvas.kind === "doc"}
+              spellCheck
               aria-label="Canvas content"
               className={cn(
-                "min-h-0 flex-1 resize-none bg-transparent px-4 py-4 text-primary outline-none",
-                // The editing column matches the bar above it and the box
-                // below it. Left unbounded, code ran the full width of a
-                // 27-inch screen while its own title sat in a centred column.
-                "mx-auto w-full",
+                "mx-auto min-h-0 w-full flex-1 resize-none bg-transparent px-4 py-4 text-base leading-[1.75] text-primary outline-none",
                 column,
-                canvas.kind === "doc"
-                  ? "text-base leading-[1.75]"
-                  : "font-mono text-[13px] leading-[1.7]",
               )}
             />
+          ) : (
+            /* Code gets an editor, not a textarea with a monospace font on it:
+               highlighted while you type, numbered down the side, and honest
+               about where the caret is. Prose above keeps the plain box —
+               line numbers on a paragraph are furniture. */
+            <div className={cn("mx-auto flex min-h-0 w-full flex-1 flex-col", column)}>
+              <CodeEditor
+                value={draft}
+                lang={doc.lang}
+                jump={jump}
+                onChange={(next) => {
+                  setDraft(next);
+                  autosave.save(doc.key, { content: next });
+                }}
+                onBlur={() => void pushVersion(canvas.id, draft, "you", undefined, doc.fileName)}
+              />
+            </div>
           )}
 
           {report && !proposal && (
@@ -784,7 +820,7 @@ function FileTabs({
   const [name, setName] = React.useState("");
 
   return (
-    <div className="mx-auto flex w-full max-w-[var(--measure-wide)] shrink-0 items-center gap-1 overflow-x-auto px-4 pt-2">
+    <div className="mx-auto flex w-full max-w-[var(--measure-wide)] shrink-0 items-center gap-1 overflow-x-auto border-b border-line px-4 pb-1.5 pt-2">
       {files.map((f) => {
         const on = f.id === (activeId ?? files[0]?.id);
         return (
@@ -793,19 +829,29 @@ function FileTabs({
               onClick={() => onSelect(f.id)}
               aria-current={on}
               className={cn(
-                "tap focus-inset rounded-lg px-2.5 py-1 font-mono text-xs transition-colors duration-[var(--dur-fast)]",
-                on ? "bg-accent-subtle text-accent" : "text-tertiary hover:bg-subtle hover:text-primary",
+                "tap focus-inset flex items-center gap-1.5 rounded-lg py-1 pl-2.5 font-mono text-xs transition-colors duration-[var(--dur-fast)]",
+                // The room for the close control is reserved whether or not it
+                // is showing, so a tab never changes width under the pointer.
+                f.name === ENTRY ? "pr-2.5" : "pr-7",
+                on
+                  ? "bg-surface text-primary shadow-[var(--shadow-sm)]"
+                  : "text-tertiary hover:bg-subtle hover:text-primary",
               )}
             >
+              <span className={on ? "text-accent" : "text-faint"}>
+                <FileMark lang={f.lang} />
+              </span>
               {f.name}
             </button>
             {f.name !== ENTRY && (
+              /* Inside the tab, at its right edge, the way every editor does
+                 it — the old badge hung off the corner and read as damage. */
               <button
                 onClick={() => onDelete(f)}
                 aria-label={`Delete ${f.name}`}
-                className="absolute -right-1 -top-1 hidden size-4 items-center justify-center rounded-full bg-inset text-tertiary hover:text-danger group-hover:flex"
+                className="absolute right-1 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-md text-faint opacity-0 transition-[opacity,color,background-color] duration-[var(--dur-fast)] hover:bg-subtle hover:text-danger focus-visible:opacity-100 group-hover:opacity-100"
               >
-                <Trash2 size={9} />
+                <X size={11} />
               </button>
             )}
           </span>
@@ -866,10 +912,13 @@ function WebPreview({
   files,
   draft,
   activeName,
+  onOpenAt,
 }: {
   files: CanvasFile[];
   draft: string;
   activeName: string;
+  /** Take me to where that error is. */
+  onOpenAt: (name: string, line: number) => void;
 }) {
   const frameRef = React.useRef<HTMLIFrameElement>(null);
   const [lines, setLines] = React.useState<Line[]>([]);
@@ -967,7 +1016,7 @@ function WebPreview({
                         : "text-secondary",
                   )}
                 >
-                  {l.text}
+                  <Where text={l.text} onOpenAt={onOpenAt} />
                 </p>
               ))
             )}
@@ -975,6 +1024,39 @@ function WebPreview({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * The `(app.js:2)` in a console line, as somewhere to go.
+ *
+ * The number is already mapped back to the file you wrote — leaving it as
+ * plain text asks you to read it, remember it, find the tab, count the lines
+ * and click. Every one of those steps is one the app can do.
+ */
+function Where({
+  text,
+  onOpenAt,
+}: {
+  text: string;
+  onOpenAt: (name: string, line: number) => void;
+}) {
+  const m = text.match(/\(([\w.-]+):(\d+)\)/);
+  if (!m) return <>{text}</>;
+  const [whole, name, line] = m;
+  const at = text.indexOf(whole);
+  return (
+    <>
+      {text.slice(0, at)}
+      <button
+        onClick={() => onOpenAt(name, Number(line))}
+        className="focus-inset rounded underline decoration-dotted underline-offset-2 hover:decoration-solid"
+        title={`Open ${name} at line ${line}`}
+      >
+        {whole}
+      </button>
+      {text.slice(at + whole.length)}
+    </>
   );
 }
 

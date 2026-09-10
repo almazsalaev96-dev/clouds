@@ -3,7 +3,8 @@
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
-  ArrowUp, Brain, Check, FileText, Mic, Paperclip, Palette, Plus, SlidersHorizontal, Square, X,
+  ArrowUp, Brain, Check, FileText, MessageSquare, Mic, Paperclip, Palette, Plus,
+  SlidersHorizontal, Sparkles, Square, X,
 } from "lucide-react";
 import type { ContentBlock, Style } from "@/lib/types";
 import { getModel, estimateTokens, formatTokens, MODELS } from "@/lib/models";
@@ -13,7 +14,7 @@ import { fileToBase64, formatBytes, cn } from "@/lib/utils";
 import { isPdf, pdfBlock } from "@/lib/pdf";
 import { useSettings, useDrafts } from "@/lib/store";
 import { allStyles, findStyle, DEFAULT_STYLE_ID } from "@/lib/styles";
-import { MODES } from "@/lib/modes";
+import { MODES, findMode } from "@/lib/modes";
 import { useDictation } from "@/lib/hooks/useDictation";
 import { Tooltip } from "@/components/ui/primitives";
 import { ProviderMark } from "@/components/ui/ProviderMark";
@@ -93,6 +94,7 @@ export function Composer({
   const [plusOpen, setPlusOpen] = React.useState(false);
   const [toolsOpen, setToolsOpen] = React.useState(false);
   const [stylesOpen, setStylesOpen] = React.useState(false);
+  const spec = findMode(mode);
   const reasoning = paramsFor(modelId).reasoningEffort;
   const effort = reasoning ? reasoning[0].toUpperCase() + reasoning.slice(1) : "";
   const styles = React.useMemo(() => allStyles(customStyles), [customStyles]);
@@ -354,18 +356,20 @@ export function Composer({
           onKeyDown={onKeyDown}
           onPaste={onPaste}
           rows={1}
-          placeholder="How can I help you today?"
+          placeholder={spec.placeholder}
           aria-label="Message"
           className="max-h-[45vh] w-full resize-none bg-transparent px-5 pb-1 pt-4 text-[16px] leading-6 text-primary outline-none placeholder:text-tertiary"
         />
 
         {/* Controls sit under the text, left to right in the order you reach
             for them: add something, change how it thinks, speak, send. */}
-        {/* Wraps, and does not scroll. There are six controls in this row and
-            a phone is 390px wide; without this the send button was pushed 127px
-            past the right edge of the box — off the screen, on the one control
-            the row exists for. */}
-        <div className="flex flex-wrap items-center gap-1 px-2.5 pb-2.5 pt-0.5">
+        {/* Two groups, not one wrapping row. Only the left group wraps — send
+            is the one control this row exists for, and when the row was a
+            single wrapping line it fell to a second line on its own at 1440px
+            and off the right edge entirely at 390px. Anchored here it can do
+            neither: the settings above it stack instead. */}
+        <div className="flex items-center gap-1 px-2.5 pb-2.5 pt-0.5">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
           {/* Everything you can add to a message, behind one control. */}
           <Popover.Root open={plusOpen} onOpenChange={setPlusOpen}>
             <Tooltip label="Add photos and files">
@@ -411,6 +415,7 @@ export function Composer({
           >
             {MODES.map((m) => {
               const on = m.id === mode;
+              const Icon = m.id === "creative" ? Sparkles : MessageSquare;
               return (
                 <Tooltip key={m.id} label={m.blurb}>
                   <button
@@ -418,12 +423,21 @@ export function Composer({
                     aria-checked={on}
                     onClick={() => onModeChange(m.id)}
                     className={cn(
-                      "btn-touch focus-inset rounded-full px-3 py-1 text-sm transition-colors duration-[var(--dur-fast)]",
+                      "btn-touch focus-inset flex items-center gap-1.5 rounded-full px-3 py-1 text-sm transition-colors duration-[var(--dur-fast)]",
                       on
                         ? "bg-surface font-medium text-primary shadow-[var(--shadow-sm)]"
                         : "text-tertiary hover:text-primary",
                     )}
                   >
+                    <Icon
+                      size={13}
+                      className={cn(
+                        "shrink-0 transition-colors duration-[var(--dur-fast)]",
+                        // Creative is the one that changes what comes back, so
+                        // it is the one that gets the gold when it is live.
+                        on && m.id === "creative" ? "text-[var(--accent-2)]" : on ? "text-accent" : "",
+                      )}
+                    />
                     {m.label}
                   </button>
                 </Tooltip>
@@ -554,7 +568,13 @@ export function Composer({
                 )}
               >
                 <Palette size={17} />
-                <span className="hidden pr-0.5 sm:inline">{style?.name ?? "Normal"}</span>
+                {/* "Normal" is the absence of a style, and a word that says
+                    nothing was the last 62px keeping this row off one line at
+                    1440px. The name shows once there is a name worth showing;
+                    the accessible label carries it either way. */}
+                {styleId !== DEFAULT_STYLE_ID && (
+                  <span className="hidden pr-0.5 sm:inline">{style?.name}</span>
+                )}
               </button>
             </Popover.Trigger>
             <Popover.Portal>
@@ -597,8 +617,11 @@ export function Composer({
             </Popover.Portal>
           </Popover.Root>
 
-          <div className="flex-1" />
+          </div>
 
+          {/* Model, dictation and send: the right-hand group, which never
+              wraps and never leaves the right edge. */}
+          <div className="flex min-w-0 items-center gap-1">
           {/* Which model is about to answer, an inch from the box you are
               typing in — and changeable there. It used to live in the header,
               two feet away from the decision it belongs to, which is how
@@ -671,6 +694,7 @@ export function Composer({
             >
               <Square size={12} fill="currentColor" />
             </button>
+          </div>
           </div>
         </div>
 
