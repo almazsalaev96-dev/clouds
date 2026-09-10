@@ -712,7 +712,7 @@ node e2e.mjs         # 15 assertions across the whole happy path
 node e2e-canvas.mjs  # 25 assertions: edit, revise, diff, keep, revert, sandbox
 node e2e-project.mjs # 21 assertions: projects and styles, read at the wire
 node e2e-web.mjs     # 26 assertions: a web app runs, and its console comes back
-node e2e-mode.mjs    # 14 assertions: Chat and Creative, read at the wire
+node e2e-mode.mjs    # 12 assertions: Chat and Creative, read at the wire
 node e2e-pdf.mjs     #  9 assertions: a PDF read, a scan refused, both at the wire
 node e2e-editor.mjs  # 13 assertions: the code editor's two layers, measured
 node e2e-makes.mjs   # 33 assertions: every starter opened, run and actually used

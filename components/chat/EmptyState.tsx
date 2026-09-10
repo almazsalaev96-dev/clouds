@@ -85,16 +85,6 @@ export function EmptyState({
   const spec = findMode(settings.mode);
   const [draftName, setDraftName] = React.useState("");
 
-  // Chosen once per mount: examples that reshuffle while you read them are a
-  // distraction, not a feature.
-  /* Reshuffled when the mode changes and at no other time: openers that
-     rearrange themselves while you are reading them are a distraction, and
-     openers that stay put when you switch modes are the app not noticing. */
-  const examples = React.useMemo(
-    () => [...spec.openers].sort(() => Math.random() - 0.5).slice(0, 4),
-    [spec.id],
-  );
-
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
       <div className="w-full max-w-[var(--measure)] pb-[6vh]">
@@ -141,20 +131,7 @@ export function EmptyState({
           {children}
         </div>
 
-        {hasAnyKey ? (
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
-            {examples.map((e, i) => (
-              <button
-                key={e}
-                onClick={() => onExample(e)}
-                style={{ animationDelay: `${120 + i * 40}ms` }}
-                className="tap focus-inset lift anim-rise inline-flex items-center rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13px] text-secondary hover:border-line-strong hover:text-primary"
-              >
-                {e}
-              </button>
-            ))}
-          </div>
-        ) : (
+        {!hasAnyKey && (
           <div className="mt-5 flex justify-center">
             <button
               onClick={onAddKey}
@@ -167,20 +144,20 @@ export function EmptyState({
           </div>
         )}
 
-        {/* And then, in Creative, the things you can have as a *thing* rather
-            than as a paragraph. "Make me a timetable" answered with a
-            description of a timetable is the app not understanding the
-            request, so the five shapes it can actually build are offered as
-            buttons: press one and a working, animated version is on screen a
-            second later, with your half-written instruction under it.
-
-            Below the sentences and not above them, because "or" has to come
-            after the thing it is an alternative to. Chat does not get this
-            row — it is a different question. */}
+        {/* In Creative, the things you can have as a *thing* rather than as a
+            paragraph. "Make me a timetable" answered with a description of a
+            timetable is the app not understanding the request, so the five
+            shapes it can actually build are offered as buttons: press one and
+            a working, animated version is on screen a second later, with your
+            half-written instruction under it. Chat does not get this row — it
+            is a different question. */}
         {hasAnyKey && spec.id === "creative" && (
-          <div className="mt-6 anim-rise" style={{ animationDelay: "300ms" }}>
+          <div className="mt-6 anim-rise" style={{ animationDelay: "160ms" }}>
+            {/* Not "Or make…" any more: the sentences it was an alternative to
+                are gone, and an "or" with nothing before it is a dangling
+                comparison to something the reader never saw. */}
             <p className="mb-2.5 text-center text-xs uppercase tracking-[0.08em] text-faint">
-              Or make something you can use
+              Make something you can use
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               <MakeRow

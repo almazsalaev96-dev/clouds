@@ -40,11 +40,9 @@ await page.getByRole("radio", { name: "Creative", exact: true }).click();
 await page.waitForTimeout(400);
 check((await page.getByRole("radio", { name: "Creative", exact: true }).getAttribute("aria-checked")) === "true", "switching is one press");
 
-/* The room changes with the mode, not just the request. Chat asks how it can
-   help and offers you broken things to fix; Creative asks what to make and
-   offers you things to make. An opener that says "Explain this error" under a
-   mode that widens the sampling distribution is the app offering the one job
-   that mode is worst at. */
+/* The room changes with the mode, not just the request: Chat asks how it can
+   help, Creative asks what to make. The box itself is where a mode has to be
+   readable — a label on a toggle is not a difference anybody feels. */
 check(
   (await page.getByPlaceholder("What should we make?").count()) === 1,
   "the composer asks a different question in Creative",
@@ -77,13 +75,11 @@ check(/## Mode: Creative/.test(wide.systemText ?? ""), "the instruction carries 
 check(wide.temperature === 1, "and where the provider allows it, the sampling widens too", String(wide.temperature));
 check(wide.topP === 0.98, "top_p with it", String(wide.topP));
 
-// Openers change with it, on a page that has one.
+/* The blank page used to offer a handful of suggested sentences per mode, and
+   two assertions here read them back. They are gone — the page offers the
+   things it can build instead, which e2e-use covers. */
 await page.getByRole("button", { name: /New chat/ }).first().click();
 await page.waitForTimeout(700);
-const chips = await page.locator("main").innerText();
-check(!/Explain this error/.test(chips), "and the blank page stops offering diagnostics");
-check(/ten names|opening line|nobody has tried|forward|nerve|wrong on purpose|three directions|obvious words/i.test(chips),
-  "offering things to make instead", (chips.match(/[^\n]*(names|line|tried|forward|nerve|purpose|directions|words)[^\n]*/i) ?? [""])[0].slice(0, 60));
 
 const saved = await page.evaluate(async () => {
   const d = await new Promise((r) => { const q = indexedDB.open("clouds"); q.onsuccess = () => r(q.result); });
