@@ -17,10 +17,11 @@ import { offerUndo } from "@/lib/undo";
 import { useSettings } from "@/lib/store";
 import { explainCode, reviseCanvas } from "@/lib/generate";
 import { collapse, diffStat, lineDiff, type DiffOp } from "@/lib/diff";
-import { assembleWeb, ENTRY, locate, webTemplate } from "@/lib/web";
+import { assembleWeb, ENTRY, locate, runToken, webTemplate } from "@/lib/web";
 import { MAKES } from "@/lib/makes";
 import { MessageBar } from "@/components/chat/MessageBar";
 import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
+import { Segmented } from "@/components/ui/Segmented";
 import { cn } from "@/lib/utils";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useDebounced } from "@/lib/hooks/useDebounced";
@@ -898,11 +899,15 @@ function FileTabs({
   const [name, setName] = React.useState("");
 
   return (
-    <div className="mx-auto flex w-full max-w-[var(--measure-wide)] shrink-0 items-center gap-1 overflow-x-auto border-b border-line px-4 pb-1.5 pt-2">
+    <Segmented
+      value={activeId ?? files[0]?.id ?? ""}
+      indicatorClassName="rounded-lg"
+      className="mx-auto flex w-full max-w-[var(--measure-wide)] shrink-0 items-center gap-1 overflow-x-auto border-b border-line px-4 pb-1.5 pt-2"
+    >
       {files.map((f) => {
         const on = f.id === (activeId ?? files[0]?.id);
         return (
-          <span key={f.id} className="group relative shrink-0">
+          <span key={f.id} data-on={on} className="group relative shrink-0">
             <button
               onClick={() => onSelect(f.id)}
               aria-current={on}
@@ -911,9 +916,9 @@ function FileTabs({
                 // The room for the close control is reserved whether or not it
                 // is showing, so a tab never changes width under the pointer.
                 f.name === ENTRY ? "pr-2.5" : "pr-7",
-                on
-                  ? "bg-surface text-primary shadow-[var(--shadow-sm)]"
-                  : "text-tertiary hover:bg-subtle hover:text-primary",
+                // The fill travels between tabs rather than blinking from one
+                // to the next; the button only changes the colour of its ink.
+                on ? "text-primary" : "text-tertiary hover:bg-subtle hover:text-primary",
               )}
             >
               <span className={on ? "text-accent" : "text-faint"}>
@@ -961,7 +966,7 @@ function FileTabs({
           <FilePlus2 size={13} />
         </IconButton>
       )}
-    </div>
+    </Segmented>
   );
 }
 
@@ -973,7 +978,17 @@ function FileTabs({
  */
 function useResolvedTheme(): "light" | "dark" {
   const setting = useSettings((s) => s.theme);
-  const [theme, setTheme] = React.useState<"light" | "dark">("light");
+  /* Read from the root, which the boot script stamped before first paint —
+     not defaulted to light and corrected in an effect. That correction was a
+     second value, and a second value here is a second srcDoc: every web
+     preview loaded twice, ran its scripts twice, and put two of every console
+     line in the drawer. Nothing about it looked wrong, which is why it took a
+     frame-lifecycle trace to see. */
+  const [theme, setTheme] = React.useState<"light" | "dark">(() =>
+    typeof document !== "undefined" && document.documentElement.dataset.theme === "dark"
+      ? "dark"
+      : "light",
+  );
   React.useEffect(() => {
     if (setting !== "system") {
       setTheme(setting === "dark" ? "dark" : "light");
@@ -994,6 +1009,9 @@ interface Line {
   id: number;
   level: string;
   text: string;
+  /** How many times in a row. A console that prints the same line five
+      hundred times has told you one thing five hundred times. */
+  count: number;
 }
 
 /**
@@ -1036,7 +1054,16 @@ function WebPreview({
   );
   const settled = useDebounced(merged, 500);
   const theme = useResolvedTheme();
-  const { html: srcDoc, map } = React.useMemo(() => assembleWeb(settled, theme), [settled, theme]);
+  /* The name of this run, computed from what is about to run. It goes into the
+     page and comes back on every message, so a message from the run before
+     this one can be told apart from a message from this one. */
+  const run = React.useMemo(() => runToken(settled, nonce), [settled, nonce]);
+  const { html: srcDoc, map } = React.useMemo(
+    () => assembleWeb(settled, theme, run),
+    [settled, theme, run],
+  );
+  const runRef = React.useRef(run);
+  runRef.current = run;
   const mapRef = React.useRef(map);
   mapRef.current = map;
 
@@ -1044,17 +1071,32 @@ function WebPreview({
     const onMessage = (e: MessageEvent) => {
       // Identified by window, not by origin: a sandboxed frame has none.
       if (e.source !== frameRef.current?.contentWindow) return;
-      const d = e.data as { __armiConsole?: number; level?: string; text?: string };
+      const d = e.data as { __armiConsole?: number; run?: string; level?: string; text?: string };
       if (!d || d.__armiConsole !== 1) return;
+      /* From the run being shown, or from nowhere. A reload racing a message
+         already in flight used to leave an error from a version of the file
+         you had already fixed sitting in the drawer under the new one. */
+      if (d.run !== runRef.current) return;
       /* "line 76" means line 76 of the assembled page, which nobody wrote.
          Translated back to the file and line you are looking at. */
       const text = String(d.text ?? "").replace(/\(line (\d+)\)/, (whole, n: string) => {
         const at = locate(mapRef.current, Number(n));
         return at ? `(${at.name}:${at.line})` : whole;
       });
-      const line = { id: nextId.current++, level: String(d.level ?? "log"), text };
-      setLines((l) => [...l.slice(-199), line]);
-      if (line.level === "error") setOpen(true);
+      const level = String(d.level ?? "log");
+      /* Repeats collapse, the way a real console collapses them: the same
+         line again is a count on the line you already have, not a second copy
+         of it. A loop that logs five hundred times becomes one row that says
+         so, and a message delivered twice by a frame reloading under you stops
+         reading as two different things having gone wrong. */
+      setLines((l) => {
+        const last = l[l.length - 1];
+        if (last && last.level === level && last.text === text) {
+          return [...l.slice(0, -1), { ...last, count: last.count + 1 }];
+        }
+        return [...l.slice(-199), { id: nextId.current++, level, text, count: 1 }];
+      });
+      if (level === "error") setOpen(true);
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
@@ -1064,6 +1106,8 @@ function WebPreview({
   // how you spend ten minutes chasing something you already fixed.
   React.useEffect(() => setLines([]), [srcDoc, nonce]);
 
+  // Distinct errors, not repeats of one: a loop throwing the same thing on
+  // every frame is one problem, and a badge reading 400 is not more useful.
   const errors = lines.filter((l) => l.level === "error").length;
 
   return (
@@ -1118,6 +1162,11 @@ function WebPreview({
                         : "text-secondary",
                   )}
                 >
+                  {l.count > 1 && (
+                    <span className="mr-1.5 rounded-full bg-subtle px-1.5 text-[10px] text-tertiary tnum">
+                      ×{l.count}
+                    </span>
+                  )}
                   <Where text={l.text} onOpenAt={onOpenAt} />
                 </p>
               ))

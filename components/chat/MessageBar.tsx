@@ -130,8 +130,12 @@ export function MessageBar({
 
   return (
     <div
+      /* vt-bar names this box for the view transition. There is only ever one
+         of them mounted, so when the blank page hands it to the dock on the
+         first send the browser moves it down the screen rather than letting
+         one vanish and another appear. */
       className={cn(
-        "composer-shell rounded-[28px] border transition-[box-shadow,border-color] duration-[var(--dur-fast)] ease-[var(--ease-std)]",
+        "vt-bar composer-shell rounded-[28px] border transition-[box-shadow,border-color] duration-[var(--dur-fast)] ease-[var(--ease-std)]",
         className,
       )}
     >

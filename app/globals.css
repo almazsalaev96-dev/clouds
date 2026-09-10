@@ -819,6 +819,67 @@ body::after {
 }
 
 /* ============================================================================
+   ROOM CHANGES
+   ----------------------------------------------------------------------------
+   Two named elements survive a section change and are therefore animated as
+   themselves rather than cross-faded: the room, which slides in the direction
+   you travelled, and the message bar, which moves.
+
+   The bar is the whole reason this is worth doing. On the first send it goes
+   from the middle of a blank page to the dock at the bottom, and it used to
+   teleport. Naming it is the entire implementation: the browser sees one box
+   before and one box after, and moves it.
+   ========================================================================= */
+
+@media not (prefers-reduced-motion: reduce) {
+  .vt-room { view-transition-name: room; }
+  .vt-bar { view-transition-name: composer; }
+}
+
+/* The old room leaves the way you came from; the new one arrives from where
+   you are going. Both at once, so the two are briefly in the same place and
+   the eye reads one displacing the other rather than a flicker. */
+::view-transition-old(room),
+::view-transition-new(room) {
+  animation-duration: var(--dur-layout);
+  animation-timing-function: var(--ease-out);
+}
+
+@keyframes room-out-left { to { opacity: 0; translate: -2.5% 0; } }
+@keyframes room-in-right { from { opacity: 0; translate: 2.5% 0; } }
+@keyframes room-out-right { to { opacity: 0; translate: 2.5% 0; } }
+@keyframes room-in-left { from { opacity: 0; translate: -2.5% 0; } }
+
+:root[data-nav="forward"]::view-transition-old(room) { animation-name: room-out-left; }
+:root[data-nav="forward"]::view-transition-new(room) { animation-name: room-in-right; }
+:root[data-nav="back"]::view-transition-old(room) { animation-name: room-out-right; }
+:root[data-nav="back"]::view-transition-new(room) { animation-name: room-in-left; }
+
+/* The bar morphs; it must not also cross-fade, or it ghosts through itself
+   halfway down the screen. */
+::view-transition-old(composer),
+::view-transition-new(composer) {
+  animation: none;
+  mix-blend-mode: normal;
+  height: 100%;
+}
+::view-transition-group(composer) {
+  animation-duration: var(--dur-layout);
+  animation-timing-function: var(--ease-out);
+}
+
+/* A page-sized cross-fade is precisely the kind of motion the setting exists
+   to refuse. withTransition() already declines to start one, and this is the
+   belt to that braces: a transition begun before the setting changed stops. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* ============================================================================
    ANIMATION PRIMITIVES
    ========================================================================= */
 

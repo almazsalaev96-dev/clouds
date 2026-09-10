@@ -16,8 +16,26 @@ import type { CanvasFile } from "./types";
 
 export const ENTRY = "index.html";
 
+/**
+ * A cheap, stable name for one run of one folder.
+ *
+ * Every message the sandbox posts carries it, and the preview drops any that
+ * do not carry the run it is currently showing. Without that, a reload racing
+ * an in-flight message shows you an error from a version of the file you have
+ * already changed — which is precisely the ten minutes the console drawer
+ * exists to save. djb2 over the assembled inputs: same folder, same name;
+ * one character different, different name.
+ */
+export function runToken(files: CanvasFile[], nonce: number): string {
+  let h = 5381;
+  const text = files.map((f) => f.name + "\u0000" + f.content).join("\u0001");
+  for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
+  return `${nonce}:${(h >>> 0).toString(36)}`;
+}
+
 /** The console bridge, injected first so it catches errors in your own code. */
-const BRIDGE = `<script>(function(){
+const bridgeFor = (run: string) => `<script>(function(){
+  var RUN = ${JSON.stringify(run)};
   var seen = 0;
   function fmt(v){
     if (typeof v === "string") return v;
@@ -26,7 +44,7 @@ const BRIDGE = `<script>(function(){
   }
   function post(level, parts){
     if (seen++ > 500) return;   // a runaway loop should not take the page with it
-    try { parent.postMessage({ __armiConsole: 1, level: level, text: parts.map(fmt).join(" ") }, "*"); } catch (e) {}
+    try { parent.postMessage({ __armiConsole: 1, run: RUN, level: level, text: parts.map(fmt).join(" ") }, "*"); } catch (e) {}
   }
   ["log","info","warn","error"].forEach(function(k){
     var original = console[k];
@@ -88,7 +106,8 @@ export function locate(map: SourceSpan[], line: number): { name: string; line: n
 
 const lineOf = (text: string, index: number) => text.slice(0, index).split("\n").length;
 
-export function assembleWeb(files: CanvasFile[], theme?: string): Assembled {
+export function assembleWeb(files: CanvasFile[], theme?: string, run = ""): Assembled {
+  const BRIDGE = bridgeFor(run);
   const byName = new Map(files.map((f) => [f.name.replace(/^\.?\//, ""), f]));
   const entry = byName.get(ENTRY) ?? files.find((f) => f.lang === "html");
   if (!entry) {

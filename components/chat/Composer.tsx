@@ -11,6 +11,7 @@ import { getModel, estimateTokens, formatTokens, MODELS } from "@/lib/models";
 import { paramsFor } from "@/lib/store";
 import { ModelPicker } from "./ModelPicker";
 import { MessageBar } from "./MessageBar";
+import { Segmented } from "@/components/ui/Segmented";
 import { fileToBase64, formatBytes, cn } from "@/lib/utils";
 import { isPdf, pdfBlock } from "@/lib/pdf";
 import { useSettings, useDrafts } from "@/lib/store";
@@ -349,7 +350,8 @@ export function Composer({
               has to be readable without opening anything — and because the
               difference is worth advertising: Creative is not a label, it
               widens the sampling distribution and asks for range. */}
-          <div
+          <Segmented
+            value={mode}
             role="radiogroup"
             aria-label="Mode"
             className="ctl-h flex shrink-0 items-center rounded-full bg-inset p-0.5"
@@ -362,12 +364,13 @@ export function Composer({
                   <button
                     role="radio"
                     aria-checked={on}
+                    data-on={on}
                     onClick={() => onModeChange(m.id)}
                     className={cn(
                       "btn-touch focus-inset flex items-center gap-1.5 rounded-full px-3 py-1 text-sm transition-colors duration-[var(--dur-fast)]",
-                      on
-                        ? "bg-surface font-medium text-primary shadow-[var(--shadow-sm)]"
-                        : "text-tertiary hover:text-primary",
+                      // The fill is the sliding indicator behind it now, so the
+                      // button itself only changes what colour its ink is.
+                      on ? "font-medium text-primary" : "text-tertiary hover:text-primary",
                     )}
                   >
                     <Icon
@@ -384,7 +387,7 @@ export function Composer({
                 </Tooltip>
               );
             })}
-          </div>
+          </Segmented>
 
           <input
             ref={fileRef}

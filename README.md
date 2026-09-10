@@ -114,6 +114,30 @@ is mapped back to `app.js:2`. A number that looks like a line number and is not
 is worse than no number, because people go to line 76 of the file they are in and
 find something innocent there.
 
+**The motion.** Three things in the app changed state by cutting. A segmented
+control moved a background colour from one button to another, which is not a
+transition — the old pill vanishes, a new one appears elsewhere, and the eye
+has to find it again. Now one indicator travels the distance, positioned from
+the live geometry of whichever button is on rather than from a fixed 1/n
+stride, because these hold labels of different lengths. It does not animate on
+first paint: a control that slides into place while the page is still arriving
+is a control announcing itself, and the answer to "which one am I on" should be
+there before the question.
+
+Sections cut too. Now the browser moves you: `startViewTransition` snapshots
+before and after, and the room slides in the direction you travelled — down the
+nav list is forward, back up it is back. Direction is not decoration; it is the
+only thing separating "I went somewhere" from "the screen changed". And because
+an element carrying the same `view-transition-name` on both sides *moves*
+rather than cross-fading, naming the message bar is the entire implementation
+of the one transition worth most: on the first send it travels from the middle
+of a blank page down to the dock, instead of teleporting.
+
+All of it declines to run under `prefers-reduced-motion` — not by animating to
+zero but by never starting: nothing is even named, so nothing can be animated
+as itself. Firefox, which has no view transitions yet, gets exactly what the
+app did before any of this existed.
+
 **One box, in every room.** There used to be two, and they disagreed about
 almost everything. Chat had a 28px-radius container with the text on its own
 line and the controls beneath it; a canvas had a 44px-tall pill with the send
@@ -395,6 +419,25 @@ heading, and link URLs printed in full.
   preview counts, a `console.log` and an uncaught `ReferenceError` come back out
   with the error mapped to `app.js:2`, and `window.origin` inside the frame is
   `null` with `localStorage` throwing `SecurityError`.
+- The motion asked for rather than admired (`e2e-motion.mjs`). Animation is the
+  easiest thing in an interface to believe you have shipped: it looks right in
+  the browser you wrote it in and is silently absent in production because a
+  class name changed. So the indicator is sampled every 25ms across its travel
+  and has to be caught *between* its two ends — a single mid-flight sample only
+  proves it had not finished, which a delay would also satisfy. The view
+  transition is checked by patching `startViewTransition` and asking whether
+  the browser actually began one and in which direction. And the reduced-motion
+  path is checked from the other side: no transition started at all, and
+  nothing named, so nothing could be.
+  Writing it found a bug that had nothing to do with motion and everything to
+  do with the previous change: the preview resolved its theme to light and
+  corrected to dark one tick later, which is a second `srcDoc`, so **every web
+  preview loaded twice** — every script ran twice, every console line arrived
+  twice. Nothing about it looked wrong on screen. It showed up as two identical
+  error links, and only sometimes. The theme is read from the root the boot
+  script already stamped, so there is no second value; the console now stamps
+  each message with the run that produced it and drops the rest; and repeated
+  lines collapse to one row with a count, the way a real console does.
 - The message bar measured in all three rooms (`e2e-bar.mjs`) rather than
   compared by eye — two bars four pixels apart in radius look identical side by
   side and wrong when you move between them. The browser is asked for the
@@ -539,6 +582,7 @@ node e2e-pdf.mjs     #  9 assertions: a PDF read, a scan refused, both at the wi
 node e2e-editor.mjs  # 13 assertions: the code editor's two layers, measured
 node e2e-makes.mjs   # 33 assertions: every starter opened, run and actually used
 node e2e-bar.mjs     # 24 assertions: the message bar, measured in all three rooms
+node e2e-motion.mjs  # 17 assertions: the motion, asked for rather than admired
 node mock-slow.mjs &   # the mock with the gap between tokens stretched, then:
 node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs the slow mock)
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire

@@ -15,6 +15,7 @@ import { offerUndo } from "@/lib/undo";
 import { useSettings, type Section } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { IconButton, Kbd, Tooltip } from "@/components/ui/primitives";
+import { Segmented } from "@/components/ui/Segmented";
 
 /* Code is not in this list. It sits in the header as one half of a switch,
    because chat and code are not two destinations among several — they are the
@@ -79,10 +80,12 @@ export function Sidebar({
             {/* The switch. Two icons, the live one filled — the same shape the
                 reference uses, and the right one: it takes no row in the list
                 and it says which of the two rooms you are standing in. */}
-            <div
+            <Segmented
+              value={section === "code" ? "code" : "chat"}
               role="radiogroup"
               aria-label="Chat or code"
               className="ml-auto flex items-center gap-0.5 rounded-lg bg-inset p-0.5"
+              indicatorClassName="rounded-md"
             >
               {([
                 // "Conversations", not "Chats": the composer has a mode called
@@ -98,12 +101,11 @@ export function Sidebar({
                       role="radio"
                       aria-checked={on}
                       aria-label={label}
+                      data-on={on}
                       onClick={() => onGoToSection(id)}
                       className={cn(
                         "ctl focus-inset flex [--ctl:1.75rem] items-center justify-center rounded-md transition-colors duration-[var(--dur-fast)]",
-                        on
-                          ? "bg-surface text-primary shadow-[var(--shadow-sm)]"
-                          : "text-tertiary hover:text-primary",
+                        on ? "text-primary" : "text-tertiary hover:text-primary",
                       )}
                     >
                       {icon}
@@ -111,7 +113,7 @@ export function Sidebar({
                   </Tooltip>
                 );
               })}
-            </div>
+            </Segmented>
           </div>
 
           <div className="space-y-1 px-2 pb-2">

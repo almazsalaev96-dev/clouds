@@ -29,6 +29,7 @@ import { TopBar } from "@/components/chat/TopBar";
 import { MessageList } from "@/components/chat/MessageList";
 import { Composer } from "@/components/chat/Composer";
 import { EmptyState } from "@/components/chat/EmptyState";
+import { withTransition } from "@/lib/transition";
 import dynamic from "next/dynamic";
 import { IconButton, TooltipProvider } from "@/components/ui/primitives";
 import { UndoBar } from "@/components/ui/UndoBar";
@@ -404,17 +405,27 @@ export default function Page() {
     [settings, closeDrawerOnMobile],
   );
 
+  /* Sections are laid out left to right the way the nav lists them, so moving
+     down the list travels forward and moving up it travels back. The direction
+     is not decoration: it is the only thing that distinguishes "I went
+     somewhere" from "the screen changed". */
+  const ORDER: Section[] = ["chat", "code", "projects", "notebook"];
+
   const goToSection = React.useCallback(
     (target: Section) => {
-      settings.setSection(target);
-      // On a phone the nav lives in a drawer over the content, so navigating
-      // without closing it lands you on the screen you asked for with the menu
-      // still on top of it.
-      closeDrawerOnMobile();
-      if (target === "projects") setProjectId(null);
-      if (target === "code") setCanvasId(null);
-      if (target === "notebook") setNoteId(null);
+      const forward = ORDER.indexOf(target) >= ORDER.indexOf(settings.section as Section);
+      withTransition(() => {
+        settings.setSection(target);
+        // On a phone the nav lives in a drawer over the content, so navigating
+        // without closing it lands you on the screen you asked for with the
+        // menu still on top of it.
+        closeDrawerOnMobile();
+        if (target === "projects") setProjectId(null);
+        if (target === "code") setCanvasId(null);
+        if (target === "notebook") setNoteId(null);
+      }, forward ? "forward" : "back");
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [settings, closeDrawerOnMobile],
   );
 
@@ -431,13 +442,15 @@ export default function Page() {
 
   const selectInSection = React.useCallback(
     (section: Section, id: string) => {
-      closeDrawerOnMobile();
-      if (section === "chat") {
-        setActiveId(id);
-        settings.setSection("chat");
-      } else if (section === "projects") setProjectId(id);
-      else if (section === "code") setCanvasId(id);
-      else setNoteId(id);
+      withTransition(() => {
+        closeDrawerOnMobile();
+        if (section === "chat") {
+          setActiveId(id);
+          settings.setSection("chat");
+        } else if (section === "projects") setProjectId(id);
+        else if (section === "code") setCanvasId(id);
+        else setNoteId(id);
+      }, "forward");
     },
     [closeDrawerOnMobile, settings],
   );
@@ -590,9 +603,13 @@ export default function Page() {
         if (e.key !== "Escape") return;
         const tag = (e.target as HTMLElement)?.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA") return;
-        if (settings.section === "projects" && projectId) setProjectId(null);
-        else if (settings.section === "code" && canvasId) setCanvasId(null);
-        else if (settings.section === "notebook" && noteId) setNoteId(null);
+        // Escape backs out of an item, and backing out travels the other way.
+        if (settings.section === "projects" && projectId)
+          withTransition(() => setProjectId(null), "back");
+        else if (settings.section === "code" && canvasId)
+          withTransition(() => setCanvasId(null), "back");
+        else if (settings.section === "notebook" && noteId)
+          withTransition(() => setNoteId(null), "back");
         else if (stream.phase !== "idle") stream.stop();
         return;
       }
@@ -718,7 +735,9 @@ export default function Page() {
           onOpenShortcuts={() => setShortcutsOpen(true)}
         />
 
-        <main className="relative flex min-w-0 flex-1 flex-col">
+        {/* The room. Named for the view transition, so a section change slides
+            in the direction you travelled instead of cutting. */}
+        <main className="vt-room relative flex min-w-0 flex-1 flex-col">
           {settings.section !== "chat" ? (
             <>
               <header className="no-print flex h-[var(--topbar-h)] shrink-0 items-center gap-1 border-b border-transparent px-2">
@@ -732,9 +751,9 @@ export default function Page() {
               {settings.section === "projects" && (
                 <ProjectsView
                   projectId={projectId}
-                  onSelect={setProjectId}
+                  onSelect={(id) => withTransition(() => setProjectId(id), "forward")}
                   onNew={() => void createInSection("projects")}
-                  onBack={() => setProjectId(null)}
+                  onBack={() => withTransition(() => setProjectId(null), "back")}
                   onOpenChat={(id) => selectInSection("chat", id)}
                   onNewChatHere={(pid) => void newChatInProject(pid)}
                 />
@@ -744,24 +763,28 @@ export default function Page() {
                   canvasId={canvasId}
                   configured={configured}
                   seed={canvasSeed}
-                  onSelect={(id, seed) => {
-                    setCanvasSeed(seed);
-                    setCanvasId(id);
-                  }}
+                  onSelect={(id, seed) =>
+                    withTransition(() => {
+                      setCanvasSeed(seed);
+                      setCanvasId(id);
+                    }, "forward")
+                  }
                   onNew={() => void createInSection("code")}
-                  onBack={() => {
-                    setCanvasSeed(undefined);
-                    setCanvasId(null);
-                  }}
+                  onBack={() =>
+                    withTransition(() => {
+                      setCanvasSeed(undefined);
+                      setCanvasId(null);
+                    }, "back")
+                  }
                 />
               )}
               {settings.section === "notebook" && (
                 <NotebookView
                   noteId={noteId}
                   configured={configured}
-                  onSelect={setNoteId}
+                  onSelect={(id) => withTransition(() => setNoteId(id), "forward")}
                   onNew={() => void createInSection("notebook")}
-                  onBack={() => setNoteId(null)}
+                  onBack={() => withTransition(() => setNoteId(null), "back")}
                 />
               )}
             </>

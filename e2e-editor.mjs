@@ -93,8 +93,16 @@ await page.waitForTimeout(2000);
 // Not clicked open: an error opens it. Chasing a silent failure is what the
 // drawer exists to prevent, and a drawer you have to know to open does not.
 check((await page.locator("main").innerText()).includes("one"), "an error opens the console by itself");
+/* Counted, not just found. The preview used to load twice — the theme
+   resolved to a second value one tick after the first, which is a second
+   srcDoc — so every script ran twice and every console line arrived twice.
+   Nothing about that looked wrong on screen; it showed up here as two
+   identical links, and only sometimes. */
 const link = page.getByTitle(/^Open app\.js at line/);
-check(await link.isVisible().catch(() => false), "the error's location is a link", await link.innerText().catch(() => "none"));
+const links = await link.count();
+check(links === 1, "the error's location is a link — exactly one of it", `${links} link${links === 1 ? "" : "s"}`);
+const ran = ((await page.locator("main").innerText()).match(/missingThing is not defined/g) ?? []).length;
+check(ran === 1, "because the page ran once, not twice", `${ran} error${ran === 1 ? "" : "s"} logged`);
 await link.click();
 await page.waitForTimeout(900);
 const landed = await page.evaluate(() => {
