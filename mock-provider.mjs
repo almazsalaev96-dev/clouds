@@ -150,6 +150,20 @@ createServer(async (req, res) => {
 
   /* A check is about a diff and is prose, not a file: answering it with the
      revision machinery below would hand back a "checked" document. */
+  /* An element change comes back as {file, content}: the whole feature is that
+     the app decides *where* the change goes from what the model names, so a
+     mock that answered with a bare file would leave that untested. The file is
+     the stylesheet, because "make it smaller" is the case worth exercising —
+     you point at markup and the change lands somewhere else. */
+  const pointing = /^Someone is looking at this page running/.test(asked);
+  let POINTED = "{}";
+  if (pointing) {
+    const folder = asked.slice(asked.indexOf("\nTHE FOLDER\n"));
+    const at = folder.indexOf("--- style.css ---");
+    const body = at === -1 ? "" : folder.slice(at + "--- style.css ---\n".length).split("\n--- ")[0];
+    POINTED = JSON.stringify({ file: "style.css", content: body.replace(/\s+$/, "") + "\n\n.picked-by-the-mock { font-size: 12px; }" });
+  }
+
   const checking = /^A change was just made to this/.test(asked);
   const CHECK = `It does what was asked: the concat is gone and the loop pushes instead.
 
@@ -159,13 +173,15 @@ Nothing here looks like it breaks a caller — the return type is the same array
 
   let text = isTitle
     ? "Debouncing a search input"
-    : planning
-      ? PLAN
-      : checking
-        ? CHECK
-        : making
-          ? MADE
-          : REPLY;
+    : pointing
+      ? POINTED
+      : planning
+        ? PLAN
+        : checking
+          ? CHECK
+          : making
+            ? MADE
+            : REPLY;
   if (revising) {
     const current = asked.slice(asked.indexOf("\nCURRENT\n") + "\nCURRENT\n".length);
     const lines = current.replace(/\s+$/, "").split("\n");

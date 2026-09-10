@@ -66,6 +66,97 @@ const bridgeFor = (run: string) => `<script>(function(){
     if (e.key !== "Escape") return;
     try { parent.postMessage({ __armiKey: "Escape" }, "*"); } catch (err) {}
   });
+
+  /* Pointing at something.
+     ---------------------------------------------------------------------
+     The whole feature is: if you can see it, you can select it and say what
+     to do with it. Everything else about this app already lets you describe a
+     change; nothing let you *indicate* one, and describing "the blue button
+     roughly in the middle of the dashboard" is a translation step that loses
+     more than it carries.
+
+     Turned on and off by a message rather than by rebuilding the page, and
+     that is not a detail: a new srcDoc is a fresh load, so a picker you
+     toggled by re-assembling would reset the counter, reshuffle the deck and
+     scroll you back to the top every time you reached for it. Nothing about
+     the running page changes here except one outline.
+
+     Clicks are taken in the capture phase and stopped. While you are pointing,
+     a button is a thing you are choosing, not a thing you are pressing — a
+     picker that also fired the page's own handlers would submit the form you
+     were trying to describe. */
+  var picking = false;
+  var lit = null;
+  var mark = null;
+
+  function outline(el){
+    if (lit === el) return;
+    clear();
+    lit = el;
+    if (!el || !el.style) return;
+    /* Its own outline, remembered and put back. Outline rather than border or
+       box-shadow because it is the one visual that takes up no space: a
+       highlight that reflows the page moves the thing you were aiming at. */
+    mark = el.style.outline;
+    el.style.outline = "2px solid #3450b5";
+    el.style.outlineOffset = "1px";
+  }
+  function clear(){
+    if (lit && lit.style) { lit.style.outline = mark || ""; lit.style.outlineOffset = ""; }
+    lit = null; mark = null;
+  }
+
+  function describe(el){
+    var text = (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim();
+    var path = [];
+    for (var n = el; n && n.nodeType === 1 && path.length < 6; n = n.parentElement) {
+      var step = n.tagName.toLowerCase();
+      if (n.id) { step += "#" + n.id; path.unshift(step); break; }
+      if (n.className && typeof n.className === "string") {
+        var first = n.className.trim().split(/\s+/)[0];
+        if (first) step += "." + first;
+      }
+      path.unshift(step);
+    }
+    return {
+      __armiPicked: 1,
+      run: RUN,
+      tag: el.tagName.toLowerCase(),
+      id: el.id || "",
+      cls: (typeof el.className === "string" ? el.className : "").trim(),
+      text: text.slice(0, 120),
+      /* The anchor. A tag and a class are not enough to find one element in a
+         file that has nine of them; the actual markup is, and it is what the
+         model is shown so it changes the one you meant. */
+      html: (el.outerHTML || "").slice(0, 800),
+      path: path.join(" > ")
+    };
+  }
+
+  window.addEventListener("message", function(e){
+    var d = e.data;
+    if (!d || d.__armiPick !== 1) return;
+    picking = Boolean(d.on);
+    document.documentElement.style.cursor = picking ? "crosshair" : "";
+    if (!picking) clear();
+  });
+
+  document.addEventListener("mousemove", function(e){
+    if (!picking) return;
+    var el = e.target;
+    if (el && el.nodeType === 1 && el !== document.documentElement && el !== document.body) outline(el);
+  }, true);
+
+  document.addEventListener("click", function(e){
+    if (!picking) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var el = e.target;
+    if (!el || el.nodeType !== 1) return;
+    try { parent.postMessage(describe(el), "*"); } catch (err) {}
+  }, true);
+
+  document.addEventListener("mouseleave", function(){ if (picking) clear(); }, true);
 })();</script>`;
 
 const esc = (s: string) => s.replace(/<\/script>/gi, "<\\/script>");

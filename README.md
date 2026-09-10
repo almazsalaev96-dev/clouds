@@ -329,6 +329,45 @@ every time you double-click a word is wrong more often than right. Accepting the
 change lets the selection go, because the lines you selected are not the lines
 you now have.
 
+**Point at it.** The page is running in a frame beside the editor. Press *Point
+at it*, and the next click on that page chooses an element instead of pressing
+it: the thing under the cursor lights up as you move, the composer's chip
+changes to *the “Start Lesson” button*, and the question becomes "change this"
+rather than "change the file".
+
+This is the one thing the app could not do. Everywhere else it lets you
+**describe** a change; nothing let you **indicate** one — and "make the blue
+button roughly in the middle of the dashboard smaller" is a translation step,
+which is exactly where intent goes missing. If you can see it, you should be
+able to select it and say what to do with it.
+
+Four things make it worth having rather than a demo:
+
+ - **Choosing is not pressing.** The click is taken in the capture phase and
+   stopped, so the page's own handler never fires. A picker that also pressed
+   the button would submit the form you were trying to describe — the test
+   presses the counter to 1, picks it, and asserts it is still 1.
+ - **The model is shown the element, not a description of it.** What goes up is
+   the element's own markup and where it sits (`main > div.row > button#up`),
+   which is an anchor; "the button in the middle" is a guess.
+ - **The change lands in the file it belongs in.** This is the hard part, and it
+   is not the file you were looking at. "Make it smaller" is the stylesheet,
+   "call it Begin instead" is the markup, "do nothing until the form is valid"
+   is the script. The model is asked to *name* the file, the name is checked
+   against the folder — anything invented is refused rather than created — and
+   the diff is of that file. You can point at markup and accept a change to
+   `style.css`.
+ - **The mode ends with the pick,** and the element is let go once its change is
+   in: what you pointed at may not exist in that shape any more, and a chip
+   still claiming to be about it would aim your next sentence at a description
+   of something that has been rewritten.
+
+Turning the picker on and off is a `postMessage` into the running page, never a
+rebuilt `srcDoc`. That is not a detail: a new `srcDoc` is a fresh load, so a
+picker you toggled by re-assembling would reset the counter, reshuffle the deck
+and scroll you to the top every time you reached for the thing meant to let you
+point at what you were looking at.
+
 **Plan, before it touches anything.** The step everybody skips and then wishes
 they had not: *analyse this, do not modify anything, tell me what you would do.*
 Both terminal agents treat it as a mode rather than a phrasing, and the reason
@@ -745,6 +784,13 @@ heading, and link URLs printed in full.
   through Chromium's print media emulation rather than assumed.
 - Highlighting confirmed to run in a real Web Worker (counted at construction, not
   assumed), producing 240 themed spans on a 40-line block.
+- **Pointing at a running page, driven for real** (`e2e-point.mjs`, 18
+  assertions). The browser clicks a button inside the sandboxed frame, and the
+  suite asserts what a screenshot never could: with the picker off the counter
+  goes to 1; with it on, the same click leaves it at 1 and produces a pick. Then
+  the prompt is read at the wire for the element's markup and its path, and the
+  database is read afterwards to confirm `style.css` changed and `index.html` —
+  the file that was on screen — did not.
 - The four agent-workflow additions driven end to end and read at the wire
   (`e2e-agent.mjs`, 26 assertions): a plan comes back as pressable steps with the
   file untouched, and pressing one sends the step's own instruction verbatim;
@@ -820,6 +866,13 @@ Stated plainly, because a checklist you cannot trust is worse than no checklist.
   here. The rest would need a server, and a server is the one thing this app
   promises not to have. Said plainly because the alternative is a feature list
   that sounds like a coding agent and behaves like a text box.
+- **Pointing is one element and one file at a time.** You cannot rubber-band an
+  area, multi-select six cards and say "make these the same height", or annotate
+  with a pen — all of which are the obvious next moves and none of which are
+  built. Nor does a pick survive a reload: it is gated on the run token, so an
+  element chosen in a version of the page you have already replaced is dropped
+  rather than acted on, which is right but means the crosshair is a per-edit
+  gesture and not a persistent selection.
 - **The one real loop is one file deep.** "Fix this" sends the error and the file
   it names. It does not re-run the page and check the error is gone, and it does
   not chase a cause into a sibling file — it is told to leave the file unchanged
@@ -867,6 +920,7 @@ node e2e-scale.mjs   #  6 assertions: what it costs to open, and 400 turns deep
 node e2e-backup.mjs  # 14 assertions: a copy of everything, and everything back
 node e2e-code.mjs    # 20 assertions: find, review, and changing only a selection
 node e2e-agent.mjs   # 26 assertions: plan, house rules, check, and fix-from-error
+node e2e-point.mjs   # 18 assertions: pointing at a running page and changing it
 node mock-slow.mjs &   # the mock with the gap between tokens stretched, then:
 node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs the slow mock)
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire

@@ -506,3 +506,99 @@ unchanged rather than inventing a change here that hides it.
 THE ERROR
 ${error.slice(0, 2000)}`;
 }
+
+/* --------------------------------------------------------------- pointing -- */
+
+/** What was pointed at in the running page. */
+export interface Picked {
+  tag: string;
+  id: string;
+  cls: string;
+  text: string;
+  /** The element's own markup — the anchor that finds it in the file. */
+  html: string;
+  /** `body > main > div.card > button.primary`, for saying what is selected. */
+  path: string;
+}
+
+/** What to call it in one short phrase: “the Start Lesson button”. */
+export function nameOf(p: Picked): string {
+  const kind =
+    p.tag === "a" ? "link" :
+    p.tag === "img" ? "image" :
+    p.tag === "button" ? "button" :
+    p.tag === "input" || p.tag === "textarea" || p.tag === "select" ? "field" :
+    ["h1", "h2", "h3", "h4", "h5", "h6"].includes(p.tag) ? "heading" :
+    ["p", "li", "span", "label"].includes(p.tag) ? "text" :
+    p.tag;
+  const label = p.text.trim().split(/\s+/).slice(0, 4).join(" ");
+  return label ? `the “${label}” ${kind}` : `this ${kind}`;
+}
+
+/**
+ * A change aimed at one element of a running page.
+ *
+ * The point of the whole thing: you can see it, so you should be able to
+ * select it and say what to do with it, rather than describing where it is.
+ * "Make the blue button roughly in the middle of the dashboard smaller" is a
+ * translation, and the translation is where the intent goes missing.
+ *
+ * The hard part is not knowing *which* element — the picker sends its markup,
+ * which is a perfectly good anchor. It is knowing which **file** the change
+ * belongs in. "Make this smaller" is the stylesheet, "call it Begin instead"
+ * is the markup, and "make it do nothing until the form is valid" is the
+ * behaviour. Guessing wrongly means a rewrite of the wrong file and a diff
+ * nobody can accept, so the model is asked to name the file it wants and the
+ * answer is applied there. Anything it names that is not in the folder is
+ * refused rather than created: a change that invents a file is a change that
+ * silently does nothing.
+ */
+export async function reviseElement(
+  files: { name: string; content: string }[],
+  picked: Picked,
+  instruction: string,
+  modelId?: string,
+  rules?: string,
+): Promise<{ file: string; content: string } | null> {
+  const folder = files
+    .map((f) => `--- ${f.name} ---\n${f.content.slice(0, 20_000)}`)
+    .join("\n\n");
+
+  const out = await complete(
+    `Someone is looking at this page running, and pointed at one element on it. Change that element as instructed.
+
+THE ELEMENT THEY POINTED AT
+Where it sits: ${picked.path}
+Its markup:
+${picked.html}
+
+WHAT THEY WANT
+${instruction}${houseRules(rules)}
+
+Answer with JSON and nothing else:
+
+{"file": "the one file to change", "content": "that file's complete new contents"}
+
+Rules:
+- Pick the file the change actually belongs in. Appearance is usually the stylesheet; wording and structure are the markup; behaviour is the script. Choose one — the change will be shown as a diff of that file alone.
+- "file" must be one of the names below exactly. Do not invent a file.
+- "content" is the COMPLETE file, not a fragment and not a patch.
+- Change only what is needed for the element they pointed at. Everything else in that file stays byte for byte as it is.
+- If the element has no id or class of its own to target, giving it one in the markup is a reasonable change — but then the file you return is the markup, and the styling is a separate step.
+- No prose outside the JSON.
+
+THE FOLDER
+${folder}`,
+    { modelId, maxTokens: 16_000, temperature: 0.15 },
+  );
+  if (!out) return null;
+
+  const raw = extractJson(out) as { file?: unknown; content?: unknown } | null;
+  if (!raw || typeof raw.file !== "string" || typeof raw.content !== "string") return null;
+
+  const target = files.find((f) => f.name === raw.file);
+  if (!target) return null;
+
+  const trailing = /\n$/.test(target.content) ? "\n" : "";
+  return { file: target.name, content: raw.content.replace(/\s+$/, "") + trailing };
+}

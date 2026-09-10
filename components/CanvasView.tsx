@@ -5,7 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   Braces, Bug, Check, Eye, FileCode2, FilePlus2, FileText, FileType2, History,
   LayoutTemplate, MessageSquareCode, Palette, Pencil, Play, RotateCcw,
-  Maximize2, Minimize2, ScanSearch, Scroll, Terminal, TextSelect, X,
+  Maximize2, Minimize2, MousePointerClick, ScanSearch, Scroll, Terminal, TextSelect, X,
   CalendarRange, CheckCheck, ListChecks, Sparkles, Timer, Wand2,
 } from "lucide-react";
 import type { Canvas, CanvasFile, CanvasVersion } from "@/lib/types";
@@ -19,10 +19,13 @@ import {
   checkChange,
   explainCode,
   fixInstruction,
+  nameOf,
   planChanges,
   reviewCode,
+  reviseElement,
   reviseCanvas,
   reviseSelection,
+  type Picked,
   type PlanStep,
 } from "@/lib/generate";
 import { collapse, diffStat, lineDiff, type DiffOp } from "@/lib/diff";
@@ -250,6 +253,10 @@ function Editor({
      asked for that alone rather than for the file — which is the difference
      between "make this a loop" costing six lines and costing four hundred. */
   const [selection, setSelection] = React.useState<Selection | null>(null);
+  /* Pointing at the running page. `picking` is the mode — crosshair on, clicks
+     caught rather than delivered — and `picked` is what came back from it. */
+  const [picking, setPicking] = React.useState(false);
+  const [picked, setPicked] = React.useState<Picked | null>(null);
 
   const enterFocus = React.useCallback(() => {
     setMode("run");
@@ -288,7 +295,13 @@ function Editor({
   /* What was there before the proposal, and what was asked for. Kept so the
      change can be checked against the request rather than admired on its own:
      a reviewer handed only the result reviews the result. */
-  const [proposal, setProposal] = React.useState<{ content: string; note: string; before: string } | null>(null);
+  /* `file` is set only when the change belongs somewhere other than the file
+     you are looking at — pointing at a button and asking for it to be smaller
+     is a stylesheet change made from the markup tab. The diff shows that file
+     and accepting writes to it. */
+  const [proposal, setProposal] = React.useState<
+    { content: string; note: string; before: string; file?: string } | null
+  >(null);
   const [report, setReport] = React.useState<{ kind: ReportKind; text: string } | null>(null);
   /* The plan, when one has been asked for. Separate from `report` because its
      steps are pressable and a report is prose. */
@@ -372,6 +385,32 @@ function Editor({
     try {
       // The draft, not the saved copy: revising a version of the file you can
       // see on screen but the model cannot is the fastest way to lose an edit.
+      /* Pointed at something in the running page: the change is about that
+         element, and it may not even belong in the file you are looking at. */
+      if (picked) {
+        const all = files.map((f) => ({
+          name: f.name,
+          content: f.id === activeFile?.id ? draft : f.content,
+        }));
+        const hit = await reviseElement(all, picked, text, modelId, rules);
+        if (!hit) {
+          setNotice("That didn't come back as a change to one file. Try saying it differently.");
+          return;
+        }
+        const target = all.find((f) => f.name === hit.file);
+        if (target && hit.content.trim() === target.content.trim()) {
+          setNotice("It came back unchanged — the instruction may not apply to that element.");
+          return;
+        }
+        setProposal({
+          content: hit.content,
+          note: label ?? `${nameOf(picked)} — ${text}`,
+          before: target?.content ?? "",
+          file: hit.file,
+        });
+        return;
+      }
+
       const out = selection
         ? await reviseSelection(draft, selection, text, doc.lang, modelId, rules)
         : /* `undefined` is perSibling left at its default. Rules ride behind it
@@ -509,14 +548,20 @@ function Editor({
     }
   };
 
-  const commit = async (content: string) => {
-    if (web && activeFile) {
-      await db.canvasFiles.update(activeFile.id, { content, updatedAt: Date.now() });
+  /* `into` names a file other than the one on screen. Everything that edits
+     the file you are looking at leaves it out; a change aimed at an element
+     names the file it belongs in, which is often the stylesheet while you are
+     standing in the markup. */
+  const commit = async (content: string, into?: string) => {
+    const target = into ? files.find((f) => f.name === into) : activeFile;
+    if (web && target) {
+      await db.canvasFiles.update(target.id, { content, updatedAt: Date.now() });
       await db.canvases.update(canvas.id, { updatedAt: Date.now() });
     } else {
       await db.canvases.update(canvas.id, { content, updatedAt: Date.now() });
     }
-    savedRef.current = content;
+    // Only the file on screen is the one autosave is tracking.
+    if (!into || target?.id === activeFile?.id) savedRef.current = content;
   };
 
   const accept = async () => {
@@ -526,10 +571,17 @@ function Editor({
        history starts at the rewrite, and "undo" has nothing to undo to.
        Identical states collapse, so this is free when the state is already
        recorded. */
-    await pushVersion(canvas.id, draft, "you", undefined, doc.fileName);
-    setDraft(proposal.content);
-    await commit(proposal.content);
-    await pushVersion(canvas.id, proposal.content, "model", proposal.note, doc.fileName);
+    /* The file the change is actually about, which is the one whose history
+       has to record it. Recording a stylesheet edit against the markup would
+       put a version in the wrong file's timeline and leave the right one with
+       no way back. */
+    const into = proposal.file && proposal.file !== doc.name ? proposal.file : undefined;
+    const name = into ?? doc.fileName;
+
+    await pushVersion(canvas.id, proposal.before, "you", undefined, name);
+    if (!into) setDraft(proposal.content);
+    await commit(proposal.content, into);
+    await pushVersion(canvas.id, proposal.content, "model", proposal.note, name);
     /* A step is ticked here and nowhere else: when its change was kept. Asking
        for it is not doing it, and a plan that ticks on the request would show
        a list of things done for a file that was never touched. */
@@ -542,6 +594,11 @@ function Editor({
     setReport(null);
     setInstruction("");
     setSelection(null);
+    /* The element is let go once its change is in. What you pointed at may not
+       even exist in the shape you pointed at it any more, and a chip still
+       claiming to be about it would aim the next request at a description of
+       something that has been rewritten. */
+    setPicked(null);
     void loadVersions();
   };
 
@@ -698,9 +755,14 @@ function Editor({
           {proposal ? (
             <DiffView
               wide={canvas.kind !== "doc"}
-              before={draft}
+              /* `proposal.before` rather than `draft`: a change aimed at an
+                 element is a diff of the file it belongs in, which is not
+                 necessarily the file the editor is showing. */
+              before={proposal.before}
               after={proposal.content}
-              note={proposal.note}
+              note={proposal.file && proposal.file !== doc.name
+                ? `${proposal.file} — ${proposal.note}`
+                : proposal.note}
               onAccept={accept}
               onCheck={check}
               checking={busy === "check"}
@@ -718,6 +780,16 @@ function Editor({
                 full={focused}
                 onEscape={leaveFocus}
                 onFix={fixError}
+                picking={picking}
+                onPicking={setPicking}
+                onPicked={(p) => {
+                  setPicked(p);
+                  /* One press, one pick. Staying in the mode means the next
+                     click anywhere replaces what you just chose, usually by
+                     accident, and the thing you wanted is gone before you have
+                     finished typing about it. */
+                  setPicking(false);
+                }}
                 onOpenAt={(name, line) => {
                   const target = files.find((f) => f.name === name);
                   if (!target) return;
@@ -819,7 +891,9 @@ function Editor({
                   canSend={!busy}
                   ariaLabel="Ask for a change"
                   placeholder={
-                    selection
+                    picked
+                      ? `Change ${nameOf(picked)} — “make it smaller and calmer”`
+                      : selection
                       ? "Change just these lines — “make this a loop”"
                       : canvas.kind === "doc"
                         ? "Ask for a change — “tighten the second section”"
@@ -841,7 +915,19 @@ function Editor({
                        otherwise the file. Both are the same question — "what
                        will this touch" — and the box you are typing the
                        instruction into is the only place answering it helps. */
-                    selection ? (
+                    picked ? (
+                      <span className="flex items-center gap-1.5 rounded-full bg-accent-subtle py-1 pl-2.5 pr-1 text-sm text-accent">
+                        <MousePointerClick size={13} className="shrink-0" />
+                        <span className="max-w-[16rem] truncate text-xs">{nameOf(picked)}</span>
+                        <button
+                          onClick={() => setPicked(null)}
+                          aria-label="Change the whole file instead"
+                          className="ctl focus-inset flex [--ctl:1.5rem] shrink-0 items-center justify-center rounded-full transition-colors duration-[var(--dur-fast)] hover:text-primary"
+                        >
+                          <X size={13} />
+                        </button>
+                      </span>
+                    ) : selection ? (
                       <span className="flex items-center gap-1.5 rounded-full bg-accent-subtle py-1 pl-2.5 pr-1 text-sm text-accent">
                         <TextSelect size={13} className="shrink-0" />
                         <span className="tnum text-xs">
@@ -1391,6 +1477,9 @@ function WebPreview({
   full,
   onEscape,
   onFix,
+  picking,
+  onPicking,
+  onPicked,
 }: {
   files: CanvasFile[];
   draft: string;
@@ -1403,6 +1492,10 @@ function WebPreview({
   onEscape?: () => void;
   /** Hand this error, and where it happened, to an edit. */
   onFix?: (message: string, where?: string) => void;
+  /** Crosshair on: the next click chooses an element instead of pressing it. */
+  picking?: boolean;
+  onPicking?: (on: boolean) => void;
+  onPicked?: (p: Picked) => void;
 }) {
   const frameRef = React.useRef<HTMLIFrameElement>(null);
   const [lines, setLines] = React.useState<Line[]>([]);
@@ -1433,6 +1526,20 @@ function WebPreview({
   mapRef.current = map;
   const escapeRef = React.useRef(onEscape);
   escapeRef.current = onEscape;
+  const pickedRef = React.useRef(onPicked);
+  pickedRef.current = onPicked;
+  const pickingRef = React.useRef(picking);
+  pickingRef.current = picking;
+
+  /* The mode, sent in rather than built in.
+     Rebuilding `srcDoc` to turn the picker on would be a fresh load of the
+     page: the counter resets, the deck reshuffles, the scroll goes back to the
+     top — every time you reach for the thing that is supposed to let you point
+     at what you are looking at. A message changes one variable inside a page
+     that never reloads. */
+  React.useEffect(() => {
+    frameRef.current?.contentWindow?.postMessage({ __armiPick: 1, on: Boolean(picking) }, "*");
+  }, [picking, srcDoc]);
 
   React.useEffect(() => {
     const onMessage = (e: MessageEvent) => {
@@ -1440,6 +1547,7 @@ function WebPreview({
       if (e.source !== frameRef.current?.contentWindow) return;
       const d = e.data as {
         __armiConsole?: number;
+        __armiPicked?: number;
         __armiKey?: string;
         run?: string;
         level?: string;
@@ -1449,6 +1557,14 @@ function WebPreview({
       // Not gated on the run: a key pressed a moment after a reload is still
       // the key you pressed, and Escape has to work on the first try.
       if (d.__armiKey === "Escape") return escapeRef.current?.();
+      if (d.__armiPicked === 1) {
+        /* Gated on the run like a console line: an element chosen in a version
+           of the page you have already replaced is a description of markup
+           that is no longer there. */
+        if (d.run !== runRef.current) return;
+        pickedRef.current?.(d as unknown as Picked);
+        return;
+      }
       if (d.__armiConsole !== 1) return;
       /* From the run being shown, or from nowhere. A reload racing a message
          already in flight used to leave an error from a version of the file
@@ -1504,6 +1620,17 @@ function WebPreview({
         title="Preview"
         sandbox="allow-scripts allow-forms"
         srcDoc={srcDoc}
+        /* Re-armed on load as well as on change. The effect above fires when
+           React commits; the page inside starts listening when it parses, and
+           on a reload those are not in that order — a message sent to a
+           document that has not run its bridge yet reaches nobody, and the
+           crosshair silently stops working after every edit. */
+        onLoad={() =>
+          frameRef.current?.contentWindow?.postMessage(
+            { __armiPick: 1, on: Boolean(pickingRef.current) },
+            "*",
+          )
+        }
         className={cn(
           "min-h-0 w-full flex-1 bg-white",
           !full && "rounded-lg border border-line",
@@ -1535,6 +1662,22 @@ function WebPreview({
             <RotateCcw size={13} />
             Reload
           </Button>
+          {/* If you can see it you can choose it, and then say what to do with
+              it. Everything else in this app lets you *describe* a change;
+              this is the only thing that lets you indicate one, and describing
+              "the blue button roughly in the middle" is a translation that
+              loses more than it carries. */}
+          {onPicking && (
+            <Button
+              size="sm"
+              variant={picking ? "secondary" : "ghost"}
+              onClick={() => onPicking(!picking)}
+              aria-pressed={picking}
+            >
+              <MousePointerClick size={13} />
+              {picking ? "Pick one" : "Point at it"}
+            </Button>
+          )}
         </div>
 
         {open && (
