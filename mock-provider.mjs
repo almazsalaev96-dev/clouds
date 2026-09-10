@@ -57,6 +57,16 @@ createServer(async (req, res) => {
     systemText: Array.isArray(body.system)
       ? body.system.map((b) => b.text ?? "").join("\n")
       : (body.system ?? ""),
+    // And the turns themselves, so an attachment can be checked for actually
+    // having arrived rather than for having been built.
+    userText: (body.messages ?? [])
+      .flatMap((m) => (Array.isArray(m.content) ? m.content : [{ type: "text", text: m.content }]))
+      .filter((c) => c.type === "text")
+      .map((c) => c.text)
+      .join("\n"),
+    images: (body.messages ?? [])
+      .flatMap((m) => (Array.isArray(m.content) ? m.content : []))
+      .filter((c) => c.type === "image").length,
   };
 
   // One 429 with a Retry-After, then behave. Proves the automatic retry both
@@ -101,11 +111,15 @@ createServer(async (req, res) => {
   });
   send(res, "content_block_start", { index: 0, content_block: { type: "text", text: "" } });
 
-  // Chunked the way a real stream arrives: a few tokens at a time, not a wall.
+  /* Chunked the way a real stream arrives: a few tokens at a time, not a wall.
+     MOCK_SLOW stretches it, because anything that can only be tested *during*
+     a stream — the stop button, the live ring, the reveal buffer — is
+     untestable against a stream that finishes in a third of a second. */
+  const gap = process.env.MOCK_SLOW ? 140 : 12;
   const chunks = text.match(/[\s\S]{1,14}/g) ?? [];
   for (const chunk of chunks) {
     send(res, "content_block_delta", { index: 0, delta: { type: "text_delta", text: chunk } });
-    await new Promise((r) => setTimeout(r, 12));
+    await new Promise((r) => setTimeout(r, gap));
   }
 
   send(res, "content_block_stop", { index: 0 });

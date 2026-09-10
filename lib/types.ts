@@ -75,6 +75,13 @@ export interface ModelSpec {
   /** The provider's own identifier, which is not always our id. */
   apiName: string;
   name: string;
+  /**
+   * The name without its maker, for the composer, where the provider's own
+   * mark is already sitting beside it. "Claude Sonnet 4.5" truncated to
+   * "Claude So…" tells you which company and not which model — exactly
+   * backwards, since the company is the one part the icon already says.
+   */
+  short: string;
   /** One line, plain language. Not marketing copy. */
   blurb: string;
   contextWindow: number;

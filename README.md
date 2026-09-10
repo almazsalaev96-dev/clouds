@@ -40,6 +40,16 @@ edit-a-message-to-fork, sibling navigation `‹ 2/3 ›`, per-conversation draft
 survive switching away mid-sentence, pin, rename, delete, full-text search across
 message bodies, Markdown export, auto-generated titles.
 
+**Attachments** — images, text files of every stripe, and **PDFs**, read in the
+browser and sent as text. A PDF is the most common thing anyone drags at an
+assistant — a paper, a spec, a syllabus — and this used to refuse them all with
+"isn't a text or image file", which is a true sentence that is no use to the
+person reading it. pdf.js does the work behind a dynamic import, so the megabyte
+it costs is downloaded only by sessions that attach one; First Load JS is
+unchanged. A scan is called a scan: a PDF with no text layer is refused with the
+page count and the reason, because an empty attachment is something a model will
+confabulate around. Project knowledge takes PDFs too.
+
 **Rendering** — GFM markdown, KaTeX math, tables that scroll inside their own
 container, and code blocks with a language label, optional filename, wrap toggle,
 download, collapse past 60 lines, line numbers past 12, diff tinting with a gutter
@@ -315,6 +325,16 @@ heading, and link URLs printed in full.
   preview counts, a `console.log` and an uncaught `ReferenceError` come back out
   with the error mapped to `app.js:2`, and `window.origin` inside the frame is
   `null` with `localStorage` throwing `SecurityError`.
+- Stopping mid-answer driven for real (`e2e-stop.mjs`, with `MOCK_SLOW=1` so the
+  stream lasts long enough to interrupt): mid-flight, the button under the cursor
+  is asked of the browser by hit-testing rather than read off a class; the partial
+  text is kept, `stopReason` is `aborted`, Send comes back, and the thread still
+  works afterwards. It was the one path the suite never took, because the mock
+  answered in a third of a second and the button was gone before a click landed.
+- The composer's control row measured at seven widths from 1440 down to 390. It
+  had been truncating the model name at *every* one of them and overflowing by
+  127px on a phone — pushing the send button off the screen — since Creative was
+  added beside it.
 - Chat and Creative verified **at the wire** (`e2e-mode.mjs`): Chat adds nothing to
   the prompt and nothing to the sampling; Creative's instructions arrive, and on a
   model without a thinking budget so does `temperature: 1, top_p: 0.98`. On a
@@ -402,6 +422,8 @@ node e2e-canvas.mjs  # 25 assertions: edit, revise, diff, keep, revert, sandbox
 node e2e-project.mjs # 21 assertions: projects and styles, read at the wire
 node e2e-web.mjs     # 26 assertions: a web app runs, and its console comes back
 node e2e-mode.mjs    # 12 assertions: Chat and Creative, read at the wire
+node e2e-pdf.mjs     #  9 assertions: a PDF read, a scan refused, both at the wire
+node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs MOCK_SLOW=1)
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire
 node test-fit.mjs      # a 360k-token thread trimmed to fit and answered
 MOCK_RATE_LIMIT=1 …    # restart the mock this way, then: node test-retry.mjs

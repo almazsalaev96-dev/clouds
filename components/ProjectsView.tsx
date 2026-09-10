@@ -11,6 +11,7 @@ import { KNOWLEDGE_BUDGET_TOKENS } from "@/lib/prompt";
 import { estimateTokens } from "@/lib/models";
 import { offerUndo } from "@/lib/undo";
 import { cn, formatBytes } from "@/lib/utils";
+import { isPdf, extractPdf } from "@/lib/pdf";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { Button, IconButton, SaveBadge } from "@/components/ui/primitives";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
@@ -148,8 +149,30 @@ function ProjectPage({
         setNotice(`${file.name} is ${formatBytes(file.size)} — the limit is 20 MB.`);
         continue;
       }
+      if (isPdf(file)) {
+        // A syllabus, a spec, a paper — project knowledge is a PDF at least as
+        // often as it is a text file.
+        setNotice(`Reading ${file.name}…`);
+        try {
+          const { text, pages, imageOnly } = await extractPdf(file);
+          setNotice(null);
+          if (imageOnly) {
+            setNotice(`${file.name} is a scan — ${pages} page${pages === 1 ? "" : "s"} of pictures with no text in them.`);
+            continue;
+          }
+          await addProjectFile(project.id, {
+            name: file.name,
+            mimeType: "application/pdf",
+            text: `${file.name} — ${pages} page${pages === 1 ? "" : "s"}\n\n${text}`,
+            size: file.size,
+          });
+        } catch {
+          setNotice(`${file.name} could not be opened. It may be encrypted or damaged.`);
+        }
+        continue;
+      }
       if (!file.type.startsWith("text/") && !READABLE.test(file.name)) {
-        setNotice(`${file.name} isn't a text file, so there is nothing in it to read.`);
+        setNotice(`${file.name} isn't a text file or a PDF, so there is nothing in it to read.`);
         continue;
       }
       await addProjectFile(project.id, {

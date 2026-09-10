@@ -10,6 +10,7 @@ import { getModel, estimateTokens, formatTokens, MODELS } from "@/lib/models";
 import { paramsFor } from "@/lib/store";
 import { ModelPicker } from "./ModelPicker";
 import { fileToBase64, formatBytes, cn } from "@/lib/utils";
+import { isPdf, pdfBlock } from "@/lib/pdf";
 import { useSettings, useDrafts } from "@/lib/store";
 import { allStyles, findStyle, DEFAULT_STYLE_ID } from "@/lib/styles";
 import { MODES } from "@/lib/modes";
@@ -154,6 +155,25 @@ export function Composer({
           size: file.size,
           data: await fileToBase64(file),
           preview: URL.createObjectURL(file),
+        });
+      } else if (isPdf(file)) {
+        // Read here rather than refused. A PDF is the most common thing anyone
+        // drags at an assistant, and "isn't a text file" is a true sentence
+        // that is no use to the person reading it.
+        setNotice(`Reading ${file.name}…`);
+        const out = await pdfBlock(file);
+        setNotice(null);
+        if ("error" in out) {
+          setNotice(out.error);
+          continue;
+        }
+        next.push({
+          id: crypto.randomUUID(),
+          kind: "file",
+          name: file.name,
+          mimeType: "application/pdf",
+          size: file.size,
+          data: out.block.type === "file" ? out.block.text : "",
         });
       } else {
         // Text-ish files are inlined as text; anything binary is refused with a
@@ -341,7 +361,11 @@ export function Composer({
 
         {/* Controls sit under the text, left to right in the order you reach
             for them: add something, change how it thinks, speak, send. */}
-        <div className="flex items-center gap-1 px-2.5 pb-2.5 pt-0.5">
+        {/* Wraps, and does not scroll. There are six controls in this row and
+            a phone is 390px wide; without this the send button was pushed 127px
+            past the right edge of the box — off the screen, on the one control
+            the row exists for. */}
+        <div className="flex flex-wrap items-center gap-1 px-2.5 pb-2.5 pt-0.5">
           {/* Everything you can add to a message, behind one control. */}
           <Popover.Root open={plusOpen} onOpenChange={setPlusOpen}>
             <Tooltip label="Add photos and files">
@@ -592,7 +616,7 @@ export function Composer({
               className="btn-touch ctl-h focus-inset flex min-w-0 shrink items-center gap-1.5 rounded-full px-2 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
             >
               <ProviderMark provider={model.provider} size={13} />
-              <span className="truncate">{model.name}</span>
+              <span className="truncate">{model.short}</span>
               {model.reasoning && effort && (
                 <span className="hidden text-tertiary sm:inline">{effort}</span>
               )}
