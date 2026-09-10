@@ -114,6 +114,36 @@ is mapped back to `app.js:2`. A number that looks like a line number and is not
 is worse than no number, because people go to line 76 of the file they are in and
 find something innocent there.
 
+**Your work can leave, and it can come back.** The app's promise is that
+nothing leaves this browser. The unspoken half was that nothing *survives* it:
+everything lives in one origin's IndexedDB, and clearing site data, changing
+machine, or a browser evicting storage under pressure took the lot. The
+Settings panel said exactly that and offered no remedy, which is a warning
+rather than an answer.
+
+**Save a copy** writes one file with every conversation, page, canvas and its
+whole version history, project and style in it — plain JSON, indented, readable
+in a text editor, so it outlives this app. **Bring one back** adds what is
+missing and never overwrites what is already here, because a restore usually
+happens onto a machine that has something on it and the failure everyone fears
+is a backup quietly winning an argument with work you did since. Restoring the
+same file twice says so instead of doubling anything.
+
+Two deliberate omissions. **API keys are never written**: a backup lands in
+Downloads and gets synced, and a key in one is a key on somebody else's machine
+— so the file records which providers you had configured and not what the keys
+were. And nothing is compressed: a backup you cannot read is a backup you
+cannot check.
+
+Writing it turned up something worse than a missing feature. **"Delete all
+data" did not delete all data.** It cleared conversations, messages and notes
+and left canvases, every file in them, their entire version history, projects,
+the knowledge attached to them, and every style you had written — under a
+button whose own description read "it genuinely deletes — nothing is kept
+anywhere else". Someone wiping this before handing over a laptop was leaving
+their work on it. It enumerates the live database now rather than a list kept
+by hand, because a hand-kept list is exactly what went wrong.
+
 **Making it, then using it.** A deck of cards is made once and studied twenty
 times, and on the twentieth the tab strip, the editor and the box for asking
 for changes are all furniture standing between you and the card. **Use it**
@@ -473,6 +503,16 @@ heading, and link URLs printed in full.
   preview counts, a `console.log` and an uncaught `ReferenceError` come back out
   with the error mapped to `app.js:2`, and `window.origin` inside the frame is
   `null` with `localStorage` throwing `SecurityError`.
+- **The round trip, driven for real** (`e2e-backup.mjs`): a canvas with three
+  files and a history, a page and a conversation are made, saved to a file, and
+  the file is read back off disk — checked for containing the work rather than
+  a summary of it, for being readable (the sentence typed into the page is
+  right there in the JSON), and for *not* containing the API key that was in
+  settings the whole time. Then everything is deleted, the file is restored,
+  and the page is opened to confirm it is the same work and not a shell of it.
+  Then restored a second time, to confirm nothing doubles.
+  Both halves were checked by putting the bug back. With the old delete, seven
+  rows survived "delete everything" and the gate went red.
 - **The app under weight** (`e2e-scale.mjs`), which is where two things had
   silently gone wrong. Everything else here is tested at three messages, where
   nothing is slow and nothing is heavy.
@@ -680,6 +720,7 @@ node e2e-bar.mjs     # 24 assertions: the message bar, measured in all three roo
 node e2e-motion.mjs  # 17 assertions: the motion, asked for rather than admired
 node e2e-use.mjs     # 21 assertions: using a made thing, and making one from a book
 node e2e-scale.mjs   #  6 assertions: what it costs to open, and 400 turns deep
+node e2e-backup.mjs  # 14 assertions: a copy of everything, and everything back
 node mock-slow.mjs &   # the mock with the gap between tokens stretched, then:
 node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs the slow mock)
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire

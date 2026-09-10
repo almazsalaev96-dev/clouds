@@ -2,13 +2,16 @@
 
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Check, ExternalLink, Eye, EyeOff, Trash2, X } from "lucide-react";
+import { Check, Download, ExternalLink, Eye, EyeOff, Trash2, Upload, X } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import type { ProviderId } from "@/lib/types";
 import { PROVIDERS, getModel } from "@/lib/models";
 import { createStyle, db, deleteAllData, deleteStyle } from "@/lib/db";
 import { BUILT_IN_STYLES } from "@/lib/styles";
 import { offerUndo } from "@/lib/undo";
+import {
+  backupCounts, buildBackup, downloadBackup, parseBackup, restoreBackup, say, BackupError,
+} from "@/lib/backup";
 import { useSettings, paramsFor, DEFAULT_PARAMS } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
@@ -359,23 +362,103 @@ function ShortcutsPanel() {
 function DataPanel() {
   const [confirming, setConfirming] = React.useState(false);
   const [done, setDone] = React.useState(false);
+  const [busy, setBusy] = React.useState<false | "save" | "load">(false);
+  const [said, setSaid] = React.useState<string | null>(null);
+  const [problem, setProblem] = React.useState<string | null>(null);
+  const fileRef = React.useRef<HTMLInputElement>(null);
+
+  const save = async () => {
+    setBusy("save");
+    setProblem(null);
+    try {
+      const b = await buildBackup();
+      downloadBackup(b);
+      setSaid(`Saved ${say(backupCounts(b))}.`);
+    } catch {
+      setProblem("Could not read the database to write a backup.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const load = async (file: File) => {
+    setBusy("load");
+    setProblem(null);
+    setSaid(null);
+    try {
+      const result = await restoreBackup(parseBackup(await file.text()));
+      setSaid(
+        result.added
+          ? `Brought back ${say(result.per)}.${result.skipped ? ` ${result.skipped} were already here.` : ""}`
+          : "Everything in that file was already here.",
+      );
+      /* Only when something actually arrived. A live query cannot notice a
+         bulk write it did not make, so the app has to be told — but reloading
+         to show you nothing is a jolt for no reason, and it took the sentence
+         explaining why nothing happened with it. */
+      if (result.added) setTimeout(() => location.reload(), 1400);
+    } catch (e) {
+      setProblem(e instanceof BackupError ? e.message : "Could not read that file.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <Panel
       title="Data"
-      description="Conversations live in this browser's IndexedDB and are never uploaded anywhere. Clearing your browser data clears them too."
+      description="Everything lives in this browser's IndexedDB and is never uploaded anywhere. Which also means clearing your browser data clears it — so take a copy."
     >
+      {/* The half of "nothing leaves this browser" that nobody says out loud
+          is "and nothing survives it". This is the answer to that. */}
+      <div className="mb-3 rounded-lg border border-line p-3">
+        <p className="mb-2 text-sm text-primary">Save a copy</p>
+        <p className="mb-3 text-xs text-secondary">
+          One file with every conversation, page, canvas, project and style in it — plain JSON, readable
+          in any text editor, so it outlives this app. Your API keys are deliberately left out: a backup
+          ends up in Downloads and gets synced, and a key in it is a key on somebody else&rsquo;s machine.
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" onClick={() => void save()} disabled={Boolean(busy)}>
+            <Download size={13} />
+            {busy === "save" ? "Saving…" : "Save a copy"}
+          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            aria-label="Choose a backup to bring back"
+            tabIndex={-1}
+            className="sr-only"
+            onChange={async (e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) await load(f);
+            }}
+          />
+          <Button size="sm" variant="ghost" onClick={() => fileRef.current?.click()} disabled={Boolean(busy)}>
+            <Upload size={13} />
+            {busy === "load" ? "Reading…" : "Bring one back"}
+          </Button>
+        </div>
+        {said && <p className="mt-2 text-xs text-success">{said}</p>}
+        {problem && <p className="mt-2 text-xs text-danger">{problem}</p>}
+        <p className="mt-2 text-xs text-tertiary">
+          Bringing one back adds what is missing and never overwrites what is already here.
+        </p>
+      </div>
+
       <div className="rounded-lg border border-line p-3">
         <p className="mb-2 text-sm text-primary">Delete everything</p>
         <p className="mb-3 text-xs text-secondary">
-          Removes every conversation and message from this browser. This cannot be undone, and it
-          genuinely deletes — nothing is kept anywhere else.
+          Every conversation, page, canvas, project and style, gone from this browser. This cannot be
+          undone, and it genuinely deletes — nothing is kept anywhere else.
         </p>
         {done ? (
           <p className="text-xs text-success">Deleted.</p>
         ) : confirming ? (
           <ConfirmInline
-            question="Delete all conversations?"
+            question="Delete everything?"
             onCancel={() => setConfirming(false)}
             onConfirm={async () => {
               await deleteAllData();

@@ -251,18 +251,26 @@ export async function deleteConversation(id: string): Promise<() => Promise<void
   });
 }
 
+/**
+ * Everything, and this time everything.
+ *
+ * It used to clear three tables and say it had cleared them all — canvases,
+ * their files and their whole version history, projects, the knowledge
+ * attached to them, and every style you had written all survived a button
+ * whose own description read "it genuinely deletes — nothing is kept anywhere
+ * else". Someone wiping this before handing over a laptop was leaving their
+ * work on it.
+ *
+ * Enumerated from the live database rather than a list kept by hand, because a
+ * hand-kept list is exactly what went wrong: a table added later is a table
+ * this forgets, and the failure is silent and the stakes are somebody's
+ * privacy.
+ */
 export async function deleteAllData() {
-  await db.transaction(
-    "rw",
-    [
-      db.conversations, db.messages, db.notes,
-    ],
-    async () => {
-      await db.messages.clear();
-      await db.conversations.clear();
-      await db.notes.clear();
-    },
-  );
+  const tables = db.tables;
+  await db.transaction("rw", tables, async () => {
+    for (const t of tables) await t.clear();
+  });
 }
 
 export function blockText(content: ContentBlock[]): string {
