@@ -12,13 +12,42 @@ import type { ProviderId } from "./types";
  * so the extra machinery would buy nothing. Failure is a returned null, never
  * a thrown error, because every caller here is doing something optional.
  */
+/**
+ * Watching it work, and being able to stop it.
+ *
+ * The answer was already arriving a token at a time and being poured into a
+ * buffer nobody could see — so every revision, plan, review and page in this
+ * app was a spinner in front of a stream that had started. On a four-hundred
+ * line file that is forty seconds of a screen that looks broken, with no way
+ * to tell "thinking" from "hung" and nothing to do but wait for a result you
+ * cannot judge until it is finished and has replaced your file.
+ *
+ * Chat had both of these from the beginning. Everything else in the app was
+ * built on the one-shot path, which is the right shape for a title and the
+ * wrong one for anything you are sitting and waiting for.
+ */
+export interface Progress {
+  /** Called with everything received so far, each time more arrives. */
+  onText?: (soFar: string) => void;
+  /** Aborts the request. What had arrived is returned rather than discarded. */
+  signal?: AbortSignal;
+}
+
 export async function complete(
   prompt: string,
-  opts: { modelId?: string; maxTokens?: number; temperature?: number; system?: string } = {},
+  opts: {
+    modelId?: string;
+    maxTokens?: number;
+    temperature?: number;
+    system?: string;
+  } & Progress = {},
 ): Promise<string | null> {
   const settings = useSettings.getState();
   const modelId = opts.modelId ?? settings.modelId;
   const provider = getModel(modelId).provider;
+
+  /* Outside the try, so an abort mid-stream can still hand back what arrived. */
+  let out = "";
 
   try {
     const res = await fetch("/api/chat", {
@@ -38,10 +67,10 @@ export async function complete(
         },
         clientKey: settings.keys[provider] || undefined,
       }),
+      signal: opts.signal,
     });
     if (!res.body) return null;
 
-    let out = "";
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buf = "";
@@ -56,7 +85,10 @@ export async function complete(
         if (!chunk.startsWith("data: ")) continue;
         try {
           const ev = JSON.parse(chunk.slice(6));
-          if (ev.type === "text") out += ev.text;
+          if (ev.type === "text") {
+            out += ev.text;
+            opts.onText?.(out);
+          }
           if (ev.type === "error") return null;
         } catch {
           /* partial frame */
@@ -65,7 +97,12 @@ export async function complete(
     }
     return out.trim() || null;
   } catch {
-    return null;
+    /* An abort is not a failure, and what had already arrived is not rubbish.
+       A stopped revision of a long file is usually most of a revision, and
+       throwing it away because the reader pressed stop is throwing away the
+       thing they were watching arrive. Callers decide what a partial answer is
+       worth; this only decides not to lose it. */
+    return out.trim() || null;
   }
 }
 
@@ -184,6 +221,7 @@ export async function reviseCanvas(
   perSibling = 12_000,
   /** Standing rules for this file. See `houseRules`. */
   rules?: string,
+  progress?: Progress,
 ): Promise<string | null> {
   const what = kind === "doc" ? "document" : `${lang ?? "code"} file`;
   const context = siblings?.length
@@ -206,7 +244,7 @@ ${instruction}${houseRules(rules)}${context}
 CURRENT
 ${current.slice(0, 60_000)}`;
 
-  const out = await complete(prompt, { modelId, maxTokens: 16_000, temperature: 0.15 });
+  const out = await complete(prompt, { modelId, maxTokens: 16_000, temperature: 0.15, ...progress });
   if (!out) return null;
 
   /* Models fence code even when told not to. Strip one wrapping fence — but
@@ -249,6 +287,7 @@ export async function reviseSelection(
   lang: string | undefined,
   modelId?: string,
   rules?: string,
+  progress?: Progress,
 ): Promise<string | null> {
   const before = whole.slice(0, selection.start);
   const chosen = whole.slice(selection.start, selection.end);
@@ -275,7 +314,7 @@ ${chosen}
 
 AFTER THE SELECTION (context only — do not return this)
 ${after.slice(0, 4000)}`,
-    { modelId, maxTokens: 4096, temperature: 0.2 },
+    { modelId, maxTokens: 4096, temperature: 0.2, ...progress },
   );
   if (!out) return null;
 
@@ -303,6 +342,7 @@ export async function reviewCode(
   modelId?: string,
   siblings?: { name: string; content: string }[],
   rules?: string,
+  progress?: Progress,
 ): Promise<string | null> {
   const context = siblings?.length
     ? `\n\nThe other files in the same folder, for reference:\n\n` +
@@ -322,7 +362,7 @@ Rules:
 - Markdown, headings and short paragraphs. No preamble.
 ${houseRules(rules)}
 ${current}${context}`,
-    { modelId, maxTokens: 2048, temperature: 0.2 },
+    { modelId, maxTokens: 2048, temperature: 0.2, ...progress },
   );
 }
 
@@ -341,6 +381,7 @@ export async function explainCode(
    * lessons about three pages while looking like lessons about the book.
    */
   perSibling = 12_000,
+  progress?: Progress,
 ): Promise<string | null> {
   const context = siblings?.length
     ? `\n\nThe other files in the same folder:\n\n` +
@@ -357,7 +398,7 @@ Rules:
 
 CODE
 ${current.slice(0, 40_000)}${context}`,
-    { modelId, maxTokens: 2_000, temperature: 0.3 },
+    { modelId, maxTokens: 2_000, temperature: 0.3, ...progress },
   );
 }
 
@@ -400,6 +441,7 @@ export async function planChanges(
   modelId?: string,
   siblings?: { name: string; content: string }[],
   rules?: string,
+  progress?: Progress,
 ): Promise<{ summary: string; steps: PlanStep[] } | null> {
   const what = kind === "doc" ? "document" : `${lang ?? "code"} file`;
   const context = siblings?.length
@@ -428,7 +470,7 @@ Rules:
 
 CURRENT
 ${current.slice(0, 60_000)}${context}`,
-    { modelId, maxTokens: 2048, temperature: 0.2 },
+    { modelId, maxTokens: 2048, temperature: 0.2, ...progress },
   );
   if (!out) return null;
 
@@ -472,6 +514,7 @@ export async function checkChange(
   asked: string,
   lang: string | undefined,
   modelId?: string,
+  progress?: Progress,
 ): Promise<string | null> {
   return complete(
     `A change was just made to this ${lang ?? "code"} and has not been accepted yet. Check it.
@@ -495,7 +538,7 @@ ${before.slice(0, 30_000)}
 
 AFTER
 ${after.slice(0, 30_000)}`,
-    { modelId, maxTokens: 1024, temperature: 0.2 },
+    { modelId, maxTokens: 1024, temperature: 0.2, ...progress },
   );
 }
 
@@ -584,6 +627,7 @@ export async function reviseElement(
   instruction: string,
   modelId?: string,
   rules?: string,
+  progress?: Progress,
 ): Promise<{ file: string; content: string } | null> {
   const folder = files
     .map((f) => `--- ${f.name} ---\n${f.content.slice(0, 20_000)}`)
@@ -614,7 +658,7 @@ Rules:
 
 THE FOLDER
 ${folder}`,
-    { modelId, maxTokens: 16_000, temperature: 0.15 },
+    { modelId, maxTokens: 16_000, temperature: 0.15, ...progress },
   );
   if (!out) return null;
 
@@ -662,6 +706,7 @@ export async function askProject(
   sources: Source[],
   modelId?: string,
   budget = 120_000,
+  progress?: Progress,
 ): Promise<{ text: string; dropped: string[] } | null> {
   const kept: Source[] = [];
   const dropped: string[] = [];
@@ -692,7 +737,7 @@ Rules:
 
 THE PROJECT
 ${body}`,
-    { modelId, maxTokens: 2048, temperature: 0.2 },
+    { modelId, maxTokens: 2048, temperature: 0.2, ...progress },
   );
   return out ? { text: out, dropped } : null;
 }
@@ -717,6 +762,7 @@ export async function makeFromSources(
   sources: { name: string; text: string }[],
   modelId?: string,
   perSource = 90_000,
+  progress?: Progress,
 ): Promise<string | null> {
   const material = sources
     .map((s) => `--- ${s.name} ---\n${s.text.slice(0, perSource)}`)
@@ -746,6 +792,6 @@ Also:
 
 THE MATERIAL
 ${material}`,
-    { modelId, maxTokens: 16_000, temperature: 0.3 },
+    { modelId, maxTokens: 16_000, temperature: 0.3, ...progress },
   );
 }

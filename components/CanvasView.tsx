@@ -28,6 +28,7 @@ import {
   reviseSelection,
   type Picked,
   type PlanStep,
+  type Progress,
 } from "@/lib/generate";
 import { collapse, diffStat, lineDiff, type DiffOp } from "@/lib/diff";
 import { assembleWeb, ENTRY, locate, runToken, webTemplate } from "@/lib/web";
@@ -271,6 +272,14 @@ function Editor({
   const [selection, setSelection] = React.useState<Selection | null>(null);
   /* Pointing at the running page. `picking` is the mode — crosshair on, clicks
      caught rather than delivered — and `picked` is what came back from it. */
+  /* What is arriving, while it arrives, and the way to stop it.
+     Every one of these calls was already a stream; it was being poured into a
+     buffer nobody could see, so a four-hundred-line revision was forty seconds
+     of a screen with no way to tell thinking from hung. */
+  const [live, setLive] = React.useState<string | null>(null);
+  const abortRef = React.useRef<AbortController | null>(null);
+  const stop = React.useCallback(() => abortRef.current?.abort(), []);
+
   const [picking, setPicking] = React.useState(false);
   const [picked, setPicked] = React.useState<Picked | null>(null);
 
@@ -407,6 +416,37 @@ function Editor({
     [web, files, activeFile?.id],
   );
 
+  /**
+   * The progress hook every call in this room shares.
+   *
+   * One controller at a time, replaced on each start: two overlapping requests
+   * from one composer is not a state this room can get into, and a stack of
+   * abort controllers to handle a case that cannot happen is machinery that
+   * only ever goes wrong.
+   */
+  const watching = React.useCallback((): Progress => {
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    setLive("");
+    return { signal: ctrl.signal, onText: setLive };
+  }, []);
+
+  /**
+   * Whether the thing that just finished was stopped rather than finished.
+   *
+   * It matters more than it looks. A stopped *prose* answer is most of an
+   * answer and worth keeping; a stopped *file* is a file cut off in the middle,
+   * and offering that as a complete replacement is how pressing stop deletes
+   * the second half of somebody's code. Same abort, opposite handling.
+   */
+  const stopped = React.useCallback(() => Boolean(abortRef.current?.signal.aborted), []);
+
+  const settle = React.useCallback(() => {
+    abortRef.current = null;
+    setLive(null);
+    setBusy(false);
+  }, []);
+
   /* `label` is what this is called afterwards, on the diff and in the file's
      history. A shortcut sends three sentences and means two words. */
   const run = async (text: string, label?: string) => {
@@ -429,7 +469,11 @@ function Editor({
           name: f.name,
           content: f.id === activeFile?.id ? draft : f.content,
         }));
-        const hit = await reviseElement(all, picked, text, modelId, rules);
+        const hit = await reviseElement(all, picked, text, modelId, rules, watching());
+        if (stopped()) {
+          setNotice("Stopped. Nothing was changed.");
+          return;
+        }
         if (!hit) {
           setNotice("That didn't come back as a change to one file. Try saying it differently.");
           return;
@@ -449,20 +493,24 @@ function Editor({
       }
 
       const out = selection
-        ? await reviseSelection(draft, selection, text, doc.lang, modelId, rules)
+        ? await reviseSelection(draft, selection, text, doc.lang, modelId, rules, watching())
         : /* `undefined` is perSibling left at its default. Rules ride behind it
              because the notebook calls this positionally with a much larger
              one, and reordering to make this call site prettier would quietly
              cut a book down to a folder's worth of context. */
-          await reviseCanvas(draft, text, canvas.kind, doc.lang, modelId, siblings, undefined, rules);
-      if (!out) setNotice("The model didn't return a usable revision. Try saying it differently.");
+          await reviseCanvas(draft, text, canvas.kind, doc.lang, modelId, siblings, undefined, rules, watching());
+      /* A file that stopped arriving is a file with its end missing, and a
+         diff of it would read as "the rest was deleted". Thrown away on
+         purpose: stop should mean nothing happened, not half-happened. */
+      if (stopped()) setNotice("Stopped. Nothing was changed.");
+      else if (!out) setNotice("The model didn't return a usable revision. Try saying it differently.");
       else if (out.trim() === draft.trim())
         setNotice("It came back unchanged — the instruction may not apply here.");
       else setProposal({ content: out, note: label ?? text, before: draft });
     } catch {
       setNotice("That request failed. Check the key and the connection.");
     } finally {
-      setBusy(false);
+      settle();
     }
   };
 
@@ -475,13 +523,17 @@ function Editor({
     setBusy("review");
     setNotice(null);
     try {
-      const out = await reviewCode(draft, doc.lang, modelId, siblings, rules);
-      if (out) setReport({ kind: "review", text: out });
-      else setNotice("The model didn't return a review. Try again.");
+      const out = await reviewCode(draft, doc.lang, modelId, siblings, rules, watching());
+      /* Kept even when stopped. Half a review is half a review; half a file is
+         a broken file. The difference is whether the thing is read or run. */
+      if (out) {
+        setReport({ kind: "review", text: out });
+        if (stopped()) setNotice("Stopped — this is as far as it got.");
+      } else setNotice(stopped() ? "Stopped." : "The model didn't return a review. Try again.");
     } catch {
       setNotice("That request failed. Check the key and the connection.");
     } finally {
-      setBusy(false);
+      settle();
     }
   };
 
@@ -503,8 +555,9 @@ function Editor({
     setNotice(null);
     setReport(null);
     try {
-      const out = await planChanges(draft, instruction, canvas.kind, doc.lang, modelId, siblings, rules);
-      if (!out) setNotice("The plan didn't come back in a usable shape. Try again.");
+      const out = await planChanges(draft, instruction, canvas.kind, doc.lang, modelId, siblings, rules, watching());
+      if (stopped()) setNotice("Stopped. No plan was made.");
+      else if (!out) setNotice("The plan didn't come back in a usable shape. Try again.");
       else if (!out.steps.length)
         setNotice(out.summary || "It didn't find anything here worth changing.");
       else {
@@ -514,7 +567,7 @@ function Editor({
     } catch {
       setNotice("That request failed. Check the key and the connection.");
     } finally {
-      setBusy(false);
+      settle();
     }
   };
 
@@ -541,13 +594,15 @@ function Editor({
     setBusy("check");
     setNotice(null);
     try {
-      const out = await checkChange(proposal.before, proposal.content, proposal.note, doc.lang, modelId);
-      if (out) setReport({ kind: "check", text: out });
-      else setNotice("The check didn't come back. Try again.");
+      const out = await checkChange(proposal.before, proposal.content, proposal.note, doc.lang, modelId, watching());
+      if (out) {
+        setReport({ kind: "check", text: out });
+        if (stopped()) setNotice("Stopped — this is as far as it got.");
+      } else setNotice(stopped() ? "Stopped." : "The check didn't come back. Try again.");
     } catch {
       setNotice("That request failed. Check the key and the connection.");
     } finally {
-      setBusy(false);
+      settle();
     }
   };
 
@@ -577,11 +632,14 @@ function Editor({
     setBusy("explain");
     setNotice(null);
     try {
-      setReport({ kind: "explain", text: (await explainCode(draft, doc.lang, modelId, siblings)) ?? "Nothing came back." });
+      setReport({
+        kind: "explain",
+        text: (await explainCode(draft, doc.lang, modelId, siblings, undefined, watching())) ?? "Nothing came back.",
+      });
     } catch {
       setNotice("That request failed. Check the key and the connection.");
     } finally {
-      setBusy(false);
+      settle();
     }
   };
 
@@ -908,6 +966,9 @@ function Editor({
             </div>
           )}
 
+          {/* What is arriving, while it arrives. */}
+          {busy && live !== null && <Live text={live} kind={busy} column={column} onStop={stop} />}
+
           {rulesOpen && !proposal && (
             <RulesPanel
               value={fileRules}
@@ -950,6 +1011,11 @@ function Editor({
                   onSubmit={() => void run(instruction)}
                   busy={busy === "revise"}
                   canSend={!busy}
+                  /* The send disc becomes stop, in place — the same control
+                     chat has had all along, in a room that until now offered
+                     nothing to press while it worked. */
+                  streaming={Boolean(busy)}
+                  onStop={stop}
                   ariaLabel="Ask for a change"
                   placeholder={
                     picked
@@ -1235,6 +1301,86 @@ function Report({
           </IconButton>
         </div>
         <Markdown content={text} />
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ live -- */
+
+/**
+ * The answer arriving, rather than a spinner in front of it.
+ *
+ * Chat has had this from the beginning and everywhere else in the app was
+ * built on the one-shot path, which is the right shape for generating a
+ * conversation title and the wrong one for anything a person is sitting and
+ * waiting for. The tokens were always coming a few at a time; they were being
+ * put in a buffer nobody could see.
+ *
+ * The tail rather than the whole thing, pinned to the bottom. What is useful
+ * while something is being written is the edge where it is being written —
+ * scrolling back through what has already arrived is for afterwards, and a
+ * pane that jumps to follow the text while you try to read the top of it is
+ * worse than one that shows only the end.
+ *
+ * A count, because "is it doing anything" is the actual question and a moving
+ * number answers it in a way a moving spinner does not: a spinner spins just
+ * as smoothly when nothing is coming.
+ */
+function Live({
+  text,
+  kind,
+  column,
+  onStop,
+}: {
+  text: string;
+  kind: "revise" | "explain" | "review" | "plan" | "check";
+  column: string;
+  onStop: () => void;
+}) {
+  const ref = React.useRef<HTMLPreElement>(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [text]);
+
+  const WHAT: Record<typeof kind, string> = {
+    revise: "Writing the change",
+    explain: "Explaining",
+    review: "Reading it",
+    plan: "Working out what to do",
+    check: "Checking the change",
+  };
+
+  return (
+    <div className={cn("mx-auto w-full shrink-0 px-4 pt-2", column)}>
+      <div className="rounded-xl border border-line bg-inset p-3">
+        <div className="mb-1.5 flex items-center gap-2">
+          <span className="think-orb shrink-0" aria-hidden />
+          <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+            {WHAT[kind]}
+          </span>
+          <span className="tnum min-w-0 flex-1 text-xs text-tertiary">
+            {text.length.toLocaleString()} characters
+          </span>
+          <button
+            onClick={onStop}
+            className="focus-inset shrink-0 rounded-full border border-line px-2.5 py-0.5 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+          >
+            Stop
+          </button>
+        </div>
+        <pre
+          ref={ref}
+          /* Announced as a live region but politely: the text changes several
+             times a second, and a screen reader reading every token is not
+             progress, it is noise you cannot escape. */
+          aria-live="polite"
+          aria-atomic="false"
+          className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-[1.6] text-tertiary"
+        >
+          {text || "…"}
+        </pre>
       </div>
     </div>
   );

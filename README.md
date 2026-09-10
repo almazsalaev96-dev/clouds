@@ -367,6 +367,29 @@ every time you double-click a word is wrong more often than right. Accepting the
 change lets the selection go, because the lines you selected are not the lines
 you now have.
 
+**You can watch it work, and stop it.** Every one of these calls was already a
+stream. The tokens were arriving a few at a time and being poured into a buffer
+nobody could see — so a revision of a four-hundred-line file was forty seconds
+of a spinner, with no way to tell thinking from hung, no idea how far along it
+was, and nothing to press. Chat had streaming and a stop button from the
+beginning; everything else in the app was built on the one-shot path, which is
+the right shape for generating a conversation title and the wrong one for
+anything a person is sitting in front of.
+
+Now every revision, plan, review, check, element change and notebook page says
+what it is doing (*Writing the change*), shows the text arriving, counts the
+characters as they land — a moving number answers "is this alive" in a way a
+spinner cannot, since a spinner spins just as smoothly when nothing is coming —
+and turns the send disc into stop, in place.
+
+**Stopping a file changes nothing; stopping a review keeps what arrived.** Same
+abort, opposite handling, and it is the part worth getting right. A file that
+stopped arriving is a file with its end missing, and offering that as a diff
+would read as *the rest was deleted* — so a stopped revision is thrown away and
+says *Stopped. Nothing was changed.* A stopped review is most of a review, so it
+is kept and says *Stopped — this is as far as it got.* The difference is whether
+the thing is read or run.
+
 **Code that belongs to a project.** A project already held instructions and
 material that every chat started inside it could see. The code in that same
 project could not — so the conventions you wrote once, for the thing you were
@@ -857,6 +880,14 @@ heading, and link URLs printed in full.
   through Chromium's print media emulation rather than assumed.
 - Highlighting confirmed to run in a real Web Worker (counted at construction, not
   assumed), producing 240 themed spans on a 40-line block.
+- **Watching and stopping, measured during the stream** (`e2e-watch.mjs`, 12
+  assertions, needs the slow mock). The count is read twice a second apart and
+  asserted to have *moved*, because "there is a number on screen" is not the
+  claim — a frozen number is exactly the failure a spinner hides. Then the file
+  is stopped mid-write and read back byte for byte, and a review is stopped and
+  found still on screen. The first version of this test used a seven-line file
+  and finished before the first assertion could look at it, which is also the
+  honest reason the feature exists: nobody minds a spinner for a second.
 - **The citation matcher, tested on its own** (`test-cite.mts`, 18 assertions,
   run with `node --experimental-strip-types`). Not through the UI, because the
   interesting cases are the ones a PDF actually produces and they are cheaper to
@@ -1045,6 +1076,7 @@ node e2e-whole.mjs   # 19 assertions: code inside a project, and asking across i
 node e2e-sources.mjs # 20 assertions: many sources, and citations that are checked
 node mock-slow.mjs &   # the mock with the gap between tokens stretched, then:
 node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs the slow mock)
+node e2e-watch.mjs   # 12 assertions: seeing it work, and what stop means
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire
 node test-fit.mjs      # a 360k-token thread trimmed to fit and answered
 MOCK_RATE_LIMIT=1 …    # restart the mock this way, then: node test-retry.mjs

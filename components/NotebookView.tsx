@@ -108,6 +108,12 @@ export function NotebookView({
     { content: string; note: string; citations?: Citation[] } | null
   >(null);
   const [notice, setNotice] = React.useState<string | null>(null);
+  /* What is arriving, and the way to stop it. A page made from three sources
+     is the longest wait in the app, and it was the emptiest. */
+  const [live, setLive] = React.useState<string | null>(null);
+  const abortRef = React.useRef<AbortController | null>(null);
+  const stop = React.useCallback(() => abortRef.current?.abort(), []);
+  const stopped = () => Boolean(abortRef.current?.signal.aborted);
   const reviseModel = useReviseModel(configured);
   /**
    * What the page is made out of. However many of them there are.
@@ -188,11 +194,22 @@ export function NotebookView({
          Sending the second down the first path would ask a model to cite a
          page against sources that do not exist. */
       if (sources.length) {
+        const ctrl = new AbortController();
+        abortRef.current = ctrl;
+        setLive("");
         const raw = await makeFromSources(
           text,
           sources.map((s) => ({ name: s.name, text: s.text })),
           modelId,
+          undefined,
+          { signal: ctrl.signal, onText: setLive },
         );
+        /* A page cut off mid-sentence is not a page, and its citations are
+           whatever happened to have arrived. Stop means nothing happened. */
+        if (stopped()) {
+          setNotice("Stopped. The page is unchanged.");
+          return;
+        }
         if (!raw) {
           setNotice("Nothing usable came back. Try saying it differently.");
           return;
@@ -210,14 +227,23 @@ export function NotebookView({
         return;
       }
 
-      const out = await reviseCanvas(draft, text, "doc", undefined, modelId, undefined, 120_000);
-      if (!out) setNotice("The model didn't return a usable revision. Try saying it differently.");
+      const ctrl = new AbortController();
+      abortRef.current = ctrl;
+      setLive("");
+      const out = await reviseCanvas(draft, text, "doc", undefined, modelId, undefined, 120_000, undefined, {
+        signal: ctrl.signal,
+        onText: setLive,
+      });
+      if (stopped()) setNotice("Stopped. The page is unchanged.");
+      else if (!out) setNotice("The model didn't return a usable revision. Try saying it differently.");
       else if (out.trim() === draft.trim())
         setNotice("It came back unchanged — the instruction may not apply here.");
       else setProposal({ content: out, note: label ?? text });
     } catch {
       setNotice("That request failed. Check the key and the connection.");
     } finally {
+      abortRef.current = null;
+      setLive(null);
       setBusy(false);
     }
   };
@@ -379,6 +405,34 @@ export function NotebookView({
           the exact moment it could not be read, and then vanished when you
           accepted. The one thing you need before deciding belongs where the
           deciding happens. */}
+      {busy && live !== null && (
+        <div className="mx-auto w-full max-w-[var(--measure)] shrink-0 px-4 pt-3">
+          <div className="rounded-xl border border-line bg-inset p-3">
+            <div className="mb-1.5 flex items-center gap-2">
+              <span className="think-orb shrink-0" aria-hidden />
+              <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+                Writing the page
+              </span>
+              <span className="tnum min-w-0 flex-1 text-xs text-tertiary">
+                {live.length.toLocaleString()} characters
+              </span>
+              <button
+                onClick={stop}
+                className="focus-inset shrink-0 rounded-full border border-line px-2.5 py-0.5 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+              >
+                Stop
+              </button>
+            </div>
+            <pre
+              aria-live="polite"
+              className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-[1.6] text-tertiary"
+            >
+              {live || "…"}
+            </pre>
+          </div>
+        </div>
+      )}
+
       {proposal && notice && (
         <div className="mx-auto w-full max-w-[var(--measure)] shrink-0 px-4 pt-3">
           <p className="rounded-lg border border-[var(--warning)] bg-inset px-3 py-2 text-xs text-warning">
@@ -441,6 +495,10 @@ export function NotebookView({
                 onChange={setInstruction}
                 onSubmit={() => void run(instruction)}
                 busy={busy}
+                /* Send becomes stop, in place — the same control chat has had
+                   all along, in the room with the longest waits in the app. */
+                streaming={busy}
+                onStop={stop}
                 ariaLabel="Ask for a change"
                 placeholder="Ask for a change — “tighten the second section”"
                 above={
