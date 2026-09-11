@@ -367,6 +367,50 @@ every time you double-click a word is wrong more often than right. Accepting the
 change lets the selection go, because the lines you selected are not the lines
 you now have.
 
+**Auto: one AI that knows how to use every AI.** The app held four providers'
+keys and asked you which to use. That is "all the models in one app", and it is
+the weak version of the idea — because the person asking the question is the one
+least equipped to answer it. Knowing that *this* request wants the long-context
+model rather than the fast one means knowing what all of them are, which is the
+work the app was supposed to be doing.
+
+Auto sits at the top of the model picker, on its own, above the models, because
+it is not one of them: it is the choice not to choose. It reads what you asked
+for — is there an image in it, how much has to be read, is this code, is this a
+judgement, is this a two-line rewrite — and picks from the models you actually
+have keys for. A one-line translation goes somewhere fast and cheap; "why would
+you choose an event-sourced architecture here" goes somewhere that thinks; a
+refactor goes to something good at code.
+
+Two rules matter more than the routing table:
+
+ - **Requirements are not preferences.** Vision and context window are things a
+   model has or does not, and they are settled before anything is weighed
+   against cost. An answer from a model that could not read the question is not
+   a cheaper answer, it is not an answer. When nothing configured can hold the
+   input, that is said rather than quietly truncated.
+ - **It says why, and you can overrule it.** Every routed answer carries its
+   reason next to the model's name — *this is about code*, *there is an image in
+   this*, *it is long, about 300k tokens to read*. A router you cannot see is a
+   router you cannot correct, and "it sent my hard question to a cheap model" is
+   only a complaint you can make if you were told. Picking a model by hand turns
+   all of it off; your choice answers, however the router would have judged it.
+
+**Sometimes the right model is no model.** A question that is only arithmetic is
+answered by a calculator, here, exactly, for nothing — `948,392 × 73` comes back
+as **69,232,616** with *worked out here, a sum does not need a model*. A language
+model does not do long multiplication; it predicts what the answer looks like,
+which is usually the answer and is not the same thing, and you cannot tell the
+two apart by looking. The parser is a real grammar and not `eval`: numbers, five
+operators, parentheses, and a flat refusal of everything else. It declines more
+than it accepts — `42` is a number and not a sum, `what is 2+2 and why` is a
+question, `1 / 0` has no answer, and `1,5 + 1` is a genuine ambiguity between a
+decimal comma and a thousands separator, so it is refused rather than guessed.
+The answer is credited to **Calculator**, not to a model that was never called.
+
+It is a small feature standing for a large principle: a system that routes
+between models should also know when the right route is no model at all.
+
 **You can watch it work, and stop it.** Every one of these calls was already a
 stream. The tokens were arriving a few at a time and being poured into a buffer
 nobody could see — so a revision of a four-hundred-line file was forty seconds
@@ -880,6 +924,27 @@ heading, and link URLs printed in full.
   through Chromium's print media emulation rather than assumed.
 - Highlighting confirmed to run in a real Web Worker (counted at construction, not
   assumed), producing 240 themed spans on a 40-line block.
+- **The router and the calculator, tested on their own** (`test-route.ts`, 33
+  assertions, `npx jiti test-route.ts`). No browser, no model, no network — the
+  interesting cases are the ones where a plausible-looking answer is the wrong
+  one: `2 ^ 3 ^ 2` is 512 and not 64, `0.1 + 0.2` must not print
+  `0.30000000000000004`, an image must not be routed to a model without eyes,
+  and the same question must route the same way twice or nobody can reason about
+  it. Run with `jiti` rather than Node's `--experimental-strip-types`, which
+  cannot resolve extensionless TypeScript imports — and adding `.ts` extensions
+  across `lib/` to suit one test file would be the test changing the app to fit
+  itself.
+- **Auto driven end to end and read at the wire** (`e2e-auto.mjs`, 15
+  assertions): which model each request was *addressed to*, not which one the
+  app believes it chose. Including the one where the wire stays empty, which is
+  checked against a reset endpoint so "no model was called" is a fact about that
+  question rather than a coincidence about the previous one.
+- Two things the suite caught rather than confirmed. `/__last` in the mock meant
+  "the last request", which on every new thread is the call that writes the
+  conversation's *title* — so the assertions about which model answered were
+  reading the titler. And a sum was being credited to Claude Sonnet 4.5, because
+  `getModel` falls back to the default for an id it does not know: a small lie
+  told by the one feature whose entire point is that it called nothing.
 - **Watching and stopping, measured during the stream** (`e2e-watch.mjs`, 12
   assertions, needs the slow mock). The count is read twice a second apart and
   asserted to have *moved*, because "there is a number on screen" is not the
@@ -995,6 +1060,19 @@ Stated plainly, because a checklist you cannot trust is worse than no checklist.
   here. The rest would need a server, and a server is the one thing this app
   promises not to have. Said plainly because the alternative is a feature list
   that sounds like a coding agent and behaves like a text box.
+- **The router routes; it does not benchmark.** Which model is fast, which is
+  careful and which is good at code is a small hand-kept table, informed by what
+  the makers publish and by using them — not by measured win rates on this app's
+  own traffic. It has no memory of how a model did on your last request, no
+  per-task scoring, and no way to learn that it was wrong. An unlisted model
+  gets the middling row, so adding one to the registry and forgetting the table
+  produces a usable default rather than a model that is never chosen.
+- **Auto is chat only.** The canvas and the notebook still use the model their
+  own picker names. Their work is longer and more expensive per call, which is
+  an argument for routing it, not against — it is simply not done yet.
+- **The calculator is arithmetic and nothing else.** Not unit conversion, not
+  dates, not percentages of things, not "sort these 100,000 rows" — which is the
+  other half of the same principle and needs somewhere to put the rows.
 - **A citation proves a quote exists, not that it supports the claim.** The check
   is that the words are in the file. Whether the sentence they are attached to is
   a fair reading of them is a judgement no string match makes, and a green marker
@@ -1047,8 +1125,9 @@ node contrast.mjs     # every text/background pair the app renders, against WCAG
 node touch.mjs        # every control in every section on a phone, against 44pt
 node shoot-smoke.mjs  # every section loads, undo works, no runtime errors
 
-# and one that needs no browser at all:
+# and two that need no browser at all:
 node --experimental-strip-types test-cite.mts   # the citation matcher, on its own
+npx jiti test-route.ts                          # the model router and the calculator
 ```
 
 And the end-to-end run, which needs the app pointed at the mock provider:
@@ -1074,6 +1153,7 @@ node e2e-agent.mjs   # 26 assertions: plan, house rules, check, and fix-from-err
 node e2e-point.mjs   # 18 assertions: pointing at a running page and changing it
 node e2e-whole.mjs   # 19 assertions: code inside a project, and asking across it
 node e2e-sources.mjs # 20 assertions: many sources, and citations that are checked
+node e2e-auto.mjs    # 15 assertions: which model answered, read at the wire
 node mock-slow.mjs &   # the mock with the gap between tokens stretched, then:
 node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs the slow mock)
 node e2e-watch.mjs   # 12 assertions: seeing it work, and what stop means

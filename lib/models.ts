@@ -31,6 +31,26 @@ export const PROVIDERS: Record<
 };
 
 /**
+ * "Let the app decide", as a value the picker can hold.
+ *
+ * Not a model, and deliberately not stored as one: it is the *absence* of a
+ * choice, which is a different thing from a choice of something automatic, and
+ * every place that asks "which model" has to be able to tell them apart.
+ */
+export const AUTO = "auto";
+
+/**
+ * The author of an answer no model produced.
+ *
+ * `getModel` falls back to the default for an id it does not know, which is
+ * right for a model that has been retired and wrong for this: it put "Claude
+ * Sonnet 4.5" above a sum that was worked out locally and never left the
+ * browser. Attributing an answer to a model that was not called is a small lie
+ * told by the one feature whose entire point is that it did not call one.
+ */
+export const CALCULATOR = "calculator";
+
+/**
  * Blurbs say what the model is *for*, in the words a user would use. A picker
  * that lists twelve names and no guidance has pushed the decision back onto
  * the person least equipped to make it.

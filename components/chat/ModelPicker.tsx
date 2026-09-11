@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
-import { Check, ChevronDown, Eye, Brain, Star, Wrench } from "lucide-react";
+import { Check, ChevronDown, Eye, Brain, Star, Wand2, Wrench } from "lucide-react";
 import type { ModelSpec, ProviderId } from "@/lib/types";
-import { MODELS, PROVIDERS, getModel, formatContext } from "@/lib/models";
+import { AUTO, MODELS, PROVIDERS, getModel, formatContext } from "@/lib/models";
 import { useSettings } from "@/lib/store";
 import { cn, fuzzyScore } from "@/lib/utils";
 
@@ -27,6 +27,7 @@ export function ModelPicker({
 }) {
   const { favorites, toggleFavorite, recentModels, keys } = useSettings();
   const [query, setQuery] = React.useState("");
+  const auto = value === AUTO;
   const model = getModel(value);
 
   const available = (m: ModelSpec) => configured[m.provider] || Boolean(keys[m.provider]);
@@ -73,7 +74,7 @@ export function ModelPicker({
       <Popover.Trigger asChild>
         {children ?? (
           <button className="tap flex h-8 items-center gap-1 rounded-md px-2 text-sm font-medium text-primary transition-colors duration-[var(--dur-fast)] hover:bg-subtle">
-            {model.name}
+            {auto ? "Auto" : model.name}
             <ChevronDown size={13} className="text-tertiary" />
           </button>
         )}
@@ -104,6 +105,33 @@ export function ModelPicker({
               )
             ) : (
               <>
+                {/* First, and on its own, because it is not one of the models —
+                    it is the choice not to choose, which is the right answer
+                    for most people most of the time. The person asking is the
+                    one least equipped to know whether this request wants the
+                    long-context model or the fast one. */}
+                <Section label="Let the app decide">
+                  <button
+                    onClick={() => {
+                      onChange(AUTO);
+                      onOpenChange?.(false);
+                    }}
+                    className={cn(
+                      "focus-inset flex w-full items-start gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle",
+                      auto && "bg-subtle",
+                    )}
+                  >
+                    <Wand2 size={14} className="mt-0.5 shrink-0 text-[var(--accent-2)]" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-primary">Auto</span>
+                      <span className="block text-xs text-tertiary">
+                        Reads what you asked for and picks. Says which it chose, and why.
+                      </span>
+                    </span>
+                    {auto && <Check size={14} className="mt-0.5 shrink-0 text-accent" />}
+                  </button>
+                </Section>
+
                 {favModels.length > 0 && (
                   <Section label="Favorites">{favModels.map(row)}</Section>
                 )}

@@ -31,6 +31,15 @@ export interface Message {
   /** Reasoning trace, kept separate so it never outweighs the answer visually. */
   reasoning?: string;
   modelId?: string;
+  /**
+   * Why this model, when the app chose it rather than the person.
+   *
+   * Kept with the answer because that is where the question arises, and
+   * because a router you cannot see is a router you cannot correct. Absent on
+   * every message where the model was picked by hand — there is nothing to
+   * explain about a decision somebody made themselves.
+   */
+  routedWhy?: string;
   usage?: Usage;
   latencyMs?: number;
   /** Time to first token — the number that actually predicts perceived speed. */

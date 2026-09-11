@@ -122,6 +122,8 @@ export function useStream(onFinish?: (m: Message) => void) {
       conversationId: string;
       parentId: string | null;
       modelId: string;
+      /** Why this model, when the app chose it. Travels to the saved answer. */
+      routedWhy?: string;
       history: Message[];
       systemPrompt?: string;
       /** A mode's sampling overrides, layered over the model's own. */
@@ -265,6 +267,7 @@ export function useStream(onFinish?: (m: Message) => void) {
         content,
         reasoning: reasoningRef.current || undefined,
         modelId: opts.modelId,
+        routedWhy: opts.routedWhy,
         usage,
         latencyMs,
         ttftMs: ttftRef.current ?? undefined,

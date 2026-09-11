@@ -4,10 +4,10 @@ import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
   Brain, Check, FileText, MessageSquare, Paperclip, Palette, Plus,
-  SlidersHorizontal, Sparkles, X,
+  SlidersHorizontal, Sparkles, Wand2, X,
 } from "lucide-react";
 import type { ContentBlock, Style } from "@/lib/types";
-import { getModel, estimateTokens, formatTokens, MODELS } from "@/lib/models";
+import { AUTO, getModel, estimateTokens, formatTokens, MODELS } from "@/lib/models";
 import { paramsFor } from "@/lib/store";
 import { ModelPicker } from "./ModelPicker";
 import { MessageBar } from "./MessageBar";
@@ -577,14 +577,26 @@ export function Composer({
             configured={configured}
             align="end"
           >
+            {/* On Auto there is no provider to mark and no model to name: the
+                answer is chosen per message, and putting last message's model
+                here would read as a setting rather than as a decision. */}
             <button
-              aria-label={`Model: ${model.name}`}
+              aria-label={modelId === AUTO ? "Model: chosen automatically" : `Model: ${model.name}`}
               className="btn-touch ctl-h focus-inset flex min-w-0 shrink items-center gap-1.5 rounded-full px-2 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
             >
-              <ProviderMark provider={model.provider} size={13} />
-              <span className="truncate">{model.short}</span>
-              {model.reasoning && effort && (
-                <span className="hidden text-tertiary sm:inline">{effort}</span>
+              {modelId === AUTO ? (
+                <>
+                  <Wand2 size={13} className="shrink-0 text-[var(--accent-2)]" />
+                  <span className="truncate">Auto</span>
+                </>
+              ) : (
+                <>
+                  <ProviderMark provider={model.provider} size={13} />
+                  <span className="truncate">{model.short}</span>
+                  {model.reasoning && effort && (
+                    <span className="hidden text-tertiary sm:inline">{effort}</span>
+                  )}
+                </>
               )}
             </button>
           </ModelPicker>

@@ -12,7 +12,7 @@ import {
 import { composeSystemPrompt } from "@/lib/prompt";
 import { findStyle } from "@/lib/styles";
 import { findMode } from "@/lib/modes";
-import { estimateTokens, getModel } from "@/lib/models";
+import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, estimateTokens, getModel } from "@/lib/models";
 import { fitToContext } from "@/lib/context";
 import { cheapestAvailable, complete } from "@/lib/generate";
 import { useSettings, useDrafts, paramsFor, type Section } from "@/lib/store";
@@ -275,7 +275,14 @@ export default function Page() {
   const threadMode = conversation?.mode ?? settings.mode;
 
   const runTurn = React.useCallback(
-    async (conversationId: string, parentId: string | null, history: Message[], modelId: string) => {
+    async (
+      conversationId: string,
+      parentId: string | null,
+      history: Message[],
+      modelId: string,
+      /** Set only when the app chose the model rather than the person. */
+      routedWhy?: string,
+    ) => {
       const conv = await db.conversations.get(conversationId);
       /* Read the layers at send time rather than holding them in state. A
          project's instructions can be edited in another tab, and a turn should
@@ -296,6 +303,7 @@ export default function Page() {
         conversationId,
         parentId,
         modelId,
+        routedWhy,
         history,
         systemPrompt: composed.text || undefined,
         params: mode.params,
@@ -361,19 +369,61 @@ export default function Page() {
       const history = [...path, userMessage];
       const isFirst = path.length === 0;
 
+      /* Auto: read the ask, then decide. The whole point is that the person
+         asking is the one least equipped to know whether this particular
+         request wants the long-context model or the fast one — working that
+         out is the app's job, not theirs. Off Auto, nothing here happens and
+         the model you picked is the model that answers. */
+      const asked = blockText(content);
+      /* Loaded when it is used. The router and its calculator are a few
+         kilobytes that nobody on the way to their first message needs, and the
+         first load had drifted two kilobytes past its own budget carrying
+         them. It is awaited inside a send that is already awaiting a network
+         round trip, so the deferral costs nothing anybody can perceive. */
+      const { route } = threadModelId === AUTO ? await import("@/lib/route") : { route: null };
+      const decision =
+        threadModelId === AUTO && route
+          ? route(asked, {
+              configured,
+              keys: settings.keys,
+              effort: "auto",
+              hasImage: content.some((b) => b.type === "image"),
+              extra: path.map((m) => blockText(m.content)).join("\n").slice(-40_000),
+              current: settings.modelId === AUTO ? DEFAULT_MODEL_ID : settings.modelId,
+            })
+          : null;
+
+      /* A sum is answered here, exactly, for nothing. A model would predict
+         what the answer looks like, which is usually the answer and is not the
+         same thing — and you cannot tell the two apart by looking. */
+      if (decision?.sum) {
+        await addMessage({
+          conversationId: convId,
+          parentId: userMessage.id,
+          role: "assistant",
+          content: [{ type: "text", text: `**${decision.sum.text}**\n\n*${decision.why}*` }],
+          modelId: CALCULATOR,
+          createdAt: Date.now(),
+        } as never);
+        if (isFirst) void generateTitle(convId, asked);
+        return;
+      }
+
+      const answering = decision?.modelId ?? threadModelId;
+
       if (compareWith.length) {
         setComparing({
           parentId: userMessage.id,
           history,
-          modelIds: [threadModelId, ...compareWith],
+          modelIds: [answering, ...compareWith],
         });
       } else {
-        void runTurn(convId, userMessage.id, history, threadModelId);
+        void runTurn(convId, userMessage.id, history, answering, decision?.why);
       }
 
       if (isFirst) void generateTitle(convId, blockText(content));
     },
-    [activeId, conversation?.leafId, path, threadModelId, runTurn, generateTitle, compareWith],
+    [activeId, conversation?.leafId, path, threadModelId, runTurn, generateTitle, compareWith, configured, settings.keys, settings.modelId],
   );
 
   /** Regenerating reuses the parent, so the new answer is a sibling of the old. */

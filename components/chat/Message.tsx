@@ -3,12 +3,12 @@
 import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
-  Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Copy,
+  Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Copy,
   Download, MoreHorizontal, NotebookPen, PanelRight, Pencil, RefreshCw,
   SquarePen, Volume2, X,
 } from "lucide-react";
 import type { ChatError, Message as Msg } from "@/lib/types";
-import { getModel, formatTokens, MODELS } from "@/lib/models";
+import { CALCULATOR, getModel, formatTokens, MODELS } from "@/lib/models";
 import { blockText } from "@/lib/db";
 import { cn, formatDuration } from "@/lib/utils";
 import { Markdown } from "./Markdown";
@@ -209,7 +209,11 @@ function AssistantMessageImpl({
   const [copied, setCopied] = React.useState(false);
   const [speaking, setSpeaking] = React.useState(false);
   const text = blockText(message.content);
-  const model = message.modelId ? getModel(message.modelId) : null;
+  /* Worked out here rather than asked of anything. Checked before getModel,
+     which would otherwise fall back to the default and put a model's name over
+     an answer it had no part in. */
+  const computed = message.modelId === CALCULATOR;
+  const model = message.modelId && !computed ? getModel(message.modelId) : null;
   const artifact = useArtifact();
 
   const copy = () => {
@@ -258,7 +262,19 @@ function AssistantMessageImpl({
             <ProviderMark provider={model.provider} size={12} />
           </span>
         )}
-        <span className="font-medium text-secondary">{model?.name ?? "Assistant"}</span>
+        {computed && <Calculator size={12} className="text-secondary" />}
+        <span className="font-medium text-secondary">
+          {computed ? "Calculator" : (model?.name ?? "Assistant")}
+        </span>
+        {/* Why this one, when the app chose it rather than you. A router you
+            cannot see is a router you cannot correct — and "it picked a cheap
+            model for my hard question" is only a complaint you can make if you
+            were told which and why. */}
+        {message.routedWhy && (
+          <span className="min-w-0 truncate text-tertiary" title={message.routedWhy}>
+            {message.routedWhy.replace(/^[^—]*—\s*/, "").replace(/\.$/, "")}
+          </span>
+        )}
         <span className="reveal flex items-center gap-2">
           {message.latencyMs != null && <span className="tnum">{formatDuration(message.latencyMs)}</span>}
           {message.usage && message.usage.outputTokens > 0 && (

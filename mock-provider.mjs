@@ -63,6 +63,7 @@ export function debounce<A extends unknown[]>(fn: (...a: A) => void, ms: number)
 A **throttle** enforces a floor between calls instead.`;
 
 let lastSeen = null;
+let lastTitle = null;
 let rateLimitOnce = process.env.MOCK_RATE_LIMIT === "1";
 
 const send = (res, type, data) =>
@@ -80,7 +81,35 @@ createServer(async (req, res) => {
     res.end(JSON.stringify(lastSeen ?? {}));
     return;
   }
-  lastSeen = {
+  /* Cleared so a test can ask "was a model called at all since I last looked"
+     — which is the only way to check that a sum reached none. */
+  if (req.url === "/__reset") {
+    lastSeen = null;
+    lastTitle = null;
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end("{}");
+    return;
+  }
+  if (req.url === "/__title") {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify(lastTitle ?? {}));
+    return;
+  }
+  /* The title request is not the work.
+     Every first message is followed by a small call that names the
+     conversation, and it arrives *after* the answer — so `/__last` used to
+     mean "the last thing the app did", which on every new thread is the
+     titler. A suite asserting which model answered was reading the model that
+     wrote the title. Recorded separately instead, so both can be asked about
+     and neither is mistaken for the other. */
+  const titling = (body.max_tokens ?? 4096) <= 64;
+  if (titling) {
+    lastTitle = { model: body.model };
+  } else lastSeen = {
+    // Which model the request was actually addressed to. The router's whole
+    // claim is about this field, and asking the app what it believes it chose
+    // would prove nothing.
+    model: body.model,
     turns: (body.messages ?? []).length,
     cachedBlocks: JSON.stringify(body).split('"cache_control"').length - 1,
     system: typeof body.system,
