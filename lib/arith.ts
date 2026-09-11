@@ -26,10 +26,20 @@
  * And it refuses much that *is* in the grammar. `9/11` and `24/7` and
  * `12/25/2024` and `555-1234` are all valid expressions and none of them is a
  * sum; they are a date, an idiom, a date and a phone number. So an expression
- * only counts as a question when it is asked like one — with a lead-in, or with
- * a space beside an operator. `2 + 2` is a sum. `2+2` on its own goes to a
- * model, which costs a fraction of a penny and cannot mistake a date for a
+ * only counts as a question when it is asked like one — with a lead-in phrase,
+ * or with a space beside an operator. `2 + 2` is a sum. `2+2` on its own goes
+ * to a model, which costs a fraction of a penny and cannot mistake a date for a
  * division.
+ *
+ * With one exception, which is where the rule earns its keep: for the shapes
+ * that are *also* something else — digits joined by `/` or `-` and nothing
+ * more — a lead-in is not enough and the spaces are required. "what is 9/11" is
+ * a question about a day in 2001, and the only reason it ever came back as
+ * `0.818181818182` is that somebody thought "what is" settled the matter. The
+ * price is that "what is 10/2" goes to a model too. `10/2` and `9/11` are the
+ * same shape wearing different hats and nothing in here can tell them apart, so
+ * the choice is which way to be wrong, and a fraction of a penny is the cheaper
+ * side by a distance.
  */
 
 export interface Sum {
