@@ -204,6 +204,18 @@ export interface Citation {
   context?: string;
   /** False when the quoted words are not in the source it named. */
   found: boolean;
+  /**
+   * Why it is not a citation you can open, when it is not.
+   *
+   * Three outcomes rather than two, because "not found in the source" is a
+   * claim about the source and only one of these is that claim. "short" and
+   * "unnamed" are admissions about the check: too few words to be evidence of
+   * anything, and a file this page does not hold. Reporting either as a failed
+   * citation tells the reader something untrue about a document that may be
+   * perfectly sound, and the feature is believed exactly as far as its failures
+   * are accurate.
+   */
+  why?: "missing" | "short" | "unnamed";
 }
 
 /**

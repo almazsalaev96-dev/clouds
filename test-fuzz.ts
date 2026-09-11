@@ -18,7 +18,7 @@
  *   npx jiti test-fuzz.ts
  */
 import { solve } from "./lib/arith";
-import { extractCitations } from "./lib/cite";
+import { extractCitations, findIn, normalise } from "./lib/cite";
 
 let failed = 0;
 const fail = (l: string, d: string) => { failed++; console.log(`  ✗ ${l} — ${d}`); };
@@ -123,6 +123,39 @@ console.log("\nArithmetic: nothing that is not a sum may be answered");
     }
   }
   if (!wrong) console.log("  ✓ 3000 word-bearing inputs, none answered by the calculator");
+}
+
+console.log("\nCitations: folding is idempotent and never loses its place");
+{
+  /* The map and the folded text must stay the same length, which is the
+     invariant every offset in a citation depends on. It broke on `İ`, whose
+     lowercase is two characters, and the symptom was a citation that opened on
+     the whole document rather than on the sentence. Fed here on purpose, along
+     with everything else the folder touches. */
+  const chars = ["a", "b", " ", "  ", "\n", "\r\n", "-", "--", "\u2014", "\u2013", "\u2018", "\u2019", "\u201c", "\u201d",
+                 "\u0130", "\u0131", "\u00df", "A", "Z", "\u00c9", "\u03a3", "7", "\t"];
+  let bad = 0;
+  for (let i = 0; i < 3000; i++) {
+    let s = "";
+    for (let j = 0, n = 1 + int(40); j < n; j++) s += pick(chars);
+    const once = normalise(s);
+    if (normalise(once) !== once) {
+      fail("folding is not idempotent", `${JSON.stringify(s)} → ${JSON.stringify(once)} → ${JSON.stringify(normalise(once))}`);
+      if (++bad > 3) break;
+    }
+    /* And the map has to still point somewhere sensible: a needle taken out of
+       the folded text must come back as a span of the original. */
+    if (once.length >= 12) {
+      const at = int(Math.max(1, once.length - 12));
+      const want = once.slice(at, at + 12);
+      const hit = findIn(s, want);
+      if (!hit || hit.start < 0 || hit.end > s.length || hit.end <= hit.start) {
+        fail("a fragment of the folded text did not map back", `${JSON.stringify(s)} / ${JSON.stringify(want)} → ${JSON.stringify(hit)}`);
+        if (++bad > 3) break;
+      }
+    }
+  }
+  if (!bad) console.log("  ✓ 3000 folded strings, idempotent and every offset inside the original");
 }
 
 console.log("\nCitations: a quote taken from the source must always be found");

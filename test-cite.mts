@@ -1,6 +1,6 @@
 /* The matcher, checked on its own before any of it is wired to a screen.
    The interesting cases are the ones a PDF actually produces. */
-import { extractCitations, citeScore } from "./lib/cite.ts";
+import { extractCitations, citeScore, findIn, normalise } from "./lib/cite.ts";
 
 let failed = 0;
 const check = (p: boolean, l: string, d = "") => { if (!p) failed++; console.log(`${p ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
@@ -55,13 +55,117 @@ console.log("\nBut the words themselves are");
 
 console.log("\nSaying where it is");
 {
-  const body = "a".repeat(4000) + " the decisive passage is here " + "b".repeat(4000);
-  const out = extractCitations('X [[cite: book.pdf | the decisive passage is here]].', [src(body, { pages: 100 })]);
-  check(out.citations[0].at?.page === 50, "roughly which page, when there are pages", String(out.citations[0].at?.page));
+  /* A PDF read by this app keeps its page boundaries, so the page is a lookup
+     rather than a guess. Page 3 here is deliberately short and page 4 long:
+     even division would put the quote on neither. */
+  const body = [
+    "--- page 1 ---\n" + "a ".repeat(2000),
+    "--- page 2 ---\n" + "b ".repeat(2000),
+    "--- page 3 ---\nthe decisive passage is here",
+    "--- page 4 ---\n" + "c ".repeat(6000),
+  ].join("\n\n");
+  const out = extractCitations('X [[cite: book.pdf | the decisive passage is here]].', [src(body, { pages: 4 })]);
+  check(out.citations[0].at?.page === 3, "which page, exactly, from the markers the extractor left", String(out.citations[0].at?.page));
   const at = out.citations[0].at!;
   check(body.slice(at.start, at.end).trim() === "the decisive passage is here",
     "and offsets that index the real text, not the normalised one",
     JSON.stringify(body.slice(at.start, at.end)));
+}
+{
+  /* The truncation case. `extractPdf` stops at 400k characters, so a 900-page
+     book arrives as its first 300 pages with `pages: 900` on the row. Even
+     division sent every citation in it to somewhere near the back. */
+  const body = "--- page 1 ---\nthe opening argument is set out here\n\n--- page 2 ---\nmore";
+  const out = extractCitations('X [[cite: book.pdf | the opening argument is set out here]].', [src(body, { pages: 900 })]);
+  check(out.citations[0].at?.page === 1,
+    "and a book cut short at extraction still says the page it really is on, not the page the ratio implies",
+    String(out.citations[0].at?.page));
+}
+{
+  const out = extractCitations('X [[cite: notes.txt | the opening argument is set out here]].',
+    [src("the opening argument is set out here", { name: "notes.txt", pages: undefined })]);
+  check(out.citations[0].found && out.citations[0].at?.page === undefined,
+    "something with no page boundaries in it gets no page number rather than an invented one");
+}
+
+console.log("\nThe three outcomes, kept apart");
+{
+  const t = src("the quick brown fox jumps over the lazy dog");
+  const missing = extractCitations('X [[cite: book.pdf | the slow purple cat sleeps under the warm sun]].', [t]);
+  check(missing.citations[0].why === "missing", "words that are not there are missing", missing.citations[0].why);
+  const short = extractCitations('X [[cite: book.pdf | the fox]].', [t]);
+  check(short.citations[0].why === "short",
+    "a quote too short to be evidence was not checked, which is not the same as not found",
+    short.citations[0].why);
+  const unnamed = extractCitations('X [[cite: other.pdf | the quick brown fox jumps over]].',
+    [t, src("x", { id: "s2", name: "second.pdf" })]);
+  check(unnamed.citations[0].why === "unnamed",
+    "and a file this page does not hold was never looked in", unnamed.citations[0].why);
+  const score = citeScore([...missing.citations, ...short.citations, ...unnamed.citations]);
+  check(score.missing === 1 && score.unchecked === 2,
+    "counted apart, because they call for different sentences", `${score.missing} missing, ${score.unchecked} unchecked`);
+}
+
+console.log("\nThe ways a near-match goes wrong");
+{
+  const a = src("the twenty-three findings are set out below", { id: "a", name: "notes-2023.pdf" });
+  const b = src("the twenty-four findings are set out below", { id: "b", name: "notes-2024.pdf" });
+  const out = extractCitations('X [[cite: notes | the twenty-three findings are set out below]].', [a, b]);
+  check(!out.citations[0].found && out.citations[0].why === "unnamed",
+    "a name matching two files names neither — the old code took the first and checked against the wrong book",
+    `${out.citations[0].sourceName} / ${out.citations[0].why}`);
+  const one = extractCitations('X [[cite: notes-2023 | the twenty-three findings are set out below]].', [a, b]);
+  check(one.citations[0].sourceId === "a", "but a name matching exactly one is a name", one.citations[0].sourceId);
+  const long = extractCitations('X [[cite: chapter 3 of notes-2024.pdf | the twenty-four findings are set out below]].', [a, b]);
+  check(long.citations[0].sourceId === "b", "and so is a filename inside a phrase", long.citations[0].sourceId);
+  const empty = extractCitations('X [[cite: | the twenty-three findings are set out below]].', [a, b]);
+  check(empty.citations[0].sourceName === "unknown",
+    "an empty name renders as unknown rather than as nothing at all", JSON.stringify(empty.citations[0].sourceName));
+}
+
+console.log("\nThe same rules on both sides");
+{
+  /* The desync that reported verbatim quotes fabricated: the quote was folded
+     by one set of rules and the source by another. */
+  const dash = src("profits — and losses — were higher than anyone expected that year");
+  const out = extractCitations('X [[cite: book.pdf | profits -- and losses -- were higher than anyone expected that year]].', [dash]);
+  check(out.citations[0].found, "a spaced dash is punctuation on both sides, not a deleted character");
+  const turkish = src("İSTANBUL grew fast. the decisive passage is here, at the end.");
+  const t2 = extractCitations('X [[cite: book.pdf | the decisive passage is here]].', [turkish]);
+  const at = t2.citations[0].at!;
+  check(t2.citations[0].found && turkish.text.slice(at.start, at.end) === "the decisive passage is here",
+    "and a capital İ — two characters when lowercased — does not slide every offset after it",
+    JSON.stringify(turkish.text.slice(at.start, at.end)));
+}
+{
+  const code = src('the config reads arr[[0]] = true and nothing else matters here');
+  const out = extractCitations('X [[cite: book.pdf | the config reads arr[[0]] = true and nothing else matters here]].', [code]);
+  check(out.citations[0].found,
+    "a quote with ]] inside it is not truncated at the first one it happens to contain",
+    out.citations[0].quote);
+  check(!out.text.includes("]]"), "and nothing of the body leaks onto the page", out.text);
+}
+{
+  const t = src("the quick brown fox jumps over the lazy dog");
+  const raw = 'A [[cite: book.pdf | the quick brown fox jumps over B';
+  const out = extractCitations(raw, [t]);
+  check(out.text === raw && out.citations.length === 0,
+    "a citation nobody closed is left on the page as written rather than swallowing the rest of it", out.text);
+  const two = extractCitations(
+    'A [[cite: book.pdf | the quick brown fox jumps]] B [[cite: book.pdf | over the lazy dog]] C', [t]);
+  check(two.text === "A [1](#armi-cite-1) B [2](#armi-cite-2) C",
+    "and two citations in a row do not run into each other", two.text);
+}
+
+console.log("\nHighlighting what was matched");
+{
+  const context = "…he wrote that the market grew\n  by twenty-seven percent, and left it there…";
+  const hit = findIn(context, "The market grew by twenty-seven percent")!;
+  check(context.slice(hit.start, hit.end) === "the market grew\n  by twenty-seven percent",
+    "the highlight covers the words that matched, whatever whitespace is between them",
+    JSON.stringify(context.slice(hit.start, hit.end)));
+  check(findIn(context, "the market shrank") === null, "and nothing is marked when nothing matched");
+  check(normalise("Under-\nstand  “this”") === 'understand "this"', "folding is one function", normalise("Under-\nstand  “this”"));
 }
 
 console.log("\nSeveral sources, and a model that names the wrong one");

@@ -12,7 +12,7 @@ import { offerUndo } from "@/lib/undo";
 import { useAutoGrow } from "@/lib/hooks/useAutoGrow";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { makeFromSources, reviseCanvas } from "@/lib/generate";
-import { citeScore, extractCitations, type Citation } from "@/lib/cite";
+import { citeScore, extractCitations, findIn, type Citation } from "@/lib/cite";
 import { extractPdf, isPdf } from "@/lib/pdf";
 import { Markdown } from "@/components/chat/Markdown";
 import { MessageBar } from "@/components/chat/MessageBar";
@@ -235,10 +235,21 @@ export function NotebookView({
         const { text: body, citations } = extractCitations(raw, sources);
         const score = citeScore(citations);
         setProposal({ content: body, note: label ?? text, citations });
-        if (score.total && score.found < score.total) {
-          setNotice(
-            `${score.total - score.found} of ${score.total} citations could not be found in the sources — those are marked with a “?”.`,
+        /* Said separately, because they are different news. A missing quote
+           means the page may be wrong; an unchecked one means this app could
+           not tell, which is a smaller thing and must not be reported as the
+           larger one. */
+        const parts: string[] = [];
+        if (score.missing) {
+          parts.push(
+            `${score.missing} of ${score.total} citation${score.total === 1 ? "" : "s"} could not be found in the sources`,
           );
+        }
+        if (score.unchecked) {
+          parts.push(`${score.unchecked} could not be checked`);
+        }
+        if (parts.length) {
+          setNotice(`${parts.join(", and ")} — those are marked with a “?”.`);
         }
         return;
       }
@@ -632,17 +643,23 @@ export function NotebookView({
  * marker that does nothing when pressed reads as a bug rather than a warning.
  */
 function CitePanel({ cite, onClose }: { cite: Citation; onClose: () => void }) {
+  /* Found, missing, or never checked — and the last of those is not a warning
+     about the source, so it does not get the warning's colour. Painting "this
+     quote was four words long" in the same red as "these words are not in the
+     document" tells the reader the page is unsound when what happened is that
+     this app declined to judge. */
+  const unchecked = !cite.found && cite.why !== "missing" && cite.why !== undefined;
   return (
     <div className="mx-auto w-full max-w-[var(--measure)] shrink-0 px-4 pt-3">
       <div
         className={cn(
           "rounded-xl border bg-surface p-3",
-          cite.found ? "border-line" : "border-[var(--warning)]",
+          cite.found || unchecked ? "border-line" : "border-[var(--warning)]",
         )}
       >
         <div className="mb-1 flex items-center gap-2">
           <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
-            {cite.found ? "In the source" : "Not found in the source"}
+            {cite.found ? "In the source" : unchecked ? "Not checked" : "Not found in the source"}
           </span>
           <span className="min-w-0 flex-1 truncate text-xs text-tertiary">
             {cite.sourceName}
@@ -674,8 +691,26 @@ function CitePanel({ cite, onClose }: { cite: Citation; onClose: () => void }) {
         ) : (
           <>
             <p className="text-sm text-secondary">
-              These words are not in {cite.sourceName}. Whatever this sentence says, it
-              was not read there — treat it as the model&rsquo;s own and check it yourself.
+              {cite.why === "short" ? (
+                <>
+                  Too few words to check. A quote this short turns up in almost any
+                  document by chance, so finding it would not have meant anything —
+                  this is not a claim that the sentence is wrong, only that nothing
+                  here has confirmed it.
+                </>
+              ) : cite.why === "unnamed" ? (
+                <>
+                  No source to check it against. It named{" "}
+                  {cite.sourceName === "unknown" ? "nothing" : <>&ldquo;{cite.sourceName}&rdquo;</>}, which
+                  does not match one of the files on this page — so the quote was never
+                  looked for, rather than looked for and missed.
+                </>
+              ) : (
+                <>
+                  These words are not in {cite.sourceName}. Whatever this sentence says, it
+                  was not read there — treat it as the model&rsquo;s own and check it yourself.
+                </>
+              )}
             </p>
             <p className="mt-1.5 rounded-lg bg-inset px-2.5 py-1.5 text-sm text-tertiary">
               &ldquo;{cite.quote}&rdquo;
@@ -689,12 +724,12 @@ function CitePanel({ cite, onClose }: { cite: Citation; onClose: () => void }) {
 
 /** The quote inside its context, for marking it — matched loosely, shown exactly. */
 function splitAround(context: string, quote: string): { text: string; hit: boolean }[] {
-  const at = context.toLowerCase().indexOf(quote.toLowerCase().replace(/\s+/g, " ").trim());
-  if (at === -1 || !quote) return [{ text: context, hit: false }];
+  const at = findIn(context, quote);
+  if (!at) return [{ text: context, hit: false }];
   return [
-    { text: context.slice(0, at), hit: false },
-    { text: context.slice(at, at + quote.length), hit: true },
-    { text: context.slice(at + quote.length), hit: false },
+    { text: context.slice(0, at.start), hit: false },
+    { text: context.slice(at.start, at.end), hit: true },
+    { text: context.slice(at.end), hit: false },
   ].filter((p) => p.text);
 }
 
