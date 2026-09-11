@@ -1155,6 +1155,19 @@ heading, and link URLs printed in full.
   wrapped four different ways with fenced code inside their fields. The
   generator is seeded, so a failure is reproducible rather than a story about
   something that happened once.
+- **What kind of work a request is** (`test-task.ts`, 31 assertions, `npx jiti
+  test-task.ts`). The interesting cases are the ones where it should *decline*.
+  A classifier right seven times in ten and confident ten times in ten is worse
+  than none, because an answer shaped for the wrong job reads exactly like an
+  answer shaped for the right one — so a kind has to be earned with one
+  unmistakable phrase or two leaning words, a dead heat between two kinds
+  collapses to `general` and says so, and `general` is a real answer rather
+  than a failure. The fuzzer adds three properties: three thousand generated
+  ordinary sentences, of which it claims a kind for **none**; fourteen hundred
+  unmistakable ones, every one read correctly, because only ever saying
+  "general" is the same uselessness facing the other way; and fifteen hundred
+  mixed ones read the same way twice, since a classifier nobody can predict is
+  one nobody can correct.
 - **The type scale, read off the rendered app** (`type-scale.mjs`, 22
   assertions). A scale written in a file is a claim; what a reader gets is the
   computed style of the elements on screen, after Tailwind, after the cascade,
@@ -1377,6 +1390,7 @@ node shoot-smoke.mjs  # every section loads, undo works, no runtime errors
 node --experimental-strip-types test-cite.mts   # the citation matcher, on its own
 npx jiti test-route.ts                          # the model router and the calculator
 npx jiti test-web.ts                            # the preview assembler and its source map
+npx jiti test-task.ts                           # what kind of work a request is
 npx jiti test-fuzz.ts                           # generated cases against the invariants
 ```
 
