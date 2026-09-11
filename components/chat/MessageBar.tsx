@@ -191,6 +191,7 @@ export function MessageBar({
             <button
               onClick={onSubmit}
               disabled={!sendable || streaming}
+              aria-hidden={streaming || undefined}
               aria-label="Send message"
               className={cn(
                 "bloom focus-inset absolute inset-0 flex items-center justify-center rounded-full transition-[opacity,background-color,color,box-shadow,transform] duration-[var(--dur-fast)] ease-[var(--ease-std)]",
@@ -207,6 +208,14 @@ export function MessageBar({
             {onStop && (
               <button
                 onClick={onStop}
+                /* Both discs stay mounted so one can fade into the other in
+                   place, and the one that is faded out has to leave properly:
+                   invisible is not the same as gone. Without this, tabbing
+                   through an idle composer lands on a Stop button nobody can
+                   see, and a screen reader offers to stop a generation that
+                   is not running. */
+                disabled={!streaming}
+                aria-hidden={!streaming || undefined}
                 aria-label="Stop generating"
                 className={cn(
                   "focus-inset absolute inset-0 flex items-center justify-center rounded-full bg-[var(--cta)] text-[var(--cta-fg)] transition-opacity duration-[var(--dur-fast)] ease-[var(--ease-std)]",

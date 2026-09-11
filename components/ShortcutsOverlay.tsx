@@ -4,6 +4,7 @@ import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { Kbd } from "@/components/ui/primitives";
+import { useReturnFocus } from "@/lib/hooks/useReturnFocus";
 
 /**
  * The one place the whole keyboard surface is written down. It is also the
@@ -61,11 +62,16 @@ export function ShortcutsOverlay({
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
+  const returnFocus = useReturnFocus(open);
+
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-[var(--bg-overlay)] anim-fade" />
-        <Dialog.Content className="glass fixed left-1/2 top-1/2 z-50 w-[40rem] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-4rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-line p-5 shadow-lg anim-pop">
+        <Dialog.Content
+          onCloseAutoFocus={returnFocus}
+          className="glass fixed left-1/2 top-1/2 z-50 w-[40rem] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-4rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-line p-5 shadow-lg anim-pop"
+        >
           <Dialog.Title className="text-lg font-semibold text-primary">
             Keyboard shortcuts
           </Dialog.Title>

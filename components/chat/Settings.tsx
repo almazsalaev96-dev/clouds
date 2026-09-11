@@ -13,6 +13,7 @@ import {
   backupCounts, buildBackup, downloadBackup, parseBackup, restoreBackup, say, BackupError,
 } from "@/lib/backup";
 import { useSettings, paramsFor, DEFAULT_PARAMS } from "@/lib/store";
+import { useReturnFocus } from "@/lib/hooks/useReturnFocus";
 import { cn } from "@/lib/utils";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
 import { SHORTCUT_GROUPS } from "@/components/ShortcutsOverlay";
@@ -43,12 +44,16 @@ export function Settings({
   React.useEffect(() => {
     if (open) setTab(initialTab);
   }, [open, initialTab]);
+  const returnFocus = useReturnFocus(open);
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-[var(--bg-overlay)] anim-fade" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex h-[34rem] max-h-[calc(100vh-3rem)] w-[44rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl glass border border-line shadow-lg anim-pop">
+        <Dialog.Content
+          onCloseAutoFocus={returnFocus}
+          className="fixed left-1/2 top-1/2 z-50 flex h-[34rem] max-h-[calc(100vh-3rem)] w-[44rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl glass border border-line shadow-lg anim-pop"
+        >
           <nav className="flex w-40 shrink-0 flex-col gap-0.5 border-r border-line bg-subtle p-2">
             <Dialog.Title className="px-2 py-2 text-sm font-medium text-primary">Settings</Dialog.Title>
             {TABS.map((t) => (

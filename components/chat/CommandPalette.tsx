@@ -11,6 +11,7 @@ import { db } from "@/lib/db";
 import { MODELS } from "@/lib/models";
 import { useSettings, type Section } from "@/lib/store";
 import { cn, fuzzyScore } from "@/lib/utils";
+import { useReturnFocus } from "@/lib/hooks/useReturnFocus";
 import { Kbd } from "@/components/ui/primitives";
 
 interface Command {
@@ -307,12 +308,14 @@ export function CommandPalette({
   };
 
   let lastGroup = "";
+  const returnFocus = useReturnFocus(open);
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-[var(--bg-overlay)] anim-fade" />
         <Dialog.Content
+          onCloseAutoFocus={returnFocus}
           className="fixed left-1/2 top-[18vh] z-50 w-[34rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-xl glass border border-line shadow-lg anim-pop"
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") {
