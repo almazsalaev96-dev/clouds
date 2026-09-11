@@ -1,8 +1,5 @@
 import { db } from "./db";
-import { DEFAULT_MODEL_ID } from "./models";
-import { DEFAULT_MODE } from "./modes";
-import { useSettings } from "./store";
-import { DEFAULT_STYLE_ID } from "./styles";
+import { DEFAULT_SETTINGS, useSettings } from "./store";
 
 /**
  * Taking your work with you.
@@ -95,6 +92,7 @@ export async function buildBackup(): Promise<Backup> {
   }
 
   const s = useSettings.getState() as unknown as Record<string, unknown>;
+  const DEFAULTS = DEFAULT_SETTINGS as unknown as Record<string, unknown>;
   const settings: Record<string, unknown> = {};
   for (const k of SETTING_KEYS) if (s[k] !== undefined) settings[k] = s[k];
 
@@ -171,6 +169,25 @@ export function parseBackup(text: string): Backup {
   return b as Backup;
 }
 
+/** Equal enough to say "nobody has touched this". */
+function same(a: unknown, b: unknown): boolean {
+  if (Array.isArray(a) || Array.isArray(b)) {
+    return Array.isArray(a) && Array.isArray(b) && a.length === 0 && b.length === 0;
+  }
+  if (a && b && typeof a === "object" && typeof b === "object") {
+    return Object.keys(a).length === 0 && Object.keys(b).length === 0;
+  }
+  return a === b;
+}
+
+/** The shape the setting already is — a string for a string, a list for a list. */
+function shaped(v: unknown, like: unknown): boolean {
+  if (Array.isArray(like)) return Array.isArray(v);
+  if (like === null) return v === null || typeof v === "string";
+  if (like && typeof like === "object") return Boolean(v) && typeof v === "object" && !Array.isArray(v);
+  return typeof v === typeof like;
+}
+
 export interface RestoreResult {
   added: number;
   skipped: number;
@@ -200,32 +217,6 @@ export interface RestoreResult {
  * anything else in it landed in the store unchecked. Same list, both
  * directions, and the value has to be the shape the setting already is.
  */
-/** What this browser looks like before anybody has chosen anything. */
-const DEFAULTS: Record<string, unknown> = {
-  theme: "system", density: "comfortable", modelId: DEFAULT_MODEL_ID, reviseModelId: null,
-  systemPrompt: "", styleId: DEFAULT_STYLE_ID, mode: DEFAULT_MODE, name: "", nameAsked: false,
-  sendOnEnter: true, showLineNumbers: false, wrapCode: false, params: {}, favorites: [], recentModels: [],
-};
-
-/** Equal enough to say "nobody has touched this". */
-function same(a: unknown, b: unknown): boolean {
-  if (Array.isArray(a) || Array.isArray(b)) {
-    return Array.isArray(a) && Array.isArray(b) && a.length === 0 && b.length === 0;
-  }
-  if (a && b && typeof a === "object" && typeof b === "object") {
-    return Object.keys(a).length === 0 && Object.keys(b).length === 0;
-  }
-  return a === b;
-}
-
-/** The shape the setting already is — a string for a string, a list for a list. */
-function shaped(v: unknown, like: unknown): boolean {
-  if (Array.isArray(like)) return Array.isArray(v);
-  if (like === null) return v === null || typeof v === "string";
-  if (like && typeof like === "object") return Boolean(v) && typeof v === "object" && !Array.isArray(v);
-  return typeof v === typeof like;
-}
-
 export async function restoreBackup(b: Backup): Promise<RestoreResult> {
   let added = 0;
   let skipped = 0;
@@ -250,6 +241,7 @@ export async function restoreBackup(b: Backup): Promise<RestoreResult> {
   }
 
   const s = useSettings.getState() as unknown as Record<string, unknown>;
+  const DEFAULTS = DEFAULT_SETTINGS as unknown as Record<string, unknown>;
   /* Untouched means untouched: anything a person can have chosen, not the three
      fields that happened to be checked. Someone who had picked a dark theme and
      never typed their name was having the theme taken off them by a restore

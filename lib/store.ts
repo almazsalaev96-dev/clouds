@@ -104,28 +104,41 @@ export const DEFAULT_PARAMS: ModelParams = {
   reasoningEffort: "medium",
 };
 
+/**
+ * What this browser looks like before anybody has chosen anything.
+ *
+ * Exported because two places need it and a second copy would drift: the store
+ * starts here, and `lib/backup.ts` compares against it to decide whether a
+ * browser has been set up before it lets a restore bring settings in. A hand-
+ * kept duplicate of this list would answer "untouched" about a setting nobody
+ * had remembered to add to it.
+ */
+export const DEFAULT_SETTINGS = {
+  theme: "system",
+  density: "comfortable",
+  section: "chat",
+  lastConversationId: null,
+  modelId: DEFAULT_MODEL_ID,
+  reviseModelId: null,
+  systemPrompt: "",
+  styleId: DEFAULT_STYLE_ID,
+  mode: DEFAULT_MODE,
+  name: "",
+  nameAsked: false,
+  sidebarOpen: true,
+  sendOnEnter: true,
+  showLineNumbers: false,
+  wrapCode: false,
+  keys: {} as Record<string, string>,
+  params: {} as Record<string, ModelParams>,
+  favorites: [] as string[],
+  recentModels: [] as string[],
+} satisfies Partial<Settings>;
+
 export const useSettings = create<Settings>()(
   persist(
     (set, get) => ({
-      theme: "system",
-      density: "comfortable",
-      section: "chat",
-      lastConversationId: null,
-      modelId: DEFAULT_MODEL_ID,
-      reviseModelId: null,
-      systemPrompt: "",
-      styleId: DEFAULT_STYLE_ID,
-      mode: DEFAULT_MODE,
-      name: "",
-      nameAsked: false,
-      sidebarOpen: true,
-      sendOnEnter: true,
-      showLineNumbers: false,
-      wrapCode: false,
-      keys: {},
-      params: {},
-      favorites: [],
-      recentModels: [],
+      ...DEFAULT_SETTINGS,
 
       setTheme: (theme) => set({ theme }),
       setDensity: (density) => set({ density }),
