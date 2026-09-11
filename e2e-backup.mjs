@@ -184,7 +184,10 @@ console.log("\nA backup is read, not executed");
     const raw = JSON.parse(localStorage.getItem("store.settings.v1") ?? "{}");
     const st = raw.state ?? {};
     return {
-      keys: Object.entries(st.keys ?? {}).filter(([, v]) => v).map(([k]) => k),
+      /* The values, not the names: this browser already had a key of its own
+         (that is the point — an already-configured browser), so the question
+         is whether the file's keys replaced it. */
+      keys: Object.values(st.keys ?? {}).filter(Boolean).join(" "),
       theme: typeof st.theme === "string" ? st.theme : JSON.stringify(st.theme),
       density: st.density,
       systemPrompt: st.systemPrompt ?? "",
@@ -192,7 +195,7 @@ console.log("\nA backup is read, not executed");
     };
   });
   console.log("  settings after:", JSON.stringify(settings));
-  check(settings.keys.length === 0, "no key in a file becomes a key in this browser", settings.keys.join(",") || "none");
+  check(!/stolen/.test(settings.keys), "no key in a file becomes a key in this browser", settings.keys || "none");
   check(typeof settings.theme === "string" && ["light", "dark", "system"].includes(settings.theme),
     "a theme that is not a theme is not written", settings.theme);
   check(settings.density === "comfortable" || settings.density === "compact",

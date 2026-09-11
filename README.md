@@ -1044,7 +1044,7 @@ heading, and link URLs printed in full.
   asserted against the database rather than the screen: "how many verdicts were
   written" is exact, where "is the phrase on the page" is a question about
   everything ever rendered.
-- **The router and the calculator, tested on their own** (`test-route.ts`, 33
+- **The router and the calculator, tested on their own** (`test-route.ts`, 65
   assertions, `npx jiti test-route.ts`). No browser, no model, no network — the
   interesting cases are the ones where a plausible-looking answer is the wrong
   one: `2 ^ 3 ^ 2` is 512 and not 64, `0.1 + 0.2` must not print
@@ -1054,7 +1054,7 @@ heading, and link URLs printed in full.
   cannot resolve extensionless TypeScript imports — and adding `.ts` extensions
   across `lib/` to suit one test file would be the test changing the app to fit
   itself.
-- **Auto driven end to end and read at the wire** (`e2e-auto.mjs`, 15
+- **Auto driven end to end and read at the wire** (`e2e-auto.mjs`, 16
   assertions): which model each request was *addressed to*, not which one the
   app believes it chose. Including the one where the wire stays empty, which is
   checked against a reset endpoint so "no model was called" is a fact about that
@@ -1073,14 +1073,38 @@ heading, and link URLs printed in full.
   found still on screen. The first version of this test used a seven-line file
   and finished before the first assertion could look at it, which is also the
   honest reason the feature exists: nobody minds a spinner for a second.
-- **The citation matcher, tested on its own** (`test-cite.mts`, 18 assertions,
+- **Generated cases, against the invariants rather than the examples**
+  (`test-fuzz.ts`, `npx jiti test-fuzz.ts`). The three files above check the
+  cases somebody thought of; this one checks the ones nobody did. Four thousand
+  generated expressions against a trusted evaluator and another two thousand
+  integer ones against BigInt, because a 1e-12 tolerance is the right comparison
+  for a quotient and exactly the wrong one for the product bug that started the
+  rewrite — `123456789 * 987654321` came back nine short and every example test
+  passed. Two thousand date- and phone-shaped inputs, none of which may be
+  answered as arithmetic. Three thousand folded strings, checked for idempotence
+  and for every offset landing inside the string it came from — the case that
+  broke on `İ`, whose lowercase is two characters. Fifteen hundred quotes lifted
+  verbatim out of generated text, which must always be found, and fifteen
+  hundred invented ones, which must never be. And twelve hundred JSON replies
+  wrapped four different ways with fenced code inside their fields. The
+  generator is seeded, so a failure is reproducible rather than a story about
+  something that happened once.
+- **The preview assembler and its source map** (`test-web.ts`, 19 assertions,
+  `npx jiti test-web.ts`). The claim worth testing is not "the CSS got inlined",
+  it is that a runtime error at line 214 of a document nobody wrote comes back as
+  a file and a line you can go to — so the test round-trips *every line of every
+  file* through the assembler and asserts each one reports itself. That is the
+  assertion that catches a map built by searching the finished string for each
+  file's text, which finds `index.html` never, because by the time the search
+  runs the string has been rewritten by every replacement it is searching for.
+- **The citation matcher, tested on its own** (`test-cite.mts`, 44 assertions,
   run with `node --experimental-strip-types`). Not through the UI, because the
   interesting cases are the ones a PDF actually produces and they are cheaper to
   state directly: a quote broken across a line break, a word hyphenated across
   one, curly quotes against straight, `--` against an em dash, offsets that must
   index the real text rather than the normalised copy, a number that was never
   there, a source name that does not exist, and a quote too short to be evidence.
-- **Sources and citations driven end to end** (`e2e-sources.mjs`, 20 assertions).
+- **Sources and citations driven end to end** (`e2e-sources.mjs`, 19 assertions).
   The mock **deliberately invents one of its three citations**, which is the
   assertion this suite exists for: if the app were trusting the model, the false
   one would look exactly like the two true ones. It does not — it is marked
@@ -1257,9 +1281,11 @@ node touch.mjs        # every control in every section on a phone, against 44pt
 node theme-parity.mjs # the two themes measured against each other, role by role
 node shoot-smoke.mjs  # every section loads, undo works, no runtime errors
 
-# and two that need no browser at all:
+# and four that need no browser at all:
 node --experimental-strip-types test-cite.mts   # the citation matcher, on its own
 npx jiti test-route.ts                          # the model router and the calculator
+npx jiti test-web.ts                            # the preview assembler and its source map
+npx jiti test-fuzz.ts                           # generated cases against the invariants
 ```
 
 And the end-to-end run, which needs the app pointed at the mock provider:
@@ -1267,31 +1293,31 @@ And the end-to-end run, which needs the app pointed at the mock provider:
 ```bash
 node mock-provider.mjs &
 ANTHROPIC_BASE_URL=http://127.0.0.1:8787 ANTHROPIC_API_KEY=sk-ant-mock npx next start -p 3100 &
-node e2e.mjs         # 15 assertions across the whole happy path
-node e2e-canvas.mjs  # 25 assertions: edit, revise, diff, keep, revert, sandbox
-node e2e-project.mjs # 21 assertions: projects and styles, read at the wire
-node e2e-web.mjs     # 26 assertions: a web app runs, and its console comes back
-node e2e-mode.mjs    # 12 assertions: Chat and Creative, read at the wire
-node e2e-pdf.mjs     #  9 assertions: a PDF read, a scan refused, both at the wire
-node e2e-editor.mjs  # 13 assertions: the code editor's two layers, measured
-node e2e-makes.mjs   # 33 assertions: every starter opened, run and actually used
-node e2e-bar.mjs     # 24 assertions: the message bar, measured in all three rooms
+node e2e.mjs         # 16 assertions across the whole happy path
+node e2e-canvas.mjs  # 26 assertions: edit, revise, diff, keep, revert, sandbox
+node e2e-project.mjs # 22 assertions: projects and styles, read at the wire
+node e2e-web.mjs     # 28 assertions: a web app runs, and its console comes back
+node e2e-mode.mjs    # 14 assertions: Chat and Creative, read at the wire
+node e2e-pdf.mjs     # 10 assertions: a PDF read, a scan refused, both at the wire
+node e2e-editor.mjs  # 15 assertions: the code editor's two layers, measured
+node e2e-makes.mjs   # 30 assertions: every starter opened, run and actually used
+node e2e-bar.mjs     # 25 assertions: the message bar, measured in all three rooms
 node e2e-motion.mjs  # 17 assertions: the motion, asked for rather than admired
-node e2e-use.mjs     # 21 assertions: using a made thing, and making one from a book
-node e2e-scale.mjs   #  6 assertions: what it costs to open, and 400 turns deep
-node e2e-backup.mjs  # 14 assertions: a copy of everything, and everything back
-node e2e-code.mjs    # 20 assertions: find, review, and changing only a selection
-node e2e-agent.mjs   # 26 assertions: plan, house rules, check, and fix-from-error
-node e2e-point.mjs   # 18 assertions: pointing at a running page and changing it
+node e2e-use.mjs     # 18 assertions: using a made thing, and making one from a book
+node e2e-scale.mjs   #  7 assertions: what it costs to open, and 400 turns deep
+node e2e-backup.mjs  # 18 assertions: a copy of everything, and everything back
+node e2e-code.mjs    # 21 assertions: find, review, and changing only a selection
+node e2e-agent.mjs   # 30 assertions: plan, house rules, check, and fix-from-error
+node e2e-point.mjs   # 19 assertions: pointing at a running page and changing it
 node e2e-whole.mjs   # 19 assertions: code inside a project, and asking across it
-node e2e-sources.mjs # 20 assertions: many sources, and citations that are checked
-node e2e-auto.mjs    # 15 assertions: which model answered, read at the wire
-node e2e-command.mjs # 14 assertions: ⌘K acting on whatever is on screen
+node e2e-sources.mjs # 19 assertions: many sources, and citations that are checked
+node e2e-auto.mjs    # 16 assertions: which model answered, read at the wire
+node e2e-command.mjs # 15 assertions: ⌘K acting on whatever is on screen
 # and one that needs a second provider, so the mock serves both wire formats:
 OPENAI_BASE_URL=http://127.0.0.1:8787 OPENAI_API_KEY=sk-mock …
 node e2e-verify.mjs  # 16 assertions: a check that comes from another provider
 node mock-slow.mjs &   # the mock with the gap between tokens stretched, then:
-node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs the slow mock)
+node e2e-stop.mjs    #  9 assertions: stopping mid-answer (needs the slow mock)
 node e2e-watch.mjs   # 12 assertions: seeing it work, and what stop means
 node test-context.mjs  # context fitting and cache breakpoints, read at the wire
 node test-fit.mjs      # a 360k-token thread trimmed to fit and answered
