@@ -33,6 +33,33 @@ anywhere except the provider they belong to. Settings has a **Test** button that
 makes a real one-token call and reports the round trip, so a green dot means
 something.
 
+## Putting it somewhere
+
+It is a stock Next.js app with no database, no session store and nothing to
+provision: everything a person makes lives in their own browser's IndexedDB, so
+a deployment is the static shell plus three small API routes that forward to a
+provider. Vercel, or anywhere that runs `next build && next start`.
+
+**Deploy with no keys set.** That is not a degraded state, it is the intended
+one for anything public: the app comes up, says *bring your own key — nothing
+leaves this browser*, and each visitor pastes their own in Settings. A key in
+the server's environment is the better arrangement for a deployment only *you*
+use — it never reaches the browser at all — and the worst possible one for a
+public URL, because every stranger who opens it is then spending your money
+against your rate limit. The app cannot tell those two deployments apart, so
+the choice is yours and it has to be made deliberately.
+
+If you do set them, the names are in `.env.example`: `ANTHROPIC_API_KEY`,
+`OPENAI_API_KEY`, `GOOGLE_API_KEY`, `DEEPSEEK_API_KEY`, and the optional
+`*_BASE_URL` for pointing a provider at a gateway. `/api/models` reports which
+providers the server holds a key for, which is how the picker knows what to
+offer; it returns booleans and never the keys themselves.
+
+One thing worth knowing about hosted platforms: the production branch is a
+setting on the *host*, not a reading of the repository. Vercel keeps its own
+copy of it from when the project was created, so changing the default branch on
+GitHub does not move it — Project → Settings → Git → Production Branch does.
+
 ## What's here
 
 **Conversation** — streaming with stop (which keeps the partial answer), regenerate,
