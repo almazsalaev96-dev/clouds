@@ -131,7 +131,10 @@ export function CodeBlock({
           )}
         </span>
 
-        <span className="ml-auto flex items-center gap-0.5">
+        {/* Wrap, line numbers, collapse, copy. On paper a code block is
+            just code, and a Copy button printed beside it is the application
+            leaking into the document. */}
+        <span className="no-print ml-auto flex items-center gap-0.5">
           {worthLifting && artifact && !streaming && (
             <Tooltip label="Open in side panel">
               <button

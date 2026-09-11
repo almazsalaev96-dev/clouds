@@ -264,7 +264,7 @@ function MessageListImpl({
           never stranded, and never dragged. */}
       <div
         className={cn(
-          "pointer-events-none absolute inset-x-0 bottom-4 flex justify-center transition-[opacity,transform] duration-[var(--dur-enter)] ease-[var(--ease-out)]",
+          "no-print pointer-events-none absolute inset-x-0 bottom-4 flex justify-center transition-[opacity,transform] duration-[var(--dur-enter)] ease-[var(--ease-out)]",
           pinned ? "translate-y-1 opacity-0" : "translate-y-0 opacity-100",
         )}
       >

@@ -110,6 +110,29 @@ await page.evaluate(() => { const e = document.querySelector("[aria-label='Conve
 await page.waitForTimeout(300);
 check(Date.now() - scrolled < 2500, "and so does scrolling the whole way", `${Date.now() - scrolled}ms`);
 
+/* The reason this app skips paint for off-screen turns with
+   `content-visibility: auto` rather than windowing them properly is that
+   windowing takes the text out of the document, and text that is not in the
+   document cannot be found, selected across, or scrolled back to. That is the
+   whole of the trade, so it is worth an assertion: drag a selection from the
+   first turn to the four-hundredth and see whether both ends come back. */
+const spanning = await page.evaluate(() => {
+  const msgs = [...document.querySelectorAll("[id^=m-]")];
+  if (msgs.length < 3) return null;
+  const r = document.createRange();
+  r.setStart(msgs[0], 0);
+  r.setEnd(msgs[msgs.length - 1], msgs[msgs.length - 1].childNodes.length);
+  const sel = getSelection();
+  sel.removeAllRanges();
+  sel.addRange(r);
+  const text = sel.toString();
+  sel.removeAllRanges();
+  return { chars: text.length, head: text.slice(0, 24).trim(), tail: text.slice(-24).trim(), turns: msgs.length };
+});
+check(Boolean(spanning) && spanning.chars > 10_000,
+  "a selection reaches from the first turn to the last, off-screen ones included",
+  spanning ? `${spanning.chars} characters across ${spanning.turns} turns` : "no messages");
+
 console.log("\nAnd what a section costs to press, on a connection that is not yours");
 {
   /* Projects and the notebook are fetched when you press them rather than

@@ -243,119 +243,128 @@
     0 0 0 3px rgb(var(--accent-2-rgb) / 0.20);
 }
 
-:root[data-theme="dark"] {
-  color-scheme: dark;
+/* The dark palette is a palette for a lit screen, and paper is not one. Left
+   to apply on print it puts cream text on a page the print stylesheet has
+   forced white — a sheet that looks blank from a foot away. Everything here
+   is token-driven, so switching it off is enough to hand the whole document
+   to the light palette, which was drawn as ink on paper already: hierarchy,
+   borders and syntax colours included, rather than one blanket `color: #111`
+   that would flatten all three. */
+@media not print {
+  :root[data-theme="dark"] {
+    color-scheme: dark;
 
-  /* ---------------------------------------------------------------------
-     THE PALETTE — dark.
+    /* ---------------------------------------------------------------------
+       THE PALETTE — dark.
 
-     Not a rotation of the light one. That was the first answer — ink becomes
-     the ground, paper becomes the words — and it was a tidy idea that put a
-     navy wash over every screen in the app. A dark theme is not a colour; it
-     is the absence of one. Every tool this is measured against reaches the
-     same conclusion, ChatGPT to near-black and Claude to a warm charcoal, and
-     for the same reason: at eleven at night the ground has one job, which is
-     to get out of the way of the words.
+       Not a rotation of the light one. That was the first answer — ink becomes
+       the ground, paper becomes the words — and it was a tidy idea that put a
+       navy wash over every screen in the app. A dark theme is not a colour; it
+       is the absence of one. Every tool this is measured against reaches the
+       same conclusion, ChatGPT to near-black and Claude to a warm charcoal, and
+       for the same reason: at eleven at night the ground has one job, which is
+       to get out of the way of the words.
 
-     So the ground is a true neutral — three points of channel spread, leaning
-     warm because the brand is warm, the desk rather than the ink. The brand
-     is carried by everything on top of it and nothing underneath: the paper
-     is the text, the gold is the action and the nib, and the blue stays where
-     it is in the light theme, structure.
+       So the ground is a true neutral — three points of channel spread, leaning
+       warm because the brand is warm, the desk rather than the ink. The brand
+       is carried by everything on top of it and nothing underneath: the paper
+       is the text, the gold is the action and the nib, and the blue stays where
+       it is in the light theme, structure.
 
-     Every pair below is computed against WCAG (`node contrast.mjs`).
-     --------------------------------------------------------------------- */
-  --bg-canvas: #1a1917;
-  --bg-surface: #232220;
-  --bg-subtle: #2c2a27;
-  --bg-inset: #121110;
-  --bg-overlay: rgba(10, 9, 8, 0.74);
+       Every pair below is computed against WCAG (`node contrast.mjs`).
+       --------------------------------------------------------------------- */
+    --bg-canvas: #1a1917;
+    --bg-surface: #232220;
+    --bg-subtle: #2c2a27;
+    --bg-inset: #121110;
+    --bg-overlay: rgba(10, 9, 8, 0.74);
 
-  --border-subtle: #35332f;
-  --border-strong: #807c73;
+    --border-subtle: #35332f;
+    --border-strong: #807c73;
 
-  --text-primary: #f7f3ea;
-  --text-secondary: #cbc6bb;
-  --text-tertiary: #afaa9f;
-  --text-faint: #918c83;
+    --text-primary: #f7f3ea;
+    --text-secondary: #cbc6bb;
+    --text-tertiary: #afaa9f;
+    --text-faint: #918c83;
 
-  --accent: #aab9ff;
-  --accent-hover: #c3ccff;
-  --accent-fill: #4a63c9;
-  --accent-subtle: #2e2c2f;
-  --accent-fg: #ffffff;
-  --accent-rgb: 170 185 255;
-  /* The one coloured element in the wordmark. */
+    --accent: #aab9ff;
+    --accent-hover: #c3ccff;
+    --accent-fill: #4a63c9;
+    --accent-subtle: #2e2c2f;
+    --accent-fg: #ffffff;
+    --accent-rgb: 170 185 255;
+    /* The one coloured element in the wordmark. */
 
-  --accent-2: #d9b45a;
-  --accent-2-rgb: 217 180 90;
+    --accent-2: #d9b45a;
+    --accent-2-rgb: 217 180 90;
 
-  /* Green at its true value, carrying the ink rather than white: at this
-     brightness it is a lit surface, and white on it is unreadable. */
-  /* The one control on a screen you are meant to press, lifted to the weight
-     its light-theme counterpart already had: 11.04 against the ink on it,
-     where it was 8.89 and the light theme's deep-ink button was 11.67. Same
-     hue, same nib; a little more of it. */
-  --cta: #e8ca80;
-  --cta-hover: #f0daa0;
-  --cta-fg: #1a1917;
-  --cta-rgb: 232 202 128;
+    /* Green at its true value, carrying the ink rather than white: at this
+       brightness it is a lit surface, and white on it is unreadable. */
+    /* The one control on a screen you are meant to press, lifted to the weight
+       its light-theme counterpart already had: 11.04 against the ink on it,
+       where it was 8.89 and the light theme's deep-ink button was 11.67. Same
+       hue, same nib; a little more of it. */
+    --cta: #e8ca80;
+    --cta-hover: #f0daa0;
+    --cta-fg: #1a1917;
+    --cta-rgb: 232 202 128;
 
-  /* On the deep teal it carries its own edge, so the outline is the colour. */
-  --highlight: #d9b45a;
-  --highlight-fg: #1a1917;
-  --highlight-edge: #d9b45a;
-  --mark: #4a4022;
-  --mark-fg: #f7f3ea;
+    /* On the deep teal it carries its own edge, so the outline is the colour. */
+    --highlight: #d9b45a;
+    --highlight-fg: #1a1917;
+    --highlight-edge: #d9b45a;
+    --mark: #4a4022;
+    --mark-fg: #f7f3ea;
 
-  --live: #e0a060;
-  --go: #5fc98a;
-  --stop: #ff8a80;
+    --live: #e0a060;
+    --go: #5fc98a;
+    --stop: #ff8a80;
 
-  --stop-fill: #c0392b;
+    --stop-fill: #c0392b;
 
-  --success: var(--go);
-  --warning: var(--live);
-  --danger: var(--stop);
-  --danger-subtle: #3a201c;
+    --success: var(--go);
+    --warning: var(--live);
+    --danger: var(--stop);
+    --danger-subtle: #3a201c;
 
-  --mesh-a: rgba(217, 180, 90, 0.10);
-  --mesh-b: rgba(170, 185, 255, 0.07);
-  --mesh-c: rgba(247, 243, 234, 0.035);
-  --grain-opacity: 0.045;
-  --glass: rgba(26, 25, 23, 0.74);
-  --glow: 0 0 24px -6px var(--accent-2);
+    --mesh-a: rgba(217, 180, 90, 0.10);
+    --mesh-b: rgba(170, 185, 255, 0.07);
+    --mesh-c: rgba(247, 243, 234, 0.035);
+    --grain-opacity: 0.045;
+    --glass: rgba(26, 25, 23, 0.74);
+    --glow: 0 0 24px -6px var(--accent-2);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.55);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6);
-  --shadow-lg: 0 20px 52px rgba(0, 0, 0, 0.66);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.55);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6);
+    --shadow-lg: 0 20px 52px rgba(0, 0, 0, 0.66);
 
-  /* The one token under 7 in either theme, and the one place the two themes
-     disagreed about what a comment *is*: dark muted it to 5.64 while light
-     kept it in the band with the other six at 7.63. A comment that recedes in
-     one theme and not the other is two different opinions shipped together. */
-  --syn-comment: #a5a099;
-  --syn-keyword: #aab9ff;
-  --syn-string: #5fc98a;
-  --syn-function: #9fc4ff;
-  --syn-number: #ffbd7d;
-  --syn-type: #d9b45a;
+    /* The one token under 7 in either theme, and the one place the two themes
+       disagreed about what a comment *is*: dark muted it to 5.64 while light
+       kept it in the band with the other six at 7.63. A comment that recedes in
+       one theme and not the other is two different opinions shipped together. */
+    --syn-comment: #a5a099;
+    --syn-keyword: #aab9ff;
+    --syn-string: #5fc98a;
+    --syn-function: #9fc4ff;
+    --syn-number: #ffbd7d;
+    --syn-type: #d9b45a;
 
-  /* This was still `rgba(26, 50, 59, …)` — a teal from a palette two
-     revisions ago that nothing pointed at any more, which is why the one
-     element you look at most sat in a blue pool on an otherwise neutral
-     ground. It is the lifted surface now, like every other raised thing. */
-  --composer-bg: rgba(44, 42, 39, 0.76);
-  --composer-line: rgba(247, 243, 234, 0.09);
-  --composer-line-focus: rgba(217, 180, 90, 0.55);
-  --composer-lift: inset 0 1px 0 rgb(247 243 234 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
-  /* The ring around the box you type in, only while the caret is in it, and
-     in the gold of the nib rather than in the structural blue: it marks where
-     you are writing, which is the one thing a nib does. */
-  --composer-lift-focus:
-    inset 0 1px 0 rgb(247 243 234 / 0.10),
-    0 24px 56px -22px rgb(0 0 0 / 0.9),
-    0 0 0 3px rgb(var(--accent-2-rgb) / 0.16);
+    /* This was still `rgba(26, 50, 59, …)` — a teal from a palette two
+       revisions ago that nothing pointed at any more, which is why the one
+       element you look at most sat in a blue pool on an otherwise neutral
+       ground. It is the lifted surface now, like every other raised thing. */
+    --composer-bg: rgba(44, 42, 39, 0.76);
+    --composer-line: rgba(247, 243, 234, 0.09);
+    --composer-line-focus: rgba(217, 180, 90, 0.55);
+    --composer-lift: inset 0 1px 0 rgb(247 243 234 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
+    /* The ring around the box you type in, only while the caret is in it, and
+       in the gold of the nib rather than in the structural blue: it marks where
+       you are writing, which is the one thing a nib does. */
+    --composer-lift-focus:
+      inset 0 1px 0 rgb(247 243 234 / 0.10),
+      0 24px 56px -22px rgb(0 0 0 / 0.9),
+      0 0 0 3px rgb(var(--accent-2-rgb) / 0.16);
+  }
 }
 
 :root[data-density="compact"] { --density: 0.75; }
@@ -1591,6 +1600,13 @@ body::after {
     display: none !important;
   }
 
+  /* Grain and a vignette are how a screen stops looking like a slab of
+     colour. On paper they are dirt. */
+  body::before,
+  body::after {
+    display: none !important;
+  }
+
   /* The shell paints the app's own ground; on paper that ground is the page. */
   .app-shell,
   .app-shell > main,
@@ -1600,10 +1616,15 @@ body::after {
   }
 
   /* The app is a fixed-height flex shell with its own scrollers. On paper
-     everything has to become one continuous flow instead. */
+     everything has to become one continuous flow instead — but not the parts
+     that are not going on paper at all. `display: block !important` on every
+     child of the shell was quietly beating `.no-print` above it, which is a
+     more specific selector winning an argument it should never have been in,
+     and it printed the top bar, the composer and seventy buttons across four
+     pages of what was meant to be a document. */
   .app-shell,
   .paper-scroll,
-  .paper-scroll > * {
+  .paper-scroll > *:not(.no-print) {
     display: block !important;
     height: auto !important;
     max-height: none !important;
@@ -1626,15 +1647,30 @@ body::after {
     color: #111 !important;
   }
 
-  /* Inputs are how the title and author are edited on screen; on paper they
-     are just type, so the affordances have to disappear. */
-  .paper-head input {
-    border: 0 !important;
-    padding: 0 !important;
-    background: transparent !important;
+  /* Paper does not scroll sideways. A line of code longer than the page is a
+     line that ends in the margin and is simply gone — the same defect the
+     screen avoids by letting the block scroll, which is not an option here.
+     So everything wraps on paper, whatever the wrap setting says on screen,
+     and the boxes that scroll on a screen stop clipping what is inside them. */
+  pre,
+  code {
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
   }
-  .paper-head input::placeholder {
-    color: transparent !important;
+
+  .table-scroll,
+  figure > div,
+  .prose pre {
+    overflow: visible !important;
+    max-width: 100% !important;
+  }
+
+  /* Every control that appears when you point at it — copy, edit, regenerate,
+     branch, the timing and token counts under an answer. A page of those is
+     the application printed rather than the document, and the last answer's
+     row is held open deliberately, so it would come out in full. */
+  .reveal {
+    display: none !important;
   }
 
   /* A paper caught in edit mode must never print as raw markdown. */
@@ -1645,7 +1681,7 @@ body::after {
   /* The app's own scrollers have to unroll too, or a printed conversation is
      silently clipped to one screen while still looking like a clean document. */
   .app-shell main,
-  .app-shell main > * {
+  .app-shell main > *:not(.no-print) {
     display: block !important;
     height: auto !important;
     max-height: none !important;

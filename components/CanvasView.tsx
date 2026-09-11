@@ -1041,12 +1041,15 @@ function Editor({
               <DocPreview canvas={canvas} content={draft} />
             )
           ) : mode === "preview" ? (
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+            <div className="paper-scroll min-h-0 flex-1 overflow-y-auto px-4 py-4">
               {/* A doc canvas is a document; a code canvas is code and sets its
                   own. The mode rides on the container so everything inside it —
                   prose, headings, the gaps between paragraphs — follows from
                   one declaration rather than from per-element sizes. */}
-              <div data-read={canvas.kind === "doc" ? "doc" : undefined} className={cn("mx-auto w-full", column)}>
+              <div
+                data-read={canvas.kind === "doc" ? "doc" : undefined}
+                className={cn("mx-auto w-full", canvas.kind === "doc" && "paper-sheet", column)}
+              >
                 {canvas.kind === "doc" ? (
                   <Markdown content={draft} />
                 ) : (

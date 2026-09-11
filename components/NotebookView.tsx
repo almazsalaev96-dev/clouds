@@ -536,11 +536,14 @@ export function NotebookView({
         />
       ) : (
         <>
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          {/* `paper-scroll` and `paper-sheet` are what the print stylesheet
+              knows this page by: on paper the scroller has to unroll and the
+              sheet has to lose its column, its margins and its ground. */}
+          <div className="paper-scroll min-h-0 flex-1 overflow-y-auto">
             {/* A page is read properly, re-read and kept, so it is set as a
                 document rather than as a conversation: a step up in size and
                 leading, and a column a shade wider. */}
-            <div data-read="doc" className="mx-auto w-full max-w-[var(--measure)] px-4 pb-8 pt-4">
+            <div data-read="doc" className="paper-sheet mx-auto w-full max-w-[var(--measure)] px-4 pb-8 pt-4">
               {/* Whether this is still an account of what it was made from.
                   Not a warning about the page being wrong — it may be fine —
                   but the one fact a reader cannot work out for themselves. */}
@@ -573,7 +576,7 @@ export function NotebookView({
             </div>
           </div>
 
-          <div className="composer-dock shrink-0 px-4 pt-2">
+          <div className="composer-dock no-print shrink-0 px-4 pt-2">
             <div className="mx-auto w-full max-w-[var(--measure)]">
               {notice && (
                 <p className="mb-2 rounded-lg bg-subtle px-3 py-1.5 text-xs text-secondary">{notice}</p>

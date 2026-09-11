@@ -1227,6 +1227,29 @@ heading, and link URLs printed in full.
   doing its job. It found a conversation row whose button was as tall as its own
   text — 21px inside a 32px row — so the air that makes the list comfortable to
   read did nothing when you pressed it.
+- **The print stylesheet, which is the PDF renderer** (`print.mjs`, 32
+  assertions). A paper leaves this app through the browser's own print
+  pipeline, so `@media print` is not a nicety on top of the app — it *is* the
+  export, and nothing had ever run it. It has a hard job: the app is a
+  fixed-height flex shell full of independent scrollers and paper is one
+  continuous column. Get that wrong and a printed conversation is silently
+  clipped to one screen while still looking like a clean document, which is the
+  worst way to be wrong, because the person finds out after they have handed
+  it in.
+
+  It was wrong four ways. `display: block !important` on every child of the
+  shell — there to unroll the scrollers — was quietly beating `.no-print`
+  above it, a more specific selector winning an argument it should never have
+  been in, so the top bar, the composer and seventy buttons came out across
+  four pages of what was meant to be a document. The dark palette still
+  applied on a page the stylesheet had forced white, which is cream text on
+  white paper: a sheet that looks blank from a foot away. `.paper-sheet`,
+  `.paper-head` and `.paper-scroll` — twenty-seven declarations of careful
+  typesetting, orphans, widows, `break-after` — named a DOM no component had
+  rendered for a long time. And a line of code longer than the page ended in
+  the margin, because paper cannot scroll sideways and nothing had told it to
+  wrap. All four are fixed and all four are now asserted, in both themes, with
+  a real PDF generated and counted.
 - **Every way a provider can fail** (`test-error.ts`, 56 assertions, and
   `e2e-error.mjs`, 24). `classifyError` is the one place a raw provider string
   becomes a sentence and a button, which makes it the one place a person's whole
@@ -1353,9 +1376,16 @@ Stated plainly, because a checklist you cannot trust is worse than no checklist.
   most of the benefit, without breaking find-in-page, text selection across messages,
   or scroll restoration. A conversation in the thousands of messages would still want
   real windowing.
-- **Screen-reader testing was not run.** Semantics, live regions, labels and focus
-  order are implemented to spec and every control is confirmed to carry an
-  accessible name (`node audit.mjs`), but nothing has been driven with VoiceOver.
+- **Screen-reader testing was not run.** What *is* measured: every control
+  carries an accessible name (`audit.mjs`), and `keys.mjs` does the whole job
+  with the mouse unplugged — Tab all the way round the page, the composer
+  reached, nothing focused off-screen, no stop that jumps back up a column,
+  every stop visibly different focused from unfocused, a question asked and an
+  answer read, and each dialog checked for a trap and for handing your place
+  back. That is keyboard operability, which is most of what a screen-reader
+  user needs and not the same claim. Nothing has been driven with VoiceOver,
+  so what a screen reader actually *says* — the order it reads a message in,
+  whether the live regions interrupt at the right moment — remains unverified.
 - **Most of an agent workflow is not possible here, and is not pretended at.**
   Measured against what Codex and Claude Code actually do, the list of what a
   browser tab cannot have is longer than the list of what it can: there is no
@@ -1440,7 +1470,7 @@ Stated plainly, because a checklist you cannot trust is worse than no checklist.
 
 ## Checks
 
-Nine scripts, each measuring rather than asserting — they read the live DOM and
+Ten scripts, each measuring rather than asserting — they read the live DOM and
 the computed tokens, so they cannot drift from what ships. Run the app first.
 
 ```bash
@@ -1452,6 +1482,7 @@ node type-scale.mjs   # the type scale, read off the rendered app at two text si
 node keys.mjs         # the whole job done with the mouse unplugged
 node reach.mjs        # nothing is written where it cannot be read
 node widths.mjs       # fourteen widths, from a small phone to a wide monitor
+node print.mjs        # the print stylesheet, which is how a paper leaves here
 node shoot-smoke.mjs  # every section loads, undo works, no runtime errors
 
 # and six that need no browser at all:
