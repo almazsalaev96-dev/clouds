@@ -191,6 +191,7 @@ function AssistantMessageImpl({
   onSaveToNote,
   onOpenInCanvas,
   onContinue,
+  onSwitchModel,
   onVerify,
   verifying,
   entering,
@@ -207,6 +208,8 @@ function AssistantMessageImpl({
   onOpenInCanvas: (text: string) => void;
   /** Ask for the rest, when the answer ran out of room. */
   onContinue?: () => void;
+  /** Open the model picker, when this one refused and another might not. */
+  onSwitchModel?: () => void;
   /** Ask a model from another provider whether this answer is right. */
   onVerify?: (message: Msg) => void;
   verifying?: boolean;
@@ -295,6 +298,25 @@ function AssistantMessageImpl({
           )}
         </span>
         {message.stopReason === "aborted" && <span className="text-warning">stopped</span>}
+        {/* All three providers report this and nothing ever showed it: an
+            answer cut short by a safety system arrived looking exactly like
+            one that had finished. A reader who cannot tell the difference
+            between "that is the whole answer" and "that is where it was cut
+            off" has been told something untrue by omission. Switching model
+            is the only thing that ever helps, so it is offered here. */}
+        {message.stopReason === "refusal" && (
+          <span className="flex items-center gap-2">
+            <span className="text-warning">{text ? "cut short by a safety filter" : "declined by a safety filter"}</span>
+            {isLast && onSwitchModel && (
+              <button
+                onClick={onSwitchModel}
+                className="focus-inset rounded-md px-1.5 py-0.5 font-medium text-accent transition-colors duration-[var(--dur-fast)] hover:bg-accent-subtle"
+              >
+                Try another model
+              </button>
+            )}
+          </span>
+        )}
         {message.stopReason === "length" && (
           <span className="flex items-center gap-2">
             <span className="text-warning">ran out of room</span>

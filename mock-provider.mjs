@@ -345,7 +345,13 @@ Nothing here looks like it breaks a caller — the return type is the same array
   }
 
   send(res, "content_block_stop", { index: 0 });
-  send(res, "message_delta", { delta: { stop_reason: "end_turn" }, usage: { output_tokens: 386 } });
+  /* A safety system cutting an answer short is a real ending and the app has
+     to say so, so it needs a way to happen on purpose. Asked for by the
+     question rather than by a switch, because it belongs to one turn. */
+  send(res, "message_delta", {
+    delta: { stop_reason: /\brefuse this\b/i.test(asked) ? "refusal" : "end_turn" },
+    usage: { output_tokens: 386 },
+  });
   send(res, "message_stop", {});
   res.end();
 }).listen(8787, "127.0.0.1", () => console.log("mock provider on http://127.0.0.1:8787"));

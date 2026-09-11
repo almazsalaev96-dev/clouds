@@ -119,7 +119,7 @@ export function EmptyState({
               made the second one furniture. */}
           {!hasAnyKey && (
             <p
-              className="mt-2.5 text-xs uppercase tracking-[0.1em] text-faint anim-rise"
+              className="eyebrow mt-2.5 text-faint anim-rise"
               style={{ animationDelay: "60ms" }}
             >
               Bring your own key — nothing leaves this browser
@@ -156,7 +156,7 @@ export function EmptyState({
             {/* Not "Or make…" any more: the sentences it was an alternative to
                 are gone, and an "or" with nothing before it is a dangling
                 comparison to something the reader never saw. */}
-            <p className="mb-2.5 text-center text-xs uppercase tracking-[0.08em] text-faint">
+            <p className="eyebrow mb-2.5 text-center text-faint">
               Make something you can use
             </p>
             <div className="flex flex-wrap justify-center gap-2">

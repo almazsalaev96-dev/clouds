@@ -398,7 +398,7 @@ export function CodeEditor({
         <span className="tnum">
           {lines.length} line{lines.length === 1 ? "" : "s"}
         </span>
-        {normalized && <span className="uppercase tracking-[0.06em]">{normalized}</span>}
+        {normalized && <span className="eyebrow">{normalized}</span>}
         <span id="code-editor-hint" className="ml-auto hidden sm:inline">
           Tab indents · {MOD}F finds · Esc leaves the editor
         </span>

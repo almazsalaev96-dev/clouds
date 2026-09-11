@@ -614,7 +614,7 @@ function StylesPanel() {
       </section>
 
       <section className="space-y-1.5">
-        <p className="text-xs font-medium uppercase tracking-[0.06em] text-faint">Built in</p>
+        <p className="eyebrow text-faint">Built in</p>
         {BUILT_IN_STYLES.map((st) => (
           <div key={st.id} className="rounded-lg border border-line bg-surface p-3">
             <div className="flex items-baseline gap-2">
@@ -642,7 +642,7 @@ function StylesPanel() {
 
       <section className="space-y-1.5">
         <div className="flex items-center gap-2">
-          <p className="text-xs font-medium uppercase tracking-[0.06em] text-faint">Yours</p>
+          <p className="eyebrow text-faint">Yours</p>
           <Button
             size="sm"
             variant="primary"

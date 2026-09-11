@@ -171,6 +171,20 @@ console.log("\nAnd the error is announced, not only drawn");
   check(live.some((r) => /too long|went wrong|trouble|rejected/i.test(r.text)), "and the failure reached it", JSON.stringify(live).slice(0, 120));
 }
 
+console.log("\nAn answer cut short by a safety filter says it was cut short");
+{
+  /* All three providers report this stop reason and nothing ever showed it,
+     so an answer a safety system trimmed arrived looking exactly like one
+     that had finished. */
+  await newChat();
+  await ask("please refuse this one");
+  await page.waitForTimeout(1200);
+  const meta = await page.evaluate(() => document.querySelector("main")?.innerText ?? "");
+  check(/cut short by a safety filter|declined by a safety filter/i.test(meta), "the answer is marked rather than left looking complete", (meta.match(/.{0,20}safety filter.{0,10}/) ?? ["not marked"])[0]);
+  const offered = await page.getByRole("button", { name: /Try another model/ }).count();
+  check(offered > 0, "and offers the only thing that helps", `${offered}`);
+}
+
 check(errs.length === 0, "no page errors", errs.join(" | "));
 await disarm();
 await b.close();

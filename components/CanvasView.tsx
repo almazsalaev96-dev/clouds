@@ -218,7 +218,7 @@ function Starters({ onSelect }: { onSelect: (id: string, seed?: string) => void 
 
       {/* And the five that are already something. An empty folder is a fair
           place to start only if you already know what you are building. */}
-      <p className="mb-2 mt-5 text-xs uppercase tracking-[0.08em] text-faint">Or make one of these</p>
+      <p className="eyebrow mb-2 mt-5 text-faint">Or make one of these</p>
       <MakeRow onSelect={onSelect} />
     </div>
   );

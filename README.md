@@ -1228,7 +1228,7 @@ heading, and link URLs printed in full.
   text — 21px inside a 32px row — so the air that makes the list comfortable to
   read did nothing when you pressed it.
 - **Every way a provider can fail** (`test-error.ts`, 56 assertions, and
-  `e2e-error.mjs`, 22). `classifyError` is the one place a raw provider string
+  `e2e-error.mjs`, 24). `classifyError` is the one place a raw provider string
   becomes a sentence and a button, which makes it the one place a person's whole
   experience of something going wrong is decided — and it had no test, because
   nothing could make the mock fail on purpose. `GET /__fail?status=&body=&times=`
@@ -1240,6 +1240,12 @@ heading, and link URLs printed in full.
   the keys, that **Retry** retries and the answer replaces the error, that one
   failure draws one error rather than one per attempt, and that the question
   survives the failure and a reload.
+
+  It also found that all three providers report an answer cut short by a safety
+  system — `stop_reason: "refusal"` — and nothing had ever shown it, so an
+  answer a filter trimmed arrived looking exactly like one that had finished.
+  A reader who cannot tell "that is the whole answer" from "that is where it
+  was cut off" has been told something untrue by omission.
 
   Writing it found that **every provider failure in this app was silent**. An
   error belongs to the conversation it happened in, and the transcript renders
@@ -1482,7 +1488,7 @@ node e2e-whole.mjs   # 19 assertions: code inside a project, and asking across i
 node e2e-sources.mjs # 19 assertions: many sources, and citations that are checked
 node e2e-auto.mjs    # 16 assertions: which model answered, read at the wire
 node e2e-command.mjs # 15 assertions: ⌘K acting on whatever is on screen
-node e2e-error.mjs   # 22 assertions: what a person sees when it goes wrong
+node e2e-error.mjs   # 24 assertions: what a person sees when it goes wrong
 # and one that needs a second provider, so the mock serves both wire formats:
 OPENAI_BASE_URL=http://127.0.0.1:8787 OPENAI_API_KEY=sk-mock …
 node e2e-verify.mjs  # 16 assertions: a check that comes from another provider
