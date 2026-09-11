@@ -278,14 +278,17 @@ const lines = (text: string) => text.split("\n").length;
  * and nothing said why.
  */
 function attrValue(tag: string, name: string): string | null {
-  const m = new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, "i").exec(tag);
+  /* A space before the name, not a word boundary: `-` is a boundary too, so
+     `\bhref` also matches the `href` inside `data-href` — and a tag carrying
+     both gave up whichever came first in the markup rather than the real one. */
+  const m = new RegExp(`\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, "i").exec(tag);
   return m ? m[1] ?? m[2] ?? m[3] ?? null : null;
 }
 
 /** The same attribute string without one attribute, valued or bare. */
 function withoutAttr(attrs: string, name: string): string {
   return attrs.replace(
-    new RegExp(`\\s*\\b${name}\\b(\\s*=\\s*(?:"[^"]*"|'[^']*'|[^\\s>]+))?`, "gi"),
+    new RegExp(`\\s${name}\\b(\\s*=\\s*(?:"[^"]*"|'[^']*'|[^\\s>]+))?`, "gi"),
     "",
   );
 }

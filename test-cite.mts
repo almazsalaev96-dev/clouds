@@ -118,6 +118,16 @@ console.log("\nThe ways a near-match goes wrong");
   check(one.citations[0].sourceId === "a", "but a name matching exactly one is a name", one.citations[0].sourceId);
   const long = extractCitations('X [[cite: chapter 3 of notes-2024.pdf | the twenty-four findings are set out below]].', [a, b]);
   check(long.citations[0].sourceId === "b", "and so is a filename inside a phrase", long.citations[0].sourceId);
+  /* A filename is mostly made of other filenames. "data.txt" ends with "a.txt",
+     so a plain substring test attributed the quote to the wrong file. */
+  const x = src("the twenty-three findings are set out below", { id: "x", name: "a.txt" });
+  const y = src("the twenty-four findings are set out below", { id: "y", name: "b.txt" });
+  const tail = extractCitations('X [[cite: data.txt | the twenty-three findings are set out below]].', [x, y]);
+  check(!tail.citations[0].found && tail.citations[0].why === "unnamed",
+    "a filename that merely ends inside the named one is not the named one",
+    `${tail.citations[0].sourceName} / ${tail.citations[0].why}`);
+  const real = extractCitations('X [[cite: see a.txt, page 2 | the twenty-three findings are set out below]].', [x, y]);
+  check(real.citations[0].sourceId === "x", "where one sitting on its own edges is", real.citations[0].sourceId);
   const empty = extractCitations('X [[cite: | the twenty-three findings are set out below]].', [a, b]);
   check(empty.citations[0].sourceName === "unknown",
     "an empty name renders as unknown rather than as nothing at all", JSON.stringify(empty.citations[0].sourceName));

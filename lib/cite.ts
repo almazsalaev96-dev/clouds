@@ -282,6 +282,17 @@ function contextAround(text: string, start: number, end: number): string {
  * was shown a confident citation to a document the claim did not come from. An
  * ambiguous name is not a name. It is left unattributed and the page says so.
  */
+/** Whether `needle` occurs in `hay` as a thing rather than as a tail of one. */
+function atAnEdge(hay: string, needle: string): boolean {
+  for (let at = hay.indexOf(needle); at !== -1; at = hay.indexOf(needle, at + 1)) {
+    const before = hay[at - 1];
+    const after = hay[at + needle.length];
+    if ((before === undefined || /[\s"'(\[/\\]/.test(before)) &&
+        (after === undefined || /[\s"')\],.;:]/.test(after))) return true;
+  }
+  return false;
+}
+
 function pickSource(named: string, sources: Source[]): Source | undefined {
   const want = named.trim().toLowerCase();
   if (want) {
@@ -289,10 +300,15 @@ function pickSource(named: string, sources: Source[]): Source | undefined {
     if (exact.length === 1) return exact[0];
     if (exact.length === 0) {
       /* Either direction: "notes" for `notes.pdf`, and "chapter 3 of notes.pdf"
-         for `notes.pdf`. One match is a name; two is a guess. */
+         for `notes.pdf`. One match is a name; two is a guess.
+
+         The second direction needs an edge to sit on. A phrase naming
+         `data.txt` contains the string "a.txt", so a plain substring test
+         attributed a quote to the wrong file whenever one filename happened to
+         end inside another word — which is what filenames are made of. */
       const near = sources.filter((s) => {
         const n = s.name.trim().toLowerCase();
-        return n.length > 0 && (n.includes(want) || want.includes(n));
+        return n.length > 0 && (n.includes(want) || atAnEdge(want, n));
       });
       if (near.length === 1) return near[0];
     }

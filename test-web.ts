@@ -94,6 +94,25 @@ console.log("\nNothing climbs out of the tag it was put in");
   check(html.includes("color: red") && html.includes("var s ="), "with the text itself still there");
 }
 
+console.log("\nAn attribute is the attribute, not one whose name ends with it");
+{
+  const files = mk([
+    { name: ENTRY, lang: "html", content:
+      '<html><head><link rel=stylesheet data-href="wrong.css" href="style.css"><script data-src="wrong.js" src="app.js"></script></head><body>hi</body></html>' },
+    { name: "style.css", lang: "css", content: "p { color: rebeccapurple; }" },
+    { name: "wrong.css", lang: "css", content: "p { color: crimson; }" },
+    { name: "app.js", lang: "js", content: 'const which = "app";' },
+    { name: "wrong.js", lang: "js", content: 'const which = "wrong";' },
+  ]);
+  const { html } = assembleWeb(files, undefined, "r5");
+  /* `\bhref` matches the href inside `data-href` — `-` is a word boundary —
+     so a tag carrying both gave up whichever came first in the markup. */
+  check(html.includes("rebeccapurple") && !html.includes("crimson"),
+    "data-href is not href, whichever comes first in the tag");
+  check(html.includes('const which = "app"') && !html.includes('const which = "wrong"'),
+    "and data-src is not src");
+}
+
 console.log("\nWhat is not in the folder is left alone");
 {
   const files = mk([
