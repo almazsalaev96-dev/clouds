@@ -1189,6 +1189,65 @@ heading, and link URLs printed in full.
   which is 37 characters even at 14px. Three answers abreast cannot reach sixty
   at any size a person would read. The smaller setting makes it better, not
   good, and the honest fix is to keep the one you want and read it properly.
+- **The whole job, with the mouse unplugged** (`keys.mjs`, 22 assertions). Every
+  control here has an accessible name and a focus ring, and neither of those
+  facts says whether someone who cannot use a pointer can ask a question and
+  read the answer. So this presses Tab all the way round the page and records
+  what it passes: that the composer is reachable, that nothing takes focus
+  off-screen, that the order never jumps back up a column, and that every stop
+  *looks different focused than unfocused* — measured by painting each stop
+  twice rather than by looking for an outline property, because several of these
+  rings live on a wrapper rather than on the control. Then it asks a question
+  and reads the answer without a mouse, and opens each dialog to check it does
+  not trap you and does hand your place back.
+
+  It found two. Send and Stop are two discs stacked so one can fade into the
+  other in place, and the faded-out one was still in the tab order: tabbing
+  through an idle composer landed on a Stop button nobody can see. And none of
+  the three dialogs gave focus back on close — Radix restores to its
+  `<Dialog.Trigger>` and not one of them has one, so closing Settings dropped
+  you on `<body>`, at the top of the document, with the whole page to tab
+  through again.
+- **Nothing is written where it cannot be read** (`reach.mjs`, 9 assertions). A
+  line wider than its column has three honest endings — it wraps, it is
+  ellipsised, it scrolls — and one dishonest one, where it is painted past
+  something with `overflow: hidden` and the rest of the sentence stops existing.
+  For every run of text wider than the box holding it, this walks out to the
+  element that actually does the clipping and asks whether that element can be
+  scrolled. Chat, code, settings, and 390px wide.
+- **Fourteen widths** (`widths.mjs`, 23 assertions). The layout was checked at
+  390 and at 1440, the two widths a responsive design is least likely to be
+  wrong at: one is the phone it was drawn for, the other the monitor it was
+  drawn on. This reloads at fourteen widths between them — reloads rather than
+  drags, because below 768 the sidebar is a drawer and above it a column, and
+  the question is what a device that size gets. At each: nothing spills
+  sideways, nothing is stranded off an edge or pinned under the composer, every
+  target is big enough to hit, and the line stays inside the band a person can
+  read. It holds **72 characters from 640px to 1920px**, which is the column
+  doing its job. It found a conversation row whose button was as tall as its own
+  text — 21px inside a 32px row — so the air that makes the list comfortable to
+  read did nothing when you pressed it.
+- **Every way a provider can fail** (`test-error.ts`, 56 assertions, and
+  `e2e-error.mjs`, 22). `classifyError` is the one place a raw provider string
+  becomes a sentence and a button, which makes it the one place a person's whole
+  experience of something going wrong is decided — and it had no test, because
+  nothing could make the mock fail on purpose. `GET /__fail?status=&body=&times=`
+  arms the next answer to fail. The unit half covers the cases the function's
+  own comments call hard: Google answering an invalid key with 400, a 403 that
+  is a corporate proxy rather than a rejected key, a `retry_after` that should
+  be believed over a guess. The browser half walks the failures a person
+  actually meets and checks the sentence, the buttons, that **Add key** opens
+  the keys, that **Retry** retries and the answer replaces the error, that one
+  failure draws one error rather than one per attempt, and that the question
+  survives the failure and a reload.
+
+  Writing it found that **every provider failure in this app was silent**. An
+  error belongs to the conversation it happened in, and the transcript renders
+  only what belongs to the thread it is showing; the end of a failed run cleared
+  the conversation id along with everything else, so the error sat in state
+  attached to nothing and was dropped one line before it would have been drawn.
+  What a 401 got you was your question on screen, no answer, no explanation, and
+  nothing to press.
 - **The preview assembler and its source map** (`test-web.ts`, 19 assertions,
   `npx jiti test-web.ts`). The claim worth testing is not "the CSS got inlined",
   it is that a runtime error at line 214 of a document nobody wrote comes back as
@@ -1375,7 +1434,7 @@ Stated plainly, because a checklist you cannot trust is worse than no checklist.
 
 ## Checks
 
-Four scripts, each measuring rather than asserting — they read the live DOM and
+Nine scripts, each measuring rather than asserting — they read the live DOM and
 the computed tokens, so they cannot drift from what ships. Run the app first.
 
 ```bash
@@ -1384,13 +1443,17 @@ node contrast.mjs     # every text/background pair the app renders, against WCAG
 node touch.mjs        # every control in every section on a phone, against 44pt
 node theme-parity.mjs # the two themes measured against each other, role by role
 node type-scale.mjs   # the type scale, read off the rendered app at two text sizes
+node keys.mjs         # the whole job done with the mouse unplugged
+node reach.mjs        # nothing is written where it cannot be read
+node widths.mjs       # fourteen widths, from a small phone to a wide monitor
 node shoot-smoke.mjs  # every section loads, undo works, no runtime errors
 
-# and four that need no browser at all:
+# and six that need no browser at all:
 node --experimental-strip-types test-cite.mts   # the citation matcher, on its own
 npx jiti test-route.ts                          # the model router and the calculator
 npx jiti test-web.ts                            # the preview assembler and its source map
 npx jiti test-task.ts                           # what kind of work a request is
+npx jiti test-error.ts                          # every way a provider can fail
 npx jiti test-fuzz.ts                           # generated cases against the invariants
 ```
 
@@ -1419,6 +1482,7 @@ node e2e-whole.mjs   # 19 assertions: code inside a project, and asking across i
 node e2e-sources.mjs # 19 assertions: many sources, and citations that are checked
 node e2e-auto.mjs    # 16 assertions: which model answered, read at the wire
 node e2e-command.mjs # 15 assertions: ⌘K acting on whatever is on screen
+node e2e-error.mjs   # 22 assertions: what a person sees when it goes wrong
 # and one that needs a second provider, so the mock serves both wire formats:
 OPENAI_BASE_URL=http://127.0.0.1:8787 OPENAI_API_KEY=sk-mock …
 node e2e-verify.mjs  # 16 assertions: a check that comes from another provider
