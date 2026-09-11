@@ -56,6 +56,21 @@ interface Folded {
   map: number[];
 }
 
+/**
+ * One character, lowercased and decomposed, remembered.
+ *
+ * A source is four hundred thousand characters and a handful of distinct ones,
+ * so the interesting work is done a few dozen times rather than once per
+ * character. Module-level because the answer is a property of the character
+ * rather than of any document.
+ */
+const foldedChar = new Map<string, string>();
+function caseFolded(ch: string): string {
+  let out = foldedChar.get(ch);
+  if (out === undefined) foldedChar.set(ch, (out = ch.toLowerCase().normalize("NFD")));
+  return out;
+}
+
 /** Letters and digits in any script, for deciding what a hyphen is doing. */
 const WORDY = /[\p{L}\p{N}]/u;
 
@@ -136,7 +151,7 @@ function fold(s: string): Folded {
          document and the difference between this being free and this being a
          normalise call per character of a four-hundred-thousand-character
          book. */
-      ch < "\u0080" ? ch.toLowerCase() : ch.toLowerCase().normalize("NFD");
+      ch < "\u0080" ? ch.toLowerCase() : caseFolded(ch);
     /* A run of hyphens is one dash. Models write "--" for an em dash about as
        often as they write the character, and which of the two arrived is not a
        difference any reader would call one. */
