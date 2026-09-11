@@ -112,12 +112,10 @@
   --accent: #3450b5;
   --accent-hover: #28409a;
   --accent-fill: #3450b5;
-  --accent-fill-hover: #28409a;
   --accent-subtle: #e9ebf6;
   --accent-fg: #ffffff;
   --accent-rgb: 52 80 181;
   /* The one coloured element in the wordmark. */
-  --brand-accent: var(--accent);
 
   /* The nib, deepened to carry small text.
      At #a8801f it scored 3.29 on cream — over the 3:1 bar for the large
@@ -152,8 +150,6 @@
   --go: #2f6b46;
   --stop: #a6342a;
 
-  --go-fill: #2f6b46;
-  --on-fill: #ffffff;
   --stop-fill: #a6342a;
 
   --success: var(--go);
@@ -168,14 +164,12 @@
   --mesh-c: rgba(122, 74, 42, 0.05);
   --grain-opacity: 0.035;
   --glass: rgba(247, 243, 234, 0.74);
-  --glass-line: rgba(26, 38, 80, 0.08);
   --glow: none;
 
   /* --- Elevation. --- */
   --shadow-sm: 0 1px 2px rgba(26, 38, 80, 0.06), 0 1px 1px rgba(26, 38, 80, 0.03);
   --shadow-md: 0 4px 12px rgba(26, 38, 80, 0.09), 0 1px 3px rgba(26, 38, 80, 0.04);
   --shadow-lg: 0 16px 44px rgba(26, 38, 80, 0.14), 0 2px 8px rgba(26, 38, 80, 0.06);
-  --highlight-top: none;
 
   /* --- Motion. 100–200ms for a control answering a press, 300–400ms for the
          screen changing under you. --- */
@@ -188,7 +182,6 @@
   --dur-fast: 140ms;
   --dur-enter: 200ms;
   --dur-layout: 320ms;
-  --dur-slow: 380ms;
   --dur-spring: 420ms;
   /* One human breath, so anything that idles does it at a rate a body reads
      as calm rather than as a machine ticking. 15 per minute. */
@@ -230,7 +223,12 @@
   --syn-function: #194d71;
   --syn-number: #6f3c17;
   --syn-type: #603680;
-  --syn-punct: #454e68;
+  /* There is no --syn-punct. There was, in both themes, and nothing could
+     reach it: Shiki writes github-light's colours and that theme gives
+     punctuation the same value as plain text, so there was no distinct colour
+     for `mapColor` to rewrite. A token that names something it does not
+     control is worse than an absent one — somebody eventually changes it and
+     watches nothing happen. */
 
   /* The composer. On light it lifts with a real drop shadow; on dark a shadow
      under a dark box is invisible, so the lift there comes from a lit top edge
@@ -284,12 +282,10 @@
   --accent: #aab9ff;
   --accent-hover: #c3ccff;
   --accent-fill: #4a63c9;
-  --accent-fill-hover: #5b74d8;
   --accent-subtle: #2e2c2f;
   --accent-fg: #ffffff;
   --accent-rgb: 170 185 255;
   /* The one coloured element in the wordmark. */
-  --brand-accent: var(--accent);
 
   --accent-2: #d9b45a;
   --accent-2-rgb: 217 180 90;
@@ -316,8 +312,6 @@
   --go: #5fc98a;
   --stop: #ff8a80;
 
-  --go-fill: #2f6b46;
-  --on-fill: #f7f3ea;
   --stop-fill: #c0392b;
 
   --success: var(--go);
@@ -330,13 +324,11 @@
   --mesh-c: rgba(247, 243, 234, 0.035);
   --grain-opacity: 0.045;
   --glass: rgba(26, 25, 23, 0.74);
-  --glass-line: rgba(247, 243, 234, 0.08);
   --glow: 0 0 24px -6px var(--accent-2);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.55);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6);
   --shadow-lg: 0 20px 52px rgba(0, 0, 0, 0.66);
-  --highlight-top: inset 0 1px 0 rgba(247, 243, 234, 0.06);
 
   /* The one token under 7 in either theme, and the one place the two themes
      disagreed about what a comment *is*: dark muted it to 5.64 while light
@@ -348,7 +340,6 @@
   --syn-function: #9fc4ff;
   --syn-number: #ffbd7d;
   --syn-type: #d9b45a;
-  --syn-punct: #afaa9f;
 
   /* This was still `rgba(26, 50, 59, …)` — a teal from a palette two
      revisions ago that nothing pointed at any more, which is why the one
