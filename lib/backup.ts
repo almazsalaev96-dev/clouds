@@ -1,5 +1,8 @@
 import { db } from "./db";
+import { DEFAULT_MODEL_ID } from "./models";
+import { DEFAULT_MODE } from "./modes";
 import { useSettings } from "./store";
+import { DEFAULT_STYLE_ID } from "./styles";
 
 /**
  * Taking your work with you.
@@ -184,8 +187,45 @@ export interface RestoreResult {
  * are left exactly as they are and counted, so the result can say so.
  *
  * Settings are only applied when this browser has none of its own — restoring
- * on a machine you have already set up should not change its theme.
+ * on a machine you have already set up should not change its theme — and only
+ * the settings this file knows the names of.
+ *
+ * That last part is the difference between reading a file and executing one. A
+ * backup is JSON that arrived from somewhere: a colleague, an old laptop, an
+ * email attachment, a text editor somebody was curious in. The export side has
+ * always filtered to a named list, with a comment explaining that a key in a
+ * file in Downloads is a key on somebody's server — and the import side then
+ * took `b.settings` entire and merged it into the store, so a file with a
+ * `keys` object in it wrote API keys into the browser of whoever opened it, and
+ * anything else in it landed in the store unchecked. Same list, both
+ * directions, and the value has to be the shape the setting already is.
  */
+/** What this browser looks like before anybody has chosen anything. */
+const DEFAULTS: Record<string, unknown> = {
+  theme: "system", density: "comfortable", modelId: DEFAULT_MODEL_ID, reviseModelId: null,
+  systemPrompt: "", styleId: DEFAULT_STYLE_ID, mode: DEFAULT_MODE, name: "", nameAsked: false,
+  sendOnEnter: true, showLineNumbers: false, wrapCode: false, params: {}, favorites: [], recentModels: [],
+};
+
+/** Equal enough to say "nobody has touched this". */
+function same(a: unknown, b: unknown): boolean {
+  if (Array.isArray(a) || Array.isArray(b)) {
+    return Array.isArray(a) && Array.isArray(b) && a.length === 0 && b.length === 0;
+  }
+  if (a && b && typeof a === "object" && typeof b === "object") {
+    return Object.keys(a).length === 0 && Object.keys(b).length === 0;
+  }
+  return a === b;
+}
+
+/** The shape the setting already is — a string for a string, a list for a list. */
+function shaped(v: unknown, like: unknown): boolean {
+  if (Array.isArray(like)) return Array.isArray(v);
+  if (like === null) return v === null || typeof v === "string";
+  if (like && typeof like === "object") return Boolean(v) && typeof v === "object" && !Array.isArray(v);
+  return typeof v === typeof like;
+}
+
 export async function restoreBackup(b: Backup): Promise<RestoreResult> {
   let added = 0;
   let skipped = 0;
@@ -209,10 +249,23 @@ export async function restoreBackup(b: Backup): Promise<RestoreResult> {
     }
   }
 
-  const s = useSettings.getState();
-  const untouched = !s.name && !s.systemPrompt && s.recentModels.length === 0;
-  if (untouched && b.settings) {
-    s.set(b.settings as never);
+  const s = useSettings.getState() as unknown as Record<string, unknown>;
+  /* Untouched means untouched: anything a person can have chosen, not the three
+     fields that happened to be checked. Someone who had picked a dark theme and
+     never typed their name was having the theme taken off them by a restore
+     whose own documentation promised it would not.
+
+     `section` and `lastConversationId` are where you were, not what you chose,
+     and `keys` is deliberately never in a backup, so none of the three counts. */
+  const untouched = SETTING_KEYS.every((k) => same(s[k], DEFAULTS[k]));
+  if (untouched && b.settings && typeof b.settings === "object") {
+    const clean: Record<string, unknown> = {};
+    for (const k of SETTING_KEYS) {
+      const v = (b.settings as Record<string, unknown>)[k];
+      // The shape the setting already has, or nothing. A file is not a program.
+      if (v !== undefined && shaped(v, DEFAULTS[k])) clean[k] = v;
+    }
+    if (Object.keys(clean).length) (useSettings.getState() as unknown as { set: (p: unknown) => void }).set(clean);
   }
 
   return { added, skipped, per };

@@ -138,6 +138,26 @@ console.log("\nThe same rules on both sides");
     JSON.stringify(turkish.text.slice(at.start, at.end)));
 }
 {
+  /* Bullets. A markdown source is a source, and "- " at the start of a line is
+     the most common hyphen there is. The old loop deleted it along with the
+     newline after it, which did two things at once: it made every quote that
+     kept its bullet unfindable, and it welded consecutive list items into one
+     run of text, so a "quote" spanning two separate bullets verified as
+     contiguous and got a green marker. */
+  const list = src("Key findings:\n- Revenue grew twenty-seven percent.\n- Churn fell to three percent.");
+  const kept = extractCitations('X [[cite: book.pdf | - Revenue grew twenty-seven percent.]].', [list]);
+  check(kept.citations[0].found, "a quote that keeps its bullet is still a quote");
+  const across = extractCitations('X [[cite: book.pdf | Revenue grew twenty-seven percent. Churn fell to three percent.]].', [list]);
+  check(!across.citations[0].found,
+    "and two separate list items are not one quotation, however close together they are printed");
+  const spaced = src("The result - a record for the decade - was confirmed by three teams.");
+  const out = extractCitations('X [[cite: book.pdf | The result - a record for the decade - was confirmed]].', [spaced]);
+  check(out.citations[0].found, "a dash with spaces around it survives on both sides");
+  const intraline = src("nobody could under- stand the result at the time");
+  const it = extractCitations('X [[cite: book.pdf | nobody could under- stand the result at the time]].', [intraline]);
+  check(it.citations[0].found, "and a hyphen mid-line is punctuation, joined by neither side");
+}
+{
   const code = src('the config reads arr[[0]] = true and nothing else matters here');
   const out = extractCitations('X [[cite: book.pdf | the config reads arr[[0]] = true and nothing else matters here]].', [code]);
   check(out.citations[0].found,

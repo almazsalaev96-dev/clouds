@@ -400,12 +400,34 @@ export async function saveToNote(text: string, conversationId?: string): Promise
   return note;
 }
 
+/**
+ * A page and everything brought here for it.
+ *
+ * The sources went with it in nobody's mind but the reader's: deleting a page
+ * left every `sources` row it owned in the database, keyed to an id that no
+ * longer resolves. They are not small and they are not incidental — a source
+ * holds the *entire text* of whatever was attached, four hundred thousand
+ * characters of somebody's book or contract or medical file, and it survived
+ * the only gesture the app offers for getting rid of it. Nothing could reach
+ * them afterwards to show them or to delete them; "clear everything" was the
+ * one thing that ever would.
+ *
+ * So they go with the page, and they come back with it, which is what the undo
+ * has always claimed to do.
+ */
 export async function deleteNote(id: string): Promise<() => Promise<void>> {
-  const note = await db.notes.get(id);
-  await db.notes.delete(id);
-  return async () => {
-    if (note) await db.notes.put(note);
-  };
+  return db.transaction("rw", db.notes, db.sources, async () => {
+    const note = await db.notes.get(id);
+    const sources = await db.sources.where("noteId").equals(id).toArray();
+    await db.sources.where("noteId").equals(id).delete();
+    await db.notes.delete(id);
+    return async () => {
+      await db.transaction("rw", db.notes, db.sources, async () => {
+        if (note) await db.notes.put(note);
+        if (sources.length) await db.sources.bulkPut(sources);
+      });
+    };
+  });
 }
 
 /* --------------------------------------------------------------- sources -- */
@@ -523,12 +545,34 @@ function uniqueName(name: string, taken: string[]): string {
   }
 }
 
+/**
+ * A file, and the history that was only ever this file's.
+ *
+ * Versions are keyed by canvas and filename, so a deleted `style.css` left its
+ * history behind under that name — and the next `style.css` added to the same
+ * canvas inherited it. Pressing "history" on a file you created a minute ago and
+ * being offered the contents of a file you deleted last week is not a stale
+ * cache, it is the app handing you back something you told it to get rid of. It
+ * goes, and it comes back with the undo.
+ */
 export async function deleteCanvasFile(id: string): Promise<() => Promise<void>> {
-  const row = await db.canvasFiles.get(id);
-  await db.canvasFiles.delete(id);
-  return async () => {
-    if (row) await db.canvasFiles.put(row);
-  };
+  return db.transaction("rw", db.canvasFiles, db.canvasVersions, async () => {
+    const row = await db.canvasFiles.get(id);
+    const versions = row
+      ? await db.canvasVersions
+          .where("canvasId").equals(row.canvasId)
+          .filter((v) => v.fileName === row.name)
+          .toArray()
+      : [];
+    if (versions.length) await db.canvasVersions.bulkDelete(versions.map((v) => v.id));
+    await db.canvasFiles.delete(id);
+    return async () => {
+      await db.transaction("rw", db.canvasFiles, db.canvasVersions, async () => {
+        if (row) await db.canvasFiles.put(row);
+        if (versions.length) await db.canvasVersions.bulkPut(versions);
+      });
+    };
+  });
 }
 
 export async function createCanvas(init: Partial<Canvas> = {}): Promise<Canvas> {
