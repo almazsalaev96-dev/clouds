@@ -24,6 +24,7 @@ export function TopBar({
   projects,
   onMoveToProject,
   onOpenProject,
+  pendingProject,
 }: {
   conversation: Conversation | null;
   scrolled: boolean;
@@ -37,10 +38,13 @@ export function TopBar({
   /** null takes the conversation out of whatever project it is in. */
   onMoveToProject: (projectId: string | null) => void;
   onOpenProject: (projectId: string) => void;
+  /** The project a chat not yet started belongs to. */
+  pendingProject?: string | null;
 }) {
   const { sidebarOpen, toggleSidebar } = useSettings();
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState("");
+  const inProject = conversation?.projectId ?? (conversation ? null : pendingProject) ?? null;
 
   return (
     <header
@@ -62,15 +66,20 @@ export function TopBar({
 
       {/* Which project you are inside, where you can see it while you type.
           A chat that silently carries three pages of instructions and says
-          nothing about it is a chat whose answers you cannot account for. */}
-      {conversation?.projectId && (
+          nothing about it is a chat whose answers you cannot account for.
+
+          Including before the first message, when there is no conversation row
+          to read it off yet — "New chat here" used to create one immediately so
+          that this had something to show, which left an empty row in the
+          sidebar every time somebody pressed it and changed their mind. */}
+      {inProject && (
         <button
-          onClick={() => onOpenProject(conversation.projectId!)}
+          onClick={() => onOpenProject(inProject)}
           className="focus-inset ml-1 flex h-7 min-w-0 shrink-0 items-center gap-1.5 rounded-full border border-line bg-accent-subtle px-2.5 text-xs text-accent transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
         >
           <FolderOpen size={12} className="shrink-0" />
           <span className="max-w-[9rem] truncate">
-            {projects.find((p) => p.id === conversation.projectId)?.name ?? "Project"}
+            {projects.find((p) => p.id === inProject)?.name ?? "Project"}
           </span>
         </button>
       )}

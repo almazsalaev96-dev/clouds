@@ -56,6 +56,14 @@ export async function complete(
 
   /* Outside the try, so an abort mid-stream can still hand back what arrived. */
   let out = "";
+  /* Whether the stream said it was finished, rather than merely stopping.
+     Every adapter ends with a `done` event, so a stream that runs out without
+     one ended for a reason nobody reported — a dropped connection, a proxy
+     timeout, a tab suspended mid-read. What arrived is then a file with its
+     end missing, and the caller has no way to tell it from a complete one:
+     the canvas was offering it as a finished replacement, captioned with the
+     instruction, in exactly the case its own comment says it refuses. */
+  let finished = false;
 
   try {
     const res = await fetch("/api/chat", {
@@ -97,20 +105,30 @@ export async function complete(
             out += ev.text;
             opts.onText?.(out);
           }
+          if (ev.type === "done") finished = true;
           if (ev.type === "error") return null;
         } catch {
           /* partial frame */
         }
       }
     }
+    if (!finished && !opts.signal?.aborted) {
+      throw new Error("The connection ended before the answer did.");
+    }
     return out.trim() || null;
-  } catch {
+  } catch (err) {
     /* An abort is not a failure, and what had already arrived is not rubbish.
        A stopped revision of a long file is usually most of a revision, and
        throwing it away because the reader pressed stop is throwing away the
        thing they were watching arrive. Callers decide what a partial answer is
-       worth; this only decides not to lose it. */
-    return out.trim() || null;
+       worth; this only decides not to lose it.
+
+       Anything else is a failure and is raised as one. Returning the fragment
+       for a connection that dropped made a truncated file indistinguishable
+       from a finished one — same shape, same absent error — and every caller
+       treated it as an answer. */
+    if (opts.signal?.aborted) return out.trim() || null;
+    throw err;
   }
 }
 

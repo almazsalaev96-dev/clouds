@@ -95,6 +95,7 @@ export function CanvasView({
   onNew,
   onFocus,
   onBack,
+  onAsked,
 }: {
   canvasId: string | null;
   configured: Record<string, boolean>;
@@ -103,6 +104,8 @@ export function CanvasView({
   seed?: string;
   /** An instruction to carry out here, sent from elsewhere. */
   ask?: { text: string; nonce: number };
+  /** Said once it has been carried out, so it is not delivered twice. */
+  onAsked?: () => void;
   onSelect: (id: string, seed?: string) => void;
   onNew: () => void;
   /** Raised while a made thing has the window to itself. */
@@ -163,6 +166,7 @@ export function CanvasView({
       configured={configured}
       seed={seed}
       ask={ask}
+      onAsked={onAsked}
       onFocus={onFocus}
       onBack={onBack}
     />
@@ -231,12 +235,15 @@ function Editor({
   ask,
   onFocus,
   onBack,
+  onAsked,
 }: {
   canvas: Canvas;
   configured: Record<string, boolean>;
   seed?: string;
   /** An instruction to carry out here, sent from elsewhere. */
   ask?: { text: string; nonce: number };
+  /** Said once it has been carried out, so it is not delivered twice. */
+  onAsked?: () => void;
   /** The window belongs to the made thing now; the app gets out of the way. */
   onFocus?: (on: boolean) => void;
   onBack: () => void;
@@ -267,6 +274,9 @@ function Editor({
      half-sentence the starter belongs to, with the caret after it. A blank box
      under a working demo asks "now what"; a sentence to finish answers it. */
   const [instruction, setInstruction] = React.useState(seed ?? "");
+  const reviseModel = useReviseModel(configured);
+  const [busy, setBusy] = React.useState<false | "revise" | "explain" | "review" | "plan" | "check">(false);
+
   /* An instruction handed over from somewhere else — ⌘K, typed while you were
      looking at this file. Seeding the box and leaving it there would make the
      command a navigation with a side effect; the whole point is that you said
@@ -275,15 +285,29 @@ function Editor({
   const askedRef = React.useRef<number | undefined>(undefined);
   React.useEffect(() => {
     if (!ask || ask.nonce === askedRef.current) return;
+    /* Not before there is a file to change. On a cold open the canvas and its
+       files arrive from two live queries, so for a frame or two the draft is
+       the empty string — and an instruction that fired then asked a model to
+       revise an empty file and offered the result as a diff against nothing. */
+    if (!doc.key || doc.key === "none") return;
+    /* And not while something else is arriving. The nonce used to be marked
+       consumed before `run` was called, and `run` returns immediately when it
+       is busy — so a sentence typed into ⌘K during a long revision was taken,
+       marked as delivered, and silently dropped. */
+    if (busy) return;
     askedRef.current = ask.nonce;
     setInstruction(ask.text);
     void run(ask.text);
+    /* Said out loud, so the sentence is not delivered a second time. The two
+       views take this on the nonce alone, and it used to sit in the parent
+       until something else replaced it: ask for a change to one file, open
+       another, and this component remounts with a fresh ref, sees a nonce it
+       has never recorded, and rewrites the file you have only just opened. */
+    onAsked?.();
     // `run` closes over most of this component and is rebuilt every render;
     // listing it would re-fire the instruction on the next keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ask?.nonce]);
-  const reviseModel = useReviseModel(configured);
-  const [busy, setBusy] = React.useState<false | "revise" | "explain" | "review" | "plan" | "check">(false);
+  }, [ask?.nonce, doc.key, busy]);
   /* Using the thing rather than building it. A deck of cards, a timer, a quiz
      — these are made once and then used, and everything that helps you make
      one is in the way of using it. */
@@ -307,6 +331,13 @@ function Editor({
 
   const enterFocus = React.useCallback(() => {
     setMode("run");
+    /* Disarmed on the way in. "Use it" is the mode for using the thing, and a
+       picker still listening in the capture phase turns every click in it into
+       a selection rather than a press — a timer you cannot start, a quiz you
+       cannot answer, with a crosshair for a cursor and no visible chrome to
+       explain it. */
+    setPicking(false);
+    setPicked(null);
     setFocused(true);
     onFocus?.(true);
   }, [onFocus]);
@@ -383,12 +414,20 @@ function Editor({
   const [notice, setNotice] = React.useState<string | null>(null);
   const [jump, setJump] = React.useState<Jump | undefined>();
 
-  // Switching file is switching document: the draft follows, and anything
-  // half-decided about the old one is dropped rather than applied to the new.
+  /* Switching file is switching document: the draft follows, and anything
+     half-decided about the old one is dropped rather than applied to the new.
+
+     The selection was not dropped, and it is a pair of line numbers. Highlight
+     lines 40–60 of app.js, open style.css, ask for a change — and the change
+     was spliced into lines 40–60 of the stylesheet, which are different lines
+     of a different file in a different language. The picked element is the
+     same kind of stale: it names a run of the page as it was. */
   React.useEffect(() => {
     setDraft(doc.content);
     setProposal(null);
     setReport(null);
+    setSelection(null);
+    setPicked(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc.key]);
 
@@ -446,6 +485,28 @@ function Editor({
    * abort controllers to handle a case that cannot happen is machinery that
    * only ever goes wrong.
    */
+  /**
+   * Take the room, or find it taken.
+   *
+   * `busy` is state, and state is a render behind — so five handlers each
+   * reading it from their own closure could all pass in the same frame, and
+   * four of them never read it at all. That was not merely a second request
+   * and a second bill. Everything here shares one abort controller and one
+   * arriving-text buffer, so starting a review during a revision replaced the
+   * revision's controller: Stop then pointed at the review, and the revision
+   * carried on writing into a box the reader had just stopped.
+   *
+   * A ref, checked and claimed in the same tick, which is what "one at a time"
+   * actually requires.
+   */
+  const busyRef = React.useRef(false);
+  const begin = React.useCallback((kind: "revise" | "explain" | "review" | "plan" | "check") => {
+    if (busyRef.current) return false;
+    busyRef.current = true;
+    setBusy(kind);
+    return true;
+  }, []);
+
   const watching = React.useCallback((): Progress => {
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -465,20 +526,34 @@ function Editor({
 
   const settle = React.useCallback(() => {
     abortRef.current = null;
+    busyRef.current = false;
     setLive(null);
     setBusy(false);
   }, []);
 
-  /* `label` is what this is called afterwards, on the diff and in the file's
-     history. A shortcut sends three sentences and means two words. */
-  const run = async (text: string, label?: string) => {
-    if (!text.trim() || busy) return;
+  /**
+   * Ask for a change.
+   *
+   * `label` is what this is called afterwards, on the diff and in the file's
+   * history: a shortcut sends three sentences and means two words.
+   *
+   * `scope` is which thing the sentence is about. "auto" reads the room — a
+   * picked element, then a selection, then the file — which is right for
+   * something you typed, because you typed it while looking at what you had
+   * picked. It is wrong for everything that carries its own meaning: "Add
+   * comments" and "Fix the error" are about the file and nothing else, and
+   * they used to be quietly re-aimed at whatever element happened to still be
+   * outlined in the preview, so pressing Fix on a console error rewrote a
+   * button instead.
+   */
+  const run = async (text: string, label?: string, scope: "auto" | "file" = "auto") => {
+    if (!text.trim()) return;
     const modelId = reviseModel;
     if (!modelId) {
       setNotice("No key configured yet — add one in Settings to ask for a revision.");
       return;
     }
-    setBusy("revise");
+    if (!begin("revise")) return;
     setNotice(null);
     setReport(null);
     try {
@@ -486,7 +561,7 @@ function Editor({
       // see on screen but the model cannot is the fastest way to lose an edit.
       /* Pointed at something in the running page: the change is about that
          element, and it may not even belong in the file you are looking at. */
-      if (picked) {
+      if (picked && scope === "auto") {
         const all = files.map((f) => ({
           name: f.name,
           content: f.id === activeFile?.id ? draft : f.content,
@@ -514,7 +589,7 @@ function Editor({
         return;
       }
 
-      const out = selection
+      const out = selection && scope === "auto"
         ? await reviseSelection(draft, selection, text, doc.lang, modelId, rules, watching())
         : /* `undefined` is perSibling left at its default. Rules ride behind it
              because the notebook calls this positionally with a much larger
@@ -542,7 +617,7 @@ function Editor({
       setNotice("No key configured yet — add one in Settings.");
       return;
     }
-    setBusy("review");
+    if (!begin("review")) return;
     setNotice(null);
     try {
       const out = await reviewCode(draft, doc.lang, modelId, siblings, rules, watching());
@@ -573,7 +648,7 @@ function Editor({
       setNotice("No key configured yet — add one in Settings.");
       return;
     }
-    setBusy("plan");
+    if (!begin("plan")) return;
     setNotice(null);
     setReport(null);
     try {
@@ -613,7 +688,7 @@ function Editor({
       setNotice("No key configured yet — add one in Settings.");
       return;
     }
-    setBusy("check");
+    if (!begin("check")) return;
     setNotice(null);
     try {
       const out = await checkChange(proposal.before, proposal.content, proposal.note, doc.lang, modelId, watching());
@@ -636,13 +711,15 @@ function Editor({
   const fixError = React.useCallback(
     (message: string, where?: string) => {
       setMode("edit");
-      void run(fixInstruction(message, where), "Fix the error");
+      // The file, whatever is picked or selected: this is an error the whole
+      // page produced, not a remark about six highlighted lines.
+      void run(fixInstruction(message, where), "Fix the error", "file");
     },
     // `run` is redefined every render and depends on most of this component;
     // listing it would rebuild this on every keystroke in the composer, and
     // the preview takes it as a prop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [draft, rules, siblings, reviseModel, busy, selection],
+    [draft, rules, siblings, reviseModel, busy],
   );
 
   const explain = async () => {
@@ -651,7 +728,7 @@ function Editor({
       setNotice("No key configured yet — add one in Settings.");
       return;
     }
-    setBusy("explain");
+    if (!begin("explain")) return;
     setNotice(null);
     try {
       setReport({
@@ -1149,7 +1226,11 @@ function Shortcuts({
   kind: Canvas["kind"];
   lang?: string;
   busy: false | "revise" | "explain" | "review" | "plan" | "check";
-  onRun: (instruction: string, label?: string) => void;
+  /* "file" on every one of these: a chip carries its own meaning and it is
+     always about the whole document. Left on "auto" they were re-aimed at
+     whatever element was still outlined in the preview, so "Add comments"
+     with a picked button rewrote the button. */
+  onRun: (instruction: string, label?: string, scope?: "auto" | "file") => void;
   onExplain: () => void;
   onReview: () => void;
   onPlan: () => void;
@@ -1159,13 +1240,13 @@ function Shortcuts({
   if (kind === "doc") {
     return (
       <Row>
-        <Chip busy={busy === "revise"} onClick={() => onRun("Tighten this. Cut every word that is not doing work, and keep every fact.", "Tighten")}>
+        <Chip busy={busy === "revise"} onClick={() => onRun("Tighten this. Cut every word that is not doing work, and keep every fact.", "Tighten", "file")}>
           Tighten
         </Chip>
-        <Chip busy={busy === "revise"} onClick={() => onRun("Fix the spelling, grammar and punctuation. Change nothing else — not the wording, not the structure.", "Proofread")}>
+        <Chip busy={busy === "revise"} onClick={() => onRun("Fix the spelling, grammar and punctuation. Change nothing else — not the wording, not the structure.", "Proofread", "file")}>
           Proofread
         </Chip>
-        <Chip busy={busy === "revise"} onClick={() => onRun("Add headings and a little structure where the document has grown long enough to need them. Do not rewrite the prose.", "Add structure")}>
+        <Chip busy={busy === "revise"} onClick={() => onRun("Add headings and a little structure where the document has grown long enough to need them. Do not rewrite the prose.", "Add structure", "file")}>
           Add structure
         </Chip>
         <Chip busy={busy === "plan"} onClick={onPlan}>
@@ -1183,20 +1264,20 @@ function Shortcuts({
     <Row>
       <Chip
         busy={busy === "revise"}
-        onClick={() => onRun("Add comments. Explain why the non-obvious parts are the way they are, not what each line does. Change no code.", "Add comments")}
+        onClick={() => onRun("Add comments. Explain why the non-obvious parts are the way they are, not what each line does. Change no code.", "Add comments", "file")}
       >
         Add comments
       </Chip>
       <Chip
         busy={busy === "revise"}
-        onClick={() => onRun("Add logging at the points that would tell someone what went wrong: inputs at each boundary, the value of anything the logic branches on, and errors. Change no behaviour.", "Add logs")}
+        onClick={() => onRun("Add logging at the points that would tell someone what went wrong: inputs at each boundary, the value of anything the logic branches on, and errors. Change no behaviour.", "Add logs", "file")}
       >
         <Terminal size={12} />
         Add logs
       </Chip>
       <Chip
         busy={busy === "revise"}
-        onClick={() => onRun("Find the bugs and fix them. Change only what is broken. If nothing is broken, return the file unchanged.", "Fix bugs")}
+        onClick={() => onRun("Find the bugs and fix them. Change only what is broken. If nothing is broken, return the file unchanged.", "Fix bugs", "file")}
       >
         <Bug size={12} />
         Fix bugs
@@ -1218,6 +1299,7 @@ function Shortcuts({
                     onRun(
                       `Port this to ${p}. Keep the same behaviour, the same names, and the same structure where the language allows it. Return only the ported file.`,
                       `Port to ${p}`,
+                      "file",
                     );
                   }}
                   className="focus-inset rounded-lg px-2.5 py-1.5 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"

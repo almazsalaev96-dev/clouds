@@ -259,11 +259,15 @@ export default function Page() {
       // line, which is the cosmetic loss this whole path is allowed to take.
       const modelId = cheapestAvailable(configured);
       if (!modelId) return;
+      // A missing title is a cosmetic loss and must never surface as an error —
+      // including when the call fails outright, which it now can: `complete`
+      // raises a dropped connection rather than handing back the fragment that
+      // arrived, and this is called with `void`, so a rejection here would
+      // reach the console as an unhandled one over nothing that matters.
       const title = await complete(
         `Give this conversation a title of at most six words. Reply with the title alone — no quotes, no punctuation at the end.\n\n${firstUserText.slice(0, 800)}`,
         { modelId, maxTokens: 64, temperature: 0.3 },
-      );
-      // A missing title is a cosmetic loss and must never surface as an error.
+      ).catch(() => null);
       const clean = title?.trim().replace(/^["'#\s]+|["'.\s]+$/g, "").slice(0, 60);
       if (clean) await db.conversations.update(conversationId, { title: clean });
     },
@@ -359,7 +363,11 @@ export default function Page() {
           modelId: settings.modelId,
           styleId: settings.styleId,
           mode: settings.mode,
+          // Set by "New chat here", which names a project before there is a
+          // conversation for it to be a property of.
+          projectId: pendingProject ?? undefined,
         });
+        setPendingProject(null);
         convId = created.id;
         leaf = null;
         setActiveId(created.id);
@@ -386,7 +394,14 @@ export default function Page() {
          first load had drifted two kilobytes past its own budget carrying
          them. It is awaited inside a send that is already awaiting a network
          round trip, so the deferral costs nothing anybody can perceive. */
-      const { route } = threadModelId === AUTO ? await import("@/lib/route") : { route: null };
+      /* A chunk that will not load — offline, or a deploy that rotated the
+         file out from under an open tab — must not take the message with it.
+         Auto is an improvement on picking a model by hand; falling back to the
+         model already selected costs a slightly worse choice, and throwing here
+         costs the message. */
+      const { route } = threadModelId === AUTO
+        ? await import("@/lib/route").catch(() => ({ route: null }))
+        : { route: null };
       const decision =
         threadModelId === AUTO && route
           ? route(asked, {
@@ -413,8 +428,14 @@ export default function Page() {
 
       /* A sum is answered here, exactly, for nothing. A model would predict
          what the answer looks like, which is usually the answer and is not the
-         same thing — and you cannot tell the two apart by looking. */
-      if (decision?.sum) {
+         same thing — and you cannot tell the two apart by looking.
+
+         Unless something came with it. Attaching a spreadsheet and typing
+         "what is 948392 × 73" is not a request for long multiplication, it is
+         a request about the spreadsheet — and the calculator used to answer the
+         sum and drop the file on the floor, which looks from the outside like
+         an attachment that silently failed to upload. */
+      if (decision?.sum && !content.some((b) => b.type !== "text")) {
         await addMessage({
           conversationId: convId,
           parentId: userMessage.id,
@@ -444,8 +465,31 @@ export default function Page() {
     [activeId, conversation?.leafId, path, threadModelId, runTurn, generateTitle, compareWith, configured, settings.keys, settings.modelId],
   );
 
+  /* Anything that lands on a conversation that already exists settles the
+     question of which project this is, so the pending one goes. */
+  React.useEffect(() => {
+    if (activeId) setPendingProject(null);
+  }, [activeId]);
+
+  /**
+   * The project the next conversation will belong to, before there is one.
+   *
+   * Cleared by anything that lands somewhere else, so a project named and then
+   * abandoned does not attach itself to an unrelated chat half an hour later.
+   */
+  const [pendingProject, setPendingProject] = React.useState<string | null>(null);
+
   /* What ⌘K is looking at, and what saying something would do to it. */
-  const [handed, setHanded] = React.useState<{ text: string; nonce: number } | undefined>();
+  /**
+   * An instruction ⌘K handed to whatever was on screen.
+   *
+   * Stamped with the section it was meant for. It used to be section-less and
+   * never cleared, and the two views take it on the nonce — so an instruction
+   * given to a file and then a walk over to the notebook delivered the same
+   * sentence a second time, to a page that had nothing to do with it, and
+   * rewrote it.
+   */
+  const [handed, setHanded] = React.useState<{ text: string; nonce: number; to: string } | undefined>();
 
   /* Named by kind rather than by title. Two live queries in the shell to put a
      filename in a hint would put them on every render of the whole app, for a
@@ -482,7 +526,7 @@ export default function Page() {
         return;
       }
       // The nonce, not the text: asking the same thing twice is two requests.
-      setHanded({ text, nonce: Date.now() });
+      setHanded({ text, nonce: Date.now(), to: settings.section });
     },
     [settings, focus, send],
   );
@@ -501,7 +545,11 @@ export default function Page() {
    */
   const verify = React.useCallback(
     async (message: Message) => {
-      if (verifyingId) return;
+      if (verifyingId) {
+        // Silently doing nothing reads as a broken button.
+        if (verifyingId !== message.id) setNotice("One check at a time — the last one is still running.");
+        return;
+      }
       const asked = pathTo(allMessages ?? [], message.parentId)
         .filter((m) => m.role === "user")
         .slice(-1)[0];
@@ -510,8 +558,17 @@ export default function Page() {
       const { checker } = await import("@/lib/route");
       const who = checker(message.modelId ?? settings.modelId, { configured, keys: settings.keys });
       if (!who) {
+        /* Two ways there is nobody to ask, and they need different sentences.
+           One provider configured is something you can fix in Settings; an
+           answer from a model this app no longer recognises is not, and
+           telling somebody to add a key would send them somewhere that does
+           not help. */
+        const providers = Object.entries(configured).filter(([, on]) => on).length
+          + Object.values(settings.keys).filter(Boolean).length;
         setNotice(
-          "A second opinion has to come from a different provider, and only one is configured. Add another key in Settings.",
+          providers > 1
+            ? "That answer came from a model this app no longer recognises, so it cannot promise the check would come from somewhere else."
+            : "A second opinion has to come from a different provider, and only one is configured. Add another key in Settings.",
         );
         return;
       }
@@ -537,6 +594,17 @@ export default function Page() {
       if (!activeId) return;
       const parentId = message.parentId;
       const history = pathTo(allMessages ?? [], parentId);
+      /* A calculator answer has no model behind it, and `calculator` is not an
+         id anything can be asked with — `getModel` would quietly return the app
+         default, so pressing Regenerate on a sum sent it to whichever model
+         happens to be default rather than to the one this thread is on. Asking
+         a model is the useful thing to do here, since running the same sum
+         through the same calculator returns the same digits; it just has to be
+         the model the thread would have used. */
+      if (!modelId && message.modelId === CALCULATOR) {
+        void runTurn(activeId, parentId, history, threadModelId);
+        return;
+      }
       // The leaf stays where it is: the old answer remains on screen and the
       // new one streams beneath it, so a worse regeneration costs nothing and
       // an aborted one costs nothing at all.
@@ -606,15 +674,20 @@ export default function Page() {
    * and a chat that picks up its project on the second message answers the
    * first one as a stranger.
    */
+  /**
+   * A chat in this project, starting when you say something.
+   *
+   * Not when you press the button. Everywhere else in the app a conversation
+   * is created on first send — the comment in `send` says why: the sidebar
+   * should not fill with empty rows nobody meant to make — and this one
+   * created a row immediately, so pressing it and changing your mind left
+   * "Untitled" behind every time. The project is remembered instead and
+   * applied to whatever conversation the next message creates.
+   */
   const newChatInProject = React.useCallback(
-    async (pid: string) => {
-      const conv = await createConversation({
-        modelId: settings.modelId,
-        projectId: pid,
-        styleId: settings.styleId,
-        mode: settings.mode,
-      });
-      setActiveId(conv.id);
+    (pid: string) => {
+      setActiveId(null);
+      setPendingProject(pid);
       settings.setSection("chat");
       closeDrawerOnMobile();
     },
@@ -938,8 +1011,17 @@ export default function Page() {
      the answer lands, and it updates the moment you switch to a model with a
      different window. */
   const droppedFromContext = React.useMemo(
-    () => fitToContext(path, getModel(threadModelId), paramsFor(threadModelId), threadPrompt).dropped,
-    [path, threadModelId, threadPrompt],
+    () => {
+      /* On Auto there is no model yet — the model is chosen when you send —
+         and `getModel("auto")` returns the app default, so the warning was
+         counting against a window that had nothing to do with the model that
+         would answer. The default is at least a model that exists and is a
+         plausible stand-in; asking it about "auto" was not a question with an
+         answer. */
+      const id = threadModelId === AUTO ? (settings.modelId === AUTO ? DEFAULT_MODEL_ID : settings.modelId) : threadModelId;
+      return fitToContext(path, getModel(id), paramsFor(id), threadPrompt).dropped;
+    },
+    [path, threadModelId, threadPrompt, settings.modelId],
   );
 
   const showEmpty = path.length === 0 && !live && !comparing;
@@ -1021,7 +1103,7 @@ export default function Page() {
                   onNew={() => void createInSection("projects")}
                   onBack={() => withTransition(() => setProjectId(null), "back")}
                   onOpenChat={(id) => selectInSection("chat", id)}
-                  onNewChatHere={(pid) => void newChatInProject(pid)}
+                  onNewChatHere={newChatInProject}
                   onOpenCanvas={(id) => selectInSection("code", id)}
                   onNewCanvasHere={(pid) => void newCanvasInProject(pid)}
                   configured={configured}
@@ -1032,7 +1114,8 @@ export default function Page() {
                   canvasId={canvasId}
                   configured={configured}
                   seed={canvasSeed}
-                  ask={settings.section === "code" ? handed : undefined}
+                  ask={settings.section === "code" && handed?.to === "code" ? handed : undefined}
+                  onAsked={() => setHanded(undefined)}
                   onSelect={(id, seed) =>
                     withTransition(() => {
                       setCanvasSeed(seed);
@@ -1053,7 +1136,7 @@ export default function Page() {
                 <NotebookView
                   noteId={noteId}
                   configured={configured}
-                  ask={settings.section === "notebook" ? handed : undefined}
+                  ask={settings.section === "notebook" && handed?.to === "notebook" ? handed : undefined}
                   onSelect={(id) => withTransition(() => setNoteId(id), "forward")}
                   onNew={() => void createInSection("notebook")}
                   onBack={() => withTransition(() => setNoteId(null), "back")}
@@ -1080,6 +1163,7 @@ export default function Page() {
               if (archived) setActiveId(null);
             }}
             projects={projects}
+            pendingProject={pendingProject}
             onMoveToProject={(pid) => {
               if (activeId) void db.conversations.update(activeId, { projectId: pid ?? undefined });
             }}
@@ -1123,9 +1207,17 @@ export default function Page() {
                 verifyingId={verifyingId}
                 onOpenInCanvas={keepAsCanvas}
                 onRetry={() => {
-                  const last = [...path].reverse().find((m) => m.role === "assistant");
-                  if (last) regenerate(last);
-                  else if (path.length) runTurn(activeId!, path[path.length - 1].id, path, threadModelId);
+                  /* The turn that just failed, which is decided by the end of
+                     the thread. Looking backwards for the last assistant
+                     message anywhere in it found the answer to the question
+                     *before* the one that failed — a failed turn leaves your
+                     question as the leaf with nothing under it — so Retry
+                     silently re-answered something already answered and
+                     dropped what you had actually asked. */
+                  const last = path[path.length - 1];
+                  if (!last || !activeId) return;
+                  if (last.role === "assistant") regenerate(last);
+                  else runTurn(activeId, last.id, path, threadModelId);
                 }}
                 onAddKey={openKeys}
                 onSwitchModel={() => setModelPickerOpen(true)}
