@@ -367,6 +367,44 @@ every time you double-click a word is wrong more often than right. Accepting the
 change lets the selection go, because the lines you selected are not the lines
 you now have.
 
+**One app under two lights.** The two themes had drifted apart, and not in a way
+a screenshot of either would show — each looked fine alone. Measured side by
+side, every text role in both themes, the answer was unambiguous: typography was
+already identical, and **119 colour roles diverged, every single one the same
+way** — light weaker than dark by about 2.5 points on body text and up to 6.3
+inside a code block.
+
+Underneath it was one structural mistake repeated. An inset panel is darker than
+the page in both themes; in dark that moves it *away* from the light text and in
+light it moves it *toward* the ink, so the same design decision spends contrast
+in one theme and earns it in the other. Light's inset stepped 1.17 from its page
+where dark's stepped 1.07, and its subtle fill stepped 1.09 where dark's stepped
+1.23 — which is why a user's own message bubble was a clear pill in dark and
+very nearly nothing in light. What has to match between two themes is the size
+of the step, not the colour.
+
+So the light palette was re-derived rather than nudged: each role solved for the
+contrast its dark counterpart already had, moving lightness only, so the navy
+stays navy. Body text now lands within a tenth of dark's figures.
+
+**Two roles are deliberately not matched, by name, with the reason.** A near-black
+page lets a colour be light *and* saturated at once; cream does not. Chasing
+dark's 11.5 for syntax turns seven hues into seven browns — the solver's answers
+at that target were `#3b3f49`, `#1e2d67`, `#103045`, `#3c200d`, by which point
+nothing is a keyword rather than a number. They sit in one band at about 7.6
+instead, and the cost is measured: the two closest of the seven are 42 apart in
+RGB against 50 before. The gold nib is the other: matching 8.89 needs `#554010`,
+which is not gold, it is brown. It went from 3.29 to 4.52 — over the 4.5 that
+small text needs — with hue and saturation untouched at 42° and 69%.
+
+`theme-parity.mjs` is the gate. Typography is held at **zero** difference, since
+size and weight are not theme decisions. Contrast is held within 2.6, with the
+two exceptions listed by name so "accepted" can never quietly grow to mean
+"whatever fails today". It also checks the *shape* of what remains: before, every
+gap leaned one way, which is what "the light theme looks washed out" is
+numerically. Now 48 lean one way and 26 the other — scatter, which is what two
+themes of one app look like.
+
 **⌘K takes a sentence, not just a search.** The palette could *find* things and
 could do nothing to them, so a sentence typed into it was a search that failed.
 That is backwards: "make this shorter" is the first thing anybody tries in a box
@@ -969,6 +1007,25 @@ heading, and link URLs printed in full.
   through Chromium's print media emulation rather than assumed.
 - Highlighting confirmed to run in a real Web Worker (counted at construction, not
   assumed), producing 240 themed spans on a 40-line block.
+- **Both themes measured against each other** (`theme-parity.mjs`). Two findings
+  came out of getting the *measuring* right rather than the app. It read
+  `oklab(0.944416 0.00167131 0.0171635 / 0.4)` by pulling the first three numbers
+  out and calling them red, green and blue — so it reported a 3.24 contrast
+  failure on a surface that is almost white. And it treated every 0.74-alpha
+  glass panel as opaque, which is most of the app's chrome. A tool that invents
+  defects is worse than none, because somebody goes and changes a colour that
+  was right.
+- **An audit of what a six-route sweep cannot reach** — hover and focus states,
+  status colours, surface steps, hard-coded literals, the syntax palette —
+  fanned out and then adversarially verified, each finding handed to an agent
+  asked to *refute* it. Most were refuted, several because they quoted values
+  that the runtime fix had already changed. Three survived and all three were
+  real: the subtle-fill step above; a Settings toggle whose knob was pinned to
+  `bg-white` while its track was tokenised, so in dark a white dot sat on pale
+  periwinkle at **1.89:1** and the switch's ON state all but vanished, under the
+  3:1 floor a control state has to clear; and dark's syntax comment at 5.64, the
+  only token under 7 in either theme and the one place the two disagreed about
+  whether a comment recedes at all.
 - **One command in three rooms** (`e2e-command.mjs`, 14 assertions): the same
   sentence typed into ⌘K over a file reaches the model *with that file* and comes
   back as a diff; typed in a conversation it arrives as a message; and a one-word
@@ -1197,6 +1254,7 @@ the computed tokens, so they cannot drift from what ships. Run the app first.
 node audit.mjs        # Apple HIG: safe areas, zoom, names, focus, contrast mode
 node contrast.mjs     # every text/background pair the app renders, against WCAG
 node touch.mjs        # every control in every section on a phone, against 44pt
+node theme-parity.mjs # the two themes measured against each other, role by role
 node shoot-smoke.mjs  # every section loads, undo works, no runtime errors
 
 # and two that need no browser at all:

@@ -73,8 +73,20 @@
      --------------------------------------------------------------------- */
   --bg-canvas: #f7f3ea;
   --bg-surface: #fffdf8;
-  --bg-subtle: #efe9db;
-  --bg-inset: #e9e2d0;
+  /* Enough of a step from the page to be a shape on it.
+     At #efe9db this sat 1.09 from the canvas while dark's sits 1.23 from its
+     own — so a user's message bubble was a clear pill in dark and very nearly
+     nothing in light. Same fix as --bg-inset above and the same reasoning:
+     what has to match between two themes is the size of the step, not the
+     colour. Text on it still clears every threshold — secondary 8.68,
+     faint 4.88. */
+  --bg-subtle: #e7dfcd;
+  /* The same step from the page as the dark theme's inset takes from its own:
+     1.06 against 1.07. It was 1.17 — a deeper tint, which reads as more
+     recessed and costs every character sitting on it a point of contrast,
+     because in a light theme "darker" moves the panel *toward* the ink rather
+     than away from it. Code blocks and quiet panels sit on this. */
+  --bg-inset: #f2ece0;
   --bg-overlay: rgba(26, 38, 80, 0.42);
 
   --border-subtle: #e3dccb;
@@ -82,10 +94,19 @@
      which is why there are two of these. */
   --border-strong: #7d7f88;
 
-  --text-primary: #1a2650;
-  --text-secondary: #3d4a72;
-  --text-tertiary: #55607f;
-  --text-faint: #6f7890;
+  /* Inked to match the dark theme's strength, role for role.
+     ---------------------------------------------------------------------
+     Measured rather than chosen: every text role was rendered in both themes
+     and its contrast against its own background computed. Light came out
+     uniformly weaker — primary 13.20 against dark's 15.86, secondary 7.83
+     against 10.32, tertiary 5.63 against 7.59 — which is why the two themes
+     did not look like the same app. These values hit the dark figures within
+     a tenth. They are still the same navy: only the lightness moved, so a
+     page reads as ink on cream rather than as a dimmer copy of the dark one. */
+  --text-primary: #101731;
+  --text-secondary: #2f3857;
+  --text-tertiary: #444d65;
+  --text-faint: #575e71;
 
   /* Thinking, deepened for paper. */
   --accent: #3450b5;
@@ -98,8 +119,14 @@
   /* The one coloured element in the wordmark. */
   --brand-accent: var(--accent);
 
-  --accent-2: #a8801f;
-  --accent-2-rgb: 168 128 31;
+  /* The nib, deepened to carry small text.
+     At #a8801f it scored 3.29 on cream — over the 3:1 bar for the large
+     letters of the wordmark and under the 4.5 every other use of it needs.
+     The hue and the saturation are untouched at 42° and 69%; only lightness
+     moved, 39% to 33%. Matching the dark theme's 8.89 would have meant #554010,
+     which is not gold, it is brown. */
+  --accent-2: #8c6a1a;
+  --accent-2-rgb: 140 106 26;
 
   /* Act, deepened for paper. */
   --cta: #1f2d66;
@@ -185,13 +212,25 @@
 
   /* --- Syntax. Six hues, low saturation. A code block should read as one
          calm object, not a Christmas tree. --- */
-  --syn-comment: #5a6070;
-  --syn-keyword: #3450b5;
-  --syn-string: #2f6b46;
-  --syn-function: #1f5f8a;
-  --syn-number: #8a4b1d;
-  --syn-type: #6b3d8f;
-  --syn-punct: #55607f;
+  /* Syntax, deepened to one band rather than to the dark theme's numbers.
+     ---------------------------------------------------------------------
+     These were the worst of it: 4.8 to 6.0 against dark's 8 to 11.5, which is
+     the washed-out code block you can see in a screenshot of the two side by
+     side. They are not matched exactly, and that is deliberate. A near-black
+     page lets a colour be light *and* saturated at once; cream does not, so
+     chasing 11.5 here turns seven hues into seven browns — the solver's
+     answers at that target were #3b3f49, #1e2d67, #103045, #3c200d, and by
+     then nothing is a keyword rather than a number.
+     So: one band at about 7.6, well clear of AA, with the hues kept apart.
+     Measured — the two closest of the seven are 42 apart in RGB, against 50
+     before, which is the price and it is payable. */
+  --syn-comment: #454956;
+  --syn-keyword: #2b4396;
+  --syn-string: #245236;
+  --syn-function: #194d71;
+  --syn-number: #6f3c17;
+  --syn-type: #603680;
+  --syn-punct: #454e68;
 
   /* The composer. On light it lifts with a real drop shadow; on dark a shadow
      under a dark box is invisible, so the lift there comes from a lit top edge
@@ -257,10 +296,14 @@
 
   /* Green at its true value, carrying the ink rather than white: at this
      brightness it is a lit surface, and white on it is unreadable. */
-  --cta: #d9b45a;
-  --cta-hover: #e6c576;
+  /* The one control on a screen you are meant to press, lifted to the weight
+     its light-theme counterpart already had: 11.04 against the ink on it,
+     where it was 8.89 and the light theme's deep-ink button was 11.67. Same
+     hue, same nib; a little more of it. */
+  --cta: #e8ca80;
+  --cta-hover: #f0daa0;
   --cta-fg: #1a1917;
-  --cta-rgb: 217 180 90;
+  --cta-rgb: 232 202 128;
 
   /* On the deep teal it carries its own edge, so the outline is the colour. */
   --highlight: #d9b45a;
@@ -295,7 +338,11 @@
   --shadow-lg: 0 20px 52px rgba(0, 0, 0, 0.66);
   --highlight-top: inset 0 1px 0 rgba(247, 243, 234, 0.06);
 
-  --syn-comment: #918c83;
+  /* The one token under 7 in either theme, and the one place the two themes
+     disagreed about what a comment *is*: dark muted it to 5.64 while light
+     kept it in the band with the other six at 7.63. A comment that recedes in
+     one theme and not the other is two different opinions shipped together. */
+  --syn-comment: #a5a099;
   --syn-keyword: #aab9ff;
   --syn-string: #5fc98a;
   --syn-function: #9fc4ff;

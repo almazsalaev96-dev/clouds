@@ -555,7 +555,13 @@ function Toggle({
         onClick={() => onChange(!checked)}
         className={cn(
           "mt-0.5 flex h-[18px] w-8 shrink-0 items-center rounded-full p-0.5 transition-colors duration-[var(--dur-fast)]",
-          checked ? "bg-accent" : "bg-[var(--border-strong)]",
+          /* The fill, not the text colour.
+             --accent is a *foreground* in dark — #aab9ff, a pale periwinkle —
+             so a white knob riding on it sat at 1.89:1 and the switch's ON
+             state all but disappeared, under the 3:1 floor a control state
+             has to clear. --accent-fill is the same colour in light, so this
+             changes nothing there and fixes the one theme it was wrong in. */
+          checked ? "bg-[var(--accent-fill)]" : "bg-[var(--border-strong)]",
         )}
       >
         <span
