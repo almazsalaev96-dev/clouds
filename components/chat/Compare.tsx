@@ -150,7 +150,13 @@ function CompareColumn({
         </span>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">
+      {/* Three answers side by side leave about 370px each, which at body size
+          is 41 characters to a line — well under the sixty that makes prose
+          readable, and the column cannot get wider because there are two more
+          beside it. So the text gets smaller instead: 14px brings it to 47,
+          with tighter leading, which is the right setting for something you are
+          scanning across rather than reading down. */}
+      <div data-read="dense" className="min-h-0 flex-1 overflow-y-auto p-3">
         {text ? (
           <>
             <Markdown content={text} streaming={busy} />

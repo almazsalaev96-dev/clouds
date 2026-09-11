@@ -156,6 +156,97 @@ console.log("\nHierarchy comes from size and brightness, not from weight");
   await ctx.close();
 }
 
+console.log("\nHierarchy is carried by brightness, in both themes alike");
+{
+  const ctx = await b.newContext({ viewport: { width: 1440, height: 950 } });
+  const p = await ctx.newPage();
+  await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await p.evaluate((s) => localStorage.setItem("store.settings.v1", s), SETTINGS());
+  await p.reload({ waitUntil: "networkidle" });
+  await p.waitForTimeout(500);
+
+  const ladders = {};
+  for (const theme of ["dark", "light"]) {
+    await p.evaluate((t) => { document.documentElement.dataset.theme = t; }, theme);
+    await p.waitForTimeout(150);
+    ladders[theme] = await p.evaluate(() => {
+      const cs = getComputedStyle(document.documentElement);
+      const rgb = (v) => { const d = document.createElement("div"); d.style.color = v; document.body.appendChild(d); const c = getComputedStyle(d).color.match(/[\d.]+/g).map(Number); d.remove(); return c; };
+      const lum = (v) => { const [r, g, bl] = rgb(v).slice(0, 3).map((x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * bl; };
+      const bg = lum(cs.getPropertyValue("--bg-canvas"));
+      const ratio = (v) => { const l = lum(v); const [a, c] = l > bg ? [l, bg] : [bg, l]; return (a + 0.05) / (c + 0.05); };
+      return ["--text-primary", "--text-secondary", "--text-tertiary", "--text-faint"]
+        .map((n) => +ratio(cs.getPropertyValue(n)).toFixed(2));
+    });
+  }
+  for (const theme of ["dark", "light"]) {
+    const l = ladders[theme];
+    check(l.every((r, i) => i === 0 || r < l[i - 1]),
+      `${theme}: the four text levels descend without a tie`, l.join(" → "));
+  }
+  /* The same ladder in both, rung for rung. A reader who switches theme should
+     find the structure of the page unchanged, not re-learn what "secondary"
+     looks like. */
+  const drift = ladders.dark.map((d, i) => Math.abs(d - ladders.light[i]));
+  check(Math.max(...drift) < 1.2,
+    "and the two themes climb it by the same steps",
+    drift.map((d) => d.toFixed(2)).join(", "));
+  await ctx.close();
+}
+
+console.log("\nA column that cannot get wider gets smaller text instead");
+{
+  /* Driven rather than asserted about: a reading mode that nothing renders is
+     a token naming something it does not control, which is the fault this
+     whole pass exists to avoid. So the comparison is actually started. */
+  const ctx = await b.newContext({ viewport: { width: 1440, height: 950 } });
+  const p = await ctx.newPage();
+  await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await p.evaluate((s) => localStorage.setItem("store.settings.v1", s), SETTINGS());
+  await p.reload({ waitUntil: "networkidle" });
+  await p.waitForTimeout(600);
+
+  await p.getByRole("button", { name: "Tools" }).click();
+  await p.waitForTimeout(400);
+  await p.getByRole("button", { name: /Claude Haiku/ }).first().click();
+  await p.keyboard.press("Escape");
+  await p.waitForTimeout(300);
+  await p.getByRole("textbox", { name: "Message" }).fill("explain debounce");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(3200);
+
+  /* Both settings measured in the column the app actually renders, rather than
+     against a width worked out on paper — the first version of this assertion
+     was written against an estimate of 372px and the real column is 274px. */
+  const dense = await p.evaluate(`(() => {
+    const el = document.querySelector('[data-read="dense"] .prose p') || document.querySelector('[data-read="dense"] .prose');
+    if (!el) return null;
+    const cs = getComputedStyle(el);
+    const w = el.getBoundingClientRect().width;
+    const c = document.createElement("canvas").getContext("2d");
+    const alpha = "abcdefghijklmnopqrstuvwxyz ";
+    const at = (px) => {
+      c.font = cs.fontWeight + " " + px + "px " + cs.fontFamily;
+      return Math.round(w / (c.measureText(alpha).width / alpha.length));
+    };
+    return { size: parseFloat(cs.fontSize), width: Math.round(w), chars: at(parseFloat(cs.fontSize)), asBody: at(16) };
+  })()`);
+  check(dense !== null, "a comparison column renders as dense",
+    dense ? `${dense.width}px wide` : "no [data-read=dense] on screen — the mode names nothing");
+  if (dense) {
+    check(dense.size === 14, "at 14px rather than 16", `${dense.size}px`);
+    check(dense.chars > dense.asBody,
+      "which buys back characters the column cannot get any other way",
+      `${dense.chars} characters, against ${dense.asBody} at body size`);
+    /* Said plainly rather than asserted away: three answers abreast is a narrow
+       column whatever is done to it, and this makes it better, not good. The
+       fix for reading one properly is to keep it, which is what Keep is for. */
+    console.log(`    (still only ${dense.chars} characters — a column this narrow cannot reach sixty at any size a person would read)`);
+  }
+  await p.screenshot({ path: "/tmp/compare-dense.png" });
+  await ctx.close();
+}
+
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 await b.close();
 process.exit(failed ? 1 : 0);

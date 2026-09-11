@@ -1155,6 +1155,27 @@ heading, and link URLs printed in full.
   wrapped four different ways with fenced code inside their fields. The
   generator is seeded, so a failure is reproducible rather than a story about
   something that happened once.
+- **The type scale, read off the rendered app** (`type-scale.mjs`, 22
+  assertions). A scale written in a file is a claim; what a reader gets is the
+  computed style of the elements on screen, after Tailwind, after the cascade,
+  and after whatever their own browser's text setting does to it — so this
+  renders the app and measures that, at a 16px root and at a 20px root.
+
+  The assertion that matters is **characters per line, not pixels**. Every
+  published spec for this states the measure in pixels — 720, 760, 780 — and a
+  pixel measure is only right at one font size. Measured here: at a 16px root
+  the column is 608px and holds 72 characters; at 20px, which is what a
+  browser's large-text setting does, the same rule gives 760px and still 72
+  characters. The pixel number moved by a quarter and the thing that governs
+  reading did not move at all. It also checks that the four text levels descend
+  in brightness without a tie *and that both themes climb that ladder by the
+  same steps*, because hierarchy is carried by brightness and a reader
+  switching theme should not have to re-learn what "secondary" looks like.
+
+  One number it reports rather than asserts away: a comparison column is 274px,
+  which is 37 characters even at 14px. Three answers abreast cannot reach sixty
+  at any size a person would read. The smaller setting makes it better, not
+  good, and the honest fix is to keep the one you want and read it properly.
 - **The preview assembler and its source map** (`test-web.ts`, 19 assertions,
   `npx jiti test-web.ts`). The claim worth testing is not "the CSS got inlined",
   it is that a runtime error at line 214 of a document nobody wrote comes back as
@@ -1349,6 +1370,7 @@ node audit.mjs        # Apple HIG: safe areas, zoom, names, focus, contrast mode
 node contrast.mjs     # every text/background pair the app renders, against WCAG
 node touch.mjs        # every control in every section on a phone, against 44pt
 node theme-parity.mjs # the two themes measured against each other, role by role
+node type-scale.mjs   # the type scale, read off the rendered app at two text sizes
 node shoot-smoke.mjs  # every section loads, undo works, no runtime errors
 
 # and four that need no browser at all:
