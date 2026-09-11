@@ -294,7 +294,15 @@ export function useStream(onFinish?: (m: Message) => void) {
       }
 
       errorRef.current = error;
-      setState({ ...EMPTY, error });
+      /* An error belongs to the conversation it happened in, and the screen
+         only shows what belongs to the one it is looking at. Clearing the id
+         alongside the run left the error in state with nothing to attach it
+         to — classified, carried across the wire, stored, and then dropped one
+         line before it would have been rendered. Every provider failure was
+         silent: your question on screen, no answer, no explanation, nothing to
+         press. The run is over either way; what stays is which thread this
+         belongs to. */
+      setState({ ...EMPTY, error, conversationId: error ? opts.conversationId : null });
       return saved;
     },
     [drain, stopLoops],
@@ -319,7 +327,7 @@ export function useStream(onFinish?: (m: Message) => void) {
       if (!err || err.kind !== "rate_limit" || !err.retryAfterMs) return first;
 
       const wait = Math.min(err.retryAfterMs, 20_000);
-      setState({ ...EMPTY, phase: "waiting", error: err, retryingInMs: wait });
+      setState({ ...EMPTY, phase: "waiting", error: err, retryingInMs: wait, conversationId: opts.conversationId });
       const cancelled = await new Promise<boolean>((resolve) => {
         retryTimerRef.current = setTimeout(() => resolve(false), wait);
         retryCancelRef.current = () => resolve(true);

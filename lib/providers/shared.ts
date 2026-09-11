@@ -110,10 +110,14 @@ export function classifyError(
     unknown: "retry",
   };
 
-  // Providers often tell us exactly how long to wait. Using it beats guessing.
+  /* Providers often tell us exactly how long to wait, and using it beats
+     guessing — but only if we can read how they spelled it. The header is
+     `Retry-After` in seconds; a JSON body says `retry_after`; and some send
+     `retry-after-ms`, where the same number means a thousand times less. All
+     three spellings, and the unit taken from the name rather than assumed. */
   let retryAfterMs: number | undefined;
-  const m = body.match(/retry[- ]?after[^0-9]{0,10}([0-9]+(?:\.[0-9]+)?)/i);
-  if (m) retryAfterMs = Math.round(parseFloat(m[1]) * 1000);
+  const m = body.match(/retry[-_ ]?after([-_ ]?ms)?[^0-9]{0,10}([0-9]+(?:\.[0-9]+)?)/i);
+  if (m) retryAfterMs = Math.round(parseFloat(m[2]) * (m[1] ? 1 : 1000));
   else if (kind === "rate_limit") retryAfterMs = 8000;
 
   return { kind, message: messages[kind], action: actions[kind], retryAfterMs, detail: body.slice(0, 600) };

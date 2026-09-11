@@ -110,6 +110,19 @@ function MessageListImpl({
     wasActive.current = active;
   }, [active, messages]);
 
+  /* A failure has to be heard as well as seen. An errored turn is deliberately
+     not saved as a message, so the announcement above has nothing to read and
+     stays on the last thing that worked — somebody listening waits for an
+     answer that is never coming. Cleared first so that the same failure twice
+     running is announced twice: a live region says nothing when the text it
+     already holds is written into it again. */
+  React.useEffect(() => {
+    if (!error) return;
+    setAnnouncement("");
+    const t = setTimeout(() => setAnnouncement(error.message), 60);
+    return () => clearTimeout(t);
+  }, [error]);
+
   /**
    * Follow the stream while the user is at the bottom, and let go the moment
    * they scroll up. Yanking a reading user back down is the fastest way to

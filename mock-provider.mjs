@@ -65,6 +65,7 @@ A **throttle** enforces a floor between calls instead.`;
 let lastSeen = null;
 let lastTitle = null;
 let rateLimitOnce = process.env.MOCK_RATE_LIMIT === "1";
+let failNext = null;
 
 const send = (res, type, data) =>
   res.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`);
@@ -88,6 +89,19 @@ createServer(async (req, res) => {
     lastTitle = null;
     res.writeHead(200, { "content-type": "application/json" });
     res.end("{}");
+    return;
+  }
+  /* Arm the next answer to fail. A whole layer of this app — every sentence a
+     person reads when something goes wrong, and every button offered to fix it
+     — had never been rendered by a test, because nothing could make it fail on
+     purpose. `POST /__fail {status, body, times}` makes it fail on purpose. */
+  if ((req.url ?? "").startsWith("/__fail")) {
+    const q = new URL(req.url, "http://x").searchParams;
+    failNext = q.get("status")
+      ? { status: Number(q.get("status")), body: q.get("body") ?? "", left: Number(q.get("times") ?? 1) }
+      : null;
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify(failNext ?? {}));
     return;
   }
   if (req.url === "/__title") {
@@ -132,6 +146,16 @@ createServer(async (req, res) => {
       .flatMap((m) => (Array.isArray(m.content) ? m.content : []))
       .filter((c) => c.type === "image").length,
   };
+
+  /* Armed by /__fail. Titles are spared: an error on the little naming call
+     would be a second failure the test did not ask for, and it arrives after
+     the answer, so it would land on whichever message came next. */
+  if (failNext && failNext.left > 0 && (body.max_tokens ?? 4096) > 64) {
+    failNext.left -= 1;
+    res.writeHead(failNext.status, { "content-type": "application/json" });
+    res.end(failNext.body || JSON.stringify({ type: "error", error: { message: "mock failure" } }));
+    return;
+  }
 
   // One 429 with a Retry-After, then behave. Proves the automatic retry both
   // waits and succeeds rather than surfacing an error the person must clear.
