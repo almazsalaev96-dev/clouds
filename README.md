@@ -1479,7 +1479,7 @@ node e2e-makes.mjs   # 30 assertions: every starter opened, run and actually use
 node e2e-bar.mjs     # 25 assertions: the message bar, measured in all three rooms
 node e2e-motion.mjs  # 17 assertions: the motion, asked for rather than admired
 node e2e-use.mjs     # 18 assertions: using a made thing, and making one from a book
-node e2e-scale.mjs   #  7 assertions: what it costs to open, and 400 turns deep
+node e2e-scale.mjs   # 13 assertions: what it costs to open, 400 turns deep, slow
 node e2e-backup.mjs  # 18 assertions: a copy of everything, and everything back
 node e2e-code.mjs    # 21 assertions: find, review, and changing only a selection
 node e2e-agent.mjs   # 30 assertions: plan, house rules, check, and fix-from-error

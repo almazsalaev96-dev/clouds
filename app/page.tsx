@@ -24,6 +24,7 @@ import { CanvasView } from "@/components/CanvasView";
 import { saveToNote } from "@/lib/db";
 import { InlineError } from "@/components/chat/Message";
 import { TopBar } from "@/components/chat/TopBar";
+import { SectionSkeleton } from "@/components/ui/SectionSkeleton";
 import { MessageList } from "@/components/chat/MessageList";
 import { Composer } from "@/components/chat/Composer";
 import { EmptyState } from "@/components/chat/EmptyState";
@@ -62,7 +63,7 @@ const Settings = dynamic(() => import("@/components/chat/Settings").then((m) => 
    two are 138ms and 185ms to open, so they are free. */
 const NotebookView = dynamic(
   () => import("@/components/NotebookView").then((m) => m.NotebookView),
-  { ssr: false },
+  { ssr: false, loading: () => <SectionSkeleton title="Notebook" newLabel="New page" /> },
 );
 /* A list of keyboard shortcuts, shown when you press `?`. Nobody's first act
    is to read the manual, and it was in the bundle drawn before the first
@@ -73,7 +74,7 @@ const ShortcutsOverlay = dynamic(
 );
 const ProjectsView = dynamic(
   () => import("@/components/ProjectsView").then((m) => m.ProjectsView),
-  { ssr: false },
+  { ssr: false, loading: () => <SectionSkeleton title="Projects" newLabel="New project" /> },
 );
 
 /** What "Continue" sends. Phrased so the model picks up mid-sentence. */

@@ -110,6 +110,46 @@ await page.evaluate(() => { const e = document.querySelector("[aria-label='Conve
 await page.waitForTimeout(300);
 check(Date.now() - scrolled < 2500, "and so does scrolling the whole way", `${Date.now() - scrolled}ms`);
 
+console.log("\nAnd what a section costs to press, on a connection that is not yours");
+{
+  /* Projects and the notebook are fetched when you press them rather than
+     shipped to everyone who only ever chats. That is free on a desk — 138ms —
+     and on a slow connection it was 1.4 seconds of nothing at all: the sidebar
+     row lit up and the middle of the screen stayed as it was. Pressing a
+     button and watching nothing happen is the same as pressing a button that
+     does not work, so the frame has to arrive before the contents do. */
+  const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
+  const p = await ctx.newPage();
+  await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await p.evaluate((st) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: st, version: 1 })), SETTINGS);
+  await p.reload({ waitUntil: "networkidle" });
+  await p.waitForTimeout(800);
+
+  const cdp = await ctx.newCDPSession(p);
+  await cdp.send("Network.enable");
+  await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 400, downloadThroughput: 50 * 1024, uploadThroughput: 20 * 1024 });
+
+  for (const [label, title] of [["Projects", "Projects"], ["Notebook", "Notebook"]]) {
+    await p.getByRole("button", { name: new RegExp(`^${label}$`) }).click();
+    await p.waitForTimeout(600);
+    const mid = await p.evaluate(() => ({
+      text: (document.querySelector("main")?.innerText ?? "").replace(/\s+/g, " ").trim(),
+      skeletons: document.querySelectorAll(".skeleton").length,
+    }));
+    check(mid.text.startsWith(title), `${label} names itself before its code has arrived`, JSON.stringify(mid.text.slice(0, 30)));
+    check(mid.skeletons > 0, "and holds the shape of what is coming", `${mid.skeletons} placeholders`);
+    await p.waitForTimeout(2500);
+    const done = await p.evaluate(() => ({
+      text: (document.querySelector("main")?.innerText ?? "").replace(/\s+/g, " ").trim(),
+      skeletons: document.querySelectorAll(".skeleton").length,
+    }));
+    check(done.skeletons === 0 && done.text.length > mid.text.length, `then ${label.toLowerCase()} itself`, `${done.text.length} characters`);
+    await p.getByRole("radio", { name: "Conversations" }).click();
+    await p.waitForTimeout(500);
+  }
+  await ctx.close();
+}
+
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors");
 if (errs.length) failed++;
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
