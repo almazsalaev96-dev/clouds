@@ -40,6 +40,19 @@ export interface Message {
    * explain about a decision somebody made themselves.
    */
   routedWhy?: string;
+  /**
+   * What a second model said when asked whether this answer was right.
+   *
+   * Stored with the answer rather than recomputed, because it is evidence
+   * about *this* text: regenerating the answer must not carry its predecessor's
+   * verdict, and a check that quietly re-ran against new words would be worth
+   * less than none.
+   */
+  verdict?: {
+    agrees: "agrees" | "partly" | "disagrees";
+    text: string;
+    modelId: string;
+  };
   usage?: Usage;
   latencyMs?: number;
   /** Time to first token — the number that actually predicts perceived speed. */

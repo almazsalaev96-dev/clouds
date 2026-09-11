@@ -230,6 +230,16 @@ It goes on from there [[cite: ${name} | ${two}]]
 It also reports a figure of nine hundred percent [[cite: ${name} | the result was nine hundred percent higher than anyone expected in the third quarter]]`;
   }
 
+  /* A second opinion. Comes back as JSON with a verdict, and the verdict is a
+     *disagreement* on purpose: a mock that always agrees would leave the only
+     interesting half of the feature — what a real disagreement looks like on
+     screen — completely untested. */
+  const verifying = /^Someone asked a question and got the answer below/.test(asked);
+  const VERDICT = JSON.stringify({
+    agrees: "partly",
+    text: "The description of debouncing is right.\n\nBut the second paragraph calls the trailing edge the default; it is not, and the code above it does not do that either.",
+  });
+
   const checking = /^A change was just made to this/.test(asked);
   const CHECK = `It does what was asked: the concat is gone and the loop pushes instead.
 
@@ -239,6 +249,8 @@ Nothing here looks like it breaks a caller — the return type is the same array
 
   let text = isTitle
     ? "Debouncing a search input"
+    : verifying
+    ? VERDICT
     : making_from
     ? MADE_FROM
     : asking
@@ -260,6 +272,35 @@ Nothing here looks like it breaks a caller — the return type is the same array
     text = lines.join("\n");
   }
 
+  const gap = process.env.MOCK_SLOW ? 140 : 12;
+  const chunks = text.match(/[\s\S]{1,14}/g) ?? [];
+
+  /* The same answers, in OpenAI's wire format.
+     ---------------------------------------------------------------------
+     Everything this app does across *two* providers — and the second opinion
+     is the whole point of holding several keys — was untestable, because the
+     harness only ever spoke Anthropic. A request the app correctly routed to
+     another provider left the harness entirely and died against a real
+     endpoint, which looks exactly like the feature being broken.
+     Same content, same pacing, different envelope. */
+  if ((req.url ?? "").includes("/chat/completions")) {
+    res.writeHead(200, {
+      "content-type": "text/event-stream",
+      "cache-control": "no-cache",
+      connection: "keep-alive",
+    });
+    const frame = (o) => res.write(`data: ${JSON.stringify(o)}\n\n`);
+    frame({ id: "chatcmpl-mock", object: "chat.completion.chunk", model: body.model, choices: [{ index: 0, delta: { role: "assistant" } }] });
+    for (const chunk of chunks) {
+      frame({ id: "chatcmpl-mock", object: "chat.completion.chunk", model: body.model, choices: [{ index: 0, delta: { content: chunk } }] });
+      await new Promise((r) => setTimeout(r, gap));
+    }
+    frame({ id: "chatcmpl-mock", object: "chat.completion.chunk", model: body.model, choices: [{ index: 0, delta: {}, finish_reason: "stop" }], usage: { prompt_tokens: 412, completion_tokens: 386, total_tokens: 798 } });
+    res.write("data: [DONE]\n\n");
+    res.end();
+    return;
+  }
+
   res.writeHead(200, {
     "content-type": "text/event-stream",
     "cache-control": "no-cache",
@@ -274,8 +315,6 @@ Nothing here looks like it breaks a caller — the return type is the same array
      MOCK_SLOW stretches it, because anything that can only be tested *during*
      a stream — the stop button, the live ring, the reveal buffer — is
      untestable against a stream that finishes in a third of a second. */
-  const gap = process.env.MOCK_SLOW ? 140 : 12;
-  const chunks = text.match(/[\s\S]{1,14}/g) ?? [];
   for (const chunk of chunks) {
     send(res, "content_block_delta", { index: 0, delta: { type: "text_delta", text: chunk } });
     await new Promise((r) => setTimeout(r, gap));

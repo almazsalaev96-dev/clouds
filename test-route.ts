@@ -8,7 +8,7 @@
    adding .ts extensions across lib/ to suit one test file would be the test
    changing the app to fit itself. */
 import { solve } from "./lib/arith";
-import { route, shapeOf } from "./lib/route";
+import { checker, route, shapeOf } from "./lib/route";
 
 let failed = 0;
 const check = (p: boolean, l: string, d = "") => { if (!p) failed++; console.log(`${p ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
@@ -110,6 +110,27 @@ console.log("\nAnd you can overrule it");
   const deep = route("why would you choose an event-sourced architecture here", ctx({ effort: "deep" }) as never);
   check(cheap.modelId !== deep.modelId, "economy and deep disagree, as they should", `${cheap.modelId} vs ${deep.modelId}`);
   check(/you asked for economy/.test(cheap.why), "and it says the choice was yours", cheap.why);
+}
+
+console.log("\nA second opinion comes from somewhere else");
+{
+  const other = checker("claude-sonnet-4-5", { configured: ALL, keys: {} });
+  check(other !== null && !other.startsWith("claude"),
+    "checking an Anthropic answer does not go back to Anthropic — a model marking its own homework agrees with itself",
+    other ?? "none");
+
+  const deep = checker("claude-sonnet-4-5", { configured: ALL, keys: {} });
+  check(/gpt-5\.1$|gemini-3|reasoner/.test(deep ?? ""),
+    "and it is the strongest available elsewhere, not the cheapest — a check you cannot rely on told you nothing",
+    deep ?? "none");
+
+  const alone = checker("claude-sonnet-4-5", { configured: { anthropic: true }, keys: {} });
+  check(alone === null,
+    "with one provider there is no second opinion, and that is said rather than faked with a sibling model",
+    String(alone));
+
+  const back = checker("gpt-5.1", { configured: { anthropic: true, openai: true }, keys: {} });
+  check(back?.startsWith("claude") === true, "it works in the other direction too", back ?? "none");
 }
 
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");

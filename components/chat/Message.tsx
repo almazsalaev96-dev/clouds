@@ -4,7 +4,7 @@ import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Copy,
-  Download, MoreHorizontal, NotebookPen, PanelRight, Pencil, RefreshCw,
+  Download, MoreHorizontal, NotebookPen, PanelRight, Pencil, RefreshCw, ShieldQuestion,
   SquarePen, Volume2, X,
 } from "lucide-react";
 import type { ChatError, Message as Msg } from "@/lib/types";
@@ -186,6 +186,8 @@ function AssistantMessageImpl({
   onSaveToNote,
   onOpenInCanvas,
   onContinue,
+  onVerify,
+  verifying,
   entering,
   settled,
   isLast,
@@ -200,6 +202,9 @@ function AssistantMessageImpl({
   onOpenInCanvas: (text: string) => void;
   /** Ask for the rest, when the answer ran out of room. */
   onContinue?: () => void;
+  /** Ask a model from another provider whether this answer is right. */
+  onVerify?: (message: Msg) => void;
+  verifying?: boolean;
   entering?: boolean;
   /** True for about a second after this answer finished generating. */
   settled?: boolean;
@@ -310,6 +315,8 @@ function AssistantMessageImpl({
 
       {message.error && <InlineError message={message.error} onRetry={() => onRegenerate(message)} />}
 
+      {message.verdict && <SecondOpinion verdict={message.verdict} />}
+
       {/* Not every action is equal, so they are not drawn equal. Copy and
           regenerate are what people reach for; the rest live one click deeper
           rather than making you read seven identical icons to find the two.
@@ -329,6 +336,20 @@ function AssistantMessageImpl({
         <IconButton label="Regenerate" size={28} onClick={() => onRegenerate(message)}>
           <RefreshCw size={14} />
         </IconButton>
+        {/* The one thing an app holding four providers' keys can do that a
+            single-provider app cannot do honestly. A model asked to check its
+            own answer agrees with itself — same reasoning, same weights — so
+            this always goes somewhere else, or says it cannot. */}
+        {onVerify && !message.verdict && (
+          <IconButton
+            label={verifying ? "Checking…" : "Check with another model"}
+            size={28}
+            onClick={() => onVerify(message)}
+            disabled={verifying}
+          >
+            <ShieldQuestion size={14} />
+          </IconButton>
+        )}
         <DropdownMenu.Root>
           <Tooltip label="Regenerate with another model">
             <DropdownMenu.Trigger asChild>
@@ -512,6 +533,56 @@ export function BranchNav({
  * Every failure gets one plain sentence and one specific action. The raw
  * provider payload stays in the console where it belongs.
  */
+/**
+ * What a different model said about this answer.
+ *
+ * Deliberately not a score and not a tick. Three states, because the useful
+ * middle one is "the substance holds but this bit is wrong", and a system with
+ * only pass and fail pushes every partial disagreement into whichever of the
+ * two is less accurate.
+ *
+ * A disagreement is drawn in the warning colour and an agreement is not drawn
+ * in green: a confirmation should be quiet. Green ticks are how a checked
+ * answer starts reading as a *correct* answer, and a second model agreeing is
+ * evidence, not proof — the two can be wrong together, and are most likely to
+ * be wrong together exactly where the question is hardest.
+ */
+function SecondOpinion({
+  verdict,
+}: {
+  verdict: NonNullable<Msg["verdict"]>;
+}) {
+  const checker = getModel(verdict.modelId);
+  const said =
+    verdict.agrees === "agrees"
+      ? "found nothing wrong"
+      : verdict.agrees === "partly"
+        ? "mostly agrees"
+        : "disagrees";
+  return (
+    <div
+      className={cn(
+        "mt-2 rounded-xl border bg-surface p-3",
+        verdict.agrees === "disagrees" ? "border-[var(--warning)]" : "border-line",
+      )}
+    >
+      <div className="mb-1 flex items-center gap-2">
+        <ShieldQuestion
+          size={13}
+          className={cn("shrink-0", verdict.agrees === "disagrees" ? "text-warning" : "text-tertiary")}
+        />
+        <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+          Second opinion
+        </span>
+        <span className="min-w-0 flex-1 truncate text-xs text-tertiary">
+          {checker.name} {said}
+        </span>
+      </div>
+      <Markdown content={verdict.text} />
+    </div>
+  );
+}
+
 export function InlineError({
   message,
   error,

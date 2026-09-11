@@ -33,6 +33,8 @@ function MessageListImpl({
   onSaveToNote,
   onOpenInCanvas,
   onContinue,
+  onVerify,
+  verifyingId,
   onRetry,
   onAddKey,
   onSwitchModel,
@@ -56,6 +58,9 @@ function MessageListImpl({
   onSaveToNote: (text: string) => void;
   onOpenInCanvas: (text: string) => void;
   onContinue: () => void;
+  /** Ask a model from another provider whether an answer is right. */
+  onVerify: (message: Msg) => void;
+  verifyingId?: string | null;
   onRetry: () => void;
   onAddKey: () => void;
   onSwitchModel: () => void;
@@ -198,6 +203,8 @@ function MessageListImpl({
                 onSaveToNote={onSaveToNote}
                 onOpenInCanvas={onOpenInCanvas}
                 onContinue={onContinue}
+                onVerify={onVerify}
+                verifying={verifyingId === m.id}
                 entering={entering}
                 settled={m.id === settledId}
                 isLast={i === messages.length - 1}

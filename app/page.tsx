@@ -14,7 +14,7 @@ import { findStyle } from "@/lib/styles";
 import { findMode } from "@/lib/modes";
 import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, estimateTokens, getModel } from "@/lib/models";
 import { fitToContext } from "@/lib/context";
-import { cheapestAvailable, complete } from "@/lib/generate";
+import { cheapestAvailable, complete } from "@/lib/complete";
 import { useSettings, useDrafts, paramsFor, type Section } from "@/lib/store";
 import { useStream } from "@/lib/hooks/useStream";
 import { cn, inOverlay } from "@/lib/utils";
@@ -424,6 +424,50 @@ export default function Page() {
       if (isFirst) void generateTitle(convId, blockText(content));
     },
     [activeId, conversation?.leafId, path, threadModelId, runTurn, generateTitle, compareWith, configured, settings.keys, settings.modelId],
+  );
+
+  const [verifyingId, setVerifyingId] = React.useState<string | null>(null);
+
+  /**
+   * A second opinion, from somewhere else.
+   *
+   * The one thing an app holding four providers' keys can do that a
+   * single-provider app cannot do honestly. A model asked to check its own
+   * answer reproduces the same reasoning from the same weights and reports
+   * that it holds up, which is an echo rather than a check — so this always
+   * goes to a different provider, and where there is not one it says so
+   * instead of quietly asking a sibling model and calling it independent.
+   */
+  const verify = React.useCallback(
+    async (message: Message) => {
+      if (verifyingId) return;
+      const asked = pathTo(allMessages ?? [], message.parentId)
+        .filter((m) => m.role === "user")
+        .slice(-1)[0];
+      if (!asked) return;
+
+      const { checker } = await import("@/lib/route");
+      const who = checker(message.modelId ?? settings.modelId, { configured, keys: settings.keys });
+      if (!who) {
+        setNotice(
+          "A second opinion has to come from a different provider, and only one is configured. Add another key in Settings.",
+        );
+        return;
+      }
+
+      setVerifyingId(message.id);
+      try {
+        const { verifyAnswer } = await import("@/lib/verify");
+        const verdict = await verifyAnswer(blockText(asked.content), blockText(message.content), who);
+        if (verdict) await db.messages.update(message.id, { verdict });
+        else setNotice("The check didn't come back. Try again.");
+      } catch {
+        setNotice("That check failed. Check the key and the connection.");
+      } finally {
+        setVerifyingId(null);
+      }
+    },
+    [verifyingId, allMessages, configured, settings.keys, settings.modelId],
   );
 
   /** Regenerating reuses the parent, so the new answer is a sibling of the old. */
@@ -1012,6 +1056,8 @@ export default function Page() {
                 onRegenerate={regenerate}
                 onSaveToNote={keepAsNote}
                 onContinue={() => void send([{ type: "text", text: CONTINUE_PROMPT }])}
+                onVerify={verify}
+                verifyingId={verifyingId}
                 onOpenInCanvas={keepAsCanvas}
                 onRetry={() => {
                   const last = [...path].reverse().find((m) => m.role === "assistant");

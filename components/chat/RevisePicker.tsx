@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { getModel } from "@/lib/models";
-import { cheapestAvailable } from "@/lib/generate";
+import { cheapestAvailable } from "@/lib/complete";
 import { useSettings } from "@/lib/store";
 import { ModelPicker } from "./ModelPicker";
 import { ProviderMark } from "@/components/ui/ProviderMark";

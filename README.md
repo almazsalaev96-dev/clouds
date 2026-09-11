@@ -367,6 +367,31 @@ every time you double-click a word is wrong more often than right. Accepting the
 change lets the selection go, because the lines you selected are not the lines
 you now have.
 
+**A second opinion, from somewhere else.** Any answer can be checked, and the
+checker always comes from a **different provider**. This is the one thing an app
+holding several providers' keys can do that a single-provider app cannot do
+honestly: a model asked to check its own answer reproduces the same reasoning
+from the same weights and reports that it holds up, which is not verification —
+it is an echo with extra steps, and it is worse than no check because a reader
+takes it as evidence.
+
+The checker is given the question and the answer and is **not told which model
+wrote it**; a checker told it is reviewing a famous model's work has a thumb on
+the scale, in whichever direction. It is told that flattering the answer and
+hunting for fault to justify being asked are both ways of not answering, and
+asked to name *which claim* — "the third paragraph says X; that is wrong because
+Y" is useful, "some details may be inaccurate" is the failure mode. It comes
+back as one of three verdicts, because the useful middle one is "the substance
+holds but this bit is wrong", and a system with only pass and fail pushes every
+partial disagreement into whichever of the two is less true.
+
+An agreement is drawn quietly and a disagreement in the warning colour — no
+green ticks, because that is how a *checked* answer starts reading as a
+*correct* one. Two models agreeing is evidence, not proof; they can be wrong
+together, and are most likely to be wrong together exactly where the question is
+hardest. Where there is no second provider configured, it says so and does
+nothing — a check that could only ever say yes is worse than none.
+
 **Auto: one AI that knows how to use every AI.** The app held four providers'
 keys and asked you which to use. That is "all the models in one app", and it is
 the weak version of the idea — because the person asking the question is the one
@@ -924,6 +949,16 @@ heading, and link URLs printed in full.
   through Chromium's print media emulation rather than assumed.
 - Highlighting confirmed to run in a real Web Worker (counted at construction, not
   assumed), producing 240 themed spans on a 40-line block.
+- **The second opinion, driven across two providers** (`e2e-verify.mjs`, 16
+  assertions). This required teaching the mock **OpenAI's wire format** as well
+  as Anthropic's: until it spoke both, nothing this app does across two
+  providers was testable at all, because a request correctly routed elsewhere
+  left the harness and died against a real endpoint — which looks exactly like
+  the feature being broken. The mock now disagrees on purpose, since a mock that
+  always agrees leaves the only interesting half untested. The refusal path is
+  asserted against the database rather than the screen: "how many verdicts were
+  written" is exact, where "is the phrase on the page" is a question about
+  everything ever rendered.
 - **The router and the calculator, tested on their own** (`test-route.ts`, 33
   assertions, `npx jiti test-route.ts`). No browser, no model, no network — the
   interesting cases are the ones where a plausible-looking answer is the wrong
@@ -1060,6 +1095,12 @@ Stated plainly, because a checklist you cannot trust is worse than no checklist.
   here. The rest would need a server, and a server is the one thing this app
   promises not to have. Said plainly because the alternative is a feature list
   that sounds like a coding agent and behaves like a text box.
+- **A second opinion is one opinion.** It is one model, asked once, and two
+  models agreeing can be wrong together — most likely exactly where the question
+  is hardest, since that is where their training overlaps most. There is no
+  third checker, no tie-break, and nothing that notices a checker with a habit
+  of agreeing. And it is chat only: the canvas has its own *Check it*, which
+  compares a change against what was asked rather than asking anybody else.
 - **The router routes; it does not benchmark.** Which model is fast, which is
   careful and which is good at code is a small hand-kept table, informed by what
   the makers publish and by using them — not by measured win rates on this app's
@@ -1154,6 +1195,9 @@ node e2e-point.mjs   # 18 assertions: pointing at a running page and changing it
 node e2e-whole.mjs   # 19 assertions: code inside a project, and asking across it
 node e2e-sources.mjs # 20 assertions: many sources, and citations that are checked
 node e2e-auto.mjs    # 15 assertions: which model answered, read at the wire
+# and one that needs a second provider, so the mock serves both wire formats:
+OPENAI_BASE_URL=http://127.0.0.1:8787 OPENAI_API_KEY=sk-mock …
+node e2e-verify.mjs  # 16 assertions: a check that comes from another provider
 node mock-slow.mjs &   # the mock with the gap between tokens stretched, then:
 node e2e-stop.mjs    #  8 assertions: stopping mid-answer (needs the slow mock)
 node e2e-watch.mjs   # 12 assertions: seeing it work, and what stop means

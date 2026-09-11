@@ -243,3 +243,38 @@ export function route(
       : `${getModel(best.id).short}.`,
   };
 }
+
+/**
+ * A second opinion has to come from somewhere else.
+ *
+ * The whole value of checking an answer is that the checker did not produce
+ * it. A model asked to check its own output reproduces the same reasoning from
+ * the same weights and reports that it holds up — which is not verification,
+ * it is an echo with extra steps, and it is worse than no check because a
+ * reader takes it as evidence.
+ *
+ * So: a different provider, and the most capable one available there, because
+ * a check is exactly the job not to economise on. Returns nothing when there
+ * is no second provider — the caller says so plainly rather than quietly
+ * checking with a sibling model and calling it independent.
+ */
+export function checker(
+  answeredBy: string,
+  ctx: { configured: Record<string, boolean>; keys: Record<string, string> },
+): string | null {
+  const answering = MODELS.find((m) => m.id === answeredBy);
+  const pool = usable(ctx.configured, ctx.keys).filter(
+    (m) => !answering || m.provider !== answering.provider,
+  );
+  if (!pool.length) return null;
+  /* Strongest, not cheapest. Everywhere else in this file cost is a real
+     consideration; here it is the wrong one — a check you cannot rely on has
+     cost you the price of the call and told you nothing. */
+  return [...pool].sort((a, b) => {
+    const d = traitsOf(b.id).depth - traitsOf(a.id).depth;
+    if (d) return d;
+    const p = b.priceIn + b.priceOut - (a.priceIn + a.priceOut);
+    if (p) return p;
+    return a.id.localeCompare(b.id);
+  })[0].id;
+}
