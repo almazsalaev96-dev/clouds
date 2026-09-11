@@ -166,7 +166,7 @@ function MessageListImpl({
           {dropped > 0 && (
             <div className="mb-4 flex items-center gap-3 anim-fade">
               <span className="h-px flex-1 bg-[var(--border-subtle)]" aria-hidden />
-              <span className="text-[11px] uppercase tracking-[0.08em] text-faint">
+              <span className="text-tiny uppercase tracking-[0.08em] text-faint">
                 {dropped} earlier {dropped === 1 ? "message" : "messages"} not sent — too long for {" "}
                 {getModel(streamModelId).name}
               </span>

@@ -579,7 +579,7 @@ function SecondOpinion({
           size={13}
           className={cn("shrink-0", verdict.agrees === "disagrees" ? "text-warning" : "text-tertiary")}
         />
-        <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+        <span className="eyebrow text-faint">
           Second opinion
         </span>
         <span className="min-w-0 flex-1 truncate text-xs text-tertiary">

@@ -52,7 +52,7 @@ export function Kbd({ keys }: { keys: string[] }) {
       {keys.map((k) => (
         <kbd
           key={k}
-          className="min-w-[1.25em] rounded-[4px] border border-line bg-subtle px-1 text-center font-sans text-[11px] leading-[1.5] text-tertiary"
+          className="min-w-[1.25em] rounded-[4px] border border-line bg-subtle px-1 text-center font-sans text-tiny leading-[1.5] text-tertiary"
         >
           {k === "mod" ? (mac ? "⌘" : "Ctrl") : k === "shift" ? "⇧" : k === "enter" ? "↵" : k}
         </kbd>

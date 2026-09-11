@@ -156,6 +156,54 @@ console.log("\nHierarchy comes from size and brightness, not from weight");
   await ctx.close();
 }
 
+console.log("\nNothing is nailed to a pixel size while the reader's text grows");
+{
+  /* The gate that would have caught this class rather than my noticing it.
+     Twenty-six labels were written `text-[11px]` and three more in 12, 13 and
+     16 — pixels, so they did not move when a reader turned their browser text
+     up. The body scaled around them and every label in the app stayed frozen:
+     at a 24px root that is an 11px chip against 24px prose, a ratio of more
+     than two to one where the design says 1.45.
+
+     Measured by rendering twice and comparing every run of text by its own
+     content. The wordmark is the one thing allowed to stand still: it is a
+     graphic with a cap height, not a sentence. */
+  const seen = {};
+  for (const rootPx of [16, 24]) {
+    const ctx = await b.newContext({ viewport: { width: 1440, height: 950 } });
+    const p = await ctx.newPage();
+    await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
+    await p.evaluate((s) => localStorage.setItem("store.settings.v1", s), SETTINGS());
+    await p.reload({ waitUntil: "networkidle" });
+    await p.addStyleTag({ content: `html { font-size: ${rootPx}px }` });
+    await p.waitForTimeout(700);
+    seen[rootPx] = await p.evaluate(() => {
+      const out = {};
+      for (const el of document.querySelectorAll("body *")) {
+        const t = el.textContent?.trim();
+        if (!t) continue;
+        if (el.children.length && !/^(SPAN|P|KBD|BUTTON|LABEL|H1|H2|H3)$/.test(el.tagName)) continue;
+        /* The wordmark only. Sized by a cap height in px because it is a
+           drawing of a letter rather than a letter — excluded by its own class
+           rather than by `aria-hidden`, which decorates half the app and would
+           hide real text behind the exemption. */
+        if (el.closest(".signature")) continue;
+        out[t.slice(0, 30)] = parseFloat(getComputedStyle(el).fontSize);
+      }
+      return out;
+    });
+    await ctx.close();
+  }
+  const stuck = [];
+  for (const [text, small] of Object.entries(seen[16])) {
+    const large = seen[24][text];
+    if (large !== undefined && Math.abs(large - small) < 0.5) stuck.push(`${JSON.stringify(text)} at ${small}px`);
+  }
+  check(stuck.length === 0,
+    `${Object.keys(seen[16]).length} runs of text, every one of them grows with the reader`,
+    stuck.slice(0, 4).join(" · "));
+}
+
 console.log("\nHierarchy is carried by brightness, in both themes alike");
 {
   const ctx = await b.newContext({ viewport: { width: 1440, height: 950 } });

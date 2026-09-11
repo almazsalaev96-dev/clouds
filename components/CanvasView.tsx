@@ -1388,7 +1388,7 @@ function Chip({
     <button
       onClick={onClick}
       disabled={busy}
-      className="tap focus-inset inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-[13px] text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary disabled:opacity-40"
+      className="tap focus-inset inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-meta text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary disabled:opacity-40"
       {...rest}
     >
       {children}
@@ -1421,7 +1421,7 @@ function Report({
     <div className={cn("mx-auto max-h-[38vh] w-full shrink-0 overflow-y-auto px-4", column)}>
       <div className="rounded-xl border border-line bg-surface p-3">
         <div className="mb-1 flex items-center gap-2">
-          <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+          <span className="eyebrow text-faint">
             {REPORT_TITLE[kind]}
           </span>
           <IconButton label={`Close ${kind}`} size={26} className="ml-auto" onClick={onClose}>
@@ -1485,7 +1485,7 @@ function Live({
       <div className="rounded-xl border border-line bg-inset p-3">
         <div className="mb-1.5 flex items-center gap-2">
           <span className="think-orb shrink-0" aria-hidden />
-          <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+          <span className="eyebrow text-faint">
             {WHAT[kind]}
           </span>
           <span className="tnum min-w-0 flex-1 text-xs text-tertiary">
@@ -1505,7 +1505,7 @@ function Live({
              progress, it is noise you cannot escape. */
           aria-live="polite"
           aria-atomic="false"
-          className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-[1.6] text-tertiary"
+          className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-xs leading-[1.6] text-tertiary"
         >
           {text || "…"}
         </pre>
@@ -1550,7 +1550,7 @@ function RulesPanel({
     <div className={cn("mx-auto w-full shrink-0 px-4 pt-2", column)}>
       <div className="rounded-xl border border-line bg-surface p-3">
         <div className="mb-1.5 flex items-center gap-2">
-          <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+          <span className="eyebrow text-faint">
             House rules
           </span>
           <span className="min-w-0 flex-1 truncate text-xs text-tertiary">
@@ -1568,7 +1568,7 @@ function RulesPanel({
           rows={4}
           aria-label="House rules for this file"
           placeholder={"Use TypeScript. No inline styles — the design system only.\nNever change the auth flow without saying why.\nEvery exported function gets a test."}
-          className="w-full resize-y rounded-lg border border-line bg-inset px-3 py-2 text-[13px] leading-[1.6] text-primary outline-none placeholder:text-faint focus:border-accent"
+          className="w-full resize-y rounded-lg border border-line bg-inset px-3 py-2 text-meta leading-[1.6] text-primary outline-none placeholder:text-faint focus:border-accent"
         />
       </div>
     </div>
@@ -1611,7 +1611,7 @@ function PlanPanel({
     <div className={cn("mx-auto max-h-[38vh] w-full shrink-0 overflow-y-auto px-4", column)}>
       <div className="rounded-xl border border-line bg-surface p-3">
         <div className="mb-1 flex items-center gap-2">
-          <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+          <span className="eyebrow text-faint">
             Plan — nothing has changed yet
           </span>
           <IconButton label="Close plan" size={26} className="ml-auto" onClick={onClose}>
@@ -1629,7 +1629,7 @@ function PlanPanel({
               >
                 <span
                   className={cn(
-                    "tnum mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px]",
+                    "tnum mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-tiny",
                     done ? "bg-accent-subtle text-accent" : "bg-subtle text-tertiary",
                   )}
                   aria-hidden
@@ -1988,7 +1988,7 @@ function WebPreview({
             {lines.length > 0 && (
               <span
                 className={cn(
-                  "tnum rounded-full px-1.5 text-[11px]",
+                  "tnum rounded-full px-1.5 text-tiny",
                   errors
                     ? "bg-[var(--danger-subtle)] text-danger"
                     : "bg-subtle text-tertiary",
@@ -2021,7 +2021,7 @@ function WebPreview({
         </div>
 
         {open && (
-          <div className="mt-1.5 max-h-40 overflow-y-auto rounded-lg border border-line bg-inset p-2 font-mono text-[12px] leading-[1.6]">
+          <div className="mt-1.5 max-h-40 overflow-y-auto rounded-lg border border-line bg-inset p-2 font-mono text-xs leading-[1.6]">
             {lines.length === 0 ? (
               <p className="text-tertiary">Nothing logged yet.</p>
             ) : (
@@ -2038,7 +2038,7 @@ function WebPreview({
                   )}
                 >
                   {l.count > 1 && (
-                    <span className="mr-1.5 rounded-full bg-subtle px-1.5 text-[10px] text-tertiary tnum">
+                    <span className="mr-1.5 rounded-full bg-subtle px-1.5 text-tiny text-tertiary tnum">
                       ×{l.count}
                     </span>
                   )}
@@ -2054,7 +2054,7 @@ function WebPreview({
                     <button
                       onClick={() => onFix(l.text, fileIn(l.text))}
                       aria-label={`Fix this error: ${l.text.slice(0, 80)}`}
-                      className="focus-inset ml-2 rounded-full border border-line px-2 py-px align-middle font-sans text-[11px] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                      className="focus-inset ml-2 rounded-full border border-line px-2 py-px align-middle font-sans text-tiny text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
                     >
                       Fix this
                     </button>
@@ -2143,7 +2143,7 @@ function VersionList({
   return (
     <aside className="glass hidden w-64 shrink-0 flex-col overflow-y-auto border-l border-line md:flex">
       <div className="flex h-10 items-center gap-2 border-b border-line px-3">
-        <span className="truncate text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+        <span className="truncate eyebrow text-faint">
           {label ? `History · ${label}` : "History"}
         </span>
         <IconButton label="Close history" size={26} className="ml-auto" onClick={onClose}>
@@ -2164,7 +2164,7 @@ function VersionList({
                   <span className="text-xs font-medium text-primary">
                     {i === 0 ? "Current" : v.by === "model" ? "Model" : "You"}
                   </span>
-                  <span className="tnum ml-auto text-[11px] text-faint">
+                  <span className="tnum ml-auto text-tiny text-faint">
                     {new Date(v.createdAt).toLocaleTimeString(undefined, {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -2172,10 +2172,10 @@ function VersionList({
                   </span>
                 </span>
                 {v.note && (
-                  <span className="mt-0.5 block truncate text-[11px] text-tertiary">{v.note}</span>
+                  <span className="mt-0.5 block truncate text-tiny text-tertiary">{v.note}</span>
                 )}
                 {i > 0 && (
-                  <span className="mt-1 hidden items-center gap-1 text-[11px] text-accent group-hover:flex">
+                  <span className="mt-1 hidden items-center gap-1 text-tiny text-accent group-hover:flex">
                     <RotateCcw size={10} />
                     Restore this
                   </span>

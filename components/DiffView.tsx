@@ -75,12 +75,12 @@ export function DiffView({
             wide ? "max-w-[var(--measure-wide)]" : "max-w-[var(--measure)]",
           )}
         >
-          <pre className="min-w-max font-mono text-[12.5px] leading-[1.65]">
+          <pre className="min-w-max font-mono text-xs leading-[1.65]">
             {rows.map((row, i) =>
               row.type === "gap" ? (
                 <div
                   key={i}
-                  className="select-none bg-subtle px-3 py-0.5 text-center text-[11px] text-faint"
+                  className="select-none bg-subtle px-3 py-0.5 text-center text-tiny text-faint"
                 >
                   {row.count} unchanged {row.count === 1 ? "line" : "lines"}
                 </div>

@@ -461,6 +461,16 @@
   --text-section--line-height: 1.35;
   --text-meta: 0.8125rem;
   --text-meta--line-height: 1.45;
+
+  /* The smallest step, and the only one below metadata: the uppercase label
+     that names a region — HISTORY · APP.JS, SECOND OPINION, BRING YOUR OWN KEY.
+     It is small because it is a sign rather than a sentence; the letter-spacing
+     and the capitals are doing the work that size would otherwise have to.
+     Kept in `rem` like everything else — it was written out as `text-[11px]`
+     twenty-six times, which meant that a reader who turned their browser text
+     up got the body scaled and every label in the app frozen. */
+  --text-tiny: 0.6875rem;
+  --text-tiny--line-height: 1.5;
 }
 
 /* ============================================================================
@@ -1326,6 +1336,17 @@ body::after {
 /* ============================================================================
    PROSE — the app is 95% text, so this is the product, not a plugin.
    ========================================================================= */
+
+/* The label that names a region. Fourteen copies of the same four classes
+   before this existed, which is fourteen places to miss when the role changes.
+   A role with a name is a role that can be looked at. */
+.eyebrow {
+  font-size: var(--text-tiny);
+  line-height: var(--text-tiny--line-height);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
 
 /* ---------------------------------------------------------------- reading --
 

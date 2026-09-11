@@ -184,7 +184,7 @@ function AskPanel({
 
   return (
     <section>
-      <h2 className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+      <h2 className="eyebrow text-faint">
         Ask about this project
       </h2>
       <p className="mt-1 text-xs text-tertiary">
@@ -215,7 +215,7 @@ function AskPanel({
       {answer && (
         <div className="mt-2 rounded-xl border border-line bg-surface p-3">
           <div className="mb-1 flex items-center gap-2">
-            <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+            <span className="eyebrow text-faint">
               Answer
             </span>
             <IconButton label="Close answer" size={26} className="ml-auto" onClick={() => setAnswer(null)}>
@@ -373,7 +373,7 @@ function ProjectPage({
 
           {/* Instructions */}
           <section>
-            <h2 className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+            <h2 className="eyebrow text-faint">
               Instructions
             </h2>
             <p className="mt-1 text-xs text-tertiary">
@@ -395,7 +395,7 @@ function ProjectPage({
           {/* Knowledge */}
           <section>
             <div className="flex items-baseline gap-2">
-              <h2 className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+              <h2 className="eyebrow text-faint">
                 Knowledge
               </h2>
               <Button
@@ -485,7 +485,7 @@ function ProjectPage({
           {/* Code */}
           <section>
             <div className="flex items-baseline gap-2">
-              <h2 className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+              <h2 className="eyebrow text-faint">
                 Code in this project
               </h2>
               <Button
@@ -528,7 +528,7 @@ function ProjectPage({
 
           {/* Chats */}
           <section>
-            <h2 className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+            <h2 className="eyebrow text-faint">
               Chats in this project
             </h2>
             <div className="mt-2 space-y-1">

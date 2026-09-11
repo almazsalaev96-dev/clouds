@@ -291,7 +291,7 @@ export function CodeEditor({
             aria-label="Find in this file"
             className="focus-inset min-w-0 flex-1 bg-transparent font-mono text-xs text-primary outline-none placeholder:text-tertiary"
           />
-          <span className="shrink-0 text-[11px] text-faint tnum">
+          <span className="shrink-0 text-tiny text-faint tnum">
             {matches.length ? `${Math.min(at, matches.length - 1) + 1} of ${matches.length}` : query ? "none" : ""}
           </span>
           <button
@@ -391,7 +391,7 @@ export function CodeEditor({
       {/* What an editor says about itself: where you are, and how much there
           is. The Escape hint lives here because the alternative is a keyboard
           user trapped in a box that eats Tab. */}
-      <div className="flex shrink-0 items-center gap-3 border-t border-line px-4 py-1 text-[11px] text-faint">
+      <div className="flex shrink-0 items-center gap-3 border-t border-line px-4 py-1 text-tiny text-faint">
         <span className="tnum">
           Ln {caret.line}, Col {caret.col}
         </span>

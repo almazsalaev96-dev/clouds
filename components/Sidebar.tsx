@@ -193,7 +193,7 @@ export function Sidebar({
             >
               <span
                 aria-hidden
-                className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-subtle text-[11px] font-semibold uppercase text-accent"
+                className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-subtle text-tiny font-semibold uppercase text-accent"
               >
                 {(name.trim()[0] ?? "").toUpperCase() || <Settings2 size={13} />}
               </span>
@@ -226,7 +226,7 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
        letterspacing is a label shouting its own name; "Today" is a word you
        read past on the way to the thing under it, which is what a group
        heading is for. */
-    <h2 className="glass sticky top-0 z-10 px-2 pb-1 pt-3 text-[13px] font-medium text-faint">
+    <h2 className="glass sticky top-0 z-10 px-2 pb-1 pt-3 text-meta font-medium text-faint">
       {children}
     </h2>
   );
@@ -347,7 +347,7 @@ function ChatList({
           <button
             onClick={() => setShowArchived((v) => !v)}
             aria-expanded={showArchived}
-            className="focus-inset tap flex h-8 w-full items-center gap-1.5 rounded-md px-2 text-[13px] font-medium text-faint transition-colors duration-[var(--dur-fast)] hover:text-secondary"
+            className="focus-inset tap flex h-8 w-full items-center gap-1.5 rounded-md px-2 text-meta font-medium text-faint transition-colors duration-[var(--dur-fast)] hover:text-secondary"
           >
             <ChevronRight
               size={12}

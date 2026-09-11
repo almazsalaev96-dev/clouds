@@ -153,7 +153,7 @@ export function MessageBar({
         aria-label={ariaLabel}
         /* 16px, not 15: anything smaller and iOS zooms the whole page on
            focus, and the way back out is a pinch. */
-        className="max-h-[45vh] w-full resize-none bg-transparent px-5 pb-1 pt-4 text-[16px] leading-6 text-primary outline-none placeholder:text-tertiary"
+        className="max-h-[45vh] w-full resize-none bg-transparent px-5 pb-1 pt-4 text-base leading-6 text-primary outline-none placeholder:text-tertiary"
       />
 
       {/* Two groups, not one wrapping row. Only the left group wraps — send is

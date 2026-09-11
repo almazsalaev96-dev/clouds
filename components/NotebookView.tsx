@@ -495,7 +495,7 @@ export function NotebookView({
           <div className="rounded-xl border border-line bg-inset p-3">
             <div className="mb-1.5 flex items-center gap-2">
               <span className="think-orb shrink-0" aria-hidden />
-              <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+              <span className="eyebrow text-faint">
                 Writing the page
               </span>
               <span className="tnum min-w-0 flex-1 text-xs text-tertiary">
@@ -510,7 +510,7 @@ export function NotebookView({
             </div>
             <pre
               aria-live="polite"
-              className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-[1.6] text-tertiary"
+              className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-xs leading-[1.6] text-tertiary"
             >
               {live || "…"}
             </pre>
@@ -719,7 +719,7 @@ function CitePanel({ cite, onClose }: { cite: Citation; onClose: () => void }) {
         )}
       >
         <div className="mb-1 flex items-center gap-2">
-          <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-faint">
+          <span className="eyebrow text-faint">
             {cite.found ? "In the source" : unchecked ? "Not checked" : "Not found in the source"}
           </span>
           <span className="min-w-0 flex-1 truncate text-xs text-tertiary">
