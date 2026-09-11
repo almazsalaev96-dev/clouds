@@ -44,7 +44,14 @@ const bridgeFor = (run: string) => `<script>(function(){
   }
   function post(level, parts){
     if (seen++ > 500) return;   // a runaway loop should not take the page with it
-    try { parent.postMessage({ __armiConsole: 1, run: RUN, level: level, text: parts.map(fmt).join(" ") }, "*"); } catch (e) {}
+    /* And one line of it cannot be the page either. The count was capped and
+       the length was not, so console.log(bigString) handed the host a
+       structured clone of several megabytes, five hundred times over. A
+       console shows you the first screenful of anything; the rest was only
+       ever going to be dropped by the drawer after it had been copied. */
+    var text = parts.map(fmt).join(" ");
+    if (text.length > 4000) text = text.slice(0, 4000) + " … (" + text.length + " characters)";
+    try { parent.postMessage({ __armiConsole: 1, run: RUN, level: level, text: text }, "*"); } catch (e) {}
   }
   ["log","info","warn","error"].forEach(function(k){
     var original = console[k];
@@ -88,6 +95,7 @@ const bridgeFor = (run: string) => `<script>(function(){
   var picking = false;
   var lit = null;
   var mark = null;
+  var markOffset = null;
 
   function outline(el){
     if (lit === el) return;
@@ -96,14 +104,32 @@ const bridgeFor = (run: string) => `<script>(function(){
     if (!el || !el.style) return;
     /* Its own outline, remembered and put back. Outline rather than border or
        box-shadow because it is the one visual that takes up no space: a
-       highlight that reflows the page moves the thing you were aiming at. */
+       highlight that reflows the page moves the thing you were aiming at.
+
+       Both properties are remembered. The offset used not to be, so pointing
+       at an element that had an inline outline-offset of its own and moving
+       away deleted it — a change to the page made by the act of looking at
+       it. */
     mark = el.style.outline;
+    markOffset = el.style.outlineOffset;
     el.style.outline = "2px solid #3450b5";
     el.style.outlineOffset = "1px";
   }
   function clear(){
-    if (lit && lit.style) { lit.style.outline = mark || ""; lit.style.outlineOffset = ""; }
-    lit = null; mark = null;
+    if (lit && lit.style) {
+      lit.style.outline = mark || "";
+      lit.style.outlineOffset = markOffset || "";
+    }
+    lit = null; mark = null; markOffset = null;
+  }
+
+  function markup(el){
+    var was = lit === el;
+    if (was) clear();
+    var out = "";
+    try { out = el.outerHTML || ""; } catch (e) {}
+    if (was) outline(el);
+    return out.slice(0, 800);
   }
 
   function describe(el){
@@ -127,13 +153,21 @@ const bridgeFor = (run: string) => `<script>(function(){
       text: text.slice(0, 120),
       /* The anchor. A tag and a class are not enough to find one element in a
          file that has nine of them; the actual markup is, and it is what the
-         model is shown so it changes the one you meant. */
-      html: (el.outerHTML || "").slice(0, 800),
+         model is shown so it changes the one you meant.
+
+         Read with the highlight off. outerHTML serialises the inline style,
+         and by the time a click arrives the element is wearing this picker's
+         own blue outline — so the markup handed to the model
+         as "what you wrote" contained a rule nobody wrote, and a model asked
+         to edit that element kept it. */
+      html: markup(el),
       path: path.join(" > ")
     };
   }
 
   window.addEventListener("message", function(e){
+    // From the page that framed this one, and nowhere else.
+    if (e.source !== parent) return;
     var d = e.data;
     if (!d || d.__armiPick !== 1) return;
     picking = Boolean(d.on);
@@ -159,7 +193,24 @@ const bridgeFor = (run: string) => `<script>(function(){
   document.addEventListener("mouseleave", function(){ if (picking) clear(); }, true);
 })();</script>`;
 
-const esc = (s: string) => s.replace(/<\/script>/gi, "<\\/script>");
+/**
+ * Text that cannot climb out of the tag it is being put inside.
+ *
+ * An HTML parser ends a script at `</script` followed by whitespace, a slash or
+ * a `>` — not at the literal string `</script>`, which is all the old version
+ * looked for. So a file containing `</script >`, or `</script\n>`, or
+ * `</scripT>` in a string closed the tag it was inlined into and put the rest
+ * of somebody's JavaScript on the page as text. The same is true of `</style`
+ * inside a stylesheet, where nothing was escaped at all.
+ *
+ * `<\/` is the escape in both places: a valid string escape in JavaScript and a
+ * valid character escape in CSS, and inert inside a comment.
+ */
+const escIn = (tag: string) => (s: string) =>
+  s.replace(new RegExp(`</(${tag})(?=[\\s/>])`, "gi"), "<\\/$1");
+
+const esc = escIn("script");
+const escStyle = escIn("style");
 
 /**
  * The host's theme, stamped on the root before anything paints.
@@ -180,9 +231,17 @@ const themeTag = (theme?: string) =>
 /** Where one file's text ended up in the assembled document, in lines. */
 export interface SourceSpan {
   name: string;
-  /** 1-based, inclusive. */
+  /** 1-based, inclusive, in the assembled document. */
   from: number;
   to: number;
+  /**
+   * The line of `name` that `from` corresponds to.
+   *
+   * Almost always 1, because a whole file is inlined at once. Not for
+   * index.html, which arrives in several runs with other files spliced between
+   * them — and index.html is the file most of the markup is in.
+   */
+  at: number;
 }
 
 export interface Assembled {
@@ -202,10 +261,56 @@ export interface Assembled {
  */
 export function locate(map: SourceSpan[], line: number): { name: string; line: number } | null {
   const hit = map.find((m) => line >= m.from && line <= m.to);
-  return hit ? { name: hit.name, line: line - hit.from + 1 } : null;
+  return hit ? { name: hit.name, line: line - hit.from + hit.at } : null;
 }
 
 const lineOf = (text: string, index: number) => text.slice(0, index).split("\n").length;
+const lines = (text: string) => text.split("\n").length;
+
+/**
+ * One attribute's value, however it was written.
+ *
+ * `href="style.css"`, `href='style.css'` and `href=style.css` are the same
+ * attribute, and HTML has always allowed the third. Only the quoted forms used
+ * to be recognised, so a page written without quotes — which a model does
+ * sometimes, and a person writing quickly does often — had its stylesheet left
+ * as a link to a file that does not exist on an opaque origin. Nothing loaded
+ * and nothing said why.
+ */
+function attrValue(tag: string, name: string): string | null {
+  const m = new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, "i").exec(tag);
+  return m ? m[1] ?? m[2] ?? m[3] ?? null : null;
+}
+
+/** The same attribute string without one attribute, valued or bare. */
+function withoutAttr(attrs: string, name: string): string {
+  return attrs.replace(
+    new RegExp(`\\s*\\b${name}\\b(\\s*=\\s*(?:"[^"]*"|'[^']*'|[^\\s>]+))?`, "gi"),
+    "",
+  );
+}
+
+/**
+ * A run of the finished document, and where it came from.
+ *
+ * The document is built out of these rather than rewritten and then searched.
+ * Searching was wrong twice over. index.html was never found at all — by the
+ * time the search ran, the string had been rewritten by every replacement, so
+ * `html.indexOf(entry.content)` failed and the file holding most of the markup
+ * had no entry in the map, which is to say a runtime error in it reported no
+ * location. And a file whose text happened to occur inside another file
+ * matched wherever it occurred first.
+ *
+ * An empty `name` means the run belongs to no file of yours — the console
+ * bridge, the theme tag — and `locate` says so by finding nothing, which is
+ * the honest answer for a line you did not write.
+ */
+interface Piece {
+  name: string;
+  /** The line of `name` this run starts on. */
+  at: number;
+  text: string;
+}
 
 export function assembleWeb(files: CanvasFile[], theme?: string, run = ""): Assembled {
   const BRIDGE = bridgeFor(run);
@@ -219,48 +324,139 @@ export function assembleWeb(files: CanvasFile[], theme?: string, run = ""): Asse
     };
   }
 
-  let html = entry.content;
+  const src = entry.content;
+  const resolve = (v: string | null) =>
+    v ? byName.get(String(v).replace(/^\.?\//, "")) : undefined;
+
+  /** A stretch of the entry replaced by something else. */
+  interface Edit {
+    at: number;
+    len: number;
+    pieces: Piece[];
+    /** Runs after the document is parsed, so it is moved rather than left. */
+    defer?: boolean;
+  }
+  const edits: Edit[] = [];
 
   // <link rel="stylesheet" href="style.css"> -> <style>…</style>
-  html = html.replace(
-    /<link\b[^>]*href=["']([^"']+)["'][^>]*>/gi,
-    (whole, href: string) => {
-      const f = byName.get(String(href).replace(/^\.?\//, ""));
-      return f && f.lang === "css" ? `<style>\n${f.content}\n</style>` : whole;
-    },
-  );
-
-  // <script src="app.js"></script> -> <script>…</script>, keeping any type/defer
-  html = html.replace(
-    /<script\b([^>]*)\bsrc=["']([^"']+)["']([^>]*)><\/script>/gi,
-    (whole, before: string, src: string, after: string) => {
-      const f = byName.get(String(src).replace(/^\.?\//, ""));
-      if (!f) return whole;
-      const attrs = `${before} ${after}`.replace(/\s+(defer|async)\b/gi, "").trim();
-      return `<script${attrs ? " " + attrs : ""}>\n${esc(f.content)}\n</script>`;
-    },
-  );
-
-  // The bridge goes first inside <head>, or at the top when there is no head.
-  const head = BRIDGE + themeTag(theme);
-  html = /<head[^>]*>/i.test(html)
-    ? html.replace(/<head([^>]*)>/i, `<head$1>${head}`)
-    : head + html;
-
-  /* Each file's text was inserted verbatim, so finding it again gives its line
-     range. Done after the fact rather than tracked during, because the two
-     replacements above run in whatever order the markup put them in. */
-  const map: SourceSpan[] = [];
-  for (const f of [entry, ...files.filter((x) => x !== entry)]) {
-    const needle = f.lang === "js" ? esc(f.content) : f.content;
-    const at = html.indexOf(needle);
-    if (at === -1) continue;                       // not inlined; nothing to map
-    const from = lineOf(html, at);
-    map.push({ name: f.name, from, to: from + needle.split("\n").length - 1 });
+  const linkRe = /<link\b[^>]*>/gi;
+  for (let m = linkRe.exec(src); m; m = linkRe.exec(src)) {
+    const f = resolve(attrValue(m[0], "href"));
+    if (!f || f.lang !== "css") continue;
+    const line = lineOf(src, m.index);
+    edits.push({
+      at: m.index,
+      len: m[0].length,
+      pieces: [
+        { name: entry.name, at: line, text: "<style>\n" },
+        { name: f.name, at: 1, text: escStyle(f.content) },
+        { name: entry.name, at: line, text: "\n</style>" },
+      ],
+    });
   }
-  // Narrowest first: the entry contains the others, and the inner file is the
-  // truthful answer for a line that falls in both.
-  map.sort((a, b) => b.from - a.from);
+
+  // <script src="app.js"></script> -> <script>…</script>, keeping type and the like
+  const scriptRe = /<script\b([^>]*)>\s*<\/script>/gi;
+  for (let m = scriptRe.exec(src); m; m = scriptRe.exec(src)) {
+    const f = resolve(attrValue(m[0], "src"));
+    if (!f) continue;
+    const line = lineOf(src, m.index);
+    const kept = withoutAttr(withoutAttr(withoutAttr(m[1], "src"), "defer"), "async").trim();
+    edits.push({
+      at: m.index,
+      len: m[0].length,
+      defer: /\bdefer\b/i.test(m[1]),
+      pieces: [
+        { name: entry.name, at: line, text: `<script${kept ? " " + kept : ""}>\n` },
+        { name: f.name, at: 1, text: esc(f.content) },
+        { name: entry.name, at: line, text: "\n</script>" },
+      ],
+    });
+  }
+
+  /* The bridge goes first inside <head>, so it is listening before any of your
+     own code can throw. */
+  const head = BRIDGE + themeTag(theme);
+  const headTag = /<head[^>]*>/i.exec(src);
+  if (headTag) {
+    edits.push({
+      at: headTag.index,
+      len: headTag[0].length,
+      pieces: [
+        { name: entry.name, at: lineOf(src, headTag.index), text: headTag[0] },
+        { name: "", at: 0, text: head },
+      ],
+    });
+  }
+
+  edits.sort((a, b) => a.at - b.at);
+
+  const pieces: Piece[] = [];
+  const deferred: Piece[] = [];
+  if (!headTag) pieces.push({ name: "", at: 0, text: head });
+  let cursor = 0;
+  for (const e of edits) {
+    if (e.at < cursor) continue;   // overlapping matches: the first one wins
+    const before = src.slice(cursor, e.at);
+    if (before) pieces.push({ name: entry.name, at: lineOf(src, cursor), text: before });
+    for (const piece of e.pieces) (e.defer ? deferred : pieces).push(piece);
+    cursor = e.at + e.len;
+  }
+  const tail = src.slice(cursor);
+  if (tail) pieces.push({ name: entry.name, at: lineOf(src, cursor), text: tail });
+
+  /* `defer` means "after the document is parsed", and an inline script has no
+     such thing — the attribute is not merely ignored on one, it is invalid.
+     The old code stripped it and left the tag where it was, which for the
+     usual case of a deferred script in <head> meant running it against a
+     document that did not exist yet: every getElementById at the top level came
+     back null, in a preview whose own source said the script would wait. Moved
+     to the end of the body instead, in document order, which is as close as a
+     single document gets — and it keeps the script at top level, which
+     wrapping it in a DOMContentLoaded handler would not. */
+  if (deferred.length) {
+    let idx = -1;
+    let at = -1;
+    for (let i = pieces.length - 1; i >= 0; i--) {
+      const k = pieces[i].text.toLowerCase().lastIndexOf("</body>");
+      if (k !== -1) { idx = i; at = k; break; }
+    }
+    const spaced = [{ name: "", at: 0, text: "\n" }, ...deferred, { name: "", at: 0, text: "\n" }];
+    if (idx === -1) pieces.push(...spaced);
+    else {
+      const p = pieces[idx];
+      const before = p.text.slice(0, at);
+      const after = p.text.slice(at);
+      pieces.splice(
+        idx,
+        1,
+        { name: p.name, at: p.at, text: before },
+        ...spaced,
+        { name: p.name, at: p.at + lines(before) - 1, text: after },
+      );
+    }
+  }
+
+  /* Pieces meet in the middle of a line as often as not — an entry piece ends
+     with an indent, the next file's text begins after the newline that follows
+     it — so a span claims only the lines a piece has to itself. Without that,
+     two files both claim the line they share, the first one listed wins, and
+     the first line of every inlined file is reported as a line of index.html. */
+  let html = "";
+  let line = 1;
+  const map: SourceSpan[] = [];
+  for (const p of pieces) {
+    if (!p.text) continue;
+    const n = lines(p.text);
+    if (p.name) {
+      const lead = p.text.startsWith("\n") ? 1 : 0;
+      const from = line + lead;
+      const to = line + n - 1 - (p.text.endsWith("\n") ? 1 : 0);
+      if (to >= from) map.push({ name: p.name, from, to, at: p.at + lead });
+    }
+    html += p.text;
+    line += n - 1;
+  }
 
   return { html, map };
 }
