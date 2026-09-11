@@ -72,6 +72,34 @@ console.log("\nAnd the check goes somewhere else");
     "and told that both flattering and fault-finding are ways of not answering");
 }
 
+console.log("\nAnd it checks the things that matter for this kind of work");
+{
+  /* The generic rules ask "is it right". For code that misses the input that
+     breaks it; for a dataset it misses the arithmetic nobody recomputed. So the
+     kind of work is read from the question and the answer together, and the
+     checks that belong to it are added. Read at the wire, because a rule that
+     does not reach the request is a rule that does not exist. */
+  await page.getByRole("button", { name: /New chat/ }).first().click();
+  await page.waitForTimeout(700);
+  await page.getByRole("textbox", { name: "Message" }).fill(
+    "refactor this and fix the type error:\n```ts\nfunction go(xs) { return xs.map(x => x.id) }\n```",
+  );
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(2800);
+  await page.getByRole("button", { name: /Check with another model/ }).click();
+  await page.waitForTimeout(3200);
+
+  const asked = JSON.stringify(await wire());
+  check(/This is code/.test(asked), "the checker is told what kind of work it is looking at",
+    (asked.match(/This is [^.\\]{0,60}/) ?? ["not said"])[0]);
+  check(/empty list|null|boundary/i.test(asked),
+    "and told to find the input that breaks it, which “is it right” does not ask");
+  check(/quietly changes behaviour/i.test(asked),
+    "and to say if it changed something the instruction did not ask to change");
+  check(!/recompute the numbers/i.test(asked),
+    "without the checks that belong to some other kind of work");
+}
+
 console.log("\nA disagreement is shown as one");
 {
   const shown = await page.locator("main").innerText();

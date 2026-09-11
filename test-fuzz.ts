@@ -20,6 +20,7 @@
 import { solve } from "./lib/arith";
 import { extractCitations, findIn, normalise } from "./lib/cite";
 import { extractJson } from "./lib/complete";
+import { taskOf } from "./lib/task";
 
 let failed = 0;
 const fail = (l: string, d: string) => { failed++; console.log(`  ✗ ${l} — ${d}`); };
@@ -124,6 +125,65 @@ console.log("\nArithmetic: nothing that is not a sum may be answered");
     }
   }
   if (!wrong) console.log("  ✓ 3000 word-bearing inputs, none answered by the calculator");
+}
+
+console.log("\nWhat kind of work it is: the classifier must not over-claim");
+{
+  /* The failure that matters is a confident wrong answer, because an answer
+     shaped for the wrong job reads exactly like one shaped for the right job.
+     So the property is not "it classifies well", it is "ordinary sentences that
+     are not about anything in particular come back as general". */
+  const plain = ["the", "a", "and", "please", "could", "you", "help", "with", "this", "thing",
+                 "today", "tomorrow", "maybe", "about", "some", "more", "again", "okay", "thanks",
+                 "what", "when", "where", "how", "it", "that", "my", "our", "quick", "question"];
+  let claimed = 0;
+  const total = 3000;
+  for (let i = 0; i < total; i++) {
+    let s = "";
+    for (let j = 0, n = 2 + int(12); j < n; j++) s += (j ? " " : "") + pick(plain);
+    if (taskOf(s).kind !== "general") { claimed++; if (claimed <= 2) console.log(`      claimed: ${JSON.stringify(s)} → ${taskOf(s).kind}`); }
+  }
+  const rate = claimed / total;
+  if (rate > 0.02) fail("the classifier claims a kind for ordinary sentences", `${claimed} of ${total} (${(rate * 100).toFixed(1)}%)`);
+  else console.log(`  ✓ ${total} ordinary sentences, ${claimed} claimed a kind (${(rate * 100).toFixed(1)}%) — it declines by default`);
+}
+{
+  /* And when the evidence is unmistakable it does commit, because a classifier
+     that only ever says "general" is the same uselessness in the other
+     direction. */
+  const unmistakable: [string, string][] = [
+    ["teach me ", "learning"], ["help me understand ", "learning"], ["eli5 ", "learning"],
+    ["fix this stack trace in ", "coding"], ["refactor ", "coding"], ["there is a compile error in ", "coding"],
+    ["cite your sources for ", "research"], ["is it true that ", "research"],
+    ["write me an email about ", "writing"], ["proofread ", "writing"],
+    ["what is the correlation between ", "data"], ["this csv of ", "data"],
+    ["the typography of ", "design"], ["make it feel more premium, ", "design"],
+  ];
+  const tails = ["the thing", "this", "my notes", "it", "the second one", "that bit"];
+  let wrong = 0;
+  for (let i = 0; i < 1400; i++) {
+    const [lead, want] = pick(unmistakable);
+    const got = taskOf(lead + pick(tails));
+    if (got.kind !== want) {
+      fail("an unmistakable request was not recognised", `${JSON.stringify(lead)} → ${got.kind}, expected ${want}`);
+      if (++wrong > 3) break;
+    }
+  }
+  if (!wrong) console.log("  ✓ 1400 unmistakable requests, every one read as the kind it plainly is");
+}
+{
+  let drift = 0;
+  const bits = ["explain", "the data", "this code", "my essay", "prove", "```", "teach me", "colour", "why"];
+  for (let i = 0; i < 1500; i++) {
+    let s = "";
+    for (let j = 0, n = 1 + int(4); j < n; j++) s += (j ? " " : "") + pick(bits);
+    const a = taskOf(s), c = taskOf(s);
+    if (a.kind !== c.kind || a.why !== c.why || a.signals !== c.signals) {
+      fail("the same request read two different ways", JSON.stringify(s));
+      if (++drift > 2) break;
+    }
+  }
+  if (!drift) console.log("  ✓ 1500 mixed requests, each read the same way twice — a classifier nobody can predict is one nobody can correct");
 }
 
 console.log("\nStructured replies survive whatever the model wraps them in");

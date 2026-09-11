@@ -1,3 +1,4 @@
+import { CHECKS, taskOf } from "./task";
 import { complete, extractJson, type Progress } from "./complete";
 
 /**
@@ -45,6 +46,26 @@ export async function verifyAnswer(
   checkerId: string,
   progress?: Progress,
 ): Promise<Verdict | null> {
+  /* What checking *this* means.
+     A second opinion that asks the same four questions about a proof, a pull
+     request and a claim about the world misses what matters in all three: the
+     arithmetic nobody recomputed, the empty list nobody passed, the citation
+     that does not say what it was cited for. The kind is read from the question
+     and the answer together, because the answer is usually the stronger signal
+     — "is this right?" says nothing and "is this right?" over four hundred
+     lines of TypeScript says everything.
+
+     It reads `general` for most things, and then this adds nothing at all. That
+     is the intended behaviour rather than a shortfall: the standing rules above
+     already say "is it right", and piling "check that it is accurate" on top
+     only tells the model somebody was worried, which is how a checker starts
+     finding fault to justify having been asked. */
+  const task = taskOf(question, answer);
+  const checks = CHECKS[task.kind];
+  const forThisKind = checks.length
+    ? `\nThis is ${task.why}. So also:\n${checks.map((c) => `- ${c}`).join("\n")}\n`
+    : "";
+
   const out = await complete(
     `Someone asked a question and got the answer below, from a different assistant. Check it.
 
@@ -63,7 +84,7 @@ Rules:
 - Where the question has no single right answer, say that rather than manufacturing a disagreement about taste.
 - Do not flatter it and do not look for fault to justify being asked. Both are ways of not answering.
 - No prose outside the JSON.
-
+${forThisKind}
 THE QUESTION
 ${question.slice(0, 20_000)}
 
