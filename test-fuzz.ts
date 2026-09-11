@@ -56,6 +56,55 @@ console.log("\nArithmetic: generated expressions against a trusted evaluator");
   console.log(`  ✓ ${checked} generated sums answered correctly (${skipped} declined)`);
 }
 
+console.log("\nArithmetic: an integer answer is the integer, to the last digit");
+{
+  /* The float oracle above compares within a tolerance, which is the right
+     comparison for a quotient and exactly the wrong one for a product: the bug
+     that made this file worth rewriting was `123456789 * 987654321` coming back
+     nine short, and a 1e-12 tolerance waves that through. So integers are
+     checked against BigInt, digit for digit, with no tolerance at all. */
+  const gen = (depth: number): string => {
+    if (depth <= 0 || rnd() < 0.35) return String(int(1_000_000_000) + 1);
+    const op = pick(["+", "-", "*"]);
+    const l = gen(depth - 1), r = gen(depth - 1);
+    return rnd() < 0.3 ? `(${l} ${op} ${r})` : `${l} ${op} ${r}`;
+  };
+  let checked = 0;
+  for (let i = 0; i < 2000; i++) {
+    const e = gen(3);
+    const got = solve(e);
+    if (!got) continue;
+    // The oracle: the same expression in BigInt, which cannot round.
+    const want = Function(`"use strict";return (${e.replace(/(\d+)/g, "$1n")})`)() as bigint;
+    const neg = want < 0n;
+    const digits = (neg ? -want : want).toString();
+    const grouped = (neg ? "-" : "") + digits.replace(/\B(?=(\d{3})+$)/g, ",");
+    checked++;
+    if (got.text !== grouped) {
+      fail("not exact", `${e} → ${got.text}, should be ${grouped}`);
+      break;
+    }
+  }
+  console.log(`  ✓ ${checked} integer sums exact to the last digit, BigInt against BigInt`);
+}
+
+console.log("\nArithmetic: the shapes that are also dates are never answered");
+{
+  let wrong = 0;
+  for (let i = 0; i < 2000; i++) {
+    const a = int(9999) + 1, b = int(9999) + 1, c = int(9999) + 1;
+    const sep = pick(["/", "-"]);
+    const body = rnd() < 0.5 ? `${a}${sep}${b}` : `${a}${sep}${b}${sep}${c}`;
+    const asked = pick(["", "what is ", "calculate ", "how much is "]) + body;
+    const got = solve(asked);
+    if (got) {
+      fail("answered a date, a phone number or an idiom", `"${asked}" → ${got.text}`);
+      if (++wrong > 3) break;
+    }
+  }
+  if (!wrong) console.log("  ✓ 2000 date- and phone-shaped inputs, none of them answered as arithmetic");
+}
+
 console.log("\nArithmetic: nothing that is not a sum may be answered");
 {
   const words = ["what", "is", "the", "sum", "of", "why", "explain", "binary", "hex", "percent", "apples", "x", "n"];

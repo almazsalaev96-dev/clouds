@@ -28,8 +28,17 @@ console.log("\nSums that never needed a model");
 
 console.log("\nAnd the things that only look like sums");
 {
-  check(solve("2+2") !== null, "a bare sum is a sum");
+  check(solve("2 + 2") !== null, "a sum typed like a sum is a sum");
+  check(solve("2+2") === null,
+    "one typed without spaces and without a lead-in is not — it goes to a model, which costs a penny and cannot read a date as a division");
   check(solve("42") === null, "a bare number is not — there is nothing to work out");
+  check(solve("what is 9/11") === null,
+    "and a lead-in does not redeem it: this is a day in 2001, not 0.818181818182");
+  check(solve("what is 24/7") === null, "nor this an idiom divided");
+  check(solve("what is 12/25/2024") === null, "nor this Christmas");
+  check(solve("what is 555-1234") === null, "nor this a telephone number subtracted");
+  check(solve("what is 9 / 11")?.text === "0.818181818182",
+    "spaces make it arithmetic again, and then it is answered", solve("what is 9 / 11")?.text);
   check(solve("what is 2+2 and why") === null, "a question containing a sum is a question");
   check(solve("what is 3 in binary") === null, "not every arithmetic-sounding thing is arithmetic");
   check(solve("1 / 0") === null, "division by zero is not an answer, and Infinity is not one either");
@@ -37,6 +46,27 @@ console.log("\nAnd the things that only look like sums");
   check(solve("1,5 + 1") === null,
     "a decimal comma is a real ambiguity and is refused rather than guessed at");
   check(solve("1,500 + 1")?.text === "1,501", "but a thousands separator is just how it was written");
+}
+
+console.log("\nExact, or else silent");
+{
+  check(solve("what is 123456789 * 987654321")?.text === "121,932,631,112,635,269",
+    "a product past 2^53 is the product, not the nearest double to it",
+    solve("what is 123456789 * 987654321")?.text);
+  check(solve("what is 99999999 * 99999999")?.text === "9,999,999,800,000,001",
+    "the classic one, which a float gets wrong in the last digit",
+    solve("what is 99999999 * 99999999")?.text);
+  check(solve("what is -2^2")?.text === "-4",
+    "a sign outside the power, as everywhere that writes mathematics", solve("what is -2^2")?.text);
+  check(solve("1 / 10^400") === null,
+    "a quotient too small for a double is declined, not rounded to an exact-looking 0",
+    String(solve("1 / 10^400")?.text));
+  check(solve("what is 10^400") === null,
+    "and an integer too large to carry is declined rather than printed beside an Infinity");
+  check(solve("what is 2 ^ 2000") === null, "an exponent nobody typed on purpose is not worked out");
+  check(solve("3,1415 * 2") === null,
+    "π written the European way is refused, not read as 31,415", solve("3,1415 * 2")?.text);
+  check(solve("what is 0 * -1")?.text === "0", "and nobody writes the sign of nothing");
 }
 
 console.log("\nReading what a request needs");
