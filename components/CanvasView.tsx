@@ -90,6 +90,7 @@ export function CanvasView({
   canvasId,
   configured,
   seed,
+  ask,
   onSelect,
   onNew,
   onFocus,
@@ -100,6 +101,8 @@ export function CanvasView({
   /** Typed into "ask for a change" when a canvas has just been made from a
       starter, so the next step is a sentence to finish rather than a blank. */
   seed?: string;
+  /** An instruction to carry out here, sent from elsewhere. */
+  ask?: { text: string; nonce: number };
   onSelect: (id: string, seed?: string) => void;
   onNew: () => void;
   /** Raised while a made thing has the window to itself. */
@@ -159,6 +162,7 @@ export function CanvasView({
       canvas={canvas}
       configured={configured}
       seed={seed}
+      ask={ask}
       onFocus={onFocus}
       onBack={onBack}
     />
@@ -224,12 +228,15 @@ function Editor({
   canvas,
   configured,
   seed,
+  ask,
   onFocus,
   onBack,
 }: {
   canvas: Canvas;
   configured: Record<string, boolean>;
   seed?: string;
+  /** An instruction to carry out here, sent from elsewhere. */
+  ask?: { text: string; nonce: number };
   /** The window belongs to the made thing now; the app gets out of the way. */
   onFocus?: (on: boolean) => void;
   onBack: () => void;
@@ -260,6 +267,21 @@ function Editor({
      half-sentence the starter belongs to, with the caret after it. A blank box
      under a working demo asks "now what"; a sentence to finish answers it. */
   const [instruction, setInstruction] = React.useState(seed ?? "");
+  /* An instruction handed over from somewhere else — ⌘K, typed while you were
+     looking at this file. Seeding the box and leaving it there would make the
+     command a navigation with a side effect; the whole point is that you said
+     what you wanted and it happened. Run once per arrival, keyed on the nonce,
+     because a re-render is not a second request. */
+  const askedRef = React.useRef<number | undefined>(undefined);
+  React.useEffect(() => {
+    if (!ask || ask.nonce === askedRef.current) return;
+    askedRef.current = ask.nonce;
+    setInstruction(ask.text);
+    void run(ask.text);
+    // `run` closes over most of this component and is rebuilt every render;
+    // listing it would re-fire the instruction on the next keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ask?.nonce]);
   const reviseModel = useReviseModel(configured);
   const [busy, setBusy] = React.useState<false | "revise" | "explain" | "review" | "plan" | "check">(false);
   /* Using the thing rather than building it. A deck of cards, a timer, a quiz

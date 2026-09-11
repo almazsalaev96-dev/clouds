@@ -86,12 +86,15 @@ const QUESTIONS = [
 export function NotebookView({
   noteId,
   configured,
+  ask,
   onSelect,
   onNew,
   onBack,
 }: {
   noteId: string | null;
   configured: Record<string, boolean>;
+  /** An instruction to carry out on this page, sent from elsewhere. */
+  ask?: { text: string; nonce: number };
   onSelect: (id: string) => void;
   onNew: () => void;
   onBack: () => void;
@@ -164,6 +167,19 @@ export function NotebookView({
       void db.notes.update(id, { ...patch, updatedAt: Date.now() });
     }, []),
   );
+
+  /* An instruction handed over from ⌘K while you were looking at this page.
+     Run once per arrival rather than on every render: a re-render is not a
+     second request, and a page rewritten twice from one sentence is a page
+     whose history now has a step nobody asked for. */
+  const askedRef = React.useRef<number | undefined>(undefined);
+  React.useEffect(() => {
+    if (!ask || ask.nonce === askedRef.current || !note) return;
+    askedRef.current = ask.nonce;
+    setInstruction(ask.text);
+    void run(ask.text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ask?.nonce, note?.id]);
 
   const onChange = (value: string) => {
     setDraft(value);

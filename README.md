@@ -367,6 +367,26 @@ every time you double-click a word is wrong more often than right. Accepting the
 change lets the selection go, because the lines you selected are not the lines
 you now have.
 
+**⌘K takes a sentence, not just a search.** The palette could *find* things and
+could do nothing to them, so a sentence typed into it was a search that failed.
+That is backwards: "make this shorter" is the first thing anybody tries in a box
+that opens over whatever they are looking at, and it was the one thing it could
+not do.
+
+It now knows what is on screen. Type an instruction with a file open and it is
+sent as a change to that file, arriving as a diff like any other; with a page
+open it rewrites the page; in a conversation it becomes the next message; on a
+blank chat it starts one. The placeholder says which — *"Search, or say what to
+do with this file"* — because a box that quietly means different things in
+different rooms is a box you stop trusting.
+
+Searching still works, which is the half that is easy to break. The instruction
+row appears only for something that reads like a sentence — a space and at least
+eight characters — and only goes *above* real matches at three words or more. So
+`settings` stays a lookup however much is on screen to act on, and two words
+that find something are never displaced by an offer to ask a model instead.
+Pressing Enter on a search must not turn it into a request.
+
 **A second opinion, from somewhere else.** Any answer can be checked, and the
 checker always comes from a **different provider**. This is the one thing an app
 holding several providers' keys can do that a single-provider app cannot do
@@ -949,6 +969,14 @@ heading, and link URLs printed in full.
   through Chromium's print media emulation rather than assumed.
 - Highlighting confirmed to run in a real Web Worker (counted at construction, not
   assumed), producing 240 themed spans on a 40-line block.
+- **One command in three rooms** (`e2e-command.mjs`, 14 assertions): the same
+  sentence typed into ⌘K over a file reaches the model *with that file* and comes
+  back as a diff; typed in a conversation it arrives as a message; and a one-word
+  query stays a search. Two of the assertions exist because the first versions
+  were wrong about the app rather than the other way round — "Chat" is the
+  composer's mode toggle and not the section, and `dark mode` matches nothing in
+  the palette, so offering it as an instruction is correct behaviour and not the
+  bug the test was written to catch.
 - **The second opinion, driven across two providers** (`e2e-verify.mjs`, 16
   assertions). This required teaching the mock **OpenAI's wire format** as well
   as Anthropic's: until it spoke both, nothing this app does across two
@@ -1095,6 +1123,11 @@ Stated plainly, because a checklist you cannot trust is worse than no checklist.
   here. The rest would need a server, and a server is the one thing this app
   promises not to have. Said plainly because the alternative is a feature list
   that sounds like a coding agent and behaves like a text box.
+- **⌘K acts on the room, not on the selection.** It knows which file is open, not
+  which lines you highlighted, which element you pointed at, or which paragraph
+  the caret is in — those exist in the canvas and do not reach the palette. And
+  it does one thing per room: there is no routing of "explain this" to an
+  explanation and "make it faster" to a revision, only "ask for this change".
 - **A second opinion is one opinion.** It is one model, asked once, and two
   models agreeing can be wrong together — most likely exactly where the question
   is hardest, since that is where their training overlaps most. There is no
@@ -1195,6 +1228,7 @@ node e2e-point.mjs   # 18 assertions: pointing at a running page and changing it
 node e2e-whole.mjs   # 19 assertions: code inside a project, and asking across it
 node e2e-sources.mjs # 20 assertions: many sources, and citations that are checked
 node e2e-auto.mjs    # 15 assertions: which model answered, read at the wire
+node e2e-command.mjs # 14 assertions: ⌘K acting on whatever is on screen
 # and one that needs a second provider, so the mock serves both wire formats:
 OPENAI_BASE_URL=http://127.0.0.1:8787 OPENAI_API_KEY=sk-mock …
 node e2e-verify.mjs  # 16 assertions: a check that comes from another provider

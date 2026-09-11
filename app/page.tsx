@@ -22,7 +22,6 @@ import { offerUndo } from "@/lib/undo";
 import { Sidebar } from "@/components/Sidebar";
 import { CanvasView } from "@/components/CanvasView";
 import { saveToNote } from "@/lib/db";
-import { ShortcutsOverlay } from "@/components/ShortcutsOverlay";
 import { InlineError } from "@/components/chat/Message";
 import { TopBar } from "@/components/chat/TopBar";
 import { MessageList } from "@/components/chat/MessageList";
@@ -63,6 +62,13 @@ const Settings = dynamic(() => import("@/components/chat/Settings").then((m) => 
    two are 138ms and 185ms to open, so they are free. */
 const NotebookView = dynamic(
   () => import("@/components/NotebookView").then((m) => m.NotebookView),
+  { ssr: false },
+);
+/* A list of keyboard shortcuts, shown when you press `?`. Nobody's first act
+   is to read the manual, and it was in the bundle drawn before the first
+   screen. */
+const ShortcutsOverlay = dynamic(
+  () => import("@/components/ShortcutsOverlay").then((m) => m.ShortcutsOverlay),
   { ssr: false },
 );
 const ProjectsView = dynamic(
@@ -424,6 +430,49 @@ export default function Page() {
       if (isFirst) void generateTitle(convId, blockText(content));
     },
     [activeId, conversation?.leafId, path, threadModelId, runTurn, generateTitle, compareWith, configured, settings.keys, settings.modelId],
+  );
+
+  /* What ⌘K is looking at, and what saying something would do to it. */
+  const [handed, setHanded] = React.useState<{ text: string; nonce: number } | undefined>();
+
+  /* Named by kind rather than by title. Two live queries in the shell to put a
+     filename in a hint would put them on every render of the whole app, for a
+     word the room you are standing in has already told you. */
+  const focus = React.useMemo(() => {
+    if (settings.section === "code" && canvasId) {
+      return { what: "this file", where: "Ask for this change to the open file" };
+    }
+    if (settings.section === "notebook" && noteId) {
+      return { what: "this page", where: "Ask for this change to the open page" };
+    }
+    if (settings.section === "chat") {
+      return activeId
+        ? { what: "this conversation", where: "Send it in this conversation" }
+        : { what: "a new chat", where: "Start a new chat with it" };
+    }
+    return null;
+  }, [settings.section, canvasId, noteId, activeId]);
+
+  /**
+   * One command, wherever you are.
+   *
+   * ⌘K could find things and could not do anything to them, so a sentence
+   * typed into it was a search that failed. Given what is on screen, the same
+   * box takes the sentence to the thing it is about: a file gets revised, a
+   * page gets rewritten, a conversation gets it as the next message, and an
+   * empty chat becomes one.
+   */
+  const askFocused = React.useCallback(
+    (text: string) => {
+      if (settings.section === "chat" || !focus) {
+        void send([{ type: "text", text }]);
+        settings.setSection("chat");
+        return;
+      }
+      // The nonce, not the text: asking the same thing twice is two requests.
+      setHanded({ text, nonce: Date.now() });
+    },
+    [settings, focus, send],
   );
 
   const [verifyingId, setVerifyingId] = React.useState<string | null>(null);
@@ -971,6 +1020,7 @@ export default function Page() {
                   canvasId={canvasId}
                   configured={configured}
                   seed={canvasSeed}
+                  ask={settings.section === "code" ? handed : undefined}
                   onSelect={(id, seed) =>
                     withTransition(() => {
                       setCanvasSeed(seed);
@@ -991,6 +1041,7 @@ export default function Page() {
                 <NotebookView
                   noteId={noteId}
                   configured={configured}
+                  ask={settings.section === "notebook" ? handed : undefined}
                   onSelect={(id) => withTransition(() => setNoteId(id), "forward")}
                   onNew={() => void createInSection("notebook")}
                   onBack={() => withTransition(() => setNoteId(null), "back")}
@@ -1109,6 +1160,8 @@ export default function Page() {
             exportMarkdown: exportConversation,
             deleteConversation: removeConversation,
             hasConversation: Boolean(activeId),
+            focus,
+            ask: askFocused,
           }}
         />
         )}

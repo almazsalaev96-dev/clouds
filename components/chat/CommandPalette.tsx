@@ -5,7 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   Code2, Download, FileText, FolderOpen, MessageSquare, MessageSquarePlus, Moon,
-  NotebookPen, PanelLeft, Settings2, Sun, Trash2, Type,
+  NotebookPen, PanelLeft, Settings2, Sun, Trash2, Type, Wand2,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { MODELS } from "@/lib/models";
@@ -81,6 +81,17 @@ export function CommandPalette({
     exportMarkdown: () => void;
     deleteConversation: () => void;
     hasConversation: boolean;
+    /**
+     * What you are looking at, and what saying something would do to it.
+     *
+     * The palette knew how to *find* things and nothing about where you were,
+     * so the only thing you could do with a sentence was search for it. Given
+     * the current object, the same box becomes "say what you want" — which is
+     * the thing people try first and the thing it could not do.
+     */
+    focus: { what: string; where: string } | null;
+    /** Carry an instruction out on whatever is in focus. */
+    ask: (text: string) => void;
   };
 }) {
   const settings = useSettings();
@@ -245,7 +256,7 @@ export function CommandPalette({
       else byGroup.set(r.c.group, [r]);
     }
 
-    return [...byGroup.entries()]
+    const rows = [...byGroup.entries()]
       .map(([group, items]) => ({
         group,
         items: items.sort((a, b) => b.score - a.score).slice(0, PER_GROUP),
@@ -257,7 +268,32 @@ export function CommandPalette({
       )
       .flatMap((g) => g.items.map((i) => i.c))
       .slice(0, 24);
-  }, [commands, query]);
+
+    /* Say it, rather than find it.
+       ------------------------------------------------------------------
+       Offered whenever what you typed reads like a sentence rather than a
+       name — several words, or words with a space in them that match nothing
+       well. The test is deliberately generous in one direction and strict in
+       the other: "settings" should never become an instruction, and "make this
+       shorter" should never be a failed search. So it appears when there is
+       something to act on and either nothing matched or what you typed is
+       longer than anybody types into a search box.
+
+       First in the list, because when it applies it is what you meant. */
+    const sentence = q.includes(" ") && q.length >= 8;
+    if (actions.focus && sentence && (rows.length === 0 || q.split(/\s+/).length >= 3)) {
+      const say: Command = {
+        id: "ask:focus",
+        label: q,
+        hint: actions.focus.where,
+        icon: <Wand2 size={15} />,
+        group: "Say what you want",
+        run: () => actions.ask(q),
+      };
+      return [say, ...rows];
+    }
+    return rows;
+  }, [commands, query, actions]);
 
   React.useEffect(() => setActive(0), [query]);
 
@@ -296,7 +332,7 @@ export function CommandPalette({
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search everything"
+            placeholder={actions.focus ? `Search, or say what to do with ${actions.focus.what}` : "Search everything"}
             aria-label="Command palette"
             className="w-full border-b border-line bg-transparent px-4 py-3 text-base text-primary outline-none placeholder:text-tertiary"
           />
