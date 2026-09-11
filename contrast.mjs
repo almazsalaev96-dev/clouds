@@ -12,6 +12,7 @@
  * screenshot.
  */
 import { chromium } from "playwright";
+let bad = false;
 const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
 for (const theme of ["dark", "light"]) {
   const page = await (await browser.newContext({ viewport: { width: 1200, height: 800 } })).newPage();
@@ -21,7 +22,18 @@ for (const theme of ["dark", "light"]) {
   await page.waitForTimeout(500);
   const out = await page.evaluate(() => {
     const cs = getComputedStyle(document.documentElement);
-    const v = (n) => cs.getPropertyValue(n).trim();
+    /* A token that is not there is a hole in this file, not a colour. It used
+       to come back as the empty string, `ratio("", "")` is 1, and the pair
+       reported a contrast failure of exactly 1.00 — which reads as the worst
+       possible palette and means the opposite: nothing was measured. Two
+       tokens outlived their removal that way and were reported as failing in
+       both themes for weeks. */
+    const missing = [];
+    const v = (n) => {
+      const got = cs.getPropertyValue(n).trim();
+      if (!got) missing.push(n);
+      return got;
+    };
     const hex = (c) => { const d=document.createElement("div"); d.style.color=c; document.body.appendChild(d); const r=getComputedStyle(d).color; d.remove(); const m=r.match(/\d+/g).map(Number); return m; };
     const lum = (c) => { const [r,g,b]=hex(c).slice(0,3).map((x)=>{x/=255; return x<=0.03928?x/12.92:((x+0.055)/1.055)**2.4;}); return 0.2126*r+0.7152*g+0.0722*b; };
     const ratio = (a,b) => { const l1=lum(a), l2=lum(b); return ((Math.max(l1,l2)+0.05)/(Math.min(l1,l2)+0.05)); };
@@ -39,14 +51,17 @@ for (const theme of ["dark", "light"]) {
       ["success / canvas", v("--success"), canvas, 4.5],
       ["warning / canvas", v("--warning"), canvas, 4.5],
       ["danger / canvas", v("--danger"), canvas, 4.5],
-      ["on-fill / go-fill", v("--on-fill"), v("--go-fill"), 4.5],
       ["syn-comment / inset", v("--syn-comment"), v("--bg-inset"), 4.5],
       ["syn-keyword / inset", v("--syn-keyword"), v("--bg-inset"), 4.5],
       ["syn-string / inset", v("--syn-string"), v("--bg-inset"), 4.5],
       ["syn-function / inset", v("--syn-function"), v("--bg-inset"), 4.5],
       ["syn-number / inset", v("--syn-number"), v("--bg-inset"), 4.5],
       ["syn-type / inset", v("--syn-type"), v("--bg-inset"), 4.5],
-      ["syn-punct / inset", v("--syn-punct"), v("--bg-inset"), 4.5],
+      /* No `--syn-punct` pair: the token does not exist, on purpose — Shiki's
+         github-light gives punctuation the same value as plain text, so there
+         is no distinct colour to rewrite and a token naming it would control
+         nothing. The note is here because this list is where somebody would
+         otherwise add it back. */
       ["accent / accent-subtle", v("--accent"), v("--accent-subtle"), 4.5],
       ["accent-2 / canvas", v("--accent-2"), canvas, 3],
       ["cta / canvas", v("--cta"), canvas, 3],
@@ -56,12 +71,21 @@ for (const theme of ["dark", "light"]) {
       ["mark-fg / mark", v("--mark-fg"), v("--mark"), 4.5],
       ["text-secondary / subtle", v("--text-secondary"), subtle, 4.5],
     ];
-    return pairs.map(([name, fg, bg, need]) => ({ name, r: +ratio(fg,bg).toFixed(2), need, pass: ratio(fg,bg) >= need }));
+    return {
+      missing: [...new Set(missing)],
+      rows: pairs.map(([name, fg, bg, need]) => ({ name, r: +ratio(fg,bg).toFixed(2), need, pass: ratio(fg,bg) >= need })),
+    };
   });
-  const fails = out.filter((o) => !o.pass);
-  console.log(`\n${theme.toUpperCase()} — ${out.length - fails.length}/${out.length} pass`);
+  const fails = out.rows.filter((o) => !o.pass);
+  console.log(`\n${theme.toUpperCase()} — ${out.rows.length - fails.length}/${out.rows.length} pass`);
   fails.forEach((f) => console.log(`  FAIL ${f.name}: ${f.r} (need ${f.need})`));
-  if (!fails.length) console.log("  all pass");
+  if (out.missing.length) {
+    bad = true;
+    console.log(`  MISSING — this file names tokens the app does not define: ${out.missing.join(", ")}`);
+  }
+  if (fails.length) bad = true;
+  if (!fails.length && !out.missing.length) console.log("  all pass");
   await page.close();
 }
 await browser.close();
+process.exit(bad ? 1 : 0);
