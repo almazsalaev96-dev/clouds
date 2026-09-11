@@ -393,26 +393,33 @@ function Row({
     >
       {active && <span aria-hidden className="absolute left-0 top-1.5 h-5 w-0.5 rounded-full bg-accent" />}
 
+      {/* `h-full`, because a row is a target and a line of text is not. The
+          button used to be as tall as its own text — 21px inside a 32px row —
+          so the eleven pixels of air that make the row comfortable to read
+          were eleven pixels that did nothing when you pressed them. The
+          baseline alignment the title and its date share moved inside. */}
       <button
         onClick={onSelect}
         className={cn(
-          "flex min-w-0 flex-1 items-baseline gap-2 text-left text-sm",
+          "flex h-full min-w-0 flex-1 items-center text-left text-sm",
           active ? "text-primary" : "text-secondary group-hover:text-primary",
         )}
         title={title}
       >
-        {/* A hollow bullet, at the weight of a hairline. The rows had nothing
-            down their left edge, so a long title and a short one started in
-            the same place but did not look like they did. */}
-        <span
-          aria-hidden
-          className={cn(
-            "size-1.5 shrink-0 translate-y-[-1px] rounded-full border",
-            active ? "border-accent bg-accent" : "border-[var(--border-strong)]",
-          )}
-        />
-        <span className="truncate">{title}</span>
-        {meta && <span className="shrink-0 text-xs text-tertiary">{meta}</span>}
+        <span className="flex min-w-0 flex-1 items-baseline gap-2">
+          {/* A hollow bullet, at the weight of a hairline. The rows had nothing
+              down their left edge, so a long title and a short one started in
+              the same place but did not look like they did. */}
+          <span
+            aria-hidden
+            className={cn(
+              "size-1.5 shrink-0 translate-y-[-1px] rounded-full border",
+              active ? "border-accent bg-accent" : "border-[var(--border-strong)]",
+            )}
+          />
+          <span className="truncate">{title}</span>
+          {meta && <span className="shrink-0 text-xs text-tertiary">{meta}</span>}
+        </span>
       </button>
 
       {badge && (
