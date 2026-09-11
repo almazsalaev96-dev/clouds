@@ -142,9 +142,21 @@ export function SectionIndex({
             {filtered.map((item) => (
               <li
                 key={item.id}
-                className="lift group flex items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2.5 hover:border-line-strong"
+                /* `tap` is the app's 44pt floor on a touch device, and this
+                   row never had it: at the two densities nobody had measured
+                   it came out at 39 and 40 pixels, and a one-line item at 21.
+                   Density multiplies every padding in the app at once, so a
+                   row whose height is only its padding plus its text is a row
+                   whose target size is a coincidence. */
+                className="tap lift group flex items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2.5 hover:border-line-strong"
               >
-                    <button onClick={() => onOpen(item.id)} className="focus-inset min-w-0 flex-1 rounded-md text-left">
+                    {/* Stretched, for the same reason the conversation rows in
+                        the sidebar are: the air that makes a list comfortable
+                        to read should do something when you press it. */}
+                    <button
+                      onClick={() => onOpen(item.id)}
+                      className="focus-inset flex min-w-0 flex-1 flex-col justify-center self-stretch rounded-md text-left"
+                    >
                       <span className="flex items-baseline gap-2">
                         <span className="truncate text-sm font-medium text-primary">{item.title}</span>
                         {item.meta && <span className="shrink-0 text-xs text-tertiary">{item.meta}</span>}

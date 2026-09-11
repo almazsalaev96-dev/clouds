@@ -1208,6 +1208,18 @@ heading, and link URLs printed in full.
   `<Dialog.Trigger>` and not one of them has one, so closing Settings dropped
   you on `<body>`, at the top of the document, with the whole page to tab
   through again.
+- **Every control, at every density** (`touch.mjs`, 24 walks). `--density`
+  multiplies Tailwind's whole spacing unit — 0.75 for compact, 1.25 for
+  spacious — so it is not a preference that adjusts a few paddings, it is a
+  number that moves every gap, inset and control in the app at once. Only one
+  of its three values had ever been measured, which left two thirds of the
+  people who touch that setting with a layout nobody had looked at. Walking
+  the other two found the index rows in Code, Projects and the notebook at 39
+  and 40 pixels, and a one-line item at 21 — the same defect as the sidebar
+  rows: a button as tall as its own text sitting inside a row made comfortable
+  by padding that did nothing when pressed. `widths.mjs` checks the same two
+  densities hold their column: 71 to 73 characters, because the measure is set
+  in `rem` and density is not.
 - **Nothing is written where it cannot be read** (`reach.mjs`, 9 assertions). A
   line wider than its column has three honest endings — it wraps, it is
   ellipsised, it scrolls — and one dishonest one, where it is painted past
@@ -1215,7 +1227,7 @@ heading, and link URLs printed in full.
   For every run of text wider than the box holding it, this walks out to the
   element that actually does the clipping and asks whether that element can be
   scrolled. Chat, code, settings, and 390px wide.
-- **Fourteen widths** (`widths.mjs`, 23 assertions). The layout was checked at
+- **Fourteen widths** (`widths.mjs`, 29 assertions). The layout was checked at
   390 and at 1440, the two widths a responsive design is least likely to be
   wrong at: one is the phone it was drawn for, the other the monitor it was
   drawn on. This reloads at fourteen widths between them — reloads rather than
@@ -1476,7 +1488,7 @@ the computed tokens, so they cannot drift from what ships. Run the app first.
 ```bash
 node audit.mjs        # Apple HIG: safe areas, zoom, names, focus, contrast mode
 node contrast.mjs     # every text/background pair the app renders, against WCAG
-node touch.mjs        # every control in every section on a phone, against 44pt
+node touch.mjs        # every control, every section, every density, against 44pt
 node theme-parity.mjs # the two themes measured against each other, role by role
 node type-scale.mjs   # the type scale, read off the rendered app at two text sizes
 node keys.mjs         # the whole job done with the mouse unplugged

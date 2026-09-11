@@ -137,6 +137,34 @@ for (const w of WIDTHS) {
   check(notes.length === 0, `${w}px`, notes.join(" · ") || `${chars ?? "—"} characters a line`);
 }
 
+console.log("\nAnd at the two densities nobody had looked at");
+/* `--density` multiplies Tailwind's whole spacing unit — 0.75 and 1.25 — so
+   changing it moves every gap, inset and control in the app at once. Three
+   widths each is enough to catch a layout that only holds at 1.0. */
+for (const density of ["compact", "spacious"]) {
+  for (const w of [390, 768, 1440]) {
+    await page.setViewportSize({ width: w, height: 900 });
+    await page.evaluate((d) => {
+      const s = JSON.parse(localStorage.getItem("store.settings.v1"));
+      s.state.density = d;
+      localStorage.setItem("store.settings.v1", JSON.stringify(s));
+    }, density);
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(900);
+    const [spill, buried, chars] = await Promise.all([page.evaluate(SPILLS), page.evaluate(BURIED), page.evaluate(MEASURE)]);
+    const notes = [];
+    if (spill.over > 1) notes.push(`spills ${spill.over}px (${spill.bad.join(", ")})`);
+    if (buried.length) notes.push(buried.join(", "));
+    if (chars !== null && w >= 560 && (chars < 45 || chars > 85)) notes.push(`${chars} characters a line`);
+    check(notes.length === 0, `${density} at ${w}px`, notes.join(" · ") || `${chars ?? "—"} characters a line`);
+  }
+}
+await page.evaluate(() => {
+  const s = JSON.parse(localStorage.getItem("store.settings.v1"));
+  s.state.density = "comfortable";
+  localStorage.setItem("store.settings.v1", JSON.stringify(s));
+});
+
 console.log("\nWith the drawer pulled out over a phone");
 await page.setViewportSize({ width: 390, height: 844 });
 await page.reload({ waitUntil: "networkidle" });
