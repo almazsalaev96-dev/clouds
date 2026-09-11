@@ -40,6 +40,15 @@ provision: everything a person makes lives in their own browser's IndexedDB, so
 a deployment is the static shell plus three small API routes that forward to a
 provider. Vercel, or anywhere that runs `next build && next start`.
 
+**Next is pinned exactly**, not caret-ranged, because it is a build tool whose
+minor versions move runtime behaviour and this repository's guarantees are
+measured against one of them. Upgrading it is therefore a change like any
+other: pin the new version, run the suites, and read the diff in first-load JS.
+Keep it current regardless — the pin is a statement about *knowing* which
+version is running, not about staying on an old one. Vercel refuses outright to
+build a Next with a published RCE against it, which is the correct behaviour
+and worth knowing before it happens to you.
+
 **Deploy with no keys set.** That is not a degraded state, it is the intended
 one for anything public: the app comes up, says *bring your own key — nothing
 leaves this browser*, and each visitor pastes their own in Settings. A key in
