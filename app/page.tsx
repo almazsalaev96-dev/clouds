@@ -13,7 +13,7 @@ import { composeSystemPrompt } from "@/lib/prompt";
 import { findStyle } from "@/lib/styles";
 import { findMode } from "@/lib/modes";
 import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, estimateTokens, getModel } from "@/lib/models";
-import { fitToContext } from "@/lib/context";
+import { costOf, fitToContext } from "@/lib/context";
 import { cheapestAvailable, complete } from "@/lib/complete";
 import { useSettings, useDrafts, paramsFor, type Section } from "@/lib/store";
 import { useStream } from "@/lib/hooks/useStream";
@@ -394,7 +394,19 @@ export default function Page() {
               keys: settings.keys,
               effort: "auto",
               hasImage: content.some((b) => b.type === "image"),
+              /* A sample of the conversation, for reading what kind of thing
+                 this is, and the real total separately. The sample is a tail
+                 because the whole of a long thread is megabytes and none of it
+                 changes the answer; the total is not, because it is the number
+                 the decision turns on. */
               extra: path.map((m) => blockText(m.content)).join("\n").slice(-40_000),
+              /* Attachments are part of the request, and `blockText` does not
+                 return them: a two-hundred-page PDF used to reach the router as
+                 the empty string, so it read as a short question and went to a
+                 short-context model. Counted with `costOf`, which is what the
+                 fitter uses, so both agree about how big this is. */
+              attached: content.map((b) => (b.type === "file" ? b.text : "")).join("\n"),
+              size: history.reduce((n, m) => n + costOf(m), 0),
               current: settings.modelId === AUTO ? DEFAULT_MODEL_ID : settings.modelId,
             })
           : null;

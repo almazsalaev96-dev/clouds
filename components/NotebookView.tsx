@@ -107,8 +107,22 @@ export function NotebookView({
   const [draft, setDraft] = React.useState("");
   const [instruction, setInstruction] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  /**
+   * A revision waiting to be accepted, and the page it is a revision *of*.
+   *
+   * `for` is not redundant with the open note. A proposal is component state
+   * and the open note is a prop: switching pages while one is up leaves the
+   * two disagreeing for as long as it takes an effect to run, and accepting in
+   * that window wrote one page's text over another page. Carrying the id means
+   * the check does not depend on the order React happens to do things in.
+   *
+   * `from` is the sources as they were when the model read them, not as they
+   * are when the button is pressed. Adding a fourth book between the two and
+   * then accepting used to record a page as made from four books, three of
+   * which it was, and staleness is computed against that record.
+   */
   const [proposal, setProposal] = React.useState<
-    { content: string; note: string; citations?: Citation[] } | null
+    { for: string; content: string; note: string; citations?: Citation[]; from?: string[] } | null
   >(null);
   const [notice, setNotice] = React.useState<string | null>(null);
   /* What is arriving, and the way to stop it. A page made from three sources
@@ -234,7 +248,7 @@ export function NotebookView({
            for is a footnote, and a footnote nobody can check is decoration. */
         const { text: body, citations } = extractCitations(raw, sources);
         const score = citeScore(citations);
-        setProposal({ content: body, note: label ?? text, citations });
+        setProposal({ for: note.id, content: body, note: label ?? text, citations, from: sources.map((s) => s.id) });
         /* Said separately, because they are different news. A missing quote
            means the page may be wrong; an unchecked one means this app could
            not tell, which is a smaller thing and must not be reported as the
@@ -265,7 +279,7 @@ export function NotebookView({
       else if (!out) setNotice("The model didn't return a usable revision. Try saying it differently.");
       else if (out.trim() === draft.trim())
         setNotice("It came back unchanged — the instruction may not apply here.");
-      else setProposal({ content: out, note: label ?? text });
+      else setProposal({ for: note.id, content: out, note: label ?? text });
     } catch {
       setNotice("That request failed. Check the key and the connection.");
     } finally {
@@ -306,6 +320,12 @@ export function NotebookView({
 
   const accept = () => {
     if (!proposal || !note) return;
+    // The page this was a revision of, which is not always the page now open.
+    if (proposal.for !== note.id) {
+      setProposal(null);
+      setNotice("That revision was for a different page, so it was not applied.");
+      return;
+    }
     setDraft(proposal.content);
     autosave.save(note.id, { content: proposal.content, title: deriveTitle(proposal.content, "") });
     /* What it was made from and when, written straight through rather than
@@ -313,12 +333,20 @@ export function NotebookView({
        be true of the page the moment the page is true. Together they answer
        "is this still an account of what it was made from" — a source added or
        removed since is a page that may now be wrong, and saying so costs less
-       than a reader finding out. */
-    void db.notes.update(note.id, {
-      citations: proposal.citations ?? [],
-      madeAt: proposal.citations ? Date.now() : undefined,
-      madeFrom: proposal.citations ? sources.map((s) => s.id) : undefined,
-    });
+       than a reader finding out.
+
+       Only when this revision *has* sources behind it. An ordinary "make it
+       shorter" used to write `citations: []` and clear both fields, so a page
+       built from three books lost every citation in it, and its whole record
+       of where it came from, to a request that had nothing to do with either.
+       A revision that says nothing about provenance says nothing about it. */
+    if (proposal.citations) {
+      void db.notes.update(note.id, {
+        citations: proposal.citations,
+        madeAt: Date.now(),
+        madeFrom: proposal.from ?? [],
+      });
+    }
     setProposal(null);
     setInstruction("");
   };

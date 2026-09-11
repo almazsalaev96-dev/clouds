@@ -1,3 +1,4 @@
+import { REPLY, SAFETY } from "./context";
 import { MODELS, getModel } from "./models";
 import type { ModelSpec, ProviderId } from "./types";
 import { solve, type Sum } from "./arith";
@@ -96,16 +97,63 @@ const traitsOf = (id: string): Traits => TRAITS[id] ?? MIDDLING;
 /** Rough, and rough is enough: this decides between models, not budgets. */
 const sizeOf = (text: string) => Math.ceil(text.length / 4);
 
+/**
+ * How cheap, on a scale that keeps its order.
+ *
+ * This was four buckets, `4 - min(3, ceil((in + out) / 6))`, and above twelve
+ * dollars a million everything landed on the same rung. So did everything
+ * below six: DeepSeek at about $1.40 and Haiku at $6.00 scored identically on
+ * the one axis Economy is supposed to be about, and since the bucket was
+ * multiplied by three while price only broke ties at the very end, Economy
+ * would take a model four times dearer for being one point faster. Which is
+ * not economy.
+ *
+ * Continuous instead, and logarithmic because the spread is two orders of
+ * magnitude — a linear scale makes every model below the top price look the
+ * same, which is the bug again with extra steps. Output is weighted three to
+ * one: a chat reads a paragraph and writes several, and it is the written ones
+ * that arrive on the bill.
+ */
+function cheapness(m: ModelSpec): number {
+  const usd = m.priceIn + m.priceOut * 3;
+  // 4 at about a dollar a million, 1 at about a hundred, clamped either side.
+  return Math.max(0, Math.min(4, 4 - Math.log10(Math.max(usd, 0.1)) * 1.5));
+}
+
 const CODE = /```|\b(function|const |let |class |import |def |SELECT |=>|null|undefined|async |await )\b|[{};]\s*$/m;
 const CODE_WORDS = /\b(code|bug|stack ?trace|refactor|typescript|javascript|python|rust|golang|css|html|sql|api|regex|compile|runtime|exception)\b/i;
 const DEEP_WORDS = /\b(why|design|architect|architecture|prove|derive|trade[- ]?offs?|compare|strategy|plan|analy[sz]e|explain how|decide|evaluate|implications|root cause)\b/i;
 const QUICK_WORDS = /\b(translate|rephrase|reword|shorten|tidy|fix the (spelling|grammar)|make it shorter|tl;?dr|name (this|it)|a synonym|capitali[sz]e)\b/i;
 
-/** Read the request for what it needs. */
-export function shapeOf(text: string, opts: { hasImage?: boolean; extra?: string } = {}): Shape {
-  const whole = `${text}\n${opts.extra ?? ""}`;
-  const size = sizeOf(whole);
-  const coding = CODE.test(whole) || CODE_WORDS.test(text);
+/**
+ * Read the request for what it needs.
+ *
+ * Three inputs, kept apart because they answer different questions.
+ *
+ *  - `text` is what was asked. It decides the subject.
+ *  - `attached` is what came with it — a PDF, a pasted file. Part of the
+ *    request, so it counts for the subject too: "fix this" over four hundred
+ *    lines of TypeScript is a question about code, and nothing in the sentence
+ *    says so.
+ *  - `extra` is the conversation so far, which counts for size and for nothing
+ *    else. It used to count for the subject as well, so one code block
+ *    anywhere in a long thread made every message after it "about code" for
+ *    the rest of the day.
+ *
+ * And `size` is passed in rather than measured here whenever the caller can
+ * count properly. It has to be the whole of what the model will receive,
+ * attachments and images included, which is a sum this function cannot do from
+ * strings — `lib/context.ts` already does it exactly, for the fitter, and the
+ * router and the fitter disagreeing about how big a request is produces the
+ * one failure worth avoiding here: a model chosen for a request it cannot hold.
+ */
+export function shapeOf(
+  text: string,
+  opts: { hasImage?: boolean; extra?: string; attached?: string; size?: number } = {},
+): Shape {
+  const request = `${text}\n${opts.attached ?? ""}`;
+  const size = opts.size ?? sizeOf(`${request}\n${opts.extra ?? ""}`);
+  const coding = CODE.test(request) || CODE_WORDS.test(text);
   /* Short and mechanical. Length is half the signal: "translate this" over
      forty pages is not a quick job however quick the verb sounds. */
   const quick = QUICK_WORDS.test(text) && size < 400;
@@ -148,6 +196,17 @@ export function route(
     hasImage?: boolean;
     /** Conversation so far, for judging how much has to be read. */
     extra?: string;
+    /** Text that came with this message — a PDF, a pasted file. */
+    attached?: string;
+    /**
+     * The whole request in tokens, counted the way the fitter counts it.
+     *
+     * Given whenever the caller can: `extra` is a tail of the conversation
+     * rather than all of it, and attachments are not in either string, so
+     * measuring from what is passed here reads a two-hundred-page PDF as a
+     * ten-thousand-token chat and picks a model that cannot hold it.
+     */
+    size?: number;
     /** What the user is on now, to fall back to and to leave alone. */
     current: string;
   },
@@ -167,7 +226,9 @@ export function route(
   const pool = usable(ctx.configured, ctx.keys);
   if (!pool.length) return { modelId: ctx.current, why: "No key configured yet." };
 
-  const shape = shapeOf(text, { hasImage: ctx.hasImage, extra: ctx.extra });
+  const shape = shapeOf(text, {
+    hasImage: ctx.hasImage, extra: ctx.extra, attached: ctx.attached, size: ctx.size,
+  });
 
   /* Requirements. Anything that cannot read the request is out, whatever else
      it is good at. */
@@ -178,11 +239,22 @@ export function route(
     if (seeing.length) {
       able = seeing;
       reasons.push("there is an image in this");
+    } else {
+      /* Nothing here can see. Said out loud rather than routed around in
+         silence: an answer from a model that never received the picture reads
+         exactly like an answer from one that did, and the reader has no way to
+         tell which they are holding. */
+      reasons.push("nothing configured can read an image, so this is about the words only");
     }
   }
-  // Headroom for the answer as well as the question.
-  const needed = shape.size + 4_000;
-  const roomy = able.filter((m) => m.contextWindow >= needed);
+  /* Room for the answer as well as the question, by the same arithmetic the
+     fitter will do when this is actually sent. It used to be `size + 4000`
+     against the raw window, while `fitToContext` works against 92% of the
+     window minus the reply — so the router could hand a request to a model the
+     fitter then had to trim, and the person was told which model was chosen
+     and, separately, that their conversation had been cut. One number, in one
+     place, used by both. */
+  const roomy = able.filter((m) => Math.floor(m.contextWindow * SAFETY) - REPLY >= shape.size);
   if (roomy.length && roomy.length < able.length) {
     able = roomy;
     reasons.push(`it is long — about ${Math.round(shape.size / 1000)}k tokens to read`);
@@ -196,7 +268,7 @@ export function route(
 
   const score = (m: ModelSpec): number => {
     const t = traitsOf(m.id);
-    const cheap = 4 - Math.min(3, Math.ceil((m.priceIn + m.priceOut) / 6));
+    const cheap = cheapness(m);
     switch (ctx.effort) {
       case "economy":
         return cheap * 3 + t.speed;
@@ -245,6 +317,25 @@ export function route(
 }
 
 /**
+ * Which provider an id belongs to, including ones no longer in the registry.
+ *
+ * Model ids are not opaque — every provider stamps its own name on the front —
+ * so a retired `claude-3-opus` can still be placed even though nothing in
+ * `MODELS` matches it. The registry is asked first and this is the fallback;
+ * anything neither can place returns nothing, and the caller says so rather
+ * than guessing.
+ */
+function providerOf(id: string): ProviderId | null {
+  const known = MODELS.find((m) => m.id === id);
+  if (known) return known.provider;
+  if (/^claude-/.test(id)) return "anthropic";
+  if (/^(gpt-|o[1-9]|chatgpt)/.test(id)) return "openai";
+  if (/^gemini-/.test(id)) return "google";
+  if (/^deepseek-/.test(id)) return "deepseek";
+  return null;
+}
+
+/**
  * A second opinion has to come from somewhere else.
  *
  * The whole value of checking an answer is that the checker did not produce
@@ -262,10 +353,15 @@ export function checker(
   answeredBy: string,
   ctx: { configured: Record<string, boolean>; keys: Record<string, string> },
 ): string | null {
-  const answering = MODELS.find((m) => m.id === answeredBy);
-  const pool = usable(ctx.configured, ctx.keys).filter(
-    (m) => !answering || m.provider !== answering.provider,
-  );
+  const from = providerOf(answeredBy);
+  /* An id nobody recognises is an id whose provider cannot be established, and
+     a check that might have come from the same weights is the one thing this
+     function exists not to return. `!answering || ...` used to let every model
+     through in exactly that case — so a conversation held on a model since
+     retired from the registry got its "second opinion" from a sibling, under a
+     heading promising it came from somewhere else. */
+  if (!from) return null;
+  const pool = usable(ctx.configured, ctx.keys).filter((m) => m.provider !== from);
   if (!pool.length) return null;
   /* Strongest, not cheapest. Everywhere else in this file cost is a real
      consideration; here it is the wrong one — a check you cannot rely on has

@@ -31,7 +31,21 @@ import { blockText } from "./db";
 
 /** Estimates run low on structured text, and being wrong here costs a whole
  *  request. Everything below is measured against this fraction of the window. */
-const SAFETY = 0.92;
+export const SAFETY = 0.92;
+
+/**
+ * Room kept for an answer when nobody has said how long the answer will be.
+ *
+ * The fitter knows — it has the params in hand and reserves exactly
+ * `min(maxTokens, maxOutput)`. The router does not, because it is choosing the
+ * model and the model is what `maxOutput` belongs to, so it reserves this
+ * instead. Exported rather than written twice: a router working to one number
+ * and a fitter to another produces a model chosen for a request the fitter
+ * then has to trim, and the reader is told their conversation was cut by an
+ * app that had just finished telling them which model it picked for its
+ * length.
+ */
+export const REPLY = 8_000;
 
 export interface Fitted {
   messages: Message[];

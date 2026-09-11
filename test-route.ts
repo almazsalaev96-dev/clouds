@@ -8,6 +8,7 @@
    adding .ts extensions across lib/ to suit one test file would be the test
    changing the app to fit itself. */
 import { solve } from "./lib/arith";
+import { MODELS } from "./lib/models";
 import { checker, route, shapeOf } from "./lib/route";
 
 let failed = 0;
@@ -125,6 +126,58 @@ console.log("\nLong things go where they fit");
   } as never);
   check(/longer than anything configured can hold/.test(vast.why),
     "and when nothing can hold it, that is said rather than quietly truncated", vast.why);
+}
+
+console.log("\nWhat counts as part of the request, and what only counts as length");
+{
+  /* The conversation is for size. It used to be read for subject too, so one
+     code block anywhere in a thread made every message after it about code. */
+  const later = shapeOf("what should we have for lunch", { extra: "const x = 1;\nfunction go() {}" });
+  check(!later.coding, "a code block earlier in the conversation does not make this question about code");
+  const attached = shapeOf("fix this", { attached: "const x = 1;\nfunction go() {}" });
+  check(attached.coding, "but a file attached to this message does — nothing in the sentence says so");
+
+  /* Size is passed in when the caller can count properly. The router and the
+     fitter measuring differently is how a model gets chosen for a request it
+     cannot hold. */
+  const counted = shapeOf("summarise this", { size: 300_000 });
+  check(counted.size === 300_000, "a counted size is used as given rather than re-measured from a sample");
+  const huge = route("summarise this", { ...ctx(), size: 300_000 } as never);
+  check(/gemini|gpt-4\.1/i.test(huge.modelId),
+    "and a two-hundred-page attachment the sample never contained still picks somewhere with room", huge.modelId);
+}
+
+console.log("\nWhen nothing can do it, that is said");
+{
+  const blind = route("what is in this picture", {
+    configured: { deepseek: true }, keys: {}, effort: "auto", hasImage: true, current: "deepseek-chat",
+  } as never);
+  check(/nothing configured can read an image/.test(blind.why),
+    "an image with nothing configured that can see it is not routed in silence", blind.why);
+}
+
+console.log("\nEconomy means the cheap one");
+{
+  /* Buckets put DeepSeek at about $1.40 a million and Haiku at $6.00 on the
+     same rung, and the bucket outweighed the price tiebreak three to one. */
+  const cheap = route("say hello", { ...ctx(), effort: "economy" } as never);
+  const spec = (id: string) => MODELS.find((m) => m.id === id)!;
+  const picked = spec(cheap.modelId);
+  const dearer = MODELS.filter((m) => ALL[m.provider as keyof typeof ALL])
+    .filter((m) => m.priceIn + m.priceOut * 3 < picked.priceIn + picked.priceOut * 3);
+  check(dearer.length === 0,
+    "nothing configured is cheaper than the one economy picked",
+    `${cheap.modelId} at $${(picked.priceIn + picked.priceOut * 3).toFixed(2)}, beaten by ${dearer.map((m) => m.id).join(", ") || "nothing"}`);
+}
+
+console.log("\nA second opinion, when one can be guaranteed");
+{
+  const retired = checker("claude-3-opus-20240229", { configured: ALL, keys: {} });
+  check(retired !== null && !retired.startsWith("claude"),
+    "a model no longer in the registry is still placed by its own name, so the check comes from elsewhere",
+    String(retired));
+  check(checker("some-model-nobody-has-heard-of", { configured: ALL, keys: {} }) === null,
+    "and an id nothing can place gets no check at all rather than one that might be from the same weights");
 }
 
 console.log("\nThe same question routes the same way twice");
