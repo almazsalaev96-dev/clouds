@@ -153,6 +153,14 @@ export function shapeOf(
 ): Shape {
   const request = `${text}\n${opts.attached ?? ""}`;
   const size = opts.size ?? sizeOf(`${request}\n${opts.extra ?? ""}`);
+  /* What this message alone brings, which is not the same number. `size` is
+     everything that has to fit — the conversation included — and is the right
+     measure for "which windows can hold this". It is the wrong one for "does
+     this need thinking about": an hour of small talk is fifty thousand tokens
+     and not a hard question, and routing it to the deepest model would be a
+     bill nobody asked for. Forty pages attached to *this* message is a hard
+     question, whatever the sentence carrying it says. */
+  const own = sizeOf(request);
   const coding = CODE.test(request) || CODE_WORDS.test(text);
   /* Short and mechanical. Length is half the signal: "translate this" over
      forty pages is not a quick job however quick the verb sounds. */
@@ -161,7 +169,7 @@ export function shapeOf(
     vision: Boolean(opts.hasImage),
     size,
     coding,
-    depth: !quick && (DEEP_WORDS.test(text) || size > 20_000),
+    depth: !quick && (DEEP_WORDS.test(text) || own > 20_000),
     quick,
   };
 }
@@ -290,6 +298,12 @@ export function route(
         if (shape.coding && shape.depth) return t.coding * 2 + t.depth * 2;
         if (shape.coding) return t.coding * 3 + t.speed;
         if (shape.depth) return t.depth * 3 + t.speed;
+        /* A great deal to read is not a hard question and must not be scored as
+           one — an hour of small talk is fifty thousand tokens — but it is a
+           reason to prefer a model that holds a long document together over the
+           cheapest one whose window technically accepts it. Eighty pages is
+           where that starts to be worth paying for. */
+        if (shape.size > 100_000) return t.depth * 2 + t.speed + cheap;
         return t.depth + t.speed * 2 + cheap;
       }
     }

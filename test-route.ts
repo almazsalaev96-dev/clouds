@@ -153,8 +153,20 @@ console.log("\nWhat counts as part of the request, and what only counts as lengt
   /* Size is passed in when the caller can count properly. The router and the
      fitter measuring differently is how a model gets chosen for a request it
      cannot hold. */
+  /* Length that has to *fit* and length that has to be *understood* are two
+     numbers. An hour of small talk is fifty thousand tokens and not a hard
+     question; forty pages attached to this message is one, whatever the
+     sentence carrying it says. */
+  const chatty = shapeOf("what time is it", { size: 60_000, extra: "hello ".repeat(20_000) });
+  check(!chatty.depth, "a long conversation is long, not hard — it must not buy the deepest model");
+  const heavy = shapeOf("what does this say", { attached: "word ".repeat(30_000) });
+  check(heavy.depth, "but forty pages attached to this message is a hard question");
+
   const counted = shapeOf("summarise this", { size: 300_000 });
   check(counted.size === 300_000, "a counted size is used as given rather than re-measured from a sample");
+  const ordinary = route("what time is it", { ...ctx(), size: 60_000, extra: "hello ".repeat(20_000) } as never);
+  check(/haiku|mini|flash|deepseek-chat/i.test(ordinary.modelId),
+    "and a long thread with a small question in it stays cheap", ordinary.modelId);
   const huge = route("summarise this", { ...ctx(), size: 300_000 } as never);
   check(/gemini|gpt-4\.1/i.test(huge.modelId),
     "and a two-hundred-page attachment the sample never contained still picks somewhere with room", huge.modelId);
