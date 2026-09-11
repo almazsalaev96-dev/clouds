@@ -87,6 +87,7 @@ export function NotebookView({
   noteId,
   configured,
   ask,
+  onAsked,
   onSelect,
   onNew,
   onBack,
@@ -95,6 +96,8 @@ export function NotebookView({
   configured: Record<string, boolean>;
   /** An instruction to carry out on this page, sent from elsewhere. */
   ask?: { text: string; nonce: number };
+  /** Said once it has been carried out, so it is not delivered twice. */
+  onAsked?: () => void;
   onSelect: (id: string) => void;
   onNew: () => void;
   onBack: () => void;
@@ -107,6 +110,9 @@ export function NotebookView({
   const [draft, setDraft] = React.useState("");
   const [instruction, setInstruction] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  /* The same fact one render earlier, for anything that has to know now rather
+     than at the next paint. */
+  const busyRef = React.useRef(false);
   /**
    * A revision waiting to be accepted, and the page it is a revision *of*.
    *
@@ -187,13 +193,33 @@ export function NotebookView({
      second request, and a page rewritten twice from one sentence is a page
      whose history now has a step nobody asked for. */
   const askedRef = React.useRef<number | undefined>(undefined);
+  /** The instruction now waiting, and which page it was typed about. */
+  const askedForRef = React.useRef<{ nonce: number; key: string } | null>(null);
   React.useEffect(() => {
     if (!ask || ask.nonce === askedRef.current || !note) return;
+    // The page it was typed about, remembered the moment it arrives.
+    if (askedForRef.current?.nonce !== ask.nonce) askedForRef.current = { nonce: ask.nonce, key: note.id };
+    /* Not while something else is arriving: the nonce used to be marked
+       consumed before `run` was called, and `run` returns immediately when it
+       is busy, so a sentence typed during a long generation was taken and
+       silently dropped. The ref rather than the state, which is a render
+       behind; `busy` stays in the dependencies so this runs again the moment
+       the room is free. And if you have moved to another page in the meantime
+       it is dropped rather than carried out here. */
+    if (busyRef.current) return;
+    const meant = askedForRef.current.key === note.id;
     askedRef.current = ask.nonce;
-    setInstruction(ask.text);
-    void run(ask.text);
+    askedForRef.current = null;
+    if (meant) {
+      setInstruction(ask.text);
+      void run(ask.text);
+    }
+    /* Said out loud, so the sentence is not delivered a second time — this view
+       takes it on the nonce alone, and leaving it set in the parent meant
+       coming back to the notebook later rewrote whatever page was open. */
+    onAsked?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ask?.nonce, note?.id]);
+  }, [ask?.nonce, note?.id, busy]);
 
   const onChange = (value: string) => {
     setDraft(value);
@@ -208,12 +234,15 @@ export function NotebookView({
      word, and "Turn the source into a course of lessons, and replace this…"
      as a heading is the prompt leaking into the record of what happened. */
   const run = async (text: string, label?: string) => {
-    if (!text.trim() || busy || !note) return;
+    // The ref, claimed in the same tick: `busy` is a render behind, so two
+    // presses in one frame both read false and both sent a request.
+    if (!text.trim() || busyRef.current || !note) return;
     const modelId = reviseModel;
     if (!modelId) {
       setNotice("No key configured yet — add one in Settings to ask for a revision.");
       return;
     }
+    busyRef.current = true;
     setBusy(true);
     setNotice(null);
     try {
@@ -285,6 +314,7 @@ export function NotebookView({
     } finally {
       abortRef.current = null;
       setLive(null);
+      busyRef.current = false;
       setBusy(false);
     }
   };

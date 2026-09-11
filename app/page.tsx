@@ -1137,6 +1137,7 @@ export default function Page() {
                   noteId={noteId}
                   configured={configured}
                   ask={settings.section === "notebook" && handed?.to === "notebook" ? handed : undefined}
+                  onAsked={() => setHanded(undefined)}
                   onSelect={(id) => withTransition(() => setNoteId(id), "forward")}
                   onNew={() => void createInSection("notebook")}
                   onBack={() => withTransition(() => setNoteId(null), "back")}

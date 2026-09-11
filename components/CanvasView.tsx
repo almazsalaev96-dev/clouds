@@ -287,8 +287,8 @@ function Editor({
      what you wanted and it happened. Run once per arrival, keyed on the nonce,
      because a re-render is not a second request. */
   const askedRef = React.useRef<number | undefined>(undefined);
-  /** Which document the instruction now waiting was typed about. */
-  const askedForRef = React.useRef<string | null>(null);
+  /** The instruction now waiting, and which document it was typed about. */
+  const askedForRef = React.useRef<{ nonce: number; key: string } | null>(null);
   React.useEffect(() => {
     if (!ask || ask.nonce === askedRef.current) return;
     /* Not before there is a file to change. On a cold open the canvas and its
@@ -297,7 +297,7 @@ function Editor({
        revise an empty file and offered the result as a diff against nothing. */
     if (!doc.key || doc.key === "none") return;
     // The document it was typed about, remembered the moment it arrives.
-    if (askedForRef.current === null) askedForRef.current = doc.key;
+    if (askedForRef.current?.nonce !== ask.nonce) askedForRef.current = { nonce: ask.nonce, key: doc.key };
     /* Not while something else is arriving. The nonce used to be marked
        consumed before `run` was called, and `run` returns immediately when it
        is busy — so a sentence typed into ⌘K during a long revision was taken,
@@ -309,7 +309,7 @@ function Editor({
        rather than carried out here: "make this a loop" was about the file you
        were looking at when you said it. */
     if (busyRef.current) return;
-    if (askedForRef.current !== doc.key) {
+    if (askedForRef.current.key !== doc.key) {
       askedRef.current = ask.nonce;
       askedForRef.current = null;
       onAsked?.();
