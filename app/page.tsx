@@ -563,8 +563,15 @@ export default function Page() {
            answer from a model this app no longer recognises is not, and
            telling somebody to add a key would send them somewhere that does
            not help. */
-        const providers = Object.entries(configured).filter(([, on]) => on).length
-          + Object.values(settings.keys).filter(Boolean).length;
+        /* Distinct providers. A provider can be both configured on the server
+           and keyed in this browser, and counting the two lists separately made
+           one provider look like two — which picked the sentence about an
+           unrecognised model for somebody whose actual problem was having only
+           one key. */
+        const providers = new Set([
+          ...Object.entries(configured).filter(([, on]) => on).map(([p]) => p),
+          ...Object.entries(settings.keys).filter(([, v]) => v).map(([p]) => p),
+        ]).size;
         setNotice(
           providers > 1
             ? "That answer came from a model this app no longer recognises, so it cannot promise the check would come from somewhere else."
