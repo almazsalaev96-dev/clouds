@@ -528,10 +528,17 @@ export function Composer({
                 sideOffset={8}
                 className="z-50 w-72 rounded-2xl glass border border-line p-1.5 shadow-lg anim-pop"
               >
+                {/* Opened on whatever is selected, not on the top of the list.
+                    The list is taller than the box it is in, so with a style
+                    near the bottom you could open this and not see which one
+                    you were on — a picker whose whole job is to show you that.
+                    `nearest` rather than `center` so the common case, a style
+                    already in view, does not jump. */}
                 <div className="max-h-72 overflow-y-auto">
                   {styles.map((st) => (
                     <button
                       key={st.id}
+                      ref={st.id === styleId ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined}
                       onClick={() => {
                         onStyleChange(st.id);
                         setStylesOpen(false);
