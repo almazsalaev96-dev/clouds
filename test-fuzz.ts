@@ -19,6 +19,7 @@
  */
 import { solve } from "./lib/arith";
 import { extractCitations, findIn, normalise } from "./lib/cite";
+import { extractJson } from "./lib/complete";
 
 let failed = 0;
 const fail = (l: string, d: string) => { failed++; console.log(`  ✗ ${l} — ${d}`); };
@@ -123,6 +124,44 @@ console.log("\nArithmetic: nothing that is not a sum may be answered");
     }
   }
   if (!wrong) console.log("  ✓ 3000 word-bearing inputs, none answered by the calculator");
+}
+
+console.log("\nStructured replies survive whatever the model wraps them in");
+{
+  /* Several of these prompts ask for markdown in a field — a review, a plan,
+     "give the correct version" — so a perfectly good reply is an object whose
+     string value contains a fenced code block. Reaching for a fence first
+     found the inner one, threw away the object, and returned nothing. */
+  const bodies = [
+    'const x = 1;\nfunction go() { return `a`; }',
+    "# A heading\n\n- one\n- two",
+    'SELECT * FROM t WHERE a = "}" -- }',
+    "plain words",
+  ];
+  const wrappers = [
+    (j: string) => j,
+    (j: string) => "```json\n" + j + "\n```",
+    (j: string) => "Here is the result:\n\n" + j + "\n\nHope that helps.",
+    (j: string) => "```\n" + j + "\n```",
+  ];
+  let bad = 0;
+  for (let i = 0; i < 1200; i++) {
+    const inner = pick(bodies);
+    const fenced = rnd() < 0.5 ? "```ts\n" + inner + "\n```" : inner;
+    const want = { agrees: pick(["agrees", "partly", "disagrees"]), text: fenced, n: int(1000) };
+    const wrapped = pick(wrappers)(JSON.stringify(want));
+    const got = extractJson(wrapped) as typeof want | null;
+    if (!got || got.text !== want.text || got.agrees !== want.agrees || got.n !== want.n) {
+      fail("a structured reply did not come back", JSON.stringify(wrapped).slice(0, 180) + " → " + JSON.stringify(got).slice(0, 120));
+      if (++bad > 3) break;
+    }
+  }
+  if (!bad) console.log("  ✓ 1200 JSON replies recovered, fenced code in their fields and all");
+  check_null: {
+    if (extractJson("no json here at all") !== null) { fail("prose parsed as JSON", "no json here at all"); break check_null; }
+    if (extractJson("") !== null) { fail("the empty string parsed as JSON", ""); break check_null; }
+    console.log("  ✓ and a reply with no object in it still comes back as nothing");
+  }
 }
 
 console.log("\nCitations: folding is idempotent and never loses its place");

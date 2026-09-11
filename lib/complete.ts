@@ -154,17 +154,39 @@ export function cheapestAvailable(configured: Record<string, boolean>): string |
   return preference.find(usable) ?? (usable(settings.modelId) ? settings.modelId : null);
 }
 
-/** Models like to wrap JSON in prose or a fence. Both are stripped here. */
+/**
+ * Models like to wrap JSON in prose or a fence. Both are stripped here.
+ *
+ * The reply itself is tried first, which sounds obvious and was not what
+ * happened. The old version reached for a fence before anything else, and
+ * several of these prompts ask for markdown inside a field — a review, a plan,
+ * "give the correct version" — so the reply is JSON whose *string value*
+ * contains a fenced code block. The fence regex found that inner fence, threw
+ * away the object around it, and handed back a snippet of TypeScript to be
+ * parsed as JSON. Every one of those calls came back as nothing.
+ *
+ * Each reading is tried in turn and the first that parses wins, so prose
+ * around an object, a ```json wrapper, and an object with fences inside it all
+ * work, and none of them can spoil another.
+ */
 export function extractJson(raw: string): unknown | null {
-  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const body = (fenced?.[1] ?? raw).trim();
-  const start = body.search(/[[{]/);
-  if (start === -1) return null;
-  const end = Math.max(body.lastIndexOf("]"), body.lastIndexOf("}"));
-  if (end <= start) return null;
-  try {
-    return JSON.parse(body.slice(start, end + 1));
-  } catch {
-    return null;
+  const text = raw.trim();
+  const readings = [text];
+  const fencedJson = text.match(/```json\s*([\s\S]*?)```/i);
+  if (fencedJson) readings.push(fencedJson[1]);
+  const fenced = text.match(/```[a-z]*\s*([\s\S]*?)```/i);
+  if (fenced) readings.push(fenced[1]);
+
+  for (const reading of readings) {
+    const body = reading.trim();
+    const start = body.search(/[[{]/);
+    const end = Math.max(body.lastIndexOf("]"), body.lastIndexOf("}"));
+    if (start === -1 || end <= start) continue;
+    try {
+      return JSON.parse(body.slice(start, end + 1));
+    } catch {
+      /* The next reading, if there is one. */
+    }
   }
+  return null;
 }

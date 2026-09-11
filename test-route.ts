@@ -68,6 +68,11 @@ console.log("\nExact, or else silent");
   check(solve("3,1415 * 2") === null,
     "π written the European way is refused, not read as 31,415", solve("3,1415 * 2")?.text);
   check(solve("what is 0 * -1")?.text === "0", "and nobody writes the sign of nothing");
+  check(solve("948,392 × 73")?.exact === true, "a product is the product, and says so");
+  check(solve("100 ÷ 8")?.exact === true, "and so is a decimal that ends");
+  check(solve("what is 1 / 3")?.exact === false,
+    "twelve significant figures of a number that does not end is not exact, and the caption must not say it is");
+
 }
 
 console.log("\nReading what a request needs");
@@ -106,6 +111,14 @@ const ctx = (over = {}) => ({ configured: ALL, keys: {}, effort: "auto", current
   check(onlyDeepseek.modelId.startsWith("deepseek"),
     "with only a blind provider configured it still answers rather than inventing a key it does not have",
     onlyDeepseek.modelId);
+}
+
+console.log("\nAnd the sentence beside a sum says which kind it is");
+{
+  const third = route("what is 1 / 3", ctx() as never);
+  check(!/exact/.test(third.why), "a repeating decimal does not claim exactness", third.why);
+  const product = route("948,392 × 73", ctx() as never);
+  check(/exact/.test(product.why), "where a product does", product.why);
 }
 
 console.log("\nLong things go where they fit");

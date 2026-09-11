@@ -33,9 +33,19 @@
  */
 
 export interface Sum {
-  /** Exactly what it is, formatted the way a person writes numbers. */
+  /** What it is, formatted the way a person writes numbers. */
   text: string;
   value: number;
+  /**
+   * True when `text` is the answer rather than a rounding of it.
+   *
+   * The caption beside a calculator answer says "this way it is exact", and
+   * for `948392 × 73` it is. For `1 ÷ 3` the printed `0.333333333333` is
+   * twelve significant figures of a number that does not end, and claiming
+   * exactness about it spends the credibility the integer path earns. One
+   * flag, so the sentence can be true in both cases.
+   */
+  exact: boolean;
 }
 
 /**
@@ -305,6 +315,11 @@ function groupInt(n: bigint): string {
  * that territory is declined rather than dressed up with thousands separators
  * and the word "exact".
  */
+/** Whether printing this needed a rounding. */
+function rounded(v: Val): boolean {
+  return !isInt(v) && Number(v.num.toPrecision(12)) !== v.num;
+}
+
 function say(v: Val): string | null {
   if (isInt(v)) {
     /* Exact and unsayable are not the same thing. `10^400` is an integer this
@@ -348,5 +363,5 @@ export function solve(question: string): Sum | null {
   const text = say(value);
   if (text === null) return null;
   const n = asNum(value);
-  return { value: Object.is(n, -0) ? 0 : n, text };
+  return { value: Object.is(n, -0) ? 0 : n, text, exact: !rounded(value) };
 }

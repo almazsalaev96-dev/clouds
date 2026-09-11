@@ -124,7 +124,14 @@ function CompareColumn({
   const busy = stream.phase !== "idle";
 
   return (
-    <article className="flex min-h-[12rem] flex-col overflow-hidden rounded-lg border border-line bg-surface">
+    /* Named, because there are three of these side by side and every control
+       in them used to be called the same thing. "Stop, button. Stop, button.
+       Stop, button." is a comparison nobody can operate without looking at it,
+       which is the one thing a comparison is for. */
+    <article
+      aria-label={`${model.name}'s answer`}
+      className="flex min-h-[12rem] flex-col overflow-hidden rounded-lg border border-line bg-surface"
+    >
       <header className="relative flex h-9 shrink-0 items-center gap-1.5 border-b border-line px-2.5 text-xs">
         {busy && <span className="field-line absolute inset-x-0 bottom-0" aria-hidden />}
         <span className="text-tertiary">
@@ -136,7 +143,7 @@ function CompareColumn({
           {finished?.latencyMs != null && <span>{formatDuration(finished.latencyMs)}</span>}
           {finished?.usage && <span>{formatTokens(finished.usage.outputTokens)} tok</span>}
           {busy && (
-            <IconButton label="Stop" size={22} onClick={stream.stop}>
+            <IconButton label={`Stop ${model.name}`} size={22} onClick={stream.stop}>
               <Square size={9} fill="currentColor" />
             </IconButton>
           )}
@@ -165,6 +172,7 @@ function CompareColumn({
             variant="secondary"
             className="w-full"
             onClick={() => onKeep(finished.id, modelId)}
+            aria-label={`Keep ${model.name}'s answer`}
           >
             <Check size={13} />
             Keep this one

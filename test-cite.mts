@@ -130,6 +130,16 @@ console.log("\nThe same rules on both sides");
   const dash = src("profits — and losses — were higher than anyone expected that year");
   const out = extractCitations('X [[cite: book.pdf | profits -- and losses -- were higher than anyone expected that year]].', [dash]);
   check(out.citations[0].found, "a spaced dash is punctuation on both sides, not a deleted character");
+  /* An accent written two ways is one accent. A PDF extractor and a model
+     disagree about this constantly, and a citation failing over it is a
+     fabrication warning about a quote lifted verbatim. */
+  const nfc = "the café opened in the résumé district that spring";
+  const composed = extractCitations(`X [[cite: book.pdf | ${nfc.normalize("NFD")}]].`, [src(nfc)]);
+  check(composed.citations[0].found, "a composed accent matches a decomposed one");
+  const decomposed = extractCitations(`X [[cite: book.pdf | ${nfc}]].`, [src(nfc.normalize("NFD"))]);
+  const at2 = decomposed.citations[0].at!;
+  check(decomposed.citations[0].found && nfc.normalize("NFD").slice(at2.start, at2.end).normalize("NFC") === nfc,
+    "and the other way round, with offsets that still point at the words");
   const turkish = src("İSTANBUL grew fast. the decisive passage is here, at the end.");
   const t2 = extractCitations('X [[cite: book.pdf | the decisive passage is here]].', [turkish]);
   const at = t2.citations[0].at!;

@@ -124,7 +124,19 @@ function fold(s: string): Folded {
       "‘’ʼ".includes(ch) ? "'" :
       "“”".includes(ch) ? '"' :
       "–—".includes(ch) ? "-" :
-      ch.toLowerCase();
+      /* Decomposed, so "café" written as five code points and "café" written
+         as four are the same five characters here. A PDF extractor and a model
+         disagree about this constantly, and a citation failing because one side
+         composed its accent is a fabrication warning about a verbatim quote.
+
+         NFD rather than NFC because decomposition is defined one code point at
+         a time: composition would need to look across characters, and the map
+         from folded position back to real offset is built one character at a
+         time. ASCII is left alone, which is nearly all of nearly every
+         document and the difference between this being free and this being a
+         normalise call per character of a four-hundred-thousand-character
+         book. */
+      ch < "\u0080" ? ch.toLowerCase() : ch.toLowerCase().normalize("NFD");
     /* A run of hyphens is one dash. Models write "--" for an em dash about as
        often as they write the character, and which of the two arrived is not a
        difference any reader would call one. */

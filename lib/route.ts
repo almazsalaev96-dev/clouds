@@ -219,7 +219,13 @@ export function route(
     return {
       modelId: ctx.current,
       sum,
-      why: "Worked out here — a sum does not need a model, and this way it is exact.",
+      /* Exact where it is exact, and not where it is not. `948392 × 73` is the
+         product; `1 ÷ 3` is twelve significant figures of a number that does
+         not end, and one sentence claiming both spends the credit the first
+         earns to cover the second. */
+      why: sum.exact
+        ? "Worked out here — a sum does not need a model, and this way it is exact."
+        : "Worked out here rather than guessed at — shown to twelve significant figures.",
     };
   }
 
