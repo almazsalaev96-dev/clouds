@@ -276,6 +276,10 @@ function Editor({
   const [instruction, setInstruction] = React.useState(seed ?? "");
   const reviseModel = useReviseModel(configured);
   const [busy, setBusy] = React.useState<false | "revise" | "explain" | "review" | "plan" | "check">(false);
+  /* The same fact as `busy`, one render earlier — see `begin` below, which is
+     what claims it. Read by anything that has to know *now* rather than at the
+     next paint. */
+  const busyRef = React.useRef(false);
 
   /* An instruction handed over from somewhere else — ⌘K, typed while you were
      looking at this file. Seeding the box and leaving it there would make the
@@ -283,6 +287,8 @@ function Editor({
      what you wanted and it happened. Run once per arrival, keyed on the nonce,
      because a re-render is not a second request. */
   const askedRef = React.useRef<number | undefined>(undefined);
+  /** Which document the instruction now waiting was typed about. */
+  const askedForRef = React.useRef<string | null>(null);
   React.useEffect(() => {
     if (!ask || ask.nonce === askedRef.current) return;
     /* Not before there is a file to change. On a cold open the canvas and its
@@ -290,11 +296,26 @@ function Editor({
        the empty string — and an instruction that fired then asked a model to
        revise an empty file and offered the result as a diff against nothing. */
     if (!doc.key || doc.key === "none") return;
-    /* And not while something else is arriving. The nonce used to be marked
+    // The document it was typed about, remembered the moment it arrives.
+    if (askedForRef.current === null) askedForRef.current = doc.key;
+    /* Not while something else is arriving. The nonce used to be marked
        consumed before `run` was called, and `run` returns immediately when it
        is busy — so a sentence typed into ⌘K during a long revision was taken,
-       marked as delivered, and silently dropped. */
-    if (busy) return;
+       marked as delivered, and silently dropped. The ref rather than the state,
+       because the state is a render behind; the state stays in the deps, so
+       this runs again the moment the room is free.
+
+       And if you have moved to another file in the meantime, it is dropped
+       rather than carried out here: "make this a loop" was about the file you
+       were looking at when you said it. */
+    if (busyRef.current) return;
+    if (askedForRef.current !== doc.key) {
+      askedRef.current = ask.nonce;
+      askedForRef.current = null;
+      onAsked?.();
+      return;
+    }
+    askedForRef.current = null;
     askedRef.current = ask.nonce;
     setInstruction(ask.text);
     void run(ask.text);
@@ -499,7 +520,6 @@ function Editor({
    * A ref, checked and claimed in the same tick, which is what "one at a time"
    * actually requires.
    */
-  const busyRef = React.useRef(false);
   const begin = React.useCallback((kind: "revise" | "explain" | "review" | "plan" | "check") => {
     if (busyRef.current) return false;
     busyRef.current = true;
