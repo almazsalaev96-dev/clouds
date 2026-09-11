@@ -537,7 +537,10 @@ export function NotebookView({
       ) : (
         <>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-8 pt-4">
+            {/* A page is read properly, re-read and kept, so it is set as a
+                document rather than as a conversation: a step up in size and
+                leading, and a column a shade wider. */}
+            <div data-read="doc" className="mx-auto w-full max-w-[var(--measure)] px-4 pb-8 pt-4">
               {/* Whether this is still an account of what it was made from.
                   Not a warning about the page being wrong — it may be fine —
                   but the one fact a reader cannot work out for themselves. */}

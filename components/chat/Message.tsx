@@ -136,8 +136,13 @@ function UserMessageImpl({
         </div>
       )}
 
+      {/* 15px against the answer's 16. Not to rank your own words below the
+          machine's — the bubble keeps its full contrast and its own ground —
+          but because the answer is the layer being *read*, and yours is the
+          layer being re-read at a glance to remember what you asked. The wider
+          column and the extra leading go to the side that needs them. */}
       {text && (
-        <div className="max-w-[85%] whitespace-pre-wrap rounded-[20px] bg-subtle px-4 py-2.5 text-base [overflow-wrap:anywhere]">
+        <div className="max-w-[85%] whitespace-pre-wrap rounded-[20px] bg-subtle px-4 py-2.5 text-md [overflow-wrap:anywhere]">
           {text}
         </div>
       )}
@@ -260,8 +265,11 @@ function AssistantMessageImpl({
   return (
     <div id={`m-${message.id}`} className={cn("msg group rounded-2xl pb-4 pt-3", entering && "msg-enter", settled && "msg-settled")}>
       {/* Who is speaking, before you read what they said. In an app with four
-          providers this is not metadata — it is context. */}
-      <div className="mb-2 flex items-center gap-2 text-xs text-tertiary">
+          providers this is not metadata — it is context, and it is set a step
+          above metadata to say so. 12px was doing both this job and the job of
+          a tiny label, and a scale where one size does two jobs has a missing
+          step rather than a spare one. */}
+      <div className="mb-2 flex items-center gap-2 text-meta text-tertiary">
         {model && (
           <span className="text-secondary">
             <ProviderMark provider={model.provider} size={12} />

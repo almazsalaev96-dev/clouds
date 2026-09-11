@@ -438,6 +438,29 @@
   --text-2xl--line-height: 1.25;
   --text-code: 0.875rem;
   --text-code--line-height: 1.6;
+
+  /* The steps between. Three sizes the scale was missing, each with one job.
+     ---------------------------------------------------------------------
+     `md` (15px) is for what a person typed. Their own message does not want
+     to be smaller than the answer — that would rank it below the machine —
+     but it does want the answer to have the wider column and the extra
+     breathing room, because the answer is the part being read rather than
+     re-read.
+
+     `section` (20px) sits between h3 and h1 for a document long enough to
+     have parts. The jump from 18 to 22 was too big to use inside a page
+     without the page looking like two pages.
+
+     `meta` (13px) is for timestamps, token counts, model names — the layer
+     that should be legible when looked for and invisible when not. 12px was
+     doing both that job and the job of a small label, and a scale where one
+     size does two jobs is a scale with a missing step. */
+  --text-md: 0.9375rem;
+  --text-md--line-height: 1.6;
+  --text-section: 1.25rem;
+  --text-section--line-height: 1.35;
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.45;
 }
 
 /* ============================================================================
@@ -1304,14 +1327,77 @@ body::after {
    PROSE — the app is 95% text, so this is the product, not a plugin.
    ========================================================================= */
 
+/* ---------------------------------------------------------------- reading --
+
+   Typography that answers to what is being read, rather than one set of
+   numbers applied to everything.
+
+   A reading mode declares four things and everything else follows from them:
+   how big, how far apart the lines are, how long a line may be, and how much
+   air between paragraphs. A surface says which mode it is in — `data-read` —
+   and the prose inside it adapts. Chat is the default because most of this app
+   is a conversation.
+
+   **The line length is in characters, not pixels.** That is the whole idea, and
+   it is worth being precise about why. Every published spec for this states the
+   measure in pixels — 720, 760, 780 — and a pixel measure is only correct at
+   one font size. Measured in this app's own font: at a 16px root the column is
+   608px and holds 72 characters; at a 20px root, which is what a browser's
+   "large text" setting does, the same rule gives 760px and *still* 72
+   characters. The pixel number moved by 25% and the thing that actually
+   governs reading did not move at all. So 760px is not the answer, it is one
+   reading of the answer, taken at a font size somebody happened to be using.
+   Sixty to eighty characters has been the answer since metal type, it is the
+   answer in `rem`, and it stays the answer when a reader turns their text up.
+
+   The sizes are in `rem` for the same reason: they are multiples of whatever
+   the reader has chosen, not of 16. */
+
+[data-read] {
+  --read-size: var(--text-base);
+  --read-leading: 1.65;
+  --read-gap: 1em;
+}
+
+/* A conversation. Read once, at speed, often while something is still
+   arriving — so the shortest comfortable line and the tightest of the three. */
+[data-read="chat"] {
+  --measure: 40rem;
+  --read-size: var(--text-base);
+  --read-leading: 1.65;
+  --read-gap: 1em;
+}
+
+/* A document. Read properly, re-read, and kept — so a step up in size and in
+   leading, and a column a shade wider because the eye is settled rather than
+   scanning. 17px at 42rem is 75 characters, which is the same band arrived at
+   from the other end. */
+[data-read="doc"] {
+  --measure: 42rem;
+  --read-size: 1.0625rem;
+  --read-leading: 1.72;
+  --read-gap: 1.15em;
+}
+
+/* Information rather than prose: a table, a list of numbers, a panel of
+   detail. Here density *is* the point — the value of the thing is seeing a lot
+   of it at once — so the line may run long because nobody reads it as a
+   sentence. */
+[data-read="dense"] {
+  --measure: 56rem;
+  --read-size: var(--text-sm);
+  --read-leading: 1.5;
+  --read-gap: 0.6em;
+}
+
 .prose {
-  font-size: var(--text-base);
-  line-height: 1.65;
+  font-size: var(--read-size, var(--text-base));
+  line-height: var(--read-leading, 1.65);
   color: var(--text-primary);
   text-wrap: pretty;
   overflow-wrap: anywhere;
 }
-.prose > * + * { margin-top: 1em; }
+.prose > * + * { margin-top: var(--read-gap, 1em); }
 .prose > *:first-child { margin-top: 0; }
 .prose > *:last-child { margin-bottom: 0; }
 
@@ -1326,6 +1412,15 @@ body::after {
 .prose h2 { font-size: var(--text-xl); }
 .prose h3 { font-size: var(--text-lg); }
 .prose h4 { font-size: var(--text-base); }
+
+/* A document's headings climb more gently than an answer's.
+   An answer has at most two levels and wants the top one to announce itself;
+   a page has three or four, and a ladder of 28-22-18 inside one runs out of
+   room before it runs out of levels. 22-20-18 fits them all and still reads as
+   a hierarchy — which is what the 20px step exists for. */
+[data-read="doc"] .prose h1 { font-size: var(--text-xl); }
+[data-read="doc"] .prose h2 { font-size: var(--text-section); }
+[data-read="doc"] .prose h3 { font-size: var(--text-lg); }
 .prose h1:first-child, .prose h2:first-child, .prose h3:first-child { margin-top: 0; }
 
 .prose strong { font-weight: 600; }
@@ -1369,10 +1464,15 @@ body::after {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
 }
+/* A table is information, not prose, and it was inheriting prose's leading —
+   1.65 down a column of numbers is air nobody asked for. The point of a table
+   is seeing a lot of it at once, so it takes the dense numbers whatever mode
+   it is sitting in. */
 .prose table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--text-sm);
+  line-height: 1.5;
   font-variant-numeric: tabular-nums;
 }
 .prose thead { background: var(--bg-subtle); }

@@ -156,7 +156,9 @@ function MessageListImpl({
         aria-label="Conversation"
         aria-busy={active}
       >
-        <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-4">
+        {/* Which reading mode the text inside is set in. A thread is read once,
+            at speed, often while the next words are still arriving. */}
+        <div data-read="chat" className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-4">
           {/* Said once, at the top of what is left, in the place the missing
               turns used to be. A conversation that quietly forgets its own
               beginning and carries on is the most disorienting thing an
