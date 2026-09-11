@@ -207,11 +207,19 @@ decoration that looks like evidence, which is worse than none.
 So the model is not asked for a reference. It is asked to **quote the words it
 is relying on**, and `lib/cite.ts` goes and finds them. A quote that is in the
 source becomes a marker you can press, which opens the passage with the quoted
-words highlighted inside it and says roughly which page. A quote that is *not*
+words highlighted inside it and says which page it is on. A quote that is *not*
 there becomes a visible failure: the marker reads `3?` rather than `3`, the
 page says so before you open anything — *1 of 3 citations could not be found* —
 and pressing it says the words are not in that file and to treat the sentence
-as the model's own. Unfound citations are kept rather than quietly deleted:
+as the model's own.
+
+There is a third answer, and keeping it separate is the point. A quote too
+short to be evidence, or one naming a file this page does not hold, was never
+looked for — so it reads **Not checked**, in the ordinary border rather than
+the warning one, and is counted apart in the notice. "Not found in the source"
+is a claim about the source, and making it about a check that never ran tells a
+reader a sound page is unsound. The feature is believed exactly as far as its
+failures are accurate. Unfound citations are kept rather than quietly deleted:
 removing them would make the page look better and be worth less, since the
 claim whose evidence turned out not to exist is exactly the one a reader most
 needs flagged.
@@ -219,9 +227,18 @@ needs flagged.
 The guarantee therefore does not rest on the model being honest, only on it
 being quotable. The matching is forgiving in the ways that do not matter —
 line breaks, doubled spaces, curly quotes, `--` for an em dash, a word
-hyphenated across a line break — and strict in the one that does: if the words
-are not there, nothing pretends they are. A quote under twelve characters is
-refused outright rather than matched, because it is not evidence of anything.
+hyphenated across a line break, an accent composed one way against the other —
+and strict in the one that does: if the words are not there, nothing pretends
+they are. A quote under twelve characters is not matched at all, because it is
+not evidence of anything.
+
+One normaliser does the folding, for the quote and the source alike, and that
+is not tidiness. There used to be two — a chain of regexes for one side and a
+character loop for the other — and they disagreed about a hyphen with a space
+after it, so a source reading *profits — and losses* folded two different ways
+and a quote lifted **verbatim** out of it was reported to the reader as not
+being in it. Every markdown bullet was invisible to the matcher for the same
+reason, and two separate list items could verify as one contiguous quotation.
 
 **And a page knows when its sources have moved on.** It records what it was
 made from and when. Add or remove a source afterwards and it says so — *1 was
@@ -490,6 +507,19 @@ than it accepts — `42` is a number and not a sum, `what is 2+2 and why` is a
 question, `1 / 0` has no answer, and `1,5 + 1` is a genuine ambiguity between a
 decimal comma and a thousands separator, so it is refused rather than guessed.
 The answer is credited to **Calculator**, not to a model that was never called.
+
+Integers run in BigInt, which is the whole of what "exactly" buys: an earlier
+version answered `123456789 * 987654321` with `…635,260` when it ends `269`,
+because the product had passed 2⁵³ and a double had rounded it — a calculator
+that is wrong is worse than no calculator, and one that is wrong *while
+captioned "this way it is exact"* is worse than that. The caption now says which
+kind of answer it is, because `1 ÷ 3` printed to twelve significant figures is
+not exact and saying so about it spends the credit the products earn. And it
+refuses the shapes that are also something else, whoever asks: `9/11`, `24/7`,
+`12/25/2024`, `555-1234`. "what is 9/11" is a question about a day in 2001. The
+price of that rule is that "what is 10/2" goes to a model too — they are the
+same shape wearing different hats — which is a fraction of a penny against
+answering September with a division.
 
 It is a small feature standing for a large principle: a system that routes
 between models should also know when the right route is no model at all.
@@ -1233,11 +1263,15 @@ Stated plainly, because a checklist you cannot trust is worse than no checklist.
   a fair reading of them is a judgement no string match makes, and a green marker
   should be read as "this is really in there, go and look" rather than as "this
   is true". Nor is there any check on what was *left out*.
-- **Page numbers are estimates.** A PDF's text has no page boundaries left in it
-  by the time it is one string, so "around page 212" is an even division, not a
-  lookup. It is the difference between "somewhere in a 400-page book" and a place
-  to start, which is the difference between a citation you check and one you do
-  not — but it is not a reference.
+- **A page number needs a page marker.** A PDF read here keeps its boundaries —
+  the extractor writes `--- page 7 ---` on a line of its own — so the page beside
+  a citation is a lookup rather than a guess. It was an estimate, `offset ÷
+  length × pages`, and that was wrong twice over: pages do not hold equal amounts
+  of text, and extraction stops at four hundred thousand characters, so every
+  citation in a long book was reported near its back cover. Anything with no
+  markers in it — a `.txt`, a `.md`, anything pasted — now gets no page number at
+  all, because a citation pointing at page 900 of a book it is on page 340 of is
+  worse than one that admits it does not know.
 - **Sources are text only.** PDFs are read for their text and a scan is refused
   with a reason rather than accepted as an empty book. Images, audio and video —
   the photographs, recordings and meetings that a notebook meant as "bring your
