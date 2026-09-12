@@ -63,6 +63,8 @@ export function useStream(onFinish?: (m: Message) => void) {
 
   const abortRef = useRef<AbortController | null>(null);
   const bufferRef = useRef("");
+  /** When the buffer last grew. The drain holds a partial word only this long. */
+  const fedRef = useRef(0);
   const shownRef = useRef("");
   const reasoningRef = useRef("");
   const rafRef = useRef<number | null>(null);
@@ -90,15 +92,36 @@ export function useStream(onFinish?: (m: Message) => void) {
     if (pending.length > 0) {
       // Release proportionally, with a floor, so a long backlog catches up fast
       // while a trickle still moves every frame instead of freezing.
-      const take = Math.max(2, Math.ceil(pending.length / 6));
-      shownRef.current += pending.slice(0, take);
-      bufferRef.current = pending.slice(take);
-      setState((s) => ({
-        ...s,
-        phase: "streaming",
-        text: shownRef.current,
-        reasoning: reasoningRef.current,
-      }));
+      let take = Math.max(2, Math.ceil(pending.length / 6));
+
+      /* Then round up to the end of the word.
+         ---------------------------------------------------------------------
+         Providers emit tokens, and a token is not a word: "unbelievable"
+         arrives as "un", "believ", "able". Released by the character, the
+         reader watches fragments assemble into words and the eye keeps
+         stopping on strings that are not language yet — which is the whole of
+         why some streaming text feels frantic and some feels like someone
+         writing. Releasing on word boundaries costs nothing and removes it.
+
+         A partial last word is held back rather than shown — but only for as
+         long as the rest is plausibly in flight. Providers pause: hold it
+         indefinitely and a stream that stalls mid-word shows the reader
+         nothing at all, which is worse than the fragment. So the hold expires
+         with the gap, and after that the word goes out however it looks. */
+      const boundary = pending.slice(take).search(/[\s\p{P}]/u);
+      if (boundary > 0) take += boundary;
+      else if (boundary === -1 && pending.length - take < 24 && Date.now() - fedRef.current < 120) take = 0;
+
+      if (take > 0) {
+        shownRef.current += pending.slice(0, take);
+        bufferRef.current = pending.slice(take);
+        setState((s) => ({
+          ...s,
+          phase: "streaming",
+          text: shownRef.current,
+          reasoning: reasoningRef.current,
+        }));
+      }
     }
     rafRef.current = requestAnimationFrame(drain);
   }, []);
@@ -138,6 +161,7 @@ export function useStream(onFinish?: (m: Message) => void) {
       const assistantId = uid();
 
       bufferRef.current = "";
+      fedRef.current = Date.now();
       shownRef.current = "";
       reasoningRef.current = "";
       ttftRef.current = null;
@@ -209,6 +233,7 @@ export function useStream(onFinish?: (m: Message) => void) {
                 case "text":
                   if (ttftRef.current === null) ttftRef.current = Date.now() - startedRef.current;
                   bufferRef.current += ev.text;
+                  fedRef.current = Date.now();
                   break;
                 case "reasoning":
                   if (ttftRef.current === null) ttftRef.current = Date.now() - startedRef.current;

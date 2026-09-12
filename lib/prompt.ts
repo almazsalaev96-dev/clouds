@@ -1,3 +1,4 @@
+import { HOUSE } from "./answer";
 import type { Project, ProjectFile, Style } from "./types";
 import type { ModeSpec } from "./modes";
 import { estimateTokens } from "./models";
@@ -24,6 +25,8 @@ import { estimateTokens } from "./models";
 export const KNOWLEDGE_BUDGET_TOKENS = 60_000;
 
 export interface PromptParts {
+  /** Off for the app's own internal calls — a titler wants no house style. */
+  house?: false;
   base?: string;
   project?: Project;
   files?: ProjectFile[];
@@ -40,6 +43,13 @@ export interface ComposedPrompt {
 export function composeSystemPrompt(parts: PromptParts): ComposedPrompt {
   const sections: string[] = [];
   const droppedFiles: ProjectFile[] = [];
+
+  /* The house rules go first, which in this ordering makes them the weakest:
+     everything below overrides them, starting with the person's own standing
+     instructions. That is the right precedence for an app having opinions
+     about answers — a floor rather than a ceiling. Somebody who wants bullet
+     points asks for bullet points and gets them. */
+  if (parts.house !== false) sections.push(HOUSE);
 
   const base = parts.base?.trim();
   if (base) sections.push(base);
