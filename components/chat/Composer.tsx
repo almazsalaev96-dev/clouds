@@ -359,15 +359,23 @@ export function Composer({
             {MODES.map((m) => {
               const on = m.id === mode;
               const Icon = m.id === "creative" ? Sparkles : MessageSquare;
+              /* The name as well as the blurb, because below 22rem the word
+                 is off the screen and the tooltip is the only thing that says
+                 which of the two marks is which. */
               return (
-                <Tooltip key={m.id} label={m.blurb}>
+                <Tooltip key={m.id} label={`${m.label} — ${m.blurb}`}>
                   <button
                     role="radio"
                     aria-checked={on}
                     data-on={on}
                     onClick={() => onModeChange(m.id)}
                     className={cn(
-                      "btn-touch focus-inset flex items-center gap-1.5 rounded-full px-3 py-1 text-sm transition-colors duration-[var(--dur-fast)]",
+                      /* A height that does not depend on the text, because
+                         below 22rem there is no text: with the label gone this
+                         was a 13px mark in 4px of padding — 21px tall, under
+                         the 24px floor a pointer needs and well under the 44
+                         a finger does. `ctl-h` carries both. */
+                      "btn-touch ctl-h [--ctl:1.75rem] focus-inset flex items-center gap-1.5 rounded-full px-3 py-1 text-sm transition-colors duration-[var(--dur-fast)]",
                       // The fill is the sliding indicator behind it now, so the
                       // button itself only changes what colour its ink is.
                       on ? "font-medium text-primary" : "text-tertiary hover:text-primary",
@@ -382,7 +390,17 @@ export function Composer({
                         on && m.id === "creative" ? "text-[var(--accent-2)]" : on ? "text-accent" : "",
                       )}
                     />
-                    {m.label}
+                    {/* Visible by default and taken away when the bar is
+                        narrow, rather than the other way round: `not-sr-only`
+                        has to beat `sr-only` on order alone, and it did not.
+                        Stated this way the plain case needs no rule at all.
+
+                        `sr-only` rather than `hidden`, because this word is
+                        the radio's whole accessible name — dropping it would
+                        take "Chat" and "Creative" out of the page as well as
+                        off the screen. Absolute, so it is not a flex item and
+                        contributes neither width nor a gutter. */}
+                    <span className="@max-[22rem]/bar:sr-only">{m.label}</span>
                   </button>
                 </Tooltip>
               );
@@ -412,14 +430,19 @@ export function Composer({
               <button
                 aria-label="Tools"
                 className={cn(
-                  "ctl-h focus-inset flex shrink-0 items-center gap-1.5 rounded-full px-2.5 text-sm transition-colors duration-[var(--dur-fast)]",
+                  /* `btn-touch` for the same reason the style button has it:
+                     with the word gone this is a 17px mark in 20px of padding,
+                     and a height floor alone leaves a 37px-wide target. */
+                  "btn-touch ctl-h focus-inset flex shrink-0 items-center gap-1.5 rounded-full px-2.5 text-sm transition-colors duration-[var(--dur-fast)]",
                   toolsActive
                     ? "bg-accent-subtle text-accent"
                     : "text-secondary hover:bg-subtle hover:text-primary",
                 )}
               >
                 <SlidersHorizontal size={17} />
-                <span className="pr-0.5">Tools</span>
+                {/* display:none, not sr-only: `aria-label` already carries
+                    the name, so only the eye loses anything. */}
+                <span className="hidden pr-0.5 @min-[30rem]/bar:inline">Tools</span>
                 {compareWith.length > 0 && (
                   <span className="tnum text-xs opacity-80">{compareWith.length + 1}</span>
                 )}
@@ -516,8 +539,12 @@ export function Composer({
                     nothing was the last 62px keeping this row off one line at
                     1440px. The name shows once there is a name worth showing;
                     the accessible label carries it either way. */}
+                {/* The row, not the window. `sm:` was 640px of viewport: with
+                    the sidebar out at 1024px it showed a style name in a 454px
+                    row, and in the canvas dock it showed one in a bar narrower
+                    than a phone. */}
                 {styleId !== DEFAULT_STYLE_ID && (
-                  <span className="hidden pr-0.5 sm:inline">{style?.name}</span>
+                  <span className="hidden pr-0.5 @min-[30rem]/bar:inline">{style?.name}</span>
                 )}
               </button>
             </Popover.Trigger>
@@ -601,7 +628,7 @@ export function Composer({
                   <ProviderMark provider={model.provider} size={13} />
                   <span className="truncate">{model.short}</span>
                   {model.reasoning && effort && (
-                    <span className="hidden text-tertiary sm:inline">{effort}</span>
+                    <span className="hidden text-tertiary @min-[34rem]/bar:inline">{effort}</span>
                   )}
                 </>
               )}

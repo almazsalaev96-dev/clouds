@@ -63,6 +63,18 @@ export function Sidebar({
             ? "translate-x-0 md:w-[var(--sidebar-w)]"
             : "-translate-x-full md:w-0 md:translate-x-0 md:border-r-0",
         )}
+        /* `inert` as well as `aria-hidden`, and the pair is the point.
+           Collapsed, this becomes `w-0` with `overflow-hidden` — clipped to
+           nothing on the screen, while everything inside keeps its place in
+           the document and its place in the tab order. So four controls
+           (this toggle, the two room switches and New chat) could be tabbed
+           to while invisible, and `aria-hidden` meant a screen reader said
+           nothing when they were. That pairing — focusable inside
+           aria-hidden — is the one combination the spec calls out, and the
+           browser makes it worse by scrolling a focused child of an
+           `overflow:hidden` box into view, which drags the clipped column
+           back over the page. `inert` removes both at once. */
+        inert={!sidebarOpen}
         aria-hidden={!sidebarOpen}
       >
         <div className="flex w-[var(--sidebar-w)] flex-1 flex-col">

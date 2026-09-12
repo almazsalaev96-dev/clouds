@@ -82,7 +82,7 @@ run test-fit     node test-fit.mjs
 
 echo
 echo "== measured =="
-for m in audit contrast touch theme-parity type-scale keys reach widths print depth shoot-smoke; do
+for m in audit contrast touch theme-parity type-scale keys reach widths overlap print depth shoot-smoke; do
   run "$m" node "$m.mjs"
 done
 

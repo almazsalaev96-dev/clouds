@@ -1539,6 +1539,7 @@ node type-scale.mjs   # the type scale, read off the rendered app at two text si
 node keys.mjs         # the whole job done with the mouse unplugged
 node reach.mjs        # nothing is written where it cannot be read
 node widths.mjs       # fourteen widths, from a small phone to a wide monitor
+node overlap.mjs      # no two controls in the same pixels, at eight widths
 node print.mjs        # the print stylesheet, which is how a paper leaves here
 node depth.mjs        # elevation, measured on the pixels rather than read off the tokens
 node shoot-smoke.mjs  # every section loads, undo works, no runtime errors

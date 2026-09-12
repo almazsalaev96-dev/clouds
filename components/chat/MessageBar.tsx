@@ -135,7 +135,11 @@ export function MessageBar({
          first send the browser moves it down the screen rather than letting
          one vanish and another appear. */
       className={cn(
-        "vt-bar composer-shell rounded-[28px] border transition-[box-shadow,border-color] duration-[var(--dur-fast)] ease-[var(--ease-std)]",
+        /* The bar is the container, and it has to be an ancestor of what
+           asks about it: an element cannot query its own size, so naming the
+           container on the control row — which is where the thresholds are
+           used — matched nothing and left the row stacked at every width. */
+        "@container/bar vt-bar composer-shell rounded-[28px] border transition-[box-shadow,border-color] duration-[var(--dur-fast)] ease-[var(--ease-std)]",
         className,
       )}
     >
@@ -160,14 +164,33 @@ export function MessageBar({
         className="max-h-[45vh] w-full resize-none bg-transparent px-5 pb-1 pt-4 text-base leading-6 text-primary outline-none placeholder:text-tertiary"
       />
 
-      {/* Two groups, not one wrapping row. Only the left group wraps — send is
-          the one control this row exists for, and as a single wrapping line it
-          fell to a line of its own at 1440px and off the right edge entirely
-          at 390px. Anchored here it can do neither. */}
-      <div className="flex items-center gap-1 px-2.5 pb-2.5 pt-0.5">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">{left}</div>
+      {/* Two groups, and the group is the unit that wraps — never a control
+          inside one. A single wrapping line put send on a line of its own at
+          1440px and off the right edge at 390px, and this is not that: send
+          cannot be separated from the model picker and the microphone, and the
+          three of them move together or not at all.
 
-        <div className="flex min-w-0 items-center gap-1">
+          Side by side while both fit, stacked below that with the right group
+          keeping the right edge, so send is still the last thing on the last
+          line. Side by side on a phone is precisely what printed Creative
+          through the model button — the left group wrapped to three lines and
+          the right one sat centred across all of them.
+
+          The measure is this row, not the window. The same bar is 266px wide
+          inside a 320px phone and inside a 1024px window with the sidebar out,
+          and a viewport breakpoint calls the second one wide — which is why
+          the style name used to vanish on a desk and stay put on a phone. */}
+      <div className="flex flex-col gap-1 px-2.5 pb-2.5 pt-0.5 @min-[34rem]/bar:flex-row @min-[34rem]/bar:items-end">
+        {/* `flex-1` only once they share a line: with it always on, the left
+            group's hypothetical size is zero and the outer row would never
+            break on its own. Stacking is decided, not left to a heuristic. */}
+        <div className="flex min-w-0 flex-wrap items-center gap-1 empty:hidden @min-[34rem]/bar:flex-1">{left}</div>
+
+        {/* `ms-auto` is inert in row mode — the left group has already taken
+            the free space — and in column mode it stops the cross-axis stretch
+            and pins this group to the end, which is what keeps send in the
+            bottom-right corner rather than spread across the width. */}
+        <div className="ms-auto flex min-w-0 items-center gap-1">
           {right}
 
           {dictation.supported && (

@@ -50,6 +50,26 @@ const FIND = `(() => {
     return true;
   };
   const name = (el) => (el.getAttribute("aria-label") || el.textContent || el.tagName).trim().replace(/\\s+/g, " ").slice(0, 22) || el.tagName.toLowerCase();
+  /* Laid over, or laid on. A sticky top bar with the transcript scrolling
+     beneath it, and a floating "jump to latest" pill over the same transcript,
+     are both deliberate — the thing on top is meant to be on top, and the
+     thing underneath is not being collided with, it is being covered. The
+     defect this gate exists for is two controls in the *same* layer, which is
+     what the composer had: siblings in one flex row, neither above the other,
+     both drawn in the same pixels.
+
+     So: the nearest positioned ancestor is the layer. Two controls in the same
+     layer that occupy the same pixels is a bug; one in a floating layer over
+     another is the interface working. Without this the gate reports both, and
+     a gate that reports the design as a defect is one everybody learns to
+     scroll past — which is the failure test-lint.ts was written to avoid. */
+  const layer = (el) => {
+    for (let p = el.parentElement; p; p = p.parentElement) {
+      const s = getComputedStyle(p);
+      if (s.position !== "static" || s.zIndex !== "auto") return p;
+    }
+    return document.body;
+  };
   const all = [...document.querySelectorAll("button, [role=button], [role=menuitem], [role=tab], [role=radio], select, input:not([type=hidden])")]
     .filter((el) => {
       const r = el.getBoundingClientRect();
@@ -62,6 +82,7 @@ const FIND = `(() => {
     for (let j = i + 1; j < all.length; j++) {
       const a = all[i], c = all[j];
       if (a.contains(c) || c.contains(a)) continue;
+      if (layer(a) !== layer(c)) continue;
       const ar = a.getBoundingClientRect(), cr = c.getBoundingClientRect();
       const ox = Math.min(ar.right, cr.right) - Math.max(ar.left, cr.left);
       const oy = Math.min(ar.bottom, cr.bottom) - Math.max(ar.top, cr.top);
