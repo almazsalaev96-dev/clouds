@@ -55,30 +55,38 @@ const { ctx, page } = await open("no-preference");
 
 console.log("\nThe selection slides");
 {
+  /* The sidebar's room switch. This used to measure the composer's
+     Chat/Creative control, which is gone — the mode is read off the request
+     now — and the sliding indicator has two users left: this one and a web
+     canvas's file tabs. */
   const where = async () => {
-    const box = await page.locator(".composer-shell [role='radiogroup'][aria-label='Mode'] span[aria-hidden]").boundingBox();
+    /* The sidebar's room switch, not the composer's. The composer used to
+       carry a Chat/Creative segmented control and no longer does — the mode is
+       read off the request — so the indicator this measures lives on the one
+       segmented control still in the chrome. Same component, same animation. */
+    const box = await page.locator("aside [role='radiogroup'] span[aria-hidden]").first().boundingBox();
     return box ? Math.round(box.x) : null;
   };
   const before = await where();
   check(before !== null, "the mode switch has one indicator, not a fill per button", `x=${before}`);
 
-  /* Sampled across the move rather than once in the middle of it. A single
-     sample proves only that it had not finished yet, which a delay would also
-     satisfy; a position strictly between the two ends is travel. */
-  await page.getByRole("radio", { name: "Creative", exact: true }).click();
-  const track = [];
-  for (let i = 0; i < 8; i++) {
-    track.push(await where());
-    await page.waitForTimeout(25);
-  }
-  await page.waitForTimeout(400);
+  /* Not sampled mid-flight any more, and it is worth saying why rather than
+     quietly dropping an assertion. The version of this that caught the
+     indicator between its two positions was measuring the composer's own
+     switch, which stayed put while it slid. The two controls still using this
+     component both change what is on screen when you press them: this one
+     swaps the room under a view transition, during which the real element is
+     not laid out and every sample comes back null, and the other is a web
+     canvas's file tabs, which need a multi-file canvas to exist at all.
+
+     So what is left is the pair that can still be read honestly — it moves,
+     and it moves by transition rather than by jumping. Inventing a subject for
+     the third would be measuring the test rather than the app. */
+  await page.getByRole("radio", { name: "Code" }).first().click();
+  await page.waitForTimeout(500);
   const after = await where();
   check(after !== before, "clicking the other option moves it", `${before} → ${after}`);
-  const lo = Math.min(before, after), hi = Math.max(before, after);
-  const between = track.filter((x) => x !== null && x > lo && x < hi);
-  check(between.length > 0, "and it is caught in between on the way, rather than arriving instantly",
-    `${before} → ${between.join(" → ")} → ${after}`);
-  const t = await page.locator(".composer-shell [role='radiogroup'][aria-label='Mode'] span[aria-hidden]").evaluate((n) => getComputedStyle(n).transitionDuration);
+  const t = await page.locator("aside [role='radiogroup'] span[aria-hidden]").first().evaluate((n) => getComputedStyle(n).transitionDuration);
   check(t !== "0s", "because it is a transition and not a jump", t);
 }
 

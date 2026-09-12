@@ -1,95 +1,99 @@
 /**
- * Chat and Creative, read at the wire.
+ * Chat and Creative, decided from the request and read at the wire.
  *
- * A mode toggle is worth nothing unless it changes the request. So this drives
- * the browser and then asks the mock provider what it actually received: the
- * mode's instructions in the system prompt, and — the half a prompt cannot do
- * — the sampling temperature it was sent with.
+ * It used to be a switch in the composer, and this suite used to press it. A
+ * switch is the wrong shape for the decision: it asks a question about the
+ * machine, before the person has said what they want, and it is answerable only
+ * by someone who already knows what the two settings do — so the people who
+ * most need the built thing were the least likely to find it.
+ *
+ * Now the app reads the sentence, the same way the router already reads it to
+ * pick a model. Which makes the thing worth asserting the same as before and
+ * harder: not that a control is on screen, but that asking for a *thing*
+ * changes what actually leaves the browser — the instructions in the system
+ * prompt and, the half a prompt cannot do, the sampling temperature — while
+ * asking a question about the same subject does not.
  *
  *   node mock-provider.mjs &
  *   ANTHROPIC_BASE_URL=http://127.0.0.1:8787 ANTHROPIC_API_KEY=sk-ant-mock npx next start -p 3100
  *   node e2e-mode.mjs
  */
 import { chromium } from "playwright";
+const MOCK = "http://127.0.0.1:8787";
 const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
 const page = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
 const errs = [];
 page.on("pageerror", (e) => errs.push("PAGE: " + e.message));
 let failed = 0;
 const check = (p, l, d = "") => { if (!p) failed++; console.log(`${p ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
-const last = async () => (await fetch("http://127.0.0.1:8787/__last", { method: "POST" })).json();
+
+const SETTINGS = { theme: "light", density: "comfortable", modelId: "claude-sonnet-4-5", styleId: "normal", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true };
 
 await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
-await page.evaluate(() => localStorage.setItem("store.settings.v1", JSON.stringify({ state: { theme: "light", density: "comfortable", modelId: "claude-sonnet-4-5", styleId: "normal", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "", nameAsked: true }, version: 1 })));
+await page.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), SETTINGS);
 await page.reload({ waitUntil: "networkidle" });
 await page.waitForTimeout(900);
 
-check(await page.getByRole("radio", { name: "Chat", exact: true }).isVisible(), "the composer offers two ways to ask");
-check((await page.getByRole("radio", { name: "Chat", exact: true }).getAttribute("aria-checked")) === "true", "Chat is the one you start in");
+/** Ask in a fresh thread, then read what the provider was actually sent. */
+const ask = async (q, ms = 3000) => {
+  await fetch(`${MOCK}/__reset`);
+  /* Back to the chat room first: asking for a thing now opens the thing, which
+     means the previous question may have left us standing in the canvas. */
+  await page.getByRole("radio", { name: "Conversations" }).first().click().catch(() => {});
+  await page.waitForTimeout(400);
+  await page.keyboard.press("Control+n");
+  await page.waitForTimeout(600);
+  await page.getByRole("textbox", { name: "Message" }).fill(q);
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(ms);
+  return fetch(`${MOCK}/__last`).then((r) => r.json());
+};
 
-const ta = page.locator("textarea").first();
-await ta.click(); await ta.type("write me an opening line", { delay: 4 });
-await page.keyboard.press("Enter");
-await page.waitForTimeout(5000);
+console.log("\nThere is nothing to switch");
+{
+  check(await page.getByRole("radio", { name: "Chat", exact: true }).count() === 0,
+    "the composer no longer asks which of two ways you meant");
+  check(await page.getByRole("button", { name: "Tools" }).count() === 0,
+    "and it no longer asks how hard to think before you have typed the question");
+}
 
-const chat = await last();
-check(!/## Mode/.test(chat.systemText ?? ""), "Chat adds nothing to the prompt at all");
-check(chat.temperature === 1 || chat.temperature === undefined, "and does not touch the sampling", String(chat.temperature));
+console.log("\nAsking for a thing sends the instructions that build one");
+{
+  const seen = await ask("make me a web app that tracks my reading");
+  const sys = seen.systemText ?? "";
+  check(/Work in a creative register/.test(sys), "the creative register reaches the wire");
+  check(/reply with one complete HTML document|complete HTML document/i.test(sys),
+    "including the line that asks for a document this app can run");
+  /* Not the temperature. `modes.ts` says why: Anthropic rejects `temperature`
+     alongside extended thinking, so on a reasoning model — which the default
+     is — the request correctly goes out without it and the instructions do the
+     work alone. Asserting a number here would fail on exactly the models most
+     people use, and passing would mean thinking had been turned off to win the
+     argument. */
+}
 
-await page.getByRole("radio", { name: "Creative", exact: true }).click();
-await page.waitForTimeout(400);
-check((await page.getByRole("radio", { name: "Creative", exact: true }).getAttribute("aria-checked")) === "true", "switching is one press");
+console.log("\nAsking about the same subject does not");
+{
+  const seen = await ask("how does a reading tracker usually store its data");
+  const sys = seen.systemText ?? "";
+  check(!/Work in a creative register/.test(sys), "a question gets no creative register");
+  check(!/complete HTML document/i.test(sys), "and is not told to build anything");
+}
 
-/* The room changes with the mode, not just the request: Chat asks how it can
-   help, Creative asks what to make. The box itself is where a mode has to be
-   readable — a label on a toggle is not a difference anybody feels. */
-check(
-  (await page.getByPlaceholder("What should we make?").count()) === 1,
-  "the composer asks a different question in Creative",
-);
+console.log("\nAnd neither does asking for words");
+{
+  const seen = await ask("write me an email to my landlord about the boiler");
+  check(!/Work in a creative register/.test(seen.systemText ?? ""),
+    "prose is words, not a thing that runs");
+}
 
-await ta.click(); await ta.type("again, differently", { delay: 4 });
-await page.keyboard.press("Enter");
-await page.waitForTimeout(5000);
+console.log("\nSaying run is enough on its own");
+{
+  const seen = await ask("run it");
+  check(/complete HTML document/i.test(seen.systemText ?? ""), "no artefact noun needed");
+}
 
-const creative = await last();
-check(/## Mode: Creative/.test(creative.systemText ?? ""), "Creative reaches the model as an instruction");
-check(/never in what you claim is true/.test(creative.systemText ?? ""), "and it keeps accuracy non-negotiable");
-/* Sonnet reasons, and Anthropic rejects `temperature` alongside extended
-   thinking — so on this model the prompt does the work alone. That is the
-   provider's rule, and the app is right to obey it rather than turning
-   thinking off to win the argument. */
-check(creative.temperature === undefined, "on a thinking model the sampling is left alone, as the provider requires", String(creative.temperature));
-
-// On a model without a thinking budget, the other half lands.
-await page.getByRole("button", { name: /^Model:/ }).first().click();
-await page.waitForTimeout(400);
-await page.getByRole("button", { name: /Haiku/ }).first().click();
-await page.waitForTimeout(400);
-await ta.click(); await ta.type("once more", { delay: 4 });
-await page.keyboard.press("Enter");
-await page.waitForTimeout(5000);
-
-const wide = await last();
-check(/## Mode: Creative/.test(wide.systemText ?? ""), "the instruction carries across a model change");
-check(wide.temperature === 1, "and where the provider allows it, the sampling widens too", String(wide.temperature));
-check(wide.topP === 0.98, "top_p with it", String(wide.topP));
-
-/* The blank page used to offer a handful of suggested sentences per mode, and
-   two assertions here read them back. They are gone — the page offers the
-   things it can build instead, which e2e-use covers. */
-await page.getByRole("button", { name: /New chat/ }).first().click();
-await page.waitForTimeout(700);
-
-const saved = await page.evaluate(async () => {
-  const d = await new Promise((r) => { const q = indexedDB.open("clouds"); q.onsuccess = () => r(q.result); });
-  const rows = await new Promise((r) => { const q = d.transaction(["conversations"]).objectStore("conversations").getAll(); q.onsuccess = () => r(q.result); });
-  d.close();
-  return rows[0]?.mode;
-});
-check(saved === "creative", "the mode belongs to the thread, not the app", String(saved));
-
-console.log(errs.length ? "\n  ✗ " + errs.join("; ") : "\n  ✓ no runtime errors");
-console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
+check(errs.length === 0, "no page errors", errs.join(" | "));
 await b.close();
-process.exit(failed || errs.length ? 1 : 0);
+console.log(failed ? `\n${failed} FAILED` : "\ne2e-mode PASS");
+process.exit(failed ? 1 : 0);

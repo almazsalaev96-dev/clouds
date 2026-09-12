@@ -579,10 +579,23 @@
   --color-danger: var(--danger);
   --color-danger-subtle: var(--danger-subtle);
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  /* --- Corners.
+         -------------------------------------------------------------------
+         Raised a step across the board, because at 6/10/14 the curve was
+         doing its work without being seen: a 6px corner on a 28px control is
+         a bevel, and the eye reads the shape as a rectangle that happens to be
+         soft rather than as a rounded thing. The point of a radius is to be
+         legible at the size the element actually is.
+
+         Kept as a ratio rather than a flat addition. The scale steps by about
+         a third each time, so a menu item and the menu containing it stay in
+         proportion — nest a 10 inside a 14 and the inner corner looks wrong
+         against the outer one, which is the usual way a rounded interface
+         starts to look bent. --- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 26px;
 
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);

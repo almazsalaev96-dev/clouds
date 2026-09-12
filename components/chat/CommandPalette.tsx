@@ -5,7 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   Code2, Download, FileText, FolderOpen, MessageSquare, MessageSquarePlus, Moon,
-  NotebookPen, PanelLeft, Settings2, Sun, Trash2, Type, Wand2,
+  Columns2, NotebookPen, PanelLeft, Settings2, Sun, Trash2, Type, Wand2,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { MODELS } from "@/lib/models";
@@ -93,6 +93,17 @@ export function CommandPalette({
     focus: { what: string; where: string } | null;
     /** Carry an instruction out on whatever is in focus. */
     ask: (text: string) => void;
+    /**
+     * Ask a second model the same question, alongside the first.
+     *
+     * It used to be a checklist inside the composer's Tools popover, which
+     * meant deciding whether you wanted two answers before you had seen one.
+     * Here it is a command like any other: out of the way until the moment you
+     * want it, and reachable by typing the model's name.
+     */
+    compareWith: string[];
+    setCompareWith: (ids: string[]) => void;
+    canUseModel: (id: string) => boolean;
   };
 }) {
   const settings = useSettings();
@@ -133,6 +144,25 @@ export function CommandPalette({
             { id: "delete", label: "Delete this conversation", icon: <Trash2 size={15} />, group: "Actions", run: actions.deleteConversation },
           ]
         : []),
+      /* One per model, because "compare" on its own is a menu inside a menu and
+         the thing you actually know is which model you want to hear from. The
+         one already answering is not in the list, and neither is a model with
+         no key — a command that silently does nothing teaches you not to trust
+         the list it is in. */
+      ...MODELS.filter((m) => m.id !== settings.modelId && actions.canUseModel(m.id)).map((m) => ({
+        id: `alongside-${m.id}`,
+        label: actions.compareWith.includes(m.id)
+          ? `Stop asking ${m.name} alongside`
+          : `Also ask ${m.name}, alongside`,
+        icon: <Columns2 size={15} />,
+        group: "Answer",
+        run: () =>
+          actions.setCompareWith(
+            actions.compareWith.includes(m.id)
+              ? actions.compareWith.filter((x) => x !== m.id)
+              : [...actions.compareWith, m.id],
+          ),
+      })),
       { id: "sidebar", label: settings.sidebarOpen ? "Hide sidebar" : "Show sidebar", keys: ["mod", "\\"], icon: <PanelLeft size={15} />, group: "View", run: settings.toggleSidebar },
       {
         id: "theme",

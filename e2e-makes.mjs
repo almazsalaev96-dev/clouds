@@ -32,18 +32,27 @@ await page.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.string
 await page.reload({ waitUntil: "networkidle" });
 await page.waitForTimeout(900);
 
-/* The row is offered on a blank Creative page, which is the whole point: the
-   answer to "make me a timetable" should not be a paragraph about timetables. */
+/* The row lives in the Code room, which is the whole point: the answer to
+   "make me a timetable" should not be a paragraph about timetables, and the
+   place you go to make things is the room named after making them.
+
+   It used to be offered on a blank chat page as well, gated on a Creative mode
+   you switched into by hand. That switch is gone — the app reads the request —
+   and the duplicate went with it rather than being left on a page with nothing
+   to turn it on. */
 console.log("\nThe offer");
+await page.getByRole("radio", { name: "Code" }).first().click();
+await page.waitForTimeout(700);
 const row = page.getByRole("button", { name: "Flashcards" });
-check(await row.isVisible().catch(() => false), "Creative offers things you can make, not only things to ask");
-await page.getByRole("radio", { name: "Chat", exact: true }).click();
-await page.waitForTimeout(400);
-check(!(await row.isVisible().catch(() => false)), "and Chat does not — it is a different question");
+check(await row.isVisible().catch(() => false), "the Code room offers things you can make, not only things to ask");
+await page.screenshot({ path: `${OUT}/makes-code.png` });
+
+await page.getByRole("radio", { name: "Conversations" }).first().click();
+await page.waitForTimeout(600);
+check(!(await row.isVisible().catch(() => false)), "and a blank chat page does not — it is a different question");
 await page.screenshot({ path: `${OUT}/makes-chat.png` });
-await page.getByRole("radio", { name: "Creative", exact: true }).click();
-await page.waitForTimeout(400);
-await page.screenshot({ path: `${OUT}/makes-creative.png` });
+await page.getByRole("radio", { name: "Code" }).first().click();
+await page.waitForTimeout(700);
 
 /** Press a make, land in Code with it running, and hand back its frame. */
 async function open(name) {
@@ -53,12 +62,11 @@ async function open(name) {
   await frame.locator("body").waitFor({ timeout: 8000 });
   return frame;
 }
-/* Back out to the Code index, then to a blank Creative page, which is where
-   the row lives. Escape does the first half; the header switch the second. */
+/* Back out to the Code index, which is where the row lives now. It used to
+   need a second hop to a blank Creative chat page; the row is in one place
+   these days, so the first half is the whole journey. */
 async function back() {
   await page.getByRole("button", { name: "All canvases" }).click();
-  await page.waitForTimeout(400);
-  await page.getByRole("radio", { name: "Conversations" }).click();
   await page.waitForTimeout(700);
 }
 const consoleErrors = async () => {

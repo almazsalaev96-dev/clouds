@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
-  Brain, Check, FileText, MessageSquare, Paperclip, Palette, Plus,
+  Check, FileText, MessageSquare, Paperclip, Palette, Plus,
   SlidersHorizontal, Sparkles, Wand2, X,
 } from "lucide-react";
 import type { ContentBlock, Style } from "@/lib/types";
@@ -11,12 +11,10 @@ import { AUTO, getModel, estimateTokens, formatTokens, MODELS } from "@/lib/mode
 import { paramsFor } from "@/lib/store";
 import { ModelPicker } from "./ModelPicker";
 import { MessageBar } from "./MessageBar";
-import { Segmented } from "@/components/ui/Segmented";
 import { fileToBase64, formatBytes, cn } from "@/lib/utils";
 import { isPdf, pdfBlock } from "@/lib/pdf";
 import { useSettings, useDrafts } from "@/lib/store";
 import { allStyles, findStyle, DEFAULT_STYLE_ID } from "@/lib/styles";
-import { MODES, findMode } from "@/lib/modes";
 import { Tooltip } from "@/components/ui/primitives";
 import { ProviderMark } from "@/components/ui/ProviderMark";
 
@@ -43,11 +41,6 @@ export function Composer({
   onStop,
   onEditLast,
   onOpenModels,
-  compareWith,
-  onCompareChange,
-  availableModels,
-  mode,
-  onModeChange,
   styleId,
   customStyles,
   onStyleChange,
@@ -68,12 +61,7 @@ export function Composer({
   onStop: () => void;
   onEditLast: () => void;
   onOpenModels: () => void;
-  compareWith: string[];
-  onCompareChange: (ids: string[]) => void;
-  availableModels: (id: string) => boolean;
   /** Chat or Creative. */
-  mode: string;
-  onModeChange: (id: string) => void;
   /** The style this thread answers in. */
   styleId: string;
   customStyles: Style[];
@@ -92,9 +80,7 @@ export function Composer({
   const [notice, setNotice] = React.useState<string | null>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [plusOpen, setPlusOpen] = React.useState(false);
-  const [toolsOpen, setToolsOpen] = React.useState(false);
   const [stylesOpen, setStylesOpen] = React.useState(false);
-  const spec = findMode(mode);
   const reasoning = paramsFor(modelId).reasoningEffort;
   const effort = reasoning ? reasoning[0].toUpperCase() + reasoning.slice(1) : "";
   const styles = React.useMemo(() => allStyles(customStyles), [customStyles]);
@@ -102,9 +88,6 @@ export function Composer({
 
   /* Tools carries a state, so the pill has to show it: "on" means this thread
      will not answer the way the defaults would. */
-  const thinkLonger =
-    model.reasoning && (settings.params[modelId]?.reasoningEffort ?? "medium") === "high";
-  const toolsActive = thinkLonger || compareWith.length > 0;
 
   const text = drafts.drafts[conversationId] ?? "";
   const setText = (v: string) => drafts.setDraft(conversationId, v);
@@ -271,7 +254,7 @@ export function Composer({
         onStop={onStop}
         streaming={streaming}
         canSend={canSend}
-        placeholder={spec.placeholder}
+        placeholder="How can I help you today?"
         onArrowUp={onEditLast}
         onPaste={onPaste}
         focusKey={conversationId}
@@ -345,68 +328,6 @@ export function Composer({
             </Popover.Portal>
           </Popover.Root>
 
-          {/* Two ways to ask, side by side. It is a segmented control rather
-              than a menu because there are two of them and the one you are in
-              has to be readable without opening anything — and because the
-              difference is worth advertising: Creative is not a label, it
-              widens the sampling distribution and asks for range. */}
-          <Segmented
-            value={mode}
-            role="radiogroup"
-            aria-label="Mode"
-            className="ctl-h flex shrink-0 items-center rounded-full bg-inset p-0.5"
-          >
-            {MODES.map((m) => {
-              const on = m.id === mode;
-              const Icon = m.id === "creative" ? Sparkles : MessageSquare;
-              /* The name as well as the blurb, because below 22rem the word
-                 is off the screen and the tooltip is the only thing that says
-                 which of the two marks is which. */
-              return (
-                <Tooltip key={m.id} label={`${m.label} — ${m.blurb}`}>
-                  <button
-                    role="radio"
-                    aria-checked={on}
-                    data-on={on}
-                    onClick={() => onModeChange(m.id)}
-                    className={cn(
-                      /* A height that does not depend on the text, because
-                         below 22rem there is no text: with the label gone this
-                         was a 13px mark in 4px of padding — 21px tall, under
-                         the 24px floor a pointer needs and well under the 44
-                         a finger does. `ctl-h` carries both. */
-                      "btn-touch ctl-h [--ctl:1.75rem] focus-inset flex items-center gap-1.5 rounded-full px-3 py-1 text-sm transition-colors duration-[var(--dur-fast)]",
-                      // The fill is the sliding indicator behind it now, so the
-                      // button itself only changes what colour its ink is.
-                      on ? "font-medium text-primary" : "text-tertiary hover:text-primary",
-                    )}
-                  >
-                    <Icon
-                      size={13}
-                      className={cn(
-                        "shrink-0 transition-colors duration-[var(--dur-fast)]",
-                        // Creative is the one that changes what comes back, so
-                        // it is the one that gets the gold when it is live.
-                        on && m.id === "creative" ? "text-[var(--accent-2)]" : on ? "text-accent" : "",
-                      )}
-                    />
-                    {/* Visible by default and taken away when the bar is
-                        narrow, rather than the other way round: `not-sr-only`
-                        has to beat `sr-only` on order alone, and it did not.
-                        Stated this way the plain case needs no rule at all.
-
-                        `sr-only` rather than `hidden`, because this word is
-                        the radio's whole accessible name — dropping it would
-                        take "Chat" and "Creative" out of the page as well as
-                        off the screen. Absolute, so it is not a flex item and
-                        contributes neither width nor a gutter. */}
-                    <span className="@max-[22rem]/bar:sr-only">{m.label}</span>
-                  </button>
-                </Tooltip>
-              );
-            })}
-          </Segmented>
-
           <input
             ref={fileRef}
             type="file"
@@ -422,105 +343,15 @@ export function Composer({
               e.target.value = "";
             }}
           />
-
-          {/* The two things that change the shape of the answer, not its
-              content: how hard the model thinks, and how many answer at once. */}
-          <Popover.Root open={toolsOpen} onOpenChange={setToolsOpen}>
-            <Popover.Trigger asChild>
-              <button
-                aria-label="Tools"
-                className={cn(
-                  /* `btn-touch` for the same reason the style button has it:
-                     with the word gone this is a 17px mark in 20px of padding,
-                     and a height floor alone leaves a 37px-wide target. */
-                  "btn-touch ctl-h focus-inset flex shrink-0 items-center gap-1.5 rounded-full px-2.5 text-sm transition-colors duration-[var(--dur-fast)]",
-                  toolsActive
-                    ? "bg-accent-subtle text-accent"
-                    : "text-secondary hover:bg-subtle hover:text-primary",
-                )}
-              >
-                <SlidersHorizontal size={17} />
-                {/* display:none, not sr-only: `aria-label` already carries
-                    the name, so only the eye loses anything. */}
-                <span className="hidden pr-0.5 @min-[30rem]/bar:inline">Tools</span>
-                {compareWith.length > 0 && (
-                  <span className="tnum text-xs opacity-80">{compareWith.length + 1}</span>
-                )}
-              </button>
-            </Popover.Trigger>
-            <Popover.Portal>
-              <Popover.Content
-                align="start"
-                side="top"
-                sideOffset={8}
-                className="z-50 w-72 rounded-2xl glass border border-line p-1.5 shadow-lg anim-pop"
-              >
-                {model.reasoning ? (
-                  <button
-                    onClick={() =>
-                      settings.setParams(modelId, { reasoningEffort: thinkLonger ? "medium" : "high" })
-                    }
-                    className="focus-inset flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle"
-                  >
-                    <Brain size={16} className={cn("mt-0.5 shrink-0", thinkLonger ? "text-accent" : "text-tertiary")} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm text-primary">Think longer</span>
-                      <span className="block text-xs text-tertiary">
-                        Slower, and better on problems with steps.
-                      </span>
-                    </span>
-                    {thinkLonger && <Check size={14} className="mt-1 shrink-0 text-accent" />}
-                  </button>
-                ) : (
-                  <p className="px-2.5 py-2 text-xs text-tertiary">
-                    {model.name} answers in one pass — there is no thinking step to lengthen.
-                  </p>
-                )}
-
-                <div className="my-1 h-px bg-[var(--border-subtle)]" />
-                <p className="flex items-center justify-between px-2.5 pb-1 pt-1.5 text-xs text-tertiary">
-                  <span>Answer alongside {model.name}</span>
-                  {compareWith.length > 0 && (
-                    <button
-                      onClick={() => onCompareChange([])}
-                      className="text-xs text-accent hover:underline"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </p>
-                <div className="max-h-56 overflow-y-auto">
-                  {MODELS.filter((m) => m.id !== modelId).map((m) => {
-                    const on = compareWith.includes(m.id);
-                    const usable = availableModels(m.id);
-                    return (
-                      <button
-                        key={m.id}
-                        disabled={!usable || (!on && compareWith.length >= 2)}
-                        onClick={() =>
-                          onCompareChange(
-                            on ? compareWith.filter((x) => x !== m.id) : [...compareWith, m.id],
-                          )
-                        }
-                        className="focus-inset flex h-9 w-full items-center gap-2.5 rounded-xl px-2.5 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary disabled:pointer-events-none disabled:opacity-40"
-                      >
-                        <span className="text-tertiary">
-                          <ProviderMark provider={m.provider} size={12} />
-                        </span>
-                        <span className="min-w-0 flex-1 truncate">{m.name}</span>
-                        {on && <Check size={14} className="shrink-0 text-accent" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </Popover.Content>
-            </Popover.Portal>
-          </Popover.Root>
-
-          {/* The style sits beside Tools because it belongs to the same class
-              of decision — it changes the shape of the answer, not its content
-              — and because a control you have to open Settings to reach is one
-              nobody changes twice. */}
+          {/* Style is the one thing left in this row that is genuinely a
+              preference rather than a reading of the request: how you want to
+              be talked to, which nothing in a sentence reliably says. Mode and
+              Tools used to sit here and both were questions about the machine
+              — asked before you had said what you wanted, and answerable only
+              if you already knew what they did. They are decided now: the mode
+              from the request, the thinking from the kind of work, and a second
+              opinion from the answer you are actually looking at, where you can
+              see whether you want one. */}
           <Popover.Root open={stylesOpen} onOpenChange={setStylesOpen}>
             <Popover.Trigger asChild>
               <button

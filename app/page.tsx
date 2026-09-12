@@ -10,11 +10,12 @@ import {
   filesOf,
 } from "@/lib/db";
 import { composeSystemPrompt, composeTurnPrompt } from "@/lib/prompt";
-import { taskOf } from "@/lib/task";
+import { effortFor, taskOf } from "@/lib/task";
 import { shapeFor } from "@/lib/shape";
 import { visualFor } from "@/lib/visual";
 import { findStyle, isTeaching } from "@/lib/styles";
-import { findMode } from "@/lib/modes";
+import { findMode, modeFor } from "@/lib/modes";
+import { builtDocument, titleOf } from "@/lib/built";
 import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, estimateTokens, getModel } from "@/lib/models";
 import { costOf, fitToContext } from "@/lib/context";
 import { cheapestAvailable, complete } from "@/lib/complete";
@@ -23,7 +24,7 @@ import { useStream } from "@/lib/hooks/useStream";
 import { cn, inOverlay } from "@/lib/utils";
 import { offerUndo } from "@/lib/undo";
 import { Sidebar } from "@/components/Sidebar";
-import { CanvasView } from "@/components/CanvasView";
+import { CanvasView, toCanvas } from "@/components/CanvasView";
 import { saveToNote } from "@/lib/db";
 import { InlineError } from "@/components/chat/Message";
 import { TopBar } from "@/components/chat/TopBar";
@@ -292,7 +293,35 @@ export default function Page() {
     [configured],
   );
 
-  const stream = useStream();
+  /**
+   * A built thing runs, rather than sitting in the transcript as markup.
+   *
+   * Asked for a timer, the model replies with one complete HTML document
+   * because it was told this app can run one. Until now it arrived as a
+   * nine-hundred-line code block with a button on it, and `toCanvas` — written
+   * for exactly this — was never called by anything. So the answer that is a
+   * document opens where documents run, and the conversation keeps its shape.
+   *
+   * Only a whole document, never a fragment: an explanation with an html
+   * example in it is something to read in place, and lifting that out would be
+   * the app deciding it knows better than the person who asked.
+   */
+  const stream = useStream(async (m) => {
+    if (m.role !== "assistant") return;
+    const doc = builtDocument(blockText(m.content));
+    if (!doc) return;
+    const canvas = await toCanvas(doc, {
+      title: titleOf(doc),
+      /* "code" with lang html, not "web": a web canvas is a folder whose text
+         lives in `canvasFiles` and whose `content` stays empty, and this is one
+         self-contained document. CanvasView counts both as runnable. */
+      kind: "code",
+      lang: "html",
+      conversationId: m.conversationId,
+    });
+    setCanvasId(canvas.id);
+    withTransition(() => settings.setSection("code"), "forward");
+  });
 
   /* --- Sending ---------------------------------------------------------- */
 
@@ -319,7 +348,16 @@ export default function Page() {
       const project = conv?.projectId ? await db.projects.get(conv.projectId) : undefined;
       const files = project ? await filesOf(project.id) : [];
       const style = findStyle(conv?.styleId ?? settings.styleId, customStyles);
-      const mode = findMode(conv?.mode ?? settings.mode);
+      /* The mode is read off the request rather than set on a switch.
+         Choosing between Chat and Creative was a question about the machine,
+         asked before the person had said what they wanted and answerable only
+         by someone who already knew what the two settings did — so the ones
+         who most needed the built thing were the least likely to have found
+         the toggle. A thread that has been given a mode explicitly (the canvas
+         sets one) keeps it; everything else is decided from the sentence, the
+         same way the router already decides the model. */
+      const wants = [...history].reverse().find((m) => m.role === "user");
+      const mode = findMode(conv?.mode ?? (wants ? modeFor(blockText(wants.content)) : undefined));
       const composed = composeSystemPrompt({
         base: conv?.systemPrompt ?? settings.systemPrompt,
         project,
@@ -332,8 +370,7 @@ export default function Page() {
          spent the answer on one thing: telling a second model what to look for
          when checking the first. The classification was going into the audit
          and never into the work. */
-      const asked = [...history].reverse().find((m) => m.role === "user");
-      const task = asked ? taskOf(blockText(asked.content)) : null;
+      const task = wants ? taskOf(blockText(wants.content)) : null;
       const turn = composeTurnPrompt({
         shape: task ? shapeFor(task.kind) : "",
         /* And when a picture would beat a paragraph. The house rules say prose
@@ -356,7 +393,10 @@ export default function Page() {
         history,
         systemPrompt: composed.text || undefined,
         turnPrompt: turn || undefined,
-        params: mode.params,
+        /* And how hard to think, from the same reading. `effortFor` returns
+           nothing for the kinds that do not benefit, and nothing means the
+           model keeps whatever it was already set to. */
+        params: { ...mode.params, ...(effortFor(task?.kind) ? { reasoningEffort: effortFor(task?.kind) } : {}) },
       });
     },
     [stream, settings.systemPrompt, settings.styleId, settings.mode, customStyles],
@@ -367,15 +407,6 @@ export default function Page() {
     (id: string) => {
       settings.setStyle(id);
       if (activeId) void db.conversations.update(activeId, { styleId: id });
-    },
-    [settings, activeId],
-  );
-
-  /** Same rule again: the open thread owns it, the app holds the default. */
-  const setMode = React.useCallback(
-    (id: string) => {
-      settings.setMode(id);
-      if (activeId) void db.conversations.update(activeId, { mode: id });
     },
     [settings, activeId],
   );
@@ -402,7 +433,12 @@ export default function Page() {
         const created = await createConversation({
           modelId: settings.modelId,
           styleId: settings.styleId,
-          mode: settings.mode,
+          /* No mode. It used to be stamped on the row at creation, which meant
+             `conv.mode` was always set and the per-turn reading of the request
+             never ran at all — every thread was permanently whatever the switch
+             had been. Left unset, each turn is read on its own, which is what
+             lets one thread answer a question and then build the thing you ask
+             for next. */
           // Set by "New chat here", which names a project before there is a
           // conversation for it to be a property of.
           projectId: pendingProject ?? undefined,
@@ -1086,15 +1122,10 @@ export default function Page() {
       onStop={stream.stop}
       onEditLast={editLast}
       onOpenModels={() => setModelPickerOpen(true)}
-      compareWith={compareWith}
-      onCompareChange={setCompareWith}
-      availableModels={modelUsable}
       configured={configured}
       modelPickerOpen={modelPickerOpen}
       onModelPickerOpenChange={setModelPickerOpen}
       onModelChange={setModel}
-      mode={threadMode}
-      onModeChange={setMode}
       styleId={threadStyleId}
       customStyles={customStyles}
       onStyleChange={setStyle}
@@ -1229,7 +1260,6 @@ export default function Page() {
             <EmptyState
               hasAnyKey={hasAnyKey}
               onExample={(text) => useDrafts.getState().setDraft(activeId ?? "new", text)}
-              onMake={openMade}
               onAddKey={openKeys}
             >
               {composer}
@@ -1334,6 +1364,9 @@ export default function Page() {
             hasConversation: Boolean(activeId),
             focus,
             ask: askFocused,
+            compareWith,
+            setCompareWith,
+            canUseModel: modelUsable,
           }}
         />
         )}

@@ -82,3 +82,51 @@ export const DEFAULT_MODE: Mode = "chat";
 export function findMode(id: string | undefined): ModeSpec {
   return MODES.find((m) => m.id === id) ?? MODES[0];
 }
+
+/**
+ * Which mode this request is in, read off the request.
+ *
+ * It was a switch in the composer, and a switch is the wrong shape for it.
+ * Choosing between Chat and Creative is a question about the machine, asked
+ * before the person has said what they want, and answerable only by someone
+ * who already knows what the two settings do — the ones who most need the
+ * built thing are the least likely to have found the toggle. The app can read
+ * the request instead: this is the same move the model router already makes,
+ * and for the same reason.
+ *
+ * ## What makes it a make
+ *
+ * A thing rather than words. "Build me a timer" wants a timer; "how do
+ * timers work" wants an explanation, and the difference is in the sentence.
+ * Two signals, and both have to be there:
+ *
+ *  - an asking-for verb, or an outright "run it"
+ *  - a noun that names something that can actually run
+ *
+ * Requiring both is what keeps "write me an email", "make it shorter" and
+ * "explain how a tracker works" out. Prose is not a thing that runs, editing
+ * is not building, and a question about a tracker is not a request for one.
+ */
+const MAKE_VERB =
+  /\b(make|build|create|generate|design|give me|put together|knock up|write)\b/i;
+
+/** No verb needed: it is already an instruction. */
+const RUN_IT = /\b(run (it|this|that|the)|open (it|this) (in|as)|make it run|get it running)\b/i;
+
+/**
+ * Things that run. Deliberately not "essay", "email", "poem" or "summary" —
+ * those are words, and words belong in the transcript where they can be read,
+ * quoted and pointed at.
+ */
+const RUNNABLE =
+  /\b(web ?(app|page|site)?|site|page|app|html|landing page|game|timer|countdown|stopwatch|clock|tracker|quiz|flashcards?|calculator|converter|dashboard|chart|graph|checklist|todo|to-do|timetable|schedule|planner|form|survey|poll|board|generator|simulator|visuali[sz]er|widget|tool)\b/i;
+
+/** Editing prose is not building a thing, however imperative it sounds. */
+const EDITING = /\bmake (it|this|them|that)\b(?!.*\b(run|work)\b)/i;
+
+export function modeFor(text: string): Mode {
+  const t = text.slice(0, 600);
+  if (RUN_IT.test(t)) return "creative";
+  if (EDITING.test(t)) return "chat";
+  return MAKE_VERB.test(t) && RUNNABLE.test(t) ? "creative" : "chat";
+}

@@ -1544,7 +1544,7 @@ node print.mjs        # the print stylesheet, which is how a paper leaves here
 node depth.mjs        # elevation, measured on the pixels rather than read off the tokens
 node shoot-smoke.mjs  # every section loads, undo works, no runtime errors
 
-# and eight that need no browser at all:
+# and ten that need no browser at all:
 node --experimental-strip-types test-cite.mts   # the citation matcher, on its own
 npx jiti test-route.ts                          # the model router and the calculator
 npx jiti test-web.ts                            # the preview assembler and its source map
@@ -1553,6 +1553,8 @@ npx jiti test-error.ts                          # every way a provider can fail
 npx jiti test-lint.ts                           # whether an answer obeyed the house rules
 npx jiti test-predict.ts                        # every malformed gate the renderer has to decline
 npx jiti test-rows.ts                           # what a restore is allowed to put in the database
+npx jiti test-mode.ts                           # which requests build a thing and which answer in words
+npx jiti test-built.ts                          # an answer that is a document, and one that only mentions markup
 npx jiti test-fuzz.ts                           # generated cases against the invariants
 ```
 

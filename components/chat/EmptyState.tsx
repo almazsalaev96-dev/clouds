@@ -3,9 +3,7 @@
 import * as React from "react";
 import { KeyRound, X } from "lucide-react";
 import { useSettings } from "@/lib/store";
-import { findMode } from "@/lib/modes";
 import { Mark } from "@/components/brand/Logo";
-import { MakeRow } from "@/components/MakeRow";
 
 /**
  * The time of day, as a greeting.
@@ -67,14 +65,12 @@ const useIsoLayoutEffect = typeof window === "undefined" ? React.useEffect : Rea
 export function EmptyState({
   hasAnyKey,
   onExample,
-  onMake,
   onAddKey,
   children,
 }: {
   hasAnyKey: boolean;
   onExample: (text: string) => void;
   /** A working thing was made; go and open it. */
-  onMake: (canvasId: string, seed: string) => void;
   onAddKey: () => void;
   /** The composer. */
   children: React.ReactNode;
@@ -82,7 +78,6 @@ export function EmptyState({
   const settings = useSettings();
   const { name, nameAsked } = settings;
   const greeting = useGreeting();
-  const spec = findMode(settings.mode);
   const [draftName, setDraftName] = React.useState("");
 
   return (
@@ -144,29 +139,11 @@ export function EmptyState({
           </div>
         )}
 
-        {/* In Creative, the things you can have as a *thing* rather than as a
-            paragraph. "Make me a timetable" answered with a description of a
-            timetable is the app not understanding the request, so the five
-            shapes it can actually build are offered as buttons: press one and
-            a working, animated version is on screen a second later, with your
-            half-written instruction under it. Chat does not get this row — it
-            is a different question. */}
-        {hasAnyKey && spec.id === "creative" && (
-          <div className="mt-6 anim-rise" style={{ animationDelay: "160ms" }}>
-            {/* Not "Or make…" any more: the sentences it was an alternative to
-                are gone, and an "or" with nothing before it is a dangling
-                comparison to something the reader never saw. */}
-            <p className="eyebrow mb-2.5 text-center text-faint">
-              Make something you can use
-            </p>
-            <div className="flex flex-wrap justify-center gap-2">
-              <MakeRow
-                onSelect={(id, seed) => onMake(id, seed)}
-                onAnything={() => onExample("Make me a ")}
-              />
-            </div>
-          </div>
-        )}
+        {/* The row of things you can make used to live here too, shown only
+            in Creative. Creative is not a mode you switch into any more — the
+            app reads it off the request — and the same row has always been in
+            the Code room under "Or make one of these", which is where making
+            things belongs. One copy, in the room named after it. */}
 
         {/* Asked once, on the blank page, after the keys are in — never as a
             modal and never again after an answer either way. A name is the

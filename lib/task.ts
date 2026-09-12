@@ -245,3 +245,28 @@ export const CHECKS: Record<TaskKind, string[]> = {
   ],
   general: [],
 };
+
+/**
+ * How hard to think, read off the kind of work rather than set on a switch.
+ *
+ * "Think longer" was a checkbox in the composer's Tools popover, which asked
+ * the reader to predict whether the question they were about to type would
+ * turn out to have steps in it. They cannot know that, and the ones who most
+ * need the longer pass are the least likely to go looking for a toggle — the
+ * same objection that took the mode switch out.
+ *
+ * Three kinds earn it, and they are the three where a wrong answer is wrong in
+ * a way the reader cannot see: code that looks right and is not, arithmetic
+ * that is off in the third step, and a claim about the world that sounds
+ * settled. Explaining, writing and design are not on the list — a longer
+ * thinking pass makes prose slower and no better, and the failure there is
+ * being boring rather than being wrong.
+ *
+ * `undefined` rather than "medium" for the rest: absent means the model's own
+ * setting stands, which is what the person chose if they ever chose one.
+ */
+const THINKS_HARDER = new Set<TaskKind>(["coding", "data", "research"]);
+
+export function effortFor(kind: TaskKind | undefined): "high" | undefined {
+  return kind && THINKS_HARDER.has(kind) ? "high" : undefined;
+}

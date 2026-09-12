@@ -63,6 +63,8 @@ run test-lint  npx jiti test-lint.ts
 run test-predict npx jiti test-predict.ts
 run test-rows  npx jiti test-rows.ts
 run test-lang  npx jiti test-lang.ts
+run test-mode  npx jiti test-mode.ts
+run test-built npx jiti test-built.ts
 run test-fuzz  npx jiti test-fuzz.ts
 run test-cite  node --experimental-strip-types test-cite.mts
 [ "$ONLY" = unit ] && { echo; echo "$([ $FAILED -eq 0 ] && echo "all passed" || echo "$FAILED FAILED")"; exit $FAILED; }

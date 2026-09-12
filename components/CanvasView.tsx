@@ -269,7 +269,16 @@ function Editor({
     : { key: canvas.id, name: canvas.title, lang: canvas.lang, content: canvas.content, fileName: undefined };
 
   const [draft, setDraft] = React.useState(doc.content);
-  const [mode, setMode] = React.useState<Mode>(web ? "run" : "edit");
+  /* A thing that was asked for opens running; a file that was opened opens in
+     the editor. Someone who typed "make me a timer" wants the timer — they did
+     not ask to read its markup, and landing on the source is the same mistake
+     as printing it into the chat. `sourceConversationId` is the difference:
+     it is set only by `toCanvas`, which is only called when an answer turned
+     out to be a whole document. */
+  const cameFromAnswer =
+    Boolean(canvas.sourceConversationId) &&
+    (canvas.kind === "code" ? canvas.lang === "html" : canvas.kind === "web");
+  const [mode, setMode] = React.useState<Mode>(web || cameFromAnswer ? "run" : "edit");
   /* Seeded, not empty, when this canvas was just made from a starter: the
      half-sentence the starter belongs to, with the caret after it. A blank box
      under a working demo asks "now what"; a sentence to finish answers it. */
