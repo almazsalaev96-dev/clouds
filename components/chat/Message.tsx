@@ -11,6 +11,7 @@ import type { ChatError, Message as Msg } from "@/lib/types";
 import { CALCULATOR, getModel, formatTokens, MODELS } from "@/lib/models";
 import { blockText } from "@/lib/db";
 import { cn, describeTiming, formatDuration } from "@/lib/utils";
+import { guessLang } from "@/lib/lang";
 import { Markdown } from "./Markdown";
 import { IconButton, Button, Tooltip } from "@/components/ui/primitives";
 import { ProviderMark } from "@/components/ui/ProviderMark";
@@ -142,7 +143,10 @@ function UserMessageImpl({
           layer being re-read at a glance to remember what you asked. The wider
           column and the extra leading go to the side that needs them. */}
       {text && (
-        <div className="max-w-[85%] whitespace-pre-wrap rounded-[20px] bg-subtle px-4 py-2.5 text-md [overflow-wrap:anywhere]">
+        <div
+          dir="auto"
+          className="max-w-[85%] whitespace-pre-wrap rounded-[20px] bg-subtle px-4 py-2.5 text-md [overflow-wrap:anywhere]"
+        >
           {text}
         </div>
       )}
@@ -265,6 +269,14 @@ function AssistantMessageImpl({
       return;
     }
     const utter = new SpeechSynthesisUtterance(text.replace(/```[\s\S]*?```/g, " code block "));
+    /* Without a language the browser reads everything in the voice it booted
+       with, so an Arabic or Japanese answer came out pronounced as English —
+       which is not an accent, it is unintelligible. Guessed from the script,
+       because that is what is actually knowable from the text: a run of Arabic
+       letters is Arabic or Persian or Urdu and any of those three voices is
+       enormously closer than the English one. */
+    const lang = guessLang(text);
+    if (lang) utter.lang = lang;
     utter.onend = () => setSpeaking(false);
     speechSynthesis.speak(utter);
     setSpeaking(true);

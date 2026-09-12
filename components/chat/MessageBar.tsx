@@ -153,6 +153,10 @@ export function MessageBar({
         aria-label={ariaLabel}
         /* 16px, not 15: anything smaller and iOS zooms the whole page on
            focus, and the way back out is a pinch. */
+        /* The same per-block direction the answers get. Someone typing
+           Arabic was watching their own sentence build left to right with
+           the caret in the wrong place. */
+        dir="auto"
         className="max-h-[45vh] w-full resize-none bg-transparent px-5 pb-1 pt-4 text-base leading-6 text-primary outline-none placeholder:text-tertiary"
       />
 

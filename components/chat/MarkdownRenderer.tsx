@@ -99,8 +99,15 @@ export default function MarkdownRenderer({
   content: string;
   streaming?: boolean;
 }) {
+  /* `dir="auto"` and not an app-wide direction. Four providers, all fluent in
+     Arabic, Hebrew, Persian and Urdu; without this an answer in any of them
+     renders left-aligned with its terminal punctuation at the wrong end. Per
+     block rather than per app because a thread is routinely mixed — an Arabic
+     explanation with an English identifier in it — and the browser decides
+     from the first strong character, which is the one heuristic that gets a
+     mixed line right. */
   return (
-    <div className="prose">
+    <div className="prose" dir="auto">
       <ReactMarkdown
         remarkPlugins={REMARK}
         rehypePlugins={REHYPE}

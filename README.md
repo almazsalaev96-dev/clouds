@@ -1398,6 +1398,29 @@ heading, and link URLs printed in full.
 
 Stated plainly, because a checklist you cannot trust is worse than no checklist.
 
+Three of them closed this week, and one is worth stating because of how it was
+found: the app had **no error boundary anywhere**. In a production React build
+a throw during render unmounts the whole tree and leaves the browser's blank
+page — and this app keeps everything a person has ever written in their own
+browser and nowhere else, so that is not a bad session, it is the end of the
+app. The path was reachable: `restoreBackup` admitted any row with a string id,
+so a message whose `content` came back as a string rather than an array of
+blocks — a truncated download, a half-synced file, a backup somebody opened in
+a text editor — went into the database, reached `blockText`, and threw. And it
+threw again on the next load, because `lastConversationId` reopens the same
+thread. One bad row, and the app never opened again with everything inside it.
+
+Both halves are closed. `lib/rows.ts` refuses the row on the way in, and it is
+deliberately shallow — it checks the fields that are dereferenced *without a
+guard* on the render path, which is a much shorter list than "the type".
+`components/ui/CrashNet.tsx` catches the throw on the way out, and what it
+offers is the point: leave the conversation that is throwing, and take a copy
+of everything first, read straight off the tables rather than through the
+export path, because a lifeboat sharing a hull with the ship is not a lifeboat.
+It does not offer to clear the database and never will — responding to a render
+error by deleting someone's work converts a recoverable fault into the thing
+they were most afraid of.
+
 - **No successful call to a real provider has been observed.** No valid key was
   available in this environment. Every *failure* path was exercised against the
   real APIs — Anthropic and Google both answered and were classified correctly.
@@ -1520,7 +1543,7 @@ node print.mjs        # the print stylesheet, which is how a paper leaves here
 node depth.mjs        # elevation, measured on the pixels rather than read off the tokens
 node shoot-smoke.mjs  # every section loads, undo works, no runtime errors
 
-# and seven that need no browser at all:
+# and eight that need no browser at all:
 node --experimental-strip-types test-cite.mts   # the citation matcher, on its own
 npx jiti test-route.ts                          # the model router and the calculator
 npx jiti test-web.ts                            # the preview assembler and its source map
@@ -1528,6 +1551,7 @@ npx jiti test-task.ts                           # what kind of work a request is
 npx jiti test-error.ts                          # every way a provider can fail
 npx jiti test-lint.ts                           # whether an answer obeyed the house rules
 npx jiti test-predict.ts                        # every malformed gate the renderer has to decline
+npx jiti test-rows.ts                           # what a restore is allowed to put in the database
 npx jiti test-fuzz.ts                           # generated cases against the invariants
 ```
 
@@ -1562,6 +1586,7 @@ node e2e-shape.mjs   # 13 assertions: each kind of work asked for the way it nee
 node e2e-point-at.mjs# 20 assertions: pointing at a sentence and asking about it
 node e2e-draw.mjs    # 18 assertions: topology becomes a picture, or stays a fence to save anything
 node e2e-ask.mjs     # 24 assertions: an answer you have to commit to before you are shown it
+node e2e-crash.mjs   # 12 assertions: one bad row, and the way back out of it
 # and one that needs a second provider, so the mock serves both wire formats:
 OPENAI_BASE_URL=http://127.0.0.1:8787 OPENAI_API_KEY=sk-mock …
 node e2e-verify.mjs  # 16 assertions: a check that comes from another provider
