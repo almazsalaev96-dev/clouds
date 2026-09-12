@@ -1572,6 +1572,125 @@ node test-fit.mjs      # a 360k-token thread trimmed to fit and answered
 MOCK_RATE_LIMIT=1 …    # restart the mock this way, then: node test-retry.mjs
 ```
 
+## How an answer is shaped before it is written
+
+The app classifies every request — `lib/task.ts` decides whether it is someone
+learning, code, a claim about the world, prose, numbers or design — and for a
+long time that classification was spent entirely on the audit: a second model
+was told what to look for when checking the first one. The app knew a request
+was a proof, and then asked for it in the same voice it would use for anything
+else. Four blocks now sit in front of the answer instead of behind it.
+
+**House rules** (`lib/answer.ts`) go first, which in this file's ordering means
+*weakest* — the person's own instructions, their project, their style and their
+mode all come after and all win a disagreement. That is the right precedence for
+a floor. Eight rules, each a measured failure mode rather than a taste. Open
+with the answer, because people read about a quarter of a page and they read the
+top of it. Write in prose, because a bulleted explanation has had its connective
+tissue deleted — the *because*, the *therefore*, the *unless* — and those are not
+the packaging around the reasoning, they are the reasoning. And the one that does
+the most damage: **when you have been asked what to do, say what to do.**
+Sycophancy's usual expression is not flattery, it is the absence of a verdict —
+models avoid direct guidance 63 points more often than people answering the same
+questions, and a balanced survey with no recommendation in it is that failure
+wearing the costume of rigour.
+
+**The shape of this kind of work** (`lib/shape.ts`) is the answering twin of the
+audit's `CHECKS`. Not a template — a fixed skeleton guarantees redundancy on
+every short answer, and a second rendering of something already understood
+*subtracts*, because the reader cannot decline to process it. Each line is a
+condition and a consequence. A learning request is told to pitch at the
+structure of what the person said rather than the difficulty of the topic; to
+name the common wrong version, say plainly that it is wrong, and say *what it
+mispredicts* before giving the right one, because stating the correct fact alone
+leaves the wrong model running as a working theory; and to end on something to
+do or recall rather than a summary, since retrieving is the event that makes it
+stick and re-reading produces fluency, which is what people mistake for knowing.
+A general request is told nothing at all — a model handed a list of virtues to
+perform on an ordinary question performs them, and the answer gets worse in a
+way that reads as thorough.
+
+**Not looking ahead** (`NO_LOOKAHEAD`, for the teaching stances only) is the
+cheapest way to stop a tutor giving the answer away. Every teaching prompt ever
+written says don't hand over the solution and every one of them leaks anyway,
+because a model that has already solved the problem is a model whose hint is
+*shaped* like the solution — it names the right variable, skips the step that
+does not matter, and arrives pointing at the answer. Nothing was disobeyed; the
+leak is in the shape. Constraining the model to reason only about the work the
+person has already shown is a stronger mechanism than telling it not to tell.
+
+**Drawing** (`lib/visual.ts`) qualifies the prose rule, which was written against
+bullets and reads as "never draw anything" if left alone. A flowchart is nothing
+*but* connective tissue. The rule that makes it work is topology, never geometry:
+asked for coordinates a model produces overlapping labels and arrows that miss
+their boxes, and asked for relations it is near-perfect, because relations are
+language. So the model describes what connects to what and never where anything
+goes, and a layout engine owns the rest. `components/chat/Diagram.tsx` parses
+before it renders and falls back permanently to the code fence on any throw — an
+unreadable diagram must never cost the answer around it.
+
+Three of the four are per-request, so they are sent as a second, uncached system
+block behind the cached one: the house rules sit at the front of the prefix and
+never vary, which is what keeps the cache warm.
+
+### Committing to an answer before you are shown one
+
+The clearest result in this literature is also the least convenient: exhibiting
+something teaches nobody. Learning shows up when the reader had to produce
+something first, and the size of it tracks how much they produced rather than how
+good the explanation was — a perfectly clear, entirely receptive explanation
+underperforms a mediocre one that made you guess.
+
+A stream physically cannot do that. The model asks "what do you think happens
+here?" and four lines later, without waiting, tells you. The two teaching stances
+that avoid it do so by withholding across turns, which costs a round trip and a
+model call per question.
+
+````
+```predict
+{"q":"What does this return on an empty list?","options":["0","undefined","it throws"],"answer":2,"why":"…"}
+```
+````
+
+The model emits the question, the options and the explanation together in one
+stream and the renderer refuses to show the last part until the reader has
+chosen. Nothing is sent and nothing is stored, which is the whole reason it can
+be instant. The reveal is behind `hidden` rather than a class that hides it, so
+a screen reader cannot read ahead either — a gate that only stops the sighted is
+theatre. Right and wrong carry a glyph as well as a colour. On paper the whole
+thing opens, because a worksheet that withholds its own answer cannot be marked.
+
+`lib/predict.ts` is a parser over untrusted text and the interesting half of it
+is everything it declines: one option is a statement wearing a button; an answer
+pointing past the end of its own list is a gate nobody can get right; an index of
+1.5 clears every bound and names no option. All of them fall through to a plain
+code block, because the failure that matters is not a missing gate — it is one
+that throws inside the renderer and takes the surrounding answer with it.
+
+### Pointing at a sentence
+
+Select any part of an answer and a small bar appears: *Explain*, *Simpler*,
+*Why*, *Ask*. The quoted run goes back as a blockquote so the model knows
+exactly which sentence is the problem, and the selection stays marked through
+the CSS Custom Highlight API — the reader can see what they asked about while
+the answer to it arrives.
+
+### What checks the answers
+
+`lib/lint.ts` reads a finished answer back against the house rules: an opener
+that is a header or a pleasantry or a restatement of the question, the app
+describing its own answer, a closing offer, a hedge carrying no number, a
+structure ratio that means bullets where prose was owed. `test-lint.ts` tests
+every rule in both directions — the sentence that should trip it and the one
+that looks like it should and must not — because a linter that fires on good
+writing is a linter everyone learns to ignore.
+
+It is worth saying what this closes. Every pair of colours the app renders is
+measured against WCAG, every control against 44pt in three densities, the type
+scale at two text sizes, the whole tab cycle with the mouse unplugged, fourteen
+widths and both print themes. The container was measured exhaustively and the
+content — the thing the app exists to deliver — was not measured at all.
+
 ## What the app does to make answers better
 
 Three things happen between pressing enter and the provider seeing the request.
