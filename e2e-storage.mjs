@@ -99,6 +99,47 @@ console.log("\nAnd with a working database it says nothing at all");
   await ctx.close();
 }
 
+console.log("\nTwo tabs of it are one app, not two");
+{
+  /* The classic way a local-first app goes wrong: one tab deletes a thing and
+     the other keeps showing it, so clicking a row opens nothing and the person
+     concludes their work is corrupted. Both tabs read the same database
+     through live queries, and this is the assertion that keeps it that way —
+     a one-shot read swapped in for a live one would pass every other test in
+     this repository. */
+  const ctx = await b.newContext({ viewport: { width: 1280, height: 860 } });
+  const A = await ctx.newPage();
+  await A.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await A.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), SETTINGS);
+  await A.reload({ waitUntil: "networkidle" });
+  await A.waitForTimeout(900);
+
+  const B = await ctx.newPage();
+  await B.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await B.waitForTimeout(1200);
+
+  const rows = (p) => p.evaluate(() => [...document.querySelectorAll("aside button[title]")].map((x) => x.getAttribute("title")));
+  check((await rows(B)).length === 0, "the second tab starts where the first one did", JSON.stringify(await rows(B)));
+
+  await A.bringToFront();
+  await A.getByRole("textbox", { name: "Message" }).fill("what is a debounce");
+  await A.keyboard.press("Enter");
+  await A.waitForTimeout(3200);
+  await B.waitForTimeout(1500);
+  const inB = await rows(B);
+  check(inB.length === 1, "a conversation started in one tab appears in the other, unasked", JSON.stringify(inB));
+
+  await B.bringToFront();
+  const del = B.getByRole("button", { name: /^Delete / }).first();
+  check(await del.count() > 0, "and can be acted on from there", "");
+  await del.click();
+  await B.waitForTimeout(1600);
+  await A.waitForTimeout(1600);
+  const leftInA = await rows(A);
+  check(leftInA.length === 0, "deleting it in one tab removes it from the other", JSON.stringify(leftInA));
+  await ctx.close();
+}
+
 await b.close();
 console.log(failed ? `\n${failed} FAILED` : "\ne2e-storage PASS");
 process.exit(failed ? 1 : 0);

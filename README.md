@@ -1262,7 +1262,7 @@ heading, and link URLs printed in full.
   the margin, because paper cannot scroll sideways and nothing had told it to
   wrap. All four are fixed and all four are now asserted, in both themes, with
   a real PDF generated and counted.
-- **A browser that will not let it save** (`e2e-storage.mjs`, 10 assertions).
+- **A browser that will not let it save** (`e2e-storage.mjs`, 14 assertions).
   Everything here lives in the browser — conversations, notes, canvases, keys —
   and when IndexedDB is refused, which is a Firefox private window or site data
   switched off, every query fails the same quiet way. Each live list renders
@@ -1278,6 +1278,12 @@ heading, and link URLs printed in full.
   checks the sentence says what it means in words rather than the browser's,
   that the app keeps standing rather than collapsing behind the banner, and
   that a healthy database gets no banner at all.
+
+  It also holds the other property a local-first app quietly loses: two tabs
+  are one app. A conversation started in one appears in the other unasked, and
+  deleting it in the second removes it from the first — a one-shot read swapped
+  in for a live one would pass every other test in this repository and leave
+  one tab showing rows that open nothing.
 - **Every way a provider can fail** (`test-error.ts`, 56 assertions, and
   `e2e-error.mjs`, 24). `classifyError` is the one place a raw provider string
   becomes a sentence and a button, which makes it the one place a person's whole
@@ -1548,7 +1554,7 @@ node e2e-sources.mjs # 19 assertions: many sources, and citations that are check
 node e2e-auto.mjs    # 16 assertions: which model answered, read at the wire
 node e2e-command.mjs # 15 assertions: ⌘K acting on whatever is on screen
 node e2e-error.mjs   # 24 assertions: what a person sees when it goes wrong
-node e2e-storage.mjs # 10 assertions: a browser that refuses to save anything
+node e2e-storage.mjs # 14 assertions: storage refused, and two tabs of one app to save anything
 # and one that needs a second provider, so the mock serves both wire formats:
 OPENAI_BASE_URL=http://127.0.0.1:8787 OPENAI_API_KEY=sk-mock …
 node e2e-verify.mjs  # 16 assertions: a check that comes from another provider
