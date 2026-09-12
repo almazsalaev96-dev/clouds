@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ArrowDown, Zap } from "lucide-react";
 import type { ChatError, Message as Msg } from "@/lib/types";
+import { PointAt, type PointAction } from "./PointAt";
 import { getModel } from "@/lib/models";
 import { siblingIndex, siblingsFrom } from "@/lib/db";
 import { cn, formatElapsed } from "@/lib/utils";
@@ -39,6 +40,7 @@ function MessageListImpl({
   onAddKey,
   onSwitchModel,
   onDismissError,
+  onPoint,
   onScrolledChange,
   compare,
 }: {
@@ -65,6 +67,8 @@ function MessageListImpl({
   onAddKey: () => void;
   onSwitchModel: () => void;
   onDismissError: () => void;
+  /** Ask about a span of an answer, with the span quoted rather than described. */
+  onPoint: (action: PointAction, quote: string) => void;
   onScrolledChange: (scrolled: boolean) => void;
   compare: React.ComponentProps<typeof CompareGrid> | null;
 }) {
@@ -253,6 +257,8 @@ function MessageListImpl({
           )}
         </div>
       </div>
+
+      <PointAt scope={scrollRef} onAct={onPoint} />
 
       {/* One polite announcement per finished answer, and nothing while it
           arrives. */}

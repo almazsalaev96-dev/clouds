@@ -26,6 +26,7 @@ import { CanvasView } from "@/components/CanvasView";
 import { saveToNote } from "@/lib/db";
 import { InlineError } from "@/components/chat/Message";
 import { TopBar } from "@/components/chat/TopBar";
+import { promptFor } from "@/components/chat/PointAt";
 import { SectionSkeleton } from "@/components/ui/SectionSkeleton";
 import { StorageNotice } from "@/components/ui/StorageNotice";
 import { MessageList } from "@/components/chat/MessageList";
@@ -1249,6 +1250,20 @@ export default function Page() {
                 onAddKey={openKeys}
                 onSwitchModel={() => setModelPickerOpen(true)}
                 onDismissError={stream.clearError}
+                /* Pointing at a sentence and asking about it. The quote goes
+                   into the message rather than a description of the quote:
+                   what a reader is worst at is saying which part they did not
+                   follow, and a selection says it exactly. "Ask" leaves the
+                   question to them and only carries the quote across. */
+                onPoint={(action, quote) => {
+                  const text = promptFor(action, quote);
+                  if (action === "ask") {
+                    useDrafts.getState().setDraft(activeId ?? "new", text);
+                    document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]')?.focus();
+                    return;
+                  }
+                  void send([{ type: "text", text }]);
+                }}
                 compare={
                   comparing && activeId
                     ? {

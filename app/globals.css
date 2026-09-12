@@ -1661,6 +1661,17 @@ body::after {
 .shiki, .shiki span { background: transparent !important; }
 .shiki .comment, .shiki .punctuation-comment { color: var(--syn-comment) !important; }
 
+/* The span you are pointing at.
+   ---------------------------------------------------------------------------
+   Painted by the browser from a registered Range rather than by a <mark> the
+   markdown renderer would throw away on its next pass — and unlike a wrapper
+   element it can span a phrase that begins in a sentence and ends inside a
+   <strong>, which is the common case and not the edge one. */
+::highlight(armi-point) {
+  background: color-mix(in srgb, var(--accent-2) 22%, transparent);
+  color: var(--text-primary);
+}
+
 /* ============================================================================
    MESSAGE RHYTHM
    ========================================================================= */
