@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { admits } from "./rows";
 import { DEFAULT_SETTINGS, useSettings } from "./store";
 
 /**
@@ -229,7 +230,11 @@ export async function restoreBackup(b: Backup): Promise<RestoreResult> {
     const existing = new Set<string>(
       (await table.toCollection().primaryKeys()).map((k) => String(k)),
     );
-    const fresh = rows.filter((r) => r && typeof r.id === "string" && !existing.has(r.id));
+    /* `admits` rather than an id check. A backup arrives from Downloads, from
+       a sync folder, from a text editor somebody was curious in, and a row
+       this app cannot render is a row that takes the whole app down on the
+       next open — see `lib/rows.ts` for the one that really did it. */
+    const fresh = rows.filter((r) => admits(name, r, existing));
     skipped += rows.length - fresh.length;
     if (fresh.length) {
       // bulkPut rather than bulkAdd: the ids were filtered above, and bulkAdd

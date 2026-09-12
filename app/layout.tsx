@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "katex/dist/katex.min.css";
+import { CrashNet } from "@/components/ui/CrashNet";
 
 export const metadata: Metadata = {
   title: "Armi",
@@ -67,7 +68,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" href="/fonts/inter-400.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/pinyon-script-400.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       </head>
-      <body>{children}</body>
+      {/* Everything the app draws is inside the net. It is here rather than in
+          `page.tsx` because a throw in the page component itself is exactly the
+          case that matters, and a boundary inside the thing that threw catches
+          nothing. */}
+      <body>
+        <CrashNet>{children}</CrashNet>
+      </body>
     </html>
   );
 }
