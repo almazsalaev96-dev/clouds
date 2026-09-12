@@ -9,7 +9,7 @@ import { db, filesOf } from "@/lib/db";
 import { composeSystemPrompt } from "@/lib/prompt";
 import { findStyle } from "@/lib/styles";
 import { useSettings } from "@/lib/store";
-import { cn, formatDuration, formatElapsed } from "@/lib/utils";
+import { cn, describeTiming, formatDuration, formatElapsed } from "@/lib/utils";
 import { Markdown, useThrottled } from "./Markdown";
 import { ProviderMark } from "@/components/ui/ProviderMark";
 import { Button, IconButton } from "@/components/ui/primitives";
@@ -140,7 +140,9 @@ function CompareColumn({
         <span className="truncate font-medium text-secondary">{model.name}</span>
         <span className="ml-auto flex items-center gap-1.5 text-tertiary tnum">
           {busy && stream.elapsed > 1000 && <span>{formatElapsed(stream.elapsed)}</span>}
-          {finished?.latencyMs != null && <span>{formatDuration(finished.latencyMs)}</span>}
+          {finished?.latencyMs != null && (
+            <span title={describeTiming(finished.latencyMs, finished.ttftMs)}>{formatDuration(finished.latencyMs)}</span>
+          )}
           {finished?.usage && <span>{formatTokens(finished.usage.outputTokens)} tok</span>}
           {busy && (
             <IconButton label={`Stop ${model.name}`} size={22} onClick={stream.stop}>

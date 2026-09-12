@@ -1533,7 +1533,7 @@ And the end-to-end run, which needs the app pointed at the mock provider:
 ```bash
 node mock-provider.mjs &
 ANTHROPIC_BASE_URL=http://127.0.0.1:8787 ANTHROPIC_API_KEY=sk-ant-mock npx next start -p 3100 &
-node e2e.mjs         # 16 assertions across the whole happy path
+node e2e.mjs         # 19 assertions across the whole happy path
 node e2e-canvas.mjs  # 26 assertions: edit, revise, diff, keep, revert, sandbox
 node e2e-project.mjs # 22 assertions: projects and styles, read at the wire
 node e2e-web.mjs     # 28 assertions: a web app runs, and its console comes back

@@ -10,7 +10,7 @@ import {
 import type { ChatError, Message as Msg } from "@/lib/types";
 import { CALCULATOR, getModel, formatTokens, MODELS } from "@/lib/models";
 import { blockText } from "@/lib/db";
-import { cn, formatDuration } from "@/lib/utils";
+import { cn, describeTiming, formatDuration } from "@/lib/utils";
 import { Markdown } from "./Markdown";
 import { IconButton, Button, Tooltip } from "@/components/ui/primitives";
 import { ProviderMark } from "@/components/ui/ProviderMark";
@@ -292,7 +292,11 @@ function AssistantMessageImpl({
           </span>
         )}
         <span className="reveal flex items-center gap-2">
-          {message.latencyMs != null && <span className="tnum">{formatDuration(message.latencyMs)}</span>}
+          {message.latencyMs != null && (
+            <span className="tnum" title={describeTiming(message.latencyMs, message.ttftMs)}>
+              {formatDuration(message.latencyMs)}
+            </span>
+          )}
           {message.usage && message.usage.outputTokens > 0 && (
             <span className="tnum">{formatTokens(message.usage.outputTokens)} tok</span>
           )}

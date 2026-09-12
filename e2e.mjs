@@ -73,12 +73,25 @@ const usage = await page.evaluate(async () => {
   const rows = await new Promise((r, j) => { const q = d.transaction(["messages"]).objectStore("messages").getAll(); q.onsuccess = () => r(q.result); q.onerror = () => j(q.error); });
   d.close();
   const a = rows.find((m) => m.role === "assistant");
-  return a ? { out: a.usage?.outputTokens, cost: a.usage?.costUsd, stop: a.stopReason, latency: Boolean(a.latencyMs) } : null;
+  return a ? { out: a.usage?.outputTokens, cost: a.usage?.costUsd, stop: a.stopReason, latency: Boolean(a.latencyMs), ttft: a.ttftMs } : null;
 });
 check(usage?.out === 386, "token usage recorded from the stream", JSON.stringify(usage));
 check(typeof usage?.cost === "number" && usage.cost > 0, "cost computed", String(usage?.cost));
 check(usage?.stop === "stop", "stop reason recorded", usage?.stop);
 check(usage?.latency, "latency recorded");
+check(typeof usage?.ttft === "number", "and time to first token, which is the one that predicts how fast it felt", `${usage?.ttft}ms`);
+
+/* Measured on every answer since the day it was written, stored with it, and
+   shown to nobody. It lives in the title of the total now, because the total
+   alone cannot tell a model that thought for four seconds and then wrote
+   quickly from one that started at once and wrote slowly — which is the whole
+   of the difference a person notices. */
+const timing = await page.evaluate(() => {
+  const el = [...document.querySelectorAll("span[title]")].find((s) => /to the first word/.test(s.getAttribute("title") ?? ""));
+  return el ? { shown: el.textContent?.trim(), told: el.getAttribute("title") } : null;
+});
+check(Boolean(timing), "and it is reachable from the answer rather than only in the database", JSON.stringify(timing));
+check(/to the first word,.*in all/.test(timing?.told ?? ""), "as a sentence, with the total beside it", timing?.told ?? "");
 
 // Regenerate: a second turn on the same parent.
 await page.locator('[aria-label="Regenerate"]').first().click();

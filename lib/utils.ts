@@ -12,6 +12,23 @@ export function formatDuration(ms: number): string {
   return `${Math.floor(ms / 60_000)}m ${Math.round((ms % 60_000) / 1000)}s`;
 }
 
+/**
+ * How long an answer took, said properly.
+ *
+ * Time to first token is measured on every answer and stored with it, because
+ * it is the number that actually predicts whether a model *felt* fast — and
+ * nothing has ever shown it. The total on its own cannot tell a model that
+ * thought for four seconds and then wrote quickly apart from one that started
+ * at once and wrote slowly, which is the whole of the difference a person
+ * notices. It goes in the title of the total rather than beside it: the answer
+ * is what you came for, not its instrumentation.
+ */
+export function describeTiming(totalMs?: number, ttftMs?: number): string | undefined {
+  if (totalMs == null) return undefined;
+  if (ttftMs == null) return `${formatDuration(totalMs)} in all`;
+  return `${formatDuration(ttftMs)} to the first word, ${formatDuration(totalMs)} in all`;
+}
+
 /** Whole seconds while waiting: a counter that flickers tenths reads as anxious. */
 export const formatElapsed = (ms: number) => `${Math.floor(ms / 1000)}s`;
 
