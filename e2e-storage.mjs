@@ -140,6 +140,73 @@ console.log("\nTwo tabs of it are one app, not two");
   await ctx.close();
 }
 
+console.log("\n\"Delete everything\" has to mean everything, keys included");
+{
+  /* The database is enumerated from its own live schema, precisely so a table
+     added later cannot be forgotten. None of that reached localStorage, which
+     is where the settings live — and the settings hold the API keys. The
+     button's own text promised that nothing is kept anywhere else, and the
+     scenario in the README is somebody wiping the app before handing over a
+     laptop. They handed it over with the key still on it. */
+  const page = await (await b.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
+  await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await page.evaluate((s) => {
+    localStorage.setItem("store.settings.v1", JSON.stringify({ state: { ...s, keys: { anthropic: "sk-ant-SECRET" } }, version: 1 }));
+    localStorage.setItem("store.drafts.v1", JSON.stringify({ state: { drafts: { x: "an unsent draft" } }, version: 1 }));
+    // The copies a rename left behind, which nothing read and nothing cleared.
+    localStorage.setItem("armi.settings", JSON.stringify({ state: { keys: { anthropic: "sk-ant-OLD" } } }));
+    localStorage.setItem("astra.settings", JSON.stringify({ state: { keys: { openai: "sk-OLDER" } } }));
+  }, SETTINGS);
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(900);
+
+  const adopted = await page.evaluate(() => ({
+    armi: localStorage.getItem("armi.settings"),
+    astra: localStorage.getItem("astra.settings"),
+  }));
+  check(adopted.armi === null && adopted.astra === null,
+    "a rename moves the old key rather than copying it — a spare copy of a secret is the thing you were avoiding",
+    `armi:${adopted.armi ? "still there" : "gone"} astra:${adopted.astra ? "still there" : "gone"}`);
+
+  await page.getByRole("textbox", { name: "Message" }).fill("what is a debounce");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(3000);
+
+  await page.keyboard.press("Control+,");
+  await page.waitForTimeout(700);
+  const dataTab = page.getByRole("tab", { name: /^Data$/ }).or(page.getByRole("button", { name: /^Data$/ })).first();
+  await dataTab.click();
+  await page.waitForTimeout(400);
+  await page.getByRole("button", { name: /Delete all data/i }).click();
+  await page.waitForTimeout(300);
+  await page.getByRole("button", { name: /^(Delete|Yes|Confirm)/i }).last().click();
+  await page.waitForTimeout(1400);
+
+  const left = await page.evaluate(() => {
+    const out = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      out[k] = localStorage.getItem(k);
+    }
+    return out;
+  });
+  const all = JSON.stringify(left);
+  check(!/sk-ant-SECRET/.test(all), "the API key is gone from the browser", all.slice(0, 90));
+  check(!/sk-ant-OLD|sk-OLDER/.test(all), "and so is every older copy of one");
+  check(!/an unsent draft/.test(all), "and the drafts with them");
+  /* The settings key comes back, and that is correct: the app reloads, finds
+     nothing, and persists its defaults so it has a theme to draw with. What
+     has to be true is that what comes back is the default and not the old
+     state with the secrets still in it — which is why the store is reset in
+     memory as well as on disk. `persist` writes the whole state on the next
+     change, so clearing the key while the store still held the key would put
+     it straight back, and the reload would make that look like success. */
+  const back = JSON.parse(left["store.settings.v1"] ?? "{}").state ?? {};
+  check(Object.keys(back.keys ?? {}).length === 0, "what the app writes back is a default with no keys in it", JSON.stringify(back.keys));
+  check(!back.name && !back.systemPrompt, "and nothing else the person had typed", `${back.name ?? ""}|${back.systemPrompt ?? ""}`);
+  await page.close();
+}
+
 await b.close();
 console.log(failed ? `\n${failed} FAILED` : "\ne2e-storage PASS");
 process.exit(failed ? 1 : 0);

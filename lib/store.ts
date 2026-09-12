@@ -23,16 +23,35 @@ export const DRAFTS_KEY = "store.drafts.v1";
 
 const BRAND_HISTORY = ["astra", "armi", "clouds"];
 
+/**
+ * Move the old key, rather than copying it.
+ *
+ * This used to read the legacy value, write it to the new key and return —
+ * leaving the original in place forever. Which means a copy of the settings
+ * object, `keys` and all, sat under `astra.settings` in the browser of anybody
+ * who had used the app before it was renamed. A plain-text API key under a
+ * brand name the app has not used in months, that nothing reads, nothing shows
+ * and nothing clears.
+ *
+ * It is a migration. A migration that leaves the source behind is a copy, and
+ * a copy of a secret is the thing you were trying not to make.
+ */
 function adoptLegacyStorage(target: string, suffix: string) {
   if (typeof window === "undefined") return;
   try {
-    if (localStorage.getItem(target)) return;
+    const already = localStorage.getItem(target);
+    let adopted = already;
     for (const brand of BRAND_HISTORY) {
-      const value = localStorage.getItem(`${brand}.${suffix}`);
-      if (value) {
+      const legacy = `${brand}.${suffix}`;
+      const value = localStorage.getItem(legacy);
+      if (value && !adopted) {
         localStorage.setItem(target, value);
-        return;
+        adopted = value;
       }
+      // Removed whether or not this one was the value taken: the others are
+      // older copies of the same secret and there is no reading of "keep the
+      // spares" that helps anybody.
+      if (value) localStorage.removeItem(legacy);
     }
   } catch {
     /* private mode, or storage disabled */
@@ -40,6 +59,48 @@ function adoptLegacyStorage(target: string, suffix: string) {
 }
 adoptLegacyStorage(SETTINGS_KEY, "settings");
 adoptLegacyStorage(DRAFTS_KEY, "drafts");
+
+/**
+ * Every key this app has ever written to `localStorage`.
+ *
+ * The database is enumerated from its own live schema — `deleteAllData`
+ * iterates `db.tables` precisely so a table added later cannot be forgotten —
+ * and none of that reaches here. `localStorage` is the app's second database:
+ * it holds the settings, which contain the browser-held API keys, and every
+ * unsent draft. "Delete everything" cleared the first one and left the second
+ * one whole, under a sentence promising that nothing is kept anywhere else.
+ *
+ * The scenario in the README is somebody wiping the app before handing over a
+ * laptop. They handed it over with the key still on it.
+ */
+export const LOCAL_KEYS = [
+  SETTINGS_KEY,
+  DRAFTS_KEY,
+  ...BRAND_HISTORY.flatMap((b) => [`${b}.settings`, `${b}.drafts`]),
+];
+
+/**
+ * The other half of "delete everything", and it has to be said out loud.
+ *
+ * Memory first, then disk. Removing the storage key alone is not enough while
+ * the store is still alive holding the same values: `persist` writes the whole
+ * state back on the next change, so a wipe followed by any interaction at all
+ * puts the API key straight back on disk. The reload that follows would hide
+ * it, which is worse — it would look like it had worked.
+ */
+export function forgetLocalStorage() {
+  if (typeof window === "undefined") return;
+  try {
+    useSettings.setState({ ...DEFAULT_SETTINGS });
+  } catch {
+    /* the store not being there is not a reason to skip the disk */
+  }
+  try {
+    for (const k of LOCAL_KEYS) localStorage.removeItem(k);
+  } catch {
+    /* private mode, or storage disabled — nothing was stored to clear */
+  }
+}
 
 export type Theme = "light" | "dark" | "system";
 export type Density = "compact" | "comfortable" | "spacious";

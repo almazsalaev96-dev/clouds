@@ -12,7 +12,7 @@ import { offerUndo } from "@/lib/undo";
 import {
   backupCounts, buildBackup, downloadBackup, parseBackup, restoreBackup, say, BackupError,
 } from "@/lib/backup";
-import { useSettings, paramsFor, DEFAULT_PARAMS } from "@/lib/store";
+import { useSettings, paramsFor, DEFAULT_PARAMS, forgetLocalStorage } from "@/lib/store";
 import { useReturnFocus } from "@/lib/hooks/useReturnFocus";
 import { cn } from "@/lib/utils";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
@@ -456,8 +456,9 @@ function DataPanel() {
       <div className="rounded-lg border border-line p-3">
         <p className="mb-2 text-sm text-primary">Delete everything</p>
         <p className="mb-3 text-xs text-secondary">
-          Every conversation, page, canvas, project and style, gone from this browser. This cannot be
-          undone, and it genuinely deletes — nothing is kept anywhere else.
+          Every conversation, page, canvas, project and style, and your settings and API keys with
+          them, gone from this browser. This cannot be undone, and it genuinely deletes — nothing is
+          kept anywhere else.
         </p>
         {done ? (
           <p className="text-xs text-success">Deleted.</p>
@@ -467,6 +468,11 @@ function DataPanel() {
             onCancel={() => setConfirming(false)}
             onConfirm={async () => {
               await deleteAllData();
+              /* The database is only half of what this app stores. The other
+                 half is localStorage — the settings, which hold the API keys,
+                 and every unsent draft — and it was surviving a button whose
+                 own text promised that nothing is kept anywhere else. */
+              forgetLocalStorage();
               setConfirming(false);
               setDone(true);
               setTimeout(() => location.reload(), 600);
