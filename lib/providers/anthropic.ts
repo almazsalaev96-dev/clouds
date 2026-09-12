@@ -72,6 +72,16 @@ export async function* streamAnthropic(
         ? [{ type: "text", text: req.systemPrompt, cache_control: { type: "ephemeral" } }]
         : req.systemPrompt;
   }
+  /* The volatile half, in its own block after the cached one. Anthropic takes
+     an array of system blocks and caches up to the marked one, so a line that
+     changes every turn can sit behind the breakpoint instead of moving it. */
+  if (req.turnPrompt) {
+    const before = body.system;
+    body.system = [
+      ...(Array.isArray(before) ? before : before ? [{ type: "text", text: before }] : []),
+      { type: "text", text: req.turnPrompt },
+    ];
+  }
   // Anthropic rejects temperature alongside extended thinking, so the two are
   // mutually exclusive rather than both sent and hoping for the best.
   const budget = model.reasoning

@@ -62,7 +62,17 @@ export interface Task {
 const EVIDENCE: Record<Exclude<TaskKind, "general">, { strong: RegExp[]; weak: RegExp[] }> = {
   learning: {
     strong: [
-      /\b(teach me|help me understand|i don'?t understand|i'?m confused|explain like i'?m|eli5)\b/i,
+      /\b(teach me|help me understand|i don'?t understand|explain like i'?m|eli5)\b/i,
+      /* Confusion, however it is worded. This used to be the single phrase
+         "I'm confused", which missed every other way a person says the most
+         valuable thing they can say to a tutor: "I keep getting confused",
+         "I don't get it", "this makes no sense to me", "I'm lost". A stated
+         confusion is a diagnosis handed over for free, and diagnosis is the
+         thing every piece of tutoring research puts first — questioning
+         somebody without it produces more engagement and no more learning. */
+      /\b(?:i'?m|i am|im|i keep getting|i get|i'?ve been|still)\s+(?:really |so |completely |totally |a bit |very )?(?:confused|lost|stuck)\b/i,
+      /\b(?:i don'?t get (?:it|this|why|how)|i'?m not following|doesn'?t make (?:any )?sense to me|makes no sense to me|lost me)\b/i,
+      /\b(?:walk me through|break (?:this|it|that) down|where am i going wrong|what am i missing)\b/i,
       /\b(revise|revision|syllabus|past paper|exam question|mark scheme|for my (exam|test|course))\b/i,
       /\b(quiz me|test me|practice (questions?|problems?)|worked example)\b/i,
       /\b(why (is|does|do|are) .{0,40}\?|what does .{0,30} mean)\b/i,

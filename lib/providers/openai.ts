@@ -17,7 +17,11 @@ export async function* streamOpenAICompatible(
   const model = getModel(req.modelId);
 
   const messages: Record<string, unknown>[] = [];
-  if (req.systemPrompt) messages.push({ role: "system", content: req.systemPrompt });
+  /* One system message rather than two: this wire format has no notion of a
+     cache breakpoint inside it, and both providers cache on an exact prefix
+     anyway, so the volatile half simply goes last where it costs least. */
+  const system = [req.systemPrompt, req.turnPrompt].filter(Boolean).join("\n\n");
+  if (system) messages.push({ role: "system", content: system });
 
   for (const m of req.messages) {
     if (m.role === "system") continue;

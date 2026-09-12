@@ -39,7 +39,8 @@ export async function* streamGoogle(
       maxOutputTokens: Math.min(req.params.maxTokens, model.maxOutput),
     },
   };
-  if (req.systemPrompt) body.systemInstruction = { parts: [{ text: req.systemPrompt }] };
+  const system = [req.systemPrompt, req.turnPrompt].filter(Boolean).join("\n\n");
+  if (system) body.systemInstruction = { parts: [{ text: system }] };
   const budget = model.reasoning
     ? thinkingBudget(
         Math.min(req.params.maxTokens, model.maxOutput),

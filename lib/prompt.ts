@@ -91,6 +91,24 @@ export function composeSystemPrompt(parts: PromptParts): ComposedPrompt {
   return { text: sections.join("\n\n"), droppedFiles };
 }
 
+/**
+ * The half of the instructions that belongs to *this question*.
+ *
+ * Kept in a separate function, and sent in a separate block, because the
+ * composed prompt above is the app's cacheable prefix and a provider's cache
+ * is an exact prefix match. Fold a per-turn line into it and every turn after
+ * the first pays full price to re-read the project knowledge it sits above —
+ * which is the one thing `composeSystemPrompt` exists to avoid.
+ *
+ * It is also the right *shape*. What a project is for does not change between
+ * turns; what kind of job this particular request is changes constantly, and
+ * the two do not belong in one box for the same reason the style and the
+ * system prompt do not.
+ */
+export function composeTurnPrompt(parts: { shape?: string }): string {
+  return [parts.shape?.trim()].filter(Boolean).join("\n\n");
+}
+
 function escapeAttr(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }

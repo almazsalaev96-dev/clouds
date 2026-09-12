@@ -126,6 +126,8 @@ export function useStream(onFinish?: (m: Message) => void) {
       routedWhy?: string;
       history: Message[];
       systemPrompt?: string;
+      /** The half that changes with the question. Kept out of the cached half. */
+      turnPrompt?: string;
       /** A mode's sampling overrides, layered over the model's own. */
       params?: Partial<import("../types").ModelParams>;
       /** False while comparing: the column writes, the user chooses. */
@@ -161,7 +163,7 @@ export function useStream(onFinish?: (m: Message) => void) {
          cannot fit and letting the provider reject it wastes a round trip and
          hands back an error instead of an answer. */
       const params = { ...paramsFor(opts.modelId), ...(opts.params ?? {}) };
-      const fitted = fitToContext(opts.history, model, params, opts.systemPrompt ?? "");
+      const fitted = fitToContext(opts.history, model, params, (opts.systemPrompt ?? "") + (opts.turnPrompt ?? ""));
 
       try {
         const res = await fetch("/api/chat", {
@@ -172,6 +174,7 @@ export function useStream(onFinish?: (m: Message) => void) {
             modelId: opts.modelId,
             messages: fitted.messages,
             systemPrompt: opts.systemPrompt || undefined,
+            turnPrompt: opts.turnPrompt || undefined,
             params,
             clientKey: settings.keys[model.provider] || undefined,
           }),

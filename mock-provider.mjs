@@ -135,6 +135,14 @@ createServer(async (req, res) => {
     systemText: Array.isArray(body.system)
       ? body.system.map((b) => b.text ?? "").join("\n")
       : (body.system ?? ""),
+    /* How the instructions were *split*, not just what they said. The stable
+       half is what the provider caches and the per-turn half is what changes,
+       so a test has to be able to see that the second one did not land inside
+       the first and move the breakpoint. */
+    systemBlocks: Array.isArray(body.system) ? body.system.length : body.system ? 1 : 0,
+    cachedSystemBlocks: Array.isArray(body.system)
+      ? body.system.filter((b) => b.cache_control).length
+      : 0,
     // And the turns themselves, so an attachment can be checked for actually
     // having arrived rather than for having been built.
     userText: (body.messages ?? [])

@@ -157,6 +157,16 @@ export interface ChatRequest {
   modelId: string;
   messages: Message[];
   systemPrompt?: string;
+  /**
+   * The part of the instructions that changes from turn to turn.
+   *
+   * Kept apart from `systemPrompt` for one reason, and it is worth money: the
+   * system prompt is the app's cacheable prefix, and a provider's cache is an
+   * exact prefix match. Fold a per-turn line into it and every turn pays full
+   * price for the project knowledge above it. So this rides in its own block
+   * after the cached one, where changing it costs only itself.
+   */
+  turnPrompt?: string;
   params: ModelParams;
   /** Sent only when the server has no key for this provider. */
   clientKey?: string;

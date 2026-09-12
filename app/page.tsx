@@ -9,7 +9,9 @@ import {
   exportMarkdown, pathTo, addMessage, blockText, createCanvas, createWebCanvas, createProject,
   filesOf,
 } from "@/lib/db";
-import { composeSystemPrompt } from "@/lib/prompt";
+import { composeSystemPrompt, composeTurnPrompt } from "@/lib/prompt";
+import { taskOf } from "@/lib/task";
+import { shapeFor } from "@/lib/shape";
 import { findStyle } from "@/lib/styles";
 import { findMode } from "@/lib/modes";
 import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, estimateTokens, getModel } from "@/lib/models";
@@ -311,6 +313,14 @@ export default function Page() {
         style,
         mode,
       });
+      /* What kind of job this is, and therefore what a good answer to it looks
+         like. The app has classified requests since `task.ts` was written and
+         spent the answer on one thing: telling a second model what to look for
+         when checking the first. The classification was going into the audit
+         and never into the work. */
+      const asked = [...history].reverse().find((m) => m.role === "user");
+      const task = asked ? taskOf(blockText(asked.content)) : null;
+      const turn = composeTurnPrompt({ shape: task ? shapeFor(task.kind) : "" });
       await stream.send({
         conversationId,
         parentId,
@@ -318,6 +328,7 @@ export default function Page() {
         routedWhy,
         history,
         systemPrompt: composed.text || undefined,
+        turnPrompt: turn || undefined,
         params: mode.params,
       });
     },
