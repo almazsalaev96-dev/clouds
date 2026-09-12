@@ -185,20 +185,76 @@
          highlight along the top edge is what makes a surface read as
          *catching* light instead of being a flat fill, which is the whole
          difference between a card and a rectangle. --- */
+  /* --- The light, named once, and now with a direction.
+         -------------------------------------------------------------------
+         "Light comes from above, once" was true and was not enough. Straight
+         above puts an object's shadow directly underneath it, which gives it
+         no *direction* — and a ramp built entirely on `0 Ypx` throws the same
+         shape at one pixel of elevation and at twenty-four. The geometric fact
+         that tells an eye how high something is, is how far its shadow has
+         slid sideways, so the x offset here rises with the y at about a fifth
+         of it: the source is up and to the left, where a desk lamp is.
+
+         It does not flip in RTL. A light is a fact about the room and not
+         about the reading direction.
+
+         The rim is the other half of the same light, and in the dark theme it
+         is the only half that renders. Composite each level against its own
+         ground and the dark ramp spans four hundredths — 1.143, 1.173, 1.184 —
+         where the light ramp spans half a point. Black on near-black is not a
+         cue. The rim is one, at 1.29, and it was a single value at all three
+         levels: the dark theme shipped a three-step elevation ramp that drew
+         as one step.
+
+         So the rim ramps, and it ramps as a *pair*, because that is what an
+         edge in real light is — a catch on the side facing the source and an
+         occlusion on the side facing away. Which half you actually see is the
+         only thing that differs between the two rooms. On cream the catch is
+         white on near-white and reads as almost nothing while the occlusion
+         carries it; on the dark ground it is the other way round. Neither
+         theme gets a special case. They get different weights on the same two
+         numbers. --- */
+  --rim-sm:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.60),
+    inset 0 -1px 0 0 rgb(26 38 80 / 0.05);
+  --rim-md:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.80),
+    inset 1px 0 0 0 rgb(255 255 255 / 0.45),
+    inset 0 -1px 0 0 rgb(26 38 80 / 0.08);
+  --rim-lg:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.95),
+    inset 1px 0 0 0 rgb(255 255 255 / 0.60),
+    inset -1px 0 0 0 rgb(26 38 80 / 0.05),
+    inset 0 -1px 0 0 rgb(26 38 80 / 0.11);
+  /* The full hairline ring a translucent panel needs in order to have an edge
+     at all, independent of how high it is floating. Only `.glass` uses it. */
+  --rim-all: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+
+  /* --- Elevation, as a pair.
+         -------------------------------------------------------------------
+         The rim is *inside* the token rather than beside it. It was beside it,
+         and the result was that nineteen surfaces asked for a level of the
+         ramp and two of them also remembered the lit edge — so seventeen
+         raised things had a cast shadow and no catch, which in the dark theme
+         means seventeen raised things with no elevation at all.
+
+         Folding them together makes applying one without the other impossible
+         rather than something to remember, which is the same move `.glass
+         .glass` makes and for the same reason. --- */
   --shadow-sm:
     0 1px 1px -1px rgba(26, 38, 80, 0.07),
-    0 1px 2px -1px rgba(26, 38, 80, 0.05);
+    0 1px 2px -1px rgba(26, 38, 80, 0.05),
+    var(--rim-sm);
   --shadow-md:
     0 1px 2px -1px rgba(26, 38, 80, 0.06),
-    0 3px 6px -3px rgba(26, 38, 80, 0.08),
-    0 8px 16px -8px rgba(26, 38, 80, 0.07);
+    1px 3px 6px -3px rgba(26, 38, 80, 0.08),
+    2px 8px 16px -8px rgba(26, 38, 80, 0.07),
+    var(--rim-md);
   --shadow-lg:
     0 2px 4px -2px rgba(26, 38, 80, 0.07),
-    0 8px 16px -8px rgba(26, 38, 80, 0.10),
-    0 24px 48px -16px rgba(26, 38, 80, 0.14);
-  /* Light comes from above, once, for the whole app. */
-  --rim-top: inset 0 1px 0 0 rgba(255, 255, 255, 0.75);
-  --rim-all: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+    2px 8px 16px -8px rgba(26, 38, 80, 0.10),
+    5px 24px 48px -16px rgba(26, 38, 80, 0.14),
+    var(--rim-lg);
 
   /* --- Motion.
          -------------------------------------------------------------------
@@ -410,23 +466,43 @@
     --glass: rgba(26, 25, 23, 0.74);
     --glow: 0 0 24px -6px var(--accent-2);
 
-    /* Darker and deeper, and still tinted rather than pure black: the dark
-       theme's ground is a warm near-black, and a neutral shadow on it reads
-       cold. The rim flips to a faint white, which is where the light would
-       actually catch on a raised edge in a dim room. */
+    /* Darker and deeper, and still tinted rather than pure black: this ground
+       is a warm near-black and a neutral shadow on it reads cold.
+
+       Here the catch is carrying the ramp on its own. By the time a cast
+       shadow has any blur on it, it is close to invisible against this
+       ground — which is what made the dark theme flat, and pretending
+       otherwise is how it stayed that way. The pair below steps 1.30 → 1.57 →
+       2.03, which is the same order of step the light theme gets from its
+       shadow alone. */
+    --rim-sm:
+      inset 0 1px 0 0 rgb(247 243 234 / 0.06),
+      inset 0 -1px 0 0 rgb(0 0 0 / 0.25);
+    --rim-md:
+      inset 0 1px 0 0 rgb(247 243 234 / 0.11),
+      inset 1px 0 0 0 rgb(247 243 234 / 0.055),
+      inset 0 -1px 0 0 rgb(0 0 0 / 0.35);
+    --rim-lg:
+      inset 0 1px 0 0 rgb(247 243 234 / 0.18),
+      inset 1px 0 0 0 rgb(247 243 234 / 0.09),
+      inset -1px 0 0 0 rgb(0 0 0 / 0.20),
+      inset 0 -1px 0 0 rgb(0 0 0 / 0.45);
+    --rim-all: inset 0 0 0 1px rgba(247, 243, 234, 0.05);
+
     --shadow-sm:
       0 1px 1px -1px rgba(0, 0, 0, 0.5),
-      0 1px 3px -1px rgba(0, 0, 0, 0.4);
+      0 1px 3px -1px rgba(0, 0, 0, 0.4),
+      var(--rim-sm);
     --shadow-md:
       0 1px 2px -1px rgba(0, 0, 0, 0.45),
-      0 4px 8px -4px rgba(0, 0, 0, 0.5),
-      0 10px 20px -10px rgba(0, 0, 0, 0.55);
+      1px 4px 8px -4px rgba(0, 0, 0, 0.5),
+      2px 10px 20px -10px rgba(0, 0, 0, 0.55),
+      var(--rim-md);
     --shadow-lg:
       0 2px 4px -2px rgba(0, 0, 0, 0.5),
-      0 10px 20px -10px rgba(0, 0, 0, 0.58),
-      0 28px 56px -18px rgba(0, 0, 0, 0.7);
-    --rim-top: inset 0 1px 0 0 rgba(247, 243, 234, 0.09);
-    --rim-all: inset 0 0 0 1px rgba(247, 243, 234, 0.05);
+      2px 10px 20px -10px rgba(0, 0, 0, 0.58),
+      6px 28px 56px -18px rgba(0, 0, 0, 0.7),
+      var(--rim-lg);
 
     /* The one token under 7 in either theme, and the one place the two themes
        disagreed about what a comment *is*: dark muted it to 5.64 while light
@@ -651,12 +727,28 @@ textarea:focus-visible {
   background: var(--glass);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  /* The six surfaces that actually float over the page — the sidebar, the top
-     bar, every menu and tooltip, the palette, the shortcut sheet — had a 1px
-     border doing the separation work that light should be doing. The rim is
-     the whole of the fix and it costs nothing: an inset highlight sits on the
-     surface, never under text, so it cannot touch a contrast figure. */
-  box-shadow: var(--rim-top), var(--rim-all);
+}
+
+/* Layered on purpose, and the layer is the whole point of the rule.
+   ---------------------------------------------------------------------------
+   This declaration used to sit unlayered beside the background above, and an
+   unlayered rule beats every layered one whatever the specificity says — so it
+   beat Tailwind's `shadow-lg`, which lives in `@layer utilities`. Twelve of the
+   fourteen surfaces in this app that ask for the top of the elevation ramp are
+   also `.glass`: every dropdown, both message menus, all three composer
+   popovers, the command palette, the shortcut sheet, the undo bar, the model
+   picker. Measured on the running app, `.glass.shadow-lg` computed to two inset
+   rims and nothing else, in both themes — identical to `.glass` alone. The
+   class whose entire job is "this floats" was deleting the shadow that makes
+   it float.
+
+   In `components` it loses to `utilities`, which is the right way round: this
+   is the default edge for chrome that never declares a height, and anything
+   that does declare one brings its own rim inside its own elevation token. */
+@layer components {
+  .glass {
+    box-shadow: var(--rim-md), var(--rim-all);
+  }
 }
 
 /* Never on itself.
@@ -748,8 +840,26 @@ textarea:focus-visible {
     background: var(--bg-surface);
     border-color: var(--border-strong);
   }
-  :root {
+  /* Every theme selector, not a bare `:root`. The dark palette sets these on
+     `:root[data-theme="dark"]`, which outranks `:root` no matter which media
+     query the `:root` rule is written inside — so a bare one silently applied
+     to the light theme only, and the person who asked for more contrast got it
+     in the room that needed it least. */
+  :root,
+  :root[data-theme="light"],
+  :root[data-theme="dark"] {
     --border-subtle: var(--border-strong);
+
+    /* The rim is not transparency and it is not decoration — in the dark
+       theme it is the only thing that says one surface sits above another.
+       Somebody who has asked for more contrast is asking for that to be
+       *more* legible, so it becomes a solid hairline in the strong border
+       colour rather than a graded pair. Identical in both themes, because
+       `--border-strong` is. */
+    --rim-sm: inset 0 0 0 1px var(--border-strong);
+    --rim-md: inset 0 0 0 1px var(--border-strong);
+    --rim-lg: inset 0 0 0 1px var(--border-strong);
+    --rim-all: inset 0 0 0 1px var(--border-strong);
   }
 }
 
@@ -1555,7 +1665,7 @@ body::after {
    on it. Coarse pointers get the lift without the tilt, since there is no
    hover there to track. */
 .lift {
-  box-shadow: var(--rim-top);
+  box-shadow: var(--rim-sm);
   transition:
     transform var(--dur-enter) var(--ease-spring),
     border-color var(--dur-fast) var(--ease-std),
@@ -1566,7 +1676,7 @@ body::after {
 @media (hover: hover) {
   .lift:hover {
     transform: translateY(-2px) scale(1.006);
-    box-shadow: var(--shadow-md), var(--rim-top);
+    box-shadow: var(--shadow-md);
   }
 }
 
@@ -1578,7 +1688,7 @@ body::after {
    colour change does not. */
 .lift:active {
   transform: translateY(0) scale(0.988);
-  box-shadow: var(--shadow-sm), var(--rim-top);
+  box-shadow: var(--shadow-sm);
   transition-duration: var(--dur-press);
 }
 
@@ -1935,6 +2045,17 @@ body::after {
     height: auto !important;
     max-height: none !important;
     overflow: visible !important;
+  }
+
+  /* A shadow is a claim that something is floating above the page, and on the
+     page there is nothing to float above. Chrome happens to skip box-shadow
+     when backgrounds are off, but that is the PDF pipeline's decision and not
+     this stylesheet's — printing a drop shadow as a grey smear is the kind of
+     thing that only shows up on somebody else's printer. */
+  *,
+  *::before,
+  *::after {
+    box-shadow: none !important;
   }
 
   .paper-sheet {

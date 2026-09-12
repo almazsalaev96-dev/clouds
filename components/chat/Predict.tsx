@@ -56,7 +56,7 @@ export function Predict({ spec }: { spec: PredictSpec }) {
   return (
     <div
       data-predict
-      className="my-4 rounded-lg border border-line bg-inset px-4 py-3 [box-shadow:var(--rim-top)]"
+      className="my-4 rounded-lg border border-line bg-inset px-4 py-3 [box-shadow:var(--rim-sm)]"
     >
       <p className="eyebrow mb-1.5 text-faint">Before you read on</p>
       <p className="text-base text-primary">{spec.q}</p>

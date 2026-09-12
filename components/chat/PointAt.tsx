@@ -173,7 +173,7 @@ export function PointAt({
       aria-label="Ask about the selected text"
       className={cn(
         "glass anim-pop no-print fixed z-40 flex items-center gap-0.5 rounded-xl border border-line p-1",
-        "[box-shadow:var(--shadow-lg),var(--rim-top)]",
+        "[box-shadow:var(--shadow-lg)]",
       )}
       style={{
         /* Centred on the selection, and never past an edge. The clamp has to
