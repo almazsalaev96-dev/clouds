@@ -12,6 +12,7 @@ import {
 import { composeSystemPrompt, composeTurnPrompt } from "@/lib/prompt";
 import { taskOf } from "@/lib/task";
 import { shapeFor } from "@/lib/shape";
+import { visualFor } from "@/lib/visual";
 import { findStyle } from "@/lib/styles";
 import { findMode } from "@/lib/modes";
 import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, estimateTokens, getModel } from "@/lib/models";
@@ -321,7 +322,15 @@ export default function Page() {
          and never into the work. */
       const asked = [...history].reverse().find((m) => m.role === "user");
       const task = asked ? taskOf(blockText(asked.content)) : null;
-      const turn = composeTurnPrompt({ shape: task ? shapeFor(task.kind) : "" });
+      const turn = composeTurnPrompt({
+        shape: task ? shapeFor(task.kind) : "",
+        /* And when a picture would beat a paragraph. The house rules say prose
+           by default, which is right about bullets and wrong about diagrams —
+           a bulleted explanation has had its connective tissue deleted and a
+           flowchart is nothing but connective tissue. Left unqualified, "write
+           in prose" reads as "never draw anything". */
+        visual: task ? visualFor(task.kind) : "",
+      });
       await stream.send({
         conversationId,
         parentId,

@@ -7,6 +7,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { ExternalLink } from "lucide-react";
 import { CodeBlock } from "./CodeBlock";
+import { Diagram } from "./Diagram";
 
 /**
  * Model output is untrusted input. react-markdown does not evaluate raw HTML
@@ -26,6 +27,11 @@ function makeComponents(streaming: boolean): Components {
       if (!isBlock) {
         return <code {...props}>{text}</code>;
       }
+      /* Topology gets drawn. Every model here writes fluent Mermaid without
+         being asked, and it used to fall through to a language the highlighter
+         did not know — losing not just the picture but the label too. */
+      if (match?.[1] === "mermaid") return <Diagram src={text.replace(/\n$/, "")} streaming={streaming} />;
+
       const meta = (props as { node?: { data?: { meta?: string } } }).node?.data?.meta ?? "";
       const filename = meta.match(/(?:title|file)="([^"]+)"/)?.[1];
       return (

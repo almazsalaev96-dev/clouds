@@ -115,8 +115,8 @@ export function composeSystemPrompt(parts: PromptParts): ComposedPrompt {
  * the two do not belong in one box for the same reason the style and the
  * system prompt do not.
  */
-export function composeTurnPrompt(parts: { shape?: string }): string {
-  return [parts.shape?.trim()].filter(Boolean).join("\n\n");
+export function composeTurnPrompt(parts: { shape?: string; visual?: string }): string {
+  return [parts.shape?.trim(), parts.visual?.trim()].filter(Boolean).join("\n\n");
 }
 
 function escapeAttr(s: string): string {

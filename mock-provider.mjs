@@ -48,6 +48,25 @@ const MADE = `Here it is.
 
 Change the number at the top of the script to make it longer.`;
 
+/* Asked for a picture, answer with one. The app can draw Mermaid now and
+   nothing could prove it without a fence to draw. */
+const DRAWN = `A request goes through three gates before it reaches a provider.
+
+\`\`\`mermaid
+%% title: how a turn reaches a provider
+flowchart TD
+  A[You press enter] --> B{Key configured?}
+  B -- no --> C[Add a key]
+  B -- yes --> D[Trim the thread to fit]
+  D --> E[Place the cache breakpoint]
+  E --> F[Provider]
+  F --> G{Rate limited?}
+  G -- yes --> H[Wait, once] --> F
+  G -- no --> I[Stream the answer]
+\`\`\`
+
+The wait is taken once rather than in a loop.`;
+
 const REPLY = `A **debounce** waits for silence: the call fires once the input has stopped changing for a set interval.
 
 \`\`\`ts title="debounce.ts"
@@ -196,6 +215,7 @@ createServer(async (req, res) => {
      a snippet or a working page. A mock that always answers with an essay
      cannot exercise the branch that tells them apart. */
   const making = /\bmake me a\b|\bbuild me a\b/i.test(asked);
+  const drawing = /\bdraw\b|\bdiagram\b|\bflowchart\b/i.test(asked);
 
   /* A plan has to come back as JSON with runnable steps in it, because the
      whole claim of the feature is that a step can be pressed. An essay here
@@ -295,7 +315,9 @@ Nothing here looks like it breaks a caller — the return type is the same array
           ? CHECK
           : making
             ? MADE
-            : REPLY;
+            : drawing
+              ? DRAWN
+              : REPLY;
   if (revising) {
     const current = asked.slice(asked.indexOf("\nCURRENT\n") + "\nCURRENT\n".length);
     const lines = current.replace(/\s+$/, "").split("\n");

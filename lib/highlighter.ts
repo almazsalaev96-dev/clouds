@@ -68,8 +68,16 @@ export function normalizeLang(lang?: string): string | null {
   if (!lang) return null;
   const l = lang.toLowerCase().trim();
   if (SUPPORTED.has(l)) return l;
+  /* Named but not highlightable. A fence that says what it is deserves to keep
+     saying it — this used to return null for `mermaid`, which dropped the
+     label along with the colours and left a reader looking at unexplained
+     monospace. Shiki has no grammar for it; the caption does not need one. */
+  if (LABEL_ONLY.has(l)) return l;
   return ALIASES[l] ?? null;
 }
+
+/** Languages we can name but not colour. */
+const LABEL_ONLY = new Set(["mermaid"]);
 
 async function getHighlighter(): Promise<Highlighter> {
   if (!highlighterPromise) {

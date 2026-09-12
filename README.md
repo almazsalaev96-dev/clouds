@@ -1554,7 +1554,10 @@ node e2e-sources.mjs # 19 assertions: many sources, and citations that are check
 node e2e-auto.mjs    # 16 assertions: which model answered, read at the wire
 node e2e-command.mjs # 15 assertions: ⌘K acting on whatever is on screen
 node e2e-error.mjs   # 24 assertions: what a person sees when it goes wrong
-node e2e-storage.mjs # 14 assertions: storage refused, and two tabs of one app to save anything
+node e2e-storage.mjs # 14 assertions: storage refused, and two tabs of one app
+node e2e-shape.mjs   # 13 assertions: each kind of work asked for the way it needs
+node e2e-point-at.mjs# 20 assertions: pointing at a sentence and asking about it
+node e2e-draw.mjs    # 18 assertions: topology becomes a picture, or stays a fence to save anything
 # and one that needs a second provider, so the mock serves both wire formats:
 OPENAI_BASE_URL=http://127.0.0.1:8787 OPENAI_API_KEY=sk-mock …
 node e2e-verify.mjs  # 16 assertions: a check that comes from another provider

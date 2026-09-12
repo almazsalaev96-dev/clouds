@@ -20,6 +20,7 @@
     "dexie-react-hooks": "^1.1.7",
     "katex": "^0.16.21",
     "lucide-react": "^0.475.0",
+    "mermaid": "^12.0.0",
     "next": "15.5.25",
     "pdfjs-dist": "^4.10.38",
     "react": "^19.0.0",
