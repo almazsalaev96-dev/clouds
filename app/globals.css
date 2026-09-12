@@ -230,6 +230,14 @@
      at all, independent of how high it is floating. Only `.glass` uses it. */
   --rim-all: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
 
+  /* A thing that is level with the page, not above it: the catch and no
+     occlusion, because there is no gap underneath to occlude. `.lift` at rest
+     is exactly this — it is called lift for what it does on hover — and so is
+     a recessed panel. Giving them the raised pair instead draws a dark line
+     along the bottom of every transparent row, which reads as a divider
+     somebody added rather than as an edge catching light. */
+  --rim-flush: inset 0 1px 0 0 rgb(255 255 255 / 0.75);
+
   /* --- Elevation, as a pair.
          -------------------------------------------------------------------
          The rim is *inside* the token rather than beside it. It was beside it,
@@ -488,6 +496,7 @@
       inset -1px 0 0 0 rgb(0 0 0 / 0.20),
       inset 0 -1px 0 0 rgb(0 0 0 / 0.45);
     --rim-all: inset 0 0 0 1px rgba(247, 243, 234, 0.05);
+    --rim-flush: inset 0 1px 0 0 rgb(247 243 234 / 0.09);
 
     --shadow-sm:
       0 1px 1px -1px rgba(0, 0, 0, 0.5),
@@ -733,18 +742,24 @@ textarea:focus-visible {
    ---------------------------------------------------------------------------
    This declaration used to sit unlayered beside the background above, and an
    unlayered rule beats every layered one whatever the specificity says — so it
-   beat Tailwind's `shadow-lg`, which lives in `@layer utilities`. Twelve of the
-   fourteen surfaces in this app that ask for the top of the elevation ramp are
-   also `.glass`: every dropdown, both message menus, all three composer
-   popovers, the command palette, the shortcut sheet, the undo bar, the model
-   picker. Measured on the running app, `.glass.shadow-lg` computed to two inset
-   rims and nothing else, in both themes — identical to `.glass` alone. The
-   class whose entire job is "this floats" was deleting the shadow that makes
-   it float.
+   beat Tailwind's `shadow-lg`, which lives in `@layer utilities`. Thirteen of
+   the fourteen surfaces in this app that ask for the top of the elevation ramp
+   are also `.glass`: every dropdown, both message menus, all three composer
+   popovers, the command palette, the shortcut sheet, the settings dialog, the
+   undo bar, the model picker. Measured on the running app, `.glass.shadow-lg`
+   computed to two inset rims and nothing else, in both themes — identical to
+   `.glass` alone. The class whose entire job is "this floats" was deleting the
+   shadow that makes it float.
 
    In `components` it loses to `utilities`, which is the right way round: this
    is the default edge for chrome that never declares a height, and anything
-   that does declare one brings its own rim inside its own elevation token. */
+   that does declare one brings its own rim inside its own elevation token.
+
+   Note what that means, because it is substitution and not addition: a `.glass`
+   panel carrying `shadow-lg` gets `--rim-lg`'s four directional edges *instead
+   of* the `--rim-all` ring below, not as well as it. All thirteen also carry
+   `border border-line`, so none of them loses its outline — but a future one
+   that does not would. */
 @layer components {
   .glass {
     box-shadow: var(--rim-md), var(--rim-all);
@@ -820,14 +835,37 @@ textarea:focus-visible {
   .glass,
   .glass .glass,
   .composer-shell {
-    backdrop-filter: none;
     -webkit-backdrop-filter: none;
     background: var(--bg-surface);
   }
   .composer-dock {
-    backdrop-filter: none;
     -webkit-backdrop-filter: none;
     background: var(--bg-canvas);
+  }
+
+  /* Inside `@supports`, and this is not belt and braces.
+     ---------------------------------------------------------------------
+     The note above `.glass` says Lightning CSS deletes the standard
+     `backdrop-filter` from the production bundle whenever it decides the
+     `-webkit-` alias covers every target, and that a declaration inside an
+     `@supports` naming the property survives. That fix was applied to the
+     rule that turns the blur *on* and to neither of the two that turn it
+     off — so in the shipped CSS these blocks carried `-webkit-` alone, the
+     unconditional rule above carried both, and `getComputedStyle` in a
+     browser that has the standard property read straight past them.
+
+     Which means this preference did nothing. Somebody who had asked their
+     operating system for less transparency got the full 20px blur, and so
+     did somebody who asked for more contrast. Both had been that way since
+     the `@supports` workaround was written, and no gate looked, because the
+     one assertion pointed at it emulated the wrong media feature. */
+  @supports (backdrop-filter: blur(1px)) {
+    .glass,
+    .glass .glass,
+    .composer-shell,
+    .composer-dock {
+      backdrop-filter: none;
+    }
   }
 }
 
@@ -835,10 +873,19 @@ textarea:focus-visible {
   .glass,
   .glass .glass,
   .composer-shell {
-    backdrop-filter: none;
     -webkit-backdrop-filter: none;
     background: var(--bg-surface);
     border-color: var(--border-strong);
+  }
+
+  /* Same reason as the block above: without the `@supports` around it, the
+     standard property is deleted from the bundle and the blur stays on. */
+  @supports (backdrop-filter: blur(1px)) {
+    .glass,
+    .glass .glass,
+    .composer-shell {
+      backdrop-filter: none;
+    }
   }
   /* Every theme selector, not a bare `:root`. The dark palette sets these on
      `:root[data-theme="dark"]`, which outranks `:root` no matter which media
@@ -854,12 +901,15 @@ textarea:focus-visible {
        theme it is the only thing that says one surface sits above another.
        Somebody who has asked for more contrast is asking for that to be
        *more* legible, so it becomes a solid hairline in the strong border
-       colour rather than a graded pair. Identical in both themes, because
-       `--border-strong` is. */
+       colour rather than a graded pair — which is the one colour in the
+       palette already chosen to be the strongest line each room can carry
+       (#7d7f88 here, #807c73 in the dark, and the difference is the point:
+       each is picked against its own ground). */
     --rim-sm: inset 0 0 0 1px var(--border-strong);
     --rim-md: inset 0 0 0 1px var(--border-strong);
     --rim-lg: inset 0 0 0 1px var(--border-strong);
     --rim-all: inset 0 0 0 1px var(--border-strong);
+    --rim-flush: inset 0 0 0 1px var(--border-strong);
   }
 }
 
@@ -869,12 +919,21 @@ textarea:focus-visible {
   .composer-shell,
   .composer-dock {
     forced-color-adjust: none;
-    backdrop-filter: none;
     -webkit-backdrop-filter: none;
     background: Canvas;
     color: CanvasText;
     border: 1px solid CanvasText;
     box-shadow: none;
+  }
+  /* And here too — the third of the three places the blur is turned off, and
+     the third the minifier was quietly emptying. */
+  @supports (backdrop-filter: blur(1px)) {
+    .glass,
+    .glass .glass,
+    .composer-shell,
+    .composer-dock {
+      backdrop-filter: none;
+    }
   }
   /* Grain and a vignette over a forced palette are noise over a contract. */
   body::before,
@@ -1665,7 +1724,6 @@ body::after {
    on it. Coarse pointers get the lift without the tilt, since there is no
    hover there to track. */
 .lift {
-  box-shadow: var(--rim-sm);
   transition:
     transform var(--dur-enter) var(--ease-spring),
     border-color var(--dur-fast) var(--ease-std),
@@ -1673,10 +1731,22 @@ body::after {
   will-change: transform;
 }
 
-@media (hover: hover) {
-  .lift:hover {
-    transform: translateY(-2px) scale(1.006);
-    box-shadow: var(--shadow-md);
+/* Layered for the same reason `.glass` is, and this one is the latent version
+   of the bug rather than the live one: nothing today pairs `.lift` with a
+   shadow utility, so nothing is being deleted — but an unlayered `box-shadow`
+   on a class anyone can combine with `shadow-md` is the trap, not the crash.
+   Leaving one of the two unlayered would keep the trap this whole change
+   exists to remove. */
+@layer components {
+  .lift {
+    box-shadow: var(--rim-flush);
+  }
+
+  @media (hover: hover) {
+    .lift:hover {
+      transform: translateY(-2px) scale(1.006);
+      box-shadow: var(--shadow-md);
+    }
   }
 }
 
@@ -1686,10 +1756,12 @@ body::after {
    thrown them away. The shadow shortens as the card scales: the light has not
    moved, the object has — which is why this reads as pressing something and a
    colour change does not. */
-.lift:active {
-  transform: translateY(0) scale(0.988);
-  box-shadow: var(--shadow-sm);
-  transition-duration: var(--dur-press);
+@layer components {
+  .lift:active {
+    transform: translateY(0) scale(0.988);
+    box-shadow: var(--shadow-sm);
+    transition-duration: var(--dur-press);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1869,7 +1941,7 @@ body::after {
 }
 .prose a:hover { text-decoration-color: var(--accent); }
 
-.prose ul, .prose ol { padding-left: 1.5em; }
+.prose ul, .prose ol { padding-inline-start: 1.5em; }
 .prose ul { list-style: disc; }
 .prose ol { list-style: decimal; }
 .prose li::marker { color: var(--text-faint); }
@@ -1877,8 +1949,8 @@ body::after {
 .prose li > ul, .prose li > ol { margin-top: 0.35em; }
 
 .prose blockquote {
-  border-left: 2px solid var(--border-strong);
-  padding-left: 1em;
+  border-inline-start: 2px solid var(--border-strong);
+  padding-inline-start: 1em;
   color: var(--text-secondary);
   /* Real hanging punctuation, the way a book sets a pull quote. */
   hanging-punctuation: first last;
@@ -1910,7 +1982,7 @@ body::after {
 }
 .prose thead { background: var(--bg-subtle); }
 .prose th {
-  text-align: left;
+  text-align: start;
   font-weight: 500;
   color: var(--text-secondary);
   padding: 0.55em 0.85em;
@@ -1941,7 +2013,7 @@ body::after {
   white-space: nowrap;
 }
 
-.prose .task-item { list-style: none; margin-left: -1.5em; }
+.prose .task-item { list-style: none; margin-inline-start: -1.5em; }
 .prose .task-item input { margin-right: 0.5em; accent-color: var(--accent); }
 
 /* KaTeX inherits our color and scrolls rather than overflowing. */

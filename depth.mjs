@@ -17,10 +17,13 @@
  *
  * The first is a cascade accident. `.glass` was written outside any `@layer`
  * and Tailwind's `shadow-lg` lives inside `@layer utilities`, so the unlayered
- * rule won regardless of specificity and *deleted* the drop shadow. Twelve of
+ * rule won regardless of specificity and *deleted* the drop shadow. Thirteen of
  * the fourteen surfaces in this app that ask for the top of the elevation ramp
  * are `.glass`: every dropdown, both message menus, all three composer
- * popovers, the palette, the shortcut sheet, the undo bar, the model picker.
+ * popovers, the palette, the shortcut sheet, the settings dialog, the undo bar,
+ * the model picker. (The fourteenth is the selection toolbar, which names the
+ * token directly rather than reaching it through the utility, so it was never
+ * caught by this at all.)
  * Measured, `.glass.shadow-lg` computed to two inset rims and nothing else.
  * The class whose entire job is "this floats" was removing the float. A
  * screenshot review cannot catch that — the panel still looks like a panel.
@@ -175,14 +178,34 @@ for (const theme of ["light", "dark"]) {
      that anything asking for a level of the ramp actually renders one — the
      exact defect `.glass` shipped, where a panel said `shadow-lg` and drew no
      shadow at all. */
+  /* Three of these live on a finished answer or on a conversation that exists,
+     so there has to be one. An empty chat is where the first draft of this
+     scan looked, which is why it reached three surfaces out of thirteen. */
+  await page.getByRole("textbox", { name: "Message" }).fill("what is a debounce");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(3000);
+
   const openers = [
     { name: "the model picker", go: async () => { await page.getByRole("button", { name: /Sonnet|model/i }).first().click(); } },
     { name: "the command palette", go: async () => { await page.keyboard.press("Control+k"); } },
     { name: "the shortcuts sheet", go: async () => { await page.keyboard.press("?"); } },
+    { name: "the conversation menu", go: async () => { await page.getByRole("button", { name: /Conversation options/i }).first().click(); } },
+    { name: "the composer's own menu", go: async () => { await page.getByRole("button", { name: /Attach|Add a file|More/i }).first().click(); } },
+    { name: "settings", go: async () => { await page.getByRole("button", { name: /Settings/i }).first().click(); } },
+    { name: "a message's own menu", go: async () => { await page.getByRole("button", { name: /More actions/i }).first().click(); } },
   ];
   for (const o of openers) {
-    await o.go().catch(() => {});
+    let opened = true;
+    await o.go().catch(() => { opened = false; });
     await page.waitForTimeout(420);
+    /* A selector that has rotted leaves nothing on the screen, and a scan over
+       nothing passes. That is the shape of a gate that goes green when it
+       breaks, so the panel has to prove it is there before anything is read
+       off it. */
+    const panels = await page.evaluate(() =>
+      [...document.querySelectorAll('[class*="shadow-lg"], [class*="shadow-md"]')]
+        .filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; }).length);
+    check(opened && panels > 0, `${o.name}: opened, with something floating on it`, `${panels} panels`);
     const flat = await page.evaluate(([P]) => {
       const { split, layer } = eval(P);
       const out = [];
@@ -246,14 +269,29 @@ for (const theme of ["light", "dark"]) {
     "asked for more contrast, the rim gets stronger rather than disappearing", strong.lg.slice(0, 48));
   await page.emulateMedia({ contrast: "no-preference" });
 
-  await page.emulateMedia({ reducedMotion: "no-preference" });
+  /* Through CDP, not `emulateMedia`. Playwright 1.63 accepts
+     `{ reducedTransparency: "reduce" }` without throwing and does not apply it
+     — `matchMedia` still reports no-preference — so a check written the
+     obvious way measures the default state and cannot fail. Which is how the
+     first draft of this file shipped a tautology here. */
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Emulation.setEmulatedMedia", { media: "screen", features: [{ name: "prefers-reduced-transparency", value: "reduce" }] });
+  await page.waitForTimeout(200);
   const seeThrough = await page.evaluate(() => {
     const d = document.createElement("div"); d.className = "glass";
     d.style.cssText = "width:60px;height:60px;position:fixed;top:-300px";
-    document.body.appendChild(d); const s = getComputedStyle(d); const r = { shadow: s.boxShadow, blur: s.backdropFilter }; d.remove(); return r;
+    document.body.appendChild(d); const s = getComputedStyle(d); const r = { shadow: s.boxShadow, blur: s.backdropFilter, asked: matchMedia("(prefers-reduced-transparency: reduce)").matches }; d.remove(); return r;
   });
+  /* The emulation is asserted before the thing it enables. An earlier draft of
+     this file emulated reduced *motion* here and labelled the check reduced
+     transparency, which made it a tautology: `.glass` has a box-shadow in the
+     default state, so it could not fail, and the regression the rule below
+     exists to forbid would have sailed through green. */
+  check(seeThrough.asked === true, "the preference is actually on before anything is read off it");
+  check(seeThrough.blur === "none", "asked for less transparency the blur goes");
   check(seeThrough.shadow !== "none",
-    "and asked for less transparency it keeps its edge — that preference is about opacity, not about flatness");
+    "and the edge stays — that preference is about opacity, not about flatness");
+  await cdp.send("Emulation.setEmulatedMedia", { media: "screen", features: [] });
 
   /* ------------------------------------------------------------ paper --- */
   await page.emulateMedia({ media: "print" });
