@@ -25,6 +25,7 @@ import { saveToNote } from "@/lib/db";
 import { InlineError } from "@/components/chat/Message";
 import { TopBar } from "@/components/chat/TopBar";
 import { SectionSkeleton } from "@/components/ui/SectionSkeleton";
+import { StorageNotice } from "@/components/ui/StorageNotice";
 import { MessageList } from "@/components/chat/MessageList";
 import { Composer } from "@/components/chat/Composer";
 import { EmptyState } from "@/components/chat/EmptyState";
@@ -1074,7 +1075,13 @@ export default function Page() {
   return (
     <TooltipProvider>
       <ArtifactProvider value={artifactValue}>
-      <div className="app-shell flex h-dvh overflow-hidden">
+      {/* The banner sits above the shell rather than inside it, because the
+          shell is a row of scrollers that fills the screen and this is a fact
+          about the whole app — true in the notebook and in Code as much as in
+          a conversation. */}
+      <div className="app-frame flex h-dvh flex-col">
+      <StorageNotice />
+      <div className="app-shell flex min-h-0 flex-1 overflow-hidden">
         {!inUse && (
         <Sidebar
           activeChatId={activeId}
@@ -1291,6 +1298,7 @@ export default function Page() {
             initialTab={settingsTab}
           />
         )}
+      </div>
       </div>
       </ArtifactProvider>
     </TooltipProvider>

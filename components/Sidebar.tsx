@@ -134,8 +134,15 @@ export function Sidebar({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Escape" && setQuery("")}
-                placeholder="Search chats"
-                aria-label="Search chats"
+                /* "Conversations", to match the section this box sits in and
+                   the two beside it — Search projects, Search notebook. The
+                   list above it is headed Conversations for a reason the
+                   comment up there gives: the composer has a mode called Chat
+                   and two controls a syllable apart is a screen reader saying
+                   the same word for different things. This box was still
+                   saying the other one. */
+                placeholder="Search conversations"
+                aria-label="Search conversations"
                 className="tap h-full min-w-0 flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-tertiary"
               />
               {query && (

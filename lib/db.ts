@@ -137,14 +137,42 @@ export const db = new ChatDB();
  * tab open: the new tab's open() rejects, every live query renders its empty
  * fallback forever, and the app looks like it lost all of the user's work.
  */
+/**
+ * Whether the database is in trouble, and what kind.
+ *
+ * `blocked` used to write a line to the console, which is a place nobody is
+ * looking when their work has just stopped appearing. `unavailable` was not
+ * handled at all: a browser that refuses IndexedDB — a private window, site
+ * data switched off — rejects every query, so every live list renders its
+ * empty fallback and the app presents itself as brand new and working. A
+ * person types into it for an hour and loses the lot on close.
+ *
+ * Neither is fixable from in here. Both are sayable, which is the whole
+ * difference between a bug and a fault the person can route around.
+ */
+export type StorageTrouble = "blocked" | "unavailable";
+let trouble: StorageTrouble | null = null;
+const watchers = new Set<() => void>();
+const setTrouble = (t: StorageTrouble) => {
+  if (trouble === t) return;
+  trouble = t;
+  watchers.forEach((f) => f());
+};
+export const storageTrouble = () => trouble;
+export const watchStorage = (f: () => void) => {
+  watchers.add(f);
+  return () => void watchers.delete(f);
+};
+
 if (typeof window !== "undefined") {
   db.on("versionchange", () => {
     db.close();
     location.reload();
   });
-  db.on("blocked", () => {
-    console.warn("Close Armi's other tabs to finish updating.");
-  });
+  db.on("blocked", () => setTrouble("blocked"));
+  // Opened eagerly rather than on the first query, so the answer is known
+  // before somebody has typed anything they are about to lose.
+  db.open().catch(() => setTrouble("unavailable"));
 }
 
 export const uid = () =>

@@ -1608,6 +1608,7 @@ body::after {
   }
 
   /* The shell paints the app's own ground; on paper that ground is the page. */
+  .app-frame,
   .app-shell,
   .app-shell > main,
   .paper-scroll,
@@ -1622,6 +1623,7 @@ body::after {
      more specific selector winning an argument it should never have been in,
      and it printed the top bar, the composer and seventy buttons across four
      pages of what was meant to be a document. */
+  .app-frame,
   .app-shell,
   .paper-scroll,
   .paper-scroll > *:not(.no-print) {
