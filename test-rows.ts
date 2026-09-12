@@ -34,14 +34,38 @@ console.log("\nThe row that made the app unopenable");
     "and so is an empty one — a message with nothing in it renders as nothing, which is not a crash");
 }
 
+console.log("\nAnd the rows this app itself writes, which is the half that cost something");
+{
+  /* Every shape below is copied off `lib/types.ts`, because the first version
+     of the canvasFiles rule asked for a `path` field that has never existed —
+     so a restore refused every canvas file the app had ever written, and a
+     filter meant to stop a corrupt row costing somebody their work cost them
+     their work instead. A rule that only ever sees the malformed cases in a
+     test is a rule nobody has checked against reality. */
+  check(admits("messages", { id: "m", conversationId: "c", parentId: null, role: "user",
+    content: [{ type: "text", text: "hi" }], createdAt: 1 }, none), "a message");
+  check(admits("conversations", { id: "c", title: "Tides", createdAt: 1, updatedAt: 1,
+    pinned: false, archived: false, modelId: "claude-sonnet-4-5" }, none), "a conversation");
+  check(admits("canvasFiles", { id: "f", canvasId: "cv", name: "index.html", lang: "html",
+    content: "<!doctype html>", order: 0, createdAt: 1, updatedAt: 1 }, none), "a canvas file");
+  check(admits("projectFiles", { id: "pf", projectId: "p", name: "notes.md",
+    mimeType: "text/markdown", text: "# notes", size: 7, createdAt: 1 }, none), "a project file");
+  check(admits("sources", { id: "s", noteId: "n", name: "paper.pdf", text: "…", pages: 12 }, none), "a source");
+  check(admits("notes", { id: "n", title: "Tides", body: "…", createdAt: 1 }, none), "a page");
+  check(admits("canvasVersions", { id: "v", canvasId: "cv", label: "first", createdAt: 1 }, none), "a canvas version");
+  check(admits("styles", { id: "st", name: "Blunt", prompt: "…" }, none), "a style");
+  check(admits("projects", { id: "p", name: "Tides", createdAt: 1 }, none), "a project");
+  check(admits("canvases", { id: "cv", title: "Tides", createdAt: 1, updatedAt: 1 }, none), "a canvas");
+}
+
 console.log("\nAnd the fields the render path reads without a guard");
 {
   check(!admits("messages", msg({ role: "tool" }), none), "a role nothing knows how to draw is refused");
   check(!admits("messages", msg({ conversationId: undefined }), none), "and a message belonging to no conversation");
   check(!admits("conversations", { id: "c1", title: 42 }, none), "a title that is a number is refused");
   check(admits("conversations", { id: "c1" }, none), "but a conversation with no title yet is fine");
-  check(!admits("canvasFiles", { id: "f1", path: "a.ts" }, none), "a file with no contents is refused");
-  check(admits("canvasFiles", { id: "f1", path: "a.ts", content: "" }, none), "an empty file is not the same thing");
+  check(!admits("canvasFiles", { id: "f1", name: "a.ts" }, none), "a file with no contents is refused");
+  check(admits("canvasFiles", { id: "f1", name: "a.ts", content: "" }, none), "an empty file is not the same thing");
   check(!admits("sources", { id: "s1" }, none), "a source attached to no note is refused — nobody could ever delete it");
 }
 

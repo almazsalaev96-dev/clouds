@@ -43,9 +43,15 @@ export const ROW_SHAPE: Record<string, (r: Row) => boolean> = {
      nothing at all reaches `.slice` and `.trim`. */
   conversations: (r) => r.title === undefined || typeof r.title === "string",
 
-  /* Both are read as text by the editor and the highlighter. */
-  canvasFiles: (r) => typeof r.path === "string" && typeof r.content === "string",
-  projectFiles: (r) => typeof r.name === "string",
+  /* `name` and `content`, read from `lib/types.ts` rather than guessed. The
+     first version of this rule asked for `path`, which no canvas file has ever
+     had, so every one of them was refused on restore — a filter written to stop
+     a corrupt row from costing somebody their work, silently costing them their
+     work. Any rule here has to be checked against a row the app really wrote,
+     which is what the "and the rows this app itself writes" block in
+     test-rows.ts is for. */
+  canvasFiles: (r) => typeof r.name === "string" && typeof r.content === "string",
+  projectFiles: (r) => typeof r.name === "string" && typeof r.text === "string",
 
   /* An orphan source renders under no note and is unreachable, which is not a
      crash but is a row nobody can ever delete. */
