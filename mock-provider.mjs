@@ -67,6 +67,28 @@ flowchart TD
 
 The wait is taken once rather than in a loop.`;
 
+/* A question the reader has to answer before the answer appears. */
+const GATED = `\`reduce\` with no initial value takes the first element as the seed.
+
+\`\`\`predict
+{"q":"So what does it do on an empty list?","options":["returns 0","returns undefined","throws"],"answer":2,"why":"There is no first element to seed from, and no initial value was given, so it has nothing to return."}
+\`\`\`
+
+Pass an initial value and the empty case becomes that value instead.`;
+
+/* The same answer, with a gate that cannot be rendered: its `answer` points
+   past the end of its own options. What matters is not that the gate is
+   missing — it is that the two paragraphs around it are still there. A parser
+   that throws inside the renderer takes the whole message with it, which is a
+   far worse failure than no gate at all. */
+const BROKEN_GATE = `\`fold\` with no initial value takes the first element as the seed.
+
+\`\`\`predict
+{"q":"So what does it do on an empty list?","options":["returns 0","throws"],"answer":7}
+\`\`\`
+
+Pass an initial value and the empty case becomes that value instead.`;
+
 const REPLY = `A **debounce** waits for silence: the call fires once the input has stopped changing for a set interval.
 
 \`\`\`ts title="debounce.ts"
@@ -216,6 +238,8 @@ createServer(async (req, res) => {
      cannot exercise the branch that tells them apart. */
   const making = /\bmake me a\b|\bbuild me a\b/i.test(asked);
   const drawing = /\bdraw\b|\bdiagram\b|\bflowchart\b/i.test(asked);
+  const gating = /\breduce\b|\bempty list\b/i.test(asked);
+  const breaking = /\bfold\b/i.test(asked);
 
   /* A plan has to come back as JSON with runnable steps in it, because the
      whole claim of the feature is that a step can be pressed. An essay here
@@ -317,7 +341,11 @@ Nothing here looks like it breaks a caller — the return type is the same array
             ? MADE
             : drawing
               ? DRAWN
-              : REPLY;
+              : breaking
+                ? BROKEN_GATE
+                : gating
+                  ? GATED
+                  : REPLY;
   if (revising) {
     const current = asked.slice(asked.indexOf("\nCURRENT\n") + "\nCURRENT\n".length);
     const lines = current.replace(/\s+$/, "").split("\n");

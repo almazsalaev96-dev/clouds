@@ -1971,6 +1971,15 @@ body::after {
     max-width: 100% !important;
   }
 
+  /* A gate is an interaction, and paper has none. The answer it is holding
+     back is part of the document; the buttons are the application. */
+  [data-predict] [hidden] {
+    display: block !important;
+  }
+  [data-predict] button {
+    display: none !important;
+  }
+
   /* Every control that appears when you point at it — copy, edit, regenerate,
      branch, the timing and token counts under an answer. A page of those is
      the application printed rather than the document, and the last answer's

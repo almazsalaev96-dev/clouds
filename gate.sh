@@ -60,6 +60,7 @@ run test-web   npx jiti test-web.ts
 run test-task  npx jiti test-task.ts
 run test-error npx jiti test-error.ts
 run test-lint  npx jiti test-lint.ts
+run test-predict npx jiti test-predict.ts
 run test-fuzz  npx jiti test-fuzz.ts
 run test-cite  node --experimental-strip-types test-cite.mts
 [ "$ONLY" = unit ] && { echo; echo "$([ $FAILED -eq 0 ] && echo "all passed" || echo "$FAILED FAILED")"; exit $FAILED; }
@@ -70,7 +71,8 @@ mock mock-provider.mjs
 serve
 for t in e2e e2e-canvas e2e-web e2e-code e2e-agent e2e-sources e2e-auto e2e-command \
          e2e-project e2e-mode e2e-pdf e2e-editor e2e-makes e2e-bar e2e-motion \
-         e2e-use e2e-scale e2e-backup e2e-error e2e-storage e2e-shape e2e-point-at e2e-draw; do
+         e2e-use e2e-scale e2e-backup e2e-error e2e-storage e2e-shape e2e-point-at e2e-draw \
+         e2e-ask; do
   run "$t" node "$t.mjs"
 done
 run test-context node test-context.mjs

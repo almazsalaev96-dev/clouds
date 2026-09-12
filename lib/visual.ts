@@ -52,7 +52,30 @@ const WHEN_TO_DRAW = [
  */
 const DRAWS: TaskKind[] = ["learning", "coding", "design", "data"];
 
+/**
+ * The commitment gate, offered only where someone is trying to understand.
+ *
+ * A stream is one pass, so a model that asks "what do you think happens here?"
+ * answers it four lines later without waiting — and reading the answer is the
+ * passive mode that the research on this measures at nothing. This is the one
+ * channel the app has for making a reader commit before the reveal, inside a
+ * single message, without a round trip.
+ */
+const PREDICT = [
+  "Where the next step has a common wrong answer, put it behind a gate before you explain it:",
+  "",
+  "```predict",
+  '{"q":"What does this return on an empty list?","options":["0","undefined","it throws"],"answer":2,"why":"reduce with no initial value has nothing to start from."}',
+  "```",
+  "",
+  "Two or three options, and the wrong ones have to be the mistakes people actually make — a decoy nobody would pick teaches nothing and wastes the one commitment you get.",
+  "One gate at most per answer, and only where being wrong is *informative*. A gate on something obvious is a quiz nobody asked for.",
+  "Never gate the thing they came to find out. It goes in front of a step on the way, not in front of the answer.",
+];
+
 export function visualFor(kind: TaskKind): string {
-  if (!DRAWS.includes(kind)) return "";
-  return ["## Drawing", "", ...WHEN_TO_DRAW].join("\n");
+  const blocks: string[] = [];
+  if (DRAWS.includes(kind)) blocks.push(["## Drawing", "", ...WHEN_TO_DRAW].join("\n"));
+  if (kind === "learning") blocks.push(["## Asking before telling", "", ...PREDICT].join("\n"));
+  return blocks.join("\n\n");
 }

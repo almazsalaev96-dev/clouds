@@ -8,6 +8,7 @@ import rehypeKatex from "rehype-katex";
 import { ExternalLink } from "lucide-react";
 import { CodeBlock } from "./CodeBlock";
 import { Diagram } from "./Diagram";
+import { Predict, parsePredict } from "./Predict";
 
 /**
  * Model output is untrusted input. react-markdown does not evaluate raw HTML
@@ -31,6 +32,14 @@ function makeComponents(streaming: boolean): Components {
          being asked, and it used to fall through to a language the highlighter
          did not know — losing not just the picture but the label too. */
       if (match?.[1] === "mermaid") return <Diagram src={text.replace(/\n$/, "")} streaming={streaming} />;
+
+      /* A question you have to answer before the answer appears. Held back
+         while the stream is running, because half a JSON object is not a
+         question and a gate that flickers into existence is not one either. */
+      if (match?.[1] === "predict" && !streaming) {
+        const spec = parsePredict(text);
+        if (spec) return <Predict spec={spec} />;
+      }
 
       const meta = (props as { node?: { data?: { meta?: string } } }).node?.data?.meta ?? "";
       const filename = meta.match(/(?:title|file)="([^"]+)"/)?.[1];

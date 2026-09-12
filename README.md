@@ -1519,13 +1519,14 @@ node widths.mjs       # fourteen widths, from a small phone to a wide monitor
 node print.mjs        # the print stylesheet, which is how a paper leaves here
 node shoot-smoke.mjs  # every section loads, undo works, no runtime errors
 
-# and six that need no browser at all:
+# and seven that need no browser at all:
 node --experimental-strip-types test-cite.mts   # the citation matcher, on its own
 npx jiti test-route.ts                          # the model router and the calculator
 npx jiti test-web.ts                            # the preview assembler and its source map
 npx jiti test-task.ts                           # what kind of work a request is
 npx jiti test-error.ts                          # every way a provider can fail
 npx jiti test-lint.ts                           # whether an answer obeyed the house rules
+npx jiti test-predict.ts                        # every malformed gate the renderer has to decline
 npx jiti test-fuzz.ts                           # generated cases against the invariants
 ```
 
@@ -1559,6 +1560,7 @@ node e2e-storage.mjs # 14 assertions: storage refused, and two tabs of one app
 node e2e-shape.mjs   # 13 assertions: each kind of work asked for the way it needs
 node e2e-point-at.mjs# 20 assertions: pointing at a sentence and asking about it
 node e2e-draw.mjs    # 18 assertions: topology becomes a picture, or stays a fence to save anything
+node e2e-ask.mjs     # 24 assertions: an answer you have to commit to before you are shown it
 # and one that needs a second provider, so the mock serves both wire formats:
 OPENAI_BASE_URL=http://127.0.0.1:8787 OPENAI_API_KEY=sk-mock …
 node e2e-verify.mjs  # 16 assertions: a check that comes from another provider
