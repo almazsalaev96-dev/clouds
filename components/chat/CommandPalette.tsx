@@ -5,7 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   Code2, Download, FileText, FolderOpen, MessageSquare, MessageSquarePlus, Moon,
-  Columns2, NotebookPen, Palette, PanelLeft, Settings2, Sun, Trash2, Type, Wand2,
+  Columns2, NotebookPen, Palette, PanelLeft, Settings2, Sparkles, Sun, Trash2, Type, Wand2,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { MODELS } from "@/lib/models";
@@ -221,6 +221,7 @@ export function CommandPalette({
       [
         ["chat", "Chats", <MessageSquare key="c" size={15} />],
         ["code", "Code", <Code2 key="k" size={15} />],
+        ["creative", "Creative", <Sparkles key="v" size={15} />],
         ["projects", "Projects", <FolderOpen key="j" size={15} />],
         ["notebook", "Notebook", <NotebookPen key="n" size={15} />],
       ] as const

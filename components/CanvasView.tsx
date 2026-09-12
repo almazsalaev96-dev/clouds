@@ -32,7 +32,6 @@ import {
 } from "@/lib/generate";
 import { collapse, diffStat, lineDiff, type DiffOp } from "@/lib/diff";
 import { assembleWeb, ENTRY, locate, runToken, webTemplate } from "@/lib/web";
-import { MakeRow } from "@/components/MakeRow";
 import { DiffView } from "@/components/DiffView";
 import { MessageBar } from "@/components/chat/MessageBar";
 import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
@@ -216,10 +215,12 @@ function Starters({ onSelect }: { onSelect: (id: string, seed?: string) => void 
         ))}
       </div>
 
-      {/* And the five that are already something. An empty folder is a fair
-          place to start only if you already know what you are building. */}
-      <p className="eyebrow mb-2 mt-5 text-faint">Or make one of these</p>
-      <MakeRow onSelect={onSelect} />
+      {/* The five that are already something used to sit here. They are in
+          Creative now — a room whose whole page is them — because having the
+          same offer in two rooms is two places for one thing, and the one
+          named after making is the right one. An empty folder is still a fair
+          place to start if you already know what you are building, which is
+          what these three are for. */}
     </div>
   );
 }

@@ -4,9 +4,9 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   ChevronRight, Code2, FolderOpen, Keyboard, MessagesSquare, NotebookPen,
-  PanelLeft, Pin, PinOff, Plus, Search, Settings2, Trash2, X,
+  PanelLeft, Pin, PinOff, Plus, Search, Settings2, Sparkles, Trash2, X,
 } from "lucide-react";
-import type { Conversation, Style } from "@/lib/types";
+import type { Conversation } from "@/lib/types";
 import { db, deleteConversation, groupConversations } from "@/lib/db";
 import { useDebounced } from "@/lib/hooks/useDebounced";
 import { usePointerAngle } from "@/lib/hooks/usePointerAngle";
@@ -14,7 +14,6 @@ import { Lockup } from "@/components/brand/Logo";
 import { offerUndo } from "@/lib/undo";
 import { useSettings, type Section } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { StylePicker } from "@/components/chat/StylePicker";
 import { IconButton, Kbd, Tooltip } from "@/components/ui/primitives";
 import { Segmented } from "@/components/ui/Segmented";
 
@@ -34,10 +33,6 @@ export function Sidebar({
   onGoToSection,
   onOpenSettings,
   onOpenShortcuts,
-  styleId,
-  customStyles,
-  onStyleChange,
-  onEditStyles,
 }: {
   activeChatId: string | null;
   onSelectChat: (id: string) => void;
@@ -45,10 +40,6 @@ export function Sidebar({
   onGoToSection: (section: Section) => void;
   onOpenSettings: () => void;
   onOpenShortcuts: () => void;
-  styleId: string;
-  customStyles: Style[];
-  onStyleChange: (id: string) => void;
-  onEditStyles: () => void;
 }) {
   const { sidebarOpen, toggleSidebar, section, name } = useSettings();
   const markRef = usePointerAngle<HTMLSpanElement>();
@@ -102,9 +93,9 @@ export function Sidebar({
                 reference uses, and the right one: it takes no row in the list
                 and it says which of the two rooms you are standing in. */}
             <Segmented
-              value={section === "code" ? "code" : "chat"}
+              value={section === "code" || section === "creative" ? section : "chat"}
               role="radiogroup"
-              aria-label="Chat or code"
+              aria-label="Chat, code or creative"
               className="ml-auto flex items-center gap-0.5 rounded-lg bg-inset p-0.5"
               indicatorClassName="rounded-md"
             >
@@ -114,6 +105,9 @@ export function Sidebar({
                 // screen reader announcing the same word for different things.
                 ["chat", "Conversations", <MessagesSquare key="c" size={15} />],
                 ["code", "Code", <Code2 key="k" size={15} />],
+                // Third, and last, because it is the one you reach for when
+                // you already know you want a thing rather than an answer.
+                ["creative", "Creative", <Sparkles key="v" size={15} />],
               ] as const).map(([id, label, icon]) => {
                 const on = section === id;
                 return (
@@ -136,18 +130,6 @@ export function Sidebar({
               })}
             </Segmented>
 
-            {/* And how you want to be talked to, beside the room you are in.
-                It used to live in the composer next to the mode switch and the
-                tools popover; those two are decided from the request now, and
-                this is the one of the three that no sentence reliably says.
-                It belongs to the thread rather than to the message, which is
-                the same kind of fact as which room you are standing in. */}
-            <StylePicker
-              styleId={styleId}
-              customStyles={customStyles}
-              onStyleChange={onStyleChange}
-              onEditStyles={onEditStyles}
-            />
           </div>
 
           <div className="space-y-1 px-2 pb-2">

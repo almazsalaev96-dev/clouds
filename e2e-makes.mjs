@@ -32,41 +32,44 @@ await page.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.string
 await page.reload({ waitUntil: "networkidle" });
 await page.waitForTimeout(900);
 
-/* The row lives in the Code room, which is the whole point: the answer to
+/* Creative is a room now, and its whole page is this offer: the answer to
    "make me a timetable" should not be a paragraph about timetables, and the
    place you go to make things is the room named after making them.
 
-   It used to be offered on a blank chat page as well, gated on a Creative mode
-   you switched into by hand. That switch is gone — the app reads the request —
-   and the duplicate went with it rather than being left on a page with nothing
-   to turn it on. */
+   The same five used to sit at the bottom of the Code index and on a blank
+   chat page gated behind a Creative mode you switched into by hand. The switch
+   is gone — the app reads the request — and rather than leave two copies with
+   nothing to turn one of them on, there is one, in the room named after it. */
 console.log("\nThe offer");
-await page.getByRole("radio", { name: "Code" }).first().click();
+await page.getByRole("radio", { name: "Creative" }).first().click();
 await page.waitForTimeout(700);
-const row = page.getByRole("button", { name: "Flashcards" });
-check(await row.isVisible().catch(() => false), "the Code room offers things you can make, not only things to ask");
-await page.screenshot({ path: `${OUT}/makes-code.png` });
+const row = page.getByRole("button", { name: /Flashcards/ });
+check(await row.isVisible().catch(() => false), "the Creative room offers things you can make, not only things to ask");
+await page.screenshot({ path: `${OUT}/makes-creative.png` });
 
 await page.getByRole("radio", { name: "Conversations" }).first().click();
 await page.waitForTimeout(600);
 check(!(await row.isVisible().catch(() => false)), "and a blank chat page does not — it is a different question");
 await page.screenshot({ path: `${OUT}/makes-chat.png` });
 await page.getByRole("radio", { name: "Code" }).first().click();
+await page.waitForTimeout(600);
+check(!(await row.isVisible().catch(() => false)), "and neither does the Code index — one copy, not three");
+await page.getByRole("radio", { name: "Creative" }).first().click();
 await page.waitForTimeout(700);
 
 /** Press a make, land in Code with it running, and hand back its frame. */
 async function open(name) {
-  await page.getByRole("button", { name, exact: true }).click();
+  await page.getByRole("button", { name: new RegExp("^" + name) }).first().click();
   await page.waitForTimeout(1200);
   const frame = page.frameLocator("iframe");
   await frame.locator("body").waitFor({ timeout: 8000 });
   return frame;
 }
-/* Back out to the Code index, which is where the row lives now. It used to
-   need a second hop to a blank Creative chat page; the row is in one place
-   these days, so the first half is the whole journey. */
+/* Back to Creative, which is where the offer lives. Pressing one lands you in
+   Code with it running, so the way back is a room change rather than the Code
+   index — that index is three empty starters now, not these five. */
 async function back() {
-  await page.getByRole("button", { name: "All canvases" }).click();
+  await page.getByRole("radio", { name: "Creative" }).first().click();
   await page.waitForTimeout(700);
 }
 const consoleErrors = async () => {

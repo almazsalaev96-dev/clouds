@@ -104,7 +104,21 @@ export function forgetLocalStorage() {
 
 export type Theme = "light" | "dark" | "system";
 export type Density = "compact" | "comfortable" | "spacious";
-export type Section = "chat" | "code" | "projects" | "notebook";
+/**
+ * The rooms.
+ *
+ * "creative" is where things get made: its page is the list of things this app
+ * can build — a deck of flashcards, a week grid, a timer — and pressing one
+ * builds it and runs it. It is a room rather than a mode because that is what
+ * it always was: Creative used to be a switch in the composer, which asked the
+ * question before you had said anything and put the answer somewhere nobody
+ * looked. A place you go is findable.
+ *
+ * It has no viewer of its own. What it makes is a canvas, and canvases live
+ * and run in "code" — two rooms rendering the same thing would be two places
+ * for one object.
+ */
+export type Section = "chat" | "code" | "creative" | "projects" | "notebook";
 
 interface Settings {
   theme: Theme;

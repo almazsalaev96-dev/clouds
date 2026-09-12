@@ -25,6 +25,7 @@ import { cn, inOverlay } from "@/lib/utils";
 import { offerUndo } from "@/lib/undo";
 import { Sidebar } from "@/components/Sidebar";
 import { CanvasView, toCanvas } from "@/components/CanvasView";
+import { CreativeView } from "@/components/CreativeView";
 import { saveToNote } from "@/lib/db";
 import { InlineError } from "@/components/chat/Message";
 import { TopBar } from "@/components/chat/TopBar";
@@ -1150,13 +1151,6 @@ export default function Page() {
           onSelectChat={(id) => selectInSection("chat", id)}
           onNewChat={() => void createInSection("chat")}
           onGoToSection={goToSection}
-          styleId={threadStyleId}
-          customStyles={customStyles}
-          onStyleChange={setStyle}
-          onEditStyles={() => {
-            setSettingsTab("styles");
-            setSettingsOpen(true);
-          }}
           onOpenSettings={openKeys}
           onOpenShortcuts={() => setShortcutsOpen(true)}
         />
@@ -1212,6 +1206,25 @@ export default function Page() {
                     withTransition(() => {
                       setCanvasSeed(undefined);
                       setCanvasId(null);
+                    }, "back")
+                  }
+                />
+              )}
+              {settings.section === "creative" && (
+                <CreativeView
+                  /* Built, then handed to the room that runs canvases. This
+                     room chooses; Code is where a canvas lives. */
+                  onMade={(id, seed) =>
+                    withTransition(() => {
+                      setCanvasSeed(seed);
+                      setCanvasId(id);
+                      settings.setSection("code");
+                    }, "forward")
+                  }
+                  onAnything={() =>
+                    withTransition(() => {
+                      settings.setSection("chat");
+                      setHanded({ to: "chat", text: "Make me a ", nonce: Date.now() });
                     }, "back")
                   }
                 />
