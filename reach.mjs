@@ -104,7 +104,7 @@ check(chat.length === 0, "every run of text in the chat can be reached", chat.ma
 
 console.log("\nThe same, in the other places the app puts text");
 
-await page.getByRole("radio", { name: "Code" }).click();
+await page.getByRole("button", { name: "Code" }).click();
 await page.waitForTimeout(500);
 const newFile = page.getByRole("button", { name: /Code file/ }).first();
 if (await newFile.count()) {
@@ -120,7 +120,7 @@ if (await newFile.count()) {
 const code = await page.evaluate(UNREACHED);
 check(code.length === 0, "the code surface keeps every run of text reachable", code.map((r) => `${r.clipper} hides ${r.lost}px of "${r.text}"`).join(" | "));
 
-await page.getByRole("radio", { name: "Conversations" }).click();
+await page.getByRole("button", { name: "Conversations" }).click();
 await page.waitForTimeout(500);
 const gear = page.getByRole("button", { name: /Settings/ }).first();
 if (await gear.count()) {

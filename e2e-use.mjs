@@ -30,7 +30,7 @@ const canvases = () =>
     const d = await new Promise((r) => { const q = indexedDB.open("clouds"); q.onsuccess = () => r(q.result); });
     const rows = await new Promise((r) => { const q = d.transaction(["canvases"]).objectStore("canvases").getAll(); q.onsuccess = () => r(q.result); });
     d.close();
-    return rows.map((c) => ({ id: c.id, kind: c.kind, title: c.title }));
+    return rows.map((c) => ({ id: c.id, kind: c.kind, lang: c.lang, title: c.title }));
   });
 
 const SETTINGS = { theme: "dark", density: "comfortable", modelId: "claude-sonnet-4-5", styleId: "normal", mode: "creative", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true };
@@ -42,7 +42,11 @@ await page.waitForTimeout(900);
 
 console.log("\nUsing it");
 {
-  await page.getByRole("button", { name: "Flashcards", exact: true }).click();
+  /* The starters live in the Creative room now, as cards with their blurb
+     under the name, so neither the place nor the exact name holds. */
+  await page.getByRole("button", { name: "Creative" }).first().click();
+  await page.waitForTimeout(700);
+  await page.getByRole("button", { name: /^Flashcards/ }).first().click();
   await page.waitForTimeout(1500);
   const f = page.frameLocator("iframe");
   // Get the deck into a state that a reload would destroy.
@@ -92,9 +96,9 @@ console.log("\nUsing it");
 
 console.log("\nAnything else");
 {
-  await page.getByRole("button", { name: "All canvases" }).click();
-  await page.waitForTimeout(400);
-  await page.getByRole("radio", { name: "Conversations" }).click();
+  /* "Anything else" is in Creative with the five it is an alternative to,
+     rather than on a blank chat page it used to share with them. */
+  await page.getByRole("button", { name: "Creative" }).first().click();
   await page.waitForTimeout(700);
   check(await page.getByRole("button", { name: /Anything else/ }).isVisible(),
     "the five starters are not the offer — there is a way to ask for anything");
@@ -104,27 +108,29 @@ console.log("\nAnything else");
   check(draft.startsWith("Make me a"), "and it starts the sentence for you", `“${draft}”`);
 }
 
-console.log("\nA whole page becomes a thing that runs");
+console.log("\nAsking for a thing gets you the thing, running");
 {
+  /* This used to assert that the answer arrived as `<!doctype html` in the
+     transcript and that a menu item would then lift it into a canvas. Both
+     halves are gone on purpose. Nobody who asked for a timer wanted nine
+     hundred lines of markup in the conversation and a second decision to make
+     afterwards — and `toCanvas`, the function that does the lifting, sat in
+     this repository uncalled the whole time. An answer that is one complete
+     document now opens where documents run, and opens running. */
+  const before = await canvases();
   await page.getByRole("textbox", { name: "Message" }).fill("make me a timer");
   await page.getByRole("button", { name: "Send message" }).click();
-  await page.waitForTimeout(3000);
-  check((await page.locator("main").innerText()).includes("<!doctype html"),
-    "Creative answered with a whole page, not a description of one");
-
-  const before = await canvases();
-  const menu = page.getByRole("button", { name: /More actions|Message actions/ }).last();
-  await menu.click();
-  await page.waitForTimeout(400);
-  await page.getByRole("menuitem", { name: /canvas/i }).click();
-  await page.waitForTimeout(1800);
+  await page.waitForTimeout(4500);
 
   const made = (await canvases()).find((c) => !before.some((b) => b.id === c.id));
-  check(made?.kind === "web",
-    "keeping it makes a web app, not a file with the source of one in it", made?.kind ?? "none");
+  check(Boolean(made), "the answer became something that runs rather than something to read", made?.title ?? "none");
+  check(made?.kind === "code" && made?.lang === "html",
+    "one self-contained document, kept as one file rather than split into a folder",
+    `${made?.kind}/${made?.lang}`);
   check(made?.title === "Two minutes", "named from the page's own title", made?.title ?? "");
+  check(!(await page.locator("main").innerText()).includes("<!doctype html"),
+    "and the markup is not also sitting in the transcript");
 
-  // Which means it is already running, with nothing to press first.
   const frame = page.frameLocator("iframe");
   await frame.locator("#t").waitFor({ timeout: 8000 });
   check((await frame.locator("#t").innerText()) === "02:00", "and it opens running", await frame.locator("#t").innerText());

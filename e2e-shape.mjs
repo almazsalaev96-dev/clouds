@@ -79,9 +79,12 @@ console.log("\nA stance that withholds something is not shown the thing it withh
      variable, the useless step skipped, pointing straight at the answer. The
      instruction was obeyed; the shape gave it away. Not looking is the fix. */
   await newChat();
-  await page.getByRole("button", { name: /Response style/ }).click();
-  await page.waitForTimeout(500);
-  await page.getByRole("button", { name: /Socratic/i }).first().click();
+  /* Through the palette: the composer's style picker is gone. */
+  await page.keyboard.press("Control+k");
+  await page.waitForTimeout(400);
+  await page.getByRole("textbox", { name: "Command palette" }).fill("Socratic style");
+  await page.waitForTimeout(400);
+  await page.getByRole("option", { name: /Answer in the Socratic style/ }).first().click();
   await page.waitForTimeout(600);
   const last = await sent("why does this loop run twice");
   const system = last.systemText ?? "";
@@ -90,9 +93,11 @@ console.log("\nA stance that withholds something is not shown the thing it withh
   check(/leak — in the shape of the hint|points at it/i.test(system),
     "and told why, so it is a reason rather than a rule");
 
-  await page.getByRole("button", { name: /Response style/ }).click();
-  await page.waitForTimeout(500);
-  await page.getByRole("button", { name: /^Normal/i }).first().click();
+  await page.keyboard.press("Control+k");
+  await page.waitForTimeout(400);
+  await page.getByRole("textbox", { name: "Command palette" }).fill("Normal style");
+  await page.waitForTimeout(400);
+  await page.getByRole("option", { name: /Answer in the Normal style/ }).first().click();
   await page.waitForTimeout(600);
   const plain = (await sent("why does this loop run twice")).systemText ?? "";
   check(!/Reason only about the work/.test(plain),

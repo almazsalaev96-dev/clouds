@@ -52,7 +52,7 @@ console.log("\nIt still finds things");
 
 console.log("\nOn a file, a sentence changes the file");
 {
-  await page.getByRole("radio", { name: "Code" }).first().click();
+  await page.getByRole("button", { name: "Code" }).first().click();
   await page.waitForTimeout(500);
   await page.getByRole("button", { name: /Code file/ }).click();
   await page.waitForTimeout(1000);
@@ -94,7 +94,7 @@ console.log("\nIn a conversation, it is the next thing you said");
   await page.waitForTimeout(1400);
   /* "Conversations", not "Chat" — the latter is the composer's Chat/Creative
      mode toggle, which is a different control in a different place. */
-  await page.getByRole("radio", { name: "Conversations" }).first().click();
+  await page.getByRole("button", { name: "Conversations" }).first().click();
   await page.waitForTimeout(800);
   await open();
   const box = page.getByRole("textbox", { name: "Command palette" });

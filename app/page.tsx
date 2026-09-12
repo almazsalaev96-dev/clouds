@@ -1221,10 +1221,15 @@ export default function Page() {
                       settings.setSection("code");
                     }, "forward")
                   }
+                  /* `handed` is for the canvas and the notebook, which take an
+                     instruction as a prop. The chat composer reads its draft
+                     from the store, which is also what the empty page's
+                     examples write to — so this writes the same half-sentence
+                     to the same place. */
                   onAnything={() =>
                     withTransition(() => {
+                      useDrafts.getState().setDraft(activeId ?? "new", "Make me a ");
                       settings.setSection("chat");
-                      setHanded({ to: "chat", text: "Make me a ", nonce: Date.now() });
                     }, "back")
                   }
                 />

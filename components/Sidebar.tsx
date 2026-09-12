@@ -15,15 +15,28 @@ import { offerUndo } from "@/lib/undo";
 import { useSettings, type Section } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { IconButton, Kbd, Tooltip } from "@/components/ui/primitives";
-import { Segmented } from "@/components/ui/Segmented";
 
-/* Code is not in this list. It sits in the header as one half of a switch,
-   because chat and code are not two destinations among several — they are the
-   two things the app is, and the one you are in should be readable and
-   changeable without travelling down a list to find out. */
-const SECTIONS: { id: Exclude<Section, "chat">; label: string; icon: React.ReactNode }[] = [
+/* All of them, in one list.
+   Code used to sit in the header as half of a switch, on the argument that
+   chat and code are not two destinations among several — they are the two
+   things the app is. That stopped being true when Creative became a room:
+   three icons in a segmented control is a menu pretending to be a switch, and
+   it put the rooms in two places at once, one of them a strip of unlabelled
+   marks above a list of labelled rows.
+
+   So: one list, one row each, every destination named. Chat is the exception
+   and stays out of it — the conversations are the list underneath, and you get
+   back to them by opening one or by starting a new one, which is what the two
+   controls above this already do. */
+const SECTIONS: { id: Section; label: string; icon: React.ReactNode }[] = [
+  /* Conversations is in the list too, and has to be: with the header switch
+     gone there was no way back to the thread you were reading except opening
+     one, and "New chat" is not that — it is a different conversation. */
+  { id: "chat", label: "Conversations", icon: <MessagesSquare size={15} /> },
   { id: "projects", label: "Projects", icon: <FolderOpen size={15} /> },
   { id: "notebook", label: "Notebook", icon: <NotebookPen size={15} /> },
+  { id: "code", label: "Code", icon: <Code2 size={15} /> },
+  { id: "creative", label: "Creative", icon: <Sparkles size={15} /> },
 ];
 
 export function Sidebar({
@@ -89,46 +102,6 @@ export function Sidebar({
               <Lockup />
             </span>
 
-            {/* The switch. Two icons, the live one filled — the same shape the
-                reference uses, and the right one: it takes no row in the list
-                and it says which of the two rooms you are standing in. */}
-            <Segmented
-              value={section === "code" || section === "creative" ? section : "chat"}
-              role="radiogroup"
-              aria-label="Chat, code or creative"
-              className="ml-auto flex items-center gap-0.5 rounded-lg bg-inset p-0.5"
-              indicatorClassName="rounded-md"
-            >
-              {([
-                // "Conversations", not "Chats": the composer has a mode called
-                // Chat, and two controls a syllable apart on one screen is a
-                // screen reader announcing the same word for different things.
-                ["chat", "Conversations", <MessagesSquare key="c" size={15} />],
-                ["code", "Code", <Code2 key="k" size={15} />],
-                // Third, and last, because it is the one you reach for when
-                // you already know you want a thing rather than an answer.
-                ["creative", "Creative", <Sparkles key="v" size={15} />],
-              ] as const).map(([id, label, icon]) => {
-                const on = section === id;
-                return (
-                  <Tooltip key={id} label={label}>
-                    <button
-                      role="radio"
-                      aria-checked={on}
-                      aria-label={label}
-                      data-on={on}
-                      onClick={() => onGoToSection(id)}
-                      className={cn(
-                        "ctl focus-inset flex [--ctl:1.75rem] items-center justify-center rounded-md transition-colors duration-[var(--dur-fast)]",
-                        on ? "text-primary" : "text-tertiary hover:text-primary",
-                      )}
-                    >
-                      {icon}
-                    </button>
-                  </Tooltip>
-                );
-              })}
-            </Segmented>
 
           </div>
 

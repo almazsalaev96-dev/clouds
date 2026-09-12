@@ -51,12 +51,19 @@ console.log("\nSomething worth keeping");
 {
   // A canvas with three files and a history, a page, and a conversation —
   // one of each kind the old delete forgot about.
-  await page.getByRole("button", { name: "Flashcards", exact: true }).click();
+  /* The starters live in the Creative room now — one copy, in the room named
+     after making things — and each is a card with its blurb under the name, so
+     the accessible name is no longer just the word. */
+  await page.getByRole("button", { name: "Creative" }).first().click();
+  await page.waitForTimeout(700);
+  await page.getByRole("button", { name: /^Flashcards/ }).first().click();
   await page.waitForTimeout(1800);
   await page.getByRole("button", { name: "All canvases" }).click();
   await page.waitForTimeout(400);
-  await page.getByRole("radio", { name: "Conversations" }).click();
-  await page.waitForTimeout(600);
+  /* Back to the conversations, which is a row in the navigation list now
+     rather than half of a switch in the header. */
+  await page.getByRole("button", { name: "Conversations" }).first().click();
+  await page.waitForTimeout(700);
   await page.getByRole("textbox", { name: "Message" }).fill("what is a tide");
   await page.getByRole("button", { name: "Send message" }).click();
   await page.waitForTimeout(2600);

@@ -103,7 +103,7 @@ for (density of ["comfortable", "compact", "spacious"]) {
     await page.waitForTimeout(450);
     // Code lives in the header switch; the other two are rows in the list.
     const go = name === "Code"
-      ? page.getByRole("radio", { name: "Code" })
+      ? page.getByRole("button", { name: "Code" })
       : page.getByRole("button", { name, exact: true });
     await go.first().click();
     await page.waitForTimeout(700);

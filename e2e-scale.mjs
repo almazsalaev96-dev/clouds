@@ -167,7 +167,7 @@ console.log("\nAnd what a section costs to press, on a connection that is not yo
       skeletons: document.querySelectorAll(".skeleton").length,
     }));
     check(done.skeletons === 0 && done.text.length > mid.text.length, `then ${label.toLowerCase()} itself`, `${done.text.length} characters`);
-    await p.getByRole("radio", { name: "Conversations" }).click();
+    await p.getByRole("button", { name: "Conversations" }).click();
     await p.waitForTimeout(500);
   }
   await ctx.close();

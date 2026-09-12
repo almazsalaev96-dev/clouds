@@ -100,10 +100,16 @@ check(!sys.includes("## Response style"), "Normal adds no style instructions at 
 
 /* ---------------------------------------------------------------- style -- */
 
-await page.getByRole("button", { name: /Response style/ }).first().click();
+/* Through the palette. The style picker used to sit in the composer and is
+   gone — nothing in a sentence says how you want to be talked to, so it is
+   still a choice, but it is one command among the others rather than a control
+   over the box you type in. */
+await page.keyboard.press("Control+k");
 await page.waitForTimeout(400);
-await page.getByRole("button", { name: /^Concise/ }).first().click();
+await page.getByRole("textbox", { name: "Command palette" }).fill("Concise style");
 await page.waitForTimeout(400);
+await page.getByRole("option", { name: /Answer in the Concise style/ }).first().click();
+await page.waitForTimeout(500);
 await ta.click();
 await ta.type("and enthalpy", { delay: 4 });
 await page.keyboard.press("Enter");
@@ -144,12 +150,14 @@ await page.waitForTimeout(1200);
 await page.keyboard.press("Escape");
 await page.waitForTimeout(500);
 
-await page.getByRole("button", { name: /Response style/ }).first().click();
+await page.keyboard.press("Control+k");
+await page.waitForTimeout(400);
+await page.getByRole("textbox", { name: "Command palette" }).fill("Exam answers");
 await page.waitForTimeout(400);
 const inPicker = await page.evaluate(() => document.body.innerText.includes("Exam answers"));
-check(inPicker, "a style you wrote appears in the picker");
-await page.getByRole("button", { name: /^Exam answers/ }).first().click();
-await page.waitForTimeout(400);
+check(inPicker, "a style you wrote is offered like any other");
+await page.getByRole("option", { name: /Answer in the Exam answers style/ }).first().click();
+await page.waitForTimeout(500);
 await ta.click();
 await ta.type("and free energy", { delay: 4 });
 await page.keyboard.press("Enter");

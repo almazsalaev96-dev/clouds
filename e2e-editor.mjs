@@ -23,7 +23,7 @@ await page.evaluate(() => localStorage.setItem("store.settings.v1", JSON.stringi
 await page.reload({ waitUntil: "networkidle" });
 await page.waitForTimeout(800);
 
-await page.getByRole("radio", { name: "Code" }).click();
+await page.getByRole("button", { name: "Code" }).click();
 await page.waitForTimeout(400);
 await page.getByRole("button", { name: /Web app/ }).click();
 await page.waitForTimeout(1400);

@@ -254,9 +254,16 @@ console.log("\nA column that cannot get wider gets smaller text instead");
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(600);
 
-  await p.getByRole("button", { name: "Tools" }).click();
+  /* Two models answering, asked for from the palette. It used to be a
+     checklist inside the composer's Tools popover, which meant deciding
+     whether you wanted two answers before you had seen one; the popover is
+     gone and the decision is a command. */
+  await p.keyboard.press("Control+k");
   await p.waitForTimeout(400);
-  await p.getByRole("button", { name: /Claude Haiku/ }).first().click();
+  await p.getByRole("textbox", { name: "Command palette" }).fill("alongside");
+  await p.waitForTimeout(400);
+  await p.getByRole("option", { name: /alongside/i }).first().click();
+  await p.waitForTimeout(400);
   await p.keyboard.press("Escape");
   await p.waitForTimeout(300);
   await p.getByRole("textbox", { name: "Message" }).fill("explain debounce");

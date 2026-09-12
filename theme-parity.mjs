@@ -127,11 +127,11 @@ const ROUTES = {
     await p.waitForTimeout(2600);
   },
   "code index": async (p) => {
-    await p.getByRole("radio", { name: "Code" }).first().click();
+    await p.getByRole("button", { name: "Code" }).first().click();
     await p.waitForTimeout(700);
   },
   "canvas": async (p) => {
-    await p.getByRole("radio", { name: "Code" }).first().click();
+    await p.getByRole("button", { name: "Code" }).first().click();
     await p.waitForTimeout(600);
     await p.getByRole("button", { name: /Code file/ }).click();
     await p.waitForTimeout(1000);

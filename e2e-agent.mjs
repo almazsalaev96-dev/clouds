@@ -55,7 +55,7 @@ await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
 await page.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), SETTINGS);
 await page.reload({ waitUntil: "networkidle" });
 await page.waitForTimeout(900);
-await page.getByRole("radio", { name: "Code" }).click();
+await page.getByRole("button", { name: "Code" }).click();
 await page.waitForTimeout(400);
 await page.getByRole("button", { name: /Code file/ }).click();
 await page.waitForTimeout(900);
@@ -120,7 +120,7 @@ console.log("\nThings that are true every time");
      retype at the top of every request is the thing rules replace. */
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(1400);
-  await page.getByRole("radio", { name: "Code" }).click();
+  await page.getByRole("button", { name: "Code" }).click();
   await page.waitForTimeout(600);
   await page.getByRole("button", { name: /Untitled/ }).first().click();
   await page.waitForTimeout(1200);
@@ -171,7 +171,7 @@ console.log("\nAn error the page actually produced");
 {
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(1400);
-  await page.getByRole("radio", { name: "Code" }).first().click();
+  await page.getByRole("button", { name: "Code" }).first().click();
   await page.waitForTimeout(500);
   await page.getByRole("button", { name: /Web app/ }).click();
   await page.waitForTimeout(1600);
