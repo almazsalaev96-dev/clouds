@@ -1525,6 +1525,7 @@ npx jiti test-route.ts                          # the model router and the calcu
 npx jiti test-web.ts                            # the preview assembler and its source map
 npx jiti test-task.ts                           # what kind of work a request is
 npx jiti test-error.ts                          # every way a provider can fail
+npx jiti test-lint.ts                           # whether an answer obeyed the house rules
 npx jiti test-fuzz.ts                           # generated cases against the invariants
 ```
 

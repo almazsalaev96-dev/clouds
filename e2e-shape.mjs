@@ -72,6 +72,33 @@ console.log("\nAn ordinary question gets no lecture about how to answer it");
   check(!/## This request/.test(system), "nothing is added to a request that is not one of the kinds", system.slice(-60));
 }
 
+console.log("\nA stance that withholds something is not shown the thing it withholds");
+{
+  /* The leak every teaching prompt has and none of them name: a model that has
+     already solved the problem writes a hint shaped like the solution — right
+     variable, the useless step skipped, pointing straight at the answer. The
+     instruction was obeyed; the shape gave it away. Not looking is the fix. */
+  await newChat();
+  await page.getByRole("button", { name: /Response style/ }).click();
+  await page.waitForTimeout(500);
+  await page.getByRole("button", { name: /Socratic/i }).first().click();
+  await page.waitForTimeout(600);
+  const last = await sent("why does this loop run twice");
+  const system = last.systemText ?? "";
+  check(/Reason only about the work they have already shown you/.test(system),
+    "the teaching stance is told not to work ahead");
+  check(/leak — in the shape of the hint|points at it/i.test(system),
+    "and told why, so it is a reason rather than a rule");
+
+  await page.getByRole("button", { name: /Response style/ }).click();
+  await page.waitForTimeout(500);
+  await page.getByRole("button", { name: /^Normal/i }).first().click();
+  await page.waitForTimeout(600);
+  const plain = (await sent("why does this loop run twice")).systemText ?? "";
+  check(!/Reason only about the work/.test(plain),
+    "an ordinary answer is still allowed to work the whole thing out");
+}
+
 console.log("\nThe per-turn half rides behind the cache breakpoint");
 {
   /* Both halves have to exist for the split to mean anything, so this gives

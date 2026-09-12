@@ -13,7 +13,7 @@ import { composeSystemPrompt, composeTurnPrompt } from "@/lib/prompt";
 import { taskOf } from "@/lib/task";
 import { shapeFor } from "@/lib/shape";
 import { visualFor } from "@/lib/visual";
-import { findStyle } from "@/lib/styles";
+import { findStyle, isTeaching } from "@/lib/styles";
 import { findMode } from "@/lib/modes";
 import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, estimateTokens, getModel } from "@/lib/models";
 import { costOf, fitToContext } from "@/lib/context";
@@ -150,8 +150,20 @@ export default function Page() {
   }, [activeId]);
   const [configured, setConfigured] = React.useState<Record<string, boolean>>({});
   const [paletteOpen, setPaletteOpen] = React.useState(false);
+  /* Opened once, mounted from then on.
+     ---------------------------------------------------------------------
+     The guard was there to keep the dynamic chunk out of the first load,
+     which it does — but it also tore the whole Radix tree out in the same
+     commit that closed the dialog, and Radix holds a closing overlay in the
+     DOM precisely long enough for its exit animation to run. Nothing was
+     left to animate, so two of the app's overlays vanished between frames
+     while every other one eased away. Keeping a closed dialog mounted costs
+     nothing and the chunk is still fetched on first press. */
+  const everOpened = React.useRef({ palette: false, settings: false });
+  if (paletteOpen) everOpened.current.palette = true;
   const [modelPickerOpen, setModelPickerOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
+  if (settingsOpen) everOpened.current.settings = true;
   const [settingsTab, setSettingsTab] = React.useState<"keys" | "appearance" | "model" | "styles" | "data" | "shortcuts">("keys");
   const [scrolled, setScrolled] = React.useState(false);
   const [artifact, setArtifact] = React.useState<Artifact | null>(null);
@@ -330,6 +342,11 @@ export default function Page() {
            flowchart is nothing but connective tissue. Left unqualified, "write
            in prose" reads as "never draw anything". */
         visual: task ? visualFor(task.kind) : "",
+        /* And where a stance withholds something on purpose, the thing it
+           withholds must not exist in the model's context: a hint written by
+           someone who already has the answer points straight at it, whatever
+           the instruction said. */
+        teaching: isTeaching(style?.id),
       });
       await stream.send({
         conversationId,
@@ -1302,7 +1319,7 @@ export default function Page() {
 
         {artifact && <ArtifactPanel artifact={artifact} onClose={() => setArtifact(null)} />}
 
-        {paletteOpen && (
+        {(paletteOpen || everOpened.current.palette) && (
         <CommandPalette
           open={paletteOpen}
           onOpenChange={setPaletteOpen}
@@ -1325,7 +1342,7 @@ export default function Page() {
 
         <ShortcutsOverlay open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
 
-        {settingsOpen && (
+        {(settingsOpen || everOpened.current.settings) && (
           <Settings
             open={settingsOpen}
             onOpenChange={setSettingsOpen}

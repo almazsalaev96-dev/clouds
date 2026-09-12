@@ -59,6 +59,7 @@ run test-route npx jiti test-route.ts
 run test-web   npx jiti test-web.ts
 run test-task  npx jiti test-task.ts
 run test-error npx jiti test-error.ts
+run test-lint  npx jiti test-lint.ts
 run test-fuzz  npx jiti test-fuzz.ts
 run test-cite  node --experimental-strip-types test-cite.mts
 [ "$ONLY" = unit ] && { echo; echo "$([ $FAILED -eq 0 ] && echo "all passed" || echo "$FAILED FAILED")"; exit $FAILED; }

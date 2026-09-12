@@ -93,6 +93,30 @@ export const SHAPE: Record<TaskKind, string[]> = {
 };
 
 /**
+ * The cheapest way to stop a tutor giving the answer away.
+ *
+ * Every teaching prompt ever written tells the model not to hand over the
+ * solution, and every one of them leaks anyway — because a model that has
+ * already solved the problem in its own context is a model whose hint is
+ * shaped like the solution. The hint names the right variable, skips the step
+ * that does not matter, and arrives pointing directly at the answer. Nothing
+ * in the instruction was disobeyed; the leak is in the shape.
+ *
+ * Khan Academy measured the alternative: constraining the agent to reason only
+ * about the work the student had already shown cut answer-giveaway by half,
+ * and took four hundred milliseconds off the reply as a side effect. Not
+ * looking is a stronger mechanism than being told not to tell.
+ *
+ * Only for the teaching stances. A plain explanatory answer is *supposed* to
+ * work the whole thing out — the person asked for the finished thought.
+ */
+export const NO_LOOKAHEAD = [
+  "Reason only about the work they have already shown you.",
+  "Do not solve the remaining steps for yourself before replying. A solution you have worked out is one you will leak — in the shape of the hint if not in its words, because a hint written by someone who knows the answer points at it.",
+  "Where you need to check a step of theirs, check that step and stop there.",
+].join("\n");
+
+/**
  * The block that goes into the system prompt, or nothing at all.
  *
  * Nothing at all is the common case and the right one. It is also why this

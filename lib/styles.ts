@@ -155,6 +155,19 @@ export const BUILT_IN_STYLES: Style[] = [
 
 export const DEFAULT_STYLE_ID = "normal";
 
+/**
+ * The stances where the model must not work the answer out for itself.
+ *
+ * These five withhold something on purpose, which means the thing they
+ * withhold has to not exist in the model's context — a hint written by someone
+ * who already has the answer points straight at it, whatever the instruction
+ * said. Explanatory is not on the list: it is supposed to work the whole thing
+ * out, because the person asked for the finished thought.
+ */
+const TEACHING = new Set(["socratic", "exam", "practice", "teachback", "learning"]);
+
+export const isTeaching = (id: string | undefined) => Boolean(id && TEACHING.has(id));
+
 export function findStyle(id: string | undefined, custom: Style[] = []): Style | undefined {
   if (!id) return undefined;
   return BUILT_IN_STYLES.find((s) => s.id === id) ?? custom.find((s) => s.id === id);

@@ -1,4 +1,5 @@
 import { HOUSE } from "./answer";
+import { NO_LOOKAHEAD } from "./shape";
 import type { Project, ProjectFile, Style } from "./types";
 import type { ModeSpec } from "./modes";
 import { estimateTokens } from "./models";
@@ -115,8 +116,19 @@ export function composeSystemPrompt(parts: PromptParts): ComposedPrompt {
  * the two do not belong in one box for the same reason the style and the
  * system prompt do not.
  */
-export function composeTurnPrompt(parts: { shape?: string; visual?: string }): string {
-  return [parts.shape?.trim(), parts.visual?.trim()].filter(Boolean).join("\n\n");
+export function composeTurnPrompt(parts: {
+  shape?: string;
+  visual?: string;
+  /** Set while a teaching stance is live, and only then. */
+  teaching?: boolean;
+}): string {
+  return [
+    parts.shape?.trim(),
+    parts.visual?.trim(),
+    parts.teaching ? `## While you are teaching\n\n${NO_LOOKAHEAD}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 function escapeAttr(s: string): string {

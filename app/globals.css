@@ -1206,12 +1206,37 @@ body::after {
   to { background-position: 200% 0; }
 }
 
+/* And the way out.
+   ---------------------------------------------------------------------------
+   Everything in this app arrived and nothing left: `--dur-exit` and
+   `--ease-in` were declared with comments explaining exactly why an exit
+   should accelerate away and run about three quarters of the entrance, and
+   then referenced nowhere at all. Every overlay was enter-only, so a menu that
+   was placed on a spring vanished between two frames.
+
+   A hard cut is not neutral. It reads as the thing having been deleted rather
+   than dismissed, and it takes the reader's sense of where it went with it —
+   which is the whole reason an exit should run back along the path the
+   entrance came in on. Accelerating, because leaving is time between you and
+   the next thing, where arriving is the thing. */
+@keyframes fade-out { to { opacity: 0; } }
+@keyframes pop-out { to { opacity: 0; scale: 0.97; } }
+
 .anim-fade { animation: fade-in var(--dur-enter) var(--ease-out) both; }
 .anim-rise { animation: rise-in var(--dur-enter) var(--ease-out) both; }
 /* Menus and popovers arrive on a spring: a touch of overshoot reads as the
    thing being placed rather than faded in. Short enough that it never delays
    the click that follows. */
 .anim-pop { animation: pop-in var(--dur-spring) var(--ease-spring) both; }
+
+/* Radix stamps `data-state` on every overlay it owns, which is the signal for
+   both halves. Anything not driven by Radix keeps the plain entrance above. */
+.anim-fade[data-state="closed"] {
+  animation: fade-out var(--dur-exit) var(--ease-in) both;
+}
+.anim-pop[data-state="closed"] {
+  animation: pop-out var(--dur-exit) var(--ease-in) both;
+}
 
 /* Placeholder rows, while a query is still out.
    A skeleton is only honest if it is shaped like what is coming: same height,
