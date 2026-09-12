@@ -147,7 +147,12 @@ function UserMessageImpl({
         </div>
       )}
 
-      <div className="flex h-6 items-center gap-0.5 reveal">
+      {/* `min-h`, not a fixed height, and it wraps. On a coarse pointer `.ctl`
+          raises every control in this row to the 44pt floor, and a 24px box
+          cannot hold a 44px child: they overflow it by 10px in each direction
+          and the top of the hit target lands on the last line of the message
+          above. Nothing clips, so nothing ever caught it. */}
+      <div className="flex min-h-6 flex-wrap items-center gap-0.5 reveal">
         {siblings.length > 1 && (
           <BranchNav siblings={siblings} index={index} onNavigate={onNavigate} />
         )}
@@ -360,7 +365,10 @@ function AssistantMessageImpl({
           accident. Earlier answers keep it on hover, where it does not compete
           with the reading. */}
       <div
-        className="mt-1.5 flex h-7 items-center gap-0.5 reveal"
+        /* See the user row above: a 28px box holding 44px controls overflows
+           into the answer's own last line, and at 390px eight of them cannot
+           sit on one line either. Both were true before anything was added. */
+        className="mt-1.5 flex min-h-7 flex-wrap items-center gap-0.5 reveal"
         data-visible={isLast ? "true" : undefined}
       >
         {siblings.length > 1 && <BranchNav siblings={siblings} index={index} onNavigate={onNavigate} />}

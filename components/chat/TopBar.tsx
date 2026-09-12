@@ -123,7 +123,7 @@ export function TopBar({
             <DropdownMenu.Trigger asChild>
               <button
                 aria-label="Conversation options"
-                className="flex size-8 items-center justify-center rounded-md text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                className="ctl [--ctl:2rem] flex items-center justify-center rounded-md text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
               >
                 <MoreHorizontal size={16} />
               </button>

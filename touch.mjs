@@ -52,6 +52,32 @@ const measure = () =>
     return seen;
   }, MIN);
 
+/* A target can be 44pt and still be wrong.
+ *
+ * The row of actions under a message was a fixed 24 or 28 pixels tall while
+ * every control inside it was raised to 44 by `.ctl` on a coarse pointer. The
+ * children met the floor, so a check that only measures children passed — and
+ * the top ten pixels of the Copy target sat on the last line of the answer
+ * above it. Nothing clipped, because the overflow is visible, so nothing ever
+ * saw it.
+ *
+ * So: a row of controls has to be at least as tall as the controls in it. That
+ * is the whole rule, and it is the one that catches a box which lies about its
+ * own height. */
+const overflowing = () =>
+  page.evaluate(() => {
+    const out = [];
+    for (const row of document.querySelectorAll("[id^=m-] .reveal, .msg .reveal")) {
+      const kids = [...row.children].filter((k) => k.getBoundingClientRect().height > 0);
+      if (kids.length < 2) continue;
+      const r = row.getBoundingClientRect();
+      if (r.height === 0) continue;
+      const tallest = Math.max(...kids.map((k) => k.getBoundingClientRect().height));
+      if (tallest > r.height + 0.5) out.push(`a row of ${kids.length} is ${Math.round(r.height)}px around a ${Math.round(tallest)}px control`);
+    }
+    return out;
+  });
+
 let bad = 0;
 let density = "comfortable";
 const report = async (where) => {
@@ -98,6 +124,18 @@ for (density of ["comfortable", "compact", "spacious"]) {
   await page.waitForTimeout(700);
   await report("the chat");
 
+  /* And with an answer on the page. Every step above this one measured an
+     empty chat, so the row of controls under a finished answer — the most
+     tapped thing in the app after the composer — had never been looked at on
+     a phone, in any density. */
+  await page.getByRole("textbox", { name: "Message" }).fill("what is a debounce");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(3000);
+  await report("the chat — an answer's own controls");
+
+  const spilling = await overflowing();
+  bad += spilling.length;
+  console.log(spilling.length ? `  ✗ ${density}: ${spilling.join(", ")}` : `  ✓ every row of controls is as tall as the controls in it`);
 }
 console.log(bad ? `\n  ${bad} target(s) under ${MIN}pt` : `\n  every target is at least ${MIN}pt, at all three densities`);
 await b.close();

@@ -171,7 +171,7 @@ export function CodeBlock({
               aria-pressed={wrap}
               data-visible={wrap || undefined}
               className={cn(
-                "reveal flex size-7 items-center justify-center rounded-sm hover:bg-subtle hover:text-primary",
+                "reveal ctl [--ctl:1.75rem] flex items-center justify-center rounded-sm hover:bg-subtle hover:text-primary",
                 wrap ? "text-primary" : "text-tertiary",
               )}
             >
@@ -191,7 +191,7 @@ export function CodeBlock({
           <button
             onClick={copy}
             aria-label={copied ? "Copied" : "Copy code"}
-            className="flex h-7 w-[4.75rem] items-center justify-center gap-1 rounded-sm text-xs text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+            className="ctl-h [--ctl:1.75rem] flex w-[4.75rem] items-center justify-center gap-1 rounded-sm text-xs text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
           >
             {copied ? (
               <>

@@ -277,7 +277,7 @@ function MessageListImpl({
         <button
           onClick={scrollToBottom}
           tabIndex={pinned ? -1 : 0}
-          className="pointer-events-auto flex h-8 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-xs text-secondary shadow-md transition-colors duration-[var(--dur-fast)] hover:text-primary"
+          className="ctl-h [--ctl:2rem] pointer-events-auto flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-xs text-secondary shadow-md transition-colors duration-[var(--dur-fast)] hover:text-primary"
         >
           <ArrowDown size={13} />
           {unread ? "New message" : "Jump to latest"}
