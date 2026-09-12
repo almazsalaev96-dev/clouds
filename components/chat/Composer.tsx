@@ -247,7 +247,7 @@ export function Composer({
       }}
     >
       {dragging && (
-        <div className="absolute inset-x-0 -top-24 bottom-0 z-10 flex items-center justify-center rounded-xl border-2 border-dashed border-accent bg-[color-mix(in_srgb,var(--accent-subtle)_85%,transparent)] anim-fade">
+        <div className="absolute inset-x-0 -top-24 bottom-0 z-10 flex items-center justify-center rounded-xl border-2 border-dashed border-accent bg-[color-mix(in_oklab,var(--accent-subtle)_85%,transparent)] anim-fade">
           <span className="text-sm font-medium text-accent">Drop to attach</span>
         </div>
       )}

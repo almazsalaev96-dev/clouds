@@ -296,8 +296,8 @@ function DiffBody({ lines, showNumbers }: { lines: string[]; showNumbers: boolea
             key={i}
             className={cn(
               "-mx-3 flex px-3",
-              added && "bg-[color-mix(in_srgb,var(--success)_12%,transparent)]",
-              removed && "bg-[color-mix(in_srgb,var(--danger)_12%,transparent)]",
+              added && "bg-[color-mix(in_oklab,var(--success)_12%,transparent)]",
+              removed && "bg-[color-mix(in_oklab,var(--danger)_12%,transparent)]",
             )}
           >
             {showNumbers && (

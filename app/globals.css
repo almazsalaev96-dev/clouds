@@ -651,6 +651,27 @@ textarea:focus-visible {
   background: var(--glass);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
+  /* The six surfaces that actually float over the page — the sidebar, the top
+     bar, every menu and tooltip, the palette, the shortcut sheet — had a 1px
+     border doing the separation work that light should be doing. The rim is
+     the whole of the fix and it costs nothing: an inset highlight sits on the
+     surface, never under text, so it cannot touch a contrast figure. */
+  box-shadow: var(--rim-top), var(--rim-all);
+}
+
+/* Never on itself.
+   ---------------------------------------------------------------------------
+   This is the one hard rule the material has. Two translucent panels stacked
+   composite to nearly opaque — 74% over 74% is 93% — and the second blur has
+   almost nothing left to read, so the inner one reads heavier than the panel
+   containing it while costing a second full-surface raster. The sidebar's own
+   section headings were doing exactly this. Degrading a nested one to a solid
+   makes the mistake structurally impossible rather than a thing to remember. */
+.glass .glass {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: color-mix(in oklab, var(--bg-surface) 92%, transparent);
+  box-shadow: none;
 }
 
 /* The unprefixed property, restated where the build cannot take it away.
@@ -691,18 +712,118 @@ textarea:focus-visible {
   }
 }
 
+/* Three ways out of the glass, none of them a capability check.
+   ---------------------------------------------------------------------------
+   The `@supports` above asks whether the browser *can* blur. It never asks
+   whether the person wants it to, and that is the distinction Apple's own
+   version of this material shipped without — text over a live backdrop
+   measured as low as 1.5:1 against a 4.5:1 floor, because the contrast of a
+   translucent surface is a property of whatever happens to be behind it and
+   therefore cannot be guaranteed by design.
+
+   So: somebody who has asked their system for less transparency, or for more
+   contrast, or who is in a forced-colours mode, gets an opaque surface with a
+   known contrast figure. The blur is the decoration; legibility is not. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass .glass,
+  .composer-shell {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--bg-surface);
+  }
+  .composer-dock {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--bg-canvas);
+  }
+}
+
+@media (prefers-contrast: more) {
+  .glass,
+  .glass .glass,
+  .composer-shell {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--bg-surface);
+    border-color: var(--border-strong);
+  }
+  :root {
+    --border-subtle: var(--border-strong);
+  }
+}
+
+@media (forced-colors: active) {
+  .glass,
+  .glass .glass,
+  .composer-shell,
+  .composer-dock {
+    forced-color-adjust: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: Canvas;
+    color: CanvasText;
+    border: 1px solid CanvasText;
+    box-shadow: none;
+  }
+  /* Grain and a vignette over a forced palette are noise over a contract. */
+  body::before,
+  body::after {
+    display: none;
+  }
+}
+
 /* The strip under the transcript. It fades rather than cuts, so an answer
    scrolling past does not end at a hard line. */
 .composer-dock {
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    color-mix(in srgb, var(--bg-canvas) 62%, transparent) 22%,
-    color-mix(in srgb, var(--bg-canvas) 88%, transparent) 55%,
+    color-mix(in oklab, var(--bg-canvas) 62%, transparent) 22%,
+    color-mix(in oklab, var(--bg-canvas) 88%, transparent) 55%,
     var(--bg-canvas) 100%
   );
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+}
+
+/* The four properties nobody notices until they are missing.
+   ---------------------------------------------------------------------------
+   `touch-action: manipulation` is the one that matters most and is invisible
+   on a desktop: without it iOS Safari holds every tap for about 300ms waiting
+   to see whether a second is coming and should zoom instead. On an app that
+   measures its targets against 44pt, that is a third of a second of latency on
+   every button in it.
+
+   The tap highlight goes because there is a considered pressed state now, and
+   iOS painting its own grey rectangle over one is worse than either alone.
+
+   `scroll-margin-top` is for the sticky bar. The app scrolls to messages with
+   `block: "center"`, which is safe — but find-in-page, and any future
+   `block: "start"`, both land their target underneath the glass header.
+
+   And `overscroll-behavior: contain` stops a scroller that has hit its end
+   from handing the rest of the gesture to the page behind it, which inside a
+   dialog means the transcript sliding away under an open menu. */
+:where(button, a, [role="button"], summary, label) {
+  touch-action: manipulation;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:where(h1, h2, h3, h4),
+.msg {
+  scroll-margin-top: calc(var(--topbar-h) + 1rem + env(safe-area-inset-top));
+}
+
+[role="dialog"],
+[data-radix-popper-content-wrapper],
+.paper-scroll,
+.table-scroll,
+.prose pre {
+  overscroll-behavior: contain;
 }
 
 /* ---------------------------------------------------------------------------
@@ -1105,7 +1226,7 @@ body::after {
   background: linear-gradient(
     90deg,
     var(--bg-subtle) 25%,
-    color-mix(in srgb, var(--bg-subtle) 55%, rgb(var(--accent-2-rgb) / 0.5)) 37%,
+    color-mix(in oklab, var(--bg-subtle) 55%, rgb(var(--accent-2-rgb) / 0.5)) 37%,
     var(--bg-subtle) 63%
   );
   background-size: 200% 100%;
@@ -1205,7 +1326,7 @@ body::after {
    energy, so the place you type and the place text appears are visibly part of
    one event. */
 .is-live {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--border-strong)) !important;
+  border-color: color-mix(in oklab, var(--accent) 55%, var(--border-strong)) !important;
   box-shadow: var(--glow);
 }
 
@@ -1348,7 +1469,44 @@ body::after {
 
 .bloom:active:not(:disabled) {
   transform: translateY(0) scale(0.97);
-  transition-duration: var(--dur-fast);
+  transition-duration: var(--dur-press);
+}
+
+/* A press, for everything else.
+   ---------------------------------------------------------------------------
+   `.bloom` and `.lift` carried the whole pressed-state doctrine between them
+   and reached sixteen elements. Every other pressable thing in the app — which
+   is nearly all of them — changed colour on hover and did nothing at all under
+   a finger, which is the difference between a control and a picture of one.
+
+   It happens on the way down. The eighty-odd milliseconds between a finger
+   landing and leaving are free responsiveness, and waiting for the release to
+   react throws them away.
+
+   `scale`, not `transform`: Tailwind centres dialogs with `-translate-x-1/2`,
+   which compiles to `translate`, and a `transform` here would fight it — the
+   same reason the animation primitives above avoid it. */
+.press {
+  transition:
+    background-color var(--dur-fast) var(--ease-std),
+    color var(--dur-fast) var(--ease-std),
+    box-shadow var(--dur-fast) var(--ease-out),
+    scale var(--dur-press) var(--ease-spring-snappy);
+}
+
+.press:active:not(:disabled):not([aria-disabled="true"]) {
+  scale: 0.96;
+  transition-duration: var(--dur-press);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The state has to stay legible. It stops moving; it does not stop
+     existing — which is what the preference asks for and what a blanket
+     `animation: none` gets wrong. */
+  .press:active:not(:disabled):not([aria-disabled="true"]) {
+    scale: 1;
+    background-color: var(--bg-subtle);
+  }
 }
 
 /* The idle mark watches the pointer.
@@ -1537,15 +1695,21 @@ body::after {
 
 .prose h1, .prose h2, .prose h3, .prose h4 {
   font-weight: 600;
-  letter-spacing: -0.02em;
   line-height: 1.3;
   text-wrap: balance;
   margin-top: 1.6em;
 }
-.prose h1 { font-size: var(--text-2xl); }
-.prose h2 { font-size: var(--text-xl); }
-.prose h3 { font-size: var(--text-lg); }
-.prose h4 { font-size: var(--text-base); }
+/* Tracking follows size, because the reason for tracking is optical and not
+   stylistic. Letterforms at 28px sit too far apart at the spacing that is
+   right at 16px, and the same value applied across a scale is the thing that
+   makes large type look loose and small type look cramped — one number doing
+   two jobs it cannot both do. It runs from −0.026em at the top of the ladder
+   to the body's own −0.011em at the bottom, where a heading and a paragraph
+   are the same size and should therefore be spaced the same way. */
+.prose h1 { font-size: var(--text-2xl); letter-spacing: -0.026em; }
+.prose h2 { font-size: var(--text-xl);  letter-spacing: -0.021em; }
+.prose h3 { font-size: var(--text-lg);  letter-spacing: -0.016em; }
+.prose h4 { font-size: var(--text-base); letter-spacing: -0.011em; }
 
 /* A document's headings climb more gently than an answer's.
    An answer has at most two levels and wants the top one to announce itself;
@@ -1565,7 +1729,7 @@ body::after {
   text-decoration: underline;
   text-underline-offset: 2px;
   text-decoration-thickness: 1px;
-  text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  text-decoration-color: color-mix(in oklab, var(--accent) 40%, transparent);
   transition: text-decoration-color var(--dur-fast) var(--ease-std);
 }
 .prose a:hover { text-decoration-color: var(--accent); }
@@ -1668,7 +1832,7 @@ body::after {
    element it can span a phrase that begins in a sentence and ends inside a
    <strong>, which is the common case and not the edge one. */
 ::highlight(armi-point) {
-  background: color-mix(in srgb, var(--accent-2) 22%, transparent);
+  background: color-mix(in oklab, var(--accent-2) 22%, transparent);
   color: var(--text-primary);
 }
 

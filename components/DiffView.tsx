@@ -89,8 +89,8 @@ export function DiffView({
                   key={i}
                   className={cn(
                     "px-3",
-                    row.type === "add" && "bg-[color-mix(in_srgb,var(--go)_16%,transparent)] text-primary",
-                    row.type === "remove" && "bg-[color-mix(in_srgb,var(--stop)_14%,transparent)] text-secondary",
+                    row.type === "add" && "bg-[color-mix(in_oklab,var(--go)_16%,transparent)] text-primary",
+                    row.type === "remove" && "bg-[color-mix(in_oklab,var(--stop)_14%,transparent)] text-secondary",
                     row.type === "same" && "text-tertiary",
                   )}
                 >

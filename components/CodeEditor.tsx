@@ -348,7 +348,7 @@ export function CodeEditor({
             {focused && (
               <div
                 aria-hidden
-                className="pointer-events-none absolute inset-x-0 bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)]"
+                className="pointer-events-none absolute inset-x-0 bg-[color-mix(in_oklab,var(--text-primary)_5%,transparent)]"
                 style={{ top: PAD_Y + (caret.line - 1) * LINE_H, height: LINE_H }}
               />
             )}

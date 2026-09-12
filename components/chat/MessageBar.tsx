@@ -175,7 +175,7 @@ export function MessageBar({
                 className={cn(
                   "ctl focus-inset flex [--ctl:2.25rem] shrink-0 items-center justify-center rounded-full transition-colors duration-[var(--dur-fast)]",
                   dictation.listening
-                    ? "bg-[color-mix(in_srgb,var(--stop)_14%,transparent)] text-[var(--stop)]"
+                    ? "bg-[color-mix(in_oklab,var(--stop)_14%,transparent)] text-[var(--stop)]"
                     : "text-secondary hover:bg-subtle hover:text-primary",
                 )}
               >
@@ -199,7 +199,7 @@ export function MessageBar({
                 /* The disabled disc has to stay a disc. On a translucent
                    composer, a fill this close to the surface behind it just
                    disappears, so it borrows the border instead of the surface. */
-                "disabled:bg-[color-mix(in_srgb,var(--text-primary)_16%,transparent)] disabled:text-[var(--text-faint)]",
+                "disabled:bg-[color-mix(in_oklab,var(--text-primary)_16%,transparent)] disabled:text-[var(--text-faint)]",
                 streaming ? "pointer-events-none opacity-0" : "opacity-100",
               )}
             >

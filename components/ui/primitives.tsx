@@ -78,7 +78,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
         // floor on a coarse pointer only. A 28px button is comfortable under a
         // cursor and a coin toss under a thumb, and these are the buttons that
         // start work — Keep, Run, New — so a miss is expensive.
-        "btn-touch inline-flex select-none items-center justify-center gap-1.5 rounded-md font-medium transition-colors duration-[var(--dur-fast)] ease-[var(--ease-std)] disabled:pointer-events-none disabled:opacity-40",
+        "btn-touch press inline-flex select-none items-center justify-center gap-1.5 rounded-md font-medium disabled:pointer-events-none disabled:opacity-40",
         size === "sm" ? "h-7 px-2.5 text-xs" : "h-9 px-3.5 text-sm",
         // The one control on a screen you are meant to press wears the CTA
         // hue and nothing else does. Blue is structure — links, focus, the
@@ -120,7 +120,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
           // beat every stylesheet and leave touch users with a 24px target.
           style={{ "--ctl": `${size}px` } as React.CSSProperties}
           className={cn(
-            "ctl focus-inset inline-flex shrink-0 items-center justify-center rounded-md transition-colors duration-[var(--dur-fast)] ease-[var(--ease-std)] disabled:pointer-events-none disabled:opacity-35",
+            "ctl focus-inset press inline-flex shrink-0 items-center justify-center rounded-md disabled:pointer-events-none disabled:opacity-35",
             active ? "bg-subtle text-primary" : "text-tertiary hover:bg-subtle hover:text-primary",
             className,
           )}

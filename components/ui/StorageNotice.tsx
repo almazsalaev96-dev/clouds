@@ -23,7 +23,7 @@ export function StorageNotice() {
   return (
     <div
       role="alert"
-      className="no-print flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b border-[var(--stop)] bg-[color-mix(in_srgb,var(--stop)_10%,transparent)] px-4 py-2 text-center"
+      className="no-print flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b border-[var(--stop)] bg-[color-mix(in_oklab,var(--stop)_10%,transparent)] px-4 py-2 text-center"
     >
       <span className="text-sm text-primary">
         {trouble === "blocked"
