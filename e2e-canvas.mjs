@@ -33,7 +33,7 @@ await page.waitForTimeout(900);
 
 /* --------------------------------------------------------------- create -- */
 
-await page.getByRole("button", { name: "Code" }).first().click();
+await page.locator("aside nav").getByRole("button", { name: "Code" }).first().click();
 await page.waitForTimeout(400);
 check(await page.getByText("No canvases yet.").isVisible().catch(() => false), "the empty state explains what a canvas is");
 

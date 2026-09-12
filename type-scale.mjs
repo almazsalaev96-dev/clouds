@@ -102,7 +102,7 @@ console.log("\nA conversation and a document are set differently");
   check(gap !== null && gap >= 12 && gap <= 18, "a conversation breathes between paragraphs", `${gap}px`);
 
   // The notebook, which is set as a document.
-  await p.getByRole("button", { name: "Notebook", exact: true }).click();
+  await p.locator("aside nav").getByRole("button", { name: "Notebook", exact: true }).click();
   await p.waitForTimeout(700);
   const made = await p.getByRole("button", { name: /New page|Write/ }).first().click().then(() => true).catch(() => false);
   await p.waitForTimeout(900);

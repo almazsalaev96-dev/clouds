@@ -40,7 +40,7 @@ await page.waitForTimeout(1000);
 
 console.log("\nCode that belongs to something");
 {
-  await page.getByRole("button", { name: "Projects", exact: true }).first().click();
+  await page.locator("aside nav").getByRole("button", { name: "Projects", exact: true }).first().click();
   await page.getByRole("button", { name: /New project/i }).first().waitFor({ timeout: 5000 });
   await page.getByRole("button", { name: /New project/i }).first().click();
   await page.waitForTimeout(700);
@@ -106,7 +106,7 @@ console.log("\nA file may still overrule the project it is in");
 
 console.log("\nAsking about the whole thing, not the file you have open");
 {
-  await page.getByRole("button", { name: "Projects", exact: true }).first().click();
+  await page.locator("aside nav").getByRole("button", { name: "Projects", exact: true }).first().click();
   await page.waitForTimeout(900);
   await page.getByRole("button", { name: /Counter course/ }).first().click().catch(() => {});
   await page.waitForTimeout(900);

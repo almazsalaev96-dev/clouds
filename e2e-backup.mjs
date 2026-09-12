@@ -54,7 +54,7 @@ console.log("\nSomething worth keeping");
   /* The starters live in the Creative room now — one copy, in the room named
      after making things — and each is a card with its blurb under the name, so
      the accessible name is no longer just the word. */
-  await page.getByRole("button", { name: "Creative" }).first().click();
+  await page.locator("aside nav").getByRole("button", { name: "Creative" }).first().click();
   await page.waitForTimeout(700);
   await page.getByRole("button", { name: /^Flashcards/ }).first().click();
   await page.waitForTimeout(1800);
@@ -62,12 +62,12 @@ console.log("\nSomething worth keeping");
   await page.waitForTimeout(400);
   /* Back to the conversations, which is a row in the navigation list now
      rather than half of a switch in the header. */
-  await page.getByRole("button", { name: "Conversations" }).first().click();
+  await page.locator("aside nav").getByRole("button", { name: "Conversations" }).first().click();
   await page.waitForTimeout(700);
   await page.getByRole("textbox", { name: "Message" }).fill("what is a tide");
   await page.getByRole("button", { name: "Send message" }).click();
   await page.waitForTimeout(2600);
-  await page.getByRole("button", { name: "Notebook", exact: true }).click();
+  await page.locator("aside nav").getByRole("button", { name: "Notebook", exact: true }).click();
   await page.waitForTimeout(500);
   await page.getByRole("button", { name: /New page/ }).first().click();
   await page.waitForTimeout(700);
@@ -137,7 +137,7 @@ console.log("\nAnd back again");
     "everything came back");
 
   await page.waitForTimeout(1500);
-  await page.getByRole("button", { name: "Notebook", exact: true }).click().catch(() => {});
+  await page.locator("aside nav").getByRole("button", { name: "Notebook", exact: true }).click().catch(() => {});
   await page.waitForTimeout(900);
   const text = await page.locator("main").innerText();
   check(/Tides/.test(text), "and it is the same work, not a shell of it", text.split("\n").find((l) => /Tides/.test(l)) ?? "");

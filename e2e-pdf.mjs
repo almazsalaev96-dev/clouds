@@ -66,7 +66,7 @@ check(!/scan\.pdf.*\n?.*KB/i.test(await page.locator(".composer-shell").innerTex
 
 /* --------------------------------------------------- project knowledge -- */
 
-await page.getByRole("button", { name: "Projects", exact: true }).first().click();
+await page.locator("aside nav").getByRole("button", { name: "Projects", exact: true }).first().click();
 await page.waitForTimeout(400);
 await page.getByRole("button", { name: /New project/i }).first().click();
 await page.waitForTimeout(600);

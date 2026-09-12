@@ -87,7 +87,7 @@ check(chat?.mic === true, "with a microphone in it");
 await page.screenshot({ path: `${OUT}/bar-chat.png` });
 
 console.log("\nA canvas");
-await page.getByRole("button", { name: "Code" }).click();
+await page.locator("aside nav").getByRole("button", { name: "Code" }).click();
 await page.waitForTimeout(400);
 await page.getByRole("button", { name: /Web app/ }).click();
 await page.waitForTimeout(1400);
@@ -101,7 +101,7 @@ check((await page.getByRole("group", { name: "Shortcuts" }).count()) === 1,
 await page.screenshot({ path: `${OUT}/bar-canvas.png` });
 
 console.log("\nA notebook page");
-await page.getByRole("button", { name: "Notebook", exact: true }).click();
+await page.locator("aside nav").getByRole("button", { name: "Notebook", exact: true }).click();
 await page.waitForTimeout(500);
 await page.getByRole("button", { name: /New page/ }).first().click();
 await page.waitForTimeout(800);
@@ -134,7 +134,7 @@ if (chat && canvas && note) {
 console.log("\nWhat the row says");
 {
   // Back to a canvas, where both halves of the row have something in them.
-  await page.getByRole("button", { name: "Code" }).click();
+  await page.locator("aside nav").getByRole("button", { name: "Code" }).click();
   await page.waitForTimeout(500);
   await page.getByRole("listitem").first().click().catch(() => {});
   await page.waitForTimeout(900);
@@ -143,7 +143,7 @@ console.log("\nWhat the row says");
   const target = await page.locator(".composer-shell .font-mono").first().textContent().catch(() => null);
   check(Boolean(target), "and which file it is about to rewrite", target ?? "");
   await page.screenshot({ path: `${OUT}/bar-canvas-row.png` });
-  await page.getByRole("button", { name: "Notebook", exact: true }).click();
+  await page.locator("aside nav").getByRole("button", { name: "Notebook", exact: true }).click();
   await page.waitForTimeout(600);
   await page.getByRole("listitem").first().click().catch(() => {});
   await page.waitForTimeout(800);

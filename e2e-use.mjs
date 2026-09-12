@@ -44,7 +44,7 @@ console.log("\nUsing it");
 {
   /* The starters live in the Creative room now, as cards with their blurb
      under the name, so neither the place nor the exact name holds. */
-  await page.getByRole("button", { name: "Creative" }).first().click();
+  await page.locator("aside nav").getByRole("button", { name: "Creative" }).first().click();
   await page.waitForTimeout(700);
   await page.getByRole("button", { name: /^Flashcards/ }).first().click();
   await page.waitForTimeout(1500);
@@ -98,7 +98,7 @@ console.log("\nAnything else");
 {
   /* "Anything else" is in Creative with the five it is an alternative to,
      rather than on a blank chat page it used to share with them. */
-  await page.getByRole("button", { name: "Creative" }).first().click();
+  await page.locator("aside nav").getByRole("button", { name: "Creative" }).first().click();
   await page.waitForTimeout(700);
   check(await page.getByRole("button", { name: /Anything else/ }).isVisible(),
     "the five starters are not the offer — there is a way to ask for anything");
@@ -141,7 +141,7 @@ console.log("\nAsking for a thing gets you the thing, running");
 
 console.log("\nA book becomes lessons");
 {
-  await page.getByRole("button", { name: "Notebook", exact: true }).click();
+  await page.locator("aside nav").getByRole("button", { name: "Notebook", exact: true }).click();
   await page.waitForTimeout(600);
   await page.getByRole("button", { name: /New page/ }).first().click();
   await page.waitForTimeout(800);

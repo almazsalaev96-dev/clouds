@@ -39,7 +39,7 @@ const ask = async (q, ms = 3000) => {
   await fetch(`${MOCK}/__reset`);
   /* Back to the chat room first: asking for a thing now opens the thing, which
      means the previous question may have left us standing in the canvas. */
-  await page.getByRole("button", { name: "Conversations" }).first().click().catch(() => {});
+  await page.locator("aside nav").getByRole("button", { name: "Conversations" }).first().click().catch(() => {});
   await page.waitForTimeout(400);
   await page.keyboard.press("Control+n");
   await page.waitForTimeout(600);

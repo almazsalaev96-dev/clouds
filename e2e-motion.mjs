@@ -62,7 +62,7 @@ console.log("\nThe selection slides");
      and always were the better one — pressing one changes which file you are
      editing, not which page you are on, so the indicator stays put and can
      actually be watched. */
-  await page.getByRole("button", { name: "Creative" }).first().click();
+  await page.locator("aside nav").getByRole("button", { name: "Creative" }).first().click();
   await page.waitForTimeout(700);
   await page.getByRole("button", { name: /^Flashcards/ }).first().click();
   await page.waitForTimeout(2600);
@@ -93,7 +93,7 @@ console.log("\nThe selection slides");
   const t = await page.locator(".relative.isolate > span[aria-hidden]").first().evaluate((n) => getComputedStyle(n).transitionDuration);
   check(t !== "0s", "because it is a transition and not a jump", t);
 
-  await page.getByRole("button", { name: "Conversations" }).first().click();
+  await page.locator("aside nav").getByRole("button", { name: "Conversations" }).first().click();
   await page.waitForTimeout(600);
 }
 
@@ -103,9 +103,9 @@ console.log("\nRooms have a direction");
   check(await page.evaluate(() => typeof document.startViewTransition === "function"),
     "this browser can move between rooms rather than cut");
   check(await page.locator("main.vt-room").count() === 1, "the room is named, so it is animated as itself");
-  await page.getByRole("button", { name: "Notebook", exact: true }).click();
+  await page.locator("aside nav").getByRole("button", { name: "Notebook", exact: true }).click();
   await page.waitForTimeout(700);
-  await page.getByRole("button", { name: "Conversations" }).click();
+  await page.locator("aside nav").getByRole("button", { name: "Conversations" }).click();
   await page.waitForTimeout(700);
   const runs = await page.evaluate(() => window.__vt);
   check(runs.length === 2, "both moves ran one", JSON.stringify(runs));

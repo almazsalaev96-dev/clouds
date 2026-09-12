@@ -127,17 +127,17 @@ const ROUTES = {
     await p.waitForTimeout(2600);
   },
   "code index": async (p) => {
-    await p.getByRole("button", { name: "Code" }).first().click();
+    await p.locator("aside nav").getByRole("button", { name: "Code" }).first().click();
     await p.waitForTimeout(700);
   },
   "canvas": async (p) => {
-    await p.getByRole("button", { name: "Code" }).first().click();
+    await p.locator("aside nav").getByRole("button", { name: "Code" }).first().click();
     await p.waitForTimeout(600);
     await p.getByRole("button", { name: /Code file/ }).click();
     await p.waitForTimeout(1000);
   },
   "projects": async (p) => {
-    await p.getByRole("button", { name: "Projects", exact: true }).first().click();
+    await p.locator("aside nav").getByRole("button", { name: "Projects", exact: true }).first().click();
     await p.waitForTimeout(800);
   },
   "notebook": async (p) => {
