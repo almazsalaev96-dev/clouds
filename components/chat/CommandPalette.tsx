@@ -5,7 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   Code2, Download, FileText, FolderOpen, MessageSquare, MessageSquarePlus, Moon,
-  Columns2, NotebookPen, PanelLeft, Settings2, Sun, Trash2, Type, Wand2,
+  Columns2, NotebookPen, Palette, PanelLeft, Settings2, Sun, Trash2, Type, Wand2,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { MODELS } from "@/lib/models";
@@ -104,6 +104,17 @@ export function CommandPalette({
     compareWith: string[];
     setCompareWith: (ids: string[]) => void;
     canUseModel: (id: string) => boolean;
+    /**
+     * The response style, reachable with the sidebar shut.
+     *
+     * The picker lives in the sidebar header beside the room switch, which
+     * means it goes away with the sidebar — the same as the room switch, and
+     * acceptable for that, but style belongs to the thread and gets changed
+     * mid-conversation. Here it is always reachable, and by name.
+     */
+    styleId: string;
+    styles: { id: string; name: string }[];
+    setStyle: (id: string) => void;
   };
 }) {
   const settings = useSettings();
@@ -144,6 +155,15 @@ export function CommandPalette({
             { id: "delete", label: "Delete this conversation", icon: <Trash2 size={15} />, group: "Actions", run: actions.deleteConversation },
           ]
         : []),
+      ...actions.styles
+        .filter((st) => st.id !== actions.styleId)
+        .map((st) => ({
+          id: `style-${st.id}`,
+          label: `Answer in the ${st.name} style`,
+          icon: <Palette size={15} />,
+          group: "Answer",
+          run: () => actions.setStyle(st.id),
+        })),
       /* One per model, because "compare" on its own is a menu inside a menu and
          the thing you actually know is which model you want to hear from. The
          one already answering is not in the list, and neither is a model with

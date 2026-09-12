@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
-  Check, FileText, MessageSquare, Paperclip, Palette, Plus,
+  Check, FileText, MessageSquare, Paperclip, Plus,
   SlidersHorizontal, Sparkles, Wand2, X,
 } from "lucide-react";
 import type { ContentBlock, Style } from "@/lib/types";
@@ -14,7 +14,6 @@ import { MessageBar } from "./MessageBar";
 import { fileToBase64, formatBytes, cn } from "@/lib/utils";
 import { isPdf, pdfBlock } from "@/lib/pdf";
 import { useSettings, useDrafts } from "@/lib/store";
-import { allStyles, findStyle, DEFAULT_STYLE_ID } from "@/lib/styles";
 import { Tooltip } from "@/components/ui/primitives";
 import { ProviderMark } from "@/components/ui/ProviderMark";
 
@@ -41,10 +40,6 @@ export function Composer({
   onStop,
   onEditLast,
   onOpenModels,
-  styleId,
-  customStyles,
-  onStyleChange,
-  onEditStyles,
   configured,
   modelPickerOpen,
   onModelPickerOpenChange,
@@ -63,10 +58,6 @@ export function Composer({
   onOpenModels: () => void;
   /** Chat or Creative. */
   /** The style this thread answers in. */
-  styleId: string;
-  customStyles: Style[];
-  onStyleChange: (id: string) => void;
-  onEditStyles: () => void;
   configured: Record<string, boolean>;
   modelPickerOpen: boolean;
   onModelPickerOpenChange: (o: boolean) => void;
@@ -80,11 +71,8 @@ export function Composer({
   const [notice, setNotice] = React.useState<string | null>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [plusOpen, setPlusOpen] = React.useState(false);
-  const [stylesOpen, setStylesOpen] = React.useState(false);
   const reasoning = paramsFor(modelId).reasoningEffort;
   const effort = reasoning ? reasoning[0].toUpperCase() + reasoning.slice(1) : "";
-  const styles = React.useMemo(() => allStyles(customStyles), [customStyles]);
-  const style = findStyle(styleId, customStyles) ?? styles[0];
 
   /* Tools carries a state, so the pill has to show it: "on" means this thread
      will not answer the way the defaults would. */
@@ -343,88 +331,7 @@ export function Composer({
               e.target.value = "";
             }}
           />
-          {/* Style is the one thing left in this row that is genuinely a
-              preference rather than a reading of the request: how you want to
-              be talked to, which nothing in a sentence reliably says. Mode and
-              Tools used to sit here and both were questions about the machine
-              — asked before you had said what you wanted, and answerable only
-              if you already knew what they did. They are decided now: the mode
-              from the request, the thinking from the kind of work, and a second
-              opinion from the answer you are actually looking at, where you can
-              see whether you want one. */}
-          <Popover.Root open={stylesOpen} onOpenChange={setStylesOpen}>
-            <Popover.Trigger asChild>
-              <button
-                aria-label={`Response style: ${style?.name ?? "Normal"}`}
-                className={cn(
-                  // btn-touch, not just ctl-h: the label hides on a phone, and
-                  // a height floor alone leaves a 37px-wide icon behind it.
-                  "btn-touch ctl-h focus-inset flex shrink-0 items-center gap-1.5 rounded-full px-2.5 text-sm transition-colors duration-[var(--dur-fast)]",
-                  styleId !== DEFAULT_STYLE_ID
-                    ? "bg-accent-subtle text-accent"
-                    : "text-secondary hover:bg-subtle hover:text-primary",
-                )}
-              >
-                <Palette size={17} />
-                {/* "Normal" is the absence of a style, and a word that says
-                    nothing was the last 62px keeping this row off one line at
-                    1440px. The name shows once there is a name worth showing;
-                    the accessible label carries it either way. */}
-                {/* The row, not the window. `sm:` was 640px of viewport: with
-                    the sidebar out at 1024px it showed a style name in a 454px
-                    row, and in the canvas dock it showed one in a bar narrower
-                    than a phone. */}
-                {styleId !== DEFAULT_STYLE_ID && (
-                  <span className="hidden pr-0.5 @min-[30rem]/bar:inline">{style?.name}</span>
-                )}
-              </button>
-            </Popover.Trigger>
-            <Popover.Portal>
-              <Popover.Content
-                align="start"
-                side="top"
-                sideOffset={8}
-                className="z-50 w-72 rounded-2xl glass border border-line p-1.5 shadow-lg anim-pop"
-              >
-                {/* Opened on whatever is selected, not on the top of the list.
-                    The list is taller than the box it is in, so with a style
-                    near the bottom you could open this and not see which one
-                    you were on — a picker whose whole job is to show you that.
-                    `nearest` rather than `center` so the common case, a style
-                    already in view, does not jump. */}
-                <div className="max-h-72 overflow-y-auto">
-                  {styles.map((st) => (
-                    <button
-                      key={st.id}
-                      ref={st.id === styleId ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined}
-                      onClick={() => {
-                        onStyleChange(st.id);
-                        setStylesOpen(false);
-                      }}
-                      className="focus-inset flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle"
-                    >
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm text-primary">{st.name}</span>
-                        {st.blurb && <span className="block text-xs text-tertiary">{st.blurb}</span>}
-                      </span>
-                      {st.id === styleId && <Check size={14} className="mt-1 shrink-0 text-accent" />}
-                    </button>
-                  ))}
-                </div>
-                <div className="my-1 h-px bg-[var(--border-subtle)]" />
-                <button
-                  onClick={() => {
-                    setStylesOpen(false);
-                    onEditStyles();
-                  }}
-                  className="focus-inset flex h-9 w-full items-center gap-2.5 rounded-xl px-2.5 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
-                >
-                  <Plus size={16} className="text-tertiary" />
-                  Write a style
-                </button>
-              </Popover.Content>
-            </Popover.Portal>
-          </Popover.Root>
+
 
           </>
         }

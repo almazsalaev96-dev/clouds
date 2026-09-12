@@ -13,7 +13,7 @@ import { composeSystemPrompt, composeTurnPrompt } from "@/lib/prompt";
 import { effortFor, taskOf } from "@/lib/task";
 import { shapeFor } from "@/lib/shape";
 import { visualFor } from "@/lib/visual";
-import { findStyle, isTeaching } from "@/lib/styles";
+import { allStyles, findStyle, isTeaching } from "@/lib/styles";
 import { findMode, modeFor } from "@/lib/modes";
 import { builtDocument, titleOf } from "@/lib/built";
 import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, estimateTokens, getModel } from "@/lib/models";
@@ -1126,13 +1126,6 @@ export default function Page() {
       modelPickerOpen={modelPickerOpen}
       onModelPickerOpenChange={setModelPickerOpen}
       onModelChange={setModel}
-      styleId={threadStyleId}
-      customStyles={customStyles}
-      onStyleChange={setStyle}
-      onEditStyles={() => {
-        setSettingsTab("styles");
-        setSettingsOpen(true);
-      }}
     />
   ) : null;
 
@@ -1157,6 +1150,13 @@ export default function Page() {
           onSelectChat={(id) => selectInSection("chat", id)}
           onNewChat={() => void createInSection("chat")}
           onGoToSection={goToSection}
+          styleId={threadStyleId}
+          customStyles={customStyles}
+          onStyleChange={setStyle}
+          onEditStyles={() => {
+            setSettingsTab("styles");
+            setSettingsOpen(true);
+          }}
           onOpenSettings={openKeys}
           onOpenShortcuts={() => setShortcutsOpen(true)}
         />
@@ -1367,6 +1367,9 @@ export default function Page() {
             compareWith,
             setCompareWith,
             canUseModel: modelUsable,
+            styleId: threadStyleId,
+            styles: allStyles(customStyles).map((st) => ({ id: st.id, name: st.name })),
+            setStyle,
           }}
         />
         )}
