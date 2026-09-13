@@ -404,6 +404,29 @@ export default function Page() {
     setMadeId(conversation?.madeId ?? null);
   }, [activeId, conversation?.madeId]);
 
+  /**
+   * A making conversation, started from the Creative room.
+   *
+   * Stamped creative at birth, which the ordinary path deliberately does
+   * not do: there every turn is read on its own, here the person has walked
+   * into the room named after making and said what they want, and every
+   * answer in this thread should be a page. The message is sent once the
+   * thread is on screen, by the effect below, so it goes through the same
+   * `send` as anything typed — routing, title, memory and all.
+   */
+  const queued = React.useRef<{ id: string; text: string } | null>(null);
+  const startBuild = React.useCallback(
+    async (text: string) => {
+      const c = await createConversation({ modelId: settings.modelId, styleId: settings.styleId, mode: "creative" });
+      queued.current = { id: c.id, text };
+      withTransition(() => {
+        setActiveId(c.id);
+        settings.setSection("chat");
+      }, "forward");
+    },
+    [settings],
+  );
+
   /** The card in the transcript, pressed. */
   const showMade = React.useCallback(
     async (m: Message) => {
@@ -856,6 +879,13 @@ export default function Page() {
     },
     [activeId, allMessages, runTurn, threadModelId],
   );
+
+  React.useEffect(() => {
+    const q = queued.current;
+    if (!q || q.id !== activeId) return;
+    queued.current = null;
+    void send([{ type: "text", text: q.text }]);
+  }, [activeId, send]);
 
   /** Remember something the person said, from the message itself. */
   const remember = React.useCallback(
@@ -1415,12 +1445,7 @@ export default function Page() {
                      from the store, which is also what the empty page's
                      examples write to — so this writes the same half-sentence
                      to the same place. */
-                  onAnything={() =>
-                    withTransition(() => {
-                      useDrafts.getState().setDraft(activeId ?? "new", "Make me a ");
-                      settings.setSection("chat");
-                    }, "back")
-                  }
+                  onBuild={(text) => void startBuild(text)}
                 />
               )}
               {settings.section === "notebook" && (

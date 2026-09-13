@@ -142,7 +142,8 @@ export function CanvasView({
              two screens away. */
           meta: [
             c.projectId ? projectName.get(c.projectId) : undefined,
-            c.kind === "web" ? "web app" : c.kind === "code" ? (c.lang ?? "code") : "doc",
+            c.kind === "web" ? "web app" : c.kind === "code" && c.lang === "html" ? "web app" : c.kind === "code" ? (c.lang ?? "code") : "doc",
+            c.sourceConversationId ? "from a conversation" : undefined,
           ]
             .filter(Boolean)
             .join(" · "),
