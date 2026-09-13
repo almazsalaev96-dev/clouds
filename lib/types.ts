@@ -69,6 +69,20 @@ export interface Conversation {
   updatedAt: number;
   pinned: boolean;
   archived: boolean;
+  /**
+   * A chat that is not kept.
+   *
+   * It is written to this browser's database while it is open — there is
+   * nowhere else to put it, and holding a long thread in memory alone would
+   * lose it to a reload — and deleted when you close it or when the app next
+   * starts. That is the retention rule, it is said on screen in those words,
+   * and the app does not claim the stronger one it cannot keep.
+   *
+   * While it is open it is out of the sidebar, out of search, and out of
+   * memory in both directions: nothing said in it is remembered, and nothing
+   * already remembered goes out with it.
+   */
+  temporary?: boolean;
   modelId: string;
   systemPrompt?: string;
   /** The project this belongs to, if any. Its instructions and knowledge apply. */
@@ -173,6 +187,40 @@ export interface ChatRequest {
 }
 
 /* ------------------------------------------------------------- notebook -- */
+
+/**
+ * Something the app knows about you between conversations.
+ *
+ * Written only when you ask for it in so many words, retrieved only when it
+ * bears on the question, and listed in one place you can edit and empty.
+ * `lib/memory.ts` holds the reasoning for all three.
+ */
+export type MemoryKind = "preference" | "workflow" | "project" | "fact";
+
+export interface Memory {
+  id: string;
+  /** The sentence, in your words. Cleaned of its opening, never rewritten. */
+  text: string;
+  kind: MemoryKind;
+  createdAt: number;
+  updatedAt: number;
+  /**
+   * When it last went out with a question, and how often.
+   *
+   * Kept so the panel can answer "is this doing anything" — a memory that has
+   * never been used in three months is one to delete, and you cannot know that
+   * about a list that only shows text.
+   */
+  usedAt?: number;
+  useCount: number;
+  /**
+   * The project it was written inside, if any.
+   *
+   * A hard filter rather than a score at retrieval time: outside its project
+   * it is not less relevant, it is another piece of work's context.
+   */
+  projectId?: string;
+}
 
 export interface Note {
   id: string;

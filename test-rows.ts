@@ -56,6 +56,8 @@ console.log("\nAnd the rows this app itself writes, which is the half that cost 
   check(admits("styles", { id: "st", name: "Blunt", prompt: "…" }, none), "a style");
   check(admits("projects", { id: "p", name: "Tides", createdAt: 1 }, none), "a project");
   check(admits("canvases", { id: "cv", title: "Tides", createdAt: 1, updatedAt: 1 }, none), "a canvas");
+  check(admits("memories", { id: "mem", text: "I write in British English", kind: "preference",
+    createdAt: 1, updatedAt: 1, useCount: 0 }, none), "a memory");
 }
 
 console.log("\nAnd the fields the render path reads without a guard");
@@ -67,6 +69,10 @@ console.log("\nAnd the fields the render path reads without a guard");
   check(!admits("canvasFiles", { id: "f1", name: "a.ts" }, none), "a file with no contents is refused");
   check(admits("canvasFiles", { id: "f1", name: "a.ts", content: "" }, none), "an empty file is not the same thing");
   check(!admits("sources", { id: "s1" }, none), "a source attached to no note is refused — nobody could ever delete it");
+  check(!admits("memories", { id: "m1", text: "…", kind: "opinion" }, none),
+    "a memory of a kind nothing groups is refused");
+  check(!admits("memories", { id: "m1", text: ["…"], kind: "fact" }, none),
+    "and one whose text is not text — it is trimmed on the way into a prompt");
 }
 
 console.log("\nAnd the questions it asks of every table");

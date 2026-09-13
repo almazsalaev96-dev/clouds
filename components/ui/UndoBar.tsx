@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import { RotateCcw, X } from "lucide-react";
-import { UNDO_MS, dismissUndo, takeUndo, useUndo } from "@/lib/undo";
+import { cn } from "@/lib/utils";
+import { dismissUndo, takeUndo, useUndo } from "@/lib/undo";
 
 /**
- * The way back from the last delete.
+ * What just happened, and the way back from it where there is one.
  *
  * It sits above the composer rather than in a corner, because a rescue you do
  * not see is not a rescue, and the composer is where the eye already is. The
@@ -18,7 +19,7 @@ export function UndoBar() {
   const entry = useUndo();
 
   React.useEffect(() => {
-    if (!entry) return;
+    if (!entry?.restore) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
         e.preventDefault();
@@ -43,16 +44,22 @@ export function UndoBar() {
         key={entry.id}
         className="glass pointer-events-auto relative flex max-w-[min(25rem,100%)] items-center gap-3 overflow-hidden rounded-md border border-line py-3 pl-4 pr-3 shadow-lg anim-toast"
       >
-        <span className="min-w-0 flex-1 truncate text-sm text-secondary">
-          Deleted <span className="text-primary">{entry.label}</span>
+        {/* One line and clipped for a delete, where the label is a title and
+            the sentence around it is three words. Wrapped for anything you
+            have to read — a refusal truncated at the width of the bar is a
+            refusal that does not say why, which is the only part that matters. */}
+        <span className={cn("min-w-0 flex-1 text-sm text-secondary", entry.restore ? "truncate" : "text-pretty")}>
+          {entry.verb} <span className="text-primary">{entry.label}</span>
         </span>
-        <button
-          onClick={() => void takeUndo()}
-          className="focus-inset flex h-7 shrink-0 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-accent transition-colors duration-[var(--dur-fast)] hover:bg-accent-subtle"
-        >
-          <RotateCcw size={13} />
-          Undo
-        </button>
+        {entry.restore && (
+          <button
+            onClick={() => void takeUndo()}
+            className="focus-inset flex h-7 shrink-0 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-accent transition-colors duration-[var(--dur-fast)] hover:bg-accent-subtle"
+          >
+            <RotateCcw size={13} />
+            {entry.action ?? "Undo"}
+          </button>
+        )}
         <button
           onClick={dismissUndo}
           aria-label="Dismiss"
@@ -65,7 +72,7 @@ export function UndoBar() {
         <span
           aria-hidden
           className="undo-clock absolute inset-x-0 bottom-0 h-px origin-left bg-[var(--accent)]"
-          style={{ animationDuration: `${UNDO_MS}ms` }}
+          style={{ animationDuration: `${entry.ms}ms` }}
         />
       </div>
     </div>

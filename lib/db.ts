@@ -1,6 +1,6 @@
 import Dexie, { type Table } from "dexie";
 import type {
-  Canvas, CanvasFile, CanvasVersion, ContentBlock, Conversation, Message, Note,
+  Canvas, CanvasFile, CanvasVersion, ContentBlock, Conversation, Memory, Message, Note,
   Project, ProjectFile, Source, Style,
 } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
@@ -21,6 +21,7 @@ class ChatDB extends Dexie {
   projectFiles!: Table<ProjectFile, string>;
   styles!: Table<Style, string>;
   sources!: Table<Source, string>;
+  memories!: Table<Memory, string>;
 
   constructor() {
     super("clouds");
@@ -126,6 +127,17 @@ class ChatDB extends Dexie {
        worth asking about a page somebody else wrote. */
     this.version(9).stores({
       sources: "id, noteId, addedAt, [noteId+addedAt]",
+    });
+
+    /* Version 10 adds memory — the handful of sentences the app carries
+       between conversations because somebody asked it to.
+
+       `updatedAt` is indexed because the panel lists them newest-first and
+       retrieval leans on recency; `projectId` because a memory written inside
+       a project is filtered to it rather than scored against it, and a filter
+       that scans every row runs on every turn. */
+    this.version(10).stores({
+      memories: "id, updatedAt, projectId",
     });
   }
 }
@@ -813,4 +825,101 @@ export async function deleteStyle(id: string): Promise<() => Promise<void>> {
   return async () => {
     if (row) await db.styles.put(row);
   };
+}
+
+/* ---------------------------------------------------------------- memory -- */
+
+/**
+ * Keep a sentence.
+ *
+ * Restating something already known updates it rather than adding a second
+ * copy: people repeat themselves, and a list with "I write in British English"
+ * on it four times is a list nobody reads, which is a list nobody prunes.
+ *
+ * The refusal in `lib/memory.ts` happens above this, at the point somebody
+ * asked — so the reason can be shown — and is *also* checked here, because
+ * this is the only door into the table and a guard with a way around it is a
+ * guard on a different door.
+ */
+export async function rememberFact(
+  init: Pick<Memory, "text" | "kind"> & Partial<Memory>,
+): Promise<{ memory: Memory; replaced: Memory | null }> {
+  const { refuseToRemember, findDuplicate } = await import("./memory");
+  const refusal = refuseToRemember(init.text);
+  if (refusal) throw new Error(refusal);
+
+  const now = Date.now();
+  const existing = await db.memories.toArray();
+  const scope = init.projectId;
+  const replaced = findDuplicate(
+    init.text,
+    existing.filter((m) => m.projectId === scope),
+  );
+
+  if (replaced) {
+    const memory: Memory = { ...replaced, text: init.text, kind: init.kind, updatedAt: now };
+    await db.memories.put(memory);
+    return { memory, replaced };
+  }
+
+  const memory: Memory = {
+    id: uid(),
+    createdAt: now,
+    updatedAt: now,
+    useCount: 0,
+    ...init,
+  };
+  await db.memories.add(memory);
+  return { memory, replaced: null };
+}
+
+export function allMemories(): Promise<Memory[]> {
+  return db.memories.orderBy("updatedAt").reverse().toArray();
+}
+
+export async function updateMemory(id: string, patch: Partial<Memory>): Promise<void> {
+  await db.memories.update(id, { ...patch, updatedAt: Date.now() });
+}
+
+export async function deleteMemory(id: string): Promise<() => Promise<void>> {
+  const row = await db.memories.get(id);
+  await db.memories.delete(id);
+  return async () => {
+    if (row) await db.memories.put(row);
+  };
+}
+
+/** Emptying the list. Handed back whole, because "forget everything" is the one people misclick. */
+export async function forgetEverything(): Promise<() => Promise<void>> {
+  const rows = await db.memories.toArray();
+  await db.memories.clear();
+  return async () => {
+    if (rows.length) await db.memories.bulkPut(rows);
+  };
+}
+
+/**
+ * Mark what actually went out with a question.
+ *
+ * Written after the turn is composed rather than when a memory is retrieved
+ * for some other purpose, so "last used" means what the panel says it means.
+ * Failures are swallowed: a counter is not worth losing a message over.
+ */
+export async function markMemoriesUsed(ids: string[]): Promise<void> {
+  if (!ids.length) return;
+  const now = Date.now();
+  try {
+    await db.transaction("rw", db.memories, async () => {
+      for (const id of ids) {
+        const row = await db.memories.get(id);
+        if (!row) continue;
+        // Not `updateMemory`: being read is not being edited, and bumping
+        // `updatedAt` here would reorder the panel every time you asked a
+        // question, so the list you curated never sits still.
+        await db.memories.update(id, { usedAt: now, useCount: (row.useCount ?? 0) + 1 });
+      }
+    });
+  } catch {
+    /* a counter is not worth a failed turn */
+  }
 }

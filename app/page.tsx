@@ -7,9 +7,10 @@ import type { ContentBlock, Message } from "@/lib/types";
 import {
   createConversation, createNote, db, deepestLeaf, deleteConversation,
   exportMarkdown, pathTo, addMessage, blockText, createCanvas, createWebCanvas, createProject,
-  filesOf,
+  filesOf, rememberFact, markMemoriesUsed, deleteMemory,
 } from "@/lib/db";
 import { composeSystemPrompt, composeTurnPrompt } from "@/lib/prompt";
+import { memoryBlock, readRememberRequest, retrieve } from "@/lib/memory";
 import { effortFor, taskOf } from "@/lib/task";
 import { shapeFor } from "@/lib/shape";
 import { visualFor } from "@/lib/visual";
@@ -22,7 +23,7 @@ import { cheapestAvailable, complete } from "@/lib/complete";
 import { useSettings, useDrafts, paramsFor, type Section } from "@/lib/store";
 import { useStream } from "@/lib/hooks/useStream";
 import { cn, inOverlay } from "@/lib/utils";
-import { offerUndo } from "@/lib/undo";
+import { announce, offerUndo } from "@/lib/undo";
 import { Sidebar } from "@/components/Sidebar";
 import { CanvasView, toCanvas } from "@/components/CanvasView";
 import { CreativeView } from "@/components/CreativeView";
@@ -372,6 +373,23 @@ export default function Page() {
          when checking the first. The classification was going into the audit
          and never into the work. */
       const task = wants ? taskOf(blockText(wants.content)) : null;
+
+      /* What the app remembers, narrowed to this question. Read at send time
+         like everything else on this path, and skipped entirely when memory is
+         off — the switch has to close both doors, or turning it off would leave
+         everything learned so far still riding along on every prompt.
+
+         A temporary chat is also outside it. The whole promise of one is that
+         it does not join up with the rest of what the app knows about you, and
+         a memory going *in* is the same join as one coming out. */
+      const remembering = useSettings.getState().memoryOn && !conv?.temporary;
+      const recalled = remembering
+        ? retrieve(await db.memories.toArray(), wants ? blockText(wants.content) : "", {
+            projectId: conv?.projectId,
+          })
+        : [];
+      if (recalled.length) void markMemoriesUsed(recalled.map((m) => m.id));
+
       const turn = composeTurnPrompt({
         shape: task ? shapeFor(task.kind) : "",
         /* And when a picture would beat a paragraph. The house rules say prose
@@ -385,6 +403,7 @@ export default function Page() {
            someone who already has the answer points straight at it, whatever
            the instruction said. */
         teaching: isTeaching(style?.id),
+        memory: memoryBlock(recalled),
       });
       await stream.send({
         conversationId,
@@ -466,6 +485,46 @@ export default function Page() {
          out is the app's job, not theirs. Off Auto, nothing here happens and
          the model you picked is the model that answers. */
       const asked = blockText(content);
+
+      /* "Remember that I write in British English."
+         ---------------------------------------------------------------------
+         Read here, before anything is sent, because the whole point of asking
+         in a sentence is that it costs nothing: no extra call, no model
+         deciding what is worth keeping about you, nothing written that you did
+         not say in so many words. The message goes on to the model unchanged
+         either way — you asked it something, and an app that swallowed the
+         turn to file a note would be answering a different question.
+
+         Not in a temporary chat. A memory written there would outlive the
+         chat that was promised not to, which is the one thing that must not
+         happen in a room labelled "nothing is kept". */
+      const wantsRemembered = settings.memoryOn && !conversation?.temporary
+        ? readRememberRequest(asked)
+        : null;
+      if (wantsRemembered) {
+        void rememberFact({
+          ...wantsRemembered,
+          // Scoped to the project it was said inside. Outside it, it is another
+          // piece of work's context rather than a fact about the person.
+          projectId: conversation?.projectId,
+        })
+          .then(({ memory }) =>
+            announce({
+              verb: "Remembered",
+              label: memory.text,
+              action: "Forget",
+              restore: async () => void (await deleteMemory(memory.id)),
+            }),
+          )
+          /* The refusal is the message. `rememberFact` throws the sentence it
+             wants said — that this looked like a key, or is longer than a
+             memory should be — and it is said in the one place the eye is
+             already on after pressing send. Silence here would be the app
+             deciding on your behalf and not mentioning it. */
+          .catch((e: unknown) =>
+            announce({ verb: "Not kept.", label: e instanceof Error ? e.message : "It could not be saved." }),
+          );
+      }
       /* Loaded when it is used. The router and its calculator are a few
          kilobytes that nobody on the way to their first message needs, and the
          first load had drifted two kilobytes past its own budget carrying
@@ -539,7 +598,7 @@ export default function Page() {
 
       if (isFirst) void generateTitle(convId, blockText(content));
     },
-    [activeId, conversation?.leafId, path, threadModelId, runTurn, generateTitle, compareWith, configured, settings.keys, settings.modelId],
+    [activeId, conversation?.leafId, conversation?.temporary, conversation?.projectId, path, threadModelId, runTurn, generateTitle, compareWith, configured, settings.keys, settings.modelId, settings.memoryOn],
   );
 
   /* Anything that lands on a conversation that already exists settles the

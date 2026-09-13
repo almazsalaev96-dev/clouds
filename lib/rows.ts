@@ -56,6 +56,13 @@ export const ROW_SHAPE: Record<string, (r: Row) => boolean> = {
   /* An orphan source renders under no note and is unreachable, which is not a
      crash but is a row nobody can ever delete. */
   sources: (r) => typeof r.noteId === "string",
+
+  /* `text` is trimmed on the way into a prompt and `kind` indexes two lookup
+     tables — the heading it is grouped under, and the label the panel shows.
+     Neither is guarded, because every memory the app writes has both. */
+  memories: (r) =>
+    typeof r.text === "string" &&
+    (r.kind === "preference" || r.kind === "workflow" || r.kind === "project" || r.kind === "fact"),
 };
 
 /**

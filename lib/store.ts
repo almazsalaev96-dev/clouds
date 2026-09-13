@@ -148,6 +148,18 @@ interface Settings {
   nameAsked: boolean;
   sidebarOpen: boolean;
   sendOnEnter: boolean;
+  /**
+   * Whether the app keeps anything between conversations.
+   *
+   * Off is off in both directions and has to be: it stops memories being
+   * written *and* stops the ones already there going out with a question. A
+   * switch that only closed the front door would leave everything learned so
+   * far still in every prompt, which is the opposite of what turning it off
+   * means. What is already saved is kept, not deleted — that is the Forget
+   * button's job, next to it, and conflating the two would make "off" a
+   * destructive act nobody expected.
+   */
+  memoryOn: boolean;
   showLineNumbers: boolean;
   wrapCode: boolean;
   /** Browser-held keys, used only when the server has none for that provider. */
@@ -203,6 +215,7 @@ export const DEFAULT_SETTINGS = {
   nameAsked: false,
   sidebarOpen: true,
   sendOnEnter: true,
+  memoryOn: true,
   showLineNumbers: false,
   wrapCode: false,
   keys: {} as Record<string, string>,

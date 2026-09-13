@@ -6,9 +6,12 @@ import { Check, Download, ExternalLink, Eye, EyeOff, Trash2, Upload, X } from "l
 import { useLiveQuery } from "dexie-react-hooks";
 import type { ProviderId } from "@/lib/types";
 import { PROVIDERS, getModel } from "@/lib/models";
-import { createStyle, db, deleteAllData, deleteStyle } from "@/lib/db";
+import {
+  createStyle, db, deleteAllData, deleteStyle, deleteMemory, forgetEverything, updateMemory,
+} from "@/lib/db";
+import { KIND_LABEL, MAX_MEMORY_CHARS } from "@/lib/memory";
 import { BUILT_IN_STYLES } from "@/lib/styles";
-import { offerUndo } from "@/lib/undo";
+import { announce, offerUndo } from "@/lib/undo";
 import {
   backupCounts, buildBackup, downloadBackup, parseBackup, restoreBackup, say, BackupError,
 } from "@/lib/backup";
@@ -18,13 +21,14 @@ import { cn } from "@/lib/utils";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
 import { SHORTCUT_GROUPS } from "@/components/ShortcutsOverlay";
 
-type Tab = "keys" | "appearance" | "model" | "styles" | "data" | "shortcuts";
+type Tab = "keys" | "appearance" | "model" | "styles" | "memory" | "data" | "shortcuts";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "keys", label: "API keys" },
   { id: "appearance", label: "Appearance" },
   { id: "model", label: "Model" },
   { id: "styles", label: "Styles" },
+  { id: "memory", label: "Memory" },
   { id: "shortcuts", label: "Shortcuts" },
   { id: "data", label: "Data" },
 ];
@@ -75,6 +79,7 @@ export function Settings({
             {tab === "appearance" && <AppearancePanel />}
             {tab === "model" && <ModelPanel />}
             {tab === "styles" && <StylesPanel />}
+            {tab === "memory" && <MemoryPanel />}
             {tab === "shortcuts" && <ShortcutsPanel />}
             {tab === "data" && <DataPanel />}
           </div>
@@ -587,6 +592,133 @@ function Toggle({
         {hint && <span className="block text-xs text-tertiary">{hint}</span>}
       </span>
     </label>
+  );
+}
+
+/* ---------------------------------------------------------------- memory -- */
+
+/**
+ * Everything the app carries between conversations, in one list you can empty.
+ *
+ * The list is the feature. A memory you cannot see is a claim about yourself
+ * that somebody else is making on your behalf — so this shows all of it, in
+ * the words it was saved in, editable in place, with the date and the number
+ * of times it has actually gone out with a question beside it. That last
+ * column is what makes the list prunable: text alone cannot tell you which of
+ * these is doing anything.
+ */
+function MemoryPanel() {
+  const s = useSettings();
+  const memories = useLiveQuery(() => db.memories.orderBy("updatedAt").reverse().toArray(), [], []);
+  const projects = useLiveQuery(() => db.projects.toArray(), [], []);
+  const [confirmAll, setConfirmAll] = React.useState(false);
+  const projectName = (id?: string) => (id ? projects.find((p) => p.id === id)?.name : undefined);
+
+  return (
+    <div className="space-y-5">
+      <section>
+        <h3 className="text-sm font-medium text-primary">Memory</h3>
+        <p className="mt-1 text-xs text-tertiary">
+          The app keeps something only when you ask it to, in so many words —{" "}
+          <span className="text-secondary">remember that I write in British English</span>. It
+          never decides on its own what about you is worth keeping, and it refuses anything that
+          reads as a password or a key. Nothing here leaves this browser except as part of a
+          question, and only the lines that bear on the question go.
+        </p>
+      </section>
+
+      <Field label="Between conversations">
+        <Toggle
+          checked={s.memoryOn}
+          onChange={(v) => s.set({ memoryOn: v })}
+          label="Remember what I ask you to remember"
+          hint={
+            s.memoryOn
+              ? "Off stops new ones being kept and stops the ones below going out with your questions. It deletes nothing."
+              : "Off. Nothing new is kept, and nothing below is sent. What is here stays until you delete it."
+          }
+        />
+      </Field>
+
+      <section className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <p className="eyebrow text-faint">
+            {memories.length === 0 ? "Nothing yet" : `${memories.length} kept`}
+          </p>
+          {memories.length > 0 &&
+            (confirmAll ? (
+              <div className="ml-auto">
+                <ConfirmInline
+                  question="Forget all of them?"
+                  onConfirm={() => {
+                    setConfirmAll(false);
+                    void forgetEverything().then((back) =>
+                      announce({ verb: "Forgot", label: "everything it remembered", action: "Undo", restore: back }),
+                    );
+                  }}
+                  onCancel={() => setConfirmAll(false)}
+                />
+              </div>
+            ) : (
+              <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setConfirmAll(true)}>
+                Forget everything
+              </Button>
+            ))}
+        </div>
+
+        {memories.length === 0 ? (
+          <p className="text-xs text-tertiary">
+            Ask for something to be remembered and it will appear here, where you can change the
+            wording or delete it.
+          </p>
+        ) : (
+          memories.map((m) => (
+            <div key={m.id} className="rounded-lg border border-line bg-surface p-3">
+              <div className="flex items-start gap-2">
+                {/* Editable in place. The app cleaned the opening off the
+                    sentence and kept the rest of your words — if it cleaned
+                    the wrong thing, the fix should be typing over it rather
+                    than deleting and saying it again. */}
+                <textarea
+                  value={m.text}
+                  maxLength={MAX_MEMORY_CHARS}
+                  rows={Math.min(4, Math.ceil(m.text.length / 60))}
+                  onChange={(e) => void updateMemory(m.id, { text: e.target.value })}
+                  aria-label="What is remembered"
+                  className="focus-inset min-w-0 flex-1 resize-none rounded-md bg-transparent px-1 py-0.5 text-sm leading-relaxed text-primary outline-none"
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  aria-label={`Forget: ${m.text.slice(0, 60)}`}
+                  onClick={async () =>
+                    announce({
+                      verb: "Forgot",
+                      label: m.text,
+                      action: "Undo",
+                      restore: await deleteMemory(m.id),
+                    })
+                  }
+                >
+                  <Trash2 size={13} />
+                </Button>
+              </div>
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 px-1 text-xs text-faint">
+                <span className="text-tertiary">{KIND_LABEL[m.kind]}</span>
+                {projectName(m.projectId) && <span>· only in {projectName(m.projectId)}</span>}
+                <span>· saved {new Date(m.createdAt).toLocaleDateString()}</span>
+                {/* "Used" is the column that makes this list prunable, and it
+                    is only honest if it counts what actually went out with a
+                    question rather than what was merely read. */}
+                <span>
+                  · {m.useCount ? `used ${m.useCount === 1 ? "once" : `${m.useCount} times`}` : "never used yet"}
+                </span>
+              </p>
+            </div>
+          ))
+        )}
+      </section>
+    </div>
   );
 }
 

@@ -45,6 +45,7 @@ const TABLES = [
   "projectFiles",
   "styles",
   "sources",
+  "memories",
 ] as const;
 
 type TableName = (typeof TABLES)[number];
@@ -78,7 +79,7 @@ export interface Backup {
 /** Settings worth carrying, minus anything secret or specific to one machine. */
 const SETTING_KEYS = [
   "theme", "density", "modelId", "reviseModelId", "systemPrompt", "styleId",
-  "mode", "name", "nameAsked", "sendOnEnter", "showLineNumbers", "wrapCode",
+  "mode", "name", "nameAsked", "sendOnEnter", "showLineNumbers", "wrapCode", "memoryOn",
   "params", "favorites", "recentModels",
 ] as const;
 
@@ -135,6 +136,7 @@ export function backupCounts(b: Backup): { label: string; n: number }[] {
     ["projects", "project", "projects"],
     ["styles", "style", "styles"],
     ["sources", "source", "sources"],
+    ["memories", "memory", "memories"],
   ];
   return say
     .map(([t, one, many]) => {
@@ -156,6 +158,7 @@ const HUMAN: Record<string, [string, string]> = {
   projectFiles: ["project file", "project files"],
   styles: ["style", "styles"],
   sources: ["source", "sources"],
+  memories: ["memory", "memories"],
 };
 
 export function say(counts: { label: string; n: number }[]): string {

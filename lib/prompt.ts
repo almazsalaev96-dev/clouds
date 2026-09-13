@@ -130,12 +130,23 @@ export function composeSystemPrompt(parts: PromptParts): ComposedPrompt {
 export function composeTurnPrompt(parts: {
   shape?: string;
   visual?: string;
+  /**
+   * What the app remembers about this person that bears on *this* question.
+   *
+   * Here rather than above for the reason this function exists. Memory is
+   * retrieved against the question, so it changes every turn — and a block
+   * that changes every turn, folded into the cacheable prefix, makes every
+   * turn after the first pay to re-read the project knowledge sitting above
+   * it. `lib/memory.ts` chooses what goes in; this is only where it lands.
+   */
+  memory?: string;
   /** Set while a teaching stance is live, and only then. */
   teaching?: boolean;
 }): string {
   return [
     parts.shape?.trim(),
     parts.visual?.trim(),
+    parts.memory?.trim(),
     parts.teaching ? `## While you are teaching\n\n${NO_LOOKAHEAD}` : "",
   ]
     .filter(Boolean)
