@@ -92,6 +92,7 @@ Pass an initial value and the empty case becomes that value instead.`;
 const REPLY = `A **debounce** waits for silence: the call fires once the input has stopped changing for a set interval.
 
 \`\`\`ts title="debounce.ts"
+// The timer is reset on every call rather than only on the first, so a burst of input collapses into a single invocation at the end of it, which is what a search box wants and the exact opposite of a throttle.
 export function debounce<A extends unknown[]>(fn: (...a: A) => void, ms: number) {
   let t: ReturnType<typeof setTimeout> | undefined;
   return (...a: A) => {

@@ -156,7 +156,10 @@ export function Sidebar({
           <nav aria-label="Sections" className="px-2 pb-1">
             <Segmented
               value={section}
-              indicatorClassName="rounded-md bg-accent-subtle shadow-none"
+              /* A fill, not a floating object: it sits behind the row it
+                 marks, so it takes no shadow at all rather than one turned
+                 off. */
+              indicatorClassName="rounded-md bg-accent-subtle"
               /* `gap`, not `space-y`. The indicator is the first child of this
                  box, so `space-y-*` — which margins every sibling after the
                  first — would push the whole list down by one step the moment

@@ -152,21 +152,47 @@ console.log("\nAnd what a section costs to press, on a connection that is not yo
   await cdp.send("Network.enable");
   await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 400, downloadThroughput: 50 * 1024, uploadThroughput: 20 * 1024 });
 
+  /* Polled across the whole load rather than sampled once in the middle of it.
+     The claim here is an *ordering* — the frame arrives before the contents do
+     — and this used to assert it by looking exactly once, 600ms after the
+     click, and requiring the skeleton to still be on screen at that instant.
+     That is a race against the thing being measured: the day the chunk landed
+     in under 600ms the app had done precisely the right thing and the test
+     called it a failure, with a message ("names itself before its code has
+     arrived") that read like the frame was missing when in fact it had already
+     been replaced. Recording the sequence instead of one moment of it asserts
+     the order, which is what was meant, and cannot be outrun. */
+  const READ = () => ({
+    text: (document.querySelector("main")?.innerText ?? "").replace(/\s+/g, " ").trim(),
+    skeletons: document.querySelectorAll(".skeleton").length,
+  });
+
   for (const [label, title] of [["Projects", "Projects"], ["Notebook", "Notebook"]]) {
-    await p.getByRole("button", { name: new RegExp(`^${label}$`) }).click();
-    await p.waitForTimeout(600);
-    const mid = await p.evaluate(() => ({
-      text: (document.querySelector("main")?.innerText ?? "").replace(/\s+/g, " ").trim(),
-      skeletons: document.querySelectorAll(".skeleton").length,
-    }));
-    check(mid.text.startsWith(title), `${label} names itself before its code has arrived`, JSON.stringify(mid.text.slice(0, 30)));
-    check(mid.skeletons > 0, "and holds the shape of what is coming", `${mid.skeletons} placeholders`);
-    await p.waitForTimeout(2500);
-    const done = await p.evaluate(() => ({
-      text: (document.querySelector("main")?.innerText ?? "").replace(/\s+/g, " ").trim(),
-      skeletons: document.querySelectorAll(".skeleton").length,
-    }));
-    check(done.skeletons === 0 && done.text.length > mid.text.length, `then ${label.toLowerCase()} itself`, `${done.text.length} characters`);
+    await p.locator("aside nav").getByRole("button", { name: new RegExp(`^${label}$`) }).click();
+
+    const frames = [];
+    for (let i = 0; i < 45; i++) {
+      frames.push(await p.evaluate(READ));
+      await p.waitForTimeout(55);
+    }
+
+    const named = frames.findIndex((f) => f.text.startsWith(title));
+    const framed = frames.findIndex((f) => f.skeletons > 0);
+    /* `startsWith` as well as the length, because frame 0 is taken the instant
+       after the click and the room has not changed yet: the chat is still
+       there, it is long, and it has no placeholders in it — which satisfied
+       "loaded" at frame 0 and made every later observation look out of order. */
+    const loaded = frames.findIndex(
+      (f) => f.skeletons === 0 && f.text.startsWith(title) && f.text.length > title.length + 6,
+    );
+
+    check(loaded > 0, `${label.toLowerCase()} itself arrives`,
+      loaded > 0 ? `${frames[loaded].text.length} characters` : "never finished loading");
+    check(named >= 0 && (loaded < 0 || named <= loaded), `${label} names itself before its code has arrived`,
+      named < 0 ? JSON.stringify(frames.at(-1).text.slice(0, 30)) : `named at frame ${named}, loaded at ${loaded}`);
+    check(framed >= 0 && (loaded < 0 || framed <= loaded), "and holds the shape of what is coming",
+      framed < 0 ? "no placeholders at any point" : `${frames[framed].skeletons} placeholders at frame ${framed}`);
+
     await p.locator("aside nav").getByRole("button", { name: "Conversations" }).click();
     await p.waitForTimeout(500);
   }

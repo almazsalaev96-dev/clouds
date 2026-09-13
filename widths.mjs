@@ -132,8 +132,16 @@ for (const w of WIDTHS) {
   if (spill.over > 1) notes.push(`spills ${spill.over}px (${spill.bad.join(", ")})`);
   if (buried.length) notes.push(buried.join(", "));
   if (small.length) notes.push(`too small: ${small.join(", ")}`);
-  // Below ~400px there is no width at which 45 characters fit at a readable size.
-  if (chars !== null && w >= 560 && (chars < 45 || chars > 85)) notes.push(`${chars} characters a line`);
+  /* Below ~400px there is no width at which 45 characters fit at a readable
+     size, hence the floor on `w` rather than on the count.
+
+     The ceiling is 92 and not 85 for a reason that is a decision rather than a
+     discovery: the column is 760px because the layout spec names that width
+     twice, and 760 lands a line at 87. 85 was the top of the band typography
+     has settled on and the column is deliberately past it. The ceiling here
+     sits just above the chosen number so it still catches the column drifting
+     wider — it no longer claims 85 is the limit. */
+  if (chars !== null && w >= 560 && (chars < 45 || chars > 92)) notes.push(`${chars} characters a line`);
   check(notes.length === 0, `${w}px`, notes.join(" · ") || `${chars ?? "—"} characters a line`);
 }
 
@@ -155,7 +163,7 @@ for (const density of ["compact", "spacious"]) {
     const notes = [];
     if (spill.over > 1) notes.push(`spills ${spill.over}px (${spill.bad.join(", ")})`);
     if (buried.length) notes.push(buried.join(", "));
-    if (chars !== null && w >= 560 && (chars < 45 || chars > 85)) notes.push(`${chars} characters a line`);
+    if (chars !== null && w >= 560 && (chars < 45 || chars > 92)) notes.push(`${chars} characters a line`);
     check(notes.length === 0, `${density} at ${w}px`, notes.join(" · ") || `${chars ?? "—"} characters a line`);
   }
 }

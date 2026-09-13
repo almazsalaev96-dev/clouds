@@ -12,6 +12,13 @@
  * the microphone existed in one room and not the others, and the notebook had
  * no way to say anything to the model at all.
  *
+ * The typing line is found by its place inside the shell. It used to be found
+ * by `textarea.max-h-[45vh]` — a selector naming the value of one of its
+ * properties — so the day that ceiling changed for a reason having nothing to
+ * do with this file, every assertion here failed at once and the report read
+ * "no message bar found at all", in every room. A test that fails loudly for
+ * the wrong reason costs more than one that was never written.
+ *
  *   node mock-provider.mjs &
  *   ANTHROPIC_BASE_URL=http://127.0.0.1:8787 ANTHROPIC_API_KEY=sk-ant-mock npx next start -p 3100
  *   node e2e-bar.mjs
@@ -43,7 +50,7 @@ async function measure(label) {
   await page.evaluate(() => document.activeElement instanceof HTMLElement && document.activeElement.blur());
   await page.waitForTimeout(250);
   const shot = await page.evaluate(() => {
-    const area = document.querySelector("textarea.max-h-\\[45vh\\]");
+    const area = document.querySelector(".composer-shell textarea");
     if (!area) return null;
     const shell = area.closest(".composer-shell");
     const send = document.querySelector('[aria-label="Send message"]');
@@ -69,10 +76,10 @@ async function measure(label) {
     };
   });
   if (!shot) { check(false, `${label}: no message bar found at all`); return null; }
-  await page.locator("textarea.max-h-\\[45vh\\]").focus();
+  await page.locator(".composer-shell textarea").focus();
   await page.waitForTimeout(300);
   shot.focusShadow = await page.evaluate(() => {
-    const area = document.querySelector("textarea.max-h-\\[45vh\\]");
+    const area = document.querySelector(".composer-shell textarea");
     return getComputedStyle(area.closest(".composer-shell")).boxShadow;
   });
   await page.evaluate(() => document.activeElement instanceof HTMLElement && document.activeElement.blur());

@@ -99,7 +99,16 @@ export function Segmented({
         <span
           aria-hidden
           className={cn(
-            "absolute left-0 top-0 -z-10 rounded-full bg-surface shadow-[var(--shadow-sm)]",
+            /* No fill and no shadow here: those belong to the call site.
+               They used to, and `indicatorClassName` was expected to override
+               them — which works for a colour and does not work for a shadow.
+               `tailwind-merge` cannot tell `shadow-[var(--shadow-sm)]` from a
+               shadow *colour*, so it does not treat `shadow-none` as
+               conflicting with it, and the element ended up computing no
+               shadow while still carrying a class that said it had one. A gate
+               that reads class names to find things claiming to float caught
+               it, correctly: the class was a lie. Better not to write it. */
+            "absolute left-0 top-0 -z-10",
             settled.current &&
               "transition-[transform,width,height] duration-[var(--dur-enter)] ease-[var(--ease-spring)]",
             indicatorClassName,

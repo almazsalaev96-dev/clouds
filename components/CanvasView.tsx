@@ -1696,7 +1696,7 @@ function FileTabs({
   return (
     <Segmented
       value={activeId ?? files[0]?.id ?? ""}
-      indicatorClassName="rounded-lg"
+      indicatorClassName="rounded-lg bg-surface shadow-[var(--shadow-sm)]"
       className="mx-auto flex w-full max-w-[var(--measure-wide)] shrink-0 items-center gap-1 overflow-x-auto border-b border-line px-4 pb-1.5 pt-2"
     >
       {files.map((f) => {
