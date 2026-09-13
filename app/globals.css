@@ -332,14 +332,18 @@
   --density: 1;
   --spacing: calc(0.25rem * var(--density));
 
-  /* 40rem is ChatGPT's own `--thread-content-max-width`, and at 16px body it
-     lands a line at about 75 characters — inside the 60-to-80 band that has
-     been the answer to this question since metal type. It was 46rem, which at
-     15px was already long and at 16px would be 87. */
-  --measure: 40rem;
+  /* 47.5rem — 760px, which is the figure the layout spec gives twice and names
+     as the ideal. It was 40rem, on the argument that 640px lands a line at
+     about 72 characters and 60-to-80 has been the answer to this question
+     since metal type. 760 lands it at about 85, so this is a deliberate step
+     past that band rather than an oversight, and it is the reason the leading
+     below matters more than it did: a longer line needs more air under it to
+     keep the eye from dropping to the wrong one on the way back. */
+  --measure: 47.5rem;
   /* Wider than prose, for a page-shaped sheet and its toolbar. */
   --measure-wide: 52rem;
-  --sidebar-w: 260px;
+  /* 280, the middle of the 260-300 band and the width the spec recommends. */
+  --sidebar-w: 280px;
   /* 56, not 48. A top bar holds the controls you reach for without looking,
      and 48 puts a 44pt target inside a 48px strip — two pixels of air above
      and below it, which is how a bar ends up feeling like something you have
@@ -351,7 +355,7 @@
      taking as much width as the conversation, which makes a panel a second
      column rather than a margin note. 320-380 is the band a supporting panel
      belongs in. */
-  --panel-w: clamp(20rem, 26vw, 23.75rem);
+  --panel-w: clamp(20rem, 26vw, 22.5rem);
 
   /* --- Syntax. Six hues, low saturation. A code block should read as one
          calm object, not a Christmas tree. --- */
@@ -560,7 +564,7 @@
    content; a desktop is not short and a 56px bar is the difference between
    controls that sit in a bar and controls that fill it. */
 @media (min-width: 768px) {
-  :root { --topbar-h: 56px; }
+  :root { --topbar-h: 60px; }
 }
 
 /* --- Expose tokens to Tailwind's utility generator. --------------------- */
@@ -1925,21 +1929,24 @@ body::after {
 
 [data-read] {
   --read-size: var(--text-base);
-  --read-leading: 1.75;
+  --read-leading: 1.7;
   --read-gap: 1em;
 }
 
 /* A conversation. Read once, at speed, often while something is still
    arriving — so the shortest comfortable line and the tightest of the three. */
-/* 1.75 — twenty-eight pixels to the sixteen, which is ChatGPT's `leading-7`
-   and the single most recognisable thing about how it reads. 1.65 is the
-   value you land on from a typography table; the extra tenth is what makes a
-   wall of an answer feel like something you can start rather than something
-   you have to get through. It costs about one line of height per screen. */
+/* 1.7, which is the top of the 1.5-to-1.7 band the spec gives and as close to
+   ChatGPT's `leading-7` as that band reaches. It has been 1.65, then 1.75 for
+   ChatGPT's sake, and 1.7 is the one value that satisfies both asks rather
+   than picking a winner between them — the difference from 1.75 is eight
+   tenths of a pixel per line. It matters more at this column width than it
+   did at the old one: the longer the line, the further the eye travels back
+   to find the start of the next, and leading is what keeps it from landing
+   on the wrong one. */
 [data-read="chat"] {
-  --measure: 40rem;
+  --measure: 47.5rem;
   --read-size: var(--text-base);
-  --read-leading: 1.75;
+  --read-leading: 1.7;
   --read-gap: 1em;
 }
 
@@ -1948,12 +1955,16 @@ body::after {
    scanning. 17px at 42rem is 75 characters, which is the same band arrived at
    from the other end. */
 [data-read="doc"] {
-  --measure: 42rem;
+  /* 50rem, the top of the 650-800px band the spec gives for an explanation,
+     and still the wider of the two. When the conversation went to 760 this
+     was 672, which made the settled read the narrower one — the same
+     inversion the leading had, one line further down. */
+  --measure: 50rem;
   --read-size: 1.0625rem;
-  /* Above the conversation's 1.75 rather than below it, which is what 1.72
-     quietly became the moment the conversation went up. A document is the
-     more settled read of the two and has to stay the airier one. */
-  --read-leading: 1.8;
+  /* Above the conversation's, which is what 1.72 quietly stopped being the
+     moment the conversation went up. A document is the more settled read of
+     the two and has to stay the airier one. */
+  --read-leading: 1.75;
   --read-gap: 1.15em;
 }
 

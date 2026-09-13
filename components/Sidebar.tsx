@@ -33,11 +33,11 @@ const SECTIONS: { id: Section; label: string; icon: React.ReactNode }[] = [
   /* Conversations is in the list too, and has to be: with the header switch
      gone there was no way back to the thread you were reading except opening
      one, and "New chat" is not that — it is a different conversation. */
-  { id: "chat", label: "Conversations", icon: <MessagesSquare size={15} /> },
-  { id: "projects", label: "Projects", icon: <FolderOpen size={15} /> },
-  { id: "notebook", label: "Notebook", icon: <NotebookPen size={15} /> },
-  { id: "code", label: "Code", icon: <Code2 size={15} /> },
-  { id: "creative", label: "Creative", icon: <Sparkles size={15} /> },
+  { id: "chat", label: "Conversations", icon: <MessagesSquare size={18} /> },
+  { id: "projects", label: "Projects", icon: <FolderOpen size={18} /> },
+  { id: "notebook", label: "Notebook", icon: <NotebookPen size={18} /> },
+  { id: "code", label: "Code", icon: <Code2 size={18} /> },
+  { id: "creative", label: "Creative", icon: <Sparkles size={18} /> },
 ];
 
 export function Sidebar({
@@ -173,8 +173,13 @@ export function Sidebar({
                     data-on={on}
                     onClick={() => onGoToSection(s.id)}
                     aria-current={on}
+                    /* 36 tall, 10 of side padding, an 18px mark. It was 32/8/15,
+                       which is a row built to the size of its text rather than
+                       to the size of a thing you point at — the spec's floor
+                       for a navigation item is 36, and the four pixels are the
+                       difference between a list you read and a list you use. */
                     className={cn(
-                      "tap flex h-8 w-full items-center gap-2 rounded-md px-2 text-sm transition-colors duration-[var(--dur-fast)]",
+                      "tap flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-sm transition-colors duration-[var(--dur-fast)]",
                       // The row only changes the colour of its ink; the fill
                       // underneath it is the one element that moves.
                       on ? "font-medium text-primary" : "text-secondary hover:bg-canvas hover:text-primary",

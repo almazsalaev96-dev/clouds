@@ -166,8 +166,11 @@ export function MessageBar({
              pasting anything long pushed the conversation off the screen
              and left the thing you were replying to invisible while you
              wrote the reply. A composer should stop growing while what it
-             is answering is still readable; past that it scrolls. */
-          className="max-h-[17.5rem] w-full resize-none bg-transparent px-5 pb-1 pt-4 text-base leading-6 text-primary outline-none placeholder:text-tertiary"
+             is answering is still readable; past that it scrolls.
+
+             220px, which is where the two specs that give a ceiling for this
+             overlap — one says 180-220, the other 220-280. */
+          className="max-h-[13.75rem] w-full resize-none bg-transparent px-5 pb-1 pt-4 text-base leading-6 text-primary outline-none placeholder:text-tertiary"
       />
 
       {/* Two groups, and the group is the unit that wraps — never a control

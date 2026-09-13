@@ -79,7 +79,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
         // cursor and a coin toss under a thumb, and these are the buttons that
         // start work — Keep, Run, New — so a miss is expensive.
         "btn-touch press inline-flex select-none items-center justify-center gap-1.5 rounded-md font-medium disabled:pointer-events-none disabled:opacity-40",
-        size === "sm" ? "h-7 px-2.5 text-xs" : "h-9 px-3.5 text-sm",
+        // 40, not 36. `btn-touch` already raises this to Apple's 44pt floor
+        // under a thumb; 36 was the height it kept under a cursor, which is
+        // below the 40-44 a primary action is specified at and reads as a
+        // control squeezed to fit rather than one sized for its job.
+        size === "sm" ? "h-8 px-3 text-xs" : "h-10 px-4 text-sm",
         // The one control on a screen you are meant to press wears the CTA
         // hue and nothing else does. Blue is structure — links, focus, the
         // active row — and if the button that starts the work were also blue
