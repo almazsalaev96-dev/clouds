@@ -93,6 +93,27 @@ console.log("\nOn a desktop window");
   await ctx.close();
 }
 
+console.log("\nCollapsed on a desktop window");
+{
+  /* A collapsed sidebar is a rail, not an absence: 64-72px of live controls
+     with the rooms one press away. It used to be zero and inert. */
+  const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
+  const p = await ctx.newPage();
+  await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await p.evaluate((s) => localStorage.setItem("store.settings.v1", s), SETTINGS.replace('"sidebarOpen":true', '"sidebarOpen":false'));
+  await p.reload({ waitUntil: "networkidle" });
+  await p.waitForTimeout(700);
+  const aside = await p.locator("aside").boundingBox();
+  band(aside ? aside.width : null, 64, 72, "the rail");
+  const inert = await p.locator("aside").evaluate((n) => n.hasAttribute("inert"));
+  check(!inert, "and it is live, not inert");
+  const rooms = await p.locator("aside nav button").count();
+  check(rooms === 5, "with every room one press away", `${rooms} buttons`);
+  const toggles = await p.getByRole("button", { name: "Show sidebar" }).count();
+  check(toggles === 1, "and exactly one way to open it, in the rail", `${toggles} found`);
+  await ctx.close();
+}
+
 console.log("\nOn a phone");
 {
   const { ctx, p } = await open(390, 844);
@@ -101,6 +122,13 @@ console.log("\nOn a phone");
   band(title, 26, 32, "a page's own title");
   const spill = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   check(spill <= 1, "and the page does not scroll sideways", `${spill}px over`);
+  /* The phone keeps the drawer: closed, it is off-screen and inert, and the
+     rail never appears — 72px of a 390px screen is a fifth of it. */
+  await p.evaluate((s) => localStorage.setItem("store.settings.v1", s), SETTINGS.replace('"sidebarOpen":true', '"sidebarOpen":false'));
+  await p.reload({ waitUntil: "networkidle" });
+  await p.waitForTimeout(700);
+  const closed = await p.locator("aside").evaluate((n) => ({ inert: n.hasAttribute("inert"), x: n.getBoundingClientRect().right }));
+  check(closed.inert && closed.x <= 0, "closed on a phone, the drawer is off-screen and inert", `right edge at ${Math.round(closed.x)}px, inert=${closed.inert}`);
   await ctx.close();
 }
 
