@@ -83,6 +83,16 @@ export interface Conversation {
    * already remembered goes out with it.
    */
   temporary?: boolean;
+  /**
+   * The tab that made it.
+   *
+   * Read at startup to decide whether this one is anybody's: a temporary chat
+   * whose tab has stopped saying it is there is swept, and one in a tab still
+   * open is left alone. `lib/temporary.ts` says why that distinction is worth
+   * a field — the simpler rule deletes the chat you are typing in when you
+   * open a second tab.
+   */
+  tempSession?: string;
   modelId: string;
   systemPrompt?: string;
   /** The project this belongs to, if any. Its instructions and knowledge apply. */

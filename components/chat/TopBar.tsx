@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
-  Archive, ArchiveRestore, Check, Download, FolderOpen, MoreHorizontal,
+  Archive, ArchiveRestore, Check, Download, EyeOff, FolderOpen, MoreHorizontal,
   NotebookPen, PanelLeft, Pin, PinOff, Trash2,
 } from "lucide-react";
 import type { Conversation, Project } from "@/lib/types";
@@ -11,6 +11,7 @@ import { useSettings } from "@/lib/store";
 import { formatCost, formatTokens } from "@/lib/models";
 import { cn } from "@/lib/utils";
 import { IconButton } from "@/components/ui/primitives";
+import { TEMPORARY_RULE } from "@/lib/temporary";
 
 export function TopBar({
   conversation,
@@ -25,6 +26,7 @@ export function TopBar({
   onMoveToProject,
   onOpenProject,
   pendingProject,
+  pendingTemporary,
 }: {
   conversation: Conversation | null;
   scrolled: boolean;
@@ -40,6 +42,8 @@ export function TopBar({
   onOpenProject: (projectId: string) => void;
   /** The project a chat not yet started belongs to. */
   pendingProject?: string | null;
+  /** And whether one not yet started is a chat that is not kept. */
+  pendingTemporary?: boolean;
 }) {
   const { sidebarOpen, toggleSidebar } = useSettings();
   const [editing, setEditing] = React.useState(false);
@@ -82,6 +86,26 @@ export function TopBar({
             {projects.find((p) => p.id === inProject)?.name ?? "Project"}
           </span>
         </button>
+      )}
+
+      {/* A chat that is not kept says so on the bar for as long as it is open.
+          It is the one piece of status that has to survive scrolling past the
+          top of the transcript: the retention rule is the whole difference
+          between this chat and every other one, and a label you have to scroll
+          up to find is a label that is not there when it matters. */}
+      {(conversation?.temporary || (!conversation && pendingTemporary)) && (
+        <span
+          /* A status, not a control, so the rule is carried on the element
+             itself rather than in a tooltip a keyboard never reaches. The
+             word alone is not enough — "temporary" could mean anything, and
+             the whole point is that this one says exactly what it means. */
+          title={TEMPORARY_RULE}
+          className="ml-1 flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-line-strong px-2.5 text-xs text-secondary"
+        >
+          <EyeOff size={12} aria-hidden className="shrink-0" />
+          <span aria-hidden className="hidden sm:inline">Temporary</span>
+          <span className="sr-only">Temporary chat. {TEMPORARY_RULE}</span>
+        </span>
       )}
 
       {conversation && (

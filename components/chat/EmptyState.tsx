@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { KeyRound, X } from "lucide-react";
+import { EyeOff, KeyRound, X } from "lucide-react";
 import { useSettings } from "@/lib/store";
+import { TEMPORARY_RULE } from "@/lib/temporary";
 import { Mark } from "@/components/brand/Logo";
 
 /**
@@ -66,12 +67,17 @@ export function EmptyState({
   hasAnyKey,
   onExample,
   onAddKey,
+  temporary,
+  onEndTemporary,
   children,
 }: {
   hasAnyKey: boolean;
   onExample: (text: string) => void;
   /** A working thing was made; go and open it. */
   onAddKey: () => void;
+  /** Whether the next thing typed here goes into a chat that is not kept. */
+  temporary?: boolean;
+  onEndTemporary?: () => void;
   /** The composer. */
   children: React.ReactNode;
 }) {
@@ -112,7 +118,30 @@ export function EmptyState({
               the composer, next to the box you are about to type in, where it
               is both visible and changeable. Saying it twice on one screen
               made the second one furniture. */}
-          {!hasAnyKey && (
+          {/* A temporary chat says so *before* you type in it, not after.
+              A label that only appears once there is a transcript is a label
+              that arrives after the thing it was warning about. */}
+          {temporary && (
+            <p
+              className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-tertiary anim-rise"
+              style={{ animationDelay: "60ms" }}
+            >
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-line-strong px-2.5 py-1 text-secondary">
+                <EyeOff size={12} />
+                Temporary chat
+              </span>
+              <span className="max-w-[28rem] text-pretty">{TEMPORARY_RULE}</span>
+              {onEndTemporary && (
+                <button
+                  onClick={onEndTemporary}
+                  className="focus-inset rounded-sm px-1 text-accent underline-offset-2 hover:underline"
+                >
+                  Ordinary chat instead
+                </button>
+              )}
+            </p>
+          )}
+          {!hasAnyKey && !temporary && (
             <p
               className="eyebrow mt-2.5 text-faint anim-rise"
               style={{ animationDelay: "60ms" }}

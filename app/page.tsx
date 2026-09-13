@@ -24,6 +24,7 @@ import { useSettings, useDrafts, paramsFor, type Section } from "@/lib/store";
 import { useStream } from "@/lib/hooks/useStream";
 import { cn, inOverlay } from "@/lib/utils";
 import { announce, offerUndo } from "@/lib/undo";
+import { holdOpen, sessionId, sweepTemporary } from "@/lib/temporary";
 import { Sidebar } from "@/components/Sidebar";
 import { CanvasView, toCanvas } from "@/components/CanvasView";
 import { CreativeView } from "@/components/CreativeView";
@@ -131,18 +132,36 @@ export default function Page() {
   const restored = React.useRef(false);
   React.useEffect(() => {
     if (restored.current) return;
-    const id = useSettings.getState().lastConversationId;
-    if (!id) {
-      restored.current = true;
-      return;
-    }
     let cancelled = false;
-    void db.conversations.get(id).then((c) => {
-      if (cancelled) return;
-      restored.current = true;
-      if (c && !c.archived) setActiveId(id);
-      else useSettings.getState().setLastConversation(null);
-    });
+
+    /* Before anything is reopened, the temporary chats whose tab is gone are
+       deleted — that is the retention rule, and this is where it is kept.
+       Before rather than alongside, because a race between the two lands you
+       in a thread that is about to disappear under you.
+
+       A reload of *this* tab keeps its own: `sessionStorage` survives one,
+       and the chat is still owned by the tab you are in. Closing the tab is
+       what ends it, which is what the label says. */
+    void sweepTemporary()
+      .catch(() => 0)
+      .then(async () => {
+        if (cancelled) return;
+        const id = useSettings.getState().lastConversationId;
+        if (!id) {
+          restored.current = true;
+          return;
+        }
+        const c = await db.conversations.get(id);
+        if (cancelled) return;
+        restored.current = true;
+        if (c && !c.archived) {
+          setActiveId(id);
+          // Reopening one means this tab is holding it open again, or nothing
+          // would be saying so and the next start would sweep a live chat.
+          if (c.temporary) holdOpen();
+        } else useSettings.getState().setLastConversation(null);
+      });
+
     return () => {
       cancelled = true;
     };
@@ -462,8 +481,14 @@ export default function Page() {
           // Set by "New chat here", which names a project before there is a
           // conversation for it to be a property of.
           projectId: pendingProject ?? undefined,
+          /* And the same for a chat that is not kept. The tab is stamped on
+             the row at creation because that is what the sweep reads: a
+             temporary chat with no owner is one nobody can be typing in. */
+          ...(pendingTemporary ? { temporary: true, tempSession: sessionId() } : {}),
         });
+        if (pendingTemporary) holdOpen();
         setPendingProject(null);
+        setPendingTemporary(false);
         convId = created.id;
         leaf = null;
         setActiveId(created.id);
@@ -614,6 +639,16 @@ export default function Page() {
    * abandoned does not attach itself to an unrelated chat half an hour later.
    */
   const [pendingProject, setPendingProject] = React.useState<string | null>(null);
+
+  /**
+   * Whether the next conversation started here is one that is not kept.
+   *
+   * Pending, like the project above, because a conversation is not created
+   * until you say something — and a temporary chat you opened and walked away
+   * from should leave nothing behind at all, not even a row waiting to be
+   * swept.
+   */
+  const [pendingTemporary, setPendingTemporary] = React.useState(false);
 
   /* What ⌘K is looking at, and what saying something would do to it. */
   /**
@@ -801,6 +836,7 @@ export default function Page() {
     // Deliberately does not stop the stream: an answer belongs to the thread it
     // was asked in, not to whatever is on screen.
     setActiveId(null);
+    setPendingTemporary(false);
     // And it has to bring you back to the chat. "New chat" pressed from Notes
     // or a canvas used to clear the thread behind a screen you were still
     // looking at — a button that reports doing nothing while quietly doing
@@ -827,6 +863,23 @@ export default function Page() {
    * "Untitled" behind every time. The project is remembered instead and
    * applied to whatever conversation the next message creates.
    */
+  /**
+   * A chat that is not kept.
+   *
+   * It clears the pending project on the way in. A temporary chat inside a
+   * project would read that project's instructions and knowledge, which is
+   * fine, and then be swept — leaving somebody with a thread they thought
+   * belonged to a place, gone. The two are different intentions and running
+   * them together serves neither.
+   */
+  const newTemporaryChat = React.useCallback(() => {
+    setActiveId(null);
+    setPendingProject(null);
+    setPendingTemporary(true);
+    settings.setSection("chat");
+    closeDrawerOnMobile();
+  }, [settings, closeDrawerOnMobile]);
+
   const newChatInProject = React.useCallback(
     (pid: string) => {
       setActiveId(null);
@@ -1095,7 +1148,12 @@ export default function Page() {
           break;
         case "n":
           e.preventDefault();
-          void createInSection(settings.section);
+          /* Shift makes it the one that is not kept, and only in the chat
+             room — there is no temporary canvas or temporary page, and a
+             shortcut that silently does the ordinary thing somewhere else is
+             a shortcut you cannot trust anywhere. */
+          if (e.shiftKey && settings.section === "chat") newTemporaryChat();
+          else if (!e.shiftKey) void createInSection(settings.section);
           break;
         case "1":
         case "2":
@@ -1139,7 +1197,7 @@ export default function Page() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [createInSection, goToSection, path, settings, stream, canvasId, noteId, projectId, inUse]);
+  }, [createInSection, newTemporaryChat, goToSection, path, settings, stream, canvasId, noteId, projectId, inUse]);
 
   const openKeys = React.useCallback(() => {
     setSettingsTab("keys");
@@ -1330,6 +1388,7 @@ export default function Page() {
             }}
             projects={projects}
             pendingProject={pendingProject}
+            pendingTemporary={pendingTemporary}
             onMoveToProject={(pid) => {
               if (activeId) void db.conversations.update(activeId, { projectId: pid ?? undefined });
             }}
@@ -1342,6 +1401,8 @@ export default function Page() {
               hasAnyKey={hasAnyKey}
               onExample={(text) => useDrafts.getState().setDraft(activeId ?? "new", text)}
               onAddKey={openKeys}
+              temporary={pendingTemporary}
+              onEndTemporary={newChat}
             >
               {composer}
             </EmptyState>
@@ -1437,6 +1498,7 @@ export default function Page() {
           onOpenChange={setPaletteOpen}
           actions={{
             newChat,
+            newTemporaryChat,
             openSettings: openKeys,
             open: selectInSection,
             goToSection,

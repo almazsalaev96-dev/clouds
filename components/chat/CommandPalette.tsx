@@ -4,8 +4,8 @@ import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  Code2, Download, FileText, FolderOpen, MessageSquare, MessageSquarePlus, Moon,
-  Columns2, NotebookPen, Palette, PanelLeft, Settings2, Sparkles, Sun, Trash2, Type, Wand2,
+  Code2, Columns2, Download, EyeOff, FileText, FolderOpen, MessageSquare, MessageSquarePlus,
+  Moon, NotebookPen, Palette, PanelLeft, Settings2, Sparkles, Sun, Trash2, Type, Wand2,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { MODELS } from "@/lib/models";
@@ -74,6 +74,8 @@ export function CommandPalette({
   onOpenChange: (o: boolean) => void;
   actions: {
     newChat: () => void;
+    /** The same, for a chat that is not kept. */
+    newTemporaryChat: () => void;
     openSettings: () => void;
     /** Opens an item and moves to its section. Both halves, always. */
     open: (section: Section, id: string) => void;
@@ -146,6 +148,10 @@ export function CommandPalette({
   const commands = React.useMemo<Command[]>(() => {
     const base: Command[] = [
       { id: "new", label: "New chat", keys: ["mod", "N"], icon: <MessageSquarePlus size={15} />, group: "Actions", run: actions.newChat },
+      /* Spelt out rather than called "temporary chat" alone: the name is the
+         feature's whole explanation, and "new chat that is not kept" is what
+         somebody searching this box would type. */
+      { id: "new-temp", label: "New temporary chat — not kept", keys: ["mod", "shift", "N"], icon: <EyeOff size={15} />, group: "Actions", run: actions.newTemporaryChat },
       { id: "settings", label: "Open settings", keys: ["mod", ","], icon: <Settings2 size={15} />, group: "Actions", run: actions.openSettings },
       // Offered only when there is one. A command that silently does nothing
       // teaches you not to trust the list it is in.

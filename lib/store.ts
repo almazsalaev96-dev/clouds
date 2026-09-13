@@ -81,6 +81,16 @@ export const LOCAL_KEYS = [
 ];
 
 /**
+ * And the keys whose names are not known until they are written.
+ *
+ * A tab with a temporary chat open writes `temp.alive.<its own id>`, so there
+ * is no fixed list to put above. Matched by prefix instead, because a wipe
+ * that leaves rows behind under names nobody enumerated is exactly the bug
+ * the list above was written for.
+ */
+export const LOCAL_PREFIXES = ["temp.alive."];
+
+/**
  * The other half of "delete everything", and it has to be said out loud.
  *
  * Memory first, then disk. Removing the storage key alone is not enough while
@@ -98,6 +108,12 @@ export function forgetLocalStorage() {
   }
   try {
     for (const k of LOCAL_KEYS) localStorage.removeItem(k);
+    const swept: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && LOCAL_PREFIXES.some((p) => key.startsWith(p))) swept.push(key);
+    }
+    for (const k of swept) localStorage.removeItem(k);
   } catch {
     /* private mode, or storage disabled — nothing was stored to clear */
   }

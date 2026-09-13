@@ -390,8 +390,17 @@ function ChatList({
   onNew: () => void;
 }) {
   const [showArchived, setShowArchived] = React.useState(false);
+  /* A temporary chat is not in this list, and that is most of what makes it
+     temporary while it is open: it is not in the history, so it is not in the
+     search that reads the history either. The one on screen is reachable
+     because it is on screen — leaving it is how you end it. */
   const conversations = useLiveQuery(
-    () => db.conversations.orderBy("updatedAt").reverse().toArray(),
+    () =>
+      db.conversations
+        .orderBy("updatedAt")
+        .reverse()
+        .filter((c) => !c.temporary)
+        .toArray(),
     [],
     [] as Conversation[],
   );
@@ -406,7 +415,14 @@ function ChatList({
     const q = settled.trim().toLowerCase();
     if (q.length < 2) return null;
     const hits = new Set<string>();
+    /* Ids that cannot be shown, so their bodies are not read. The list above
+       already drops them; skipping them here means the words of a chat that
+       is not kept are never even looked at by the search. */
+    const hidden = new Set(
+      (await db.conversations.filter((c) => Boolean(c.temporary)).toArray()).map((c) => c.id),
+    );
     await db.messages.each((m) => {
+      if (hidden.has(m.conversationId)) return;
       for (const block of m.content) {
         if (block.type === "text" && block.text.toLowerCase().includes(q)) {
           hits.add(m.conversationId);

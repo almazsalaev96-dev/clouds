@@ -36,6 +36,7 @@ export const SHORTCUT_GROUPS: { group: string; items: [string, string[]][] }[] =
   {
     group: "Chat",
     items: [
+      ["New temporary chat", ["mod", "shift", "N"]],
       ["Send", ["mod", "enter"]],
       ["Edit your last message", ["↑"]],
       ["Model picker", ["mod", "/"]],
