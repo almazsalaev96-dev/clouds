@@ -2,13 +2,9 @@
 
 import * as React from "react";
 import { Check, Square } from "lucide-react";
-import type { Message } from "@/lib/types";
+import type { Message, ModelParams } from "@/lib/types";
 import { getModel, formatTokens } from "@/lib/models";
 import { useStream } from "@/lib/hooks/useStream";
-import { db, filesOf } from "@/lib/db";
-import { composeSystemPrompt } from "@/lib/prompt";
-import { findStyle } from "@/lib/styles";
-import { useSettings } from "@/lib/store";
 import { cn, describeTiming, formatDuration, formatElapsed } from "@/lib/utils";
 import { Markdown, useThrottled } from "./Markdown";
 import { ProviderMark } from "@/components/ui/ProviderMark";
@@ -24,11 +20,26 @@ import { InlineError } from "./Message";
  * merge or a discard — it just points the conversation at one of them, and the
  * others stay reachable under `‹ 2/3 ›` forever.
  */
+/**
+ * Everything a turn is told, composed once and handed to every column.
+ *
+ * A column used to build its own, and built only half: the system prompt,
+ * without the shape of the task, the note about when a diagram beats a
+ * paragraph, or anything the app remembers about you. Composing it here also
+ * means one question counts as one use of a memory rather than three.
+ */
+export interface TurnLayers {
+  systemPrompt?: string;
+  turnPrompt?: string;
+  params?: Partial<ModelParams>;
+}
+
 export function CompareGrid({
   conversationId,
   parentId,
   history,
   modelIds,
+  layers,
   onKeep,
   onCancel,
 }: {
@@ -36,6 +47,7 @@ export function CompareGrid({
   parentId: string | null;
   history: Message[];
   modelIds: string[];
+  layers: TurnLayers;
   onKeep: (messageId: string, modelId: string) => void;
   onCancel: () => void;
 }) {
@@ -57,6 +69,7 @@ export function CompareGrid({
         {modelIds.map((id) => (
           <CompareColumn
             key={id}
+            layers={layers}
             conversationId={conversationId}
             parentId={parentId}
             history={history}
@@ -74,16 +87,17 @@ function CompareColumn({
   parentId,
   history,
   modelId,
+  layers,
   onKeep,
 }: {
   conversationId: string;
   parentId: string | null;
   history: Message[];
   modelId: string;
+  layers: TurnLayers;
   onKeep: (messageId: string, modelId: string) => void;
 }) {
   const model = getModel(modelId);
-  const settings = useSettings();
   const [finished, setFinished] = React.useState<Message | null>(null);
   const stream = useStream(setFinished);
   const started = React.useRef(false);
@@ -91,28 +105,18 @@ function CompareColumn({
   React.useEffect(() => {
     if (started.current) return;
     started.current = true;
-    // The same layers a single-model turn gets. A comparison where one column
-    // was told about the project and the others were not is not a comparison.
-    void (async () => {
-      const conv = await db.conversations.get(conversationId);
-      const project = conv?.projectId ? await db.projects.get(conv.projectId) : undefined;
-      const files = project ? await filesOf(project.id) : [];
-      const custom = await db.styles.toArray();
-      const composed = composeSystemPrompt({
-        base: conv?.systemPrompt ?? settings.systemPrompt,
-        project,
-        files,
-        style: findStyle(conv?.styleId ?? settings.styleId, custom),
-      });
-      await stream.send({
-        conversationId,
-        parentId,
-        modelId,
-        history,
-        systemPrompt: composed.text || undefined,
-        advanceLeaf: false,
-      });
-    })();
+    /* The same layers a single-model turn gets, handed down rather than
+       rebuilt here. A comparison where one column was told about the project
+       and the others were not is not a comparison — and neither is one where
+       every column is told less than the app would have told a single model. */
+    void stream.send({
+      conversationId,
+      parentId,
+      modelId,
+      history,
+      ...layers,
+      advanceLeaf: false,
+    });
     // Fired once, deliberately: a column is a single request, not a subscription.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

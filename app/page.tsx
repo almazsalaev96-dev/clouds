@@ -208,6 +208,9 @@ export default function Page() {
     parentId: string;
     history: Message[];
     modelIds: string[];
+    /* Composed once, for all of them. A column that built its own would read
+       the memory table three times and count one question as three uses. */
+    layers: Awaited<ReturnType<typeof composeFor>>;
   } | null>(null);
   const [mounted, setMounted] = React.useState(false);
 
@@ -378,15 +381,24 @@ export default function Page() {
   const threadStyleId = conversation?.styleId ?? settings.styleId;
   const threadMode = conversation?.mode ?? settings.mode;
 
-  const runTurn = React.useCallback(
-    async (
-      conversationId: string,
-      parentId: string | null,
-      history: Message[],
-      modelId: string,
-      /** Set only when the app chose the model rather than the person. */
-      routedWhy?: string,
-    ) => {
+  /**
+   * Everything a turn is told, for one conversation and one question.
+   *
+   * Pulled out of `runTurn` because a comparison needs the same thing and was
+   * building half of it. `Compare.tsx` already carried the argument — "a
+   * comparison where one column was told about the project and the others were
+   * not is not a comparison" — and then sent the system prompt alone, so all
+   * three columns answered without the shape of the task, without the note
+   * about when a diagram beats a paragraph, and without anything the app
+   * remembers about you. Three columns wrong in the same way is consistent and
+   * still not the answer you would have got.
+   *
+   * Composed once per send rather than once per column, which also keeps the
+   * "used" count on a memory honest: one question is one use, however many
+   * models answer it.
+   */
+  const composeFor = React.useCallback(
+    async (conversationId: string, history: Message[]) => {
       const conv = await db.conversations.get(conversationId);
       /* Read the layers at send time rather than holding them in state. A
          project's instructions can be edited in another tab, and a turn should
@@ -450,21 +462,31 @@ export default function Page() {
         teaching: isTeaching(style?.id),
         memory: memoryBlock(recalled),
       });
-      await stream.send({
-        conversationId,
-        parentId,
-        modelId,
-        routedWhy,
-        history,
+      return {
         systemPrompt: composed.text || undefined,
         turnPrompt: turn || undefined,
         /* And how hard to think, from the same reading. `effortFor` returns
            nothing for the kinds that do not benefit, and nothing means the
            model keeps whatever it was already set to. */
         params: { ...mode.params, ...(effortFor(task?.kind) ? { reasoningEffort: effortFor(task?.kind) } : {}) },
-      });
+      };
     },
-    [stream, settings.systemPrompt, settings.styleId, settings.mode, customStyles],
+    [settings.systemPrompt, settings.styleId, settings.mode, customStyles],
+  );
+
+  const runTurn = React.useCallback(
+    async (
+      conversationId: string,
+      parentId: string | null,
+      history: Message[],
+      modelId: string,
+      /** Set only when the app chose the model rather than the person. */
+      routedWhy?: string,
+    ) => {
+      const layers = await composeFor(conversationId, history);
+      await stream.send({ conversationId, parentId, modelId, routedWhy, history, ...layers });
+    },
+    [stream, composeFor],
   );
 
   /** Same rule as the model: the open thread owns it, the app holds the default. */
@@ -647,6 +669,7 @@ export default function Page() {
           parentId: userMessage.id,
           history,
           modelIds: [answering, ...compareWith],
+          layers: await composeFor(convId, history),
         });
       } else {
         void runTurn(convId, userMessage.id, history, answering, decision?.why);
@@ -654,7 +677,7 @@ export default function Page() {
 
       if (isFirst) void generateTitle(convId, blockText(content));
     },
-    [activeId, conversation?.leafId, conversation?.temporary, conversation?.projectId, pendingProject, pendingTemporary, path, threadModelId, runTurn, generateTitle, compareWith, configured, settings.keys, settings.modelId, settings.memoryOn],
+    [activeId, conversation?.leafId, conversation?.temporary, conversation?.projectId, pendingProject, pendingTemporary, path, threadModelId, runTurn, composeFor, generateTitle, compareWith, configured, settings.keys, settings.modelId, settings.memoryOn],
   );
 
   /* Anything that lands on a conversation that already exists settles the
@@ -1493,6 +1516,7 @@ export default function Page() {
                         parentId: comparing.parentId,
                         history: comparing.history,
                         modelIds: comparing.modelIds,
+                        layers: comparing.layers,
                         onKeep: keepCompared,
                         onCancel: () => setComparing(null),
                       }
