@@ -126,9 +126,15 @@ console.log("\nA temporary chat says what it is before you type in it");
 console.log("\nAnd then it stays out of the history");
 {
   await fetch(`${MOCK}/__reset`);
-  await page.getByRole("textbox", { name: "Message" }).fill("what is a neap tide");
+  /* The *first* message, deliberately. A conversation is not created until you
+     say something, so on this one send there is no row to read `temporary`
+     off — and a check that only read the row kept the first thing said in a
+     chat that promises to keep nothing. */
+  await page.getByRole("textbox", { name: "Message" }).fill("Remember that I am allergic to shellfish. Also, what is a neap tide?");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(2600);
+  check(!JSON.stringify(await rows("memories")).includes("shellfish"),
+    "the first message in one is not remembered either");
 
   const convs = await rows("conversations");
   const temp = convs.filter((c) => c.temporary);

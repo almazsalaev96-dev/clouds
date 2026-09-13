@@ -344,6 +344,30 @@ export default function Page() {
     withTransition(() => settings.setSection("code"), "forward");
   });
 
+  /* Both of these are read by `send`, and therefore declared above it: a
+     dependency array can only name what already exists at that line, and a
+     `send` that cannot list them holds whichever values it was built with.
+     Pressing "new temporary chat" while already on a blank one changes nothing
+     else this callback depends on, so the stale closure would quietly create
+     an ordinary conversation. */
+  /**
+   * The project the next conversation will belong to, before there is one.
+   *
+   * Cleared by anything that lands somewhere else, so a project named and then
+   * abandoned does not attach itself to an unrelated chat half an hour later.
+   */
+  const [pendingProject, setPendingProject] = React.useState<string | null>(null);
+
+  /**
+   * Whether the next conversation started here is one that is not kept.
+   *
+   * Pending, like the project above, because a conversation is not created
+   * until you say something — and a temporary chat you opened and walked away
+   * from should leave nothing behind at all, not even a row waiting to be
+   * swept.
+   */
+  const [pendingTemporary, setPendingTemporary] = React.useState(false);
+
   /* --- Sending ---------------------------------------------------------- */
 
   /** The model and instructions belong to the thread, not to the app. */
@@ -523,7 +547,12 @@ export default function Page() {
          Not in a temporary chat. A memory written there would outlive the
          chat that was promised not to, which is the one thing that must not
          happen in a room labelled "nothing is kept". */
-      const wantsRemembered = settings.memoryOn && !conversation?.temporary
+      /* Both halves of "is this temporary": the row, once there is one, and the
+         pending flag, which is all there is on the very first message — a
+         conversation is not created until you say something, so on that one
+         send `conversation` is still undefined and reading only the row would
+         keep the first thing said in a chat promising to keep nothing. */
+      const wantsRemembered = settings.memoryOn && !(conversation?.temporary ?? pendingTemporary)
         ? readRememberRequest(asked)
         : null;
       if (wantsRemembered) {
@@ -623,7 +652,7 @@ export default function Page() {
 
       if (isFirst) void generateTitle(convId, blockText(content));
     },
-    [activeId, conversation?.leafId, conversation?.temporary, conversation?.projectId, path, threadModelId, runTurn, generateTitle, compareWith, configured, settings.keys, settings.modelId, settings.memoryOn],
+    [activeId, conversation?.leafId, conversation?.temporary, conversation?.projectId, pendingProject, pendingTemporary, path, threadModelId, runTurn, generateTitle, compareWith, configured, settings.keys, settings.modelId, settings.memoryOn],
   );
 
   /* Anything that lands on a conversation that already exists settles the
@@ -632,23 +661,6 @@ export default function Page() {
     if (activeId) setPendingProject(null);
   }, [activeId]);
 
-  /**
-   * The project the next conversation will belong to, before there is one.
-   *
-   * Cleared by anything that lands somewhere else, so a project named and then
-   * abandoned does not attach itself to an unrelated chat half an hour later.
-   */
-  const [pendingProject, setPendingProject] = React.useState<string | null>(null);
-
-  /**
-   * Whether the next conversation started here is one that is not kept.
-   *
-   * Pending, like the project above, because a conversation is not created
-   * until you say something — and a temporary chat you opened and walked away
-   * from should leave nothing behind at all, not even a row waiting to be
-   * swept.
-   */
-  const [pendingTemporary, setPendingTemporary] = React.useState(false);
 
   /* What ⌘K is looking at, and what saying something would do to it. */
   /**

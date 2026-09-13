@@ -949,8 +949,16 @@ heading, and link URLs printed in full.
 ## Verified
 
 - `npm run build` and `tsc --noEmit` clean; no `any`, TypeScript strict.
-- First Load JS **245 kB** for the app route, under the 250 kB budget, and 179 kB
-  actually across the wire. It went *over* at one point and nothing noticed: the
+- First Load JS **267 kB** for the app route, and 179 kB actually across the
+  wire. That number has drifted, and the drift is the interesting part: this
+  paragraph said 245 kB "under the 250 kB budget" for several changes after it
+  had stopped being true, because the 250 was a sentence in a README and not a
+  gate. The only figure anything enforces is `e2e-scale.mjs`, which fails over
+  400 kB — generous on purpose, and too generous to notice twenty kilobytes
+  arriving one at a time. Measured against the commit before memory and the
+  temporary chat, the two of them cost 6 kB of it; the other 16 kB accumulated
+  under a number nobody was checking. It went *over* once before and nothing
+  noticed either: the
   catalogue of starters is forty-eight kilobytes of markup, styling and behaviour,
   it was imported where the row that lists them is rendered, and so everybody paid
   for five folders most people never press. The list and the folders are separate
@@ -972,6 +980,31 @@ heading, and link URLs printed in full.
   preview counts, a `console.log` and an uncaught `ReferenceError` come back out
   with the error mapped to `app.js:2`, and `window.origin` inside the frame is
   `null` with `localStorage` throwing `SecurityError`.
+- **What is kept, and what is deliberately not** (`e2e-kept.mjs`), read off the
+  wire and off the database rather than off the interface's own claims — both
+  of these are promises about storage, which is the kind that rots silently. A
+  preference asked for in a sentence is in the table with its opening cleaned
+  off; it arrives on the next question in its own system block, behind the cache
+  breakpoint, under a heading that says what it is and tells the model not to
+  recite it back. A sentence that only sounds like a request keeps nothing. A
+  key is refused, the refusal names what it saw without repeating it, and it is
+  nowhere in the table afterwards. A temporary chat is labelled before you type
+  in it, is in neither the sidebar nor the search once you have, has nothing
+  remembered going into it and nothing said in it coming out, and — after
+  clearing exactly what closing a tab clears — is gone with its messages while
+  every ordinary conversation is untouched. Then the panel forgets the
+  preference, and the next question goes out without it, which is the only proof
+  that forgetting worked.
+- **The memory rules on their own** (`test-memory.ts`), where the interesting
+  half is everything refused. Every "must not" case is a sentence somebody would
+  really type, most of them containing the trigger word: *do you remember what I
+  said*, *remember to buy milk*, *the thing to remember about tides*. Then ten
+  credential shapes, each checked twice — that it is refused, and that the
+  refusal does not repeat it back. Then the two halves of retrieval: a standing
+  preference reaching a question with no word in common with it, and a fact about
+  a dissertation staying behind; forty preferences not all riding along on one
+  question, and one memory larger than the whole budget dropped rather than
+  blowing it.
 - **The round trip, driven for real** (`e2e-backup.mjs`): a canvas with three
   files and a history, a page and a conversation are made, saved to a file, and
   the file is read back off disk — checked for containing the work rather than
