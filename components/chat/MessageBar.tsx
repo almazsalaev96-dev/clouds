@@ -83,6 +83,16 @@ export function MessageBar({
   const ref = React.useRef<HTMLTextAreaElement>(null);
   const dictation = useDictation((chunk) => onChange(value ? `${value} ${chunk}` : chunk));
 
+  /* One line or several. At rest the bar is a single row — the controls sit
+     beside the line you type on, the way every one of the big assistants
+     lays it out — and it opens into text-over-controls once what you are
+     writing wraps. `tall` is the memory of that. It goes up when the text
+     wraps and comes down only when the box is emptied, on purpose: a
+     sentence that wraps in the narrow row fits in the wide one, and a flag
+     that re-measured every keystroke would flip the layout back and forth
+     under the caret. */
+  const [tall, setTall] = React.useState(false);
+
   /* Auto-grow. The box grows upward and the page never shifts, which is what
      makes writing four lines feel like the same act as writing one. */
   const resize = React.useCallback(() => {
@@ -90,8 +100,17 @@ export function MessageBar({
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, window.innerHeight * 0.4)}px`;
+    /* 52: one line is 24 of leading inside 12 of padding each side = 48, and
+       four of slack for the browser's rounding. */
+    if (!el.value) setTall(false);
+    else if (el.scrollHeight > 52) setTall(true);
   }, []);
   React.useEffect(resize, [value, resize]);
+
+  /* Anything above the line — attachments, a canvas's shortcuts — is about
+     the message rather than in it and wants the full width beneath it, so
+     its presence stacks the bar too. */
+  const stacked = tall || Boolean(above);
 
   React.useEffect(() => {
     if (!autoFocus && focusKey === undefined) return;
@@ -145,61 +164,65 @@ export function MessageBar({
     >
       {above}
 
-      {/* The line you type on gets the full width. Nothing shares it. */}
-      <textarea
-        ref={ref}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={onKeyDown}
-        onPaste={onPaste}
-        rows={1}
-        placeholder={placeholder}
-        aria-label={ariaLabel}
-        /* 16px, not 15: anything smaller and iOS zooms the whole page on
-           focus, and the way back out is a pinch. */
-        /* The same per-block direction the answers get. Someone typing
-           Arabic was watching their own sentence build left to right with
-           the caret in the wrong place. */
-        dir="auto"
-        /* 280px, not 45vh. A viewport fraction sounds adaptive and is the
-             opposite: on a 1080px window it let the box grow to 486px, so
-             pasting anything long pushed the conversation off the screen
-             and left the thing you were replying to invisible while you
-             wrote the reply. A composer should stop growing while what it
-             is answering is still readable; past that it scrolls.
+      {/* One flex box, and `order` is what moves the pieces — never a remount.
+          Three things live in it: the left controls, the line you type on, and
+          the right controls with send at their end. In a row they read left,
+          line, right. Stacked, the line takes the whole first row and the two
+          groups share the second. The textarea is the same element in both
+          arrangements, so the caret, the selection and the focus survive the
+          change; a layout that unmounted it to move it would drop all three
+          in the middle of a sentence.
 
-             220px, which is where the two specs that give a ceiling for this
-             overlap — one says 180-220, the other 220-280. */
-          className="max-h-[13.75rem] w-full resize-none bg-transparent px-5 pb-1 pt-4 text-base leading-6 text-primary outline-none placeholder:text-tertiary"
-      />
+          The narrow case is decided by the bar's own width and not by state:
+          under 34rem there is no room for a line beside the controls whatever
+          the text is doing, so the container query stacks it — the same bar
+          is 266px inside a 320px phone and inside a 1024px window with the
+          sidebar out, and a viewport breakpoint would call the second one
+          wide. Below that width the left group takes a whole row of its own
+          too, and the right group keeps the end of the last row, so send is
+          still the last thing on the last line at every width. */}
+      <div className="flex flex-wrap items-end gap-1 px-2.5 pb-2.5 pt-2.5">
+        <div
+          className={cn(
+            "flex min-w-0 flex-wrap items-center gap-1 empty:hidden @max-[34rem]/bar:order-2 @max-[34rem]/bar:basis-full",
+            stacked ? "order-2" : "order-1",
+          )}
+        >
+          {left}
+        </div>
 
-      {/* Two groups, and the group is the unit that wraps — never a control
-          inside one. A single wrapping line put send on a line of its own at
-          1440px and off the right edge at 390px, and this is not that: send
-          cannot be separated from the model picker and the microphone, and the
-          three of them move together or not at all.
+        {/* The line you type on. Full width when stacked, the free space in a row. */}
+        <textarea
+          ref={ref}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+          onPaste={onPaste}
+          rows={1}
+          placeholder={placeholder}
+          aria-label={ariaLabel}
+          /* 16px, not 15: anything smaller and iOS zooms the whole page on
+             focus, and the way back out is a pinch. */
+          /* The same per-block direction the answers get. Someone typing
+             Arabic was watching their own sentence build left to right with
+             the caret in the wrong place. */
+          dir="auto"
+          /* 220px ceiling, not a viewport fraction. On a 1080px window 45vh
+             let the box grow to 486px, so pasting anything long pushed the
+             conversation off the screen while you wrote the reply. A composer
+             should stop growing while what it is answering is still readable;
+             past that it scrolls. 220 is where the two specs overlap. */
+          className={cn(
+            "max-h-[13.75rem] min-w-0 resize-none bg-transparent px-3 py-3 text-base leading-6 text-primary outline-none placeholder:text-tertiary",
+            "@max-[34rem]/bar:order-1 @max-[34rem]/bar:basis-full",
+            stacked ? "order-1 basis-full" : "order-2 flex-1",
+          )}
+        />
 
-          Side by side while both fit, stacked below that with the right group
-          keeping the right edge, so send is still the last thing on the last
-          line. Side by side on a phone is precisely what printed Creative
-          through the model button — the left group wrapped to three lines and
-          the right one sat centred across all of them.
-
-          The measure is this row, not the window. The same bar is 266px wide
-          inside a 320px phone and inside a 1024px window with the sidebar out,
-          and a viewport breakpoint calls the second one wide — which is why
-          the style name used to vanish on a desk and stay put on a phone. */}
-      <div className="flex flex-col gap-1 px-2.5 pb-2.5 pt-0.5 @min-[34rem]/bar:flex-row @min-[34rem]/bar:items-end">
-        {/* `flex-1` only once they share a line: with it always on, the left
-            group's hypothetical size is zero and the outer row would never
-            break on its own. Stacking is decided, not left to a heuristic. */}
-        <div className="flex min-w-0 flex-wrap items-center gap-1 empty:hidden @min-[34rem]/bar:flex-1">{left}</div>
-
-        {/* `ms-auto` is inert in row mode — the left group has already taken
-            the free space — and in column mode it stops the cross-axis stretch
-            and pins this group to the end, which is what keeps send in the
-            bottom-right corner rather than spread across the width. */}
-        <div className="ms-auto flex min-w-0 items-center gap-1">
+        {/* `ms-auto` pins this group to the end of whichever row it lands on,
+            which is what keeps send in the bottom-right corner rather than
+            spread across the width. */}
+        <div className="order-3 ms-auto flex min-w-0 items-center gap-1">
           {right}
 
           {dictation.supported && (

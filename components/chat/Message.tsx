@@ -5,10 +5,10 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Copy,
   Download, MoreHorizontal, NotebookPen, PanelRight, Pencil, RefreshCw, Scissors, ShieldQuestion,
-  SquarePen, Volume2, X,
+  SquarePen, ThumbsDown, ThumbsUp, Volume2, X,
 } from "lucide-react";
 import type { Finding } from "@/lib/lint";
-import type { ChatError, Message as Msg } from "@/lib/types";
+import type { ChatError, Message as Msg, Rating, RatingReason } from "@/lib/types";
 import { CALCULATOR, getModel, formatTokens, MODELS } from "@/lib/models";
 import { blockText } from "@/lib/db";
 import { cn, describeTiming, formatDuration } from "@/lib/utils";
@@ -225,6 +225,7 @@ function AssistantMessageImpl({
   onTighten,
   onFollowUp,
   findings,
+  onRate,
   onSwitchModel,
   onVerify,
   verifying,
@@ -248,6 +249,8 @@ function AssistantMessageImpl({
   onFollowUp?: (text: string) => void;
   /** What the linter found in this answer, if it is the last one. */
   findings?: Finding[];
+  /** Thumbs up or down; down with a reason regenerates with that reason. */
+  onRate?: (message: Msg, rating: Rating) => void;
   /** Open the model picker, when this one refused and another might not. */
   onSwitchModel?: () => void;
   /** Ask a model from another provider whether this answer is right. */
@@ -261,6 +264,8 @@ function AssistantMessageImpl({
 }) {
   const [copied, setCopied] = React.useState(false);
   const [speaking, setSpeaking] = React.useState(false);
+  /* Thumbs-down asks why, once, right here. */
+  const [asking, setAsking] = React.useState(false);
   const text = blockText(message.content);
   /* Worked out here rather than asked of anything. Checked before getModel,
      which would otherwise fall back to the default and put a model's name over
@@ -415,6 +420,37 @@ function AssistantMessageImpl({
 
       {message.verdict && <SecondOpinion verdict={message.verdict} />}
 
+      {/* Why not good — the one question a thumbs-down earns. Each answer is
+          a reason the next attempt can act on, and picking one regenerates
+          with it. Skip closes it and keeps the mark. */}
+      {asking && onRate && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 anim-fade" role="group" aria-label="What was wrong">
+          <span className="text-xs text-tertiary">What was wrong?</span>
+          {(
+            [
+              ["wrong", "Wrong"],
+              ["long", "Too long"],
+              ["off", "Not what I asked"],
+              ["unclear", "Unclear"],
+            ] as [RatingReason, string][]
+          ).map(([reason, label]) => (
+            <button
+              key={reason}
+              onClick={() => { setAsking(false); onRate(message, { up: false, reason, at: Date.now() }); }}
+              className="btn-touch press h-8 rounded-full border border-line bg-surface px-3 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+            >
+              {label}
+            </button>
+          ))}
+          <button
+            onClick={() => setAsking(false)}
+            className="btn-touch press h-8 rounded-full px-2.5 text-xs text-tertiary transition-colors duration-[var(--dur-fast)] hover:text-primary"
+          >
+            Skip
+          </button>
+        </div>
+      )}
+
       {/* What to ask next, one press each. The things a tutor offers after an
           explanation and the things a person types most often after one:
           simpler, an example, the steps, why, test me, harder. They send a
@@ -457,6 +493,33 @@ function AssistantMessageImpl({
         <IconButton label="Regenerate" size={28} onClick={() => onRegenerate(message)}>
           <RefreshCw size={14} />
         </IconButton>
+        {/* The two everyone else has and this app did not. Up is one press
+            and that is the end of it. Down opens one question — why — with
+            four answers, and the answer chosen goes back to the model as a
+            note for the next attempt, so a thumbs-down is not a number in a
+            log but the start of a better answer. The asymmetry is
+            deliberate: praise needs no follow-up and a complaint is only
+            useful with one. */}
+        {onRate && (
+          <>
+            <IconButton
+              label={message.rating?.up ? "Marked good" : "Good answer"}
+              size={28}
+              active={message.rating?.up === true}
+              onClick={() => { setAsking(false); onRate(message, { up: true, at: Date.now() }); }}
+            >
+              <ThumbsUp size={14} className={message.rating?.up ? "text-success" : undefined} />
+            </IconButton>
+            <IconButton
+              label={message.rating && !message.rating.up ? "Marked not good" : "Not good"}
+              size={28}
+              active={message.rating ? !message.rating.up : false}
+              onClick={() => { onRate(message, { up: false, at: Date.now() }); setAsking(true); }}
+            >
+              <ThumbsDown size={14} className={message.rating && !message.rating.up ? "text-danger" : undefined} />
+            </IconButton>
+          </>
+        )}
         {/* The one thing an app holding four providers' keys can do that a
             single-provider app cannot do honestly. A model asked to check its
             own answer agrees with itself — same reasoning, same weights — so

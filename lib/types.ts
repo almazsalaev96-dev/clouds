@@ -22,6 +22,14 @@ export type StopReason = "stop" | "length" | "aborted" | "error" | "refusal";
  * path. Edit and regenerate create siblings; nothing is ever destroyed.
  * Retrofitting this later is a rewrite, so it exists from the first commit.
  */
+export type RatingReason = "wrong" | "long" | "off" | "unclear";
+
+export interface Rating {
+  up: boolean;
+  reason?: RatingReason;
+  at: number;
+}
+
 export interface Message {
   id: string;
   conversationId: string;
@@ -53,6 +61,13 @@ export interface Message {
     text: string;
     modelId: string;
   };
+  /**
+   * What the reader thought of it. Up is one press and stored as it is; down
+   * asks why, because "not good" on its own is a number and a reason is
+   * something the next answer can act on — which it does, through the same
+   * per-reply note a Tighten uses.
+   */
+  rating?: Rating;
   usage?: Usage;
   latencyMs?: number;
   /** Time to first token — the number that actually predicts perceived speed. */

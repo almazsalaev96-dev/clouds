@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { PanelLeft } from "lucide-react";
-import type { ContentBlock, Message } from "@/lib/types";
+import type { ContentBlock, Message, Rating, RatingReason } from "@/lib/types";
 import {
   createConversation, createNote, db, deepestLeaf, deleteConversation,
   exportMarkdown, pathTo, addMessage, blockText, createCanvas, createWebCanvas, createProject,
@@ -88,6 +88,16 @@ const ProjectsView = dynamic(
 /** What "Continue" sends. Phrased so the model picks up mid-sentence. */
 const CONTINUE_PROMPT =
   "Continue exactly where you left off, from the last character you wrote. Do not repeat anything, and do not summarise what came before.";
+
+/* What a thumbs-down reason tells the next attempt. Each is written as the
+   instruction the reader would give if they had the patience to, which is
+   the whole point of asking for a reason rather than a mark. */
+const REASON_NOTE: Record<RatingReason, string> = {
+  wrong: "The reader marked the previous answer to this as wrong. Work it out again from the start rather than restating it; where a step is uncertain, say so instead of choosing.",
+  long: "The reader marked the previous answer to this as too long. Give the same answer in at most half the length — cut the packaging first, then the least useful detail, never the caveat that changes the answer.",
+  off: "The reader marked the previous answer to this as not what they asked. Re-read the request and answer exactly that, and nothing adjacent to it.",
+  unclear: "The reader marked the previous answer to this as unclear. Lead with the shortest true answer, then one concrete example, and stop.",
+};
 
 export default function Page() {
   const settings = useSettings();
@@ -729,6 +739,23 @@ export default function Page() {
     [activeId, allMessages, runTurn, threadModelId],
   );
 
+  /**
+   * A thumbs up is stored and that is all. A thumbs down with a reason is
+   * stored and then acted on: the reason becomes the note for one more
+   * attempt at the same question, so "too long" gets a shorter answer rather
+   * than a tally mark. The old answer stays as a branch, like any regenerate.
+   */
+  const rate = React.useCallback(
+    async (message: Message, rating: Rating) => {
+      await db.messages.update(message.id, { rating });
+      if (rating.up || !rating.reason || !activeId) return;
+      const history = pathTo(allMessages ?? [], message.parentId);
+      const modelId = message.modelId && message.modelId !== CALCULATOR ? message.modelId : threadModelId;
+      void runTurn(activeId, message.parentId, history, modelId, undefined, REASON_NOTE[rating.reason]);
+    },
+    [activeId, allMessages, runTurn, threadModelId],
+  );
+
   /** Editing forks: the original message and its whole subtree stay reachable. */
   const editMessage = React.useCallback(
     async (message: Message, text: string) => {
@@ -1344,6 +1371,7 @@ export default function Page() {
                 onContinue={() => void send([{ type: "text", text: CONTINUE_PROMPT }])}
                 onTighten={tighten}
                 onFollowUp={(text) => void send([{ type: "text", text }])}
+                onRate={rate}
                 onVerify={verify}
                 verifyingId={verifyingId}
                 onOpenInCanvas={keepAsCanvas}

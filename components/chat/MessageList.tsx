@@ -4,7 +4,7 @@ import * as React from "react";
 import { ArrowDown, Zap } from "lucide-react";
 import { lintAnswer } from "@/lib/lint";
 import { blockText } from "@/lib/db";
-import type { ChatError, Message as Msg } from "@/lib/types";
+import type { Rating, ChatError, Message as Msg } from "@/lib/types";
 import { PointAt, type PointAction } from "./PointAt";
 import { getModel } from "@/lib/models";
 import { siblingIndex, siblingsFrom } from "@/lib/db";
@@ -39,6 +39,7 @@ function MessageListImpl({
   onContinue,
   onTighten,
   onFollowUp,
+  onRate,
   onVerify,
   verifyingId,
   onRetry,
@@ -71,6 +72,8 @@ function MessageListImpl({
   onTighten: (message: Msg) => void;
   /** Send a canned follow-up as the next user turn. */
   onFollowUp: (text: string) => void;
+  /** Store a thumbs up or down; a down with a reason regenerates with it. */
+  onRate: (message: Msg, rating: Rating) => void;
   /** Ask a model from another provider whether an answer is right. */
   onVerify: (message: Msg) => void;
   verifyingId?: string | null;
@@ -246,6 +249,7 @@ function MessageListImpl({
                 onTighten={onTighten}
                 onFollowUp={last ? onFollowUp : undefined}
                 findings={findings}
+                onRate={onRate}
                 onSwitchModel={onSwitchModel}
                 onVerify={onVerify}
                 verifying={verifyingId === m.id}
