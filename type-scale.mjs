@@ -66,7 +66,16 @@ console.log("\nA line is the right length, in characters, at any text size");
 for (const rootPx of [16, 20]) {
   const { ctx, p } = await openChat(rootPx);
   const m = await p.evaluate(`(${READER})(document.querySelector(".prose p") || document.querySelector(".prose"))`);
-  check(m.chars >= 60 && m.chars <= 80,
+  /* 78-92, not 60-80.
+     The band is not a discovery, it is a decision: the column was set to 760px
+     because the layout spec names that width twice, and 760px at 16px lands a
+     line at about 85 characters — past the 60-to-80 that has been the answer
+     to this question since metal type. Widening the assertion to cover the
+     new width would be a test agreeing with whatever it finds, so the band is
+     tight around the chosen number instead: it still catches the column
+     drifting, it just no longer claims the number is the ideal one. What it
+     costs is absorbed by leading, asserted below. */
+  check(m.chars >= 78 && m.chars <= 92,
     `root ${rootPx}px: an answer runs ${m.chars} characters`,
     `${Math.round(m.width)}px at ${m.size}px`);
   const over = await p.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
@@ -96,10 +105,12 @@ console.log("\nA conversation and a document are set differently");
   const { ctx, p } = await openChat(16);
   const chat = await p.evaluate(`(${READER})(document.querySelector(".prose p") || document.querySelector(".prose"))`);
   const chatLeading = Number(chat.leading.toFixed(3));
-  /* ChatGPT sets its answers 16/28 — `leading-7` — and it is the single most
-     recognisable thing about how it reads. 1.65 is the number a typography
-     table gives you, and it is a visibly tighter page. */
-  check(Math.abs(chat.leading - 1.75) < 0.02, "an answer is set at ChatGPT's 16/28", `${chatLeading}`);
+  /* 1.7: the top of the 1.5-to-1.7 band the layout spec gives, and as close to
+     ChatGPT's `leading-7` (1.75) as that band reaches. It carries more weight
+     at this column width than it would at a narrower one — the longer the
+     line, the further the eye travels back to find the start of the next, and
+     leading is the only thing keeping it off the wrong one. */
+  check(Math.abs(chat.leading - 1.7) < 0.02, "and is given the air that length needs", `${chatLeading}`);
   const gap = await p.evaluate(() => {
     const el = document.querySelector(".prose > * + *");
     return el ? parseFloat(getComputedStyle(el).marginTop) : null;
@@ -125,12 +136,12 @@ console.log("\nA conversation and a document are set differently");
     check(doc.raw === "1.0625rem", "set a step larger than a conversation", `${doc.raw} vs 1rem`);
     /* Against the conversation's own leading rather than a number typed in
        here. The two were 1.72 and 1.65 when this was written; the conversation
-       later went to 1.75 to match ChatGPT and the document did not, which made
-       the settled read the tighter of the two — and a hard-coded 1.65 would
-       have said nothing about it, because 1.72 is still greater than 1.65. */
+       later went up and the document did not, which made the settled read the
+       tighter of the two — and a hard-coded 1.65 would have said nothing
+       about it, because 1.72 is still greater than 1.65. */
     check(parseFloat(doc.leading) > chatLeading, "with more air between its lines than a conversation",
       `${doc.leading} vs ${chatLeading}`);
-    check(doc.measure === "42rem", "and a slightly wider column", `${doc.measure} vs 40rem`);
+    check(doc.measure === "50rem", "and a wider column than a conversation", `${doc.measure} vs 47.5rem`);
   }
   check(chat.size === 16, "while the conversation stays at 16", `${chat.size}px`);
   await ctx.close();

@@ -59,7 +59,20 @@ console.log("\nOn a desktop window");
     probe.remove();
     return w;
   });
-  band(panel, 320, 380, "a side panel at this width");
+  band(panel, 320, 360, "a side panel at this width");
+
+  /* A navigation row. The floor for one is 36; it was 32, which is a row
+     built to the height of its text rather than to the size of a thing you
+     point at. */
+  const nav = await p.locator("aside nav button").first().boundingBox();
+  band(nav ? nav.height : null, 36, 44, "a navigation row");
+
+  /* The sidebar's own primary action, which is a hand-rolled row rather than
+     the shared Button — worth holding separately for exactly that reason.
+     `btn-touch` raises the shared one to 44 under a thumb; this is the height
+     a cursor gets. */
+  const btn = await p.getByRole("button", { name: "New chat" }).first().boundingBox();
+  band(btn ? btn.height : null, 36, 44, "the sidebar's primary action");
 
   /* The composer's ceiling, from the element and not from the class: a `vh`
      value reads as adaptive and is the opposite — the taller the window, the
@@ -69,7 +82,9 @@ console.log("\nOn a desktop window");
     const v = getComputedStyle(n).maxHeight;
     return v.endsWith("px") ? parseFloat(v) : null;
   });
-  band(cap, 220, 280, "the composer stops growing at");
+  /* 180-220 in one version of the spec and 220-280 in the other, so 220 is
+     the only value that satisfies both and the band is tight around it. */
+  band(cap, 200, 240, "the composer stops growing at");
 
   /* The one heading on a blank page. */
   const title = await p.locator("h1").first().evaluate((n) => Math.round(parseFloat(getComputedStyle(n).fontSize)));
