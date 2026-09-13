@@ -18,8 +18,10 @@ import * as React from "react";
 
 export interface UndoEntry {
   id: number;
-  /** Reads after "Deleted": `Deleted "Costs of a nested loop".` */
+  /** Reads after the verb: `Deleted "Costs of a nested loop".` */
   label: string;
+  /** "Deleted" unless said otherwise — "Remembered" is the other one. */
+  verb: string;
   restore: () => Promise<void>;
 }
 
@@ -51,9 +53,9 @@ function clear() {
  * stacking, because a queue of undos is a thing you have to read, and by then
  * the moment to use it has passed.
  */
-export function offerUndo(label: string, restore: () => Promise<void>) {
+export function offerUndo(label: string, restore: () => Promise<void>, verb = "Deleted") {
   if (timer) clearTimeout(timer);
-  current = { id: ++seq, label, restore };
+  current = { id: ++seq, label, verb, restore };
   emit();
   timer = setTimeout(clear, UNDO_MS);
 }

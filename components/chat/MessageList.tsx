@@ -33,6 +33,7 @@ function MessageListImpl({
   error,
   onNavigate,
   onEdit,
+  onRemember,
   onRegenerate,
   onSaveToNote,
   onOpenInCanvas,
@@ -64,6 +65,7 @@ function MessageListImpl({
   error: ChatError | null;
   onNavigate: (id: string) => void;
   onEdit: (message: Msg, text: string) => void;
+  onRemember?: (text: string) => void;
   onRegenerate: (message: Msg, modelId?: string) => void;
   onSaveToNote: (text: string) => void;
   onOpenInCanvas: (text: string) => void;
@@ -233,6 +235,7 @@ function MessageListImpl({
                 index={index}
                 onNavigate={onNavigate}
                 onEdit={onEdit}
+                onRemember={onRemember}
                 entering={entering}
               />
             ) : (

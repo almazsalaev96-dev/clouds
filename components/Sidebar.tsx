@@ -423,7 +423,8 @@ function ChatList({
   }, [settled]);
 
   const filtered = React.useMemo(() => {
-    const list = (conversations ?? []).filter((c) => !c.archived);
+    // Temporary chats are not listed anywhere: that is the whole of the promise.
+    const list = (conversations ?? []).filter((c) => !c.archived && !c.temporary);
     const q = query.trim().toLowerCase();
     // While the scan is catching up, title matches carry the list rather than
     // the previous query's body hits leaking into this one.
@@ -432,7 +433,7 @@ function ChatList({
     return list.filter((c) => c.title.toLowerCase().includes(q) || bodies?.has(c.id));
   }, [conversations, query, settled, matchedIds]);
 
-  const archived = (conversations ?? []).filter((c) => c.archived);
+  const archived = (conversations ?? []).filter((c) => c.archived && !c.temporary);
 
   if (!filtered.length && !archived.length) return <Empty query={query} noun="conversations" onNew={onNew} />;
 

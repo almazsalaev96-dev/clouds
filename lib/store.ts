@@ -147,6 +147,8 @@ interface Settings {
   nameAsked: boolean;
   sidebarOpen: boolean;
   sendOnEnter: boolean;
+  /** Whether what was remembered goes into the prompt. Off keeps the list, unused. */
+  memoryOn: boolean;
   showLineNumbers: boolean;
   wrapCode: boolean;
   /** Browser-held keys, used only when the server has none for that provider. */
@@ -202,6 +204,7 @@ export const DEFAULT_SETTINGS = {
   nameAsked: false,
   sidebarOpen: true,
   sendOnEnter: true,
+  memoryOn: true,
   showLineNumbers: false,
   wrapCode: false,
   keys: {} as Record<string, string>,

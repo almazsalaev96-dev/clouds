@@ -4,8 +4,10 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { PanelLeft } from "lucide-react";
 import type { ContentBlock, Message, Rating, RatingReason } from "@/lib/types";
+import { rememberRequest } from "@/lib/memory";
+import { useVoiceMode } from "@/lib/hooks/useVoiceMode";
 import {
-  createConversation, createNote, db, deepestLeaf, deleteConversation,
+  addMemory, allMemories, createConversation, createNote, db, deepestLeaf, deleteConversation,
   exportMarkdown, pathTo, addMessage, blockText, createCanvas, createWebCanvas, createProject,
   filesOf,
 } from "@/lib/db";
@@ -110,6 +112,9 @@ export default function Page() {
      Reading the store imperatively writes without listening. */
 
   const [activeId, setActiveId] = React.useState<string | null>(null);
+  /* The next chat is temporary. Held here until a first message makes the
+     conversation it belongs to, the way a pending project is. */
+  const [pendingTemporary, setPendingTemporary] = React.useState(false);
 
   /* Reloading should not lose your place. The last conversation is written to
      settings on every change and read back once on mount — but only after
@@ -142,6 +147,12 @@ export default function Page() {
   React.useEffect(() => {
     if (restored.current) return;
     const id = useSettings.getState().lastConversationId;
+    /* A reload is a leaving. Whatever temporary chats a closed tab did not
+       get to delete are deleted now, before anything can show them. */
+    void db.conversations
+      .filter((c) => !!c.temporary)
+      .primaryKeys()
+      .then((ids) => Promise.all(ids.map((tid) => deleteConversation(tid))));
     if (!id) {
       restored.current = true;
       return;
@@ -150,7 +161,7 @@ export default function Page() {
     void db.conversations.get(id).then((c) => {
       if (cancelled) return;
       restored.current = true;
-      if (c && !c.archived) setActiveId(id);
+      if (c && !c.archived && !c.temporary) setActiveId(id);
       else useSettings.getState().setLastConversation(null);
     });
     return () => {
@@ -160,6 +171,23 @@ export default function Page() {
 
   React.useEffect(() => {
     if (restored.current) useSettings.getState().setLastConversation(activeId);
+  }, [activeId]);
+
+  /* Leaving a temporary chat is what deletes it. Not closing the tab, not a
+     timer: the moment another thread (or none) is on screen, the temporary
+     one is gone, and an answer still arriving into it is stopped rather
+     than written to a row nobody can reach. */
+  const prevActive = React.useRef<string | null>(null);
+  const stopRef = React.useRef<() => void>(() => {});
+  React.useEffect(() => {
+    const prev = prevActive.current;
+    prevActive.current = activeId;
+    if (!prev || prev === activeId) return;
+    void db.conversations.get(prev).then((c) => {
+      if (!c?.temporary) return;
+      stopRef.current();
+      void deleteConversation(prev);
+    });
   }, [activeId]);
   const [configured, setConfigured] = React.useState<Record<string, boolean>>({});
   const [paletteOpen, setPaletteOpen] = React.useState(false);
@@ -362,6 +390,9 @@ export default function Page() {
       const project = conv?.projectId ? await db.projects.get(conv.projectId) : undefined;
       const files = project ? await filesOf(project.id) : [];
       const style = findStyle(conv?.styleId ?? settings.styleId, customStyles);
+      /* What the person asked to be remembered — unless they turned it off,
+         or this is a temporary chat, which knows nothing and keeps nothing. */
+      const memories = settings.memoryOn && !conv?.temporary ? await allMemories() : [];
       /* The mode is read off the request rather than set on a switch.
          Choosing between Chat and Creative was a question about the machine,
          asked before the person had said what they wanted and answerable only
@@ -378,6 +409,7 @@ export default function Page() {
         files,
         style,
         mode,
+        memories,
       });
       /* What kind of job this is, and therefore what a good answer to it looks
          like. The app has classified requests since `task.ts` was written and
@@ -414,7 +446,7 @@ export default function Page() {
         params: { ...mode.params, ...(effortFor(task?.kind) ? { reasoningEffort: effortFor(task?.kind) } : {}) },
       });
     },
-    [stream, settings.systemPrompt, settings.styleId, settings.mode, customStyles],
+    [stream, settings.systemPrompt, settings.styleId, settings.mode, settings.memoryOn, customStyles],
   );
 
   /** Same rule as the model: the open thread owns it, the app holds the default. */
@@ -457,8 +489,12 @@ export default function Page() {
           // Set by "New chat here", which names a project before there is a
           // conversation for it to be a property of.
           projectId: pendingProject ?? undefined,
+          /* Set by the toggle in the header before there is a conversation
+             for it to be a property of, like the project above. */
+          temporary: pendingTemporary || undefined,
         });
         setPendingProject(null);
+        setPendingTemporary(false);
         convId = created.id;
         leaf = null;
         setActiveId(created.id);
@@ -541,6 +577,21 @@ export default function Page() {
 
       const answering = decision?.modelId ?? threadModelId;
 
+      /* "Remember that I'm vegetarian" is two things: a message, sent as
+         written, and a memory, saved before the answer comes back so the
+         reply can say so truthfully. Never in a temporary chat, and never
+         with memory off — then it is only a message, and the model, which
+         has been told it cannot remember, says so. */
+      let note: string | undefined;
+      const fact = rememberRequest(asked);
+      if (fact && settings.memoryOn && !(conversation?.temporary ?? pendingTemporary)) {
+        const kept = await addMemory(fact, convId);
+        offerUndo(fact, async () => { await db.memories.delete(kept.id); }, "Remembered");
+        note =
+          `The person just asked you to remember something, and the app has saved it to their memory ` +
+          `on this device: "${fact}". Confirm that in one short line, then answer the rest of what they said, if anything.`;
+      }
+
       if (compareWith.length) {
         setComparing({
           parentId: userMessage.id,
@@ -548,12 +599,12 @@ export default function Page() {
           modelIds: [answering, ...compareWith],
         });
       } else {
-        void runTurn(convId, userMessage.id, history, answering, decision?.why);
+        void runTurn(convId, userMessage.id, history, answering, decision?.why, note);
       }
 
       if (isFirst) void generateTitle(convId, blockText(content));
     },
-    [activeId, conversation?.leafId, path, threadModelId, runTurn, generateTitle, compareWith, configured, settings.keys, settings.modelId],
+    [activeId, conversation?.leafId, conversation?.temporary, pendingTemporary, path, threadModelId, runTurn, generateTitle, compareWith, configured, settings.keys, settings.modelId, settings.memoryOn],
   );
 
   /* Anything that lands on a conversation that already exists settles the
@@ -754,6 +805,15 @@ export default function Page() {
       void runTurn(activeId, message.parentId, history, modelId, undefined, REASON_NOTE[rating.reason]);
     },
     [activeId, allMessages, runTurn, threadModelId],
+  );
+
+  /** Remember something the person said, from the message itself. */
+  const remember = React.useCallback(
+    async (text: string) => {
+      const kept = await addMemory(text, activeId ?? undefined);
+      offerUndo(kept.text, async () => { await db.memories.delete(kept.id); }, "Remembered");
+    },
+    [activeId],
   );
 
   /** Editing forks: the original message and its whole subtree stay reachable. */
@@ -1148,6 +1208,21 @@ export default function Page() {
 
   /** Is the one live stream the one this screen is showing? */
   const live = stream.conversationId !== null && stream.conversationId === activeId;
+  React.useEffect(() => {
+    stopRef.current = stream.stop;
+  }, [stream.stop]);
+
+  /* Voice mode: the loop is in lib/voice.ts; this hands it the thread's
+     facts. The answer it reads is the last finished one on the path. */
+  const lastAnswer = React.useMemo(() => {
+    const m = [...path].reverse().find((x) => x.role === "assistant");
+    return m ? { id: m.id, text: blockText(m.content) } : null;
+  }, [path]);
+  const voice = useVoiceMode({
+    onSend: (text) => void send([{ type: "text", text }]),
+    busy: live && stream.phase !== "idle",
+    answer: lastAnswer,
+  });
   /* How much of this thread will not fit the window it is going into.
      Derived from the thread rather than remembered from the last request: it
      is a fact about the conversation as it now stands, so it stays true after
@@ -1186,6 +1261,7 @@ export default function Page() {
       modelPickerOpen={modelPickerOpen}
       onModelPickerOpenChange={setModelPickerOpen}
       onModelChange={setModel}
+      voice={voice}
     />
   ) : null;
 
@@ -1330,6 +1406,8 @@ export default function Page() {
             }}
             projects={projects}
             pendingProject={pendingProject}
+            temporary={conversation ? !!conversation.temporary : pendingTemporary}
+            onToggleTemporary={() => setPendingTemporary((v) => !v)}
             onMoveToProject={(pid) => {
               if (activeId) void db.conversations.update(activeId, { projectId: pid ?? undefined });
             }}
@@ -1366,6 +1444,7 @@ export default function Page() {
                 error={live ? stream.error : null}
                 onNavigate={navigate}
                 onEdit={editMessage}
+                onRemember={remember}
                 onRegenerate={regenerate}
                 onSaveToNote={keepAsNote}
                 onContinue={() => void send([{ type: "text", text: CONTINUE_PROMPT }])}

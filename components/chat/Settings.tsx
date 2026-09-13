@@ -2,11 +2,11 @@
 
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Check, Download, ExternalLink, Eye, EyeOff, Trash2, Upload, X } from "lucide-react";
+import { Check, Download, ExternalLink, Eye, EyeOff, Plus, Trash2, Upload, X } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import type { ProviderId } from "@/lib/types";
 import { PROVIDERS, getModel } from "@/lib/models";
-import { createStyle, db, deleteAllData, deleteStyle } from "@/lib/db";
+import { addMemory, allMemories, createStyle, db, deleteAllData, deleteMemory, deleteStyle, forgetAll } from "@/lib/db";
 import { BUILT_IN_STYLES } from "@/lib/styles";
 import { offerUndo } from "@/lib/undo";
 import {
@@ -18,13 +18,14 @@ import { cn } from "@/lib/utils";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
 import { SHORTCUT_GROUPS } from "@/components/ShortcutsOverlay";
 
-type Tab = "keys" | "appearance" | "model" | "styles" | "data" | "shortcuts";
+type Tab = "keys" | "appearance" | "model" | "styles" | "memory" | "data" | "shortcuts";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "keys", label: "API keys" },
   { id: "appearance", label: "Appearance" },
   { id: "model", label: "Model" },
   { id: "styles", label: "Styles" },
+  { id: "memory", label: "Memory" },
   { id: "shortcuts", label: "Shortcuts" },
   { id: "data", label: "Data" },
 ];
@@ -75,6 +76,7 @@ export function Settings({
             {tab === "appearance" && <AppearancePanel />}
             {tab === "model" && <ModelPanel />}
             {tab === "styles" && <StylesPanel />}
+            {tab === "memory" && <MemoryPanel />}
             {tab === "shortcuts" && <ShortcutsPanel />}
             {tab === "data" && <DataPanel />}
           </div>
@@ -587,6 +589,106 @@ function Toggle({
         {hint && <span className="block text-xs text-tertiary">{hint}</span>}
       </span>
     </label>
+  );
+}
+
+/* ---------------------------------------------------------------- memory -- */
+
+/**
+ * Everything the app knows about you, in full, each line deletable.
+ *
+ * The list is the feature. ChatGPT's memory earned its reputation the day
+ * people could open it and read what had been kept; a memory you cannot
+ * see is a rumour about you. So this shows every line, says where each came
+ * from in time, lets you add one in your own words, and lets you switch the
+ * whole thing off without losing the list.
+ */
+function MemoryPanel() {
+  const settings = useSettings();
+  const memories = useLiveQuery(allMemories, [], []);
+  const [draft, setDraft] = React.useState("");
+  const [confirming, setConfirming] = React.useState(false);
+
+  const add = async () => {
+    const text = draft.trim();
+    if (!text) return;
+    await addMemory(text);
+    setDraft("");
+  };
+
+  return (
+    <Panel
+      title="Memory"
+      description="Things you asked to be remembered, kept on this device and used in every conversation that is not temporary. Say “remember that…” in a chat, press Remember on something you said, or write one here."
+    >
+      <Toggle
+        checked={settings.memoryOn}
+        onChange={(memoryOn) => settings.set({ memoryOn })}
+        label="Use memory"
+        hint="Off keeps the list but sends none of it."
+      />
+
+      <Field label="Add something to remember">
+        <div className="flex gap-2">
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void add();
+            }}
+            placeholder="I teach year 9 maths"
+            aria-label="Something to remember"
+            className="focus-inset h-9 min-w-0 flex-1 rounded-md border border-line bg-canvas px-3 text-sm text-primary outline-none placeholder:text-tertiary"
+          />
+          <Button size="sm" variant="secondary" disabled={!draft.trim()} onClick={() => void add()}>
+            <Plus size={14} />
+            Add
+          </Button>
+        </div>
+      </Field>
+
+      <Field label={memories.length ? `Remembered · ${memories.length}` : "Remembered"}>
+        {memories.length === 0 ? (
+          <p className="text-sm text-tertiary">Nothing yet. Memory holds only what you put in it.</p>
+        ) : (
+          <ul className="divide-y divide-[var(--border-subtle)] rounded-md border border-line" aria-label="Memories">
+            {memories.map((m) => (
+              <li key={m.id} className="flex items-start gap-2 px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-primary [overflow-wrap:anywhere]">{m.text}</p>
+                  <p className="mt-0.5 text-xs text-tertiary tnum">{new Date(m.createdAt).toLocaleDateString()}</p>
+                </div>
+                <button
+                  aria-label={`Forget "${m.text.slice(0, 40)}"`}
+                  onClick={async () => offerUndo(m.text, await deleteMemory(m.id))}
+                  className="ctl flex [--ctl:1.75rem] shrink-0 items-center justify-center rounded-sm text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-[var(--danger)]"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {memories.length > 1 && (
+          <div className="mt-2">
+            {confirming ? (
+              <ConfirmInline
+                question="Forget everything?"
+                onConfirm={async () => {
+                  setConfirming(false);
+                  offerUndo(`${memories.length} memories`, await forgetAll());
+                }}
+                onCancel={() => setConfirming(false)}
+              />
+            ) : (
+              <Button size="sm" variant="ghost" onClick={() => setConfirming(true)}>
+                Forget all
+              </Button>
+            )}
+          </div>
+        )}
+      </Field>
+    </Panel>
   );
 }
 

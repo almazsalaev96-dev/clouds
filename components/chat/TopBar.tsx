@@ -3,14 +3,14 @@
 import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
-  Archive, ArchiveRestore, Check, Download, FolderOpen, MoreHorizontal,
+  Archive, ArchiveRestore, Check, Download, FolderOpen, MessageSquareDashed, MoreHorizontal,
   NotebookPen, PanelLeft, Pin, PinOff, Trash2,
 } from "lucide-react";
 import type { Conversation, Project } from "@/lib/types";
 import { useSettings } from "@/lib/store";
 import { formatCost, formatTokens } from "@/lib/models";
 import { cn } from "@/lib/utils";
-import { IconButton } from "@/components/ui/primitives";
+import { IconButton, Tooltip } from "@/components/ui/primitives";
 
 export function TopBar({
   conversation,
@@ -25,6 +25,8 @@ export function TopBar({
   onMoveToProject,
   onOpenProject,
   pendingProject,
+  temporary,
+  onToggleTemporary,
 }: {
   conversation: Conversation | null;
   scrolled: boolean;
@@ -40,6 +42,10 @@ export function TopBar({
   onOpenProject: (projectId: string) => void;
   /** The project a chat not yet started belongs to. */
   pendingProject?: string | null;
+  /** This chat is not kept — or the next one will not be. */
+  temporary?: boolean;
+  /** Only before the first message: a chat is temporary from its first word or not at all. */
+  onToggleTemporary?: () => void;
 }) {
   const { sidebarOpen, toggleSidebar } = useSettings();
   const [editing, setEditing] = React.useState(false);
@@ -86,6 +92,18 @@ export function TopBar({
         </button>
       )}
 
+      {/* Not kept, said where the title would be. A chat that is going to
+          vanish should look different from one that is not, for the whole
+          of its life, in the one place every screen has in common. */}
+      {temporary && (
+        <Tooltip label="Not saved: gone when you leave, and not remembered">
+          <span className="ml-1 flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-dashed border-line-strong px-2.5 text-xs text-secondary">
+            <MessageSquareDashed size={12} className="shrink-0" />
+            Temporary
+          </span>
+        </Tooltip>
+      )}
+
       {conversation && (
         <div className="mx-2 hidden min-w-0 flex-1 text-center sm:block">
           {editing ? (
@@ -120,6 +138,15 @@ export function TopBar({
       )}
 
       <div className="ml-auto flex items-center gap-0.5">
+        {/* Before the first message only. ChatGPT, Gemini and Claude all
+            put this here, top right of a new chat, and it is the right
+            place: a decision about the chat you are about to have, made
+            before you have it, and impossible to make after. */}
+        {!conversation && onToggleTemporary && (
+          <IconButton label={temporary ? "Keep this chat" : "Temporary chat"} active={temporary} onClick={onToggleTemporary}>
+            <MessageSquareDashed size={16} />
+          </IconButton>
+        )}
         {conversation && (
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>

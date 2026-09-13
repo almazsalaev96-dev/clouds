@@ -97,6 +97,27 @@ export interface Conversation {
   inputTokens: number;
   outputTokens: number;
   costUsd: number;
+  /**
+   * Not kept. A temporary chat is left out of the sidebar, reads and writes
+   * no memory, and is deleted the moment you leave it — the one you open to
+   * ask something you would rather not have on the list.
+   */
+  temporary?: boolean;
+}
+
+/* ---------------------------------------------------------------- memory -- */
+
+/**
+ * One thing the app knows about the person across conversations, in their
+ * own words. Kept on this device only, shown in full in Settings, and each
+ * one deletable — a memory you cannot read is a rumour about you.
+ */
+export interface Memory {
+  id: string;
+  text: string;
+  createdAt: number;
+  /** The conversation it was said in, if any, for "where did this come from". */
+  source?: string;
 }
 
 export interface ModelParams {

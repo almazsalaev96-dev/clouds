@@ -45,6 +45,7 @@ const TABLES = [
   "projectFiles",
   "styles",
   "sources",
+  "memories",
 ] as const;
 
 type TableName = (typeof TABLES)[number];
@@ -63,7 +64,7 @@ export interface Backup {
 const SETTING_KEYS = [
   "theme", "density", "modelId", "reviseModelId", "systemPrompt", "styleId",
   "mode", "name", "nameAsked", "sendOnEnter", "showLineNumbers", "wrapCode",
-  "params", "favorites", "recentModels",
+  "params", "favorites", "recentModels", "memoryOn",
 ] as const;
 
 /**
@@ -83,6 +84,15 @@ export async function buildBackup(): Promise<Backup> {
   const data: Record<string, unknown[]> = {};
   for (const name of TABLES) {
     data[name] = await db.table(name).toArray();
+  }
+  /* A temporary chat is not kept, and a backup is the most kept thing there
+     is. Out of it, with its messages. */
+  const temporary = new Set(
+    (data.conversations as { id: string; temporary?: boolean }[]).filter((c) => c.temporary).map((c) => c.id),
+  );
+  if (temporary.size) {
+    data.conversations = (data.conversations as { id: string }[]).filter((c) => !temporary.has(c.id));
+    data.messages = (data.messages as { conversationId: string }[]).filter((m) => !temporary.has(m.conversationId));
   }
   /* Not thrown: a backup missing one table is worth far more than no backup.
      Loud enough to be seen by whoever added the table, quiet enough not to
@@ -119,6 +129,7 @@ export function backupCounts(b: Backup): { label: string; n: number }[] {
     ["projects", "project", "projects"],
     ["styles", "style", "styles"],
     ["sources", "source", "sources"],
+    ["memories", "memory", "memories"],
   ];
   return say
     .map(([t, one, many]) => {
@@ -140,6 +151,7 @@ const HUMAN: Record<string, [string, string]> = {
   projectFiles: ["project file", "project files"],
   styles: ["style", "styles"],
   sources: ["source", "sources"],
+  memories: ["memory", "memories"],
 };
 
 export function say(counts: { label: string; n: number }[]): string {

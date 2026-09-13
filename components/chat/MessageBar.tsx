@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowUp, Mic, Square } from "lucide-react";
+import { ArrowUp, AudioLines, Mic, Square } from "lucide-react";
 import { useSettings } from "@/lib/store";
 import { useDictation } from "@/lib/hooks/useDictation";
 import { Tooltip } from "@/components/ui/primitives";
@@ -57,6 +57,8 @@ export interface MessageBarProps {
   autoFocus?: boolean;
   /** Re-focuses and puts the caret at the end when this changes. */
   focusKey?: string;
+  /** Voice mode: listen, send, speak, listen. Hidden where unsupported. */
+  voice?: { supported: boolean; phase: "off" | "listening" | "thinking" | "speaking"; toggle: () => void };
   className?: string;
 }
 
@@ -73,6 +75,7 @@ export function MessageBar({
   above,
   left,
   right,
+  voice,
   onArrowUp,
   onPaste,
   autoFocus,
@@ -239,6 +242,35 @@ export function MessageBar({
                 )}
               >
                 <Mic size={18} />
+              </button>
+            </Tooltip>
+          )}
+
+          {/* Voice mode, next to dictation because it is dictation's big
+              sibling: the mic fills the box, this one holds the whole
+              conversation. Its state is on its face — Listening, Thinking,
+              Speaking — because a mode you cannot see the state of is a
+              mode you cannot trust with your microphone. */}
+          {voice?.supported && (
+            <Tooltip label={voice.phase === "off" ? "Voice mode" : "End voice mode"}>
+              <button
+                onClick={voice.toggle}
+                aria-label={voice.phase === "off" ? "Voice mode" : "End voice mode"}
+                aria-pressed={voice.phase !== "off"}
+                className={cn(
+                  "focus-inset flex [--ctl:2.25rem] shrink-0 items-center justify-center gap-1.5 rounded-full transition-colors duration-[var(--dur-fast)]",
+                  /* Square while it is an icon, a pill once it carries a word. */
+                  voice.phase === "off"
+                    ? "ctl text-secondary hover:bg-subtle hover:text-primary"
+                    : "ctl-h bg-accent-subtle px-3 text-accent",
+                )}
+              >
+                <AudioLines size={18} />
+                {voice.phase !== "off" && (
+                  <span className="text-sm" aria-live="polite">
+                    {voice.phase === "listening" ? "Listening" : voice.phase === "thinking" ? "Thinking" : "Speaking"}
+                  </span>
+                )}
               </button>
             </Tooltip>
           )}

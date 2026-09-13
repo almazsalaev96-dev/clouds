@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
-  Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Copy,
+  Brain, Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Copy,
   Download, MoreHorizontal, NotebookPen, PanelRight, Pencil, RefreshCw, Scissors, ShieldQuestion,
   SquarePen, ThumbsDown, ThumbsUp, Volume2, X,
 } from "lucide-react";
@@ -32,6 +32,7 @@ function UserMessageImpl({
   index,
   onNavigate,
   onEdit,
+  onRemember,
   entering,
 }: {
   message: Msg;
@@ -39,6 +40,8 @@ function UserMessageImpl({
   index: number;
   onNavigate: (id: string) => void;
   onEdit: (message: Msg, text: string) => void;
+  /** Keep what this message says, for every conversation after this one. */
+  onRemember?: (text: string) => void;
   entering?: boolean;
 }) {
   const [editing, setEditing] = React.useState(false);
@@ -186,6 +189,13 @@ function UserMessageImpl({
         >
           <Pencil size={13} />
         </IconButton>
+        {/* Memory on your terms: the thing you said, kept because you
+            pressed this, not because a model decided it was about you. */}
+        {onRemember && text && (
+          <IconButton label="Remember this" size={26} onClick={() => onRemember(text)}>
+            <Brain size={13} />
+          </IconButton>
+        )}
       </div>
     </div>
   );

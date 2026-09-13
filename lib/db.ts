@@ -1,7 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import type {
   Canvas, CanvasFile, CanvasVersion, ContentBlock, Conversation, Message, Note,
-  Project, ProjectFile, Source, Style,
+  Memory, Project, ProjectFile, Source, Style,
 } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 
@@ -21,6 +21,7 @@ class ChatDB extends Dexie {
   projectFiles!: Table<ProjectFile, string>;
   styles!: Table<Style, string>;
   sources!: Table<Source, string>;
+  memories!: Table<Memory, string>;
 
   constructor() {
     super("clouds");
@@ -126,6 +127,16 @@ class ChatDB extends Dexie {
        worth asking about a page somebody else wrote. */
     this.version(9).stores({
       sources: "id, noteId, addedAt, [noteId+addedAt]",
+    });
+
+    /* Version 10 remembers.
+       ---------------------------------------------------------------------
+       What the person asked to have remembered, one row each, in the order
+       they said it. A table rather than a setting because each one is a
+       thing to show and delete on its own, and a blob in localStorage was
+       how the styles used to be lost. */
+    this.version(10).stores({
+      memories: "id, createdAt",
     });
   }
 }
@@ -303,6 +314,43 @@ export async function deleteConversation(id: string): Promise<() => Promise<void
       });
     };
   });
+}
+
+/* ---------------------------------------------------------------- memory -- */
+
+/** Everything remembered, oldest first — the order it was said in. */
+export function allMemories(): Promise<Memory[]> {
+  return db.memories.orderBy("createdAt").toArray();
+}
+
+/**
+ * Remember one thing. The same sentence twice is one memory, not two: people
+ * repeat themselves, and a list that grows with every repetition reads as
+ * the app not having listened the first time.
+ */
+export async function addMemory(text: string, source?: string): Promise<Memory> {
+  const clean = text.trim();
+  const existing = await db.memories.filter((m) => m.text.toLowerCase() === clean.toLowerCase()).first();
+  if (existing) return existing;
+  const m: Memory = { id: uid(), text: clean, createdAt: Date.now(), source };
+  await db.memories.add(m);
+  return m;
+}
+
+export async function deleteMemory(id: string): Promise<() => Promise<void>> {
+  const m = await db.memories.get(id);
+  await db.memories.delete(id);
+  return async () => {
+    if (m) await db.memories.put(m);
+  };
+}
+
+export async function forgetAll(): Promise<() => Promise<void>> {
+  const all = await db.memories.toArray();
+  await db.memories.clear();
+  return async () => {
+    if (all.length) await db.memories.bulkPut(all);
+  };
 }
 
 /**

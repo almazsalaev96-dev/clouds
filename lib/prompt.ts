@@ -1,6 +1,7 @@
+import { memorySection } from "./memory";
 import { HOUSE } from "./answer";
 import { NO_LOOKAHEAD } from "./shape";
-import type { Project, ProjectFile, Style } from "./types";
+import type { Project, ProjectFile, Style, Memory } from "./types";
 import type { ModeSpec } from "./modes";
 import { estimateTokens } from "./models";
 
@@ -33,6 +34,8 @@ export interface PromptParts {
   files?: ProjectFile[];
   style?: Style;
   mode?: ModeSpec;
+  /** What the person asked to be remembered. Empty in a temporary chat. */
+  memories?: Memory[];
 }
 
 export interface ComposedPrompt {
@@ -54,6 +57,12 @@ export function composeSystemPrompt(parts: PromptParts): ComposedPrompt {
 
   const base = parts.base?.trim();
   if (base) sections.push(base);
+
+  /* After the person's own instructions and before the project's: it is
+     about them, so it outranks the house, and a project's instructions
+     are the narrower thing, so they outrank it. */
+  const memory = memorySection(parts.memories ?? []);
+  if (memory) sections.push(memory);
 
   const project = parts.project;
   if (project) {

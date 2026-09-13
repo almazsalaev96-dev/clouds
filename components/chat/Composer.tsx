@@ -44,6 +44,7 @@ export function Composer({
   modelPickerOpen,
   onModelPickerOpenChange,
   onModelChange,
+  voice,
 }: {
   conversationId: string;
   streaming: boolean;
@@ -62,6 +63,8 @@ export function Composer({
   modelPickerOpen: boolean;
   onModelPickerOpenChange: (o: boolean) => void;
   onModelChange: (id: string) => void;
+  /** Voice mode, where the browser can do it. */
+  voice?: import("@/lib/hooks/useVoiceMode").VoiceMode;
 }) {
   const settings = useSettings();
   const drafts = useDrafts();
@@ -257,6 +260,7 @@ export function Composer({
         onArrowUp={onEditLast}
         onPaste={onPaste}
         focusKey={conversationId}
+        voice={voice}
         above={
           /* Attachments live inside the container, above the line you type on,
              so the whole thing reads as one object rather than a box with a
