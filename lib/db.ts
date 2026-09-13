@@ -1,7 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import type {
   Canvas, CanvasFile, CanvasVersion, ContentBlock, Conversation, Message, Note,
-  Memory, Project, ProjectFile, Source, Style,
+  Memory, Project, ProjectFile, Source, Style, Turn, TurnOutcome,
 } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 
@@ -22,6 +22,7 @@ class ChatDB extends Dexie {
   styles!: Table<Style, string>;
   sources!: Table<Source, string>;
   memories!: Table<Memory, string>;
+  turns!: Table<Turn, string>;
 
   constructor() {
     super("clouds");
@@ -137,6 +138,16 @@ class ChatDB extends Dexie {
        how the styles used to be lost. */
     this.version(10).stores({
       memories: "id, createdAt",
+    });
+
+    /* Version 11 remembers what it decided, and what came of it.
+       ---------------------------------------------------------------------
+       Indexed by messageId because an outcome arrives later and out of
+       order — a thumbs-down comes minutes after the answer — and by
+       [kind+modelId] because that is the question the next decision asks:
+       how have answers of this shape from this model been going. */
+    this.version(11).stores({
+      turns: "id, messageId, at, [kind+modelId]",
     });
   }
 }
@@ -314,6 +325,56 @@ export async function deleteConversation(id: string): Promise<() => Promise<void
       });
     };
   });
+}
+
+/* ----------------------------------------------------------------- turns -- */
+
+/** Write down what was decided. Returns the row, so the caller can amend it. */
+export async function recordTurn(t: Omit<Turn, "id">): Promise<Turn> {
+  const row: Turn = { id: uid(), ...t };
+  await db.turns.add(row);
+  return row;
+}
+
+/**
+ * What the person did about an answer.
+ *
+ * Keyed by the answer rather than by the row, because every place that
+ * learns something — a thumbs-down, a Tighten, a regenerate, an edit —
+ * knows which message it is acting on and has no reason to know anything
+ * about the bookkeeping underneath.
+ *
+ * First word wins. Somebody who rates an answer down and then regenerates it
+ * has told us one thing, not two, and counting it twice would make the app
+ * think it is twice as bad at this as it is.
+ */
+export async function markOutcome(messageId: string, outcome: TurnOutcome): Promise<void> {
+  const row = await db.turns.where("messageId").equals(messageId).first();
+  if (!row || row.outcome) return;
+  await db.turns.update(row.id, { outcome });
+}
+
+/** How the last few answers of this shape from this model actually went. */
+export async function pastFor(
+  kind: string,
+  modelId: string,
+  window = 12,
+): Promise<{ n: number; bad: number }> {
+  const rows = await db.turns.where("[kind+modelId]").equals([kind, modelId]).toArray();
+  /* The last few, not all of them. A model that was wrong twenty answers ago
+     and has been right since is not the model this is about, and an average
+     over all time takes months to forgive anything. */
+  const recent = rows.sort((a, b) => b.at - a.at).slice(0, window);
+  const bad = recent.filter((r) => r.outcome && r.outcome !== "good").length;
+  return { n: recent.length, bad };
+}
+
+export async function forgetTurns(): Promise<() => Promise<void>> {
+  const all = await db.turns.toArray();
+  await db.turns.clear();
+  return async () => {
+    if (all.length) await db.turns.bulkPut(all);
+  };
 }
 
 /* ---------------------------------------------------------------- memory -- */

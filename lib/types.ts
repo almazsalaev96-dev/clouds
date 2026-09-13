@@ -118,6 +118,62 @@ export interface Conversation {
   madeId?: string;
 }
 
+/* ----------------------------------------------------------------- turns -- */
+
+/**
+ * What the app decided about one turn, and what became of it.
+ *
+ * The app has always decided several things before answering — what kind of
+ * job this is, whether it wants words or a working thing, which model, how
+ * hard to think, whether to check the answer — and then thrown every one of
+ * those decisions away. So it could not get better at deciding: the
+ * thousandth request was answered by the same reasoning as the first.
+ *
+ * A row here is a decision with its consequence attached. It is the whole of
+ * the app's experience, it lives on this device like everything else, and it
+ * is readable and deletable in Settings, because a record of your work that
+ * you cannot see is not a record, it is surveillance.
+ */
+export interface Turn {
+  id: string;
+  conversationId: string;
+  /** The answer this decision produced. */
+  messageId: string;
+  at: number;
+
+  /* --- what was decided ------------------------------------------------ */
+  kind: string;
+  strategy: "compute" | "build" | "answer";
+  mode: string;
+  modelId: string;
+  effort?: string;
+  check: "none" | "lint" | "second";
+  /** The one line that was shown, so the record says what the person saw. */
+  why?: string;
+
+  /* --- what happened --------------------------------------------------- */
+  ms?: number;
+  tokens?: number;
+  stopReason?: StopReason;
+  error?: string;
+  /** What the app's own reader found wrong with the answer. */
+  findings?: number;
+
+  /**
+   * What the person did about it, which is the only honest measure.
+   *
+   * Absent means nothing was done, which after a few minutes means it was
+   * good enough — the commonest outcome and the one nobody clicks.
+   */
+  outcome?: TurnOutcome;
+}
+
+/**
+ * Rated up is the only unambiguous good. Everything else in this list is the
+ * person spending effort the answer should have saved them.
+ */
+export type TurnOutcome = "good" | "bad" | "retried" | "edited" | "tightened";
+
 /* ---------------------------------------------------------------- memory -- */
 
 /**

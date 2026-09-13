@@ -5,9 +5,11 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { PanelLeft } from "lucide-react";
 import type { ContentBlock, Message, Rating, RatingReason } from "@/lib/types";
 import { rememberRequest } from "@/lib/memory";
+import { planTurn, withPast, worthRecording, type Plan } from "@/lib/decide";
 import { useVoiceMode } from "@/lib/hooks/useVoiceMode";
 import {
   addMemory, allMemories, createConversation, createNote, db, deepestLeaf, deleteConversation, pushVersion,
+  markOutcome, pastFor, recordTurn,
   exportMarkdown, pathTo, addMessage, blockText, createCanvas, createWebCanvas, createProject,
   filesOf,
 } from "@/lib/db";
@@ -223,6 +225,12 @@ export default function Page() {
   const [canvasId, setCanvasId] = React.useState<string | null>(null);
   /* The thing this conversation built, running in a column beside it. */
   const [madeId, setMadeId] = React.useState<string | null>(null);
+  /* The decision the running turn was sent with, waiting for its outcome.
+     A ref rather than state: nothing renders from it, and it has to be
+     readable by the finish callback without re-registering it. */
+  const planRef = React.useRef<{ plan: Plan; modelId: string; at: number } | null>(null);
+  /* `verify` is defined below and the finish callback above needs it. */
+  const verifyRef = React.useRef<((m: Message) => void) | null>(null);
   /* The half-sentence a starter leaves in the canvas composer. Cleared as soon
      as you leave, so it seeds the canvas it was made for and no other. */
   const [canvasSeed, setCanvasSeed] = React.useState<string | undefined>();
@@ -404,6 +412,39 @@ export default function Page() {
     if (m.role !== "assistant") return;
     const id = await landBuild(m);
     if (id && m.conversationId === activeId) setMadeId(id);
+
+    /* The decision, with its consequence attached. Written here rather than
+       at send time because half of what is worth knowing — how long it took,
+       what it cost, whether it stopped early, what the app's own reader made
+       of it — does not exist until the answer does. */
+    const sent = planRef.current;
+    planRef.current = null;
+    if (!sent || !worthRecording(sent.plan)) return;
+    const text = blockText(m.content);
+    await recordTurn({
+      conversationId: m.conversationId,
+      messageId: m.id,
+      at: Date.now(),
+      kind: sent.plan.kind,
+      strategy: sent.plan.strategy,
+      mode: sent.plan.mode,
+      modelId: m.modelId ?? sent.modelId,
+      effort: sent.plan.effort,
+      check: sent.plan.check,
+      why: sent.plan.why,
+      ms: m.latencyMs,
+      tokens: (m.usage?.inputTokens ?? 0) + (m.usage?.outputTokens ?? 0),
+      stopReason: m.stopReason,
+      error: m.error,
+      findings: text ? lintAnswer(text).length : undefined,
+    });
+
+    /* And the check the plan earned. Not every answer — one that this app
+       has watched go wrong for this person, in this kind of work, often
+       enough to expect the next one to. It runs on its own rather than
+       waiting to be pressed, because an answer you have to remember to
+       doubt is one you will trust by accident. */
+    if (sent.plan.check === "second" && !m.error && text) verifyRef.current?.(m);
   });
 
   /* The column follows the conversation: open on one that built something,
@@ -483,7 +524,21 @@ export default function Page() {
          sets one) keeps it; everything else is decided from the sentence, the
          same way the router already decides the model. */
       const wants = [...history].reverse().find((m) => m.role === "user");
-      const mode = findMode(conv?.mode ?? (wants ? modeFor(blockText(wants.content)) : undefined));
+      const asked = wants ? blockText(wants.content) : "";
+      /* One decision, made once and written down.
+         What kind of job this is, whether it wants words or a working thing,
+         how hard to think, and whether the answer has earned a second pair of
+         eyes — four readings that used to happen at four call sites and were
+         thrown away immediately. `pastFor` is what closes the loop: it asks
+         how answers of this shape from this model have actually been going
+         for this person, and the plan changes when the answer is "badly". */
+      const first = planTurn(asked, {
+        mode: conv?.mode,
+        history: history.map((m) => blockText(m.content)).join("\n").slice(-4_000),
+      });
+      const plan = withPast(first, await pastFor(first.kind, modelId));
+      planRef.current = { plan, modelId, at: Date.now() };
+      const mode = findMode(plan.mode);
       const composed = composeSystemPrompt({
         base: conv?.systemPrompt ?? settings.systemPrompt,
         project,
@@ -497,7 +552,7 @@ export default function Page() {
          spent the answer on one thing: telling a second model what to look for
          when checking the first. The classification was going into the audit
          and never into the work. */
-      const task = wants ? taskOf(blockText(wants.content)) : null;
+      const task = plan.task;
       const turn = composeTurnPrompt({
         shape: task ? shapeFor(task.kind) : "",
         /* And when a picture would beat a paragraph. The house rules say prose
@@ -524,7 +579,7 @@ export default function Page() {
         /* And how hard to think, from the same reading. `effortFor` returns
            nothing for the kinds that do not benefit, and nothing means the
            model keeps whatever it was already set to. */
-        params: { ...mode.params, ...(effortFor(task?.kind) ? { reasoningEffort: effortFor(task?.kind) } : {}) },
+        params: { ...mode.params, ...(plan.effort ? { reasoningEffort: plan.effort } : {}) },
       });
     },
     [stream, settings.systemPrompt, settings.styleId, settings.mode, settings.memoryOn, customStyles],
@@ -817,11 +872,16 @@ export default function Page() {
     },
     [verifyingId, allMessages, configured, settings.keys, settings.modelId],
   );
+  /* Handed to the finish callback, which is declared above this and has to
+     be able to ask for a check without being rebuilt every time `verify`
+     changes identity. */
+  verifyRef.current = verify;
 
   /** Regenerating reuses the parent, so the new answer is a sibling of the old. */
   const regenerate = React.useCallback(
     async (message: Message, modelId?: string) => {
       if (!activeId) return;
+      void markOutcome(message.id, "retried");
       const parentId = message.parentId;
       const history = pathTo(allMessages ?? [], parentId);
       /* A calculator answer has no model behind it, and `calculator` is not an
@@ -861,6 +921,7 @@ export default function Page() {
       const asked = [...history].reverse().find((m) => m.role === "user");
       const findings = lintAnswer(blockText(message.content), asked ? blockText(asked.content) : undefined);
       if (!findings.length) return;
+      void markOutcome(message.id, "tightened");
       const note = [
         "Your previous reply to this broke these rules. Give the same answer without them:",
         ...findings.map((f) => `- ${f.rule} — it had "${f.found}". ${f.why}.`),
@@ -880,6 +941,10 @@ export default function Page() {
   const rate = React.useCallback(
     async (message: Message, rating: Rating) => {
       await db.messages.update(message.id, { rating });
+      /* The one honest measure of an answer is what the person did about it,
+         and this is the clearest signal there is. It goes to the record that
+         decides whether answers of this shape earn a second opinion. */
+      void markOutcome(message.id, rating.up ? "good" : "bad");
       if (rating.up || !rating.reason || !activeId) return;
       const history = pathTo(allMessages ?? [], message.parentId);
       const modelId = message.modelId && message.modelId !== CALCULATOR ? message.modelId : threadModelId;
@@ -916,6 +981,10 @@ export default function Page() {
         content: [...kept, { type: "text", text }],
       });
       const history = [...pathTo(allMessages ?? [], message.parentId), edited];
+      /* Rewriting the question is the person saying the answer to the last
+         one was not worth having. */
+      const answered = (allMessages ?? []).find((m) => m.parentId === message.id && m.role === "assistant");
+      if (answered) void markOutcome(answered.id, "edited");
       void runTurn(activeId, edited.id, history, threadModelId);
     },
     [activeId, allMessages, runTurn, threadModelId],

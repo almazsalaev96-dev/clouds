@@ -6,7 +6,8 @@ import { Check, Download, ExternalLink, Eye, EyeOff, Plus, Trash2, Upload, X } f
 import { useLiveQuery } from "dexie-react-hooks";
 import type { ProviderId } from "@/lib/types";
 import { PROVIDERS, getModel } from "@/lib/models";
-import { addMemory, allMemories, createStyle, db, deleteAllData, deleteMemory, deleteStyle, forgetAll } from "@/lib/db";
+import { addMemory, allMemories, createStyle, db, deleteAllData, deleteMemory, deleteStyle, forgetAll, forgetTurns } from "@/lib/db";
+import { ENOUGH, TOO_MANY } from "@/lib/decide";
 import { BUILT_IN_STYLES } from "@/lib/styles";
 import { offerUndo } from "@/lib/undo";
 import {
@@ -647,6 +648,8 @@ function MemoryPanel() {
         </div>
       </Field>
 
+      <Learned />
+
       <Field label={memories.length ? `Remembered · ${memories.length}` : "Remembered"}>
         {memories.length === 0 ? (
           <p className="text-sm text-tertiary">Nothing yet. Memory holds only what you put in it.</p>
@@ -689,6 +692,69 @@ function MemoryPanel() {
         )}
       </Field>
     </Panel>
+  );
+}
+
+/**
+ * What the app has worked out about its own answers.
+ *
+ * The other half of memory, and the half nobody else shows you. Every turn
+ * is recorded with what was decided about it — what kind of job it was
+ * read as, which model answered, whether the answer needed checking — and
+ * then with what you did about the answer. A thumbs-down, a regenerate, a
+ * Tighten and a rewritten question all mean the same thing: that answer was
+ * not worth having. When enough of them pile up for one kind of work on one
+ * model, the next answer of that shape is checked by a second model without
+ * anyone asking for it.
+ *
+ * Shown here because a system that quietly grades your work and changes its
+ * behaviour on the result should be able to say what it thinks it knows.
+ */
+function Learned() {
+  const turns = useLiveQuery(() => db.turns.orderBy("at").reverse().limit(400).toArray(), [], []);
+  const rows = React.useMemo(() => {
+    const by = new Map<string, { kind: string; modelId: string; n: number; bad: number }>();
+    for (const t of turns) {
+      const key = `${t.kind}\u0000${t.modelId}`;
+      const row = by.get(key) ?? { kind: t.kind, modelId: t.modelId, n: 0, bad: 0 };
+      row.n += 1;
+      if (t.outcome && t.outcome !== "good") row.bad += 1;
+      by.set(key, row);
+    }
+    return [...by.values()].sort((a, b) => b.n - a.n).slice(0, 8);
+  }, [turns]);
+
+  if (!turns.length) return null;
+
+  return (
+    <Field
+      label={`What the app has learned · ${turns.length}`}
+      hint={`Kept on this device. After ${ENOUGH} answers of one kind from one model, ${Math.round(TOO_MANY * 100)}% of them going wrong earns the next one a check by a second model.`}
+    >
+      <ul className="divide-y divide-[var(--border-subtle)] rounded-md border border-line" aria-label="What the app has learned">
+        {rows.map((r) => {
+          const checking = r.n >= ENOUGH && r.bad / r.n >= TOO_MANY;
+          return (
+            <li key={`${r.kind}-${r.modelId}`} className="flex items-center gap-2 px-3 py-2 text-sm">
+              <span className="min-w-0 flex-1 truncate text-primary">
+                {r.kind} · <span className="text-secondary">{getModel(r.modelId).short}</span>
+              </span>
+              <span className="tnum shrink-0 text-xs text-tertiary">
+                {r.bad} of {r.n} needed another go
+              </span>
+              {checking && (
+                <span className="shrink-0 rounded-full bg-accent-subtle px-2 py-0.5 text-xs text-accent">checking</span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <div className="mt-2">
+        <Button size="sm" variant="ghost" onClick={async () => offerUndo(`${turns.length} decisions`, await forgetTurns())}>
+          Forget what it learned
+        </Button>
+      </div>
+    </Field>
   );
 }
 
