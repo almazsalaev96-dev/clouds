@@ -4,6 +4,7 @@ import type {
   Project, ProjectFile, Source, Style,
 } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
+import { findDuplicate, refuseToRemember } from "./memory";
 
 /**
  * Local-first. IndexedDB is the source of truth, which makes the app instant,
@@ -132,12 +133,15 @@ class ChatDB extends Dexie {
     /* Version 10 adds memory — the handful of sentences the app carries
        between conversations because somebody asked it to.
 
-       `updatedAt` is indexed because the panel lists them newest-first and
-       retrieval leans on recency; `projectId` because a memory written inside
-       a project is filtered to it rather than scored against it, and a filter
-       that scans every row runs on every turn. */
+       `createdAt` is indexed because that is what the panel orders by, and it
+       has to be something editing does not change: ordered by `updatedAt`, a
+       row jumps to the top of the list on the first keystroke of an edit and
+       takes the box you are typing in with it. `updatedAt` is indexed anyway
+       because retrieval leans on recency, and `projectId` because a memory
+       written inside a project is filtered to it rather than scored against
+       it — and a filter that scans every row runs on every turn. */
     this.version(10).stores({
-      memories: "id, updatedAt, projectId",
+      memories: "id, createdAt, updatedAt, projectId",
     });
   }
 }
@@ -844,7 +848,6 @@ export async function deleteStyle(id: string): Promise<() => Promise<void>> {
 export async function rememberFact(
   init: Pick<Memory, "text" | "kind"> & Partial<Memory>,
 ): Promise<{ memory: Memory; replaced: Memory | null }> {
-  const { refuseToRemember, findDuplicate } = await import("./memory");
   const refusal = refuseToRemember(init.text);
   if (refusal) throw new Error(refusal);
 
@@ -873,8 +876,9 @@ export async function rememberFact(
   return { memory, replaced: null };
 }
 
+/** Newest first, by when it was saved rather than when it was last touched. */
 export function allMemories(): Promise<Memory[]> {
-  return db.memories.orderBy("updatedAt").reverse().toArray();
+  return db.memories.orderBy("createdAt").reverse().toArray();
 }
 
 export async function updateMemory(id: string, patch: Partial<Memory>): Promise<void> {

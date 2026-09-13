@@ -59,8 +59,15 @@ export function TopBar({
         scrolled ? "border-line" : "border-transparent",
       )}
     >
+      {/* Below `md` only, and this is the header that was missed when the rule
+          was written. On a desk the collapsed sidebar is a rail with its own
+          toggle in it, so an unconditional one here is a second control doing
+          the same job on the same screen — one more than a screen reader
+          should have to explain, and the thing `shell.mjs` counts. The other
+          header, in `app/page.tsx`, has carried the same `md:hidden` since the
+          rail was built; the chat room simply never got it. */}
       {!sidebarOpen && (
-        <IconButton label="Show sidebar" keys={["mod", "\\"]} onClick={toggleSidebar}>
+        <IconButton label="Show sidebar" keys={["mod", "\\"]} onClick={toggleSidebar} className="md:hidden">
           <PanelLeft size={16} />
         </IconButton>
       )}

@@ -7,7 +7,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 import type { ProviderId } from "@/lib/types";
 import { PROVIDERS, getModel } from "@/lib/models";
 import {
-  createStyle, db, deleteAllData, deleteStyle, deleteMemory, forgetEverything, updateMemory,
+  allMemories, createStyle, db, deleteAllData, deleteStyle, deleteMemory, forgetEverything,
+  updateMemory,
 } from "@/lib/db";
 import { KIND_LABEL, MAX_MEMORY_CHARS } from "@/lib/memory";
 import { BUILT_IN_STYLES } from "@/lib/styles";
@@ -609,7 +610,7 @@ function Toggle({
  */
 function MemoryPanel() {
   const s = useSettings();
-  const memories = useLiveQuery(() => db.memories.orderBy("updatedAt").reverse().toArray(), [], []);
+  const memories = useLiveQuery(() => allMemories(), [], []);
   const projects = useLiveQuery(() => db.projects.toArray(), [], []);
   const [confirmAll, setConfirmAll] = React.useState(false);
   const projectName = (id?: string) => (id ? projects.find((p) => p.id === id)?.name : undefined);
@@ -682,7 +683,7 @@ function MemoryPanel() {
                 <textarea
                   value={m.text}
                   maxLength={MAX_MEMORY_CHARS}
-                  rows={Math.min(4, Math.ceil(m.text.length / 60))}
+                  rows={Math.min(4, Math.max(1, Math.ceil(m.text.length / 60)))}
                   onChange={(e) => void updateMemory(m.id, { text: e.target.value })}
                   aria-label="What is remembered"
                   className="focus-inset min-w-0 flex-1 resize-none rounded-md bg-transparent px-1 py-0.5 text-sm leading-relaxed text-primary outline-none"
