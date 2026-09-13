@@ -1,7 +1,8 @@
 /**
  * PDFs, read in the browser and sent as text.
  *
- * Fixtures are two PDFs built by hand in the test: one with a real text layer
+ * Fixtures are two PDFs built by hand in the test — really in the test, see
+ * `buildPdf`: one with a real text layer
  * across two pages, one that is a filled rectangle and nothing else — a scan,
  * in effect. The second one matters as much as the first: the honest answer to
  * a scan is "there is nothing in this to read", not an empty attachment that
@@ -12,11 +13,71 @@
  *   node e2e-pdf.mjs
  */
 import { chromium } from "playwright";
-import { readFileSync } from "node:fs";
 
-const FIX = "/tmp/claude-0/-home-user-clouds/fa496cc1-6c1b-5786-a4f7-ad158109470c/scratchpad/fix";
-const paper = readFileSync(`${FIX}/paper.pdf`);
-const scan = readFileSync(`${FIX}/scan.pdf`);
+/**
+ * The two fixtures, built here rather than read from disk.
+ *
+ * They used to be files in a scratch directory, and the directory belonged to
+ * the session that made them — so this suite could not be run again by
+ * anybody, on any machine, including the one that wrote it. A test whose
+ * fixture is a path is a test that has already stopped running; it just has
+ * not said so yet.
+ *
+ * Both are assembled by hand because that is the only way to be sure what is
+ * in them. `paper` has a real text layer over two pages. `scan` has a filled
+ * rectangle and no font at all, which is what a photographed page looks like
+ * to an extractor — and the honest answer to one is "there is nothing in this
+ * to read", not an empty attachment the model then confabulates around.
+ */
+function buildPdf(pages) {
+  const objs = [];
+  const push = (body) => objs.push(body) && objs.length; // 1-based object number
+
+  const font = pages.some((p) => p.text);
+  const kids = [];
+  const catalog = 1;
+  const tree = 2;
+  objs.push(null, null); // reserved for the catalog and the page tree
+
+  const fontNum = font ? push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>") : 0;
+
+  for (const page of pages) {
+    const stream = page.text
+      ? `BT /F1 14 Tf 72 700 Td (${page.text.replace(/([()\\])/g, "\\$1")}) Tj ET`
+      : "0 0 0 rg 72 72 468 648 re f";
+    const contents = push(`<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`);
+    const resources = font ? `<< /Font << /F1 ${fontNum} 0 R >> >>` : "<< >>";
+    kids.push(
+      push(
+        `<< /Type /Page /Parent ${tree} 0 R /MediaBox [0 0 612 792] ` +
+          `/Resources ${resources} /Contents ${contents} 0 R >>`,
+      ),
+    );
+  }
+
+  objs[catalog - 1] = `<< /Type /Catalog /Pages ${tree} 0 R >>`;
+  objs[tree - 1] = `<< /Type /Pages /Kids [${kids.map((k) => `${k} 0 R`).join(" ")}] /Count ${kids.length} >>`;
+
+  // Offsets have to be counted in bytes, not characters, or the xref table
+  // points into the middle of an object and pdf.js falls back to guessing.
+  let out = "%PDF-1.4\n";
+  const offsets = [];
+  objs.forEach((body, i) => {
+    offsets.push(Buffer.byteLength(out));
+    out += `${i + 1} 0 obj\n${body}\nendobj\n`;
+  });
+  const startxref = Buffer.byteLength(out);
+  out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
+  for (const at of offsets) out += `${String(at).padStart(10, "0")} 00000 n \n`;
+  out += `trailer\n<< /Size ${objs.length + 1} /Root ${catalog} 0 R >>\nstartxref\n${startxref}\n%%EOF\n`;
+  return Buffer.from(out, "latin1");
+}
+
+const paper = buildPdf([
+  { text: "The Carnot cycle is reversible." },
+  { text: "Week three covers entropy." },
+]);
+const scan = buildPdf([{ rect: true }]);
 
 const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
 const page = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();

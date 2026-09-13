@@ -5,8 +5,17 @@ Gemini · DeepSeek), competing purely on design and feel rather than features.
 
 | File | Use it when |
 |---|---|
-| [`MASTER_PROMPT.md`](MASTER_PROMPT.md) | Default. Paste into a coding agent (Claude Code, Cursor, Codex) as the first message, then say "Start with Milestone 0." |
+| [`ARMIS_SPEC.md`](ARMIS_SPEC.md) | The brief **this repository** is measured against. Read it beside the README's [Known gaps](../README.md#known-gaps), which names the sections the code does not reach and why. |
+| [`MASTER_PROMPT.md`](MASTER_PROMPT.md) | Building a multi-model chat app from nothing. Paste into a coding agent as the first message, then say "Start with Milestone 0." |
 | [`SHORT_PROMPT.md`](SHORT_PROMPT.md) | The target has a paste-length limit. Same spine, less detail. |
+
+The two are different documents about different scopes, and the difference is
+worth knowing before you pick one. `MASTER_PROMPT.md` is a *construction* brief
+for a multi-model chat application, and treats everything beyond "chat with a
+model, beautifully" as out of scope. `ARMIS_SPEC.md` is the wider one this app
+grew into — a universal AI workspace — and includes plenty that a browser tab
+with no server cannot reach. Both are kept: one is how the thing was built, the
+other is what it is now held to.
 
 ## Why it's written this way
 

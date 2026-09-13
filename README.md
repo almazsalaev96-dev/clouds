@@ -3,9 +3,11 @@
 One interface for Claude, GPT, Gemini and DeepSeek — plus the projects, the web
 apps and the notebook that come out of talking to them. You bring the API keys.
 
-Built against [`prompts/MASTER_PROMPT.md`](prompts/MASTER_PROMPT.md), which is the
-design and engineering brief this repository implements. Where the code departs from
-the brief, [Known gaps](#known-gaps) says so.
+Built against [`prompts/ARMIS_SPEC.md`](prompts/ARMIS_SPEC.md), the brief this
+repository is measured against, and originally from
+[`prompts/MASTER_PROMPT.md`](prompts/MASTER_PROMPT.md), the narrower one it was
+built from. Where the code departs from either, [Known gaps](#known-gaps) says so
+rather than letting a checklist imply otherwise.
 
 ---
 
@@ -113,6 +115,52 @@ in the order they were added, and one that does not fit is shown greyed with
 none, because the model reads the cut as the end and answers confidently about a
 spec that stops mid-sentence. Deleting a project does not delete its chats; they
 come out of the folder and stay. Undo puts them back inside it.
+
+**Memory** — the app keeps something between conversations only when you ask it
+to, in so many words: *remember that I write in British English*. That is the
+whole trigger, and it is a regex rather than a model, which makes it free, run
+before anything is sent anywhere, and incapable of surprising you. The other way
+to build this — read every turn afterwards and keep whatever looks durable —
+costs a call per turn and writes down things you never agreed to, which from the
+outside is indistinguishable from an app noting everything you say.
+
+It refuses one thing even when asked: a credential. A memory goes out with your
+questions, so a key in one is a key in a provider's logs, in a field with no
+masking and no rotation. Shapes that are certain (`sk-`, `AKIA`, `ghp_`, a JWT, a
+PEM header, a card number that passes Luhn) and sentences that say what they are
+("my password is"). The refusal names what it recognised and does not repeat it
+back.
+
+What goes out with a question is chosen, not shipped wholesale. A *preference* is
+a standing instruction — "answer in metric" shares no word with "how far is the
+moon" and is exactly as relevant to it as to everything else — so preferences
+are always eligible, capped at six. Everything else has to overlap with what was
+asked. A memory written inside a project stays in that project. It lands in the
+per-turn block rather than the cached prefix, because what gets retrieved changes
+every question and folding that into the prefix would make every later turn pay
+to re-read the project knowledge above it.
+
+Settings → Memory is the whole list, in the words it was saved in, editable in
+place, with the date and how many times it has actually gone out with a question
+— that last column is what makes the list prunable, because text alone cannot
+tell you which of these is doing anything. The switch turns it off in both
+directions and deletes nothing; *Forget everything* is one press with a way back.
+
+**Temporary chat** — `⌘⇧N`, and it says what it is before you type in it rather
+than after. Everything here lives in one origin's IndexedDB, so a temporary chat
+*is* written to disk while it is open — there is nowhere else to put it, and
+holding a long thread in memory alone would lose it to a reload. Claiming
+otherwise would be the easy version of this feature and a lie. What it promises
+instead is a retention rule, kept exactly and stated in those words: out of the
+sidebar, out of search, out of memory in both directions, and deleted with its
+messages when the tab that owns it is gone.
+
+Whose tab is the part that costs a field. Sweeping every temporary chat at
+startup would delete the one you are half-way through in another window the
+moment you open a second tab, and "it was temporary" is not a defence when you
+were still typing in it. So the chat records the tab that made it, a tab holding
+one says so every twenty seconds, and the sweep takes only the chats whose tab
+has stopped saying anything. A reload keeps yours; closing the tab ends it.
 
 **Styles** — Normal, Concise, Explanatory, Formal, Learning, and any you write.
 A style changes the *shape* of an answer and nothing about what the model knows,
@@ -861,6 +909,8 @@ lib/
   hooks/useStream  The streaming controller and the reveal buffer.
   db.ts            Dexie. The message tree, notebook, projects, canvases.
   prompt.ts        Where instructions, project, style and mode are assembled.
+  memory.ts        What it keeps about you, what it refuses, what it retrieves.
+  temporary.ts     The retention rule for a chat that is not kept, and whose tab.
   web.ts           The web-canvas assembler, console bridge and source map.
   generate.ts      One-shot generation: titles, revisions, explanations.
   store.ts         Settings, section, drafts — persisted.
@@ -1428,6 +1478,38 @@ they were most afraid of.
   mock speaking Anthropic's documented SSE format: streaming, markdown,
   highlighting, usage, cost, titling, persistence and branching all verified.
   What remains unproven is only that the real API's bytes match its own docs.
+- **Parts of the brief need a server, and this app promises not to have one.**
+  Named rather than left to be discovered: sharing a read-only link (§42,
+  §236–237) needs somewhere for the link to point; image generation (§83) needs
+  a provider relationship this app does not hold on anybody's behalf; background
+  tasks and notifications (§134, §203) need something running when the tab is
+  closed; multi-device sync and conflict resolution (§195–197) need the copy
+  that both devices talk to. Each of those is one deployment decision away and
+  none of them is half-built behind a disabled button. The internationalisation
+  architecture (§192–194) is the one in this group that does *not* need a
+  server and is still not done: the app respects the reader's text size, handles
+  RTL text inside an answer, and is written in one language throughout.
+- **Memory notices nothing on its own.** It keeps what you ask it to keep, in
+  a sentence, and that is the whole of it: it will not work out that you have
+  mentioned your dissertation in nine conversations, or that every answer you
+  liked was a short one. The alternative is a model reading each turn
+  afterwards and deciding what about you is worth writing down, which costs a
+  call per turn and keeps things you never agreed to — so the limitation is
+  chosen rather than pending. Retrieval is lexical too: a memory and a question
+  that mean the same thing in different words do not find each other, which is
+  why *preferences* are standing and everything else has to overlap. And the
+  refusal only recognises credentials. "Unnecessary private information" in the
+  §252 sense is not detectable by a regex, and a guard that guessed at it would
+  refuse the ordinary sentences people actually want kept.
+- **A temporary chat is on disk while it is open.** There is no server to not
+  write to, and a thread held only in memory is a thread a reload loses. The
+  promise is the retention rule — out of the sidebar, out of search, out of
+  memory, deleted when the tab that owns it is gone — not an absence of bytes,
+  and the interface says so in those words. Two consequences follow and neither
+  is hidden: a browser that is force-quit and never reopened leaves the row
+  until the next launch sweeps it, and a disk that has already been imaged in
+  between has the row on it. Anyone who needs the stronger guarantee wants a
+  private window, where the whole origin goes.
 - **No true virtualization.** Every turn carries `content-visibility: auto` with an
   intrinsic size, so the browser skips layout and paint for anything off-screen —
   most of the benefit, without breaking find-in-page, text selection across messages,
@@ -1527,7 +1609,7 @@ they were most afraid of.
 
 ## Checks
 
-Ten scripts, each measuring rather than asserting — they read the live DOM and
+Thirteen scripts, each measuring rather than asserting — they read the live DOM and
 the computed tokens, so they cannot drift from what ships. Run the app first.
 
 ```bash
@@ -1544,7 +1626,7 @@ node print.mjs        # the print stylesheet, which is how a paper leaves here
 node depth.mjs        # elevation, measured on the pixels rather than read off the tokens
 node shoot-smoke.mjs  # every section loads, undo works, no runtime errors
 
-# and ten that need no browser at all:
+# and twelve that need no browser at all:
 node --experimental-strip-types test-cite.mts   # the citation matcher, on its own
 npx jiti test-route.ts                          # the model router and the calculator
 npx jiti test-web.ts                            # the preview assembler and its source map
@@ -1554,6 +1636,7 @@ npx jiti test-lint.ts                           # whether an answer obeyed the h
 npx jiti test-predict.ts                        # every malformed gate the renderer has to decline
 npx jiti test-rows.ts                           # what a restore is allowed to put in the database
 npx jiti test-mode.ts                           # which requests build a thing and which answer in words
+npx jiti test-memory.ts                         # what it keeps about you, what it refuses, what it sends
 npx jiti test-built.ts                          # an answer that is a document, and one that only mentions markup
 npx jiti test-fuzz.ts                           # generated cases against the invariants
 ```
@@ -1590,6 +1673,7 @@ node e2e-point-at.mjs# 20 assertions: pointing at a sentence and asking about it
 node e2e-draw.mjs    # 18 assertions: topology becomes a picture, or stays a fence to save anything
 node e2e-ask.mjs     # 24 assertions: an answer you have to commit to before you are shown it
 node e2e-crash.mjs   # 12 assertions: one bad row, and the way back out of it
+node e2e-kept.mjs    # 31 assertions: what is remembered, and what is deliberately not
 # and one that needs a second provider, so the mock serves both wire formats:
 OPENAI_BASE_URL=http://127.0.0.1:8787 OPENAI_API_KEY=sk-mock …
 node e2e-verify.mjs  # 16 assertions: a check that comes from another provider
