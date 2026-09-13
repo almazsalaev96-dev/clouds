@@ -125,6 +125,20 @@ console.log("\nA question is still a question");
   check(await p.getByRole("group", { name: /^Made:/ }).count() === 0, "and no card");
 }
 
+console.log("\nFrom the Creative room");
+{
+  await p.locator("aside nav").getByRole("button", { name: "Creative" }).first().click();
+  await p.waitForTimeout(700);
+  check(await p.getByRole("textbox", { name: "What to make" }).isVisible(), "the room asks what to make");
+  check(await p.getByRole("group", { name: "Ideas" }).getByRole("button").count() >= 4, "and offers ideas, sent as they are");
+  await p.getByRole("group", { name: "Ideas" }).getByRole("button").first().click();
+  await p.waitForTimeout(5000);
+  check(await p.getByRole("textbox", { name: "Message" }).isVisible(), "an idea starts a conversation");
+  check(await column.isVisible(), "whose answer is running beside it");
+  const convs = await table("conversations");
+  check(convs.some((c) => c.mode === "creative"), "and the conversation is stamped creative, so every answer in it is a page");
+}
+
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors"); if (errs.length) failed++;
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 await b.close(); process.exit(failed ? 1 : 0);

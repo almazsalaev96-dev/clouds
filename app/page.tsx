@@ -28,7 +28,7 @@ import { cn, inOverlay } from "@/lib/utils";
 import { offerUndo } from "@/lib/undo";
 import { Sidebar } from "@/components/Sidebar";
 import { CanvasView, toCanvas } from "@/components/CanvasView";
-import { MadePanel } from "@/components/chat/MadePanel";
+
 import { CreativeView } from "@/components/CreativeView";
 import { saveToNote } from "@/lib/db";
 import { InlineError } from "@/components/chat/Message";
@@ -79,6 +79,14 @@ const NotebookView = dynamic(
 /* A list of keyboard shortcuts, shown when you press `?`. Nobody's first act
    is to read the manual, and it was in the bundle drawn before the first
    screen. */
+/* Only ever on screen once something has been built, and it carries the
+   page assembler with it. Nobody on their way to a first question pays for
+   the machinery that runs a made thing. */
+const MadePanel = dynamic(
+  () => import("@/components/chat/MadePanel").then((m) => m.MadePanel),
+  { ssr: false },
+);
+
 const ShortcutsOverlay = dynamic(
   () => import("@/components/ShortcutsOverlay").then((m) => m.ShortcutsOverlay),
   { ssr: false },

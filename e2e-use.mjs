@@ -96,31 +96,29 @@ console.log("\nUsing it");
 
 console.log("\nAnything else");
 {
-  /* "Anything else" is in Creative with the five it is an alternative to,
-     rather than on a blank chat page it used to share with them. */
+  /* The room has a composer of its own now, tuned for making: whatever is
+     said here starts a conversation in which every answer is a page. */
   await page.locator("aside nav").getByRole("button", { name: "Creative" }).first().click();
   await page.waitForTimeout(700);
-  check(await page.getByRole("button", { name: /Anything else/ }).isVisible(),
-    "the five starters are not the offer — there is a way to ask for anything");
+  check(await page.getByRole("textbox", { name: "What to make" }).isVisible(),
+    "the five starters are not the offer — the room asks what to make");
+  check(await page.getByRole("button", { name: /Anything else/ }).isVisible(), "and says so beside them");
   await page.getByRole("button", { name: /Anything else/ }).click();
-  await page.waitForTimeout(400);
-  const draft = await page.getByRole("textbox", { name: "Message" }).inputValue();
-  check(draft.startsWith("Make me a"), "and it starts the sentence for you", `“${draft}”`);
+  await page.waitForTimeout(300);
+  check(await page.getByRole("textbox", { name: "What to make" }).evaluate((el) => el === document.activeElement),
+    "pressing it puts the caret in the box");
 }
 
 console.log("\nAsking for a thing gets you the thing, running");
 {
-  /* This used to assert that the answer arrived as `<!doctype html` in the
-     transcript and that a menu item would then lift it into a canvas. Both
-     halves are gone on purpose. Nobody who asked for a timer wanted nine
-     hundred lines of markup in the conversation and a second decision to make
-     afterwards — and `toCanvas`, the function that does the lifting, sat in
-     this repository uncalled the whole time. An answer that is one complete
-     document now opens where documents run, and opens running. */
+  /* Said in the Creative room: it starts a conversation stamped creative,
+     sends the request through the same path as anything typed, and the
+     answer — one complete document — lands running beside the thread. */
   const before = await canvases();
-  await page.getByRole("textbox", { name: "Message" }).fill("make me a timer");
-  await page.getByRole("button", { name: "Send message" }).click();
-  await page.waitForTimeout(4500);
+  await page.getByRole("textbox", { name: "What to make" }).fill("make me a timer");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(5000);
+  check(await page.getByRole("textbox", { name: "Message" }).isVisible(), "the request opens as a conversation");
 
   const made = (await canvases()).find((c) => !before.some((b) => b.id === c.id));
   check(Boolean(made), "the answer became something that runs rather than something to read", made?.title ?? "none");

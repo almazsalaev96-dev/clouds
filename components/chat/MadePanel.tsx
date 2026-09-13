@@ -6,7 +6,7 @@ import { RefreshCw, SquarePen, X } from "lucide-react";
 import type { CanvasFile } from "@/lib/types";
 import { db, filesOfCanvas } from "@/lib/db";
 import { assembleWeb, ENTRY } from "@/lib/web";
-import { useResolvedTheme } from "@/components/CanvasView";
+import { useResolvedTheme } from "@/lib/hooks/useResolvedTheme";
 import { IconButton } from "@/components/ui/primitives";
 
 /**
