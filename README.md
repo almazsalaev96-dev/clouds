@@ -503,8 +503,21 @@ size and weight are not theme decisions. Contrast is held within 2.6, with the
 two exceptions listed by name so "accepted" can never quietly grow to mean
 "whatever fails today". It also checks the *shape* of what remains: before, every
 gap leaned one way, which is what "the light theme looks washed out" is
-numerically. Now 48 lean one way and 26 the other — scatter, which is what two
+numerically. Now 51 lean one way and 17 the other — scatter, which is what two
 themes of one app look like.
+
+**And it is currently red, by one role.** The accent on the sidebar's ground —
+the *Start a conversation* in each empty list — is 6.40 in light against 9.28 in
+dark, which is 0.28 over the bar. It is not on the accepted list and it should
+not be added to one: that list is for roles that cannot match without ceasing to
+be themselves, and this is not one of them, it is a gap nobody has closed. The
+honest reason it is still open is that closing it means moving `--accent`, which
+every link, button and focus ring in the app is drawn with, and two other groups
+already sit at −1.99 and −2.54 against the same 2.6 — near enough that darkening
+the light accent to fix this one could push either of those through the bar the
+other way. That is a palette pass with its own measurements, not a line in a
+change about something else. Written down here rather than quietly accepted,
+because a gate with an unexplained red in it is a gate people stop reading.
 
 **⌘K takes a sentence, not just a search.** The palette could *find* things and
 could do nothing to them, so a sentence typed into it was a search that failed.

@@ -4,7 +4,7 @@ import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  Code2, Columns2, Download, EyeOff, FileText, FolderOpen, MessageSquare, MessageSquarePlus,
+  Brain, Code2, Columns2, Download, EyeOff, FileText, FolderOpen, MessageSquare, MessageSquarePlus,
   Moon, NotebookPen, Palette, PanelLeft, Settings2, Sparkles, Sun, Trash2, Type, Wand2,
 } from "lucide-react";
 import { db } from "@/lib/db";
@@ -77,6 +77,8 @@ export function CommandPalette({
     /** The same, for a chat that is not kept. */
     newTemporaryChat: () => void;
     openSettings: () => void;
+    /** Straight to what the app remembers about you. */
+    openMemory: () => void;
     /** Opens an item and moves to its section. Both halves, always. */
     open: (section: Section, id: string) => void;
     goToSection: (section: Section) => void;
@@ -153,6 +155,7 @@ export function CommandPalette({
          somebody searching this box would type. */
       { id: "new-temp", label: "New temporary chat — not kept", keys: ["mod", "shift", "N"], icon: <EyeOff size={15} />, group: "Actions", run: actions.newTemporaryChat },
       { id: "settings", label: "Open settings", keys: ["mod", ","], icon: <Settings2 size={15} />, group: "Actions", run: actions.openSettings },
+      { id: "memory", label: "What it remembers about me", icon: <Brain size={15} />, group: "Actions", run: actions.openMemory },
       // Offered only when there is one. A command that silently does nothing
       // teaches you not to trust the list it is in.
       ...(actions.hasConversation

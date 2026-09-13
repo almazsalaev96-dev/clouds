@@ -186,7 +186,9 @@ export default function Page() {
   const [modelPickerOpen, setModelPickerOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   if (settingsOpen) everOpened.current.settings = true;
-  const [settingsTab, setSettingsTab] = React.useState<"keys" | "appearance" | "model" | "styles" | "data" | "shortcuts">("keys");
+  const [settingsTab, setSettingsTab] = React.useState<
+    "keys" | "appearance" | "model" | "styles" | "memory" | "data" | "shortcuts"
+  >("keys");
   const [scrolled, setScrolled] = React.useState(false);
   const [artifact, setArtifact] = React.useState<Artifact | null>(null);
   /** Where j/k currently sit in the transcript. */
@@ -1216,6 +1218,15 @@ export default function Page() {
     setSettingsOpen(true);
   }, []);
 
+  /* The one settings page with somebody's own words in it, so it is worth
+     being able to reach without going through Settings and finding the tab —
+     "what does it know about me" is a question people ask on the way past,
+     not a configuration task they set out to do. */
+  const openMemory = React.useCallback(() => {
+    setSettingsTab("memory");
+    setSettingsOpen(true);
+  }, []);
+
   /** Is the one live stream the one this screen is showing? */
   const live = stream.conversationId !== null && stream.conversationId === activeId;
   /* How much of this thread will not fit the window it is going into.
@@ -1512,6 +1523,7 @@ export default function Page() {
             newChat,
             newTemporaryChat,
             openSettings: openKeys,
+            openMemory,
             open: selectInSection,
             goToSection,
             setModel: settings.setModel,
