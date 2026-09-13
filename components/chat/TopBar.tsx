@@ -55,8 +55,10 @@ export function TopBar({
         scrolled ? "border-line" : "border-transparent",
       )}
     >
+      {/* Phone-only, like the section headers' copy of this: on a desk the
+          collapsed sidebar is a rail that carries its own toggle. */}
       {!sidebarOpen && (
-        <IconButton label="Show sidebar" keys={["mod", "\\"]} onClick={toggleSidebar}>
+        <IconButton label="Show sidebar" keys={["mod", "\\"]} onClick={toggleSidebar} className="md:hidden">
           <PanelLeft size={16} />
         </IconButton>
       )}

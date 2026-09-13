@@ -369,7 +369,12 @@ function Empty({ query, noun, onNew }: { query: string; noun: string; onNew?: ()
       {onNew && (
         <button
           onClick={onNew}
-          className="tap mt-3 rounded-md px-2.5 py-1 text-xs font-medium text-accent transition-colors duration-[var(--dur-fast)] hover:bg-accent-subtle"
+          /* Primary ink, not the accent. The accent on the sidebar's glass is
+             6.4:1 in light and 9.3:1 in dark, a wider gap than the two themes
+             allow between them; primary ink is what the rows above already
+             use and has the parity to show for it. It is still plainly a
+             button — the fill on hover says so. */
+          className="tap mt-3 rounded-md px-2.5 py-1 text-xs font-medium text-primary transition-colors duration-[var(--dur-fast)] hover:bg-subtle"
         >
           Start a conversation
         </button>
