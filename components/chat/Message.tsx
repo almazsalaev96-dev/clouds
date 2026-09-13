@@ -424,7 +424,7 @@ function AssistantMessageImpl({
           a reason the next attempt can act on, and picking one regenerates
           with it. Skip closes it and keeps the mark. */}
       {asking && onRate && (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5 anim-fade" role="group" aria-label="What was wrong">
+        <div className="no-print mt-2 flex flex-wrap items-center gap-1.5 anim-fade" role="group" aria-label="What was wrong">
           <span className="text-xs text-tertiary">What was wrong?</span>
           {(
             [
@@ -458,7 +458,7 @@ function AssistantMessageImpl({
           was asked and nothing is done behind their back. Last answer only —
           on an earlier one they would be asking about the wrong thing. */}
       {isLast && onFollowUp && !message.error && !computed && text && (
-        <div className="mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Follow up">
+        <div className="no-print mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Follow up">
           {FOLLOW_UPS.map((f) => (
             <button
               key={f.label}

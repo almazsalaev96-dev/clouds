@@ -100,10 +100,10 @@ export function MessageBar({
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, window.innerHeight * 0.4)}px`;
-    /* 52: one line is 24 of leading inside 12 of padding each side = 48, and
+    /* 44: one line is 24 of leading inside 8 of padding each side = 40, and
        four of slack for the browser's rounding. */
     if (!el.value) setTall(false);
-    else if (el.scrollHeight > 52) setTall(true);
+    else if (el.scrollHeight > 44) setTall(true);
   }, []);
   React.useEffect(resize, [value, resize]);
 
@@ -213,7 +213,7 @@ export function MessageBar({
              should stop growing while what it is answering is still readable;
              past that it scrolls. 220 is where the two specs overlap. */
           className={cn(
-            "max-h-[13.75rem] min-w-0 resize-none bg-transparent px-3 py-3 text-base leading-6 text-primary outline-none placeholder:text-tertiary",
+            "max-h-[13.75rem] min-w-0 resize-none bg-transparent px-3 py-2 text-base leading-6 text-primary outline-none placeholder:text-tertiary",
             "@max-[34rem]/bar:order-1 @max-[34rem]/bar:basis-full",
             stacked ? "order-1 basis-full" : "order-2 flex-1",
           )}
