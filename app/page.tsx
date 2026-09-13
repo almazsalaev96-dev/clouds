@@ -1167,8 +1167,12 @@ export default function Page() {
                   inUse ? "hidden" : "flex",
                 )}
               >
+                {/* Below `md` only. On a desk the collapsed sidebar is a rail
+                    and the toggle lives in it; two "Show sidebar" buttons
+                    on one screen is one more than a screen reader should
+                    have to explain. */}
                 {!settings.sidebarOpen && (
-                  <IconButton label="Show sidebar" keys={["mod", "\\"]} onClick={settings.toggleSidebar}>
+                  <IconButton label="Show sidebar" keys={["mod", "\\"]} onClick={settings.toggleSidebar} className="md:hidden">
                     <PanelLeft size={16} />
                   </IconButton>
                 )}

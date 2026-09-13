@@ -12,6 +12,7 @@ import { useDebounced } from "@/lib/hooks/useDebounced";
 import { Lockup } from "@/components/brand/Logo";
 import { offerUndo } from "@/lib/undo";
 import { useSettings, type Section } from "@/lib/store";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 import { IconButton, Kbd, Tooltip } from "@/components/ui/primitives";
 import { Segmented } from "@/components/ui/Segmented";
@@ -56,6 +57,11 @@ export function Sidebar({
 }) {
   const { sidebarOpen, toggleSidebar, section, name } = useSettings();
   const [query, setQuery] = React.useState("");
+  /* A desk gets a rail when this is closed; a phone gets nothing, off-screen.
+     The breakpoint is the same `md` the classes below switch on, so the two
+     can never disagree about which one you are looking at. */
+  const desktop = useMediaQuery("(min-width: 48rem)");
+  const rail = !sidebarOpen && desktop;
 
   return (
     <>
@@ -73,7 +79,7 @@ export function Sidebar({
           "md:relative md:z-auto md:transition-[width]",
           sidebarOpen
             ? "translate-x-0 md:w-[var(--sidebar-w)]"
-            : "-translate-x-full md:w-0 md:translate-x-0 md:border-r-0",
+            : "-translate-x-full md:w-[var(--rail-w)] md:translate-x-0",
         )}
         /* `inert` as well as `aria-hidden`, and the pair is the point.
            Collapsed, this becomes `w-0` with `overflow-hidden` — clipped to
@@ -86,9 +92,22 @@ export function Sidebar({
            browser makes it worse by scrolling a focused child of an
            `overflow:hidden` box into view, which drags the clipped column
            back over the page. `inert` removes both at once. */
-        inert={!sidebarOpen}
-        aria-hidden={!sidebarOpen}
+        /* …and only when there is nothing to reach. Collapsed on a desk the
+           rail is a column of live controls; collapsed on a phone the drawer
+           is off-screen and has to be inert for the reason above. */
+        inert={!sidebarOpen && !desktop}
+        aria-hidden={!sidebarOpen && !desktop}
       >
+        {rail ? (
+          <Rail
+            section={section}
+            name={name}
+            onGoToSection={onGoToSection}
+            onNewChat={onNewChat}
+            onOpenSettings={onOpenSettings}
+            onExpand={toggleSidebar}
+          />
+        ) : (
         <div className="flex w-[var(--sidebar-w)] flex-1 flex-col">
           <div className="flex h-[var(--topbar-h)] items-center gap-1 px-2">
             <IconButton label="Hide sidebar" keys={["mod", "\\"]} onClick={toggleSidebar}>
@@ -238,8 +257,78 @@ export function Sidebar({
             </IconButton>
           </div>
         </div>
+        )}
       </aside>
     </>
+  );
+}
+
+/* ------------------------------------------------------------------ rail -- */
+
+/* The sidebar, folded.
+   Everything that was a row becomes its icon, in the same order and at the
+   same height, so the eye that learned the open list finds each thing where
+   it was. The rooms keep their sliding mark. The search box and the history
+   are the two things that do not fold — a search field with no room for a
+   query is a decoration, and the history is what you opened the sidebar to
+   see — so pressing the toggle is how you get to them, which is where the
+   toggle was anyway. Every icon carries its name as a tooltip and as its
+   accessible name, so nothing here is a guess. */
+function Rail({
+  section,
+  name,
+  onGoToSection,
+  onNewChat,
+  onOpenSettings,
+  onExpand,
+}: {
+  section: Section;
+  name: string;
+  onGoToSection: (section: Section) => void;
+  onNewChat: () => void;
+  onOpenSettings: () => void;
+  onExpand: () => void;
+}) {
+  return (
+    <div className="flex w-[var(--rail-w)] flex-1 flex-col items-center">
+      <div className="flex h-[var(--topbar-h)] items-center">
+        <IconButton label="Show sidebar" keys={["mod", "\\"]} onClick={onExpand}>
+          <PanelLeft size={16} />
+        </IconButton>
+      </div>
+
+      <div className="pb-2">
+        <IconButton label="New chat" keys={["mod", "N"]} onClick={onNewChat} className="border border-line bg-canvas">
+          <Plus size={18} />
+        </IconButton>
+      </div>
+
+      <nav aria-label="Sections">
+        <Segmented value={section} indicatorClassName="rounded-sm bg-accent-subtle" className="flex flex-col items-center gap-1">
+          {SECTIONS.map((s) => {
+            const on = section === s.id;
+            return (
+              <IconButton
+                key={s.id}
+                label={s.label}
+                data-on={on}
+                aria-current={on}
+                onClick={() => onGoToSection(s.id)}
+                className={cn("rounded-sm", on ? "text-accent hover:text-accent" : "")}
+              >
+                {s.icon}
+              </IconButton>
+            );
+          })}
+        </Segmented>
+      </nav>
+
+      <div className="mt-auto flex flex-col items-center border-t border-line py-2">
+        <IconButton label={name.trim() ? `Settings — ${name.trim()}` : "Settings"} onClick={onOpenSettings}>
+          <Settings2 size={16} />
+        </IconButton>
+      </div>
+    </div>
   );
 }
 

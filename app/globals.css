@@ -348,8 +348,13 @@
   --measure: 47.5rem;
   /* Wider than prose, for a page-shaped sheet and its toolbar. */
   --measure-wide: 52rem;
-  /* 280, the middle of the 260-300 band and the width the spec recommends. */
+  /* 280, the middle of the 260-300 band and the width the spec recommends.
+     Collapsed on a desk it becomes a 72px rail of icons rather than nothing:
+     the rooms stay one press away and the toggle stays where it was, which
+     is what "collapse" means as opposed to "hide". A phone still gets a
+     drawer, because 72px of a 390px screen is a fifth of it. */
   --sidebar-w: 280px;
+  --rail-w: 4.5rem;
   /* 56, not 48. A top bar holds the controls you reach for without looking,
      and 48 puts a 44pt target inside a 48px strip — two pixels of air above
      and below it, which is how a bar ends up feeling like something you have
