@@ -9,6 +9,11 @@ shoot.mjs
 probe.mjs
 probe2.mjs
 shoot-*.mjs
+# Except the one gate.sh runs. The pattern above is for local screenshot
+# scratch tools; a check the committed gate calls by name, and the README
+# documents, has to be in the repository or it can never pass for anybody who
+# clones this — which is exactly what happened.
+!shoot-smoke.mjs
 make-icon.mjs
 shoot-study.mjs
 brand-proof.mjs
