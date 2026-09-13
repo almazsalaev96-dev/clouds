@@ -177,7 +177,7 @@ export function MessageBar({
           in the middle of a sentence.
 
           The narrow case is decided by the bar's own width and not by state:
-          under 30rem there is no room for a line beside the controls whatever
+          under 34rem there is no room for a line beside the controls whatever
           the text is doing, so the container query stacks it — the same bar
           is 266px inside a 320px phone and inside a 1024px window with the
           sidebar out, and a viewport breakpoint would call the second one
@@ -187,7 +187,7 @@ export function MessageBar({
       <div className="flex flex-wrap items-end gap-1 px-2.5 pb-2.5 pt-2.5">
         <div
           className={cn(
-            "flex min-w-0 flex-wrap items-center gap-1 empty:hidden @max-[30rem]/bar:order-2 @max-[30rem]/bar:basis-full",
+            "flex min-w-0 flex-wrap items-center gap-1 empty:hidden @max-[34rem]/bar:order-2 @max-[34rem]/bar:basis-full",
             stacked ? "order-2" : "order-1",
           )}
         >
@@ -217,7 +217,7 @@ export function MessageBar({
              past that it scrolls. 220 is where the two specs overlap. */
           className={cn(
             "max-h-[13.75rem] min-w-0 resize-none bg-transparent px-3 py-2 text-base leading-6 text-primary outline-none placeholder:text-tertiary",
-            "@max-[30rem]/bar:order-1 @max-[30rem]/bar:basis-full",
+            "@max-[34rem]/bar:order-1 @max-[34rem]/bar:basis-full",
             stacked ? "order-1 basis-full" : "order-2 flex-1",
           )}
         />

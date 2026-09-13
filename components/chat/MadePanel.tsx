@@ -62,7 +62,7 @@ export function MadePanel({
       <div onClick={onClose} aria-hidden className="fixed inset-0 z-30 bg-[var(--bg-overlay)] anim-fade lg:hidden" />
       <aside
         aria-label={`${title}, running`}
-        className="fixed inset-y-0 right-0 z-40 flex w-[min(44rem,100vw)] flex-col border-l border-line bg-surface anim-fade lg:relative lg:z-auto lg:w-[clamp(24rem,44vw,44rem)] lg:shrink-0"
+        className="fixed inset-y-0 right-0 z-40 flex w-[min(44rem,100vw)] flex-col border-l border-line bg-surface anim-fade lg:relative lg:z-auto lg:w-[clamp(22rem,38vw,40rem)] lg:shrink-0"
         style={{ animationDuration: "var(--dur-layout)" }}
       >
         <header className="flex h-[var(--topbar-h)] shrink-0 items-center gap-1 border-b border-line px-3">
