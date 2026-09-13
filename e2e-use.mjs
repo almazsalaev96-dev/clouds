@@ -131,9 +131,16 @@ console.log("\nAsking for a thing gets you the thing, running");
   check(!(await page.locator("main").innerText()).includes("<!doctype html"),
     "and the markup is not also sitting in the transcript");
 
-  const frame = page.frameLocator("iframe");
+  /* It runs beside the conversation now, in a column, the way the other
+     assistants' canvases do — not in another room. Code is one press away
+     and opens it running, with "Use it" on it like anything else made here. */
+  const column = page.getByRole("complementary", { name: /running$/ });
+  check(await column.isVisible().catch(() => false), "and it is running in a column beside the conversation");
+  const frame = column.frameLocator("iframe");
   await frame.locator("#t").waitFor({ timeout: 8000 });
   check((await frame.locator("#t").innerText()) === "02:00", "and it opens running", await frame.locator("#t").innerText());
+  await page.getByRole("button", { name: "Open in Code" }).click();
+  await page.waitForTimeout(900);
   check(await page.getByRole("button", { name: /Use it/ }).isVisible(),
     "and can take the window like anything else made here");
   await page.screenshot({ path: `${OUT}/use-made.png` });

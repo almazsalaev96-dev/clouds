@@ -75,6 +75,12 @@ export interface Message {
   createdAt: number;
   stopReason?: StopReason;
   error?: string;
+  /**
+   * The canvas this answer was built into, when the answer was a thing
+   * rather than words. The transcript shows a card for it; the thing itself
+   * runs beside the conversation and lives in Code.
+   */
+  canvasId?: string;
 }
 
 export interface Conversation {
@@ -103,6 +109,13 @@ export interface Conversation {
    * ask something you would rather not have on the list.
    */
   temporary?: boolean;
+  /**
+   * The thing this conversation is building, if it is building one. The
+   * second answer that is a page updates this canvas rather than making a
+   * new one, so "make the cards bigger" is a new version of the deck and not
+   * a second deck.
+   */
+  madeId?: string;
 }
 
 /* ---------------------------------------------------------------- memory -- */

@@ -1771,7 +1771,7 @@ function FileTabs({
  * flips at sunset. The preview needs it as a value rather than as CSS, because
  * what it is styling lives in a frame the app's stylesheet cannot reach.
  */
-function useResolvedTheme(): "light" | "dark" {
+export function useResolvedTheme(): "light" | "dark" {
   const setting = useSettings((s) => s.theme);
   /* Read from the root, which the boot script stamped before first paint —
      not defaulted to light and corrected in an effect. That correction was a

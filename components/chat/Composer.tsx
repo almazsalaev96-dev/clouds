@@ -391,7 +391,7 @@ export function Composer({
                   <ProviderMark provider={model.provider} size={13} />
                   <span className="truncate">{model.short}</span>
                   {model.reasoning && effort && (
-                    <span className="hidden text-tertiary @min-[34rem]/bar:inline">{effort}</span>
+                    <span className="hidden text-tertiary @min-[30rem]/bar:inline">{effort}</span>
                   )}
                 </>
               )}

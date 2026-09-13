@@ -14,6 +14,8 @@ import type { CanvasFile } from "./types";
  * script tag still reaches the CDN.
  */
 
+import { baseTag } from "./base";
+
 export const ENTRY = "index.html";
 
 /**
@@ -379,7 +381,7 @@ export function assembleWeb(files: CanvasFile[], theme?: string, run = ""): Asse
 
   /* The bridge goes first inside <head>, so it is listening before any of your
      own code can throw. */
-  const head = BRIDGE + themeTag(theme);
+  const head = BRIDGE + themeTag(theme) + baseTag();
   const headTag = /<head[^>]*>/i.exec(src);
   if (headTag) {
     edits.push({

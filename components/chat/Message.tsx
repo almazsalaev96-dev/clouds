@@ -3,10 +3,11 @@
 import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
-  Brain, Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Copy,
-  Download, MoreHorizontal, NotebookPen, PanelRight, Pencil, RefreshCw, Scissors, ShieldQuestion,
+  Brain, Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Code2, Copy,
+  Download, LayoutTemplate, MoreHorizontal, NotebookPen, PanelRight, Pencil, Play, RefreshCw, Scissors, ShieldQuestion,
   SquarePen, ThumbsDown, ThumbsUp, Volume2, X,
 } from "lucide-react";
+import { builtDocument, titleOf, withoutBuild } from "@/lib/built";
 import type { Finding } from "@/lib/lint";
 import type { ChatError, Message as Msg, Rating, RatingReason } from "@/lib/types";
 import { CALCULATOR, getModel, formatTokens, MODELS } from "@/lib/models";
@@ -15,6 +16,7 @@ import { cn, describeTiming, formatDuration } from "@/lib/utils";
 import { guessLang } from "@/lib/lang";
 import { Markdown } from "./Markdown";
 import { IconButton, Button, Tooltip } from "@/components/ui/primitives";
+import { CodeBlock } from "./CodeBlock";
 import { ProviderMark } from "@/components/ui/ProviderMark";
 import { useArtifact } from "./ArtifactPanel";
 
@@ -214,6 +216,16 @@ export const UserMessage = React.memo(UserMessageImpl);
    Each names a move rather than a topic, which is what lets the same six sit
    under any answer: "simpler" means something after an explanation of tax
    and after an explanation of a regex. */
+/* Under a thing that was built, the moves are different: nobody wants a
+   timer explained more simply, they want it changed. */
+const MAKE_FOLLOW_UPS: { label: string; text: string }[] = [
+  { label: "Polish it", text: "Polish the look: spacing, hierarchy, a nicer palette. Keep everything working." },
+  { label: "Add a feature", text: "Add the one feature it most obviously needs, and say what you added." },
+  { label: "On a phone", text: "Make it work well on a phone: bigger targets, a layout that fits 360px." },
+  { label: "My material", text: "Replace the sample data with mine — I'll paste it next. Show me where it goes." },
+  { label: "Explain it", text: "Explain how it works, briefly, without repeating the code." },
+];
+
 const FOLLOW_UPS: { label: string; text: string }[] = [
   { label: "Simpler", text: "Explain that more simply — assume I'm new to this." },
   { label: "Example", text: "Give me one concrete example of that." },
@@ -230,6 +242,7 @@ function AssistantMessageImpl({
   onNavigate,
   onRegenerate,
   onSaveToNote,
+  onOpenMade,
   onOpenInCanvas,
   onContinue,
   onTighten,
@@ -249,6 +262,8 @@ function AssistantMessageImpl({
   onNavigate: (id: string) => void;
   onRegenerate: (message: Msg, modelId?: string) => void;
   onSaveToNote: (text: string) => void;
+  /** Show the thing this answer built, running beside the thread. */
+  onOpenMade?: (message: Msg) => void;
   /** Lift this answer into a canvas and open it there. */
   onOpenInCanvas: (text: string) => void;
   /** Ask for the rest, when the answer ran out of room. */
@@ -277,6 +292,12 @@ function AssistantMessageImpl({
   /* Thumbs-down asks why, once, right here. */
   const [asking, setAsking] = React.useState(false);
   const text = blockText(message.content);
+  /* An answer that is a thing: the thing runs beside the thread and the
+     transcript shows a card for it, not nine hundred lines of markup. */
+  const made = React.useMemo(() => {
+    const doc = builtDocument(text);
+    return doc ? { doc, title: titleOf(doc), prose: withoutBuild(text) } : null;
+  }, [text]);
   /* Worked out here rather than asked of anything. Checked before getModel,
      which would otherwise fall back to the default and put a model's name over
      an answer it had no part in. */
@@ -422,7 +443,17 @@ function AssistantMessageImpl({
 
       {message.reasoning && <Reasoning text={message.reasoning} />}
 
-      {text ? <Markdown content={text} /> : message.error ? null : (
+      {made ? (
+        <>
+          {made.prose && <Markdown content={made.prose} />}
+          <MakeCard
+            title={made.title}
+            code={made.doc}
+            onOpen={onOpenMade ? () => onOpenMade(message) : undefined}
+            onEdit={() => onOpenInCanvas(text)}
+          />
+        </>
+      ) : text ? <Markdown content={text} /> : message.error ? null : (
         <p className="text-sm italic text-tertiary">No response.</p>
       )}
 
@@ -469,7 +500,7 @@ function AssistantMessageImpl({
           on an earlier one they would be asking about the wrong thing. */}
       {isLast && onFollowUp && !message.error && !computed && text && (
         <div className="no-print mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Follow up">
-          {FOLLOW_UPS.map((f) => (
+          {(made ? MAKE_FOLLOW_UPS : FOLLOW_UPS).map((f) => (
             <button
               key={f.label}
               onClick={() => onFollowUp(f.text)}
@@ -693,6 +724,71 @@ function Reasoning({ text }: { text: string }) {
       {open && (
         <div className="mt-2 whitespace-pre-wrap border-l-2 border-line pl-3 text-sm text-secondary anim-fade">
           {text}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The card that stands in for a built thing in the transcript.
+ *
+ * What the person asked for is running in the column beside this; what
+ * this shows is that it exists, what it is called, and the two things you
+ * can do with it from here — open it, or look at how it was made. The code
+ * is behind a press because a person who asked for flashcards did not ask
+ * for markup, and the one who wants it can have it in one click.
+ */
+export function MakeCard({
+  title,
+  code,
+  onOpen,
+  onEdit,
+}: {
+  title: string;
+  code: string;
+  onOpen?: () => void;
+  onEdit: () => void;
+}) {
+  const [showCode, setShowCode] = React.useState(false);
+  const lines = code.split("\n").length;
+  return (
+    <div role="group" aria-label={`Made: ${title}`} className="my-2 max-w-[28rem] rounded-lg border border-line bg-surface shadow-[var(--shadow-sm)]">
+      <div className="flex items-center gap-3 p-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-accent-subtle text-accent">
+          <LayoutTemplate size={18} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-base font-medium text-primary">{title}</span>
+          <span className="block text-xs text-tertiary">Web app · runs beside the chat · <span className="tnum">{lines}</span> lines</span>
+        </span>
+        {onOpen && (
+          <Button size="sm" variant="primary" onClick={onOpen}>
+            <Play size={13} />
+            Open
+          </Button>
+        )}
+      </div>
+      <div className="no-print flex items-center gap-0.5 border-t border-line px-2 py-1">
+        <button
+          onClick={() => setShowCode((s) => !s)}
+          aria-expanded={showCode}
+          className="focus-inset flex h-8 items-center gap-1.5 rounded-sm px-2 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+        >
+          <Code2 size={13} />
+          {showCode ? "Hide code" : "Show code"}
+        </button>
+        <button
+          onClick={onEdit}
+          className="focus-inset flex h-8 items-center gap-1.5 rounded-sm px-2 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+        >
+          <SquarePen size={13} />
+          Edit in Code
+        </button>
+      </div>
+      {showCode && (
+        <div className="border-t border-line p-2">
+          <CodeBlock code={code} lang="html" />
         </div>
       )}
     </div>

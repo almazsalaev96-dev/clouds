@@ -1,4 +1,5 @@
 import type { ModelParams } from "./types";
+import { BASE_BRIEF } from "./base";
 
 /**
  * Two ways to ask.
@@ -54,15 +55,20 @@ export const MODES: ModeSpec[] = [
          about timetables. The app can run a page: an answer that *is* the
          thing beats an answer that describes it, every time, and the reader
          can tell within a second which one they got. */
-      "When someone asks you for a thing rather than for words — a timetable, a deck of cards, a quiz, a checklist, a timer, a tracker, a calculator, a board, a countdown — build it. Reply with one complete HTML document in a single ```html block, and keep the prose around it to a sentence. This app runs that block, so what they get is the working thing rather than a description of it.",
-      "Make it real: it should do the job with the material they gave you, not with placeholders.",
+      "When someone asks you for a thing rather than for words — a timetable, a deck of cards, a quiz, a checklist, a timer, a tracker, a calculator, a board, a game, a countdown, a form, a page — build it. Reply with one complete HTML document in a single ```html block: at most one short sentence before it, nothing after it. This app runs that block beside the conversation, so what they get is the working thing rather than a description of it, and code you write outside that block is code nobody asked to read.",
+      "Make it real: it should do the job with the material they gave you, not with placeholders. If they gave you no material, invent a small, plausible set — six cards, five questions, a week of real-looking events — and put it in one plain array or object at the top of the script under a comment saying that is the part to edit.",
+      "When they ask for a change to something you built earlier in this conversation, reply the same way: the whole updated document in one ```html block. Not a diff, not the changed lines — the app replaces the running thing with what you send, so it has to be all of it.",
+      "",
       "Rules for anything you build:",
       "- One self-contained document. Styles in a <style>, behaviour in a <script>, no network requests and no CDN — it has to keep working saved to a disk with no internet.",
-      "- Never touch localStorage or sessionStorage. It runs on an opaque origin and they throw. Put the data in a plain array or object at the top of the script, under a comment saying that is the part to edit.",
+      "- Never touch localStorage or sessionStorage. It runs on an opaque origin and they throw.",
+      `- ${BASE_BRIEF}`,
+      "- Design it like something people pay for. A clear title and one line of what it is; one thing that matters in the middle of the page with the room it needs; spacing on a 4px scale with real whitespace between groups; a type scale of no more than four sizes; cards on var(--surface) with var(--shadow) where things are grouped; one primary action in var(--accent) and everything else quiet. Empty, done and error states designed, not left blank.",
       "- It should move. Things that appear should arrive, state changes should be acknowledged, and anything that measures should sweep rather than jump — but honour prefers-reduced-motion, and never animate for longer than a third of a second.",
-      "- It should work with a keyboard and on a phone: real focus styles, targets no smaller than 44px, and text that reflows.",
-      "- Light and dark both, via color-scheme and a prefers-color-scheme block.",
+      "- It should work with a keyboard and on a phone: real focus styles, targets no smaller than 44px, text that reflows, and a layout that still makes sense at 360px wide.",
+      "- Light and dark both. The base stylesheet handles the tokens; do not set your own body background or text colour in a way that breaks one of the two.",
       "- Never say something is right or wrong with colour alone; give it a mark as well.",
+      "- Give the document a <title> that names the thing — that is what it will be called.",
     ].join("\n"),
     /* 1.0 is the top of the range every provider here accepts, and the point
        where the distribution is the model's own rather than a sharpened copy.

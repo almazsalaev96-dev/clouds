@@ -7,7 +7,7 @@ import type { ContentBlock, Message, Rating, RatingReason } from "@/lib/types";
 import { rememberRequest } from "@/lib/memory";
 import { useVoiceMode } from "@/lib/hooks/useVoiceMode";
 import {
-  addMemory, allMemories, createConversation, createNote, db, deepestLeaf, deleteConversation,
+  addMemory, allMemories, createConversation, createNote, db, deepestLeaf, deleteConversation, pushVersion,
   exportMarkdown, pathTo, addMessage, blockText, createCanvas, createWebCanvas, createProject,
   filesOf,
 } from "@/lib/db";
@@ -28,6 +28,7 @@ import { cn, inOverlay } from "@/lib/utils";
 import { offerUndo } from "@/lib/undo";
 import { Sidebar } from "@/components/Sidebar";
 import { CanvasView, toCanvas } from "@/components/CanvasView";
+import { MadePanel } from "@/components/chat/MadePanel";
 import { CreativeView } from "@/components/CreativeView";
 import { saveToNote } from "@/lib/db";
 import { InlineError } from "@/components/chat/Message";
@@ -212,6 +213,8 @@ export default function Page() {
   const cursorRef = React.useRef(0);
   const [compareWith, setCompareWith] = React.useState<string[]>([]);
   const [canvasId, setCanvasId] = React.useState<string | null>(null);
+  /* The thing this conversation built, running in a column beside it. */
+  const [madeId, setMadeId] = React.useState<string | null>(null);
   /* The half-sentence a starter leaves in the canvas composer. Cleared as soon
      as you leave, so it seeds the canvas it was made for and no other. */
   const [canvasSeed, setCanvasSeed] = React.useState<string | undefined>();
@@ -346,22 +349,69 @@ export default function Page() {
    * example in it is something to read in place, and lifting that out would be
    * the app deciding it knows better than the person who asked.
    */
+  /**
+   * An answer that is a page lands as a thing that runs.
+   *
+   * Beside the conversation, not in another room: the person who asked for
+   * flashcards wants them on screen while they say "make the back bigger".
+   * The first page in a conversation makes a canvas; a later page with the
+   * same name replaces what is running, as a new version of the same
+   * canvas, so an iteration is an iteration and not a second deck. A page
+   * with a different name is a different thing and gets its own.
+   */
+  const landBuild = React.useCallback(async (m: Message): Promise<string | null> => {
+    const doc = builtDocument(blockText(m.content));
+    if (!doc) return null;
+    if (m.canvasId && (await db.canvases.get(m.canvasId))) return m.canvasId;
+    const title = titleOf(doc);
+    const conv = await db.conversations.get(m.conversationId);
+    const existing = conv?.madeId ? await db.canvases.get(conv.madeId) : undefined;
+    const alike = (a: string, b: string) => {
+      const x = a.toLowerCase(), y = b.toLowerCase();
+      return x === y || x.includes(y) || y.includes(x);
+    };
+    let id: string;
+    if (existing && existing.kind === "code" && alike(title, existing.title)) {
+      await db.canvases.update(existing.id, { content: doc, title: title.slice(0, 80), updatedAt: Date.now() });
+      await pushVersion(existing.id, doc, "model", "from the conversation");
+      id = existing.id;
+    } else {
+      const canvas = await toCanvas(doc, {
+        title,
+        /* "code" with lang html, not "web": a web canvas is a folder whose text
+           lives in `canvasFiles` and whose `content` stays empty, and this is one
+           self-contained document. CanvasView counts both as runnable. */
+        kind: "code",
+        lang: "html",
+        conversationId: m.conversationId,
+      });
+      id = canvas.id;
+      await db.conversations.update(m.conversationId, { madeId: id });
+    }
+    await db.messages.update(m.id, { canvasId: id });
+    return id;
+  }, []);
+
   const stream = useStream(async (m) => {
     if (m.role !== "assistant") return;
-    const doc = builtDocument(blockText(m.content));
-    if (!doc) return;
-    const canvas = await toCanvas(doc, {
-      title: titleOf(doc),
-      /* "code" with lang html, not "web": a web canvas is a folder whose text
-         lives in `canvasFiles` and whose `content` stays empty, and this is one
-         self-contained document. CanvasView counts both as runnable. */
-      kind: "code",
-      lang: "html",
-      conversationId: m.conversationId,
-    });
-    setCanvasId(canvas.id);
-    withTransition(() => settings.setSection("code"), "forward");
+    const id = await landBuild(m);
+    if (id && m.conversationId === activeId) setMadeId(id);
   });
+
+  /* The column follows the conversation: open on one that built something,
+     closed on one that did not, and a new build opens it again. */
+  React.useEffect(() => {
+    setMadeId(conversation?.madeId ?? null);
+  }, [activeId, conversation?.madeId]);
+
+  /** The card in the transcript, pressed. */
+  const showMade = React.useCallback(
+    async (m: Message) => {
+      const id = await landBuild(m);
+      if (id) setMadeId(id);
+    },
+    [landBuild],
+  );
 
   /* --- Sending ---------------------------------------------------------- */
 
@@ -1453,6 +1503,7 @@ export default function Page() {
                 onRate={rate}
                 onVerify={verify}
                 verifyingId={verifyingId}
+                onOpenMade={showMade}
                 onOpenInCanvas={keepAsCanvas}
                 onRetry={() => {
                   /* The turn that just failed, which is decided by the end of
@@ -1512,6 +1563,18 @@ export default function Page() {
         </main>
 
         {artifact && <ArtifactPanel artifact={artifact} onClose={() => setArtifact(null)} />}
+        {settings.section === "chat" && madeId && !artifact && (
+          <MadePanel
+            canvasId={madeId}
+            onClose={() => setMadeId(null)}
+            onEdit={() =>
+              withTransition(() => {
+                setCanvasId(madeId);
+                settings.setSection("code");
+              }, "forward")
+            }
+          />
+        )}
 
         {(paletteOpen || everOpened.current.palette) && (
         <CommandPalette

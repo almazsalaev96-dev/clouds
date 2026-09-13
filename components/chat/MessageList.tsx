@@ -10,6 +10,7 @@ import { getModel } from "@/lib/models";
 import { siblingIndex, siblingsFrom } from "@/lib/db";
 import { cn, formatElapsed } from "@/lib/utils";
 import { AssistantMessage, InlineError, UserMessage } from "./Message";
+import { builtDocument, building, titleOf, withoutBuild } from "@/lib/built";
 import { Markdown, useThrottled } from "./Markdown";
 import { CompareGrid } from "./Compare";
 
@@ -36,6 +37,7 @@ function MessageListImpl({
   onRemember,
   onRegenerate,
   onSaveToNote,
+  onOpenMade,
   onOpenInCanvas,
   onContinue,
   onTighten,
@@ -68,6 +70,7 @@ function MessageListImpl({
   onRemember?: (text: string) => void;
   onRegenerate: (message: Msg, modelId?: string) => void;
   onSaveToNote: (text: string) => void;
+  onOpenMade?: (message: Msg) => void;
   onOpenInCanvas: (text: string) => void;
   onContinue: () => void;
   /** Regenerate the answer without the packaging the linter found in it. */
@@ -124,7 +127,13 @@ function MessageListImpl({
       const last = messages[messages.length - 1];
       if (last?.role === "assistant") {
         const text = last.content.map((b) => (b.type === "text" ? b.text : "")).join("");
-        setAnnouncement(text.slice(0, 600));
+        /* A built thing is announced as a thing, not read out as markup. */
+        const doc = builtDocument(text);
+        setAnnouncement(
+          doc
+            ? `${withoutBuild(text)} Built ${titleOf(doc)}. It is running beside the conversation.`.slice(0, 600)
+            : text.slice(0, 600),
+        );
       }
     }
     wasActive.current = active;
@@ -247,6 +256,7 @@ function MessageListImpl({
                 onNavigate={onNavigate}
                 onRegenerate={onRegenerate}
                 onSaveToNote={onSaveToNote}
+                onOpenMade={onOpenMade}
                 onOpenInCanvas={onOpenInCanvas}
                 onContinue={onContinue}
                 onTighten={onTighten}
@@ -347,6 +357,11 @@ function StreamingMessage({
   // this only stops us re-parsing the whole message on every frame.
   const throttled = useThrottled(text, 33);
   const waiting = !text && !reasoning;
+  /* A page being written is not shown as it is written. The person asked
+     for flashcards; watching four hundred lines of markup scroll past is
+     not what they asked for, and the card that says "Building Flashcards ·
+     212 lines" tells them everything the markup would have. */
+  const build = building(throttled);
 
   return (
     <div className="live-ring rounded-xl px-3 py-3 -mx-3">
@@ -384,7 +399,22 @@ function StreamingMessage({
         <p className="mb-2 line-clamp-2 text-sm text-tertiary">{reasoning.slice(-240)}</p>
       )}
 
-      {throttled ? (
+      {build ? (
+        <div>
+          {build.before.trim() && <Markdown content={build.before} streaming />}
+          <div role="status" className="my-2 flex max-w-[28rem] items-center gap-3 rounded-lg border border-line bg-surface p-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-accent-subtle text-accent">
+              <span className="sheen text-sm font-medium">⋯</span>
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="sheen block text-base font-medium">Building {build.title}</span>
+              <span className="block text-xs text-tertiary">
+                Web app · <span className="tnum">{build.lines}</span> lines so far
+              </span>
+            </span>
+          </div>
+        </div>
+      ) : throttled ? (
         <div className="relative">
           <Markdown content={throttled} streaming />
           <span className="caret" aria-hidden />
