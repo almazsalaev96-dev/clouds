@@ -198,6 +198,42 @@ console.log("\nThe bar travels with you");
   const before = await page.locator(".vt-bar").boundingBox();
   await page.getByRole("textbox", { name: "Message" }).fill("hello");
   await page.getByRole("button", { name: "Send message" }).click();
+
+  /* While that answer is on its way, the thing that says so. */
+  {
+    const sheen = page.locator(".sheen").first();
+    const there = await sheen.waitFor({ state: "visible", timeout: 4000 }).then(() => true, () => false);
+    check(there, "an answer on its way says so in a word, not a spinner",
+      there ? await sheen.innerText().then((t) => t.replace(/\s+/g, " ")) : "no .sheen appeared");
+    if (there) {
+      const how = await sheen.evaluate((n) => {
+        const cs = getComputedStyle(n);
+        return { dur: cs.animationDuration, name: cs.animationName, colour: cs.color,
+                 lit: cs.getPropertyValue("--sheen-lit").trim(), paint: cs.backgroundImage.slice(0, 60) };
+      });
+      check(how.dur !== "0s" && how.name !== "none", "with a light travelling through it", `${how.name} ${how.dur}`);
+      /* The word is painted out of the gradient, which only works while the
+         text itself is transparent — and a `currentColor` in that gradient
+         resolves to the same transparent and leaves the word visible only
+         inside the band. Asserted because it is invisible when wrong and the
+         screenshot of it looks like a rendering glitch. */
+      check(how.colour === "rgba(0, 0, 0, 0)", "painted out of that gradient rather than beside it", how.colour);
+      check(!how.paint.includes("currentColor") && how.paint.startsWith("linear-gradient"),
+        "and out of named colours, so it is legible between the sweeps", how.paint);
+      /* Monochrome. This used to be the app's brightest hue on the one piece
+         of text whose whole job is to stop mattering the moment words land. */
+      const accent = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--accent").trim());
+      check(!how.paint.includes(accent) && how.lit !== "", "in the text's own colours and not the accent",
+        `lit ${how.lit}, accent ${accent}`);
+    }
+    /* And the two animations it replaced are gone from a live answer: a ring
+       spinning in the corner and a bar sweeping the width of the reply, both
+       claiming what the word now says on its own. */
+    const live = page.locator(".live-ring").first();
+    check(await live.locator(".think-orb").count() === 0, "and it is the only thing moving — no ring beside it");
+    check(await live.locator(".field-line").count() === 0, "and no bar sweeping under it");
+  }
+
   await page.waitForTimeout(2600);
   const after = await page.locator(".vt-bar").boundingBox();
   check(after.y - before.y > 100, "and on the first send it has a long way to go", `${Math.round(before.y)} → ${Math.round(after.y)}`);

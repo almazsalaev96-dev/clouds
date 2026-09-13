@@ -95,6 +95,11 @@ console.log("\nA conversation and a document are set differently");
 {
   const { ctx, p } = await openChat(16);
   const chat = await p.evaluate(`(${READER})(document.querySelector(".prose p") || document.querySelector(".prose"))`);
+  const chatLeading = Number(chat.leading.toFixed(3));
+  /* ChatGPT sets its answers 16/28 — `leading-7` — and it is the single most
+     recognisable thing about how it reads. 1.65 is the number a typography
+     table gives you, and it is a visibly tighter page. */
+  check(Math.abs(chat.leading - 1.75) < 0.02, "an answer is set at ChatGPT's 16/28", `${chatLeading}`);
   const gap = await p.evaluate(() => {
     const el = document.querySelector(".prose > * + *");
     return el ? parseFloat(getComputedStyle(el).marginTop) : null;
@@ -118,7 +123,13 @@ console.log("\nA conversation and a document are set differently");
   check(doc !== null, "the notebook declares itself a document", doc ? JSON.stringify(doc) : "no [data-read=doc] found");
   if (doc) {
     check(doc.raw === "1.0625rem", "set a step larger than a conversation", `${doc.raw} vs 1rem`);
-    check(parseFloat(doc.leading) > 1.65, "with more air between its lines", `${doc.leading} vs 1.65`);
+    /* Against the conversation's own leading rather than a number typed in
+       here. The two were 1.72 and 1.65 when this was written; the conversation
+       later went to 1.75 to match ChatGPT and the document did not, which made
+       the settled read the tighter of the two — and a hard-coded 1.65 would
+       have said nothing about it, because 1.72 is still greater than 1.65. */
+    check(parseFloat(doc.leading) > chatLeading, "with more air between its lines than a conversation",
+      `${doc.leading} vs ${chatLeading}`);
     check(doc.measure === "42rem", "and a slightly wider column", `${doc.measure} vs 40rem`);
   }
   check(chat.size === 16, "while the conversation stays at 16", `${chat.size}px`);
@@ -141,18 +152,54 @@ console.log("\nHierarchy comes from size and brightness, not from weight");
   const ladder = await p.evaluate(`(() => {
     const cs = getComputedStyle(document.documentElement);
     const v = (n) => parseFloat(cs.getPropertyValue(n));
-    return { meta: v("--text-meta"), sm: v("--text-sm"), md: v("--text-md"), base: v("--text-base"),
-             lg: v("--text-lg"), section: v("--text-section"), xl: v("--text-xl"), xxl: v("--text-2xl") };
+    return { tiny: v("--text-tiny"), xs: v("--text-xs"), meta: v("--text-meta"), sm: v("--text-sm"),
+             base: v("--text-base"), lg: v("--text-lg"), xl: v("--text-xl"), xxl: v("--text-2xl") };
   })()`);
-  const order = ["meta", "sm", "md", "base", "lg", "section", "xl", "xxl"];
+  const order = ["tiny", "xs", "meta", "sm", "base", "lg", "xl", "xxl"];
   let rising = true;
   for (let i = 1; i < order.length; i++) if (!(ladder[order[i]] > ladder[order[i - 1]])) rising = false;
   check(rising, "the scale climbs without a repeat or a gap in it",
     order.map((k) => `${k} ${(ladder[k] * 16).toFixed(0)}`).join(" · "));
 
+  /* The steps above the body are ratios of it, not three numbers each chosen
+     against the one below. x1.125, x1.25, x1.5 — 18, 20, 24 — which is
+     ChatGPT's ladder and Tailwind's default. The 22 and 28 that were here
+     before made an h1 nearly twice the size of the paragraph under it. */
+  for (const [step, want] of [["lg", 1.125], ["xl", 1.25], ["xxl", 1.5]]) {
+    const got = ladder[step] / ladder.base;
+    check(Math.abs(got - want) < 0.001, `${step} is ${want} times the body`,
+      `${(ladder[step] * 16).toFixed(0)}px, x${got.toFixed(3)}`);
+  }
+
+  /* Every heading in an answer lands on the same four-pixel rhythm as the text
+     around it: 24/32, 20/28, 18/28, 16/24, which are ChatGPT's own pairs. */
+  const heads = await p.evaluate(`(() => {
+    const host = document.querySelector(".prose");
+    if (!host) return null;
+    const out = {};
+    for (const tag of ["h1", "h2", "h3", "h4"]) {
+      const probe = document.createElement(tag);
+      probe.textContent = "x";
+      host.appendChild(probe);
+      const cs = getComputedStyle(probe);
+      out[tag] = [Math.round(parseFloat(cs.fontSize)), Math.round(parseFloat(cs.lineHeight))];
+      probe.remove();
+    }
+    return out;
+  })()`);
+  check(heads !== null, "an answer was on screen to measure headings against");
+  for (const [tag, size, lead] of [["h1", 24, 32], ["h2", 20, 28], ["h3", 18, 28], ["h4", 16, 24]]) {
+    const got = heads && heads[tag];
+    check(got && got[0] === size && Math.abs(got[1] - lead) <= 1,
+      `${tag} is ${size}/${lead}`, got ? `${got[0]}/${got[1]}` : "not measured");
+  }
+
   const user = await p.evaluate(`(${READER})([...document.querySelectorAll(".rounded-\\\\[20px\\\\]")].pop())`);
-  check(user && user.size === 15, "what you typed is 15 against the answer's 16", user ? `${user.size}px` : "not found");
-  check(user && user.size > 13, "and not so small that it reads as a caption of itself", user ? `${user.size}px` : "");
+  /* The same 16 as the answer. It was 15 for a while, on the argument that
+     your own words are re-read at a glance rather than read — which is true of
+     the column and the leading and was never true of the size. A bubble set a
+     step under the reply reads as a caption on it. */
+  check(user && user.size === 16, "what you typed is set at the answer's 16", user ? `${user.size}px` : "not found");
   await ctx.close();
 }
 

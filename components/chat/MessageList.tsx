@@ -316,19 +316,25 @@ function StreamingMessage({
 
   return (
     <div className="live-ring rounded-xl px-3 py-3 -mx-3">
+      {/* The word is the animation.
+          There used to be three things moving here at once: a ring spinning in
+          the corner, a bar sweeping the full width of the answer, and the
+          elapsed seconds counting up — three separate claims that something
+          was happening, none of which said anything the other two did not.
+          ChatGPT makes the whole indicator one word with a light passing
+          through it, and that is the right amount: a spinner is a machine
+          noise, a word is a status. The seconds stay, because after a few of
+          them the honest question is "how long" and only one of the three was
+          ever answering it. */}
       <div className="mb-2 flex items-center gap-2 text-xs text-tertiary">
-        <span className="think-orb" aria-hidden />
         <span className="font-medium text-secondary">{modelName}</span>
-        {waiting && elapsed > PATIENCE_MS && (
-          // The honest version of a spinner: what is happening, and for how long.
-          <span className="tnum anim-fade">thinking · {formatElapsed(elapsed)}</span>
+        {waiting ? (
+          <span className="sheen font-medium">
+            Thinking{elapsed > PATIENCE_MS && <span className="tnum"> · {formatElapsed(elapsed)}</span>}
+          </span>
+        ) : (
+          <span className="sheen font-medium">Writing</span>
         )}
-      </div>
-
-      {/* The whole answer is live, so the line spans it rather than sitting on
-          one word of it. */}
-      <div className="mb-3 h-0.5 w-full overflow-hidden rounded-full bg-[var(--bg-subtle)]">
-        <div className="field-line h-full w-full" />
       </div>
 
       {reasoning && !text && (

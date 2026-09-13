@@ -620,7 +620,16 @@
      difference between a page you read and a page you scan.
 
      Code stays a hair under the sans it sits beside, because mono reads
-     optically larger at equal px — but 14, not 13.5. */
+     optically larger at equal px — but 14, not 13.5.
+
+     The steps above the body are ChatGPT's, which are Tailwind's defaults:
+     16 · 18 · 20 · 24, or ×1.125, ×1.25, ×1.5 of the body. What was here
+     before — 16 · 18 · 22 · 28 — was not a ratio at all, it was three
+     numbers each chosen against the one below it, and it showed at the top:
+     an h1 at 28 against a 16px paragraph is a heading nearly twice the size
+     of the text it introduces, which is a poster's proportion and not a
+     page's. A ladder with a constant ratio is the thing that reads as one
+     voice at different volumes rather than as several. */
   --text-xs: 0.75rem;
   --text-xs--line-height: 1.4;
   --text-sm: 0.875rem;
@@ -628,34 +637,34 @@
   --text-base: 1rem;
   --text-base--line-height: 1.65;
   --text-lg: 1.125rem;
-  --text-lg--line-height: 1.45;
-  --text-xl: 1.375rem;
-  --text-xl--line-height: 1.35;
-  --text-2xl: 1.75rem;
-  --text-2xl--line-height: 1.25;
+  --text-lg--line-height: 1.5556;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.4;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 1.3333;
   --text-code: 0.875rem;
   --text-code--line-height: 1.6;
 
-  /* The steps between. Three sizes the scale was missing, each with one job.
+  /* The step between, and the two that went.
      ---------------------------------------------------------------------
-     `md` (15px) is for what a person typed. Their own message does not want
-     to be smaller than the answer — that would rank it below the machine —
-     but it does want the answer to have the wider column and the extra
-     breathing room, because the answer is the part being read rather than
-     re-read.
-
-     `section` (20px) sits between h3 and h1 for a document long enough to
-     have parts. The jump from 18 to 22 was too big to use inside a page
-     without the page looking like two pages.
-
      `meta` (13px) is for timestamps, token counts, model names — the layer
      that should be legible when looked for and invisible when not. 12px was
      doing both that job and the job of a small label, and a scale where one
-     size does two jobs is a scale with a missing step. */
-  --text-md: 0.9375rem;
-  --text-md--line-height: 1.6;
-  --text-section: 1.25rem;
-  --text-section--line-height: 1.35;
+     size does two jobs is a scale with a missing step.
+
+     Two others used to live here and no longer earn their place, because
+     both existed to patch a gap the ratio has now closed:
+
+     `md` (15px) set what a person had typed, on the argument that their own
+     message should not be the same size as the answer. ChatGPT sets both at
+     16 and it is right to: the two halves of a conversation are one
+     document, and a bubble in a smaller size reads as a caption on the
+     reply rather than half of an exchange.
+
+     `section` (20px) sat between h3 and h1 for a document with parts,
+     because the jump from 18 to 22 was too big to use inside a page. On a
+     18 · 20 · 24 ladder that jump does not exist, and the step it was
+     standing in for is `xl`. */
   --text-meta: 0.8125rem;
   --text-meta--line-height: 1.45;
 
@@ -1624,22 +1633,39 @@ body::after {
   }
 }
 
-/* Text that is still arriving. A slow sheen travels through the last words so
-   the eye can tell "still coming" from "finished and short". */
-.streaming-text {
+/* A word that is working. A light passes through it, left to right, on a loop
+   — which is the whole of ChatGPT's thinking indicator and the reason it does
+   not read as a machine waiting: a spinner says "busy", a word with a light in
+   it says what it is busy doing.
+
+   Monochrome on purpose. The accent-coloured version of this that used to live
+   here put the app's brightest hue on the one piece of text whose entire job is
+   to be ignorable the moment real words arrive. The band runs from the colour
+   the label already is up to the colour the body text is and back, so at every
+   frame it is a legible label, and at one frame it is a slightly brighter one.
+
+   The two colours are named, and deliberately not `currentColor`. Painting
+   text out of a gradient means setting `color: transparent` on the element —
+   at which point `currentColor` inside that gradient resolves to transparent
+   too, and the word is invisible everywhere except inside the band sweeping
+   through it. Override `--sheen-base` to put this on a label of another
+   colour. */
+.sheen {
+  --sheen-base: var(--text-tertiary);
+  --sheen-lit: var(--text-primary);
   background: linear-gradient(
     100deg,
-    var(--text-primary) 0%,
-    var(--text-primary) 42%,
-    rgb(var(--accent-rgb) / 0.85) 50%,
-    var(--text-primary) 58%,
-    var(--text-primary) 100%
+    var(--sheen-base) 0%,
+    var(--sheen-base) 42%,
+    var(--sheen-lit) 50%,
+    var(--sheen-base) 58%,
+    var(--sheen-base) 100%
   );
   background-size: 260% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: text-sheen 2.6s linear infinite;
+  animation: text-sheen 2s linear infinite;
 }
 
 @keyframes text-sheen {
@@ -1779,12 +1805,17 @@ body::after {
 
 @media (prefers-reduced-motion: reduce) {
   .live-ring::before,
-  .streaming-text {
+  .sheen {
     animation: none;
   }
-  .streaming-text {
+  /* The gradient goes and the base colour comes back as a plain colour. Not
+     just `animation: none`: the word is painted out of that gradient, so
+     stopping the animation without removing the paint leaves it frozen at
+     whichever position the first frame happened to give it — a light stuck
+     half way through a word, which is not a decision anyone made. */
+  .sheen {
     background: none;
-    color: var(--text-primary);
+    color: var(--sheen-base);
   }
   .bloom:hover:not(:disabled),
   .lift:hover,
@@ -1867,16 +1898,21 @@ body::after {
 
 [data-read] {
   --read-size: var(--text-base);
-  --read-leading: 1.65;
+  --read-leading: 1.75;
   --read-gap: 1em;
 }
 
 /* A conversation. Read once, at speed, often while something is still
    arriving — so the shortest comfortable line and the tightest of the three. */
+/* 1.75 — twenty-eight pixels to the sixteen, which is ChatGPT's `leading-7`
+   and the single most recognisable thing about how it reads. 1.65 is the
+   value you land on from a typography table; the extra tenth is what makes a
+   wall of an answer feel like something you can start rather than something
+   you have to get through. It costs about one line of height per screen. */
 [data-read="chat"] {
   --measure: 40rem;
   --read-size: var(--text-base);
-  --read-leading: 1.65;
+  --read-leading: 1.75;
   --read-gap: 1em;
 }
 
@@ -1887,7 +1923,10 @@ body::after {
 [data-read="doc"] {
   --measure: 42rem;
   --read-size: 1.0625rem;
-  --read-leading: 1.72;
+  /* Above the conversation's 1.75 rather than below it, which is what 1.72
+     quietly became the moment the conversation went up. A document is the
+     more settled read of the two and has to stay the airier one. */
+  --read-leading: 1.8;
   --read-gap: 1.15em;
 }
 
@@ -1915,7 +1954,6 @@ body::after {
 
 .prose h1, .prose h2, .prose h3, .prose h4 {
   font-weight: 600;
-  line-height: 1.3;
   text-wrap: balance;
   margin-top: 1.6em;
 }
@@ -1926,19 +1964,22 @@ body::after {
    two jobs it cannot both do. It runs from −0.026em at the top of the ladder
    to the body's own −0.011em at the bottom, where a heading and a paragraph
    are the same size and should therefore be spaced the same way. */
-.prose h1 { font-size: var(--text-2xl); letter-spacing: -0.026em; }
-.prose h2 { font-size: var(--text-xl);  letter-spacing: -0.021em; }
-.prose h3 { font-size: var(--text-lg);  letter-spacing: -0.016em; }
-.prose h4 { font-size: var(--text-base); letter-spacing: -0.011em; }
+/* Leading per step rather than one number for all four, for the same reason
+   the tracking is per step: the four headings are four different sizes and a
+   single ratio is too tight at the top of the ladder and too loose at the
+   bottom. These are the ratios that fall out of ChatGPT's own pairs —
+   24/32, 20/28, 18/28, 16/24 — where every heading lands on the same
+   four-pixel rhythm as the text around it. */
+.prose h1 { font-size: var(--text-2xl);  line-height: 1.3333; letter-spacing: -0.026em; }
+.prose h2 { font-size: var(--text-xl);   line-height: 1.4;    letter-spacing: -0.021em; }
+.prose h3 { font-size: var(--text-lg);   line-height: 1.5556; letter-spacing: -0.016em; }
+.prose h4 { font-size: var(--text-base); line-height: 1.5;    letter-spacing: -0.011em; }
 
-/* A document's headings climb more gently than an answer's.
-   An answer has at most two levels and wants the top one to announce itself;
-   a page has three or four, and a ladder of 28-22-18 inside one runs out of
-   room before it runs out of levels. 22-20-18 fits them all and still reads as
-   a hierarchy — which is what the 20px step exists for. */
-[data-read="doc"] .prose h1 { font-size: var(--text-xl); }
-[data-read="doc"] .prose h2 { font-size: var(--text-section); }
-[data-read="doc"] .prose h3 { font-size: var(--text-lg); }
+/* A document's headings used to climb more gently than an answer's, because
+   an answer's ran 28-22-18 and a page with four levels ran out of room inside
+   that before it ran out of levels. The answer's ladder is 24-20-18 now, which
+   is the gentle one, so there is nothing left for this override to correct and
+   the two are set the same — one scale, not two. */
 .prose h1:first-child, .prose h2:first-child, .prose h3:first-child { margin-top: 0; }
 
 .prose strong { font-weight: 600; }

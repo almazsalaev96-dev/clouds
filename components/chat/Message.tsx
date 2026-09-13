@@ -137,15 +137,17 @@ function UserMessageImpl({
         </div>
       )}
 
-      {/* 15px against the answer's 16. Not to rank your own words below the
-          machine's — the bubble keeps its full contrast and its own ground —
-          but because the answer is the layer being *read*, and yours is the
-          layer being re-read at a glance to remember what you asked. The wider
-          column and the extra leading go to the side that needs them. */}
+      {/* The same 16 as the answer. This was 15 for a while, on the argument
+          that your own words are the layer being re-read at a glance rather
+          than read, so the wider column and the extra leading should go to the
+          side that needs them. The column and the leading still do. The size
+          should not have: a bubble set a step under the reply reads as a
+          caption on it, and the two halves of a conversation are one document.
+          ChatGPT sets both at 16 and is right to. */}
       {text && (
         <div
           dir="auto"
-          className="max-w-[85%] whitespace-pre-wrap rounded-[20px] bg-subtle px-4 py-2.5 text-md [overflow-wrap:anywhere]"
+          className="max-w-[85%] whitespace-pre-wrap rounded-[20px] bg-subtle px-4 py-2.5 text-base [overflow-wrap:anywhere]"
         >
           {text}
         </div>
