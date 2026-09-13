@@ -311,7 +311,7 @@
 
   --dur-fast: 140ms;
   --dur-enter: 200ms;
-  --dur-layout: 320ms;
+  --dur-layout: 280ms;
   --dur-spring: 420ms;
   /* Under a tenth of a second is the threshold where a person stops
      experiencing a response and starts experiencing their own action. Press
@@ -320,12 +320,18 @@
   /* Leaving is quicker than arriving — about three quarters — because an exit
      is time between you and the next thing, and an entrance is the thing. */
   --dur-exit: 150ms;
-  /* Slower out than in, on a hover: it stops a pointer crossing a boundary
-     from making the interface flicker. */
-  --dur-hover-out: 200ms;
-  /* One human breath, so anything that idles does it at a rate a body reads
-     as calm rather than as a machine ticking. 15 per minute. */
-  --dur-breath: 4s;
+  /* One number per kind of overlay, because they answer different questions.
+     A tooltip is a hint and has to be there before you wonder; a menu is
+     being placed and can take a beat; a modal is a change of scene and the
+     scrim has to move with it. They all used to share the 420ms spring
+     above, which is right for the menu and more than twice too long for
+     the tooltip. `--dur-hover-out` and `--dur-breath` used to sit here with
+     rationales and no callers; a token nobody reads is a claim, not a
+     setting. */
+  --dur-tooltip: 140ms;
+  --dur-menu: 180ms;
+  --dur-modal: 240ms;
+  --dur-toast: 220ms;
 
   /* --- Density. One multiplier drives every spacing utility in the app,
          because Tailwind v4 derives its numeric scale from --spacing. --- */
@@ -614,10 +620,25 @@
          proportion — nest a 10 inside a 14 and the inner corner looks wrong
          against the outer one, which is the usual way a rounded interface
          starts to look bent. --- */
+  /* Six steps, and the top one is 24 rather than 26. Twenty-six sat outside
+     every band the spec gives for a card, a modal or a large container;
+     24 is inside all of them and is still the roundest thing on the page.
+     `xs` is for the keycap and the segmented radio, which were each drawing
+     their own corner by hand. `2xl` is pinned to `xl` so that a `rounded-2xl`
+     typed by habit can never fall through to Tailwind's default — it did,
+     silently, on two elements. */
+  --radius-xs: 6px;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 18px;
-  --radius-xl: 26px;
+  --radius-xl: 24px;
+  --radius-2xl: var(--radius-xl);
+
+  /* The two breakpoints Tailwind's defaults do not have: a compact-phone
+     step at 480 and a large-desktop one at 1440 in place of 1536. The
+     three in the middle already match. */
+  --breakpoint-xs: 30rem;
+  --breakpoint-2xl: 90rem;
 
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
@@ -1290,14 +1311,16 @@ body::after {
   z-index: -1;
 }
 
-/* The mesh. */
+/* The mesh. Still, since it used to drift on a forty-second loop — the one
+   piece of motion in the app that told the reader nothing. A background that
+   moves is a background you notice, and the whole point of this one is that
+   you do not. */
 body::before {
   background-image:
     radial-gradient(38rem 30rem at 8% -6%, var(--mesh-a), transparent 65%),
     radial-gradient(34rem 28rem at 96% 4%, var(--mesh-b), transparent 62%),
     radial-gradient(42rem 34rem at 78% 106%, var(--mesh-a), transparent 66%),
     radial-gradient(30rem 26rem at 22% 92%, var(--mesh-c), transparent 60%);
-  animation: mesh-drift 40s var(--ease-std) infinite alternate;
 }
 
 /* Grain and vignette share a layer so the page only pays for two pseudo
@@ -1321,15 +1344,6 @@ body::after {
   mix-blend-mode: multiply;
 }
 
-@keyframes mesh-drift {
-  0%   { transform: translate3d(0, 0, 0) scale(1); }
-  50%  { transform: translate3d(-1.5%, 1.2%, 0) scale(1.06); }
-  100% { transform: translate3d(1.8%, -1%, 0) scale(1.03); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body::before { animation: none; }
-}
 
 /* ============================================================================
    ROOM CHANGES
@@ -1460,6 +1474,22 @@ body::after {
   animation: pop-out var(--dur-exit) var(--ease-in) both;
 }
 
+/* Four kinds of overlay, four durations, one easing. `anim-pop` stays for the
+   things that are genuinely placed — chips, cards arriving — and these take
+   over the surfaces that were borrowing it. The scrim shares the modal's
+   number so the two halves of one object arrive together; they were 120ms
+   apart, and the half the eye tracks was the slow one. */
+.anim-tip   { animation: pop-in var(--dur-tooltip) var(--ease-out) both; }
+.anim-menu  { animation: pop-in var(--dur-menu) var(--ease-out) both; }
+.anim-modal { animation: pop-in var(--dur-modal) var(--ease-out) both; }
+.anim-toast { animation: pop-in var(--dur-toast) var(--ease-out) both; }
+.anim-scrim { animation: fade-in var(--dur-modal) var(--ease-out) both; }
+.anim-tip[data-state="closed"],
+.anim-menu[data-state="closed"],
+.anim-modal[data-state="closed"],
+.anim-toast[data-state="closed"] { animation: pop-out var(--dur-exit) var(--ease-in) both; }
+.anim-scrim[data-state="closed"] { animation: fade-out var(--dur-exit) var(--ease-in) both; }
+
 /* Placeholder rows, while a query is still out.
    A skeleton is only honest if it is shaped like what is coming: same height,
    same radius, same rhythm — otherwise the content arrives and the page jumps,
@@ -1528,11 +1558,6 @@ body::after {
    and quietly raises the pulse of whoever is watching it; anything slower
    reads as stalled. The scale change is 3%, small enough that you feel it
    rather than see it. */
-@keyframes field-breathe {
-  0%, 100% { opacity: 0.6; scale: 1; }
-  50% { opacity: 1; scale: 1.03; }
-}
-
 .think-orb {
   display: inline-block;
   width: 0.85em;
@@ -1773,22 +1798,6 @@ body::after {
   }
 }
 
-/* The idle mark watches the pointer.
-   Its gradient rotates to face wherever the cursor is, which is the cheapest
-   possible way to say "this is attending to you" without a face or a voice.
-   `--point-angle` is written by the pointer hook; with no pointer it never
-   changes and the mark simply breathes. */
-.point-aware {
-  background: conic-gradient(
-    from calc(var(--point-angle, 0deg) - 90deg),
-    transparent 0deg,
-    rgb(var(--accent-rgb) / 0.95) 100deg,
-    rgb(var(--cta-rgb) / 0.9) 190deg,
-    transparent 320deg
-  );
-  transition: background var(--dur-fast) linear;
-}
-
 /* Cards lift and tilt toward the pointer. The tilt is tiny — under a degree —
    which is enough to read as physical and small enough not to bend the text
    on it. Coarse pointers get the lift without the tilt, since there is no
@@ -1856,9 +1865,6 @@ body::after {
   }
 }
 
-.pulse-soft {
-  animation: field-breathe var(--dur-breath) var(--ease-std) infinite;
-}
 
 @media (prefers-reduced-motion: reduce) {
   /* Reduced motion still needs the *state* to be legible: the ring stops

@@ -364,10 +364,10 @@ export function CommandPalette({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-[var(--bg-overlay)] anim-fade" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-[var(--bg-overlay)] anim-scrim" />
         <Dialog.Content
           onCloseAutoFocus={returnFocus}
-          className="fixed left-1/2 top-[18vh] z-50 w-[34rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-xl glass border border-line shadow-lg anim-pop"
+          className="fixed left-1/2 top-[18vh] z-50 w-[34rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-xl glass border border-line shadow-lg anim-modal"
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") {
               e.preventDefault();

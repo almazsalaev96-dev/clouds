@@ -11,7 +11,7 @@ import { AUTO, getModel, estimateTokens, formatTokens, MODELS } from "@/lib/mode
 import { paramsFor } from "@/lib/store";
 import { ModelPicker } from "./ModelPicker";
 import { MessageBar } from "./MessageBar";
-import { fileToBase64, formatBytes, cn } from "@/lib/utils";
+import { fileToBase64, formatBytes, sniffKind, cn } from "@/lib/utils";
 import { isPdf, pdfBlock } from "@/lib/pdf";
 import { useSettings, useDrafts } from "@/lib/store";
 import { Tooltip } from "@/components/ui/primitives";
@@ -96,7 +96,18 @@ export function Composer({
         setNotice(`${file.name} is ${formatBytes(file.size)} — the limit is 20 MB.`);
         continue;
       }
-      const isImage = file.type.startsWith("image/");
+      /* The label and the bytes have to agree. The type is the browser's
+         guess from the extension; the sniff is the first twelve bytes. A
+         file that says it is an image and is not is refused with the reason,
+         rather than sent to a model as a picture that does not decode. */
+      const claimsImage = file.type.startsWith("image/");
+      const claimsPdf = isPdf(file);
+      const really = claimsImage || claimsPdf ? await sniffKind(file) : "other";
+      if ((claimsImage && really !== "image") || (claimsPdf && really !== "pdf")) {
+        setNotice(`${file.name} isn't really ${claimsImage ? "an image" : "a PDF"} — its contents don't match its name.`);
+        continue;
+      }
+      const isImage = claimsImage;
       if (isImage) {
         next.push({
           id: crypto.randomUUID(),
@@ -255,7 +266,7 @@ export function Composer({
             {attachments.map((a) => (
               <div
                 key={a.id}
-                className="group/chip flex items-center gap-2 rounded-xl border border-line bg-canvas py-1 pl-1 pr-2 anim-pop"
+                className="group/chip flex items-center gap-2 rounded-md border border-line bg-canvas py-1 pl-1 pr-2 anim-pop"
               >
                 {a.kind === "image" && a.preview ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -265,7 +276,17 @@ export function Composer({
                     <FileText size={14} />
                   </span>
                 )}
-                <span className="max-w-48 truncate text-xs text-secondary">{a.name}</span>
+                <span className="flex min-w-0 flex-col">
+                  <span className="max-w-48 truncate text-xs text-secondary">{a.name}</span>
+                  {/* What it is and how big, the two things you check before
+                      you send something — the chip used to show only the
+                      name, which is the one thing you already knew. */}
+                  <span className="text-tiny text-faint">
+                    {a.kind === "image" ? "Image" : a.mimeType === "application/pdf" ? "PDF" : (a.name.split(".").pop() ?? "file").toUpperCase()}
+                    {" · "}
+                    {formatBytes(a.size)}
+                  </span>
+                </span>
                 <button
                   onClick={() => setAttachments((list) => list.filter((x) => x.id !== a.id))}
                   aria-label={`Remove ${a.name}`}
@@ -300,7 +321,7 @@ export function Composer({
                 align="start"
                 side="top"
                 sideOffset={8}
-                className="z-50 w-60 rounded-2xl glass border border-line p-1.5 shadow-lg anim-pop"
+                className="z-50 w-60 rounded-md glass border border-line p-1.5 shadow-lg anim-menu"
               >
                 <button
                   onClick={() => {

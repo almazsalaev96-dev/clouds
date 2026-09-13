@@ -1299,6 +1299,7 @@ export default function Page() {
                 dropped={droppedFromContext}
                 streamModelId={threadModelId}
                 elapsed={live ? stream.elapsed : 0}
+                retryingInMs={live ? stream.retryingInMs : 0}
                 error={live ? stream.error : null}
                 onNavigate={navigate}
                 onEdit={editMessage}

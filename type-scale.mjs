@@ -205,7 +205,11 @@ console.log("\nHierarchy comes from size and brightness, not from weight");
       `${tag} is ${size}/${lead}`, got ? `${got[0]}/${got[1]}` : "not measured");
   }
 
-  const user = await p.evaluate(`(${READER})([...document.querySelectorAll(".rounded-\\\\[20px\\\\]")].pop())`);
+  /* By what the bubble is — the one pre-wrapped block on a subtle ground —
+     not by the radius it happened to have. `.rounded-[20px]` named a value,
+     and the day the corner joined the scale this selector would have found
+     nothing and reported the user's text missing. */
+  const user = await p.evaluate(`(${READER})([...document.querySelectorAll(".msg .whitespace-pre-wrap.bg-subtle")].pop())`);
   /* The same 16 as the answer. It was 15 for a while, on the argument that
      your own words are re-read at a glance rather than read — which is true of
      the column and the leading and was never true of the size. A bubble set a

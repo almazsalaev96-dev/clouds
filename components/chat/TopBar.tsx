@@ -132,7 +132,7 @@ export function TopBar({
               <DropdownMenu.Content
                 align="end"
                 sideOffset={6}
-                className="z-50 w-52 rounded-lg glass border border-line p-1 shadow-lg anim-pop"
+                className="z-50 w-52 rounded-md glass border border-line p-1.5 shadow-lg anim-menu"
               >
                 <Item onSelect={onTogglePin} icon={conversation.pinned ? <PinOff size={14} /> : <Pin size={14} />}>
                   {conversation.pinned ? "Unpin" : "Pin to top"}
@@ -142,14 +142,14 @@ export function TopBar({
                     so it lives here rather than only at the moment of creation. */}
                 {projects.length > 0 && (
                   <DropdownMenu.Sub>
-                    <DropdownMenu.SubTrigger className="focus-inset flex h-8 w-full cursor-default items-center gap-2.5 rounded-md px-2 text-sm text-secondary outline-none transition-colors duration-[var(--dur-fast)] data-[highlighted]:bg-subtle data-[highlighted]:text-primary">
+                    <DropdownMenu.SubTrigger className="focus-inset flex h-9 w-full cursor-default items-center gap-2.5 rounded-md px-2 text-sm text-secondary outline-none transition-colors duration-[var(--dur-fast)] data-[highlighted]:bg-subtle data-[highlighted]:text-primary">
                       <FolderOpen size={14} className="shrink-0 text-tertiary" />
                       <span className="flex-1 text-left">Project</span>
                     </DropdownMenu.SubTrigger>
                     <DropdownMenu.Portal>
                       <DropdownMenu.SubContent
                         sideOffset={4}
-                        className="z-50 max-h-72 w-52 overflow-y-auto rounded-lg glass border border-line p-1 shadow-lg anim-pop"
+                        className="z-50 max-h-72 w-52 overflow-y-auto rounded-md glass border border-line p-1.5 shadow-lg anim-menu"
                       >
                         <Item onSelect={() => onMoveToProject(null)} icon={<span className="size-3.5" />}>
                           <span className="flex-1">No project</span>
@@ -224,7 +224,7 @@ function Item({
     <DropdownMenu.Item
       onSelect={onSelect}
       className={cn(
-        "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none transition-colors duration-[var(--dur-fast)]",
+        "flex h-9 cursor-pointer items-center gap-2 rounded-md px-2 text-sm outline-none transition-colors duration-[var(--dur-fast)]",
         danger ? "text-danger data-[highlighted]:bg-[var(--danger-subtle)]" : "text-secondary data-[highlighted]:bg-subtle data-[highlighted]:text-primary",
       )}
     >

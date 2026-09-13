@@ -49,10 +49,10 @@ export function Settings({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-[var(--bg-overlay)] anim-fade" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-[var(--bg-overlay)] anim-scrim" />
         <Dialog.Content
           onCloseAutoFocus={returnFocus}
-          className="fixed left-1/2 top-1/2 z-50 flex h-[34rem] max-h-[calc(100vh-3rem)] w-[44rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl glass border border-line shadow-lg anim-pop"
+          className="fixed left-1/2 top-1/2 z-50 flex h-[34rem] max-h-[calc(100vh-3rem)] w-[44rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl glass border border-line shadow-lg anim-modal"
         >
           <nav className="flex w-40 shrink-0 flex-col gap-0.5 border-r border-line bg-subtle p-2">
             <Dialog.Title className="px-2 py-2 text-sm font-medium text-primary">Settings</Dialog.Title>
@@ -536,7 +536,7 @@ function Segmented({
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "tap inline-flex items-center rounded-[6px] px-2.5 py-1 text-xs transition-colors duration-[var(--dur-fast)]",
+            "tap inline-flex items-center rounded-xs px-2.5 py-1 text-xs transition-colors duration-[var(--dur-fast)]",
             value === o.value ? "bg-surface font-medium text-primary shadow-sm" : "text-secondary hover:text-primary",
           )}
         >

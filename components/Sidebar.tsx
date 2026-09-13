@@ -9,7 +9,6 @@ import {
 import type { Conversation } from "@/lib/types";
 import { db, deleteConversation, groupConversations } from "@/lib/db";
 import { useDebounced } from "@/lib/hooks/useDebounced";
-import { usePointerAngle } from "@/lib/hooks/usePointerAngle";
 import { Lockup } from "@/components/brand/Logo";
 import { offerUndo } from "@/lib/undo";
 import { useSettings, type Section } from "@/lib/store";
@@ -56,7 +55,6 @@ export function Sidebar({
   onOpenShortcuts: () => void;
 }) {
   const { sidebarOpen, toggleSidebar, section, name } = useSettings();
-  const markRef = usePointerAngle<HTMLSpanElement>();
   const [query, setQuery] = React.useState("");
 
   return (
@@ -99,7 +97,7 @@ export function Sidebar({
             {/* The drawn word, not the name set in the interface font. A
                 product's own name is the one string it should never render in
                 whatever the operating system happened to load. */}
-            <span ref={markRef} className="ml-1.5">
+            <span className="ml-1.5">
               <Lockup />
             </span>
 
@@ -118,7 +116,7 @@ export function Sidebar({
               </span>
             </button>
 
-            <div className="tap flex h-8 items-center gap-1.5 rounded-md border border-transparent px-2 transition-colors duration-[var(--dur-fast)] focus-within:border-line-strong focus-within:bg-canvas">
+            <div className="tap flex h-10 items-center gap-1.5 rounded-md border border-transparent px-2 transition-colors duration-[var(--dur-fast)] focus-within:border-line-strong focus-within:bg-canvas">
               <Search size={13} className="shrink-0 text-tertiary" />
               <input
                 value={query}
@@ -159,7 +157,7 @@ export function Sidebar({
               /* A fill, not a floating object: it sits behind the row it
                  marks, so it takes no shadow at all rather than one turned
                  off. */
-              indicatorClassName="rounded-md bg-accent-subtle"
+              indicatorClassName="rounded-sm bg-accent-subtle"
               /* `gap`, not `space-y`. The indicator is the first child of this
                  box, so `space-y-*` — which margins every sibling after the
                  first — would push the whole list down by one step the moment
@@ -182,7 +180,7 @@ export function Sidebar({
                        for a navigation item is 36, and the four pixels are the
                        difference between a list you read and a list you use. */
                     className={cn(
-                      "tap flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-sm transition-colors duration-[var(--dur-fast)]",
+                      "tap flex h-9 w-full items-center gap-2.5 rounded-sm px-2.5 text-sm transition-colors duration-[var(--dur-fast)]",
                       // The row only changes the colour of its ink; the fill
                       // underneath it is the one element that moves.
                       on ? "font-medium text-primary" : "text-secondary hover:bg-canvas hover:text-primary",
@@ -262,17 +260,32 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Empty({ query, noun }: { query: string; noun: string }) {
+/* An empty list says what would fill it. "No conversations yet." was true
+   and told you nothing; the second line is why, and the button is what to do
+   about it — the three parts every empty state owes the person looking at
+   it. The search case keeps its one line, because there the next action is
+   obvious: change the query. */
+function Empty({ query, noun, onNew }: { query: string; noun: string; onNew?: () => void }) {
+  if (query) {
+    return (
+      <p className="px-2 py-6 text-center text-xs text-tertiary">
+        Nothing matches <span className="text-secondary">{query}</span>.
+      </p>
+    );
+  }
   return (
-    <p className="px-2 py-6 text-center text-xs text-tertiary">
-      {query ? (
-        <>
-          Nothing matches <span className="text-secondary">{query}</span>.
-        </>
-      ) : (
-        `No ${noun} yet.`
+    <div className="px-2 py-6 text-center">
+      <p className="text-sm text-secondary">No {noun} yet.</p>
+      <p className="mt-1 text-xs text-tertiary">Ask anything and it will be kept here.</p>
+      {onNew && (
+        <button
+          onClick={onNew}
+          className="tap mt-3 rounded-md px-2.5 py-1 text-xs font-medium text-accent transition-colors duration-[var(--dur-fast)] hover:bg-accent-subtle"
+        >
+          Start a conversation
+        </button>
       )}
-    </p>
+    </div>
   );
 }
 
@@ -327,7 +340,7 @@ function ChatList({
 
   const archived = (conversations ?? []).filter((c) => c.archived);
 
-  if (!filtered.length && !archived.length) return <Empty query={query} noun="conversations" />;
+  if (!filtered.length && !archived.length) return <Empty query={query} noun="conversations" onNew={onNew} />;
 
   const pinned = filtered.filter((c) => c.pinned);
   const groups = groupConversations(filtered.filter((c) => !c.pinned));

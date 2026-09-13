@@ -116,7 +116,7 @@ export function CodeBlock({
   }
 
   return (
-    <figure className={cn("group/code overflow-hidden rounded-lg border border-line bg-inset", !bare && "my-4")}>
+    <figure className={cn("group/code overflow-hidden rounded-md border border-line bg-inset", !bare && "my-4")}>
       {!bare && (
       <figcaption className="flex h-9 items-center gap-2 border-b border-line px-3">
         <span className="truncate text-xs text-tertiary">
@@ -218,7 +218,7 @@ export function CodeBlock({
         >
           <pre
             className={cn(
-              "px-3 py-3 font-mono text-code",
+              "p-4 font-mono text-code",
               wrap && "whitespace-pre-wrap break-words",
             )}
           >

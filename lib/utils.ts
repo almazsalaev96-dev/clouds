@@ -59,6 +59,27 @@ export function debounce<A extends unknown[]>(fn: (...args: A) => void, ms: numb
   };
 }
 
+/**
+ * What a file actually is, from its first bytes.
+ *
+ * `file.type` is whatever the browser inferred from the extension, and an
+ * extension is a claim anyone can make: a `.png` that is really a script is
+ * still `image/png` to the picker. The signatures below are the ones a
+ * reader would recognise by eye in a hex dump, which is the point — this is
+ * not a virus scanner, it is the difference between trusting a label and
+ * looking at the thing.
+ */
+export async function sniffKind(file: File): Promise<"image" | "pdf" | "other"> {
+  const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  const at = (i: number, ...bytes: number[]) => bytes.every((b, k) => head[i + k] === b);
+  if (at(0, 0x25, 0x50, 0x44, 0x46)) return "pdf";                        // %PDF
+  if (at(0, 0x89, 0x50, 0x4e, 0x47)) return "image";                      // .PNG
+  if (at(0, 0xff, 0xd8, 0xff)) return "image";                            // JPEG
+  if (at(0, 0x47, 0x49, 0x46, 0x38)) return "image";                      // GIF8
+  if (at(0, 0x52, 0x49, 0x46, 0x46) && at(8, 0x57, 0x45, 0x42, 0x50)) return "image"; // RIFF….WEBP
+  return "other";
+}
+
 export async function fileToBase64(file: File): Promise<string> {
   const buf = await file.arrayBuffer();
   let binary = "";

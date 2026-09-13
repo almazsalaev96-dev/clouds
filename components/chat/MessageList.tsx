@@ -27,6 +27,7 @@ function MessageListImpl({
   dropped,
   streamModelId,
   elapsed,
+  retryingInMs,
   error,
   onNavigate,
   onEdit,
@@ -53,6 +54,8 @@ function MessageListImpl({
   dropped: number;
   streamModelId: string;
   elapsed: number;
+  /** Milliseconds until the stream tries again after a rate limit; 0 otherwise. */
+  retryingInMs: number;
   error: ChatError | null;
   onNavigate: (id: string) => void;
   onEdit: (message: Msg, text: string) => void;
@@ -242,6 +245,7 @@ function MessageListImpl({
               reasoning={streamReasoning}
               modelName={streamModel.name}
               elapsed={elapsed}
+              retryingInMs={retryingInMs}
               onSwitchModel={onSwitchModel}
             />
           )}
@@ -301,12 +305,14 @@ function StreamingMessage({
   reasoning,
   modelName,
   elapsed,
+  retryingInMs,
   onSwitchModel,
 }: {
   text: string;
   reasoning: string;
   modelName: string;
   elapsed: number;
+  retryingInMs: number;
   onSwitchModel: () => void;
 }) {
   // Coarsen the markdown parse to ~30fps. The reveal cadence is unchanged;
@@ -328,7 +334,16 @@ function StreamingMessage({
           ever answering it. */}
       <div className="mb-2 flex items-center gap-2 text-xs text-tertiary">
         <span className="font-medium text-secondary">{modelName}</span>
-        {waiting ? (
+        {/* The retry, said. The stream has always known when it was waiting
+            out a rate limit and for how long — `retryingInMs` was set on
+            that path and read by nothing, so the indicator said "Thinking"
+            while the app was in fact doing nothing for eight seconds. The
+            honest word for that state is the one it uses now. */}
+        {retryingInMs > 0 ? (
+          <span className="sheen font-medium">
+            Retrying<span className="tnum"> · {Math.ceil(retryingInMs / 1000)}s</span>
+          </span>
+        ) : waiting ? (
           <span className="sheen font-medium">
             Thinking{elapsed > PATIENCE_MS && <span className="tnum"> · {formatElapsed(elapsed)}</span>}
           </span>

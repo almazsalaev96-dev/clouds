@@ -97,7 +97,10 @@ function UserMessageImpl({
                 setEditing(false);
               }}
             >
-              Send
+              {/* What it does, not what the key is called: this edits the
+                  question and asks again, and the original is kept as a
+                  branch. "Send" said none of that. */}
+              Save &amp; regenerate
             </Button>
           </div>
         </div>
@@ -147,7 +150,10 @@ function UserMessageImpl({
       {text && (
         <div
           dir="auto"
-          className="max-w-[85%] whitespace-pre-wrap rounded-[20px] bg-subtle px-4 py-2.5 text-base [overflow-wrap:anywhere]"
+          /* 94% of the column on a phone, 85% from `sm` up; a corner from the
+             scale rather than a 20 drawn by hand; 14 of side padding, which is
+             inside the 10-14 band where 16 was not. */
+          className="max-w-[94%] whitespace-pre-wrap rounded-lg bg-subtle px-3.5 py-2.5 text-base [overflow-wrap:anywhere] sm:max-w-[85%]"
         >
           {text}
         </div>
@@ -285,7 +291,7 @@ function AssistantMessageImpl({
   };
 
   return (
-    <div id={`m-${message.id}`} className={cn("msg group rounded-2xl pb-4 pt-3", entering && "msg-enter", settled && "msg-settled")}>
+    <div id={`m-${message.id}`} className={cn("msg group rounded-lg pb-4 pt-3", entering && "msg-enter", settled && "msg-settled")}>
       {/* Who is speaking, before you read what they said. In an app with four
           providers this is not metadata — it is context, and it is set a step
           above metadata to say so. 12px was doing both this job and the job of
@@ -320,7 +326,23 @@ function AssistantMessageImpl({
             <span className="tnum">{formatTokens(message.usage.outputTokens)} tok</span>
           )}
         </span>
-        {message.stopReason === "aborted" && <span className="text-warning">stopped</span>}
+        {message.stopReason === "aborted" && (
+          <span className="flex items-center gap-2">
+            <span className="text-warning">stopped</span>
+            {/* Stopping is not the same as finishing, and the person who
+                pressed Stop is the one most likely to want the rest a moment
+                later. The same offer as running out of room, for the same
+                reason, on the latest answer only. */}
+            {isLast && onContinue && (
+              <button
+                onClick={onContinue}
+                className="focus-inset rounded-md px-1.5 py-0.5 font-medium text-accent transition-colors duration-[var(--dur-fast)] hover:bg-accent-subtle"
+              >
+                Continue
+              </button>
+            )}
+          </span>
+        )}
         {/* All three providers report this and nothing ever showed it: an
             answer cut short by a safety system arrived looking exactly like
             one that had finished. A reader who cannot tell the difference
@@ -421,7 +443,7 @@ function AssistantMessageImpl({
             <DropdownMenu.Content
               align="start"
               sideOffset={6}
-              className="z-50 w-60 rounded-lg glass border border-line p-1 shadow-lg anim-pop"
+              className="z-50 w-60 rounded-md glass border border-line p-1.5 shadow-lg anim-menu"
             >
               {MODELS.filter((m) => m.id !== message.modelId).map((m) => (
                 <DropdownMenu.Item
@@ -457,7 +479,7 @@ function AssistantMessageImpl({
             <DropdownMenu.Content
               align="start"
               sideOffset={6}
-              className="z-50 w-56 rounded-lg glass border border-line p-1 shadow-lg anim-pop"
+              className="z-50 w-56 rounded-md glass border border-line p-1.5 shadow-lg anim-menu"
             >
               <DropdownMenu.Item
                 onSelect={() => onSaveToNote(text)}
@@ -671,7 +693,10 @@ export function InlineError({
             Switch model
           </Button>
         )}
-        {onRetry && (
+        {/* Retry only where a retry can help. A missing or rejected key fails
+            the same way every time, and offering Retry beside "Add key" is
+            offering the wrong one of the two first. */}
+        {onRetry && action !== "add_key" && (
           <Button size="sm" variant="secondary" onClick={onRetry}>
             Retry
           </Button>

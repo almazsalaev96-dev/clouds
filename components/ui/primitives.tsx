@@ -34,7 +34,7 @@ export function Tooltip({
         <TooltipPrimitive.Content
           side={side}
           sideOffset={6}
-          className="glass z-50 flex items-center gap-2 rounded-md border border-line px-2 py-1 text-xs text-primary shadow-md anim-pop"
+          className="glass z-50 flex items-center gap-2 rounded-md border border-line px-2 py-1 text-xs text-primary shadow-md anim-tip"
         >
           {label}
           {keys && <Kbd keys={keys} />}
@@ -52,7 +52,7 @@ export function Kbd({ keys }: { keys: string[] }) {
       {keys.map((k) => (
         <kbd
           key={k}
-          className="min-w-[1.25em] rounded-[4px] border border-line bg-subtle px-1 text-center font-sans text-tiny leading-[1.5] text-tertiary"
+          className="min-w-[1.25em] rounded-xs border border-line bg-subtle px-1 text-center font-sans text-tiny leading-[1.5] text-tertiary"
         >
           {k === "mod" ? (mac ? "⌘" : "Ctrl") : k === "shift" ? "⇧" : k === "enter" ? "↵" : k}
         </kbd>
@@ -112,7 +112,9 @@ type IconButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
  * reader.
  */
 export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
-  function IconButton({ label, keys, active, className, size = 32, ...props }, ref) {
+  function IconButton({ label, keys, active, className, size = 36, ...props }, ref) {
+    // 36 by default, not 32: the floor for an icon button under a cursor.
+    // `.ctl` still lifts it to 44 under a thumb; this is the desk-sized one.
     return (
       <Tooltip label={label} keys={keys}>
         <button
