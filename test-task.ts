@@ -22,6 +22,20 @@ console.log("\nThe six kinds, each read from what the request actually is");
   check(kind("make this feel more premium — the typography is fighting the layout") === "design", "how it looks");
 }
 
+console.log("\nAnd three more, each of which used to fall through to general");
+{
+  check(kind("summarise this article in three sentences") === "summarize", "a shorter account of something longer", kind("summarise this article in three sentences"));
+  check(kind("translate this into Russian") === "translate", "the same thing in another language", kind("translate this into Russian"));
+  check(kind("how do you say thank you in Uzbek") === "translate", "however it is asked", kind("how do you say thank you in Uzbek"));
+  check(kind("give me a plan for launching the app by June") === "plan", "a way to get from here to somewhere", kind("give me a plan for launching the app by June"));
+  check(kind("how should I approach learning Rust") === "plan",
+    "and a strong plan signal beats a weak learning one, because the person asked how to go about it", kind("how should I approach learning Rust"));
+  /* The word most likely to misfire. "In plain English" is a request for
+     plain language, not a translation, and "into" is the preposition that
+     tells them apart. */
+  check(kind("explain the offside rule in plain English") !== "translate", "and asking for plain English is not asking for a translation", kind("explain the offside rule in plain English"));
+}
+
 console.log("\nAnd it says “general” rather than guessing");
 {
   check(kind("hi") === "general", "a greeting is not a kind of work");
@@ -71,7 +85,7 @@ console.log("\nThe same request reads the same way twice");
 
 console.log("\nChecking means something different for each kind");
 {
-  const kinds: TaskKind[] = ["learning", "coding", "research", "writing", "data", "design"];
+  const kinds: TaskKind[] = ["learning", "coding", "research", "writing", "data", "design", "summarize", "translate", "plan"];
   for (const k of kinds) check(CHECKS[k].length > 0, `${k} has its own checks`, String(CHECKS[k].length));
   check(CHECKS.general.length === 0,
     "and general has none — the standing rules already say “is it right”, and saying it twice only tells the model somebody was worried");

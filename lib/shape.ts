@@ -85,6 +85,28 @@ export const SHAPE: Record<TaskKind, string[]> = {
     "Say where it fails — the content length, the language, the density that this falls apart at.",
   ],
 
+  summarize: [
+    "Say what the source says, in the source's own terms, not what is true. A summary that quietly corrects its source has stopped being one.",
+    "Keep the proportions. Whatever the source spends most of its words on gets most of yours; a passing remark stays a passing remark.",
+    "Say in one line what you left out. The reader is trusting you with the whole and deserves to know the shape of what they did not get.",
+    "Add nothing. No context the source did not give, no verdict on it unless asked — the reader wanted less, not different.",
+  ],
+
+  translate: [
+    "Deliver the text. A translation with a paragraph of commentary around it is a translation the reader has to dig out.",
+    "Translate the meaning and the register, not the words: an idiom becomes the idiom that does the same job, and a formal sentence stays formal.",
+    "Where a term has no equivalent, keep the original and gloss it once in brackets, then use the original from there on.",
+    "Where the source is ambiguous, pick the reading the context supports and note the other in a line after the text — not inside it.",
+  ],
+
+  plan: [
+    "Make the first step something they can do today, and say what it is in the first sentence. A plan whose first step is 'define your goals' has not started.",
+    "Put the steps in the order they have to happen, and say what each one depends on. An order is the information; a list of good ideas is not a plan.",
+    "Name the assumption the whole thing rests on, and what would tell them early that it is wrong.",
+    "Say what to decide first. Most plans stall on one choice nobody wanted to make; find it and put it at the front.",
+    "Size it to the time they gave you. A month's plan has weeks in it; a plan for tonight has an hour.",
+  ],
+
   /* Deliberately empty, on the same principle as `CHECKS.general`. Most
      requests are general, and a model given a list of virtues to perform on an
      ordinary question performs them: it reaches for a structure the question
@@ -142,5 +164,8 @@ const LABEL: Record<TaskKind, string> = {
   writing: "prose that someone other than the asker will read",
   data: "work with numbers",
   design: "how something should look and behave",
+  summarize: "a shorter account of something longer",
+  translate: "the same thing in another language",
+  plan: "a way to get from here to somewhere",
   general: "an ordinary request",
 };

@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { ArrowDown, Zap } from "lucide-react";
+import { lintAnswer } from "@/lib/lint";
+import { blockText } from "@/lib/db";
 import type { ChatError, Message as Msg } from "@/lib/types";
 import { PointAt, type PointAction } from "./PointAt";
 import { getModel } from "@/lib/models";
@@ -35,6 +37,8 @@ function MessageListImpl({
   onSaveToNote,
   onOpenInCanvas,
   onContinue,
+  onTighten,
+  onFollowUp,
   onVerify,
   verifyingId,
   onRetry,
@@ -63,6 +67,10 @@ function MessageListImpl({
   onSaveToNote: (text: string) => void;
   onOpenInCanvas: (text: string) => void;
   onContinue: () => void;
+  /** Regenerate the answer without the packaging the linter found in it. */
+  onTighten: (message: Msg) => void;
+  /** Send a canned follow-up as the next user turn. */
+  onFollowUp: (text: string) => void;
   /** Ask a model from another provider whether an answer is right. */
   onVerify: (message: Msg) => void;
   verifyingId?: string | null;
@@ -204,6 +212,16 @@ function MessageListImpl({
             // keep their identity between renders and React.memo can actually
             // hold: without this, every frame of a stream re-renders every
             // message in the transcript.
+            /* The last answer is read back against the house rules, here
+               rather than in the message, because the question it answered is
+               one message up the path and only this component has the path.
+               Only when nothing is streaming: a Tighten button beside an
+               answer that is being replaced is a button for the wrong thing. */
+            const last = i === messages.length - 1 && streaming === "idle";
+            const asked = last ? [...messages.slice(0, i)].reverse().find((x) => x.role === "user") : undefined;
+            const findings = last && m.role === "assistant"
+              ? lintAnswer(blockText(m.content), asked ? blockText(asked.content) : undefined)
+              : undefined;
             return m.role === "user" ? (
               <UserMessage
                 key={m.id}
@@ -225,6 +243,9 @@ function MessageListImpl({
                 onSaveToNote={onSaveToNote}
                 onOpenInCanvas={onOpenInCanvas}
                 onContinue={onContinue}
+                onTighten={onTighten}
+                onFollowUp={last ? onFollowUp : undefined}
+                findings={findings}
                 onSwitchModel={onSwitchModel}
                 onVerify={onVerify}
                 verifying={verifyingId === m.id}

@@ -39,6 +39,12 @@ export type TaskKind =
   | "data"
   /** How something looks and behaves — layout, type, colour, interaction. */
   | "design"
+  /** A shorter account of something longer, that has to stay true to it. */
+  | "summarize"
+  /** The same thing in another language. */
+  | "translate"
+  /** Getting from here to somewhere: steps, an order, what depends on what. */
+  | "plan"
   /** Everything else, which is most things. */
   | "general";
 
@@ -126,10 +132,44 @@ const EVIDENCE: Record<Exclude<TaskKind, "general">, { strong: RegExp[]; weak: R
     weak: [/\bspacing\b/i, /\bcontrast\b/i, /\bpalette\b/i, /\bfont\b/i, /\bui\b/i,
            /\bresponsive\b/i, /\baesthetic\b/i, /\bpremium\b/i, /\bpolish(ed)?\b/i],
   },
+  /* Three kinds the classifier could not see. Each was landing in `general`
+     and getting the general voice, which for these three is the wrong one in
+     a specific way: a summary answered in the model's own words rather than
+     the source's, a translation delivered with a paragraph of commentary, a
+     plan given as a list of considerations with nothing to do first. */
+  summarize: {
+    strong: [
+      /\bsummari[sz]e\b/i,
+      /\btl;?dr\b/i,
+      /\b(?:the gist|key points|main points|boil (?:this|it|that) down|sum (?:this|it|that) up)\b/i,
+      /\bin (?:one|two|three|a few|five) (?:sentences?|lines?|words|bullets?)\b/i,
+    ],
+    weak: [/\bsummary\b/i, /\bshorter\b/i, /\boverview\b/i, /\bcondense\b/i, /\bdigest\b/i],
+  },
+  translate: {
+    strong: [
+      /\btranslate\b/i,
+      /* "into" and "to" only. "in English" is how people ask for plain
+         language, and a request to explain something in English is not a
+         request to translate it. */
+      /\b(?:into|to) (?:english|russian|uzbek|spanish|french|german|arabic|chinese|mandarin|japanese|korean|italian|portuguese|turkish|hindi|urdu|persian|farsi|kazakh|ukrainian|polish)\b/i,
+      /\bhow do (?:you|i) say\b/i,
+    ],
+    weak: [/\btranslation\b/i, /\bmeaning of\b/i, /\bin (?:the )?original\b/i],
+  },
+  plan: {
+    strong: [
+      /\b(?:make|write|draft|create|build|give me|design|put together)\s+(?:me\s+)?an?\s+(?:\w+[- ]){0,2}?plan\b/i,
+      /\b(?:roadmap|timeline for|schedule for|game plan|action plan)\b/i,
+      /\bhow (?:should|do|can|would) i (?:plan|prepare|approach|get started|start|structure|organi[sz]e|tackle)\b/i,
+    ],
+    weak: [/\bplan(?:ning)?\b/i, /\bmilestones?\b/i, /\bdeadlines?\b/i, /\bpriorit(?:y|ies|i[sz]e)\b/i,
+           /\bweek by week\b/i, /\bby (?:monday|friday|next week|next month|the end of)\b/i],
+  },
 };
 
 /** The order kinds are reported in when two tie, so the answer is stable. */
-const ORDER: Exclude<TaskKind, "general">[] = ["coding", "data", "research", "learning", "design", "writing"];
+const ORDER: Exclude<TaskKind, "general">[] = ["coding", "data", "research", "learning", "translate", "summarize", "plan", "design", "writing"];
 
 const LABEL: Record<TaskKind, string> = {
   learning: "someone trying to understand this, not to be handed it",
@@ -138,6 +178,9 @@ const LABEL: Record<TaskKind, string> = {
   writing: "prose someone else will read",
   data: "numbers",
   design: "how something looks and behaves",
+  summarize: "a shorter account of something longer",
+  translate: "the same thing in another language",
+  plan: "a way to get from here to somewhere",
   general: "no particular kind of work",
 };
 
@@ -242,6 +285,18 @@ export const CHECKS: Record<TaskKind, string[]> = {
     "Check it against contrast, hit size, and behaviour at a small screen and at a large text setting.",
     "Say if it breaks an existing convention in the same interface for no stated reason.",
     "Say if the visual weight of something does not match its importance.",
+  ],
+  summarize: [
+    "Say if it asserts anything the source does not — a summary that adds is a different document.",
+    "Say if the proportions are off: a point the source makes in passing given a paragraph, or its main argument given a clause.",
+  ],
+  translate: [
+    "Say where the meaning drifted, quoting both sides.",
+    "Say if the register changed — formal made casual, or a plain sentence made ornate.",
+  ],
+  plan: [
+    "Say if a step depends on something no earlier step establishes.",
+    "Say if the first step is not something a person could do today.",
   ],
   general: [],
 };

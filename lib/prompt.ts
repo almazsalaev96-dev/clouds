@@ -132,11 +132,18 @@ export function composeTurnPrompt(parts: {
   visual?: string;
   /** Set while a teaching stance is live, and only then. */
   teaching?: boolean;
+  /**
+   * Something about this one reply in particular — "the last answer opened
+   * with a header; this one should not". Last, because it is the narrowest
+   * thing said and the one that should win a disagreement with the rest.
+   */
+  note?: string;
 }): string {
   return [
     parts.shape?.trim(),
     parts.visual?.trim(),
     parts.teaching ? `## While you are teaching\n\n${NO_LOOKAHEAD}` : "",
+    parts.note?.trim() ? `## For this reply\n\n${parts.note.trim()}` : "",
   ]
     .filter(Boolean)
     .join("\n\n");

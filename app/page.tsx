@@ -12,6 +12,7 @@ import {
 import { composeSystemPrompt, composeTurnPrompt } from "@/lib/prompt";
 import { effortFor, taskOf } from "@/lib/task";
 import { shapeFor } from "@/lib/shape";
+import { lintAnswer } from "@/lib/lint";
 import { visualFor } from "@/lib/visual";
 import { allStyles, findStyle, isTeaching } from "@/lib/styles";
 import { findMode, modeFor } from "@/lib/modes";
@@ -340,6 +341,8 @@ export default function Page() {
       modelId: string,
       /** Set only when the app chose the model rather than the person. */
       routedWhy?: string,
+      /** Something about this one reply — see `composeTurnPrompt`. */
+      note?: string,
     ) => {
       const conv = await db.conversations.get(conversationId);
       /* Read the layers at send time rather than holding them in state. A
@@ -385,6 +388,7 @@ export default function Page() {
            someone who already has the answer points straight at it, whatever
            the instruction said. */
         teaching: isTeaching(style?.id),
+        note,
       });
       await stream.send({
         conversationId,
@@ -693,6 +697,34 @@ export default function Page() {
       // new one streams beneath it, so a worse regeneration costs nothing and
       // an aborted one costs nothing at all.
       void runTurn(activeId, parentId, history, modelId ?? message.modelId ?? threadModelId);
+    },
+    [activeId, allMessages, runTurn, threadModelId],
+  );
+
+  /**
+   * Regenerate without the packaging.
+   *
+   * `lib/lint.ts` reads a finished answer back against the house rules —
+   * the header it opened with, the "let me explain", the "hope this helps",
+   * the "probably" with no odds — and until now nothing did anything with
+   * what it found. This is the loop closed: the findings go back to the
+   * model as a note for one reply, quoted, so the next answer is the same
+   * answer without the parts the rules are about. The old one stays on
+   * screen as a branch, the way every regeneration does.
+   */
+  const tighten = React.useCallback(
+    async (message: Message) => {
+      if (!activeId) return;
+      const history = pathTo(allMessages ?? [], message.parentId);
+      const asked = [...history].reverse().find((m) => m.role === "user");
+      const findings = lintAnswer(blockText(message.content), asked ? blockText(asked.content) : undefined);
+      if (!findings.length) return;
+      const note = [
+        "Your previous reply to this broke these rules. Give the same answer without them:",
+        ...findings.map((f) => `- ${f.rule} — it had "${f.found}". ${f.why}.`),
+      ].join("\n");
+      const modelId = message.modelId && message.modelId !== CALCULATOR ? message.modelId : threadModelId;
+      void runTurn(activeId, message.parentId, history, modelId, undefined, note);
     },
     [activeId, allMessages, runTurn, threadModelId],
   );
@@ -1310,6 +1342,8 @@ export default function Page() {
                 onRegenerate={regenerate}
                 onSaveToNote={keepAsNote}
                 onContinue={() => void send([{ type: "text", text: CONTINUE_PROMPT }])}
+                onTighten={tighten}
+                onFollowUp={(text) => void send([{ type: "text", text }])}
                 onVerify={verify}
                 verifyingId={verifyingId}
                 onOpenInCanvas={keepAsCanvas}

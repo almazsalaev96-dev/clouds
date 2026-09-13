@@ -4,9 +4,10 @@ import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Copy,
-  Download, MoreHorizontal, NotebookPen, PanelRight, Pencil, RefreshCw, ShieldQuestion,
+  Download, MoreHorizontal, NotebookPen, PanelRight, Pencil, RefreshCw, Scissors, ShieldQuestion,
   SquarePen, Volume2, X,
 } from "lucide-react";
+import type { Finding } from "@/lib/lint";
 import type { ChatError, Message as Msg } from "@/lib/types";
 import { CALCULATOR, getModel, formatTokens, MODELS } from "@/lib/models";
 import { blockText } from "@/lib/db";
@@ -199,6 +200,19 @@ export const UserMessage = React.memo(UserMessageImpl);
 
 /* ----------------------------------------------------------- assistant ---- */
 
+/* Written as the person would type them, because they are sent as the person.
+   Each names a move rather than a topic, which is what lets the same six sit
+   under any answer: "simpler" means something after an explanation of tax
+   and after an explanation of a regex. */
+const FOLLOW_UPS: { label: string; text: string }[] = [
+  { label: "Simpler", text: "Explain that more simply — assume I'm new to this." },
+  { label: "Example", text: "Give me one concrete example of that." },
+  { label: "Steps", text: "Show me the steps, one at a time." },
+  { label: "Why?", text: "Why is that? What's the reasoning underneath?" },
+  { label: "Quiz me", text: "Quiz me on this — one question at a time, and mark my answers." },
+  { label: "Harder", text: "Take this a level up: the harder case, or what comes next." },
+];
+
 function AssistantMessageImpl({
   message,
   siblings,
@@ -208,6 +222,9 @@ function AssistantMessageImpl({
   onSaveToNote,
   onOpenInCanvas,
   onContinue,
+  onTighten,
+  onFollowUp,
+  findings,
   onSwitchModel,
   onVerify,
   verifying,
@@ -225,6 +242,12 @@ function AssistantMessageImpl({
   onOpenInCanvas: (text: string) => void;
   /** Ask for the rest, when the answer ran out of room. */
   onContinue?: () => void;
+  /** Regenerate without the packaging the linter found. Shown only with findings. */
+  onTighten?: (message: Msg) => void;
+  /** Send one of the canned follow-ups as the next turn. Set on the last answer only. */
+  onFollowUp?: (text: string) => void;
+  /** What the linter found in this answer, if it is the last one. */
+  findings?: Finding[];
   /** Open the model picker, when this one refused and another might not. */
   onSwitchModel?: () => void;
   /** Ask a model from another provider whether this answer is right. */
@@ -392,6 +415,26 @@ function AssistantMessageImpl({
 
       {message.verdict && <SecondOpinion verdict={message.verdict} />}
 
+      {/* What to ask next, one press each. The things a tutor offers after an
+          explanation and the things a person types most often after one:
+          simpler, an example, the steps, why, test me, harder. They send a
+          real message in the person's own turn, so the transcript shows what
+          was asked and nothing is done behind their back. Last answer only —
+          on an earlier one they would be asking about the wrong thing. */}
+      {isLast && onFollowUp && !message.error && !computed && text && (
+        <div className="mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Follow up">
+          {FOLLOW_UPS.map((f) => (
+            <button
+              key={f.label}
+              onClick={() => onFollowUp(f.text)}
+              className="btn-touch press h-8 rounded-full border border-line bg-surface px-3 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Not every action is equal, so they are not drawn equal. Copy and
           regenerate are what people reach for; the rest live one click deeper
           rather than making you read seven identical icons to find the two.
@@ -426,6 +469,16 @@ function AssistantMessageImpl({
             disabled={verifying}
           >
             <ShieldQuestion size={14} />
+          </IconButton>
+        )}
+        {/* The loop the linter closes. It reads the finished answer back
+            against the house rules — the header it opened with, the "let me
+            explain", the "probably" with no odds — and this asks for the same
+            answer without them. It appears only when there is something to
+            cut; a control that is always there is one that is never read. */}
+        {onTighten && findings && findings.length > 0 && (
+          <IconButton label={`Tighten — ${findings[0].rule}`} size={28} onClick={() => onTighten(message)}>
+            <Scissors size={14} />
           </IconButton>
         )}
         <DropdownMenu.Root>
