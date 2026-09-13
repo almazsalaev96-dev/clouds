@@ -15,6 +15,7 @@ import { offerUndo } from "@/lib/undo";
 import { useSettings, type Section } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { IconButton, Kbd, Tooltip } from "@/components/ui/primitives";
+import { Segmented } from "@/components/ui/Segmented";
 
 /* All of them, in one list.
    Code used to sit in the header as half of a switch, on the argument that
@@ -142,26 +143,51 @@ export function Sidebar({
             </div>
           </div>
 
-          {/* Destinations, above the history that fills the rest of the panel. */}
-          <nav aria-label="Sections" className="space-y-0.5 px-2 pb-1">
-            {SECTIONS.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => onGoToSection(s.id)}
-                aria-current={section === s.id}
-                className={cn(
-                  "tap flex h-8 w-full items-center gap-2 rounded-md px-2 text-sm transition-colors duration-[var(--dur-fast)]",
-                  section === s.id
-                    ? "bg-accent-subtle font-medium text-primary"
-                    : "text-secondary hover:bg-canvas hover:text-primary",
-                )}
-              >
-                <span className={cn("shrink-0", section === s.id ? "text-accent" : "text-tertiary")}>
-                  {s.icon}
-                </span>
-                {s.label}
-              </button>
-            ))}
+          {/* Destinations, above the history that fills the rest of the panel.
+
+              The fill travels between rows rather than blinking from one to
+              the next. When the rooms were a segmented switch in the header
+              they had this already, and moving them into the list dropped it
+              — the mark for "you are here" vanished from one row and appeared
+              on another, and the eye had to go and find it. The same control
+              that slides the switch in the canvas tabs slides it here, which
+              is also why it does not animate on the first paint: where you are
+              should be settled before the question is asked. */}
+          <nav aria-label="Sections" className="px-2 pb-1">
+            <Segmented
+              value={section}
+              indicatorClassName="rounded-md bg-accent-subtle shadow-none"
+              /* `gap`, not `space-y`. The indicator is the first child of this
+                 box, so `space-y-*` — which margins every sibling after the
+                 first — would push the whole list down by one step the moment
+                 the indicator appeared, and it appears one frame late because
+                 it is positioned from a measurement. Absolutely positioned
+                 children are not flex items, so `gap` skips it. */
+              className="flex flex-col gap-0.5"
+            >
+              {SECTIONS.map((s) => {
+                const on = section === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    data-on={on}
+                    onClick={() => onGoToSection(s.id)}
+                    aria-current={on}
+                    className={cn(
+                      "tap flex h-8 w-full items-center gap-2 rounded-md px-2 text-sm transition-colors duration-[var(--dur-fast)]",
+                      // The row only changes the colour of its ink; the fill
+                      // underneath it is the one element that moves.
+                      on ? "font-medium text-primary" : "text-secondary hover:bg-canvas hover:text-primary",
+                    )}
+                  >
+                    <span className={cn("shrink-0", on ? "text-accent" : "text-tertiary")}>
+                      {s.icon}
+                    </span>
+                    {s.label}
+                  </button>
+                );
+              })}
+            </Segmented>
           </nav>
 
           {/* A hairline and a label, so the destinations above and the history

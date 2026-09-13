@@ -55,20 +55,20 @@ const { ctx, page } = await open("no-preference");
 
 console.log("\nThe selection slides");
 {
-  /* On a canvas's file tabs, which is the last place this component lives.
-     It measured the composer's Chat/Creative switch once; that became automatic
-     and went. It then measured the sidebar's room switch; the rooms became rows
-     in the navigation list and that went too. File tabs are the honest subject
-     and always were the better one — pressing one changes which file you are
-     editing, not which page you are on, so the indicator stays put and can
-     actually be watched. */
+  /* On a canvas's file tabs — and scoped to `main`, which is the whole reason
+     this comment is longer than it was. There are two of these components on
+     the page again now that the navigation rows have one, the sidebar comes
+     first in the document, and `.first()` quietly changed which control this
+     block was measuring. Pressing a file tab changes which file you are
+     editing rather than which page you are on, so the indicator stays put
+     while the rest of the page does not, which is what makes it watchable. */
   await page.locator("aside nav").getByRole("button", { name: "Creative" }).first().click();
   await page.waitForTimeout(700);
   await page.getByRole("button", { name: /^Flashcards/ }).first().click();
   await page.waitForTimeout(2600);
 
   const where = async () => {
-    const box = await page.locator(".relative.isolate > span[aria-hidden]").first().boundingBox();
+    const box = await page.locator("main .relative.isolate > span[aria-hidden]").first().boundingBox();
     return box ? Math.round(box.x) : null;
   };
   const before = await where();
@@ -90,10 +90,79 @@ console.log("\nThe selection slides");
   const between = track.filter((x) => x !== null && x > lo && x < hi);
   check(between.length > 0, "and it is caught in between on the way, rather than arriving instantly",
     `${before} → ${between.join(" → ")} → ${after}`);
-  const t = await page.locator(".relative.isolate > span[aria-hidden]").first().evaluate((n) => getComputedStyle(n).transitionDuration);
+  const t = await page.locator("main .relative.isolate > span[aria-hidden]").first().evaluate((n) => getComputedStyle(n).transitionDuration);
   check(t !== "0s", "because it is a transition and not a jump", t);
 
   await page.locator("aside nav").getByRole("button", { name: "Conversations" }).first().click();
+  await page.waitForTimeout(600);
+}
+
+console.log("\nAnd so does the room you are in");
+{
+  /* The rooms used to be a segmented switch in the header and had this for
+     free; moving them into the navigation list as rows dropped it, and for a
+     while the mark for "you are here" vanished off one row and appeared on
+     another with nothing joining the two. This is the same component, so it
+     is the same measurement — down the list rather than across it. */
+  const nav = page.locator("aside nav");
+  const where = async () => {
+    const box = await nav.locator(".relative.isolate > span[aria-hidden]").first().boundingBox();
+    return box ? Math.round(box.y) : null;
+  };
+
+  await nav.getByRole("button", { name: "Conversations" }).click();
+  await page.waitForTimeout(600);
+  const before = await where();
+  check(before !== null, "the rooms have one indicator, not a fill per row", `y=${before}`);
+
+  const top = await nav.getByRole("button", { name: "Conversations" }).boundingBox();
+  check(before !== null && Math.abs(before - Math.round(top.y)) <= 1,
+    "and it sits on the row that is on", `indicator ${before}, row ${Math.round(top.y)}`);
+
+  /* Sampled from inside the page, on animation frames, rather than by asking
+     across the wire eight times. Two things make the round trip the wrong
+     instrument here and neither applies to the file tabs above: a room change
+     also starts a view transition, which holds the main thread long enough
+     that whole 100ms stretches go unpainted, and each query costs more than
+     the gap it is trying to resolve. In-page the frames are whatever the
+     browser actually drew. */
+  await page.evaluate(() => {
+    window.__track = [];
+    const el = document.querySelector("aside nav .relative.isolate > span[aria-hidden]");
+    const t0 = performance.now();
+    const tick = () => {
+      window.__track.push(Math.round(el.getBoundingClientRect().y));
+      if (performance.now() - t0 < 900) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+  await nav.getByRole("button", { name: "Creative" }).click();
+  await page.waitForTimeout(1300);
+  const track = await page.evaluate(() => window.__track);
+  const after = await where();
+  check(after !== before, "pressing another room moves it down the list", `${before} → ${after}`);
+
+  const row = await nav.getByRole("button", { name: "Creative" }).boundingBox();
+  check(after !== null && Math.abs(after - Math.round(row.y)) <= 1,
+    "and it arrives on that row rather than near it", `indicator ${after}, row ${Math.round(row.y)}`);
+
+  /* "Somewhere that is neither end", not "between the two ends". The easing is
+     a spring and it overshoots — the frame after the midpoint of this move is
+     four pixels *past* the row it is landing on — so a filter that only
+     accepts positions strictly between the endpoints throws away the clearest
+     evidence of travel there is and calls the result a jump. */
+  const moving = track.filter((y) => y !== before && y !== after);
+  check(moving.length > 0, "having been caught on the way rather than arriving instantly",
+    `${before} → ${moving.join(" → ")} → ${after}`);
+
+  /* The rows keep their own marks too. The fill travelling is the change; the
+     accent on the icon and the weight of the label are what say which row it
+     has arrived on once it has stopped moving, and they are what a screen
+     reader never sees either way — hence `aria-current`. */
+  check(await nav.locator('[aria-current="true"]').count() === 1,
+    "exactly one row says it is the current one, in words rather than in colour");
+
+  await nav.getByRole("button", { name: "Conversations" }).click();
   await page.waitForTimeout(600);
 }
 
@@ -147,6 +216,18 @@ console.log("\nAnd all of it can be refused");
     "with reduced motion the room change does not start a transition at all");
   const named = await p2.locator("main.vt-room").evaluate((n) => getComputedStyle(n).viewTransitionName);
   check(named === "none", "and nothing is named, so nothing can be animated as itself", named);
+  /* The indicator too. A view transition is refused by the code that starts
+     one; this is a CSS transition on a class, so what refuses it is the
+     blanket rule at the end of globals.css that caps every duration in the
+     document at a hundredth of a millisecond. Which is why the number to
+     assert is "near enough nothing" and not "0s" — the rule does not remove
+     the transition, it makes it finish before it can be seen, and a test that
+     insisted on a literal zero would have been failing an escape that works. */
+  const slide = await p2
+    .locator("aside nav .relative.isolate > span[aria-hidden]")
+    .first()
+    .evaluate((n) => parseFloat(getComputedStyle(n).transitionDuration));
+  check(slide < 0.01, "and the selection arrives instead of travelling", `${slide}s`);
   await c2.close();
 }
 
