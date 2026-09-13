@@ -42,7 +42,7 @@ function bodyScore(query: string, body?: string): number {
 }
 
 /** Ties broken here when two groups score the same, so the order is stable. */
-const GROUP_ORDER = ["Actions", "Go to", "View", "Models", "Chats", "Projects", "Code", "Notebook"];
+const GROUP_ORDER = ["Actions", "Go to", "View", "Models", "Chats", "Projects", "Artifacts", "Notebook"];
 /** No single kind of thing may fill the list and bury the rest. */
 const PER_GROUP = 5;
 
@@ -220,7 +220,7 @@ export function CommandPalette({
     const nav: Command[] = (
       [
         ["chat", "Chats", <MessageSquare key="c" size={15} />],
-        ["code", "Code", <Code2 key="k" size={15} />],
+        ["code", "Artifacts", <Code2 key="k" size={15} />],
         ["creative", "Creative", <Sparkles key="v" size={15} />],
         ["projects", "Projects", <FolderOpen key="j" size={15} />],
         ["notebook", "Notebook", <NotebookPen key="n" size={15} />],
@@ -262,7 +262,7 @@ export function CommandPalette({
       hint: c.content.split("\n").find((l) => l.trim()) ?? "Empty",
       body: c.content,
       icon: <Code2 size={15} />,
-      group: "Code",
+      group: "Artifacts",
       run: () => actions.open("code", c.id),
     }));
 

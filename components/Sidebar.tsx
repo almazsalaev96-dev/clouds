@@ -36,7 +36,13 @@ const SECTIONS: { id: Section; label: string; icon: React.ReactNode }[] = [
   { id: "chat", label: "Conversations", icon: <MessagesSquare size={18} /> },
   { id: "projects", label: "Projects", icon: <FolderOpen size={18} /> },
   { id: "notebook", label: "Notebook", icon: <NotebookPen size={18} /> },
-  { id: "code", label: "Code", icon: <Code2 size={18} /> },
+  /* "Artifacts", not "Code". The room holds web apps, documents and code
+     files, and since a request in the chat lands here as a running thing it
+     mostly holds things that are not code at all — a deck of cards, a
+     timetable, a tracker. Claude calls this drawer Artifacts and is right
+     to: the name has to cover everything the app makes, and "Code" sent
+     everyone who was not a programmer straight past it. */
+  { id: "code", label: "Artifacts", icon: <Code2 size={18} /> },
   { id: "creative", label: "Creative", icon: <Sparkles size={18} /> },
 ];
 

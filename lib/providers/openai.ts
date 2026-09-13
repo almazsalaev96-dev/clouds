@@ -1,6 +1,6 @@
 import type { ChatRequest, StreamEvent, StopReason, ProviderId } from "../types";
 import { getModel, estimateCost } from "../models";
-import { classifyError, sseData, sseLines, textOf, imagesOf, baseUrlFor } from "./shared";
+import { classifyError, sseData, sseLines, usableTurns, baseUrlFor } from "./shared";
 
 /**
  * OpenAI and DeepSeek share a wire format, so one adapter serves both. The
@@ -23,23 +23,20 @@ export async function* streamOpenAICompatible(
   const system = [req.systemPrompt, req.turnPrompt].filter(Boolean).join("\n\n");
   if (system) messages.push({ role: "system", content: system });
 
-  for (const m of req.messages) {
-    if (m.role === "system") continue;
-    const text = textOf(m);
-    const images = m.role === "user" ? imagesOf(m) : [];
-    if (images.length && model.vision) {
+  for (const t of usableTurns(req.messages)) {
+    if (t.images.length && model.vision) {
       messages.push({
-        role: m.role,
+        role: t.role,
         content: [
-          ...images.map((i) => ({
+          ...t.images.map((i) => ({
             type: "image_url",
             image_url: { url: `data:${i.mimeType};base64,${i.data}` },
           })),
-          ...(text ? [{ type: "text", text }] : []),
+          ...(t.text ? [{ type: "text", text: t.text }] : []),
         ],
       });
     } else {
-      messages.push({ role: m.role, content: text });
+      messages.push({ role: t.role, content: t.text });
     }
   }
 

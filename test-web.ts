@@ -3,9 +3,11 @@
    checked here rather than through a browser.
 
      npx jiti test-web.ts */
+import { BASE_CSS } from "./lib/base";
 import { assembleWeb, locate, webTemplate, ENTRY } from "./lib/web";
 import type { CanvasFile } from "./lib/types";
 
+const BASE_LINES = new Set(BASE_CSS.split("\n"));
 let failed = 0;
 const check = (p: boolean, l: string, d = "") => { if (!p) failed++; console.log(`${p ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
 
@@ -42,6 +44,13 @@ console.log("\nEvery line of every file can be found again");
       // Blank and duplicated lines cannot be told apart by content; skip them.
       if (text.trim().length < 6) continue;
       if (own.filter((l) => l === text).length > 1) continue;
+      /* And now the document carries lines the app wrote rather than the
+         person: every page assembled here gets the base stylesheet first,
+         so that it looks like something whether or not the model that made
+         it bothered to design. `body {` is in both, and searching by text
+         finds the app's copy. Same reason as the line above — two lines
+         that read alike cannot be told apart by reading them. */
+      if (BASE_LINES.has(text)) continue;
       const at = docLines.findIndex((l) => l === text);
       if (at === -1) continue;   // escaped, or not inlined
       const got = locate(map, at + 1);

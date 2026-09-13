@@ -1,6 +1,6 @@
 import type { ChatRequest, StreamEvent, StopReason } from "../types";
 import { getModel, estimateCost } from "../models";
-import { classifyError, sseData, sseLines, textOf, imagesOf, baseUrlFor } from "./shared";
+import { classifyError, sseData, sseLines, usableTurns, baseUrlFor } from "./shared";
 import { thinkingBudget } from "./thinking";
 
 export async function* streamGoogle(
@@ -13,22 +13,13 @@ export async function* streamGoogle(
   // Gemini calls the assistant "model" and merges consecutive same-role turns,
   // so the transcript is folded before it is sent.
   const contents: { role: string; parts: unknown[] }[] = [];
-  for (const m of req.messages) {
-    if (m.role === "system") continue;
-    const role = m.role === "assistant" ? "model" : "user";
+  for (const t of usableTurns(req.messages)) {
     const parts: unknown[] = [];
-    if (m.role === "user") {
-      for (const img of imagesOf(m)) {
-        parts.push({ inline_data: { mime_type: img.mimeType, data: img.data } });
-      }
+    for (const img of t.images) {
+      parts.push({ inline_data: { mime_type: img.mimeType, data: img.data } });
     }
-    const text = textOf(m);
-    if (text) parts.push({ text });
-    if (!parts.length) continue;
-
-    const last = contents[contents.length - 1];
-    if (last && last.role === role) last.parts.push(...parts);
-    else contents.push({ role, parts });
+    if (t.text) parts.push({ text: t.text });
+    contents.push({ role: t.role === "assistant" ? "model" : "user", parts });
   }
 
   const body: Record<string, unknown> = {

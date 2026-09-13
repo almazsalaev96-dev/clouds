@@ -52,7 +52,7 @@ console.log("\nIt still finds things");
 
 console.log("\nOn a file, a sentence changes the file");
 {
-  await page.locator("aside nav").getByRole("button", { name: "Code" }).first().click();
+  await page.locator("aside nav").getByRole("button", { name: "Artifacts" }).first().click();
   await page.waitForTimeout(500);
   await page.getByRole("button", { name: /Code file/ }).click();
   await page.waitForTimeout(1000);

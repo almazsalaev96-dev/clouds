@@ -104,7 +104,7 @@ check(chat.length === 0, "every run of text in the chat can be reached", chat.ma
 
 console.log("\nThe same, in the other places the app puts text");
 
-await page.locator("aside nav").getByRole("button", { name: "Code" }).click();
+await page.locator("aside nav").getByRole("button", { name: "Artifacts" }).click();
 await page.waitForTimeout(500);
 const newFile = page.getByRole("button", { name: /Code file/ }).first();
 if (await newFile.count()) {

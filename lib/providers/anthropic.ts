@@ -1,6 +1,6 @@
 import type { ChatRequest, StreamEvent, StopReason } from "../types";
 import { getModel, estimateCost } from "../models";
-import { classifyError, sseData, sseLines, textOf, imagesOf, baseUrlFor } from "./shared";
+import { classifyError, sseData, sseLines, usableTurns, baseUrlFor } from "./shared";
 import { thinkingBudget } from "./thinking";
 
 export async function* streamAnthropic(
@@ -10,23 +10,33 @@ export async function* streamAnthropic(
 ): AsyncGenerator<StreamEvent> {
   const model = getModel(req.modelId);
 
-  const messages = req.messages
-    .filter((m) => m.role !== "system")
-    .map((m) => {
-      const content: unknown[] = [];
-      if (m.role === "user") {
-        for (const img of imagesOf(m)) {
-          content.push({
-            type: "image",
-            source: { type: "base64", media_type: img.mimeType, data: img.data },
-          });
-        }
-      }
-      const text = textOf(m);
-      if (text) content.push({ type: "text", text });
-      return { role: m.role, content: content.length ? content : [{ type: "text", text: "" }] };
-    })
-    .filter((m) => m.content.length > 0);
+  /* Empty blocks and repeated roles are rejected outright here, so the
+     transcript is put in order before it is sent rather than hopefully. The
+     old fallback — an empty text block for a message with no content — was
+     a 400 with a friendly name on it. */
+  const messages = usableTurns(req.messages).map((t) => {
+    const content: unknown[] = [];
+    for (const img of t.images) {
+      content.push({
+        type: "image",
+        source: { type: "base64", media_type: img.mimeType, data: img.data },
+      });
+    }
+    if (t.text) content.push({ type: "text", text: t.text });
+    return { role: t.role, content };
+  });
+
+  if (!messages.length) {
+    yield {
+      type: "error",
+      error: {
+        kind: "unknown",
+        message: "There is nothing in this conversation to send. Try saying it again.",
+        action: "retry",
+      },
+    };
+    return;
+  }
 
   const body: Record<string, unknown> = {
     model: model.apiName,
@@ -89,9 +99,17 @@ export async function* streamAnthropic(
     : null;
   if (budget) {
     body.thinking = { type: "enabled", budget_tokens: budget };
+  } else if (req.params.topP < 1) {
+    /* One or the other, never both. Claude 4 and later reject a request
+       carrying `temperature` and `top_p` together — which is what every
+       call from the canvas, the notebook and the titler was sending, so
+       "ask for a change" on a non-thinking model failed every time with
+       "the model didn't return a usable revision". Top-p only when it has
+       been narrowed on purpose; otherwise temperature, which is the one
+       the app's own controls actually expose. */
+    body.top_p = req.params.topP;
   } else {
     body.temperature = req.params.temperature;
-    body.top_p = req.params.topP;
   }
 
   const res = await fetch(`${baseUrlFor("anthropic", "https://api.anthropic.com")}/v1/messages`, {

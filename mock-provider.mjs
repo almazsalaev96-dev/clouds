@@ -197,6 +197,50 @@ createServer(async (req, res) => {
       .filter((c) => c.type === "image").length,
   };
 
+  /* The mock refuses what the real one refuses.
+     ---------------------------------------------------------------------
+     A mock that accepts anything proves the app talks to itself, not to
+     Anthropic. Two whole classes of failure lived behind that: an empty
+     text block, which the API rejects outright, and `temperature` with
+     `top_p`, which Claude 4 rejects outright. Between them they broke the
+     chat after its first failed turn and broke every "ask for a change" in
+     the canvas — and the suite was green throughout. So the rules the API
+     actually enforces are enforced here, and a request that breaks one is
+     a 400 with the API's own wording rather than a passing test.
+
+     Alternation is the house rule of the three: the API merges consecutive
+     turns rather than refusing them, but a transcript that arrives already
+     in order is the only one whose token count and cache prefix are what
+     the app thinks they are. */
+  const problem = (() => {
+    if (body.temperature !== undefined && body.top_p !== undefined)
+      return "`temperature` and `top_p` cannot both be specified for this model. Please use only one.";
+    if (body.temperature !== undefined && body.thinking)
+      return "`temperature` may not be used with extended thinking.";
+    const ms = body.messages;
+    if (!Array.isArray(ms) || ms.length === 0) return "messages: at least one message is required";
+    let expect = "user";
+    for (let i = 0; i < ms.length; i++) {
+      const m = ms[i];
+      const blocks = Array.isArray(m.content) ? m.content : [{ type: "text", text: m.content }];
+      if (!blocks.length) return `messages.${i}.content: must not be empty`;
+      for (let j = 0; j < blocks.length; j++) {
+        const b = blocks[j];
+        if (b && b.type === "text" && !String(b.text ?? "").trim())
+          return `messages.${i}.content.${j}.text: text content blocks must be non-empty`;
+      }
+      if (m.role !== expect)
+        return `messages.${i}: roles must alternate between "user" and "assistant", but found "${m.role}" where "${expect}" was expected`;
+      expect = expect === "user" ? "assistant" : "user";
+    }
+    return null;
+  })();
+  if (problem) {
+    res.writeHead(400, { "content-type": "application/json" });
+    res.end(JSON.stringify({ type: "error", error: { type: "invalid_request_error", message: problem } }));
+    return;
+  }
+
   /* Armed by /__fail. Titles are spared: an error on the little naming call
      would be a second failure the test did not ask for, and it arrives after
      the answer, so it would land on whichever message came next. */

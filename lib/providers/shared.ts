@@ -82,6 +82,14 @@ export function classifyError(
   else if (status === 408 || status === 504) kind = "timeout";
   else if (status >= 500) kind = "provider_down";
 
+  /* The provider's own words, for the cases this cannot name.
+     "Something went wrong talking to Anthropic" is true of every failure
+     and useful for none of them: the one time it appeared in earnest it was
+     hiding a one-line description of exactly what was wrong with the
+     request. Quoted rather than paraphrased, trimmed to a sentence, and
+     only where nothing more specific is known. */
+  const detail = reasonFrom(body);
+
   const messages: Record<ErrorKind, string> = {
     no_key: `No ${name} key yet. Add one to use this model.`,
     bad_key: `${name} rejected your API key.`,
@@ -93,7 +101,9 @@ export function classifyError(
     provider_down: `${name} is having trouble on their end.`,
     network: `Couldn't reach ${name}. Check the connection — this did not look like a key problem.`,
     timeout: `${name} took too long to respond.`,
-    unknown: `Something went wrong talking to ${name}.`,
+    unknown: detail
+      ? `${name} refused the request: ${detail}`
+      : `Something went wrong talking to ${name}.`,
   };
 
   const actions: Record<ErrorKind, ChatError["action"]> = {
@@ -123,6 +133,32 @@ export function classifyError(
   return { kind, message: messages[kind], action: actions[kind], retryAfterMs, detail: body.slice(0, 600) };
 }
 
+/**
+ * One sentence of a provider's error body, or nothing.
+ *
+ * Every provider wraps its reason differently and all of them wrap it in
+ * JSON; this digs out the human half and stops there. Truncated, stripped
+ * of newlines, and never shown for the kinds that already have a sentence
+ * of their own — a message that ends in a hundred characters of stack
+ * trace is one nobody reads.
+ */
+function reasonFrom(body: string): string | null {
+  let text = body.trim();
+  if (!text) return null;
+  try {
+    const parsed = JSON.parse(text) as Record<string, unknown>;
+    const err = (parsed.error ?? parsed) as Record<string, unknown>;
+    const m = err.message ?? (err as { error?: { message?: unknown } }).error?.message;
+    if (typeof m === "string" && m.trim()) text = m.trim();
+  } catch {
+    /* Not JSON: an HTML error page or a proxy's plain text. */
+  }
+  if (/<html|<!doctype/i.test(text)) return null;
+  const one = text.replace(/\s+/g, " ").trim();
+  if (!one) return null;
+  return one.length > 200 ? one.slice(0, 197) + "…" : one;
+}
+
 export function textOf(m: Message): string {
   return m.content
     .map((b) => (b.type === "text" ? b.text : b.type === "file" ? `${b.name}\n${b.text}` : ""))
@@ -132,6 +168,58 @@ export function textOf(m: Message): string {
 
 export function imagesOf(m: Message) {
   return m.content.filter((b): b is Extract<typeof b, { type: "image" }> => b.type === "image");
+}
+
+export interface Turn {
+  role: "user" | "assistant";
+  text: string;
+  images: ReturnType<typeof imagesOf>;
+}
+
+/**
+ * The transcript, in the shape every provider will actually accept.
+ *
+ * This is the fix for the worst bug this app has had. A chat is a tree of
+ * rows in a database, and a database is happy to hold things an API is not:
+ * an answer that thought and then said nothing, a question whose answer
+ * failed and was never stored, a row emptied by an abort. Sent as they are,
+ * those produce a message with an empty text block and two questions in a
+ * row — and Anthropic rejects both outright. So the first failure in a
+ * thread poisoned every turn after it: the error was reported as
+ * "something went wrong", the person retried, the same malformed history
+ * went out, and the conversation was dead for good. Every section that
+ * talks to a model went the same way, because they all come through here.
+ *
+ * Three rules, and they are the three the APIs impose:
+ *
+ *  - A turn with nothing in it is not a turn. Empty text, no image: gone.
+ *  - Roles alternate. Two questions in a row are one question, joined, and
+ *    the same for two answers.
+ *  - A conversation opens with a question. A leading answer is dropped
+ *    rather than sent, because there is nothing for it to be an answer to.
+ *
+ * Kept here rather than in each adapter so the three cannot drift, which is
+ * how one of them ended up sending `{ type: "text", text: "" }` as a
+ * deliberate fallback for a message with no content.
+ */
+export function usableTurns(messages: Message[]): Turn[] {
+  const turns: Turn[] = [];
+  for (const m of messages) {
+    if (m.role === "system") continue;
+    const role = m.role === "assistant" ? "assistant" : "user";
+    const images = role === "user" ? imagesOf(m) : [];
+    const text = textOf(m).trim();
+    if (!text && !images.length) continue;
+    const last = turns[turns.length - 1];
+    if (last && last.role === role) {
+      last.text = [last.text, text].filter(Boolean).join("\n\n");
+      last.images = [...last.images, ...images];
+      continue;
+    }
+    turns.push({ role, text, images });
+  }
+  while (turns.length && turns[0].role === "assistant") turns.shift();
+  return turns;
 }
 
 /**

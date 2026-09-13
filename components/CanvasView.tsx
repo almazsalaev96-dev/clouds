@@ -124,10 +124,10 @@ export function CanvasView({
   if (!canvas) {
     return (
       <SectionIndex
-        title="Code"
+        title="Artifacts"
         newLabel="New canvas"
-        emptyTitle="No canvases yet."
-        emptyHint="A canvas is a document you and the model both edit. Ask for a change and it comes back revised in place, with a diff, instead of pasted into the conversation."
+        emptyTitle="Nothing made yet."
+        emptyHint="Everything you make lands here: a page built from a conversation, a document, a file. Ask for a change and it comes back revised in place, with a diff, rather than pasted into the chat."
         loading={canvases === undefined}
         lead={<Starters onSelect={onSelect} />}
         items={(canvases ?? []).map((c) => ({

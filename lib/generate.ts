@@ -1,4 +1,6 @@
 import { complete, extractJson, type Progress } from "./complete";
+import { BASE_BRIEF } from "./base";
+import { modeFor } from "./modes";
 export { complete, cheapestAvailable, extractJson, type Progress } from "./complete";
 
 export interface DraftCard {
@@ -82,6 +84,14 @@ export async function reviseCanvas(
   progress?: Progress,
 ): Promise<string | null> {
   const what = kind === "doc" ? "document" : `${lang ?? "code"} file`;
+  /* An empty canvas is not a revision.
+     "Revise the ts file below" with nothing below is a request a model can
+     only answer badly: it asks what to revise, or writes prose about what it
+     would write, and the canvas reports that it "didn't return a usable
+     revision" - which is true and tells nobody the file was empty. A blank
+     page asked for something is a request to write it. */
+  if (!current.trim()) return writeFresh(instruction, kind, lang, modelId, rules, progress);
+
   const context = siblings?.length
     ? `\n\nReference material, to read and not to return. Do NOT include any of it in your answer.\n\n` +
       siblings
@@ -116,6 +126,59 @@ ${current.slice(0, 60_000)}`;
      of noise in it is a diff people stop reading. */
   const trailing = /\n$/.test(current) ? "\n" : "";
   return (fenced ? fenced[1] : out).replace(/\s+$/, "") + trailing;
+}
+
+/**
+ * The first draft, on a page with nothing on it yet.
+ *
+ * The same call as a revision from the caller's side — it returns the whole
+ * document or nothing — but the instruction is the opposite one: there is
+ * nothing to preserve, so the model is asked to write rather than to edit.
+ *
+ * And when what was asked for is a thing rather than a file — "make me a
+ * web", "build me a tracker" — it is written as a page this app can run, on
+ * the same base stylesheet everything else built here gets. A canvas that
+ * answers "make me a web" with TypeScript is answering a different question.
+ */
+async function writeFresh(
+  instruction: string,
+  kind: "code" | "doc" | "web",
+  lang: string | undefined,
+  modelId?: string,
+  rules?: string,
+  progress?: Progress,
+): Promise<string | null> {
+  const runnable = kind !== "doc" && (lang === "html" || modeFor(instruction) === "creative");
+  const what = kind === "doc" ? "document" : runnable ? "HTML document" : `${lang ?? "code"} file`;
+  const prompt = runnable
+    ? `Write a complete, self-contained HTML document that does what is asked. It will be run as it is.
+
+Rules:
+- Return the document and nothing else: no preamble, no explanation, no markdown fence.
+- One file. Styles in a <style>, behaviour in a <script>. No network requests and no CDN.
+- Never touch localStorage or sessionStorage; it runs on an opaque origin and they throw.
+- ${BASE_BRIEF}
+- Design it like something people pay for: a clear title, one thing that matters with room around it, spacing on a 4px scale, no more than four type sizes, one primary action and everything else quiet. Empty and done states designed rather than blank.
+- It must work with a keyboard and on a phone: real focus styles, targets no smaller than 44px, a layout that still makes sense at 360px wide.
+- Light and dark both, and never say something is right or wrong with colour alone.
+- Give it a <title> that names the thing.
+- Put any sample data in one array or object at the top of the script, under a comment saying that is the part to edit.
+
+WHAT TO MAKE
+${instruction}${houseRules(rules)}`
+    : `Write the ${what} described below.
+
+Rules:
+- Return the complete ${what} and nothing else. No preamble, no explanation, no "here is".
+${kind === "code" ? "- Do not wrap the answer in a markdown fence unless the file itself is markdown." : ""}
+
+WHAT TO WRITE
+${instruction}${houseRules(rules)}`;
+
+  const out = await complete(prompt, { modelId, maxTokens: 16_000, temperature: 0.4, ...progress });
+  if (!out) return null;
+  const fenced = out.match(/^\s*```[\w.-]*\n([\s\S]*?)\n?```\s*$/);
+  return (fenced ? fenced[1] : out).replace(/\s+$/, "") + "\n";
 }
 
 /**
