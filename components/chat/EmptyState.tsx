@@ -93,7 +93,7 @@ export function EmptyState({
               name and the greeting are two announcements; on one line they are
               a signature at the head of a letter, which is the whole idea. */}
           <h1
-            className="display flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[2rem] text-primary anim-rise sm:text-[2.5rem]"
+            className="display flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[1.75rem] text-primary anim-rise sm:text-3xl"
             suppressHydrationWarning
           >
             <Mark size={42} className="text-primary" />

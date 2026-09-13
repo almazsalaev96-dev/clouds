@@ -340,8 +340,18 @@
   /* Wider than prose, for a page-shaped sheet and its toolbar. */
   --measure-wide: 52rem;
   --sidebar-w: 260px;
-  --topbar-h: 48px;
-  --panel-w: clamp(26rem, 34vw, 40rem);
+  /* 56, not 48. A top bar holds the controls you reach for without looking,
+     and 48 puts a 44pt target inside a 48px strip — two pixels of air above
+     and below it, which is how a bar ends up feeling like something you have
+     to aim at. Mobile takes 52: the same reasoning, minus the eight pixels a
+     phone cannot spare from the page. */
+  --topbar-h: 52px;
+  /* Narrower than it was by a long way. `clamp(26rem, 34vw, 40rem)` is 416px
+     at its floor and 640 at its ceiling — on a wide screen the side panel was
+     taking as much width as the conversation, which makes a panel a second
+     column rather than a margin note. 320-380 is the band a supporting panel
+     belongs in. */
+  --panel-w: clamp(20rem, 26vw, 23.75rem);
 
   /* --- Syntax. Six hues, low saturation. A code block should read as one
          calm object, not a Christmas tree. --- */
@@ -545,6 +555,14 @@
 :root[data-density="compact"] { --density: 0.75; }
 :root[data-density="spacious"] { --density: 1.25; }
 
+/* The bar gets its other four pixels once there is a window to spend them in.
+   A phone is short and the top bar is the one strip of it that is never the
+   content; a desktop is not short and a 56px bar is the difference between
+   controls that sit in a bar and controls that fill it. */
+@media (min-width: 768px) {
+  :root { --topbar-h: 56px; }
+}
+
 /* --- Expose tokens to Tailwind's utility generator. --------------------- */
 @theme inline {
   --color-canvas: var(--bg-canvas);
@@ -642,6 +660,15 @@
   --text-xl--line-height: 1.4;
   --text-2xl: 1.5rem;
   --text-2xl--line-height: 1.3333;
+  /* Above the ladder rather than on it, and deliberately.
+     Everything up to `2xl` is the scale an *answer* is set in, and it tops
+     out at 24 because that is where a heading inside a message should stop.
+     A page's own title is a different job: it names the room you are in, it
+     appears once, and nothing above it competes. 34 is the middle of the
+     30-36 band a page title wants and it is 2.125x the body, so it still
+     belongs to the same ratio rather than being a number picked by eye. */
+  --text-3xl: 2.125rem;
+  --text-3xl--line-height: 1.2;
   --text-code: 0.875rem;
   --text-code--line-height: 1.6;
 

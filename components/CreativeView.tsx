@@ -39,7 +39,11 @@ export function CreativeView({
 
   return (
     <div className="mx-auto w-full max-w-[var(--measure-wide)] px-4 py-8">
-      <h1 className="text-xl font-medium text-primary">Make something</h1>
+      {/* The room's own title, on the page-title step rather than on the
+          answer ladder. It was `text-xl`, which is now 20px — the size of an
+          h2 inside a reply, for the one heading on an otherwise empty
+          page. */}
+      <h1 className="text-[1.75rem] font-medium leading-tight text-primary sm:text-3xl">Make something</h1>
       <p className="mt-1 text-sm text-secondary">
         Press one and it is built and running a second later, with a half-written
         instruction under it for filling in your own material.
