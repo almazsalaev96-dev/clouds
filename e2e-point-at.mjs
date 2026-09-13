@@ -77,9 +77,9 @@ check(labels.length >= 3, "with more than one thing to do about it", labels.join
 
 console.log("\nAnd it paints the span it is talking about");
 {
-  const painted = await page.evaluate(() => Boolean(CSS.highlights?.get("armi-point")));
+  const painted = await page.evaluate(() => Boolean(CSS.highlights?.get("point-at")));
   check(painted, "the selection is registered as a browser highlight, not wrapped in a tag");
-  const spans = await page.evaluate(() => document.querySelectorAll(".prose mark, .prose .armi-point").length);
+  const spans = await page.evaluate(() => document.querySelectorAll(".prose mark, .prose .point-at").length);
   check(spans === 0, "so nothing was inserted into markdown the renderer owns", `${spans} inserted`);
 }
 
@@ -100,7 +100,7 @@ console.log("\nExplain sends the sentence itself, not a description of it");
      is released, it is the only thing left saying which sentence the answer
      coming back is about. */
   const stillLit = await page.evaluate(() => ({
-    marked: Boolean(CSS.highlights?.get("armi-point")),
+    marked: Boolean(CSS.highlights?.get("point-at")),
     selected: (getSelection()?.toString() ?? "").length,
   }));
   check(stillLit.marked, "the clause stays lit while the reply comes back");

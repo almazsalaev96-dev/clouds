@@ -93,12 +93,12 @@ let file;
   file = `${DOWN}/${dl.suggestedFilename()}`;
   if (existsSync(file)) rmSync(file);
   await dl.saveAs(file);
-  check(/^armi-backup-\d{4}-\d{2}-\d{2}\.json$/.test(dl.suggestedFilename()),
+  check(/^armis-backup-\d{4}-\d{2}-\d{2}\.json$/.test(dl.suggestedFilename()),
     "it is named so you can find it again", dl.suggestedFilename());
 
   const raw = readFileSync(file, "utf8");
   const bk = JSON.parse(raw);
-  check(bk.app === "armi" && bk.version === 1, "and says what it is");
+  check(bk.app === "armis" && bk.version === 1, "and says what it is");
   check(!raw.includes("SECRETVALUE"), "the key is not in it — a backup gets synced, a key in one is a key on a server");
   check(Array.isArray(bk.hadKeysFor) && bk.hadKeysFor.includes("anthropic"),
     "it says which providers to set up again, without saying how", JSON.stringify(bk.hadKeysFor));
@@ -169,7 +169,7 @@ console.log("\nA backup is read, not executed");
      merge its settings object into the store entire, so a file with a `keys`
      object in it wrote API keys into the browser of whoever opened it. */
   const hostile = JSON.stringify({
-    app: "armi", version: 1, exportedAt: Date.now(), hadKeysFor: [],
+    app: "armis", version: 1, exportedAt: Date.now(), hadKeysFor: [],
     settings: {
       keys: { anthropic: "sk-ant-stolen", openai: "sk-stolen" },
       theme: { not: "a theme" },
@@ -184,7 +184,7 @@ console.log("\nA backup is read, not executed");
   await page.getByRole("button", { name: "Data", exact: true }).click();
   await page.waitForTimeout(400);
   await page.setInputFiles('input[aria-label="Choose a backup to bring back"]', {
-    name: "armi-backup-hostile.json", mimeType: "application/json", buffer: Buffer.from(hostile),
+    name: "armis-backup-hostile.json", mimeType: "application/json", buffer: Buffer.from(hostile),
   });
   await page.waitForTimeout(1800);
   const settings = await page.evaluate(() => {
@@ -213,6 +213,42 @@ console.log("\nA backup is read, not executed");
     settings.systemPrompt.slice(0, 40));
 }
 
+console.log("\nA backup written before the rename");
+{
+  /* The app has been called Clouds, Armi and Astra, and a backup taken under
+     any of those names is somebody's only copy of their work. A rename that
+     refuses to read them turns the format tag into a trapdoor. */
+  const old = JSON.stringify({
+    app: "armi", version: 1, exportedAt: Date.now(), hadKeysFor: [],
+    settings: {},
+    data: {
+      notes: [{
+        id: "old-note-1", title: "Kept", pinned: false,
+        content: "# Kept\n\nWritten when the app had a different name.",
+        createdAt: Date.now(), updatedAt: Date.now(),
+      }],
+    },
+  });
+  await page.keyboard.press("Control+,");
+  await page.waitForTimeout(700);
+  await page.getByRole("button", { name: "Data", exact: true }).click();
+  await page.waitForTimeout(400);
+  await page.setInputFiles('input[aria-label="Choose a backup to bring back"]', {
+    name: "armi-backup-2024-01-01.json", mimeType: "application/json", buffer: Buffer.from(old),
+  });
+  await page.waitForTimeout(2200);
+  const kept = await page.evaluate(async () => {
+    const d = await new Promise((r) => { const q = indexedDB.open("clouds"); q.onsuccess = () => r(q.result); });
+    const row = await new Promise((r) => {
+      const q = d.transaction(["notes"]).objectStore("notes").get("old-note-1");
+      q.onsuccess = () => r(q.result);
+    });
+    d.close();
+    return row?.title ?? null;
+  });
+  check(kept === "Kept", "still restores, under the name it was written with", kept ?? "NOT FOUND");
+}
+
 console.log("\nA file that is not one of ours");
 {
   await page.keyboard.press("Control+,");
@@ -223,7 +259,7 @@ console.log("\nA file that is not one of ours");
     name: "notes.json", mimeType: "application/json", buffer: Buffer.from('{"hello":"world"}'),
   });
   await page.waitForTimeout(900);
-  const msg = (await page.locator("[role='dialog']").innerText()).match(/not an Armi backup[^\n]*/)?.[0];
+  const msg = (await page.locator("[role='dialog']").innerText()).match(/not an Armis backup[^\n]*/)?.[0];
   check(Boolean(msg), "is refused, and told why", msg ?? "NOTHING");
 }
 

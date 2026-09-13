@@ -1,15 +1,15 @@
 import type { MetadataRoute } from "next";
 
 /**
- * Added to the Home Screen, Armi should open as an app rather than as a tab:
+ * Added to the Home Screen, Armis should open as an app rather than as a tab:
  * no browser chrome, its own colours behind the status bar, and its own icon.
  * `standalone` is what makes iOS treat it as an application; without a
  * manifest it stays a bookmark.
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Armi",
-    short_name: "Armi",
+    name: "Armis",
+    short_name: "Armis",
     description:
       "One interface for Claude, GPT, Gemini and DeepSeek — and the projects, web apps and notebook that come out of them.",
     start_url: "/",

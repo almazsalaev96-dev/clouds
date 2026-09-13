@@ -55,7 +55,7 @@ export function promptFor(action: PointAction, quote: string): string {
   }
 }
 
-const HIGHLIGHT = "armi-point";
+const HIGHLIGHT = "point-at";
 
 export function PointAt({
   scope,

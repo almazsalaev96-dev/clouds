@@ -13,7 +13,8 @@ import { DEFAULT_MODE } from "./modes";
  * They were, and the app has since been called Clouds, Armi and Astra — each
  * rename putting everyone's theme, model choice and unsent drafts one typo away
  * from being orphaned. A brand is a marketing decision; where a user's settings
- * live should not be. These keys are now fixed, and a rename costs nothing.
+ * live should not be. These keys are now fixed, and a rename costs nothing:
+ * the rename to Armis touched no line in this file but this sentence.
  *
  * The one-time adoption below walks the old brand keys newest-first, so a
  * browser that last used any of those names keeps its state.

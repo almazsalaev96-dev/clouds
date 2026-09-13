@@ -27,8 +27,8 @@ export function StorageNotice() {
     >
       <span className="text-sm text-primary">
         {trouble === "blocked"
-          ? "Another tab has Armi open and is holding up an update. Close the others, then reload."
-          : "This browser will not let Armi save anything — a private window, or site data switched off. Nothing you write here will survive closing the tab."}
+          ? "Another tab has Armis open and is holding up an update. Close the others, then reload."
+          : "This browser will not let Armis save anything — a private window, or site data switched off. Nothing you write here will survive closing the tab."}
       </span>
       {trouble === "blocked" && (
         <button

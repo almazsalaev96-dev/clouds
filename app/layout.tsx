@@ -4,7 +4,7 @@ import "katex/dist/katex.min.css";
 import { CrashNet } from "@/components/ui/CrashNet";
 
 export const metadata: Metadata = {
-  title: "Armi",
+  title: "Armis",
   description:
     "One interface for Claude, GPT, Gemini and DeepSeek — and the projects, web apps and notebook that come out of them.",
 };

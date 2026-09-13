@@ -47,7 +47,7 @@ const TOKENS = `/* Tokens. Every one of these is a knob: change a value here and
 
    The media query is the reader's own machine, which is the right answer once
    this folder is saved and opened somewhere else. The attribute is whatever is
-   asking to show it — Armi stamps data-theme on the root while it is in the
+   asking to show it — Armis stamps data-theme on the root while it is in the
    preview, so the page matches the app around it instead of sitting in a lit
    window inside a dark room. Guarding the query with :not([data-theme="light"])
    is what lets an explicit light choice win over a dark system. */

@@ -1,7 +1,7 @@
 /**
  * A browser that will not let the app save anything.
  *
- * Everything in Armi lives in the browser: the conversations, the notes, the
+ * Everything in Armis lives in the browser: the conversations, the notes, the
  * canvases, the keys. When IndexedDB is refused — a Firefox private window,
  * site data switched off, a locked-down profile — every query fails the same
  * quiet way: each live list renders the empty state it would show a new user,

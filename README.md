@@ -1,4 +1,4 @@
-# Armi
+# Armis
 
 One interface for Claude, GPT, Gemini and DeepSeek — plus the projects, the web
 apps and the notebook that come out of talking to them. You bring the API keys.

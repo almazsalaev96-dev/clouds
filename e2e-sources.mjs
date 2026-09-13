@@ -122,7 +122,7 @@ console.log("\nOpening a claim");
   await page.getByRole("button", { name: /Preview|Read/ }).first().click().catch(() => {});
   await page.waitForTimeout(700);
 
-  const links = page.locator('a[href^="#armi-cite-"]');
+  const links = page.locator('a[href^="#cite-"]');
   const n = await links.count();
   check(n === 3, "every claim on the page is a thing you can press", `${n} markers`);
 

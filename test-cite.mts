@@ -18,7 +18,7 @@ console.log("\nFinding what was actually quoted");
   );
   check(out.citations.length === 1, "the citation is taken out of the prose");
   check(out.citations[0].found, "and the quote is found in the source");
-  check(/\[1\]\(#armi-cite-1\)/.test(out.text), "leaving a marker a reader can press", out.text.slice(-30));
+  check(/\[1\]\(#cite-1\)/.test(out.text), "leaving a marker a reader can press", out.text.slice(-30));
   check(!out.text.includes("[[cite:"), "and nothing of the machinery on the page");
   check((out.citations[0].context ?? "").includes("nobody had forecast"),
     "with enough either side to read it as part of something");
@@ -193,7 +193,7 @@ console.log("\nThe same rules on both sides");
     "a citation nobody closed is left on the page as written rather than swallowing the rest of it", out.text);
   const two = extractCitations(
     'A [[cite: book.pdf | the quick brown fox jumps]] B [[cite: book.pdf | over the lazy dog]] C', [t]);
-  check(two.text === "A [1](#armi-cite-1) B [2](#armi-cite-2) C",
+  check(two.text === "A [1](#cite-1) B [2](#cite-2) C",
     "and two citations in a row do not run into each other", two.text);
 }
 

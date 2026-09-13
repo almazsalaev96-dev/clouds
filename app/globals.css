@@ -2141,7 +2141,7 @@ body::after {
    markdown renderer would throw away on its next pass — and unlike a wrapper
    element it can span a phrase that begins in a sentence and ends inside a
    <strong>, which is the common case and not the edge one. */
-::highlight(armi-point) {
+::highlight(point-at) {
   background: color-mix(in oklab, var(--accent-2) 22%, transparent);
   color: var(--text-primary);
 }

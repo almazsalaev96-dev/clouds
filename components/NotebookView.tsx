@@ -411,7 +411,8 @@ export function NotebookView({
   const onCiteClick = (e: React.MouseEvent) => {
     const link = (e.target as HTMLElement).closest("a");
     const href = link?.getAttribute("href") ?? "";
-    const m = href.match(/^#armi-cite-(\d+)$/);
+    // Pages written before the rename carry the old prefix in their own text.
+    const m = href.match(/^#(?:armi-)?cite-(\d+)$/);
     if (!m) return;
     e.preventDefault();
     const found = (note?.citations ?? []).find((c) => c.n === Number(m[1]));

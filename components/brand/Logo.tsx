@@ -4,7 +4,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * The Armi identity.
+ * The Armis identity.
  *
  * A signature. The brief was a fountain pen on deckle paper, and what a pen
  * writes is not a logotype — it is a name in someone's hand. So the mark is
@@ -15,9 +15,9 @@ import { cn } from "@/lib/utils";
  * It appears at most once per screen. A signature repeated is a watermark.
  *
  * There is no dot. The i is set as a dotless "ı" — the letter as a pen leaves
- * it when it does not come back up — so the word ends on the stroke rather
- * than on a punctuation mark. Nothing is drawn over the type, which also means
- * nothing to sit in the wrong place if the script ever fails to load.
+ * it when it does not come back up, before carrying straight on into the s.
+ * Nothing is drawn over the type, which also means nothing to sit in the wrong
+ * place if the script ever fails to load.
  */
 
 /** The name, set. */
@@ -26,7 +26,7 @@ export function Wordmark({
   gold = true,
   className,
 }: {
-  /** Cap height of the A, in px. The word is about 2.6× as wide. */
+  /** Cap height of the A, in px. The word is about 3.2× as wide. */
   height?: number;
   /** The gold. Off where the mark sits on a coloured ground of its own. */
   gold?: boolean;
@@ -38,25 +38,24 @@ export function Wordmark({
   return (
     <span
       role="img"
-      aria-label="Armi"
+      aria-label="Armis"
       className={cn("signature relative inline-block select-none whitespace-nowrap", className)}
       style={{ fontSize: size, height: size * 1.05, lineHeight: 1 }}
     >
-      {/* Two tones, split at the halfway point of the word: the first half in
-          the ink, the last two letters in the gold of the nib. Two spans and
-          not one gradient, because a gradient needs `color: transparent` and
-          `background-clip: text`, and in forced-colors mode that is a wordmark
-          that renders as nothing at all. */}
-      <span aria-hidden className="text-current">Ar</span>
+      {/* Two tones: the word in the ink, the last two letters in the gold of
+          the nib. Two spans and not one gradient, because a gradient needs
+          `color: transparent` and `background-clip: text`, and in forced-colors
+          mode that is a wordmark that renders as nothing at all. */}
+      <span aria-hidden className="text-current">Arm</span>
       <span
         aria-hidden
         className={gold ? "text-[var(--accent-2)]" : "text-current"}
-        // Pinyon joins its letters, and splitting the run drops the join
-        // between the r and the m. Pulling the second half back by the width
-        // of that connector puts it back.
+        // Pinyon joins its letters, and splitting the run drops the join at the
+        // cut. Pulling the second half back by the width of that connector
+        // puts it back.
         style={{ marginLeft: -size * 0.055 }}
       >
-        m{"ı"}
+        {"ı"}s
       </span>
     </span>
   );

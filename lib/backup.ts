@@ -49,8 +49,24 @@ const TABLES = [
 
 type TableName = (typeof TABLES)[number];
 
+/**
+ * What the file says it is.
+ *
+ * The tag is the product's name, so somebody who opens the JSON in an editor
+ * can tell what wrote it — which is the whole job of a format marker. The
+ * cost of that is a rename, and the rename has happened before: every name
+ * this app has shipped under is listed here and accepted on the way in, so a
+ * backup taken last year still restores. Only the first is ever written.
+ *
+ * This is the opposite call from `lib/store.ts`, deliberately. An orphaned
+ * localStorage key loses somebody's settings silently and forever; an
+ * unrecognised tag in a file is one line of code away from being recognised.
+ */
+const BACKUP_APP = "armis";
+const BACKUP_APP_NAMES = ["armis", "armi", "astra", "clouds"];
+
 export interface Backup {
-  app: "armi";
+  app: string;
   version: number;
   exportedAt: number;
   /** Which providers had a key, so a restore can tell you what to re-enter. */
@@ -98,7 +114,7 @@ export async function buildBackup(): Promise<Backup> {
   for (const k of SETTING_KEYS) if (s[k] !== undefined) settings[k] = s[k];
 
   return {
-    app: "armi",
+    app: BACKUP_APP,
     version: BACKUP_VERSION,
     exportedAt: Date.now(),
     hadKeysFor: Object.entries((s.keys ?? {}) as Record<string, string>)
@@ -158,12 +174,12 @@ export function parseBackup(text: string): Backup {
     throw new BackupError("That file is not JSON. Pick the file this app wrote.");
   }
   const b = raw as Partial<Backup>;
-  if (!b || b.app !== "armi" || typeof b.version !== "number") {
-    throw new BackupError("That is not an Armi backup.");
+  if (!b || typeof b.app !== "string" || !BACKUP_APP_NAMES.includes(b.app) || typeof b.version !== "number") {
+    throw new BackupError("That is not an Armis backup.");
   }
   if (b.version > BACKUP_VERSION) {
     throw new BackupError(
-      `That backup was written by a newer version of Armi (${b.version}). Update before restoring it.`,
+      `That backup was written by a newer version of Armis (${b.version}). Update before restoring it.`,
     );
   }
   if (!b.data || typeof b.data !== "object") throw new BackupError("That backup has no data in it.");
@@ -272,7 +288,7 @@ export async function restoreBackup(b: Backup): Promise<RestoreResult> {
 export function backupFilename(at = Date.now()): string {
   const d = new Date(at);
   const p = (n: number) => String(n).padStart(2, "0");
-  return `armi-backup-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.json`;
+  return `armis-backup-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.json`;
 }
 
 export function downloadBackup(b: Backup) {

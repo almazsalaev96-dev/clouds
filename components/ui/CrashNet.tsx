@@ -51,7 +51,7 @@ export class CrashNet extends React.Component<
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     // The console is the only place a developer will look, and the component
     // stack is the half React does not put in the message.
-    console.error("Armi crashed while rendering", error, info.componentStack);
+    console.error("Armis crashed while rendering", error, info.componentStack);
   }
 
   render() {
@@ -100,7 +100,7 @@ function Crashed({ error }: { error: Error }) {
       );
       const a = document.createElement("a");
       a.href = url;
-      a.download = `armi-rescue-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `armis-rescue-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
       setSaved("Saved to your downloads.");

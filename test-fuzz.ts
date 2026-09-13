@@ -321,7 +321,7 @@ console.log("\nCitations: markers and the stored list must stay in step");
     const out = extractCitations(raw, [source]);
     if (out.citations.length !== n) { fail("citation count does not match what was emitted", `${out.citations.length} vs ${n}`); if (++bad > 2) break; continue; }
     for (const c of out.citations) {
-      const marker = c.found ? `[${c.n}](#armi-cite-${c.n})` : `[${c.n}?](#armi-cite-${c.n})`;
+      const marker = c.found ? `[${c.n}](#cite-${c.n})` : `[${c.n}?](#cite-${c.n})`;
       if (!out.text.includes(marker)) { fail("a citation has no marker in the text", marker); if (++bad > 2) break; }
     }
     if (/\[\[cite:/.test(out.text)) { fail("raw citation syntax left on the page", out.text.slice(0, 60)); if (++bad > 2) break; }

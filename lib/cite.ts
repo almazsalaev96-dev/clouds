@@ -419,7 +419,7 @@ export function extractCitations(raw: string, sources: Source[]): Cited {
 
     /* A link, because the page is markdown and markdown already has one way to
        write "press this". The href is what the reader's click is caught by. */
-    out += `[${hit ? n : `${n}?`}](#armi-cite-${n})`;
+    out += `[${hit ? n : `${n}?`}](#cite-${n})`;
     i = pick.close + CITE_CLOSE.length;
   }
 
