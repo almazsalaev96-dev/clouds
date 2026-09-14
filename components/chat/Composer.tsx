@@ -7,9 +7,9 @@ import {
   SlidersHorizontal, Sparkles, Wand2, X,
 } from "lucide-react";
 import type { ContentBlock, Style } from "@/lib/types";
-import { AUTO, getModel, estimateTokens, formatTokens, MODELS } from "@/lib/models";
+import { getModel, estimateTokens, formatTokens } from "@/lib/models";
+import { engineOf } from "@/lib/presets";
 import { paramsFor } from "@/lib/store";
-import { ModelPicker } from "./ModelPicker";
 import { MessageBar } from "./MessageBar";
 import { fileToBase64, formatBytes, sniffKind, cn } from "@/lib/utils";
 import { isPdf, pdfBlock } from "@/lib/pdf";
@@ -36,6 +36,7 @@ export function Composer({
   streaming,
   contextTokens,
   modelId,
+  configured,
   onSend,
   onStop,
   onEditLast,
@@ -45,8 +46,10 @@ export function Composer({
   conversationId: string;
   streaming: boolean;
   contextTokens: number;
-  /** The thread's model, not the app's. */
+  /** The thread's model, not the app's. May be one of Armi's own. */
   modelId: string;
+  /** Which providers have a key, for working out what an Armi model runs on. */
+  configured: Record<string, boolean>;
   /** Kept for the context warning; the cost itself lives in the thread menu. */
   spentUsd?: number;
   onSend: (content: ContentBlock[]) => void;
@@ -60,7 +63,11 @@ export function Composer({
 }) {
   const settings = useSettings();
   const drafts = useDrafts();
-  const model = getModel(modelId);
+  /* The window belongs to the engine, and on one of Armi's own models the
+     engine is whichever one it resolves to here. Asking `getModel` about a
+     tactic returns the app default, which would draw a 200k meter under a
+     model with a million. */
+  const model = getModel(engineOf(modelId, { configured, keys: settings.keys }));
   const [attachments, setAttachments] = React.useState<Attachment[]>([]);
   const [dragging, setDragging] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);

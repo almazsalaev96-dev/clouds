@@ -15,6 +15,7 @@ import {
   backupCounts, buildBackup, downloadBackup, parseBackup, restoreBackup, say, BackupError,
 } from "@/lib/backup";
 import { useSettings, paramsFor, DEFAULT_PARAMS, forgetLocalStorage } from "@/lib/store";
+import { engineOf, getPreset } from "@/lib/presets";
 import { useReturnFocus } from "@/lib/hooks/useReturnFocus";
 import { cn } from "@/lib/utils";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
@@ -76,7 +77,7 @@ export function Settings({
           <div className="flex-1 overflow-y-auto p-5">
             {tab === "keys" && <KeysPanel configured={configured} />}
             {tab === "appearance" && <AppearancePanel />}
-            {tab === "model" && <ModelPanel />}
+            {tab === "model" && <ModelPanel configured={configured} />}
             {tab === "styles" && <StylesPanel />}
             {tab === "memory" && <MemoryPanel />}
             {tab === "shortcuts" && <ShortcutsPanel />}
@@ -277,13 +278,27 @@ function AppearancePanel() {
 
 /* --------------------------------------------------------------- model ---- */
 
-function ModelPanel() {
+function ModelPanel({ configured }: { configured: Record<string, boolean> }) {
   const s = useSettings();
-  const model = getModel(s.modelId);
-  const params = paramsFor(s.modelId);
+  /* Sampling settings belong to the engine, not to the tactic. Somebody on
+     Nova who drags the temperature is setting it for whatever Nova runs on —
+     writing it under "nova" would store a number nothing ever reads, which is
+     worse than not offering the control at all. Said in the description
+     rather than left to be discovered. */
+  const preset = getPreset(s.modelId);
+  const engineId = engineOf(s.modelId, { configured, keys: s.keys });
+  const model = getModel(engineId);
+  const params = paramsFor(engineId);
 
   return (
-    <Panel title="Model" description={`These settings are remembered per model. You're editing ${model.name}.`}>
+    <Panel
+      title="Model"
+      description={
+        preset
+          ? `These settings are remembered per engine. You are on ${preset.name}, which is running ${model.name} — this edits ${model.name}.`
+          : `These settings are remembered per model. You're editing ${model.name}.`
+      }
+    >
       <Field label="System prompt" hint="Sent at the start of every conversation.">
         <textarea
           value={s.systemPrompt}
@@ -301,7 +316,7 @@ function ModelPanel() {
           max={2}
           step={0.05}
           value={params.temperature}
-          onChange={(e) => s.setParams(s.modelId, { temperature: Number(e.target.value) })}
+          onChange={(e) => s.setParams(engineId, { temperature: Number(e.target.value) })}
           className="w-full accent-[var(--accent)]"
         />
       </Field>
@@ -313,7 +328,7 @@ function ModelPanel() {
           max={model.maxOutput}
           step={1024}
           value={Math.min(params.maxTokens, model.maxOutput)}
-          onChange={(e) => s.setParams(s.modelId, { maxTokens: Number(e.target.value) })}
+          onChange={(e) => s.setParams(engineId, { maxTokens: Number(e.target.value) })}
           className="w-full accent-[var(--accent)]"
         />
       </Field>
@@ -327,13 +342,13 @@ function ModelPanel() {
               { value: "medium", label: "Medium" },
               { value: "high", label: "High" },
             ]}
-            onChange={(v) => s.setParams(s.modelId, { reasoningEffort: v as "low" | "medium" | "high" })}
+            onChange={(v) => s.setParams(engineId, { reasoningEffort: v as "low" | "medium" | "high" })}
           />
         </Field>
       )}
 
       <button
-        onClick={() => s.setParams(s.modelId, DEFAULT_PARAMS)}
+        onClick={() => s.setParams(engineId, DEFAULT_PARAMS)}
         className="text-xs text-accent hover:underline"
       >
         Reset {model.name} to defaults

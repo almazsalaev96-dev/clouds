@@ -2,12 +2,47 @@
 
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
-import { Check, ChevronDown, Search, Star, Wand2 } from "lucide-react";
+import {
+  Check, ChevronDown, GraduationCap, Hammer, Layers, Orbit, Scale, Search, Star,
+  Telescope, Wand2, Zap,
+} from "lucide-react";
 import type { ModelSpec, ProviderId } from "@/lib/types";
 import { AUTO, MODELS, PROVIDERS, getModel } from "@/lib/models";
+import { PRESETS, getPreset, resolvePreset, shortOf, type Preset } from "@/lib/presets";
 import { ProviderMark } from "@/components/ui/ProviderMark";
 import { useSettings, paramsFor } from "@/lib/store";
 import { cn, fuzzyScore } from "@/lib/utils";
+
+/**
+ * A face for each tactic.
+ *
+ * Held here rather than in `lib/presets.ts` because that file is pure and
+ * testable and has no business importing React. The preset carries a name;
+ * this turns it into something.
+ */
+const ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+  orbit: Orbit,
+  zap: Zap,
+  telescope: Telescope,
+  layers: Layers,
+  hammer: Hammer,
+  "graduation-cap": GraduationCap,
+  scale: Scale,
+};
+
+/** The face of one Armi model, wherever it is named outside this menu. */
+export function PresetIcon({
+  id,
+  size = 13,
+  className,
+}: {
+  id: string;
+  size?: number;
+  className?: string;
+}) {
+  const Icon = ICONS[getPreset(id)?.icon ?? ""] ?? Orbit;
+  return <Icon size={size} className={className} />;
+}
 
 export function ModelPicker({
   open,
@@ -16,6 +51,7 @@ export function ModelPicker({
   onChange,
   configured,
   align = "start",
+  presets = true,
   children,
 }: {
   open?: boolean;
@@ -24,18 +60,35 @@ export function ModelPicker({
   onChange: (id: string) => void;
   configured: Record<string, boolean>;
   align?: "start" | "center" | "end";
+  /**
+   * Whether Armi's own models are on offer.
+   *
+   * Off where the caller needs a plain engine and nothing else: the revise
+   * picker hands its choice to a one-shot call that runs no tactic, so a row
+   * promising a second opinion there would promise something that cannot
+   * happen.
+   */
+  presets?: boolean;
   children?: React.ReactNode;
 }) {
   const { favorites, toggleFavorite, recentModels, keys } = useSettings();
   const [query, setQuery] = React.useState("");
   const auto = value === AUTO;
-  const model = getModel(value);
+  const where = React.useMemo(() => ({ configured, keys }), [configured, keys]);
+  /* What is actually selected: one of Armi's own models, or an engine
+     directly. `getModel` answers the app default for an id it does not know,
+     so asking it about "nova" would draw Sonnet's name under Nova's row. */
+  const preset = presets ? getPreset(value) : null;
+  const engineId = preset ? resolvePreset(value, where)!.modelId : value;
+  const model = getModel(engineId);
 
   const available = (m: ModelSpec) => configured[m.provider] || Boolean(keys[m.provider]);
+  /* A tactic needs a key — any key. Which one it lands on is its own affair. */
+  const anyKey = MODELS.some(available);
 
   const results = React.useMemo(() => {
     if (!query.trim()) return null;
-    return MODELS.map((m) => ({
+    const models = MODELS.map((m) => ({
       m,
       score: Math.max(
         fuzzyScore(query, m.name),
@@ -46,13 +99,50 @@ export function ModelPicker({
       .filter((r) => r.score > 0)
       .sort((a, b) => b.score - a.score)
       .map((r) => r.m);
-  }, [query]);
+    /* Armi's own names are searched too, and the engine's name finds them as
+       well: somebody who types "opus" and is offered Orion has learned what
+       Orion is, which is the one thing a rename can otherwise cost you. */
+    const armi = !presets
+      ? []
+      : PRESETS.map((p) => ({
+          p,
+          score: Math.max(
+            fuzzyScore(query, p.name),
+            fuzzyScore(query, p.tagline) * 0.5,
+            fuzzyScore(query, getModel(resolvePreset(p.id, where)!.modelId).name) * 0.4,
+            fuzzyScore(query, p.blurb) * 0.3,
+          ),
+        }))
+          .filter((r) => r.score > 0)
+          .sort((a, b) => b.score - a.score)
+          .map((r) => r.p);
+    return { models, armi };
+  }, [query, presets, where]);
 
   const favModels = MODELS.filter((m) => favorites.includes(m.id));
   const recent = recentModels
     .map((id) => MODELS.find((m) => m.id === id))
     .filter((m): m is ModelSpec => Boolean(m) && !favorites.includes(m!.id))
     .slice(0, 3);
+
+  const armiRow = (p: Preset) => {
+    const e = resolvePreset(p.id, where)!;
+    return (
+      <PresetRow
+        key={p.id}
+        preset={p}
+        engine={getModel(e.modelId)}
+        short={shortOf(p, where)}
+        available={anyKey}
+        selected={p.id === value}
+        onSelect={() => {
+          onChange(p.id);
+          onOpenChange?.(false);
+          setQuery("");
+        }}
+      />
+    );
+  };
 
   const row = (m: ModelSpec) => (
     <ModelRow
@@ -111,8 +201,11 @@ export function ModelPicker({
 
           <div className="max-h-[19rem] overflow-y-auto p-1">
             {results ? (
-              results.length ? (
-                results.map(row)
+              results.armi.length || results.models.length ? (
+                <>
+                  {results.armi.map(armiRow)}
+                  {results.models.map(row)}
+                </>
               ) : (
                 <p className="px-3 py-6 text-center text-xs text-tertiary">No model matches that.</p>
               )
@@ -141,8 +234,23 @@ export function ModelPicker({
                   {auto && <Check size={13} className="shrink-0 text-accent" />}
                 </button>
 
+                {/* Armi's own, which are tactics rather than weights: which
+                    engine to run on, how hard to think, how to write, and
+                    whether a second company checks the answer. Every row says
+                    what it is running on, because an app that renamed other
+                    people's models and hid whose they were would be taking
+                    credit for work it did not do. */}
+                {presets && (
+                  <Section label="Armi models">{PRESETS.map(armiRow)}</Section>
+                )}
+
                 {favModels.length > 0 && <Section label="Starred">{favModels.map(row)}</Section>}
                 {recent.length > 0 && <Section label="Recent">{recent.map(row)}</Section>}
+                {presets && (
+                  <h3 className="mt-1 border-t border-line px-2 pb-0.5 pt-2 text-tiny font-medium text-tertiary">
+                    Or an engine directly
+                  </h3>
+                )}
                 {(Object.keys(PROVIDERS) as ProviderId[]).map((p) => {
                   const shown = new Set([...favModels, ...recent].map((m) => m.id));
                   const list = MODELS.filter((m) => m.provider === p && !shown.has(m.id));
@@ -161,7 +269,15 @@ export function ModelPicker({
               screens away in Settings. Only for the models it means
               anything for, and only when one is actually selected: on Auto
               the effort is decided per message from the request. */}
-          {!auto && model.reasoning && <EffortRow modelId={value} />}
+          {!auto && model.reasoning && (
+            <EffortRow
+              /* Stored against what is selected, not against what it resolves
+                 to: "Orion thinks hard" is a fact about Orion, and writing it
+                 to Opus would change every other tactic that lands there. */
+              modelId={value}
+              fallback={preset?.effort}
+            />
+          )}
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
@@ -232,6 +348,67 @@ function ModelRow({
 }
 
 /**
+ * One of Armi's own, with the engine it is running on named underneath.
+ *
+ * The second line is the whole ethic of this feature in eleven words. Astro
+ * is Armi's; Claude Sonnet 4.5 is Anthropic's; the row says both, every time,
+ * and the person can go and pick the engine directly if they would rather.
+ * Rename without the second line and the app is claiming a laboratory it does
+ * not have.
+ */
+function PresetRow({
+  preset,
+  engine,
+  short,
+  available,
+  selected,
+  onSelect,
+}: {
+  preset: Preset;
+  engine: ModelSpec;
+  /** What it cannot do on the keys that are here, in a few words. */
+  short: string | null;
+  available: boolean;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "tap group flex w-full items-center gap-2 rounded-sm px-2 py-1.5 transition-colors duration-[var(--dur-fast)]",
+        selected ? "bg-accent-subtle" : "hover:bg-subtle",
+        !available && "opacity-45",
+      )}
+    >
+      <PresetIcon id={preset.id} size={13} className="shrink-0 text-[var(--accent-2)]" />
+      <button
+        onClick={onSelect}
+        className="focus-inset min-w-0 flex-1 rounded-md text-left"
+        aria-label={`${preset.name} — ${preset.tagline}, running on ${engine.name}`}
+      >
+        <span className="block truncate text-[0.8125rem] font-medium leading-tight text-primary">
+          {preset.name}
+        </span>
+        <span className="block truncate text-tiny text-tertiary">
+          {!available ? (
+            "No key configured yet"
+          ) : (
+            <>
+              {preset.tagline} · <span className="text-secondary">{engine.short}</span>
+              {short && <span className="text-warning"> · {short}</span>}
+            </>
+          )}
+        </span>
+      </button>
+      <span className="shrink-0 text-tertiary" aria-hidden>
+        <ProviderMark provider={engine.provider} size={11} />
+      </span>
+      {selected && <Check size={13} className="shrink-0 text-accent" />}
+    </div>
+  );
+}
+
+/**
  * How hard this model thinks, set where it is chosen.
  *
  * It lived in Settings, behind a tab, next to the temperature — which is
@@ -240,9 +417,11 @@ function ModelRow({
  * twenty, and the moment anybody wants to change it is the moment they are
  * looking at the model.
  */
-function EffortRow({ modelId }: { modelId: string }) {
+function EffortRow({ modelId, fallback }: { modelId: string; fallback?: "low" | "medium" | "high" }) {
   const setParams = useSettings((s) => s.setParams);
-  const current = paramsFor(modelId).reasoningEffort ?? "medium";
+  /* An Armi model arrives with an effort already chosen — it is half of what
+     the name means — and the row shows that until somebody overrules it. */
+  const current = paramsFor(modelId).reasoningEffort ?? fallback ?? "medium";
   const options: { id: "low" | "medium" | "high"; label: string }[] = [
     { id: "low", label: "Quick" },
     { id: "medium", label: "Normal" },

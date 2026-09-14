@@ -43,6 +43,10 @@ export function RevisePicker({ configured }: { configured: Record<string, boolea
       value={id ?? ""}
       onChange={(next) => settings.setReviseModel(next)}
       configured={configured}
+      /* Engines only. Revising runs one call with no plan behind it, so a row
+         here promising a second opinion or a register would promise something
+         this path cannot do. */
+      presets={false}
       align="end"
     >
       <button

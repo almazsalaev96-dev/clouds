@@ -83,6 +83,17 @@ const CHECKABLE: ReadonlySet<TaskKind> = new Set<TaskKind>([
   "general",
 ]);
 
+/**
+ * Whether a second opinion on this kind of work would mean anything.
+ *
+ * Exported because the Armi models ask it too: Mizar's whole tactic is a
+ * check from a second company, and a check it runs on a poem is two poems
+ * and a bill. One list, read by both, rather than two that drift.
+ */
+export function checkable(kind: TaskKind): boolean {
+  return CHECKABLE.has(kind);
+}
+
 /** Below this many turns, a run of bad luck is a run of bad luck. */
 export const ENOUGH = 4;
 /** Above this share going wrong, the next one gets checked. */

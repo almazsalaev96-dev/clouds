@@ -189,6 +189,10 @@ createServer(async (req, res) => {
     system: typeof body.system,
     temperature: body.temperature,
     topP: body.top_p,
+    /* How hard it was asked to think, which is half of what an Armi model
+       means: Nova and Orion can reach the same endpoint and must not reach it
+       with the same budget. Null when thinking was never enabled. */
+    thinking: body.thinking?.budget_tokens ?? null,
     // The system prompt as it actually arrived, flattened across both shapes
     // the adapter can send it in. A test that asks the app what it thinks it
     // sent proves nothing; this is the wire.

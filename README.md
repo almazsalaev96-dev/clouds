@@ -97,6 +97,25 @@ switching, regenerate-with-a-different-model, and models without a key dimmed wi
 reason rather than hidden. Each provider carries a small geometric mark, so which
 engine answered is legible before you start reading.
 
+**Armi models** — the picker used to be a shelf of other companies' products, and
+the question it asked — "which vendor?" — is a question about the industry rather
+than about the work. So the app names its own: **Astro** for everyday work, **Nova**
+for an answer now, **Orion** for the ones worth thinking about, **Atlas** for
+anything long, **Forge** for building things, **Sage** for learning something, and
+**Mizar**, where one company's model answers and another's checks it. Each is a
+*tactic* — an ordered list of engines it will run on, how hard it thinks, how it
+writes, and whether a second opinion is bought — so the same name works on whichever
+key you happen to hold, and picking Nova genuinely spends less than picking Orion.
+
+Three rules keep that honest, and they are the whole difference between a useful
+abstraction and a lie. The engine is named on every row, on the bar and above every
+answer, because this app trained nothing and must never look as though it did. A
+substitution is said out loud: Atlas on a machine with no Google key answers on the
+biggest window it can reach *and says so*. And the tactic is real — Forge is told to
+build rather than describe, Nova is told to be brief and thinks less, Mizar calls a
+second company or admits it cannot. The engines are all still there, one heading
+further down, for anyone who would rather pick one directly.
+
 **Compare** — send one prompt to up to three models at once. They stream in parallel
 columns, each on its own clock, and "Keep this one" points the conversation at the
 answer you chose. The other two are not discarded: they stay under `‹ 2/3 ›`.

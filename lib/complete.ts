@@ -1,6 +1,7 @@
 "use client";
 
 import { getModel } from "./models";
+import { engineOf } from "./presets";
 import { useSettings } from "./store";
 import type { ProviderId } from "./types";
 
@@ -51,7 +52,11 @@ export async function complete(
   } & Progress = {},
 ): Promise<string | null> {
   const settings = useSettings.getState();
-  const modelId = opts.modelId ?? settings.modelId;
+  /* One-shot work — a title, a set of cards, a revision — runs no tactic, so
+     an Armi model held as the app default is resolved to its engine first.
+     Without this the id goes out as "astro", nothing matches it, and the call
+     is quietly answered by whatever the registry falls back to. */
+  const modelId = engineOf(opts.modelId ?? settings.modelId, { configured: {}, keys: settings.keys });
   const provider = getModel(modelId).provider;
 
   /* Outside the try, so an abort mid-stream can still hand back what arrived. */

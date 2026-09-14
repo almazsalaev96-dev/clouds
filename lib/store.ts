@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ModelParams, ProviderId } from "./types";
-import { DEFAULT_MODEL_ID } from "./models";
+import { DEFAULT_PRESET_ID } from "./presets";
 import { AUTO_STYLE } from "./register";
 import { DEFAULT_MODE } from "./modes";
 
@@ -195,7 +195,13 @@ export const DEFAULT_SETTINGS = {
   density: "comfortable",
   section: "chat",
   lastConversationId: null,
-  modelId: DEFAULT_MODEL_ID,
+  /* One of Armi's own, rather than a particular company's model. A fresh
+     install that opened on "Claude Sonnet 4.5" was asking a question about
+     the industry before anybody had typed anything; Astro is the everyday
+     tactic, it resolves to whichever engine the keys allow, and the bar says
+     which one that turned out to be. `DEFAULT_MODEL_ID` is still what the
+     registry falls back to for an id it does not recognise. */
+  modelId: DEFAULT_PRESET_ID,
   reviseModelId: null,
   systemPrompt: "",
   styleId: AUTO_STYLE,

@@ -11,9 +11,10 @@ import { useSettings } from "@/lib/store";
 import { formatCost, formatTokens } from "@/lib/models";
 import { cn } from "@/lib/utils";
 import { IconButton, Tooltip } from "@/components/ui/primitives";
-import { ModelPicker } from "./ModelPicker";
+import { ModelPicker, PresetIcon } from "./ModelPicker";
 import { ProviderMark } from "@/components/ui/ProviderMark";
 import { AUTO, getModel } from "@/lib/models";
+import { getPreset, resolvePreset } from "@/lib/presets";
 import { paramsFor } from "@/lib/store";
 
 export function TopBar({
@@ -62,12 +63,16 @@ export function TopBar({
   onModelPickerOpenChange: (o: boolean) => void;
   onModelChange: (id: string) => void;
 }) {
-  const { sidebarOpen, toggleSidebar } = useSettings();
+  const { sidebarOpen, toggleSidebar, keys } = useSettings();
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState("");
   const inProject = conversation?.projectId ?? (conversation ? null : pendingProject) ?? null;
-  const model = getModel(modelId);
-  const reasoning = paramsFor(modelId).reasoningEffort;
+  /* One of Armi's own, or an engine picked directly. The bar names both: the
+     tactic is what was chosen and the engine is who is answering, and an app
+     that showed only the first would be claiming a model it did not build. */
+  const preset = getPreset(modelId);
+  const model = getModel(preset ? resolvePreset(modelId, { configured, keys })!.modelId : modelId);
+  const reasoning = paramsFor(modelId).reasoningEffort ?? preset?.effort;
   const effort = reasoning ? { low: "Quick", medium: "Normal", high: "Hard" }[reasoning] : "";
 
   return (
@@ -103,13 +108,28 @@ export function TopBar({
         align="start"
       >
         <button
-          aria-label={modelId === AUTO ? "Model: chosen automatically" : `Model: ${model.name}`}
+          aria-label={
+            modelId === AUTO
+              ? "Model: chosen automatically"
+              : preset
+                ? `Model: ${preset.name}, running on ${model.name}`
+                : `Model: ${model.name}`
+          }
           className="btn-touch focus-inset flex h-8 min-w-0 shrink items-center gap-1 rounded-md px-1.5 text-[0.8125rem] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
         >
           {modelId === AUTO ? (
             <>
               <Wand2 size={12} className="shrink-0 text-[var(--accent-2)]" />
               <span className="truncate">Auto</span>
+            </>
+          ) : preset ? (
+            <>
+              <PresetIcon id={preset.id} size={12} className="shrink-0 text-[var(--accent-2)]" />
+              <span className="truncate">{preset.name}</span>
+              {/* Who is actually answering, where there is room for it. Not a
+                  footnote in Settings: the one place this could mislead is the
+                  one place it is written down. */}
+              <span className="hidden text-tertiary sm:inline">{model.short}</span>
             </>
           ) : (
             <>

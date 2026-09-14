@@ -24,6 +24,7 @@ import { allStyles, findStyle, isTeaching } from "@/lib/styles";
 import { findMode, modeFor } from "@/lib/modes";
 import { builtDocument, titleOf } from "@/lib/built";
 import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, estimateTokens, getModel } from "@/lib/models";
+import { engineOf, getPreset, makers, resolvePreset, shapePlan } from "@/lib/presets";
 import { costOf, fitToContext } from "@/lib/context";
 import { cheapestAvailable, complete } from "@/lib/complete";
 import { useSettings, useDrafts, paramsFor, type Section } from "@/lib/store";
@@ -328,7 +329,10 @@ export default function Page() {
 
   const modelUsable = React.useCallback(
     (id: string) => {
-      const p = getModel(id).provider;
+      /* Through the tactic first: an Armi model is usable when *something* it
+         can run on has a key, which is not the same question as whether one
+         particular engine does. */
+      const p = getModel(engineOf(id, { configured, keys: settings.keys })).provider;
       return Boolean(configured[p] || settings.keys[p]);
     },
     [configured, settings.keys],
@@ -528,12 +532,30 @@ export default function Page() {
       conversationId: string,
       parentId: string | null,
       history: Message[],
-      modelId: string,
+      /** What was picked: an engine, or one of Armi's own models. */
+      picked: string,
       /** Set only when the app chose the model rather than the person. */
       routedWhy?: string,
       /** Something about this one reply — see `composeTurnPrompt`. */
       note?: string,
     ) => {
+      /* An Armi model is a tactic, and this is where it becomes a request:
+         which engine it runs on given the keys that are here, how hard it
+         thinks, how it writes, and whether a second company checks it.
+         Resolved here rather than at the call sites because there are eight
+         of them — regenerate, retry, tighten, edit — and one that forgot
+         would send "nova" to a provider as a model name. */
+      const preset = getPreset(picked);
+      const engine = preset
+        ? resolvePreset(picked, {
+            configured,
+            keys: settings.keys,
+            hasImage: history.some((m) => m.content.some((b) => b.type === "image")),
+            size: history.reduce((n, m) => n + costOf(m), 0),
+          })
+        : null;
+      const modelId = engine?.modelId ?? picked;
+
       const conv = await db.conversations.get(conversationId);
       /* Read the layers at send time rather than holding them in state. A
          project's instructions can be edited in another tab, and a turn should
@@ -573,7 +595,17 @@ export default function Page() {
         theirs: history.filter((m) => m.role === "user").map((m) => blockText(m.content)),
         tooLong: autoStyle ? await complaints("long") : 0,
       });
-      const plan = withPast(first, await pastFor(first.kind, modelId));
+      /* The request decides most of it; the tactic decides the rest. What the
+         person typed about *this* turn always wins — somebody on Sage who
+         asks for it short gets it short. */
+      const shaped = shapePlan(withPast(first, await pastFor(first.kind, modelId)), preset, {
+        autoStyle,
+        twoMakers: makers({ configured, keys: settings.keys }).length >= 2,
+      });
+      /* And an effort they set on the tactic itself, from the picker, which is
+         the one part of an Armi model they can overrule without leaving it. */
+      const own = preset ? paramsFor(picked).reasoningEffort : undefined;
+      const plan = own ? { ...shaped, effort: own } : shaped;
       planRef.current = { plan, modelId, at: Date.now() };
       const mode = findMode(plan.mode);
       /* The register the plan chose, or the one the person chose. */
@@ -605,7 +637,9 @@ export default function Page() {
            someone who already has the answer points straight at it, whatever
            the instruction said. */
         teaching: isTeaching(style?.id),
-        note,
+        /* What this tactic is for, said to the model rather than only to the
+           person who picked it. Forge builds because it is told to build. */
+        note: [note, preset?.stance].filter(Boolean).join("\n\n") || undefined,
       });
       /* Said on the answer, like the model's reason: an app that quietly
          changes how it writes to you is an app whose answers you cannot
@@ -615,7 +649,15 @@ export default function Page() {
         plan.register && plan.register.why && style
           ? `${style.name}, because ${plan.register.why}`
           : "";
-      const why = [routedWhy, registerWhy].filter(Boolean).join(" · ");
+      /* Which Armi model this was, beside the engine that answered it. The
+         header already names the engine and the leading clause is stripped
+         from this line, so what is left reads "Claude Sonnet 4.5 · Astro" —
+         the two facts a person needs to connect the name in the bar with the
+         name over the answer, and never one without the other. */
+      const presetWhy = preset
+        ? `${getModel(modelId).short} — ${preset.name}${engine?.why ? `, ${engine.why}` : ""}`
+        : "";
+      const why = [routedWhy || presetWhy, registerWhy].filter(Boolean).join(" · ");
 
       await stream.send({
         conversationId,
@@ -631,7 +673,7 @@ export default function Page() {
         params: { ...mode.params, ...(plan.effort ? { reasoningEffort: plan.effort } : {}) },
       });
     },
-    [stream, settings.systemPrompt, settings.styleId, settings.mode, settings.memoryOn, customStyles],
+    [stream, settings.systemPrompt, settings.styleId, settings.mode, settings.memoryOn, settings.keys, configured, customStyles],
   );
 
   /** Same rule as the model: the open thread owns it, the app holds the default. */
@@ -781,7 +823,18 @@ export default function Page() {
         setComparing({
           parentId: userMessage.id,
           history,
-          modelIds: [answering, ...compareWith],
+          /* Side by side, every column has to be an engine: the comparison is
+             about what different models say, and a tactic resolved differently
+             in each column would be comparing two things and calling it one. */
+          modelIds: [
+            engineOf(answering, {
+              configured,
+              keys: settings.keys,
+              hasImage: content.some((b) => b.type === "image"),
+              size: history.reduce((n, m) => n + costOf(m), 0),
+            }),
+            ...compareWith,
+          ],
         });
       } else {
         void runTurn(convId, userMessage.id, history, answering, decision?.why, note);
@@ -883,7 +936,10 @@ export default function Page() {
       if (!asked) return;
 
       const { checker } = await import("@/lib/route");
-      const who = checker(message.modelId ?? settings.modelId, { configured, keys: settings.keys });
+      const who = checker(
+        engineOf(message.modelId ?? settings.modelId, { configured, keys: settings.keys }),
+        { configured, keys: settings.keys },
+      );
       if (!who) {
         /* Two ways there is nobody to ask, and they need different sentences.
            One provider configured is something you can fix in Settings; an
@@ -1498,10 +1554,14 @@ export default function Page() {
          would answer. The default is at least a model that exists and is a
          plausible stand-in; asking it about "auto" was not a question with an
          answer. */
-      const id = threadModelId === AUTO ? (settings.modelId === AUTO ? DEFAULT_MODEL_ID : settings.modelId) : threadModelId;
+      const base = threadModelId === AUTO ? (settings.modelId === AUTO ? DEFAULT_MODEL_ID : settings.modelId) : threadModelId;
+      /* And the window belongs to the engine: an Armi model is a tactic, and
+         "nearly full" measured against the app default while Atlas is holding
+         a million tokens is a warning about a model nobody is talking to. */
+      const id = engineOf(base, { configured, keys: settings.keys });
       return fitToContext(path, getModel(id), paramsFor(id), threadPrompt).dropped;
     },
-    [path, threadModelId, threadPrompt, settings.modelId],
+    [path, threadModelId, threadPrompt, settings.modelId, settings.keys, configured],
   );
 
   const showEmpty = path.length === 0 && !live && !comparing;
@@ -1518,6 +1578,7 @@ export default function Page() {
       onSend={send}
       onStop={stream.stop}
       onEditLast={editLast}
+      configured={configured}
       onOpenModels={() => setModelPickerOpen(true)}
       voice={voice}
     />
