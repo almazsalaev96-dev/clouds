@@ -59,15 +59,20 @@ console.log("\nThe picker offers not choosing");
      the choice not to choose. Asserted by where it sits rather than by a
      header over it — the menu is modelled on Claude's now, and a heading
      over a single first row is furniture. */
-  const autoRow = page.locator("button").filter({ hasText: /Reads the request and picks/ }).first();
+  const autoRow = page.locator("button").filter({ hasText: /reads the request and picks/i }).first();
   const firstGroup = page.getByText("Anthropic", { exact: true }).first();
   const a = await autoRow.boundingBox();
   const g = await firstGroup.boundingBox();
   check(Boolean(a) && Boolean(g) && a.y < g.y,
     "and it is offered on its own, above the models — it is not one of them",
     a && g ? `${Math.round(a.y)} above ${Math.round(g.y)}` : "not found");
-  check((await page.getByText(/Reads the request and picks/).count()) === 1,
+  check((await page.getByText(/reads the request and picks/i).count()) === 1,
     "with what it will do said plainly");
+  /* And the part of the system that does it has a name. "Auto" says what
+     happens; "ARMI Core" says what is doing it, which is the difference
+     between a setting and a component somebody can ask about. */
+  check((await page.getByText(/ARMI Core/).count()) >= 1,
+    "and the thing that does the choosing is named");
   await page.screenshot({ path: `${OUT}/auto-picker.png` });
   await page.keyboard.press("Escape");
   await page.waitForTimeout(400);
