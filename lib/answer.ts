@@ -65,4 +65,29 @@ export const HOUSE_RULES = [
  * it sits at the front of the cached prefix and anything that varies here would
  * cost a cache miss on every turn for the whole prompt behind it.
  */
-export const HOUSE = `## How answers work here\n\n${HOUSE_RULES}`;
+/**
+ * The one thing this app can do that a model cannot do alone.
+ *
+ * A model asked for the average of two hundred numbers produces a number,
+ * and it is close, and it is wrong — and it looks exactly like a right
+ * answer, which is what makes arithmetic the most dangerous thing to be
+ * fluent at. Every big assistant solved this the same way: let the model
+ * write the computation and then actually run it.
+ *
+ * Kept deliberately narrow. A model that reaches for this on every
+ * question turns a two-line answer into a program, and the cure is worse
+ * than the disease.
+ */
+export const COMPUTE_RULE = [
+  "## Working things out",
+  "",
+  "You can run code. When an answer turns on a computation you cannot do reliably in your head — arithmetic over more than a few numbers, anything summed, counted, averaged or sorted from data in front of you, percentage change, date and time differences, unit conversion at precision, a pattern checked against cases, a simulation — write the computation as a single ```compute block instead of producing the number from memory.",
+  "",
+  "Inside the block: plain JavaScript, no imports, no network, no DOM. Put the data in the code. Print what matters with console.log, labelled, one thing per line. This app runs the block on its own and puts the real output under your reply.",
+  "",
+  "Say in one line what you are working out, then the block. Do not also guess the answer in prose: the number in the output is the answer, and a sentence beside it saying something different is the failure this exists to prevent.",
+  "",
+  "Not for arithmetic anybody does in their head, not for questions that are not about a number, and never as a way of showing code somebody asked to read — that is an ordinary fenced block.",
+].join("\n");
+
+export const HOUSE = `## How answers work here\n\n${HOUSE_RULES}\n\n${COMPUTE_RULE}`;

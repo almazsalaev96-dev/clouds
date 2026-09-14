@@ -5,6 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { PanelLeft } from "lucide-react";
 import type { ContentBlock, Message, Rating, RatingReason } from "@/lib/types";
 import { rememberRequest } from "@/lib/memory";
+import { asNote, type Outcome } from "@/lib/compute";
 import { planTurn, withPast, worthRecording, type Plan } from "@/lib/decide";
 import { useVoiceMode } from "@/lib/hooks/useVoiceMode";
 import {
@@ -960,6 +961,27 @@ export default function Page() {
     void send([{ type: "text", text: q.text }]);
   }, [activeId, send]);
 
+  /**
+   * A calculation in an answer finished. Answer again, with what it printed.
+   *
+   * This is the half that makes running code worth doing. The first reply
+   * says what it is working out and carries the computation; the app runs
+   * it; and this hands the real output back, so the reply that follows is
+   * written from the numbers rather than from a memory of them. It is the
+   * loop ChatGPT, Claude and Gemini all close, and until now this app had
+   * the first half of it only.
+   */
+  const computed = React.useCallback(
+    async (message: Message, out: Outcome) => {
+      if (!activeId || message.computedAt) return;
+      await db.messages.update(message.id, { computedAt: Date.now() });
+      const history = [...pathTo(allMessages ?? [], message.parentId), message];
+      const modelId = message.modelId && message.modelId !== CALCULATOR ? message.modelId : threadModelId;
+      void runTurn(activeId, message.id, history, modelId, undefined, asNote(out));
+    },
+    [activeId, allMessages, runTurn, threadModelId],
+  );
+
   /** Remember something the person said, from the message itself. */
   const remember = React.useCallback(
     async (text: string) => {
@@ -1606,6 +1628,7 @@ export default function Page() {
                 onVerify={verify}
                 verifyingId={verifyingId}
                 onOpenMade={showMade}
+                onComputed={computed}
                 onOpenInCanvas={keepAsCanvas}
                 onRetry={() => {
                   /* The turn that just failed, which is decided by the end of

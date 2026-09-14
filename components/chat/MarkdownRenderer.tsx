@@ -7,6 +7,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { ExternalLink } from "lucide-react";
 import { CodeBlock } from "./CodeBlock";
+import { ComputeBlock } from "./ComputeBlock";
 import { Diagram } from "./Diagram";
 import { Predict, parsePredict } from "./Predict";
 
@@ -36,6 +37,13 @@ function makeComponents(streaming: boolean): Components {
       /* A question you have to answer before the answer appears. Held back
          while the stream is running, because half a JSON object is not a
          question and a gate that flickers into existence is not one either. */
+      /* A calculation the app runs. Held back while the stream is still
+         arriving: half a program is not a program, and running it would
+         report an error about code the model had not finished writing. */
+      if (match?.[1] === "compute" && !streaming) {
+        return <ComputeBlock code={text.replace(/\n$/, "")} />;
+      }
+
       if (match?.[1] === "predict" && !streaming) {
         const spec = parsePredict(text);
         if (spec) return <Predict spec={spec} />;

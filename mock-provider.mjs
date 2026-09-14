@@ -104,6 +104,24 @@ export function debounce<A extends unknown[]>(fn: (...a: A) => void, ms: number)
 
 A **throttle** enforces a floor between calls instead.`;
 
+/* Asked for a number over data, answer by working it out.
+   The app runs the block and hands the output back, so a mock that replied
+   with a number in prose would leave the whole loop untested — and the
+   number it replied with would be the exact failure the loop exists to
+   prevent. */
+const COMPUTED = `Working out the mean of the ten numbers you gave.
+
+\`\`\`compute
+const xs = [12, 47, 8, 93, 16, 55, 4, 71, 28, 60];
+const total = xs.reduce((a, b) => a + b, 0);
+console.log("count", xs.length);
+console.log("total", total);
+console.log("mean", total / xs.length);
+\`\`\``;
+
+/* And the other half: handed the output, answer with it. */
+const AFTER_COMPUTE = `The mean is 39.4, over ten numbers totalling 394.`;
+
 let lastSeen = null;
 let lastTitle = null;
 let rateLimitOnce = process.env.MOCK_RATE_LIMIT === "1";
@@ -282,6 +300,13 @@ createServer(async (req, res) => {
      a snippet or a working page. A mock that always answers with an essay
      cannot exercise the branch that tells them apart. */
   const making = /\bmake me a\b|\bbuild me a\b/i.test(asked);
+  /* A question about a number over data, and the turn that follows one.
+     `systemText` carries the per-turn note, which is where the output of a
+     calculation is handed back. */
+  const computing = /\baverage\b|\bmean of\b/i.test(asked);
+  const afterCompute = /This app ran the computation/.test(
+    [body.system, body.turnPrompt].map((x) => (typeof x === "string" ? x : JSON.stringify(x ?? ""))).join(" "),
+  );
   const drawing = /\bdraw\b|\bdiagram\b|\bflowchart\b/i.test(asked);
   const gating = /\breduce\b|\bempty list\b/i.test(asked);
   const breaking = /\bfold\b/i.test(asked);
@@ -372,6 +397,10 @@ Nothing here looks like it breaks a caller — the return type is the same array
     ? "Debouncing a search input"
     : verifying
     ? VERDICT
+    : afterCompute
+    ? AFTER_COMPUTE
+    : computing
+    ? COMPUTED
     : making_from
     ? MADE_FROM
     : asking

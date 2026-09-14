@@ -76,6 +76,15 @@ export interface Message {
   stopReason?: StopReason;
   error?: string;
   /**
+   * When the calculation in this answer was run and handed back.
+   *
+   * Set once. Without it, reopening a conversation would re-run the block
+   * (which is free and correct — it is the same code over the same data)
+   * and then ask the model to answer with it all over again, which is
+   * neither. The run is idempotent; the turn it produces is not.
+   */
+  computedAt?: number;
+  /**
    * The canvas this answer was built into, when the answer was a thing
    * rather than words. The transcript shows a card for it; the thing itself
    * runs beside the conversation and lives in Code.

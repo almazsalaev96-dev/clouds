@@ -8,6 +8,8 @@ import {
   SquarePen, ThumbsDown, ThumbsUp, Volume2, X,
 } from "lucide-react";
 import { builtDocument, titleOf, withoutBuild } from "@/lib/built";
+import { computeBlock, type Outcome } from "@/lib/compute";
+import { ComputeScope } from "./ComputeBlock";
 import type { Finding } from "@/lib/lint";
 import type { ChatError, Message as Msg, Rating, RatingReason } from "@/lib/types";
 import { CALCULATOR, getModel, formatTokens, MODELS } from "@/lib/models";
@@ -243,6 +245,7 @@ function AssistantMessageImpl({
   onRegenerate,
   onSaveToNote,
   onOpenMade,
+  onComputed,
   onOpenInCanvas,
   onContinue,
   onTighten,
@@ -264,6 +267,8 @@ function AssistantMessageImpl({
   onSaveToNote: (text: string) => void;
   /** Show the thing this answer built, running beside the thread. */
   onOpenMade?: (message: Msg) => void;
+  /** A calculation in this answer finished; answer again with what it printed. */
+  onComputed?: (message: Msg, out: Outcome) => void;
   /** Lift this answer into a canvas and open it there. */
   onOpenInCanvas: (text: string) => void;
   /** Ask for the rest, when the answer ran out of room. */
@@ -453,7 +458,23 @@ function AssistantMessageImpl({
             onEdit={() => onOpenInCanvas(text)}
           />
         </>
-      ) : text ? <Markdown content={text} /> : message.error ? null : (
+      ) : text ? (
+        /* The calculation in this answer reports its result to this answer,
+           and only from the newest one, and only once: the block re-runs
+           whenever the conversation is reopened — which is free and gives
+           the same numbers — but the turn it produces must not happen
+           twice. `computedAt` on the message is what makes that durable
+           across a reload. */
+        <ComputeScope
+          onDone={
+            isLast && onComputed && !message.computedAt && computeBlock(text)
+              ? (out) => onComputed(message, out)
+              : undefined
+          }
+        >
+          <Markdown content={text} />
+        </ComputeScope>
+      ) : message.error ? null : (
         <p className="text-sm italic text-tertiary">No response.</p>
       )}
 

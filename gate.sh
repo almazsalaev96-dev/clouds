@@ -66,6 +66,7 @@ run test-lang  npx jiti test-lang.ts
 run test-mode  npx jiti test-mode.ts
 run test-turns npx jiti test-turns.ts
 run test-decide npx jiti test-decide.ts
+run test-compute npx jiti test-compute.ts
 run test-memory npx jiti test-memory.ts
 run test-voice npx jiti test-voice.ts
 run test-built npx jiti test-built.ts
@@ -80,7 +81,7 @@ serve
 for t in e2e e2e-rest e2e-canvas e2e-web e2e-code e2e-follow e2e-agent e2e-sources e2e-auto e2e-command \
          e2e-project e2e-mode e2e-pdf e2e-editor e2e-makes e2e-bar e2e-motion \
          e2e-use e2e-scale e2e-backup e2e-error e2e-storage e2e-shape e2e-point-at e2e-draw \
-         e2e-ask e2e-crash e2e-dir e2e-keep e2e-made e2e-recover; do
+         e2e-ask e2e-crash e2e-dir e2e-keep e2e-made e2e-recover e2e-compute; do
   run "$t" node "$t.mjs"
 done
 run test-context node test-context.mjs
