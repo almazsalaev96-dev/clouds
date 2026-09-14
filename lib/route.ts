@@ -85,8 +85,8 @@ const TRAITS: Record<string, Traits> = {
   "gpt-5.1": { speed: 1, depth: 3, coding: 3 },
   "gpt-5.1-mini": { speed: 3, depth: 1, coding: 2 },
   "gpt-4.1": { speed: 2, depth: 2, coding: 2 },
-  "gemini-3-pro": { speed: 2, depth: 3, coding: 2 },
-  "gemini-2.5-flash": { speed: 3, depth: 1, coding: 1 },
+  "kimi-k2-thinking": { speed: 1, depth: 3, coding: 2 },
+  "kimi-latest": { speed: 3, depth: 1, coding: 2 },
   "deepseek-chat": { speed: 2, depth: 2, coding: 2 },
   "deepseek-reasoner": { speed: 1, depth: 3, coding: 2 },
 };
@@ -350,7 +350,7 @@ function providerOf(id: string): ProviderId | null {
   if (known) return known.provider;
   if (/^claude-/.test(id)) return "anthropic";
   if (/^(gpt-|o[1-9]|chatgpt)/.test(id)) return "openai";
-  if (/^gemini-/.test(id)) return "google";
+  if (/^(kimi-|moonshot-)/.test(id)) return "moonshot";
   if (/^deepseek-/.test(id)) return "deepseek";
   return null;
 }

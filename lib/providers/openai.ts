@@ -109,5 +109,12 @@ export async function* streamOpenAICompatible(
 export const streamOpenAI = (req: ChatRequest, key: string, signal: AbortSignal) =>
   streamOpenAICompatible(req, key, signal, "openai", baseUrlFor("openai", "https://api.openai.com/v1"));
 
+/**
+ * Moonshot speaks OpenAI's wire format exactly, so Kimi costs one line rather
+ * than one file: the same adapter, a different endpoint and key.
+ */
+export const streamMoonshot = (req: ChatRequest, key: string, signal: AbortSignal) =>
+  streamOpenAICompatible(req, key, signal, "moonshot", baseUrlFor("moonshot", "https://api.moonshot.ai/v1"));
+
 export const streamDeepSeek = (req: ChatRequest, key: string, signal: AbortSignal) =>
   streamOpenAICompatible(req, key, signal, "deepseek", baseUrlFor("deepseek", "https://api.deepseek.com/v1"));

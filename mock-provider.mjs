@@ -124,6 +124,7 @@ const AFTER_COMPUTE = `The mean is 39.4, over ten numbers totalling 394.`;
 
 let lastSeen = null;
 let lastTitle = null;
+const recent = [];
 let rateLimitOnce = process.env.MOCK_RATE_LIMIT === "1";
 let failNext = null;
 
@@ -139,7 +140,7 @@ createServer(async (req, res) => {
   // survived the context fitter, and whether a cache breakpoint was placed.
   if (req.url === "/__last") {
     res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify(lastSeen ?? {}));
+    res.end(JSON.stringify({ ...(lastSeen ?? {}), recent }));
     return;
   }
   /* Cleared so a test can ask "was a model called at all since I last looked"
@@ -147,6 +148,7 @@ createServer(async (req, res) => {
   if (req.url === "/__reset") {
     lastSeen = null;
     lastTitle = null;
+    recent.length = 0;
     res.writeHead(200, { "content-type": "application/json" });
     res.end("{}");
     return;
@@ -239,20 +241,30 @@ createServer(async (req, res) => {
       return "`temperature` and `top_p` cannot both be specified for this model. Please use only one.";
     if (body.temperature !== undefined && body.thinking)
       return "`temperature` may not be used with extended thinking.";
-    const ms = body.messages;
-    if (!Array.isArray(ms) || ms.length === 0) return "messages: at least one message is required";
+    const all = body.messages;
+    if (!Array.isArray(all) || all.length === 0) return "messages: at least one message is required";
+    /* The OpenAI wire format carries the system prompt as the first message
+       rather than as a field of its own. That is legal there and impossible
+       in Anthropic's shape — the adapter sends `system` as a field — so it is
+       skipped before alternation is judged rather than counted as a turn out
+       of order. Rejecting it was the mock inventing a rule nobody has: it
+       failed every OpenAI request that carried a system prompt, which is
+       most of them. */
+    const offset = all[0]?.role === "system" ? 1 : 0;
+    const ms = all.slice(offset);
+    if (!ms.length) return "messages: at least one message is required";
     let expect = "user";
     for (let i = 0; i < ms.length; i++) {
       const m = ms[i];
       const blocks = Array.isArray(m.content) ? m.content : [{ type: "text", text: m.content }];
-      if (!blocks.length) return `messages.${i}.content: must not be empty`;
+      if (!blocks.length) return `messages.${i + offset}.content: must not be empty`;
       for (let j = 0; j < blocks.length; j++) {
         const b = blocks[j];
         if (b && b.type === "text" && !String(b.text ?? "").trim())
-          return `messages.${i}.content.${j}.text: text content blocks must be non-empty`;
+          return `messages.${i + offset}.content.${j}.text: text content blocks must be non-empty`;
       }
       if (m.role !== expect)
-        return `messages.${i}: roles must alternate between "user" and "assistant", but found "${m.role}" where "${expect}" was expected`;
+        return `messages.${i + offset}: roles must alternate between "user" and "assistant", but found "${m.role}" where "${expect}" was expected`;
       expect = expect === "user" ? "assistant" : "user";
     }
     return null;
@@ -390,6 +402,16 @@ It goes on from there [[cite: ${name} | ${two}]]
 It also reports a figure of nine hundred percent [[cite: ${name} | the result was nine hundred percent higher than anyone expected in the third quarter]]`;
   }
 
+  /* The other half of a second opinion, bought before the answer exists
+     rather than after it. An Armi model sends the question to a model from a
+     different company and asks what a good answer has to get right; what
+     comes back has to turn up inside the *next* request, which is the only
+     assertion worth making about it. Deliberately quotable. */
+  const briefing = /^Another model is about to answer the question below/.test(asked);
+  const BRIEF = `- say what a debounce delays rather than what it prevents
+- the trailing edge is not the default
+- one case where a throttle is the right tool instead`;
+
   /* A second opinion. Comes back as JSON with a verdict, and the verdict is a
      *disagreement* on purpose: a mock that always agrees would leave the only
      interesting half of the feature — what a real disagreement looks like on
@@ -407,8 +429,19 @@ It also renamed \`out\` to \`result\`, which was not asked for.
 
 Nothing here looks like it breaks a caller — the return type is the same array.`;
 
+  /* Every call, in order, so a test can prove that one turn was two models:
+     a brief to one company and the answer to another, in that order. `__last`
+     alone can only ever show whichever was most recent. */
+  recent.push({
+    model: body.model,
+    kind: isTitle ? "title" : briefing ? "brief" : verifying ? "verify" : "answer",
+  });
+  if (recent.length > 16) recent.shift();
+
   let text = isTitle
     ? "Debouncing a search input"
+    : briefing
+    ? BRIEF
     : verifying
     ? VERDICT
     : carding

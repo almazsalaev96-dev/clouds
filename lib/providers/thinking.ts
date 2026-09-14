@@ -1,7 +1,7 @@
 /**
  * How much of a request's allowance may be spent thinking.
  *
- * Both Anthropic and Google take a thinking budget out of the same ceiling the
+ * Anthropic takes a thinking budget out of the same ceiling the
  * answer has to fit inside, so a budget set as "the ceiling minus a token" is a
  * request that thinks and then has nowhere to write. Two failures came from
  * that: twelve flashcards asked for 8192 tokens, spent 7168 of them thinking,

@@ -87,7 +87,7 @@ console.log("\nReading what a request needs");
 }
 
 console.log("\nPicking one");
-const ALL = { anthropic: true, openai: true, google: true, deepseek: true };
+const ALL = { anthropic: true, openai: true, moonshot: true, deepseek: true };
 const ctx = (over = {}) => ({ configured: ALL, keys: {}, effort: "auto", current: "claude-sonnet-4-5", ...over });
 {
   const quick = route("translate this to French: hello", ctx() as never);
@@ -123,13 +123,18 @@ console.log("\nAnd the sentence beside a sum says which kind it is");
 
 console.log("\nLong things go where they fit");
 {
-  /* 300k tokens: past Claude's 200k and DeepSeek's 128k, inside Gemini's and
-     GPT-4.1's million. Small enough to fit everywhere is not a test of
-     anything — the earlier version of this used 75k, which every configured
-     model can hold, so nothing was being filtered and the assertion was
-     passing judgement on a decision that never happened. */
+  /* 300k tokens: past Claude's 200k, Kimi's 256k and DeepSeek's 128k, inside
+     GPT-5.1's 400k and GPT-4.1's million. Small enough to fit everywhere is
+     not a test of anything — the earlier version of this used 75k, which
+     every configured model can hold, so nothing was being filtered and the
+     assertion was passing judgement on a decision that never happened.
+
+     Asserted against the window rather than against a list of names, because
+     a list of names is a second copy of the registry and goes stale the day
+     a model is added or dropped. */
+  const roomFor = (id: string) => (MODELS.find((m) => m.id === id)?.contextWindow ?? 0) >= 300_000;
   const huge = route("summarise this", { ...ctx(), extra: "word ".repeat(240_000) } as never);
-  check(/gemini|gpt-4\.1/i.test(huge.modelId), "only something with room is chosen", huge.modelId);
+  check(roomFor(huge.modelId), "only something with room is chosen", huge.modelId);
   check(/k tokens to read/.test(huge.why), "and the reason says it is about length", huge.why);
 
   // And when nothing can hold it, say so rather than sending it to be cut.
@@ -165,10 +170,10 @@ console.log("\nWhat counts as part of the request, and what only counts as lengt
   const counted = shapeOf("summarise this", { size: 300_000 });
   check(counted.size === 300_000, "a counted size is used as given rather than re-measured from a sample");
   const ordinary = route("what time is it", { ...ctx(), size: 60_000, extra: "hello ".repeat(20_000) } as never);
-  check(/haiku|mini|flash|deepseek-chat/i.test(ordinary.modelId),
+  check(/haiku|mini|kimi|deepseek-chat/i.test(ordinary.modelId),
     "and a long thread with a small question in it stays cheap", ordinary.modelId);
   const huge = route("summarise this", { ...ctx(), size: 300_000 } as never);
-  check(/gemini|gpt-4\.1/i.test(huge.modelId),
+  check((MODELS.find((m) => m.id === huge.modelId)?.contextWindow ?? 0) >= 300_000,
     "and a two-hundred-page attachment the sample never contained still picks somewhere with room", huge.modelId);
 }
 

@@ -150,7 +150,7 @@ export async function complete(
  */
 export function cheapestAvailable(configured: Record<string, boolean>): string | null {
   const settings = useSettings.getState();
-  const preference = ["claude-haiku-4-5", "gemini-2.5-flash", "gpt-5.1-mini", "deepseek-chat"];
+  const preference = ["claude-haiku-4-5", "kimi-latest", "gpt-5.1-mini", "deepseek-chat"];
   const usable = (id: string) => {
     const p = getModel(id).provider as ProviderId;
     return Boolean(configured[p] || settings.keys[p]);

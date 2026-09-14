@@ -1,8 +1,7 @@
 import type { ChatRequest, ProviderId, StreamEvent } from "../types";
 import { getModel } from "../models";
 import { streamAnthropic } from "./anthropic";
-import { streamOpenAI, streamDeepSeek } from "./openai";
-import { streamGoogle } from "./google";
+import { streamOpenAI, streamDeepSeek, streamMoonshot } from "./openai";
 
 type Adapter = (req: ChatRequest, key: string, signal: AbortSignal) => AsyncGenerator<StreamEvent>;
 
@@ -10,7 +9,7 @@ type Adapter = (req: ChatRequest, key: string, signal: AbortSignal) => AsyncGene
 const ADAPTERS: Record<ProviderId, Adapter> = {
   anthropic: streamAnthropic,
   openai: streamOpenAI,
-  google: streamGoogle,
+  moonshot: streamMoonshot,
   deepseek: streamDeepSeek,
 };
 

@@ -16,11 +16,11 @@ export const PROVIDERS: Record<
     keyUrl: "https://platform.openai.com/api-keys",
     keyPrefix: "sk-",
   },
-  google: {
-    name: "Google",
-    keyName: "GOOGLE_API_KEY",
-    keyUrl: "https://aistudio.google.com/apikey",
-    keyPrefix: "",
+  moonshot: {
+    name: "Moonshot",
+    keyName: "MOONSHOT_API_KEY",
+    keyUrl: "https://platform.moonshot.ai/console/api-keys",
+    keyPrefix: "sk-",
   },
   deepseek: {
     name: "DeepSeek",
@@ -148,33 +148,37 @@ export const MODELS: ModelSpec[] = [
     legacy: true,
   },
   {
-    id: "gemini-3-pro",
-    provider: "google",
-    apiName: "gemini-3-pro-preview",
-    name: "Gemini 3 Pro",
-    short: "Gemini 3 Pro",
-    blurb: "Huge context. Best when you paste a lot at once.",
-    contextWindow: 1_048_576,
-    maxOutput: 65_536,
-    priceIn: 2,
-    priceOut: 12,
-    vision: true,
+    id: "kimi-k2-thinking",
+    provider: "moonshot",
+    apiName: "kimi-k2-thinking",
+    name: "Kimi K2 Thinking",
+    short: "K2 Thinking",
+    blurb: "Shows its working. A very large open model, cheap for what it is.",
+    contextWindow: 256_000,
+    maxOutput: 32_000,
+    priceIn: 0.6,
+    priceOut: 2.5,
+    vision: false,
     reasoning: true,
     tools: true,
   },
   {
-    id: "gemini-2.5-flash",
-    provider: "google",
-    apiName: "gemini-2.5-flash",
-    name: "Gemini 2.5 Flash",
-    short: "2.5 Flash",
-    blurb: "Very fast, very cheap, million-token context.",
-    contextWindow: 1_048_576,
-    maxOutput: 65_536,
-    priceIn: 0.3,
-    priceOut: 2.5,
+    id: "kimi-latest",
+    provider: "moonshot",
+    apiName: "kimi-latest",
+    name: "Kimi",
+    short: "Kimi",
+    /* Moonshot prices this one by how much you send — three tiers, and what
+       is quoted here is the widest. A meter that flattered the model on a
+       short thread and understated it on a long one would be worse than a
+       number that is honest about the ceiling. */
+    blurb: "Quick, inexpensive, reads images. Priced by how much you send.",
+    contextWindow: 128_000,
+    maxOutput: 16_000,
+    priceIn: 1.4,
+    priceOut: 4.2,
     vision: true,
-    reasoning: true,
+    reasoning: false,
     tools: true,
   },
   {
@@ -218,7 +222,7 @@ export function getModel(id: string): ModelSpec {
 }
 
 export function modelsByProvider(): [ProviderId, ModelSpec[]][] {
-  const order: ProviderId[] = ["anthropic", "openai", "google", "deepseek"];
+  const order: ProviderId[] = ["anthropic", "openai", "moonshot", "deepseek"];
   return order.map((p) => [p, MODELS.filter((m) => m.provider === p)]);
 }
 

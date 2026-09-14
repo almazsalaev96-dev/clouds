@@ -24,7 +24,9 @@ import { allStyles, findStyle, isTeaching } from "@/lib/styles";
 import { findMode, modeFor } from "@/lib/modes";
 import { builtDocument, titleOf } from "@/lib/built";
 import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, estimateTokens, getModel } from "@/lib/models";
-import { engineOf, getPreset, makers, resolvePreset, shapePlan } from "@/lib/presets";
+import {
+  briefNote, briefPrompt, engineOf, getPreset, playerFor, resolveCast, shapePlan, worthBriefing,
+} from "@/lib/presets";
 import { costOf, fitToContext } from "@/lib/context";
 import { cheapestAvailable, complete } from "@/lib/complete";
 import { useSettings, useDrafts, paramsFor, type Section } from "@/lib/store";
@@ -238,9 +240,15 @@ export default function Page() {
   /* The decision the running turn was sent with, waiting for its outcome.
      A ref rather than state: nothing renders from it, and it has to be
      readable by the finish callback without re-registering it. */
-  const planRef = React.useRef<{ plan: Plan; modelId: string; at: number } | null>(null);
+  const planRef = React.useRef<{
+    plan: Plan;
+    modelId: string;
+    at: number;
+    /** The cast member that checks this answer, chosen when it was sent. */
+    checkWith?: string | null;
+  } | null>(null);
   /* `verify` is defined below and the finish callback above needs it. */
-  const verifyRef = React.useRef<((m: Message) => void) | null>(null);
+  const verifyRef = React.useRef<((m: Message, pinned?: string) => void) | null>(null);
   /* The half-sentence a starter leaves in the canvas composer. Cleared as soon
      as you leave, so it seeds the canvas it was made for and no other. */
   const [canvasSeed, setCanvasSeed] = React.useState<string | undefined>();
@@ -458,7 +466,7 @@ export default function Page() {
        enough to expect the next one to. It runs on its own rather than
        waiting to be pressed, because an answer you have to remember to
        doubt is one you will trust by accident. */
-    if (sent.plan.check === "second" && !m.error && text) verifyRef.current?.(m);
+    if (sent.plan.check === "second" && !m.error && text) verifyRef.current?.(m, sent.checkWith ?? undefined);
   });
 
   /* The column follows the conversation: open on one that built something,
@@ -546,15 +554,15 @@ export default function Page() {
          of them — regenerate, retry, tighten, edit — and one that forgot
          would send "nova" to a provider as a model name. */
       const preset = getPreset(picked);
-      const engine = preset
-        ? resolvePreset(picked, {
+      const cast = preset
+        ? resolveCast(picked, {
             configured,
             keys: settings.keys,
             hasImage: history.some((m) => m.content.some((b) => b.type === "image")),
             size: history.reduce((n, m) => n + costOf(m), 0),
           })
         : null;
-      const modelId = engine?.modelId ?? picked;
+      const modelId = cast?.answer.modelId ?? picked;
 
       const conv = await db.conversations.get(conversationId);
       /* Read the layers at send time rather than holding them in state. A
@@ -600,13 +608,17 @@ export default function Page() {
          asks for it short gets it short. */
       const shaped = shapePlan(withPast(first, await pastFor(first.kind, modelId)), preset, {
         autoStyle,
-        twoMakers: makers({ configured, keys: settings.keys }).length >= 2,
+        cast,
       });
       /* And an effort they set on the tactic itself, from the picker, which is
          the one part of an Armi model they can overrule without leaving it. */
       const own = preset ? paramsFor(picked).reasoningEffort : undefined;
       const plan = own ? { ...shaped, effort: own } : shaped;
-      planRef.current = { plan, modelId, at: Date.now() };
+      /* Who checks it, decided here rather than when the answer lands: the
+         cast is a property of the turn that went out, and a check chosen
+         afterwards from whatever keys exist at that moment is a different
+         promise from the one the row made. */
+      planRef.current = { plan, modelId, at: Date.now(), checkWith: playerFor(cast, "check") };
       const mode = findMode(plan.mode);
       /* The register the plan chose, or the one the person chose. */
       const style = findStyle(plan.register ? plan.register.id : chosenStyle, customStyles);
@@ -623,6 +635,24 @@ export default function Page() {
          spent the answer on one thing: telling a second model what to look for
          when checking the first. The classification was going into the audit
          and never into the work. */
+      /* The other model, before this one starts.
+         A second company reads the question and writes down what a good
+         answer has to get right; the writer sees that list and nothing else
+         about it. It is the cheap half of a second opinion bought at the one
+         moment it can still change the answer rather than grade it. Skipped
+         for one-liners, where it would be a second bill and a second second
+         of waiting for nothing, and never fatal: a brief that fails leaves an
+         ordinary answer rather than no answer. */
+      const briefWith = playerFor(cast, "brief");
+      let brief = "";
+      if (briefWith && worthBriefing(asked, plan)) {
+        brief = (await complete(briefPrompt(asked), {
+          modelId: briefWith,
+          maxTokens: 300,
+          temperature: 0.2,
+        }).catch(() => null)) ?? "";
+      }
+
       const task = plan.task;
       const turn = composeTurnPrompt({
         shape: task ? shapeFor(task.kind) : "",
@@ -639,7 +669,7 @@ export default function Page() {
         teaching: isTeaching(style?.id),
         /* What this tactic is for, said to the model rather than only to the
            person who picked it. Forge builds because it is told to build. */
-        note: [note, preset?.stance].filter(Boolean).join("\n\n") || undefined,
+        note: [note, preset?.stance, brief ? briefNote(brief) : ""].filter(Boolean).join("\n\n") || undefined,
       });
       /* Said on the answer, like the model's reason: an app that quietly
          changes how it writes to you is an app whose answers you cannot
@@ -655,7 +685,17 @@ export default function Page() {
          the two facts a person needs to connect the name in the bar with the
          name over the answer, and never one without the other. */
       const presetWhy = preset
-        ? `${getModel(modelId).short} — ${preset.name}${engine?.why ? `, ${engine.why}` : ""}`
+        ? [
+            `${getModel(modelId).short} — ${preset.name}`,
+            cast?.answer.why,
+            /* Only what actually happened. A cast that could not be arranged
+               on these keys must not be described as though it had been, and
+               a brief that was skipped for a three-word question did not
+               happen either. */
+            brief ? `briefed by ${getModel(briefWith!).short}` : "",
+          ]
+            .filter(Boolean)
+            .join(", ")
         : "";
       const why = [routedWhy || presetWhy, registerWhy].filter(Boolean).join(" · ");
 
@@ -819,22 +859,27 @@ export default function Page() {
           `on this device: "${fact}". Confirm that in one short line, then answer the rest of what they said, if anything.`;
       }
 
-      if (compareWith.length) {
+      /* An Armi model whose tactic is two answers rather than one. Mizar puts
+         two companies on the same question and lets the person keep the one
+         they prefer — which is the honest arrangement wherever judgement
+         decides and a verdict from a third model would only be a third
+         opinion. It runs through the same columns the Compare button uses,
+         and a comparison the person set up themselves wins over it. */
+      const where = {
+        configured,
+        keys: settings.keys,
+        hasImage: content.some((b) => b.type === "image"),
+        size: history.reduce((n, m) => n + costOf(m), 0),
+      };
+      const duelWith = compareWith.length ? null : playerFor(resolveCast(threadModelId, where), "duel");
+      if (compareWith.length || duelWith) {
         setComparing({
           parentId: userMessage.id,
           history,
           /* Side by side, every column has to be an engine: the comparison is
              about what different models say, and a tactic resolved differently
              in each column would be comparing two things and calling it one. */
-          modelIds: [
-            engineOf(answering, {
-              configured,
-              keys: settings.keys,
-              hasImage: content.some((b) => b.type === "image"),
-              size: history.reduce((n, m) => n + costOf(m), 0),
-            }),
-            ...compareWith,
-          ],
+          modelIds: [engineOf(answering, where), ...(duelWith ? [duelWith] : compareWith)],
         });
       } else {
         void runTurn(convId, userMessage.id, history, answering, decision?.why, note);
@@ -924,7 +969,7 @@ export default function Page() {
    * instead of quietly asking a sibling model and calling it independent.
    */
   const verify = React.useCallback(
-    async (message: Message) => {
+    async (message: Message, pinned?: string) => {
       if (verifyingId) {
         // Silently doing nothing reads as a broken button.
         if (verifyingId !== message.id) setNotice("One check at a time — the last one is still running.");
@@ -936,10 +981,17 @@ export default function Page() {
       if (!asked) return;
 
       const { checker } = await import("@/lib/route");
-      const who = checker(
-        engineOf(message.modelId ?? settings.modelId, { configured, keys: settings.keys }),
-        { configured, keys: settings.keys },
-      );
+      /* An Armi model names its own checker when the turn goes out, and that
+         one is used: the row promised a particular second company, and
+         choosing again now could quietly substitute another. Everything else
+         — the button on an ordinary answer — asks for the strongest model
+         somewhere other than where the answer came from. */
+      const who =
+        pinned ??
+        checker(engineOf(message.modelId ?? settings.modelId, { configured, keys: settings.keys }), {
+          configured,
+          keys: settings.keys,
+        });
       if (!who) {
         /* Two ways there is nobody to ask, and they need different sentences.
            One provider configured is something you can fix in Settings; an
@@ -980,7 +1032,7 @@ export default function Page() {
   /* Handed to the finish callback, which is declared above this and has to
      be able to ask for a check without being rebuilt every time `verify`
      changes identity. */
-  verifyRef.current = verify;
+  verifyRef.current = verify as (m: Message, pinned?: string) => void;
 
   /** Regenerating reuses the parent, so the new answer is a sibling of the old. */
   const regenerate = React.useCallback(

@@ -1,6 +1,6 @@
 /** The one internal shape every provider is normalized into. §11. */
 
-export type ProviderId = "openai" | "anthropic" | "google" | "deepseek";
+export type ProviderId = "openai" | "anthropic" | "moonshot" | "deepseek";
 
 export type Role = "user" | "assistant" | "system";
 

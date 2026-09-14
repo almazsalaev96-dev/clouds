@@ -1,6 +1,6 @@
 # Armi
 
-One interface for Claude, GPT, Gemini and DeepSeek — plus the projects, the web
+One interface for Claude, GPT, Kimi and DeepSeek — plus the projects, the web
 apps and the notebook that come out of talking to them. You bring the API keys.
 
 Built against [`prompts/MASTER_PROMPT.md`](prompts/MASTER_PROMPT.md), which is the
@@ -99,22 +99,34 @@ engine answered is legible before you start reading.
 
 **Armi models** — the picker used to be a shelf of other companies' products, and
 the question it asked — "which vendor?" — is a question about the industry rather
-than about the work. So the app names its own: **Astro** for everyday work, **Nova**
-for an answer now, **Orion** for the ones worth thinking about, **Atlas** for
-anything long, **Forge** for building things, **Sage** for learning something, and
-**Mizar**, where one company's model answers and another's checks it. Each is a
-*tactic* — an ordered list of engines it will run on, how hard it thinks, how it
-writes, and whether a second opinion is bought — so the same name works on whichever
-key you happen to hold, and picking Nova genuinely spends less than picking Orion.
+than about the work. But a new label over the same single call would have been
+packaging, so an Armi model is a **cast**: one model writes the answer and at least
+one more, *from a different company*, does a job the first cannot do for itself.
 
-Three rules keep that honest, and they are the whole difference between a useful
-abstraction and a lie. The engine is named on every row, on the bar and above every
-answer, because this app trained nothing and must never look as though it did. A
-substitution is said out loud: Atlas on a machine with no Google key answers on the
-biggest window it can reach *and says so*. And the tactic is real — Forge is told to
-build rather than describe, Nova is told to be brief and thinks less, Mizar calls a
-second company or admits it cannot. The engines are all still there, one heading
-further down, for anyone who would rather pick one directly.
+- **brief** — before the answer exists, another model reads the question and lists
+  what a good answer has to get right. The writer sees that list.
+- **check** — after it exists, another company's model reads it and reports. A model
+  asked to check its own work reproduces the reasoning that produced it and
+  pronounces it sound, which is an echo, not a check.
+- **duel** — two companies answer the same question side by side and you keep one.
+
+**Astro** is two models on every answer; **Nova** answers now and is checked while
+you read; **Orion** puts three companies on one hard question; **Atlas** holds a lot
+and has the summary read back; **Forge** builds the thing and has another company
+review it; **Sage** teaches, with a second model listing what you have to understand
+first; **Mizar** is the duel. Each carries an ordered engine list, so the same name
+works on whichever keys you hold — Astro is Sonnet writing and GPT-5.1 mini briefing
+on one machine, Kimi and DeepSeek on another, and still Astro.
+
+Three rules keep that honest, and each one is a test. The engine is named on every
+row, on the bar and above every answer, because this app trained nothing and must
+never look as though it did. A substitution is said out loud: Atlas on a machine
+with no OpenAI key answers on the biggest window it can reach *and says so*. And a
+cast member always comes from a different company or is dropped — with one key, the
+menu says "needs a second key" and no brief or check is quietly bought from a
+sibling model, which would be an echo with a second invoice. The engines are all
+still there, one heading further down, for anyone who would rather pick one
+directly.
 
 **Compare** — send one prompt to up to three models at once. They stream in parallel
 columns, each on its own clock, and "Keep this one" points the conversation at the
@@ -902,7 +914,7 @@ proportionally to its backlog. Same finish time, considerably faster to watch.
 **Errors are classified at the adapter boundary.** Each provider fails in its own
 dialect; `classifyError` turns all of them into one sentence plus one action
 (`retry`, `add_key`, `switch_model`, `shorten`). No raw provider string reaches the
-interface — including Google's habit of reporting a bad key as a 400.
+interface — including a provider's habit of reporting a bad key as a 400.
 
 Comparison falls out of the tree almost for free: each column writes against the same
 parent, so the three answers are siblings before anyone chooses between them.
@@ -1309,7 +1321,7 @@ heading, and link URLs printed in full.
   experience of something going wrong is decided — and it had no test, because
   nothing could make the mock fail on purpose. `GET /__fail?status=&body=&times=`
   arms the next answer to fail. The unit half covers the cases the function's
-  own comments call hard: Google answering an invalid key with 400, a 403 that
+  own comments call hard: a provider answering an invalid key with 400, a 403 that
   is a corporate proxy rather than a rejected key, a `retry_after` that should
   be believed over a guess. The browser half walks the failures a person
   actually meets and checks the sentence, the buttons, that **Add key** opens
@@ -1442,7 +1454,7 @@ they were most afraid of.
 
 - **No successful call to a real provider has been observed.** No valid key was
   available in this environment. Every *failure* path was exercised against the
-  real APIs — Anthropic and Google both answered and were classified correctly.
+  real APIs — two providers answered and were classified correctly.
   The success path is covered by `e2e.mjs`, which runs the whole app against a
   mock speaking Anthropic's documented SSE format: streaming, markdown,
   highlighting, usage, cost, titling, persistence and branching all verified.

@@ -17,8 +17,8 @@ const PROBES: Record<ProviderId, (key: string) => Promise<Response>> = {
     }),
   openai: (key) =>
     fetch("https://api.openai.com/v1/models", { headers: { authorization: `Bearer ${key}` } }),
-  google: (key) =>
-    fetch("https://generativelanguage.googleapis.com/v1beta/models", { headers: { "x-goog-api-key": key } }),
+  moonshot: (key) =>
+    fetch("https://api.moonshot.ai/v1/models", { headers: { authorization: `Bearer ${key}` } }),
   deepseek: (key) =>
     fetch("https://api.deepseek.com/v1/models", { headers: { authorization: `Bearer ${key}` } }),
 };

@@ -56,8 +56,9 @@ export function classifyError(
   const lower = body.toLowerCase();
   let kind: ErrorKind = "unknown";
 
-  // Google answers an invalid key with 400, not 401, so status alone is not
-  // enough to tell "your key is wrong" from "your request is wrong".
+  // Not every provider answers an invalid key with 401 — some send a 400 and
+  // say so in the body — so status alone is not enough to tell "your key is
+  // wrong" from "your request is wrong".
   const looksLikeKeyProblem =
     /api[ _-]?key[ _-]?(not valid|invalid)|invalid[ _-]?api[ _-]?key|api_key_invalid|unauthenticated|permission[ _-]?denied/.test(
       lower,

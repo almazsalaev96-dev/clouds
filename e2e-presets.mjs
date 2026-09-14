@@ -91,9 +91,15 @@ console.log("\nAnd every one of them says whose model it is running on");
      quietly becoming an ordinary model under a long-context name. */
   const atlas = await p.getByRole("button", { name: /^Atlas —/ }).first().innerText();
   check(/Opus 4\.5/.test(atlas), "one that cannot have its first choice names its second", atlas.replace(/\n/g, " · "));
-  /* And the one whose whole tactic is a second company cannot run it on one. */
+  /* Every one of these is two models or three, and on one company's key not
+     one of them can be what it says it is. Said on the row rather than
+     discovered from a bill. */
   const mizar = await p.getByRole("button", { name: /^Mizar —/ }).first().innerText();
-  check(/second company/i.test(mizar), "and the two-maker one admits it needs a second key", mizar.replace(/\n/g, " · "));
+  check(/needs a second key/i.test(mizar), "and with one key it says it cannot be itself", mizar.replace(/\n/g, " · "));
+  const footer = await p.locator("text=/writes/").first().innerText();
+  check(/Claude/.test(footer), "the menu names who writes", footer.replace(/\n/g, " · "));
+  check(/second company/i.test(await p.locator("[role=dialog], [data-radix-popper-content-wrapper]").first().innerText()),
+    "and spells out what the missing key would buy");
   await p.keyboard.press("Escape");
   await p.waitForTimeout(300);
 }
@@ -104,6 +110,24 @@ console.log("\nThe bar names both: the tactic you chose and the model answering"
   check(/Astro/.test(label ?? "") && /Claude Sonnet 4\.5/.test(label ?? ""),
     "which is the one place a rename could mislead somebody", label);
   check(/Astro/.test(await bar.innerText()), "and the name is what you read at a glance", (await bar.innerText()).replace(/\n/g, " "));
+}
+
+console.log("\nWith one company's key, the second model is dropped rather than faked");
+{
+  /* The whole value of a second model is that it is not the first one. Two
+     models from one lab share training data and usually the same blind spot,
+     so a brief or a check bought from a sibling is an echo with an invoice.
+     Nothing extra goes out here, and nothing claims to have. */
+  await pick("Astro");
+  await fetch(`${MOCK}/__reset`);
+  const one = await ask("why would you choose an event-sourced architecture over a CRUD one here");
+  check(!(one.recent ?? []).some((r) => r.kind === "brief"),
+    "no second call is made to a sibling of the model that is answering",
+    (one.recent ?? []).map((r) => `${r.kind}:${r.model}`).join(", "));
+  const shown = await p.locator(".msg").last().innerText();
+  check(/Astro/.test(shown) && !/briefed by/i.test(shown),
+    "and the answer does not say it was briefed when it was not",
+    (shown.split("\n").find((l) => /Astro/.test(l)) ?? "").slice(0, 80));
 }
 
 console.log("\nA name is not a costume: they reach different endpoints");

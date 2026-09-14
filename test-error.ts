@@ -67,12 +67,14 @@ console.log("\nEvery kind offers something to do about it");
   check(seen.size >= 9, "and the probe reached nearly every kind", [...seen.keys()].join(", "));
 }
 
-console.log("\nGoogle says 400 when it means your key is wrong");
+console.log("\nA provider that says 400 when it means your key is wrong");
 {
-  const e = at(400, '{"error":{"code":400,"message":"API key not valid. Please pass a valid API key.","status":"INVALID_ARGUMENT"}}', "google");
+  /* Not every provider answers an invalid key with 401 — some send a 400
+     whose body says so in words, which is why the body is read at all. */
+  const e = at(400, '{"error":{"code":400,"message":"Invalid API key. Please pass a valid api key.","type":"invalid_authentication_error"}}', "moonshot");
   check(e.kind === "bad_key", "a 400 that says the key is not valid is a key problem", e.kind);
   check(e.action === "add_key", "and it sends you to the key rather than to Retry", e.action ?? "none");
-  check(e.message.includes("Google"), "named by the provider it came from", e.message);
+  check(e.message.includes("Moonshot"), "named by the provider it came from", e.message);
 }
 
 console.log("\nA 403 is not automatically the key's fault");
@@ -103,7 +105,7 @@ console.log("\nWhen the provider says how long to wait, that is what is used");
 
 console.log("\nThe same failure reads the same from every provider");
 {
-  for (const p of ["anthropic", "openai", "google"] as ProviderId[]) {
+  for (const p of ["anthropic", "openai", "moonshot", "deepseek"] as ProviderId[]) {
     const e = at(401, "invalid api key", p);
     check(e.kind === "bad_key" && e.action === "add_key", `${p}: 401 is a key problem with a key action`, `${e.kind}/${e.action}`);
     check(e.message.length < 90, `${p}: and says so in one short sentence`, e.message);

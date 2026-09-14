@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import type { ModelSpec, ProviderId } from "@/lib/types";
 import { AUTO, MODELS, PROVIDERS, getModel } from "@/lib/models";
-import { PRESETS, getPreset, resolvePreset, shortOf, type Preset } from "@/lib/presets";
+import { PRESETS, getPreset, resolveCast, type Cast, type Preset, type Role } from "@/lib/presets";
 import { ProviderMark } from "@/components/ui/ProviderMark";
 import { useSettings, paramsFor } from "@/lib/store";
 import { cn, fuzzyScore } from "@/lib/utils";
@@ -79,8 +79,8 @@ export function ModelPicker({
      directly. `getModel` answers the app default for an id it does not know,
      so asking it about "nova" would draw Sonnet's name under Nova's row. */
   const preset = presets ? getPreset(value) : null;
-  const engineId = preset ? resolvePreset(value, where)!.modelId : value;
-  const model = getModel(engineId);
+  const cast = preset ? resolveCast(value, where)! : null;
+  const model = getModel(cast ? cast.answer.modelId : value);
 
   const available = (m: ModelSpec) => configured[m.provider] || Boolean(keys[m.provider]);
   /* A tactic needs a key — any key. Which one it lands on is its own affair. */
@@ -109,7 +109,7 @@ export function ModelPicker({
           score: Math.max(
             fuzzyScore(query, p.name),
             fuzzyScore(query, p.tagline) * 0.5,
-            fuzzyScore(query, getModel(resolvePreset(p.id, where)!.modelId).name) * 0.4,
+            fuzzyScore(query, getModel(resolveCast(p.id, where)!.answer.modelId).name) * 0.4,
             fuzzyScore(query, p.blurb) * 0.3,
           ),
         }))
@@ -125,24 +125,20 @@ export function ModelPicker({
     .filter((m): m is ModelSpec => Boolean(m) && !favorites.includes(m!.id))
     .slice(0, 3);
 
-  const armiRow = (p: Preset) => {
-    const e = resolvePreset(p.id, where)!;
-    return (
-      <PresetRow
-        key={p.id}
-        preset={p}
-        engine={getModel(e.modelId)}
-        short={shortOf(p, where)}
-        available={anyKey}
-        selected={p.id === value}
-        onSelect={() => {
-          onChange(p.id);
-          onOpenChange?.(false);
-          setQuery("");
-        }}
-      />
-    );
-  };
+  const armiRow = (p: Preset) => (
+    <PresetRow
+      key={p.id}
+      preset={p}
+      cast={resolveCast(p.id, where)!}
+      available={anyKey}
+      selected={p.id === value}
+      onSelect={() => {
+        onChange(p.id);
+        onOpenChange?.(false);
+        setQuery("");
+      }}
+    />
+  );
 
   const row = (m: ModelSpec) => (
     <ModelRow
@@ -269,6 +265,8 @@ export function ModelPicker({
               screens away in Settings. Only for the models it means
               anything for, and only when one is actually selected: on Auto
               the effort is decided per message from the request. */}
+          {cast && <CastRow cast={cast} />}
+
           {!auto && model.reasoning && (
             <EffortRow
               /* Stored against what is selected, not against what it resolves
@@ -358,20 +356,18 @@ function ModelRow({
  */
 function PresetRow({
   preset,
-  engine,
-  short,
+  cast,
   available,
   selected,
   onSelect,
 }: {
   preset: Preset;
-  engine: ModelSpec;
-  /** What it cannot do on the keys that are here, in a few words. */
-  short: string | null;
+  cast: Cast;
   available: boolean;
   selected: boolean;
   onSelect: () => void;
 }) {
+  const engine = getModel(cast.answer.modelId);
   return (
     <div
       className={cn(
@@ -384,7 +380,9 @@ function PresetRow({
       <button
         onClick={onSelect}
         className="focus-inset min-w-0 flex-1 rounded-md text-left"
-        aria-label={`${preset.name} — ${preset.tagline}, running on ${engine.name}`}
+        aria-label={`${preset.name} — ${preset.tagline}, running on ${engine.name}${cast.parts
+          .map((p) => ` with ${getModel(p.modelId).name} to ${JOB[p.role]}`)
+          .join("")}`}
       >
         <span className="block truncate text-[0.8125rem] font-medium leading-tight text-primary">
           {preset.name}
@@ -395,7 +393,7 @@ function PresetRow({
           ) : (
             <>
               {preset.tagline} · <span className="text-secondary">{engine.short}</span>
-              {short && <span className="text-warning"> · {short}</span>}
+              {cast.short && <span className="text-warning"> · needs a second key</span>}
             </>
           )}
         </span>
@@ -404,6 +402,44 @@ function PresetRow({
         <ProviderMark provider={engine.provider} size={11} />
       </span>
       {selected && <Check size={13} className="shrink-0 text-accent" />}
+    </div>
+  );
+}
+
+/** What each member of the cast is there to do, in the words a person uses. */
+const JOB: Record<Role, string> = {
+  brief: "brief it first",
+  check: "check it after",
+  duel: "answer it as well",
+};
+const DOES: Record<Role, string> = {
+  brief: "briefs it first",
+  check: "checks it after",
+  duel: "answers it as well",
+};
+
+/**
+ * Who is in the cast, spelled out under the menu.
+ *
+ * The rows have room for one name and an Armi model is two or three, so the
+ * one that is selected says the whole of it here: who writes, who briefs, who
+ * checks, and — when there is only one company's key in this browser — which
+ * of those cannot happen. A tactic that quietly ran with half its cast would
+ * be charging a reputation to a single call.
+ */
+function CastRow({ cast }: { cast: Cast }) {
+  return (
+    <div className="border-t border-line px-2.5 py-1.5">
+      <p className="text-tiny leading-5 text-tertiary">
+        <span className="text-secondary">{getModel(cast.answer.modelId).name}</span> writes
+        {cast.parts.map((p) => (
+          <React.Fragment key={p.role}>
+            {" · "}
+            <span className="text-secondary">{getModel(p.modelId).name}</span> {DOES[p.role]}
+          </React.Fragment>
+        ))}
+      </p>
+      {cast.short && <p className="text-tiny leading-5 text-warning">{cast.short}</p>}
     </div>
   );
 }
