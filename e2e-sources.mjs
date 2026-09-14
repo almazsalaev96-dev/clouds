@@ -71,7 +71,7 @@ console.log("\nBringing more than one thing");
      source has to survive, not a re-render. */
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(1600);
-  await page.getByRole("button", { name: /^Untitled note/ }).first().click();
+  await page.getByRole("button", { name: /^Open Untitled note/ }).first().click();
   await page.waitForTimeout(1200);
   const after = await page.locator("main").innerText();
   check(/report\.md/.test(after) && /notes\.md/.test(after),

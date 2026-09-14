@@ -157,21 +157,73 @@ console.log("\nThe council is three jobs and one answer, not three drafts");
   check(seq.indexOf(seats[seats.length - 1]) < seq.indexOf(answer),
     "the council sits before the answer is written", seq.map((r) => r.kind).join(" → "));
 
-  const w = await wire();
-  check(/three other models/i.test(w.systemText ?? ""), "and its work reaches the model that writes");
-  const halves = ["strategy", "logic", "knowledge"].filter((h) => new RegExp(`- ${h}:`).test(w.systemText ?? ""));
+  /* The synthesis is the *first* answer: this tactic checks what it wrote and
+     sends it round again, so the last request on the wire is a verdict and
+     the one after that is a second draft. `/__last` cannot see any of it. */
+  const synth = seq.find((r) => r.kind === "answer")?.system ?? "";
+  check(/three other models/i.test(synth), "and its work reaches the model that writes");
+  const halves = ["strategy", "logic", "knowledge"].filter((h) => new RegExp(`- ${h}:`).test(synth));
   check(halves.length === 3, "all three halves of it, each a different asking", halves.join(", "));
-  check(/genuinely disagree/i.test(w.systemText ?? ""),
+  check(/genuinely disagree/i.test(synth),
     "with the writer told to surface disagreement rather than average it away");
-  check(/do not mention that any of this happened/i.test(w.systemText ?? ""),
+  check(/do not mention that any of this happened/i.test(synth),
     "and to write an answer rather than a report on its own making");
-  const said = await line(/Council/);
-  check(/3 models consulted/.test(said), "the answer says how many were", said.slice(0, 100));
+  /* What is on screen is the second draft, and its line is the truth about
+     *it*: this tactic, answered again. The council is not claimed twice —
+     the revision did not convene one, and the first draft, which did, is
+     still there under ‹1/2›. */
+  const shown = await p.locator("main").innerText();
+  check(/ARMI Council/.test(shown) && /answered again/.test(shown),
+    "and the answer says which tactic wrote it and that it went round twice",
+    (shown.split("\n").find((l) => /ARMI Council/.test(l)) ?? "").slice(0, 110));
+  check(!/3 models consulted/.test(shown),
+    "without claiming a council the second draft did not hold");
   await p.screenshot({ path: `${OUT}/cast-council.png` });
+}
+
+console.log("\nAnd an objection is answered rather than printed under the answer");
+{
+  /* The difference between a critique and a correction. A verdict on its own
+     is a report — "the second paragraph is wrong", sitting under an answer
+     that is still wrong, leaving the reader to do the work. On the tactics
+     where being wrong costs something the writer is handed the objection and
+     answers again, which is what the second model was for. */
+  await pick("ARMI Quant");
+  await p.getByRole("button", { name: "New chat" }).first().click();
+  await p.waitForTimeout(350);
+  await fetch(`${MOCK}/__reset`);
+  await p.locator(".composer-shell textarea").first().fill("how does a debounce actually work, and when is it wrong");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(12000);
+
+  const seq = await calls();
+  const kinds = seq.map((r) => r.kind);
+  const verify = kinds.indexOf("verify");
+  check(verify > 0, "the answer is checked by a second company", kinds.join(" → "));
+  check(kinds.slice(verify).includes("answer"),
+    "and the objection sends it back to the model that wrote it", kinds.join(" → "));
+
+  /* The claim is about the *second* answer, which by the time the dust
+     settles is two requests old — `/__last` cannot see it. */
+  const again = seq.filter((r) => r.kind === "answer").pop();
+  check(/does not fully agree/i.test(again?.system ?? ""), "which is told what the objection was");
+  check(/> But the second paragraph calls the trailing edge the default/.test(again?.system ?? ""),
+    "quoted rather than paraphrased — the claim in conflict, exactly, and marked as somebody else's words");
+  check(/Where the objection is wrong, keep what you had/.test(again?.system ?? ""),
+    "and is not told to agree: a second model is not a truth machine");
+  check(kinds.filter((k) => k === "brief").length === 1,
+    "and the brief is not bought twice — it is a reading of the question, which has not changed",
+    kinds.join(" → "));
+
+  /* Two answers to one question, the older one still reachable. */
+  const shown = await p.locator("main").innerText();
+  check(/2\/2|1\/2/.test(shown), "the first answer is not thrown away", (shown.match(/\d\/\d/) ?? ["none"])[0]);
+  await p.screenshot({ path: `${OUT}/cast-objection.png` });
 }
 
 console.log("\nThe menu says who is in the cast, not just who fronts it");
 {
+  await pick("ARMI Council");
   await bar.click();
   await p.waitForTimeout(450);
   const panel = await p.locator("[data-radix-popper-content-wrapper]").first().innerText();

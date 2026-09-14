@@ -25,8 +25,8 @@ import { findMode, modeFor } from "@/lib/modes";
 import { builtDocument, titleOf } from "@/lib/built";
 import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, estimateTokens, getModel } from "@/lib/models";
 import {
-  briefNote, briefPrompt, councilNote, councilPrompt, engineOf, getPreset, playerFor, playersFor,
-  resolveCast, shapePlan, worthBriefing, worthConvening,
+  briefNote, briefPrompt, councilNote, councilPrompt, engineOf, getPreset, objectionNote,
+  playerFor, playersFor, resolveCast, shapePlan, worthBriefing, worthConvening,
 } from "@/lib/presets";
 import { costOf, fitToContext } from "@/lib/context";
 import { cheapestAvailable, complete } from "@/lib/complete";
@@ -250,6 +250,16 @@ export default function Page() {
   } | null>(null);
   /* `verify` is defined below and the finish callback above needs it. */
   const verifyRef = React.useRef<((m: Message, pinned?: string) => void) | null>(null);
+  /**
+   * Questions whose answer has already been round the loop once.
+   *
+   * A revision is itself an answer, and an answer on these tactics is
+   * checked — so without this the third model objects to the second draft,
+   * the writer produces a fourth, and a question nobody is watching spends
+   * the afternoon arguing with itself. One round, and then the disagreement
+   * is the reader's to see rather than the app's to keep paying for.
+   */
+  const arguedRef = React.useRef<Set<string>>(new Set());
   /* The half-sentence a starter leaves in the canvas composer. Cleared as soon
      as you leave, so it seeds the canvas it was made for and no other. */
   const [canvasSeed, setCanvasSeed] = React.useState<string | undefined>();
@@ -559,6 +569,15 @@ export default function Page() {
       routedWhy?: string,
       /** Something about this one reply — see `composeTurnPrompt`. */
       note?: string,
+      /**
+       * A second pass at a question already answered.
+       *
+       * The brief and the council are readings of the *question*, and this
+       * turn already has one — plus an objection, which is better material
+       * than either. Buying them again is paying twice for the same reading
+       * and adding a round trip to a turn the person is already waiting on.
+       */
+      opts?: { revised?: boolean },
     ) => {
       /* An Armi model is a tactic, and this is where it becomes a request:
          which engine it runs on given the keys that are here, how hard it
@@ -658,7 +677,7 @@ export default function Page() {
          ordinary answer rather than no answer. */
       const briefWith = playerFor(cast, "brief");
       let brief = "";
-      if (briefWith && worthBriefing(asked, plan)) {
+      if (briefWith && !opts?.revised && worthBriefing(asked, plan)) {
         brief = (await complete(briefPrompt(asked, briefWith.as), {
           modelId: briefWith.modelId,
           maxTokens: 300,
@@ -675,7 +694,7 @@ export default function Page() {
          council smaller rather than leaving the person with nothing. */
       const seats = playersFor(cast, "council");
       let council = "";
-      if (seats.length && worthConvening(asked, plan)) {
+      if (seats.length && !opts?.revised && worthConvening(asked, plan)) {
         const notes = await Promise.all(
           seats.map(async (seat) => ({
             who: getModel(seat.modelId).name,
@@ -739,7 +758,17 @@ export default function Page() {
             .filter(Boolean)
             .join(", ")
         : "";
-      const why = [routedWhy || presetWhy, registerWhy].filter(Boolean).join(" · ");
+      /* And where this is a second pass, the line says so without losing who
+         answered: "ARMI Council, 3 models consulted · answered again after an
+         objection" is the whole account of how the words on screen came to be
+         there, and the first half of it is not less true for the second. */
+      const why = [
+        routedWhy || presetWhy,
+        registerWhy,
+        opts?.revised ? "answered again after a second model objected" : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
 
       await stream.send({
         conversationId,
@@ -1078,13 +1107,47 @@ export default function Page() {
         const verdict = await verifyAnswer(blockText(asked.content), blockText(message.content), who);
         if (verdict) await db.messages.update(message.id, { verdict });
         else setNotice("The check didn't come back. Try again.");
+
+        /* And the part that makes a check worth buying. A verdict on its own
+           is a report — "the second paragraph is wrong", printed under an
+           answer that is still wrong, leaving the reader to do the work. On
+           the tactics where being wrong costs something, the model that wrote
+           it is handed the objection and answers again: a correction rather
+           than a critique, which is what two models are for.
+
+           Once per question, and never told to agree — where the objection
+           is wrong the writer keeps its ground and says why, and where
+           neither can settle it the reader is told that instead. */
+        const preset = getPreset(threadModelId);
+        const parent = message.parentId ?? "";
+        if (
+          verdict &&
+          verdict.agrees !== "agrees" &&
+          preset?.revise &&
+          message.conversationId === activeId &&
+          !arguedRef.current.has(parent)
+        ) {
+          arguedRef.current.add(parent);
+          const history = pathTo(allMessages ?? [], message.parentId);
+          void runTurn(
+            message.conversationId,
+            message.parentId,
+            history,
+            threadModelId,
+            /* No routed reason: this turn builds its own, and it is the same
+               tactic that answered the first time. */
+            undefined,
+            objectionNote(verdict, getModel(who).name),
+            { revised: true },
+          );
+        }
       } catch {
         setNotice("That check failed. Check the key and the connection.");
       } finally {
         setVerifyingId(null);
       }
     },
-    [verifyingId, allMessages, configured, settings.keys, settings.modelId],
+    [verifyingId, allMessages, configured, settings.keys, settings.modelId, threadModelId, activeId, runTurn],
   );
   /* Handed to the finish callback, which is declared above this and has to
      be able to ask for a check without being rebuilt every time `verify`

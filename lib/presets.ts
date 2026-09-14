@@ -115,6 +115,17 @@ export interface Preset {
   register?: string;
   /** One line said to the writer about what this tactic is for. */
   stance?: string;
+  /**
+   * When the check objects, answer again with the objection in hand.
+   *
+   * A verdict on its own is a report: "the second paragraph is wrong", under
+   * an answer that is still wrong, leaving the reader to do the work. Two
+   * models are worth more than that — the one that wrote it can be handed
+   * the objection and fix it, which is the difference between a critique and
+   * a correction. Declared per tactic because it costs a fourth call and is
+   * only worth it where being wrong actually costs something.
+   */
+  revise?: boolean;
   /** A lucide icon name, resolved in the component that draws the row. */
   icon: string;
 }
@@ -210,6 +221,7 @@ export const PRESETS: Preset[] = [
     effort: "high",
     stance:
       "Show the working rather than asserting the result. Carry the units through every step and name them. Where a figure is an estimate, say what it rests on.",
+    revise: true,
     icon: "sigma",
   },
   {
@@ -221,7 +233,7 @@ export const PRESETS: Preset[] = [
     short: "Council",
     tagline: "Four jobs, one answer",
     blurb:
-      "The most this app can bring to one question. Three companies each take a different half of it — the strategy, the reasoning, what is actually known — and a fourth writes one answer out of the three, saying where they disagreed and what is still uncertain. Four models a turn, and by some way the dearest thing here.",
+      "The most this app can bring to one question. Three companies each take a different half of it — the strategy, the reasoning, what is actually known — a fourth writes one answer out of the three, and a fifth reads that answer back and can send it round again. Five models a turn, and by some way the dearest thing here.",
     examples: ["design my AI education startup", "should we rebuild this or refactor it", "review this plan before we commit"],
     engines: ["claude-opus-4-5", "gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner"],
     want: "strong",
@@ -230,8 +242,13 @@ export const PRESETS: Preset[] = [
       { role: "council", angle: "strategy", engines: ["gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner", "claude-opus-4-5"], want: "strong" },
       { role: "council", angle: "logic", engines: ["deepseek-reasoner", "gpt-5.1", "kimi-k2-thinking", "claude-opus-4-5"], want: "strong" },
       { role: "council", angle: "knowledge", engines: ["kimi-k2-thinking", "gpt-5.1", "deepseek-chat", "claude-sonnet-4-5"], want: "strong" },
+      /* And the seat that reads what came of it. Three specialists and a
+         writer can still be confidently wrong together; the one job nobody
+         at the table has is looking at the finished answer from outside it. */
+      { role: "check", engines: ["gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner", "claude-opus-4-5"], want: "strong" },
     ],
     effort: "high",
+    revise: true,
     icon: "users",
   },
   {
@@ -248,6 +265,7 @@ export const PRESETS: Preset[] = [
     cast: [
       { role: "check", engines: ["claude-sonnet-4-5", "kimi-k2-thinking", "deepseek-chat", "gpt-5.1"], want: "balanced" },
     ],
+    revise: true,
     icon: "layers",
   },
 
@@ -270,6 +288,7 @@ export const PRESETS: Preset[] = [
     effort: "high",
     stance:
       "When the request could be satisfied by something that runs, build the thing rather than describing it. Prefer one complete, working file over an outline of one.",
+    revise: true,
     icon: "hammer",
   },
   {
@@ -814,6 +833,33 @@ export function worthBriefing(ask: string, plan?: Plan): boolean {
      length rule is the same either way. */
   if (plan?.strategy === "compute") return false;
   return ask.trim().split(/\s+/).filter(Boolean).length >= BRIEF_WORDS;
+}
+
+/**
+ * The objection, handed back to the model that has to answer for it.
+ *
+ * Steps two, three and six of a disagreement worth having: name the claim in
+ * conflict, ask for reasoning rather than deference, and say plainly when it
+ * is still unresolved. What it must not do is tell the writer to agree — a
+ * second model is not a truth machine, and an answer rewritten to match
+ * whatever the checker said is not a better answer, it is a more confident
+ * one. Where the objection is wrong the writer keeps its ground and says so,
+ * and where neither can settle it the reader is told that too.
+ */
+export function objectionNote(verdict: { agrees: string; text: string }, who: string): string {
+  return [
+    `A model from a different company has read your last answer and does not fully agree. It said:`,
+    "",
+    verdict.text.trim().split("\n").map((l) => `> ${l}`).join("\n"),
+    "",
+    "Answer the question again, in full, with that in hand.",
+    "- Where the objection is right, fix it. Do not announce the fix, and do not apologise: write the answer as it should have been.",
+    "- Where the objection is wrong, keep what you had and say in one line why, naming the specific point.",
+    "- Where it turns on a number, settle it with a ```compute block rather than arguing about it: this app runs that block and prints what it prints, so the arithmetic stops being a matter of opinion.",
+    `- Where neither of you can settle it from what is here, say so in one line and say what would settle it.`,
+    "",
+    `The objection came from ${who}. Do not name it, and do not write about the disagreement except in the one line the rules above allow.`,
+  ].join("\n");
 }
 
 /**

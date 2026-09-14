@@ -11,7 +11,7 @@
 import {
   PRESETS, DEFAULT_PRESET_ID, getPreset, isPreset, resolveCast, resolvePreset, engineOf,
   playerFor, playersFor, profileOf, shapePlan, worthBriefing, worthConvening, briefPrompt,
-  briefNote, councilPrompt, councilNote, makers,
+  briefNote, councilPrompt, councilNote, objectionNote, makers,
 } from "./lib/presets";
 import { planTurn } from "./lib/decide";
 import { MODELS } from "./lib/models";
@@ -234,6 +234,27 @@ console.log("\nAnd the check is real, or it is not claimed");
   check(look.check !== "second", "and it does not grade a layout — that is two opinions, not a check", look.kind);
 }
 
+console.log("\nA check that objects is answered, not just printed");
+{
+  /* The difference between a critique and a correction. A verdict under a
+     wrong answer leaves the reader to do the work; handing the objection
+     back to the model that wrote it is what the second model was for. */
+  const rigorous = PRESETS.filter((p) => p.revise).map((p) => p.short);
+  check(rigorous.length >= 3, "the tactics where being wrong costs something answer again", rigorous.join(", "));
+  for (const p of PRESETS.filter((x) => x.revise)) {
+    check(p.cast.some((c) => c.role === "check"),
+      `${p.name} has somebody to object in the first place`);
+  }
+  const note = objectionNote({ agrees: "partly", text: "The trailing edge is not the default." }, "GPT-5.1");
+  check(/> The trailing edge is not the default\./.test(note), "the objection is quoted, not paraphrased");
+  check(/Where the objection is wrong, keep what you had/.test(note),
+    "and the writer is not told to agree — a second model is not a truth machine");
+  check(/compute block rather than arguing/.test(note) && /this app runs that block/.test(note),
+    "a disagreement about a number is settled by running it, not by rhetoric");
+  check(/say what would settle it/.test(note), "and an unresolved disagreement is said, not smoothed");
+  check(!/^#/m.test(note) && note.includes("GPT-5.1"), "the objector is named to the writer and not to the reader");
+}
+
 console.log("\nThe duel is two answers, and both have to be able to read the question");
 {
   const duel = playerFor(resolveCast("duet", { configured: all }), "duel");
@@ -261,17 +282,20 @@ console.log("\nThe council is four jobs rather than four drafts");
   const flash = resolveCast("flash", { configured: all })!;
   const seats = playersFor(council, "council");
   check(seats.length === 3, "three seats, and the model that writes makes four", String(seats.length + 1));
+  check(playerFor(council, "check") !== null,
+    "and a fifth that reads the finished answer from outside the table");
   check(new Set(seats.map((x) => x.angle)).size === 3,
     "each with a different half of the question", seats.map((x) => x.angle).join(", "));
   /* One company per job, and the fourth writes what comes of it. Four models
      from two labs would be a committee with one opinion. */
   const companies = new Set([council.answer.modelId, ...seats.map((x) => x.modelId)].map((id) => spec(id).provider));
   check(companies.size === 4, "on four keys, one company per seat", [...companies].join(", "));
+  check(profileOf(council).calls === 5, "five models on one question", String(profileOf(council).calls));
   const p = (c: typeof council) => profileOf(c);
   check(p(council).usd > p(one).usd && p(one).usd > p(flash).usd,
     "and the prices run the way the names promise",
     [flash, one, council].map((c) => p(c).usd.toFixed(3)).join(" < "));
-  check(p(flash).calls === 2 && p(council).calls === 4,
+  check(p(flash).calls === 2 && p(council).calls === 5,
     "counted in models, which is the number that surprises people",
     `${p(flash).calls} vs ${p(council).calls}`);
 }

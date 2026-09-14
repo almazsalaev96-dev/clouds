@@ -128,6 +128,14 @@ const recent = [];
 let rateLimitOnce = process.env.MOCK_RATE_LIMIT === "1";
 let failNext = null;
 
+/** The instructions as they arrived, in either wire format. */
+const systemTextOf = (body) => {
+  if (Array.isArray(body.system)) return body.system.map((b) => b.text ?? "").join("\n");
+  if (typeof body.system === "string") return body.system;
+  const first = (body.messages ?? [])[0];
+  return first?.role === "system" && typeof first.content === "string" ? first.content : "";
+};
+
 const send = (res, type, data) =>
   res.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`);
 
@@ -472,6 +480,16 @@ Nothing here looks like it breaks a caller — the return type is the same array
   recent.push({
     model: body.model,
     kind: isTitle ? "title" : briefing ? "brief" : seated ? "council" : verifying ? "verify" : "answer",
+    /* What that call was told, bounded. `__last` is only ever the most
+       recent request, and a turn that goes out three times — brief, answer,
+       and the answer again after an objection — cannot be read from it: the
+       claim being made is about the *second* answer, which by then is two
+       requests old. */
+    /* Generously capped: the per-turn half — the register, the stance, the
+       brief, the objection — arrives *after* the house rules, so a tight
+       slice keeps exactly the part nothing needs to assert about and drops
+       the part everything does. */
+    system: systemTextOf(body).slice(0, 20_000),
   });
   if (recent.length > 16) recent.shift();
 
