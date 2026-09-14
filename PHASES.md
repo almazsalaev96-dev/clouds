@@ -29,6 +29,37 @@ scratch every time.
 | Evaluation framework | `gate.sh`: unit tests, forty-odd browser probes, measured checks on contrast, reach, widths, print and type. Done, and it is the reason this can be changed quickly. |
 | Outcome contracts, uncertainty, meta-routing, verification, learning | The actual work. Phases below. |
 
+## The ARMI specification, and where each part of it actually is
+
+A master specification arrived for "ARMI AI": ONE, CORE, QUANT, FORGE, ORBIT,
+VISION, PILOT, SENTINEL, MEMORY, ATLAS, EVAL, STUDIO, a ten-stage router, a
+council, three kinds of memory, an agent, an evaluation dashboard, Postgres
+and a vector store. Most of the *ideas* are right and several are already
+here under other names. The honest audit, so nobody builds the same thing
+twice or claims a thing that does not exist:
+
+| In the specification | Here, today |
+| --- | --- |
+| **ARMI ONE** — flagship assistant | Built. The default model: brief from one company, answer from another. |
+| **ARMI QUANT** — reasoning | Built, as an Armi model: risks brief, strongest engine, independent check. |
+| **ARMI FORGE** — engineering | Built as a model (plan, build, review) on top of the canvas that already runs what it makes. The *workspace* parts — file tree, diff view, test runner — are partly there (canvas, versions, undo) and partly not. |
+| **ARMI ORBIT** — knowledge | Built as a model. Projects, files and PDFs exist; embeddings and vector retrieval do not — retrieval here is the context fitter plus project files. |
+| **ARMI VISION** — multimodal | Built as a model (two seeing models, side by side). Images and PDFs already worked; voice already worked. |
+| **ARMI COUNCIL** — multi-model collaboration | Built, and built the way the specification argues for: three companies take three *different halves* of the question and a fourth writes one answer, told to surface disagreement rather than average it. |
+| **ARMI CORE** — the router | Largely built and now named: `lib/route.ts` picks a model per message from capability, context, price and what the request needs; `lib/decide.ts` makes one recorded decision per turn. Stages it does not have: task decomposition and a synthesis engine outside the Council. |
+| **ARMI SENTINEL** — verification | Built and now named on the card: a second company checks, never a sibling, and the verdict says who and what they disagreed about. |
+| **ARMI MEMORY** | Built: user-approved, visible, editable, deletable, off-switchable, never automatic. Project memory is project files and instructions. |
+| **ARMI EVAL** | Half built. Every turn's decision and its outcome are recorded and read back — that is the feedback loop. What is missing is a fixed task set scored repeatedly, which is Phase 6 below. |
+| **ARMI PILOT** — agent | Partly: the app plans and executes multi-step work inside one turn and asks before destructive things, but there is no long-running approved task runner with an audit log. |
+| **ARMI ATLAS / STUDIO** | Naming for things that exist: sources and files; the canvas and the creative room. |
+| Postgres, vector search, object storage, auth, billing, teams | Deliberately not. This app is local-first: the data is in the browser, the keys are the person's own, and there is no backend to breach. A team product is a different product. |
+
+The specification's own best sentence is the one to keep: *use the smallest
+number of models that can reliably complete the task, and use more when
+independent reasoning or verification is worthwhile.* That is what the cast
+system does — two models on an everyday question, four on a hard one, one on
+"what time is it in Tokyo".
+
 ## Done
 
 **Phase 0 — the wire is honest.** Every request the app sends is well-formed

@@ -140,7 +140,17 @@ createServer(async (req, res) => {
   // survived the context fitter, and whether a cache breakpoint was placed.
   if (req.url === "/__last") {
     res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify({ ...(lastSeen ?? {}), recent }));
+    res.end(JSON.stringify(lastSeen ?? {}));
+    return;
+  }
+  /* Every call since the last reset, in order, so a test can prove that one
+     turn was two models: a brief to one company and the answer to another.
+     Kept apart from `/__last` rather than folded into it, because an empty
+     `/__last` is itself an assertion — "nothing was sent" — and adding a
+     field to it made that read as something. */
+  if (req.url === "/__recent") {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ recent }));
     return;
   }
   /* Cleared so a test can ask "was a model called at all since I last looked"
@@ -237,11 +247,24 @@ createServer(async (req, res) => {
      in order is the only one whose token count and cache prefix are what
      the app thinks they are. */
   const problem = (() => {
-    if (body.temperature !== undefined && body.top_p !== undefined)
-      return "`temperature` and `top_p` cannot both be specified for this model. Please use only one.";
-    if (body.temperature !== undefined && body.thinking)
-      return "`temperature` may not be used with extended thinking.";
     const all = body.messages;
+    /* Which API this request is pretending to be. The rules below are
+       Anthropic's, and applying them to an OpenAI-shaped body invents
+       restrictions nobody has: OpenAI takes `temperature` and `top_p`
+       together and every request the adapter sends carries both, so the mock
+       was rejecting perfectly legal calls — which is how a council seat on
+       GPT-4.1 quietly never happened. The adapter always sends
+       `stream_options` on that format, which is the cleanest tell. */
+    const openaiShape =
+      Boolean(body.stream_options) ||
+      body.max_completion_tokens !== undefined ||
+      (Array.isArray(all) && all[0]?.role === "system");
+    if (!openaiShape) {
+      if (body.temperature !== undefined && body.top_p !== undefined)
+        return "`temperature` and `top_p` cannot both be specified for this model. Please use only one.";
+      if (body.temperature !== undefined && body.thinking)
+        return "`temperature` may not be used with extended thinking.";
+    }
     if (!Array.isArray(all) || all.length === 0) return "messages: at least one message is required";
     /* The OpenAI wire format carries the system prompt as the first message
        rather than as a field of its own. That is legal there and impossible
@@ -412,6 +435,20 @@ It also reports a figure of nine hundred percent [[cite: ${name} | the result wa
 - the trailing edge is not the default
 - one case where a throttle is the right tool instead`;
 
+  /* One seat on the council. Three models are given three halves of the same
+     question and none of them is asked for an answer, so the canned reply
+     names its own half — which is how a test can prove that three *different*
+     askings went out and that all three came back inside the request that
+     carries the question. */
+  const seated = /^You are one of three models working on this/.test(asked);
+  const SEAT_OF = /your half is the strategy/.test(asked)
+    ? "strategy"
+    : /your half is the reasoning/.test(asked)
+      ? "logic"
+      : "knowledge";
+  const SEAT = `- ${SEAT_OF}: the migration is the expensive half, whichever way this goes
+- ${SEAT_OF}: and the deadline is the thing nobody has costed`;
+
   /* A second opinion. Comes back as JSON with a verdict, and the verdict is a
      *disagreement* on purpose: a mock that always agrees would leave the only
      interesting half of the feature — what a real disagreement looks like on
@@ -434,7 +471,7 @@ Nothing here looks like it breaks a caller — the return type is the same array
      alone can only ever show whichever was most recent. */
   recent.push({
     model: body.model,
-    kind: isTitle ? "title" : briefing ? "brief" : verifying ? "verify" : "answer",
+    kind: isTitle ? "title" : briefing ? "brief" : seated ? "council" : verifying ? "verify" : "answer",
   });
   if (recent.length > 16) recent.shift();
 
@@ -442,6 +479,8 @@ Nothing here looks like it breaks a caller — the return type is the same array
     ? "Debouncing a search input"
     : briefing
     ? BRIEF
+    : seated
+    ? SEAT
     : verifying
     ? VERDICT
     : carding

@@ -30,7 +30,7 @@ p.on("pageerror", (e) => errs.push("PAGE: " + e.message));
 let failed = 0;
 const check = (c, l, d = "") => { if (!c) failed++; console.log(`${c ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
 
-const S = { theme: "dark", density: "comfortable", modelId: "astro", styleId: "auto", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true };
+const S = { theme: "dark", density: "comfortable", modelId: "one", styleId: "auto", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true };
 
 await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
 await p.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), S);
@@ -38,6 +38,10 @@ await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(900);
 
 const wire = async () => await fetch(`${MOCK}/__last`).then((r) => r.json());
+/* Every call since the last reset, in order. `/__last` is only ever the most
+   recent one, and the claim being made here is about a sequence. */
+const calls = async () =>
+  ((await fetch(`${MOCK}/__recent`).then((r) => r.json())).recent ?? []).filter((r) => r.kind !== "title");
 const bar = p.getByRole("button", { name: /^Model:/ }).first();
 const pick = async (name) => {
   await bar.click();
@@ -61,13 +65,13 @@ const QUESTION = "why would you choose an event-sourced architecture over a CRUD
 console.log("\nOne turn, two companies: one says what the answer needs, the other writes it");
 {
   const w = await ask(QUESTION);
-  const calls = (w.recent ?? []).filter((r) => r.kind !== "title");
-  const brief = calls.find((r) => r.kind === "brief");
-  const answer = calls.findIndex((r) => r.kind === "answer");
+  const seq = await calls();
+  const brief = seq.find((r) => r.kind === "brief");
+  const answer = seq.findIndex((r) => r.kind === "answer");
   check(Boolean(brief), "a model is asked what a good answer has to get right, before one exists",
-    calls.map((r) => `${r.kind}:${r.model}`).join(" → "));
-  check(brief && answer > calls.indexOf(brief), "and it is asked first, which is the whole point",
-    calls.map((r) => r.kind).join(" → "));
+    seq.map((r) => `${r.kind}:${r.model}`).join(" → "));
+  check(brief && answer > seq.indexOf(brief), "and it is asked first, which is the whole point",
+    seq.map((r) => r.kind).join(" → "));
   check(/sonnet|claude/i.test(w.model ?? ""), "the answer is written by the other company", w.model);
   check(brief && !/claude/i.test(brief.model ?? ""),
     "by a model from a different company, not a sibling of the writer", brief?.model);
@@ -88,23 +92,22 @@ console.log("\nAnd what the first one wrote reaches the second one");
 
 console.log("\nThe answer says it, rather than leaving you to guess");
 {
-  const said = await line(/Astro/);
-  check(/Astro/.test(said) && /briefed by/i.test(said), "which two models made this one", said.slice(0, 100));
+  const said = await line(/ARMI One/);
+  check(/ARMI One/.test(said) && /briefed by/i.test(said), "which two models made this one", said.slice(0, 100));
   await p.screenshot({ path: `${OUT}/cast-answer.png` });
 }
 
 console.log("\nThe quick one answers first and is checked after");
 {
-  await pick("Nova");
-  const w = await ask("what is a debounce", 6000);
-  const calls = (w.recent ?? []).filter((r) => r.kind !== "title");
-  const i = calls.findIndex((r) => r.kind === "answer");
-  const j = calls.findIndex((r) => r.kind === "verify");
-  check(/haiku/i.test(calls[i]?.model ?? ""), "the fast engine writes it", calls[i]?.model);
-  check(j > i, "and the check comes after the answer, not before it",
-    calls.map((r) => r.kind).join(" → "));
-  check(j >= 0 && !/claude/i.test(calls[j]?.model ?? ""),
-    "from a company that did not write it", calls[j]?.model);
+  await pick("ARMI Flash");
+  await ask("what is a debounce", 6000);
+  const seq = await calls();
+  const i = seq.findIndex((r) => r.kind === "answer");
+  const j = seq.findIndex((r) => r.kind === "verify");
+  check(/haiku/i.test(seq[i]?.model ?? ""), "the fast engine writes it", seq[i]?.model);
+  check(j > i, "and the check comes after the answer, not before it", seq.map((r) => r.kind).join(" → "));
+  check(j >= 0 && !/claude/i.test(seq[j]?.model ?? ""),
+    "from a company that did not write it", seq[j]?.model);
   const shown = await p.locator(".msg").last().innerText();
   check(/Second opinion/i.test(shown), "and the verdict lands under the answer it is about");
   check(/GPT|Kimi|DeepSeek/.test(shown), "named by the model that gave it",
@@ -113,7 +116,7 @@ console.log("\nThe quick one answers first and is checked after");
 
 console.log("\nAnd where judgement decides, two answers beat one verdict");
 {
-  await pick("Mizar");
+  await pick("ARMI Duet");
   await p.getByRole("button", { name: "New chat" }).first().click();
   await p.waitForTimeout(350);
   await fetch(`${MOCK}/__reset`);
@@ -123,10 +126,48 @@ console.log("\nAnd where judgement decides, two answers beat one verdict");
   const shown = await p.locator("main").innerText();
   check(/Comparing 2 models/i.test(shown), "two companies answer the same question, side by side",
     (shown.split("\n").find((l) => /Comparing/i.test(l)) ?? "").slice(0, 80));
-  const models = new Set(((await wire()).recent ?? []).filter((r) => r.kind === "answer").map((r) => r.model));
+  const models = new Set((await calls()).filter((r) => r.kind === "answer").map((r) => r.model));
   check(models.size >= 2, "and both of them are really called", [...models].join(" vs "));
   check(/Keep this one|keep the one/i.test(shown), "with the choice left to the person reading them");
   await p.screenshot({ path: `${OUT}/cast-duel.png` });
+}
+
+console.log("\nThe council is three jobs and one answer, not three drafts");
+{
+  /* The most this app can bring to one question, and the one thing in it
+     that four models can do and one cannot: three companies each take a
+     different half — the strategy, the reasoning, what is actually known —
+     and a fourth writes one answer out of the three. */
+  await pick("ARMI Council");
+  await p.getByRole("button", { name: "New chat" }).first().click();
+  await p.waitForTimeout(350);
+  await fetch(`${MOCK}/__reset`);
+  await p.locator(".composer-shell textarea").first().fill("should we rebuild this service or refactor what is already there");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(6000);
+  const seq = await calls();
+  const seats = seq.filter((r) => r.kind === "council");
+  check(seats.length === 3, "three seats are filled", seq.map((r) => `${r.kind}:${r.model}`).join(" → "));
+  /* Two companies here, so one of them takes two seats — different models,
+     different jobs. What must never happen is a seat going to the model that
+     is about to write the answer. */
+  const answer = seq.find((r) => r.kind === "answer");
+  check(!seats.some((r) => r.model === answer?.model),
+    "and none of them is the model that writes the answer", answer?.model);
+  check(seq.indexOf(seats[seats.length - 1]) < seq.indexOf(answer),
+    "the council sits before the answer is written", seq.map((r) => r.kind).join(" → "));
+
+  const w = await wire();
+  check(/three other models/i.test(w.systemText ?? ""), "and its work reaches the model that writes");
+  const halves = ["strategy", "logic", "knowledge"].filter((h) => new RegExp(`- ${h}:`).test(w.systemText ?? ""));
+  check(halves.length === 3, "all three halves of it, each a different asking", halves.join(", "));
+  check(/genuinely disagree/i.test(w.systemText ?? ""),
+    "with the writer told to surface disagreement rather than average it away");
+  check(/do not mention that any of this happened/i.test(w.systemText ?? ""),
+    "and to write an answer rather than a report on its own making");
+  const said = await line(/Council/);
+  check(/3 models consulted/.test(said), "the answer says how many were", said.slice(0, 100));
+  await p.screenshot({ path: `${OUT}/cast-council.png` });
 }
 
 console.log("\nThe menu says who is in the cast, not just who fronts it");
@@ -134,9 +175,16 @@ console.log("\nThe menu says who is in the cast, not just who fronts it");
   await bar.click();
   await p.waitForTimeout(450);
   const panel = await p.locator("[data-radix-popper-content-wrapper]").first().innerText();
-  check(/writes/.test(panel) && /duels|answers it as well/i.test(panel),
-    "the selected one spells out what each model does", panel.split("\n").slice(-3).join(" · ").slice(0, 100));
-  await p.getByRole("button", { name: /^Orion —/ }).first().click();
+  check(/writes/.test(panel) && /on strategy/i.test(panel),
+    "the selected one spells out which half of the question each model took",
+    (panel.split("\n").find((l) => /writes/.test(l)) ?? "").slice(0, 110));
+  /* The arithmetic nobody can do in their head: three models a turn is the
+     fact that decides whether somebody wants this one, and it is not
+     discoverable from a price per million tokens. */
+  check(/models a turn/.test(panel) && /an answer/.test(panel),
+    "and what a turn of it costs, counted in models and in money",
+    (panel.split("\n").find((l) => /models a turn/.test(l)) ?? "").slice(0, 80));
+  await p.getByRole("button", { name: /^ARMI Quant —/ }).first().click();
   await p.waitForTimeout(500);
   await bar.click();
   await p.waitForTimeout(450);

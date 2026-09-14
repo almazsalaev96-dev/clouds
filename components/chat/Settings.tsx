@@ -5,7 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Download, ExternalLink, Eye, EyeOff, Plus, Trash2, Upload, X } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import type { ProviderId } from "@/lib/types";
-import { PROVIDERS, getModel } from "@/lib/models";
+import { PROVIDERS, formatCost, getModel } from "@/lib/models";
 import { addMemory, allMemories, createStyle, db, deleteAllData, deleteMemory, deleteStyle, forgetAll, forgetTurns } from "@/lib/db";
 import { ENOUGH, TOO_MANY } from "@/lib/decide";
 import { AUTO_STYLE } from "@/lib/register";
@@ -15,7 +15,8 @@ import {
   backupCounts, buildBackup, downloadBackup, parseBackup, restoreBackup, say, BackupError,
 } from "@/lib/backup";
 import { useSettings, paramsFor, DEFAULT_PARAMS, forgetLocalStorage } from "@/lib/store";
-import { engineOf, getPreset } from "@/lib/presets";
+import { PRESETS, engineOf, getPreset, profileOf, resolveCast } from "@/lib/presets";
+import { does } from "./ModelPicker";
 import { useReturnFocus } from "@/lib/hooks/useReturnFocus";
 import { cn } from "@/lib/utils";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
@@ -299,6 +300,13 @@ function ModelPanel({ configured }: { configured: Record<string, boolean> }) {
           : `These settings are remembered per model. You're editing ${model.name}.`
       }
     >
+      <Field
+        label="The Armi models"
+        hint="Each one is a cast: who writes, and who else is involved. Prices are for a turn of ordinary size — a page or two of conversation and a few paragraphs back — summed over every model it calls."
+      >
+        <ArmiTable configured={configured} />
+      </Field>
+
       <Field label="System prompt" hint="Sent at the start of every conversation.">
         <textarea
           value={s.systemPrompt}
@@ -524,6 +532,52 @@ function Panel({
       {description && <p className="mt-1 max-w-prose text-sm text-secondary">{description}</p>}
       <div className="mt-4 space-y-5">{children}</div>
     </div>
+  );
+}
+
+/**
+ * What each Armi model actually is, at length.
+ *
+ * The picker has room for a name, a line and the model that writes; this is
+ * where the rest of it lives — the whole cast, what a turn costs, and two or
+ * three of the requests each one is the right answer to. A person choosing
+ * between thirteen named things deserves somewhere that spells out what the
+ * names mean, and a menu is the wrong place to put it.
+ */
+function ArmiTable({ configured }: { configured: Record<string, boolean> }) {
+  const keys = useSettings((s) => s.keys);
+  const where = { configured, keys };
+  return (
+    <ul className="space-y-2.5">
+      {PRESETS.map((p) => {
+        const cast = resolveCast(p.id, where)!;
+        const profile = profileOf(cast);
+        return (
+          <li key={p.id} className="rounded-lg border border-line bg-canvas px-3 py-2.5">
+            <p className="text-sm font-medium text-primary">
+              {p.name} <span className="font-normal text-tertiary">— {p.tagline}</span>
+            </p>
+            <p className="mt-0.5 text-xs text-secondary">{p.blurb}</p>
+            <p className="mt-1.5 text-xs text-tertiary">
+              <span className="text-secondary">{getModel(cast.answer.modelId).name}</span> writes
+              {cast.parts.map((x, i) => (
+                <React.Fragment key={`${x.role}${i}`}>
+                  {" · "}
+                  <span className="text-secondary">{getModel(x.modelId).name}</span> {does(x)}
+                </React.Fragment>
+              ))}
+            </p>
+            <p className="mt-0.5 text-xs text-faint tnum">
+              {profile.calls} model{profile.calls === 1 ? "" : "s"} a turn · about {formatCost(profile.usd)} an answer
+            </p>
+            {cast.short && <p className="mt-0.5 text-xs text-warning">{cast.short}</p>}
+            <p className="mt-1 text-xs italic text-faint">
+              {p.examples.map((e) => `“${e}”`).join("  ·  ")}
+            </p>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

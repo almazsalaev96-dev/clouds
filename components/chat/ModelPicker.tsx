@@ -3,12 +3,14 @@
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
-  Check, ChevronDown, GraduationCap, Hammer, Layers, Orbit, Scale, Search, Star,
-  Telescope, Wand2, Zap,
+  Check, ChevronDown, Eye, Feather, GraduationCap, Hammer, Languages, Layers, Orbit,
+  Scale, Search, Sigma, Star, Users, Wand2, Zap,
 } from "lucide-react";
 import type { ModelSpec, ProviderId } from "@/lib/types";
-import { AUTO, MODELS, PROVIDERS, getModel } from "@/lib/models";
-import { PRESETS, getPreset, resolveCast, type Cast, type Preset, type Role } from "@/lib/presets";
+import { AUTO, MODELS, PROVIDERS, formatCost, getModel } from "@/lib/models";
+import {
+  PRESETS, SEAT_NAMES, getPreset, profileOf, resolveCast, type Cast, type Player, type Preset,
+} from "@/lib/presets";
 import { ProviderMark } from "@/components/ui/ProviderMark";
 import { useSettings, paramsFor } from "@/lib/store";
 import { cn, fuzzyScore } from "@/lib/utils";
@@ -23,10 +25,14 @@ import { cn, fuzzyScore } from "@/lib/utils";
 const ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   orbit: Orbit,
   zap: Zap,
-  telescope: Telescope,
+  sigma: Sigma,
+  users: Users,
   layers: Layers,
   hammer: Hammer,
+  eye: Eye,
   "graduation-cap": GraduationCap,
+  languages: Languages,
+  feather: Feather,
   scale: Scale,
 };
 
@@ -225,7 +231,7 @@ export function ModelPicker({
                   <Wand2 size={13} className="shrink-0 text-[var(--accent-2)]" />
                   <span className="min-w-0 flex-1">
                     <span className="block text-[0.8125rem] font-medium leading-tight text-primary">Auto</span>
-                    <span className="block truncate text-tiny text-tertiary">Reads the request and picks</span>
+                    <span className="block truncate text-tiny text-tertiary">ARMI Core reads the request and picks</span>
                   </span>
                   {auto && <Check size={13} className="shrink-0 text-accent" />}
                 </button>
@@ -237,7 +243,17 @@ export function ModelPicker({
                     people's models and hid whose they were would be taking
                     credit for work it did not do. */}
                 {presets && (
-                  <Section label="Armi models">{PRESETS.map(armiRow)}</Section>
+                  <>
+                    <Section label="Armi models">
+                      {PRESETS.filter((x) => x.group === "everyday").map(armiRow)}
+                    </Section>
+                    {/* The specialists, under their own heading. Thirteen rows
+                        in one list is a catalogue; five for anything and eight
+                        for one thing is a menu. */}
+                    <Section label="For a particular job">
+                      {PRESETS.filter((x) => x.group === "job").map(armiRow)}
+                    </Section>
+                  </>
                 )}
 
                 {favModels.length > 0 && <Section label="Starred">{favModels.map(row)}</Section>}
@@ -381,7 +397,7 @@ function PresetRow({
         onClick={onSelect}
         className="focus-inset min-w-0 flex-1 rounded-md text-left"
         aria-label={`${preset.name} — ${preset.tagline}, running on ${engine.name}${cast.parts
-          .map((p) => ` with ${getModel(p.modelId).name} to ${JOB[p.role]}`)
+          .map((x) => ` with ${getModel(x.modelId).name} to ${job(x)}`)
           .join("")}`}
       >
         <span className="block truncate text-[0.8125rem] font-medium leading-tight text-primary">
@@ -406,17 +422,20 @@ function PresetRow({
   );
 }
 
-/** What each member of the cast is there to do, in the words a person uses. */
-const JOB: Record<Role, string> = {
-  brief: "brief it first",
-  check: "check it after",
-  duel: "answer it as well",
-};
-const DOES: Record<Role, string> = {
-  brief: "briefs it first",
-  check: "checks it after",
-  duel: "answers it as well",
-};
+/**
+ * What each member of the cast is there to do, in the words a person uses.
+ *
+ * A council seat says which half of the question it took rather than "sits
+ * on the council", because "GPT-5.1 on strategy · DeepSeek R1 on the
+ * reasoning" is the whole design in one line and the other phrasing is a
+ * committee.
+ */
+export function does(p: Player): string {
+  if (p.role === "council") return SEAT_NAMES[p.angle ?? "strategy"];
+  return p.role === "brief" ? "briefs it first" : p.role === "check" ? "checks it after" : "answers it as well";
+}
+const job = (p: Player) =>
+  p.role === "council" ? `work ${SEAT_NAMES[p.angle ?? "strategy"]}` : does(p).replace(/s\b/, "");
 
 /**
  * Who is in the cast, spelled out under the menu.
@@ -428,16 +447,24 @@ const DOES: Record<Role, string> = {
  * be charging a reputation to a single call.
  */
 function CastRow({ cast }: { cast: Cast }) {
+  const p = profileOf(cast);
   return (
     <div className="border-t border-line px-2.5 py-1.5">
       <p className="text-tiny leading-5 text-tertiary">
         <span className="text-secondary">{getModel(cast.answer.modelId).name}</span> writes
-        {cast.parts.map((p) => (
-          <React.Fragment key={p.role}>
+        {cast.parts.map((x, i) => (
+          <React.Fragment key={`${x.role}${i}`}>
             {" · "}
-            <span className="text-secondary">{getModel(p.modelId).name}</span> {DOES[p.role]}
+            <span className="text-secondary">{getModel(x.modelId).name}</span> {does(x)}
           </React.Fragment>
         ))}
+      </p>
+      {/* The number a person can actually use. Price per million tokens is
+          the number nobody can: it asks them to know how long their own
+          question is, and on a tactic that calls three models it asks them
+          to do it three times and add up. */}
+      <p className="text-tiny leading-5 text-faint tnum">
+        {p.calls} model{p.calls === 1 ? "" : "s"} a turn · about {formatCost(p.usd)} an answer
       </p>
       {cast.short && <p className="text-tiny leading-5 text-warning">{cast.short}</p>}
     </div>

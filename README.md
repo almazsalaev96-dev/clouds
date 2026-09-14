@@ -59,10 +59,19 @@ against your rate limit. The app cannot tell those two deployments apart, so
 the choice is yours and it has to be made deliberately.
 
 If you do set them, the names are in `.env.example`: `ANTHROPIC_API_KEY`,
-`OPENAI_API_KEY`, `GOOGLE_API_KEY`, `DEEPSEEK_API_KEY`, and the optional
+`OPENAI_API_KEY`, `MOONSHOT_API_KEY`, `DEEPSEEK_API_KEY`, and the optional
 `*_BASE_URL` for pointing a provider at a gateway. `/api/models` reports which
 providers the server holds a key for, which is how the picker knows what to
-offer; it returns booleans and never the keys themselves.
+offer; it returns booleans and never the keys themselves. On a host they go in
+that host's environment settings — on Vercel, Project → Settings → Environment
+Variables — never in the repository. A key that reaches a branch has to be
+treated as burnt and rotated: public git history is scraped continuously, and
+`git rm` does not unpublish anything.
+
+Set all four and nobody has to bring a key: the server holds them, the browser
+never sees them, and every Armi model can reach every company — which is what
+the whole cast idea depends on, since a check bought from a sibling of the
+model that wrote the answer is an echo rather than a check.
 
 One thing worth knowing about hosted platforms: the production branch is a
 setting on the *host*, not a reading of the repository. Vercel keeps its own
@@ -103,30 +112,45 @@ than about the work. But a new label over the same single call would have been
 packaging, so an Armi model is a **cast**: one model writes the answer and at least
 one more, *from a different company*, does a job the first cannot do for itself.
 
-- **brief** — before the answer exists, another model reads the question and lists
-  what a good answer has to get right. The writer sees that list.
+- **brief** — before the answer exists, another model reads the question and writes
+  down what the answer has to get right. What it is asked for depends on the work:
+  what a good answer must **cover**, the **plan** for a thing to build, where the
+  arithmetic is likely to **slip**, the **misconceptions** a learner arrives with,
+  or who the **audience** is and what the letter has to achieve.
 - **check** — after it exists, another company's model reads it and reports. A model
   asked to check its own work reproduces the reasoning that produced it and
   pronounces it sound, which is an echo, not a check.
 - **duel** — two companies answer the same question side by side and you keep one.
+- **council** — three companies each take a *different half* of the question — the
+  strategy, the reasoning, what is actually known — and a fourth writes one answer
+  out of the three, told to surface where they disagreed rather than average it
+  away. Four models given four jobs produce something none of them would have
+  written alone, which is the only reason to pay for four.
 
-**Astro** is two models on every answer; **Nova** answers now and is checked while
-you read; **Orion** puts three companies on one hard question; **Atlas** holds a lot
-and has the summary read back; **Forge** builds the thing and has another company
-review it; **Sage** teaches, with a second model listing what you have to understand
-first; **Mizar** is the duel. Each carries an ordered engine list, so the same name
-works on whichever keys you hold — Astro is Sonnet writing and GPT-5.1 mini briefing
-on one machine, Kimi and DeepSeek on another, and still Astro.
+Five are for anything: **ARMI One** (the flagship, two models deep), **ARMI Flash**
+(answers now, checked while you read), **ARMI Quant** (reasoning and numbers,
+checked twice), **ARMI Council** (four jobs, one answer) and **ARMI Orbit** (the
+biggest window you hold a key for, with the summary read back). Six are for one
+thing: **ARMI Forge** plans, builds and reviews code; **ARMI Vision** puts two pairs
+of eyes on a screenshot; **ARMI Tutor** teaches from what you would otherwise miss
+and then asks; **ARMI Lingua** translates and has it read back; **ARMI Studio**
+works out who is reading before it writes; **ARMI Duet** is the plain two-answer
+comparison. The row says "ARMI Quant"; the bar, where the product name is already
+everywhere, says "Quant".
 
-Three rules keep that honest, and each one is a test. The engine is named on every
+Three rules keep it honest, and each one is a test. The engine is named on every
 row, on the bar and above every answer, because this app trained nothing and must
-never look as though it did. A substitution is said out loud: Atlas on a machine
-with no OpenAI key answers on the biggest window it can reach *and says so*. And a
-cast member always comes from a different company or is dropped — with one key, the
-menu says "needs a second key" and no brief or check is quietly bought from a
-sibling model, which would be an echo with a second invoice. The engines are all
-still there, one heading further down, for anyone who would rather pick one
-directly.
+never look as though it did. A substitution is said out loud: Orbit with no OpenAI
+key answers on the biggest window it can reach *and says so*. And a cast member
+always comes from a different company or is dropped — with one key the menu says
+"needs a second key" and nothing is quietly bought from a sibling model.
+
+The menu also does the arithmetic nobody can do in their head: under the selected
+model it says how many models a turn costs and roughly what one answer comes to,
+summed over the whole cast — Flash about a penny, Council about six times that.
+Settings carries the long form: every cast, every price, and two or three requests
+each one is the right answer to. The engines are all still there, one heading
+further down, for anyone who would rather pick one directly.
 
 **Compare** — send one prompt to up to three models at once. They stream in parallel
 columns, each on its own clock, and "Keep this one" points the conversation at the
@@ -1787,7 +1811,7 @@ control, and a local model wants an OpenAI-shaped endpoint on its own machine.
 ```
 ANTHROPIC_BASE_URL=https://gateway.internal/anthropic
 OPENAI_BASE_URL=https://my-azure.openai.azure.com/openai/deployments/gpt-5
-GOOGLE_BASE_URL=...
+MOONSHOT_BASE_URL=...
 DEEPSEEK_BASE_URL=...
 ```
 

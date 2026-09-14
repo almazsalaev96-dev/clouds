@@ -908,8 +908,11 @@ function SecondOpinion({
           size={13}
           className={cn("shrink-0", verdict.agrees === "disagrees" ? "text-warning" : "text-tertiary")}
         />
+        {/* The part of the system that does this has a name, and naming it
+            here is the difference between "a model said something" and "the
+            thing that checks answers ran". */}
         <span className="eyebrow text-faint">
-          Second opinion
+          Sentinel · second opinion
         </span>
         <span className="min-w-0 flex-1 truncate text-xs text-tertiary">
           {checker.name} {said}

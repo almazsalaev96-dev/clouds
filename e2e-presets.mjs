@@ -31,7 +31,7 @@ p.on("pageerror", (e) => errs.push("PAGE: " + e.message));
 let failed = 0;
 const check = (c, l, d = "") => { if (!c) failed++; console.log(`${c ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
 
-const S = { theme: "dark", density: "comfortable", modelId: "astro", styleId: "auto", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true };
+const S = { theme: "dark", density: "comfortable", modelId: "one", styleId: "auto", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true };
 
 await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
 await p.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), S);
@@ -39,6 +39,8 @@ await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(900);
 
 const wire = async () => await fetch(`${MOCK}/__last`).then((r) => r.json());
+const calls = async () =>
+  ((await fetch(`${MOCK}/__recent`).then((r) => r.json())).recent ?? []).filter((r) => r.kind !== "title");
 const bar = p.getByRole("button", { name: /^Model:/ }).first();
 const openPicker = async () => { await bar.click(); await p.waitForTimeout(450); };
 
@@ -76,26 +78,26 @@ console.log("\nThe menu offers Armi's own models first, and the engines after");
   const e = await engines.boundingBox();
   check(Boolean(a) && Boolean(e) && a.y < e.y, "named tactics above, other people's models below",
     a && e ? `${Math.round(a.y)} above ${Math.round(e.y)}` : "not found");
-  check(await p.getByRole("button", { name: /^Astro —/ }).isVisible(), "Astro is one of them");
+  check(await p.getByRole("button", { name: /^ARMI One —/ }).isVisible(), "ARMI One is the flagship, and it is first");
   await p.screenshot({ path: `${OUT}/presets-menu.png` });
 }
 
 console.log("\nAnd every one of them says whose model it is running on");
 {
-  const astro = await p.getByRole("button", { name: /^Astro —/ }).first().innerText();
-  check(/Sonnet 4\.5/.test(astro), "Astro is Armi's name for a tactic, and the row names the engine", astro.replace(/\n/g, " · "));
-  const nova = await p.getByRole("button", { name: /^Nova —/ }).first().innerText();
-  check(/Haiku 4\.5/.test(nova), "and the quick one runs on a different engine from the everyday one", nova.replace(/\n/g, " · "));
+  const one = await p.getByRole("button", { name: /^ARMI One —/ }).first().innerText();
+  check(/Sonnet 4.5/.test(one), "the flagship is Armi's name for a tactic, and the row names the engine", one.replace(/\n/g, " · "));
+  const flash = await p.getByRole("button", { name: /^ARMI Flash —/ }).first().innerText();
+  check(/Haiku 4.5/.test(flash), "and the quick one runs on a different engine from the everyday one", flash.replace(/\n/g, " · "));
   /* Atlas wants Gemini's million-token window and there is no Google key
      here. It takes the biggest thing it can reach and says so rather than
      quietly becoming an ordinary model under a long-context name. */
-  const atlas = await p.getByRole("button", { name: /^Atlas —/ }).first().innerText();
-  check(/Opus 4\.5/.test(atlas), "one that cannot have its first choice names its second", atlas.replace(/\n/g, " · "));
+  const orbit = await p.getByRole("button", { name: /^ARMI Orbit —/ }).first().innerText();
+  check(/Opus 4.5/.test(orbit), "one that cannot have its first choice names its second", orbit.replace(/\n/g, " · "));
   /* Every one of these is two models or three, and on one company's key not
      one of them can be what it says it is. Said on the row rather than
      discovered from a bill. */
-  const mizar = await p.getByRole("button", { name: /^Mizar —/ }).first().innerText();
-  check(/needs a second key/i.test(mizar), "and with one key it says it cannot be itself", mizar.replace(/\n/g, " · "));
+  const duet = await p.getByRole("button", { name: /^ARMI Duet —/ }).first().innerText();
+  check(/needs a second key/i.test(duet), "and with one key it says it cannot be itself", duet.replace(/\n/g, " · "));
   const footer = await p.locator("text=/writes/").first().innerText();
   check(/Claude/.test(footer), "the menu names who writes", footer.replace(/\n/g, " · "));
   check(/second company/i.test(await p.locator("[role=dialog], [data-radix-popper-content-wrapper]").first().innerText()),
@@ -107,9 +109,9 @@ console.log("\nAnd every one of them says whose model it is running on");
 console.log("\nThe bar names both: the tactic you chose and the model answering");
 {
   const label = await bar.getAttribute("aria-label");
-  check(/Astro/.test(label ?? "") && /Claude Sonnet 4\.5/.test(label ?? ""),
+  check(/One/.test(label ?? "") && /Claude Sonnet 4\.5/.test(label ?? ""),
     "which is the one place a rename could mislead somebody", label);
-  check(/Astro/.test(await bar.innerText()), "and the name is what you read at a glance", (await bar.innerText()).replace(/\n/g, " "));
+  check(/One/.test(await bar.innerText()), "and the name is what you read at a glance", (await bar.innerText()).replace(/\n/g, " "));
 }
 
 console.log("\nWith one company's key, the second model is dropped rather than faked");
@@ -118,26 +120,27 @@ console.log("\nWith one company's key, the second model is dropped rather than f
      models from one lab share training data and usually the same blind spot,
      so a brief or a check bought from a sibling is an echo with an invoice.
      Nothing extra goes out here, and nothing claims to have. */
-  await pick("Astro");
+  await pick("ARMI One");
   await fetch(`${MOCK}/__reset`);
-  const one = await ask("why would you choose an event-sourced architecture over a CRUD one here");
-  check(!(one.recent ?? []).some((r) => r.kind === "brief"),
+  await ask("why would you choose an event-sourced architecture over a CRUD one here");
+  const seq = await calls();
+  check(!seq.some((r) => r.kind === "brief"),
     "no second call is made to a sibling of the model that is answering",
-    (one.recent ?? []).map((r) => `${r.kind}:${r.model}`).join(", "));
+    seq.map((r) => `${r.kind}:${r.model}`).join(", "));
   const shown = await p.locator(".msg").last().innerText();
-  check(/Astro/.test(shown) && !/briefed by/i.test(shown),
+  check(/ARMI One|One —|One,/.test(shown) && !/briefed by/i.test(shown),
     "and the answer does not say it was briefed when it was not",
-    (shown.split("\n").find((l) => /Astro/.test(l)) ?? "").slice(0, 80));
+    (shown.split("\n").find((l) => /One/.test(l)) ?? "").slice(0, 80));
 }
 
 console.log("\nA name is not a costume: they reach different endpoints");
 {
-  await pick("Nova");
+  await pick("ARMI Flash");
   const quick = await ask("what is a debounce");
   check(/haiku/i.test(quick.model ?? ""), "the quick one goes to the quick engine", quick.model);
   check(!quick.thinking, "and does not pay a thinking budget for a one-line question", String(quick.thinking));
 
-  await pick("Orion");
+  await pick("ARMI Quant");
   const hard = await ask("what is a debounce");
   check(/opus/i.test(hard.model ?? ""), "the careful one goes somewhere that thinks", hard.model);
   /* A budget at all, on a question the quick one answered without one. The
@@ -149,28 +152,28 @@ console.log("\nA name is not a costume: they reach different endpoints");
 
 console.log("\nWhat the tactic is for is said to the model, not only to you");
 {
-  await pick("Forge");
+  await pick("ARMI Forge");
   const built = await ask("a stopwatch with lap times");
   check(/build the thing rather than describing it/i.test(built.systemText ?? ""),
     "the one that builds is told to build");
 
-  await pick("Sage");
+  await pick("ARMI Tutor");
   const taught = await ask("what is a debounce");
   check(/explain/i.test(taught.systemText ?? ""), "and the teaching one is told to explain");
   const shown = await p.locator(".msg").last().innerText();
-  check(/Sage/.test(shown) && /Explanatory/i.test(shown),
-    "with the answer saying which one wrote it and how", (shown.split("\n").find((l) => /Sage/.test(l)) ?? "").slice(0, 80));
+  check(/Tutor/.test(shown) && /Explanatory/i.test(shown),
+    "with the answer saying which one wrote it and how", (shown.split("\n").find((l) => /Tutor/.test(l)) ?? "").slice(0, 80));
 }
 
 console.log("\nAnd a substitution is never silent");
 {
-  await pick("Atlas");
+  await pick("ARMI Orbit");
   const long = await ask("summarise the argument for event sourcing");
   check(/opus/i.test(long.model ?? ""), "it answers on the biggest window there is a key for", long.model);
   const shown = await p.locator(".msg").last().innerText();
-  check(/Atlas/.test(shown) && /no key for/i.test(shown),
+  check(/Orbit/.test(shown) && /no key for/i.test(shown),
     "and the answer says it could not have the engine it wanted",
-    (shown.split("\n").find((l) => /Atlas/.test(l)) ?? "").slice(0, 90));
+    (shown.split("\n").find((l) => /Orbit/.test(l)) ?? "").slice(0, 90));
   await p.screenshot({ path: `${OUT}/presets-answer.png` });
 }
 
@@ -183,7 +186,7 @@ console.log("\nThe engines are still there for anyone who wants one");
     "searching for a model by its own name still finds it");
   /* And searching for an engine finds the tactic that runs on it, which is
      how somebody learns what these names mean without reading anything. */
-  check(await p.getByRole("button", { name: /^Nova —/ }).first().isVisible(),
+  check(await p.getByRole("button", { name: /^ARMI Flash —/ }).first().isVisible(),
     "and offers the Armi model that runs on it beside it");
   await p.keyboard.press("Escape");
 }

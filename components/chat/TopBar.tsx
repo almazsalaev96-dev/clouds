@@ -125,7 +125,10 @@ export function TopBar({
           ) : preset ? (
             <>
               <PresetIcon id={preset.id} size={12} className="shrink-0 text-[var(--accent-2)]" />
-              <span className="truncate">{preset.name}</span>
+              {/* Without the prefix: the product name is already on every
+                  screen, and "ARMI Quant" in a chip that truncates says the
+                  company twice and the model not at all. */}
+              <span className="truncate">{preset.short}</span>
               {/* Who is actually answering, where there is room for it. Not a
                   footnote in Settings: the one place this could mislead is the
                   one place it is written down. */}

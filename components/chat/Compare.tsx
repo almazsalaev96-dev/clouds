@@ -29,6 +29,7 @@ export function CompareGrid({
   parentId,
   history,
   modelIds,
+  turnPrompt,
   onKeep,
   onCancel,
 }: {
@@ -36,6 +37,14 @@ export function CompareGrid({
   parentId: string | null;
   history: Message[];
   modelIds: string[];
+  /**
+   * One extra instruction, given to every column alike.
+   *
+   * An Armi model that buys a brief before it answers has to hand that brief
+   * to both sides: a comparison where one model was told what the answer has
+   * to cover and the other was not is not a comparison, it is a head start.
+   */
+  turnPrompt?: string;
   onKeep: (messageId: string, modelId: string) => void;
   onCancel: () => void;
 }) {
@@ -61,6 +70,7 @@ export function CompareGrid({
             parentId={parentId}
             history={history}
             modelId={id}
+            turnPrompt={turnPrompt}
             onKeep={onKeep}
           />
         ))}
@@ -74,12 +84,14 @@ function CompareColumn({
   parentId,
   history,
   modelId,
+  turnPrompt,
   onKeep,
 }: {
   conversationId: string;
   parentId: string | null;
   history: Message[];
   modelId: string;
+  turnPrompt?: string;
   onKeep: (messageId: string, modelId: string) => void;
 }) {
   const model = getModel(modelId);
@@ -110,6 +122,7 @@ function CompareColumn({
         modelId,
         history,
         systemPrompt: composed.text || undefined,
+        turnPrompt,
         advanceLeaf: false,
       });
     })();

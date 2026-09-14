@@ -25,7 +25,8 @@ import { findMode, modeFor } from "@/lib/modes";
 import { builtDocument, titleOf } from "@/lib/built";
 import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, estimateTokens, getModel } from "@/lib/models";
 import {
-  briefNote, briefPrompt, engineOf, getPreset, playerFor, resolveCast, shapePlan, worthBriefing,
+  briefNote, briefPrompt, councilNote, councilPrompt, engineOf, getPreset, playerFor, playersFor,
+  resolveCast, shapePlan, worthBriefing, worthConvening,
 } from "@/lib/presets";
 import { costOf, fitToContext } from "@/lib/context";
 import { cheapestAvailable, complete } from "@/lib/complete";
@@ -259,9 +260,21 @@ export default function Page() {
   const [projectId, setProjectId] = React.useState<string | null>(null);
   const [noteId, setNoteId] = React.useState<string | null>(null);
   const [comparing, setComparing] = React.useState<{
+    /**
+     * Which conversation this belongs to.
+     *
+     * A comparison left standing when you start a new chat used to re-mount
+     * against the next conversation the moment one existed — both columns
+     * firing again, at a question nobody had asked, billed to the person's
+     * key, under a thread they had just opened. It is a fact about one
+     * thread and is now drawn only in that thread.
+     */
+    conversationId: string;
     parentId: string;
     history: Message[];
     modelIds: string[];
+    /** The same brief for every column, where the tactic bought one. */
+    turnPrompt?: string;
   } | null>(null);
   const [mounted, setMounted] = React.useState(false);
 
@@ -618,7 +631,7 @@ export default function Page() {
          cast is a property of the turn that went out, and a check chosen
          afterwards from whatever keys exist at that moment is a different
          promise from the one the row made. */
-      planRef.current = { plan, modelId, at: Date.now(), checkWith: playerFor(cast, "check") };
+      planRef.current = { plan, modelId, at: Date.now(), checkWith: playerFor(cast, "check")?.modelId ?? null };
       const mode = findMode(plan.mode);
       /* The register the plan chose, or the one the person chose. */
       const style = findStyle(plan.register ? plan.register.id : chosenStyle, customStyles);
@@ -646,11 +659,37 @@ export default function Page() {
       const briefWith = playerFor(cast, "brief");
       let brief = "";
       if (briefWith && worthBriefing(asked, plan)) {
-        brief = (await complete(briefPrompt(asked), {
-          modelId: briefWith,
+        brief = (await complete(briefPrompt(asked, briefWith.as), {
+          modelId: briefWith.modelId,
           maxTokens: 300,
           temperature: 0.2,
         }).catch(() => null)) ?? "";
+      }
+
+      /* The council: three companies, three halves of the question, at once.
+         Four models answering the same thing produce four drafts and make a
+         reader into an editor; four models given four jobs produce something
+         none of them would have written alone, which is the only reason to
+         pay for four. Run in parallel — they do not see each other's work,
+         which is the point — and never fatal: a seat that fails leaves the
+         council smaller rather than leaving the person with nothing. */
+      const seats = playersFor(cast, "council");
+      let council = "";
+      if (seats.length && worthConvening(asked, plan)) {
+        const notes = await Promise.all(
+          seats.map(async (seat) => ({
+            who: getModel(seat.modelId).name,
+            angle: seat.angle!,
+            text:
+              (await complete(councilPrompt(asked, seat.angle!), {
+                modelId: seat.modelId,
+                maxTokens: 700,
+                temperature: 0.3,
+              }).catch(() => null)) ?? "",
+          })),
+        );
+        const heard = notes.filter((n) => n.text.trim());
+        if (heard.length) council = councilNote(heard);
       }
 
       const task = plan.task;
@@ -669,7 +708,7 @@ export default function Page() {
         teaching: isTeaching(style?.id),
         /* What this tactic is for, said to the model rather than only to the
            person who picked it. Forge builds because it is told to build. */
-        note: [note, preset?.stance, brief ? briefNote(brief) : ""].filter(Boolean).join("\n\n") || undefined,
+        note: [note, preset?.stance, brief ? briefNote(brief) : "", council].filter(Boolean).join("\n\n") || undefined,
       });
       /* Said on the answer, like the model's reason: an app that quietly
          changes how it writes to you is an app whose answers you cannot
@@ -692,7 +731,10 @@ export default function Page() {
                on these keys must not be described as though it had been, and
                a brief that was skipped for a three-word question did not
                happen either. */
-            brief ? `briefed by ${getModel(briefWith!).short}` : "",
+            brief ? `briefed by ${getModel(briefWith!.modelId).short}` : "",
+            /* The council, counted rather than named: three companies is the
+               fact, and three names is a line nobody finishes reading. */
+            council ? `${seats.length} models consulted` : "",
           ]
             .filter(Boolean)
             .join(", ")
@@ -871,15 +913,30 @@ export default function Page() {
         hasImage: content.some((b) => b.type === "image"),
         size: history.reduce((n, m) => n + costOf(m), 0),
       };
-      const duelWith = compareWith.length ? null : playerFor(resolveCast(threadModelId, where), "duel");
-      if (compareWith.length || duelWith) {
+      const duelCast = compareWith.length ? null : resolveCast(threadModelId, where);
+      const duellists = playersFor(duelCast, "duel").map((p) => p.modelId);
+      if (compareWith.length || duellists.length) {
+        /* A duel is briefed like any other turn, and every column gets the
+           same brief: a comparison where one model was told what the answer
+           has to cover and the other was not is not a comparison. */
+        const briefer = playerFor(duelCast, "brief");
+        let shared = "";
+        if (briefer && worthBriefing(asked)) {
+          shared = (await complete(briefPrompt(asked, briefer.as), {
+            modelId: briefer.modelId,
+            maxTokens: 300,
+            temperature: 0.2,
+          }).catch(() => null)) ?? "";
+        }
         setComparing({
+          conversationId: convId,
           parentId: userMessage.id,
           history,
           /* Side by side, every column has to be an engine: the comparison is
              about what different models say, and a tactic resolved differently
              in each column would be comparing two things and calling it one. */
-          modelIds: [engineOf(answering, where), ...(duelWith ? [duelWith] : compareWith)],
+          modelIds: [engineOf(answering, where), ...(duellists.length ? duellists : compareWith)],
+          turnPrompt: shared ? briefNote(shared) : undefined,
         });
       } else {
         void runTurn(convId, userMessage.id, history, answering, decision?.why, note);
@@ -1869,12 +1926,13 @@ export default function Page() {
                   void send([{ type: "text", text }]);
                 }}
                 compare={
-                  comparing && activeId
+                  comparing && activeId && comparing.conversationId === activeId
                     ? {
                         conversationId: activeId,
                         parentId: comparing.parentId,
                         history: comparing.history,
                         modelIds: comparing.modelIds,
+                        turnPrompt: comparing.turnPrompt,
                         onKeep: keepCompared,
                         onCancel: () => setComparing(null),
                       }

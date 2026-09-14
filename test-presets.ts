@@ -10,7 +10,8 @@
  *   npx jiti test-presets.ts */
 import {
   PRESETS, DEFAULT_PRESET_ID, getPreset, isPreset, resolveCast, resolvePreset, engineOf,
-  playerFor, shapePlan, worthBriefing, briefPrompt, briefNote, makers,
+  playerFor, playersFor, profileOf, shapePlan, worthBriefing, worthConvening, briefPrompt,
+  briefNote, councilPrompt, councilNote, makers,
 } from "./lib/presets";
 import { planTurn } from "./lib/decide";
 import { MODELS } from "./lib/models";
@@ -36,6 +37,12 @@ console.log("\nEvery tactic names engines that exist");
      `getPreset` disagree about what the picker is holding. */
   check(!ids.some((id) => known.has(id)), "and none of them is also a model id");
   check(isPreset(DEFAULT_PRESET_ID), "and a fresh install opens on one that is there", DEFAULT_PRESET_ID);
+  check(PRESETS.filter((x) => x.group === "everyday").length === 5 && PRESETS.length === 11,
+    "five for anything and six for one thing", `${PRESETS.length} in all`);
+  check(PRESETS.every((x) => x.name.startsWith("ARMI ") && !x.short.includes(" ")),
+    "and all of them say the product once and the job once", PRESETS.map((x) => x.short).join(", "));
+  check(PRESETS.every((x) => x.examples.length >= 2),
+    "and every one of them says what it is the right answer to");
 }
 
 console.log("\nNot one of them is a single model");
@@ -87,22 +94,22 @@ console.log("\nIt runs on whatever key you actually hold");
 
 console.log("\nEach one is actually a different tactic");
 {
-  const fast = engine("nova", { configured: all });
-  const deep = engine("orion", { configured: all });
-  const long = engine("atlas", { configured: all });
+  const fast = engine("flash", { configured: all });
+  const deep = engine("quant", { configured: all });
+  const long = engine("orbit", { configured: all });
   check(fast !== deep, "the quick one and the careful one are not the same model", `${fast} vs ${deep}`);
   check(spec(long).contextWindow === Math.max(...MODELS.map((m) => m.contextWindow)),
     "the one for long documents takes the biggest window there is", long);
-  check(getPreset("nova")!.effort === "low" && getPreset("orion")!.effort === "high",
+  check(getPreset("flash")!.effort === "low" && getPreset("quant")!.effort === "high",
     "and they think as hard as their names promise");
-  check(getPreset("orion")!.cast.length === 2, "the careful one puts three companies on one question");
+  check(getPreset("quant")!.cast.length === 2, "the careful one puts three companies on one question");
 }
 
 console.log("\nAnd says so when it could not have what it wanted");
 {
-  const first = resolveCast("atlas", { configured: only("openai") })!.answer;
+  const first = resolveCast("orbit", { configured: only("openai") })!.answer;
   check(!first.substituted && !first.why, "its first choice is offered without an excuse", first.modelId);
-  const second = resolveCast("atlas", { configured: only("deepseek") })!.answer;
+  const second = resolveCast("orbit", { configured: only("deepseek") })!.answer;
   check(second.substituted && /no key/i.test(second.why),
     "and anything else is named along with the reason", `${second.modelId} — ${second.why}`);
 }
@@ -111,20 +118,20 @@ console.log("\nA requirement beats the tactic, because an answer to an unread qu
 {
   /* DeepSeek and Kimi K2 Thinking cannot see. Nova would take one on price
      and must not, when there is a picture in the message. */
-  const seeing = resolveCast("nova", { configured: { deepseek: true, anthropic: true }, hasImage: true })!.answer;
+  const seeing = resolveCast("flash", { configured: { deepseek: true, anthropic: true }, hasImage: true })!.answer;
   check(spec(seeing.modelId).vision, "an image rules out the engines without eyes", seeing.modelId);
   check(/image/i.test(seeing.why), "and the row says why that one", seeing.why);
 
   /* Three hundred thousand tokens does not fit a 200k window, whatever the
      tactic prefers. */
-  const big = resolveCast("nova", { configured: all, size: 300_000 })!.answer;
+  const big = resolveCast("flash", { configured: all, size: 300_000 })!.answer;
   check(spec(big.modelId).contextWindow > 300_000, "and a long thread rules out the small windows", big.modelId);
   check(/long/i.test(big.why), "said in tokens rather than in silence", big.why);
 }
 
 console.log("\nWith no key at all it still names an engine");
 {
-  const none = resolveCast("astro", { configured: {} })!;
+  const none = resolveCast("one", { configured: {} })!;
   check(Boolean(none.answer.modelId) && /no key/i.test(none.answer.why),
     "so the failure that follows is about the missing key", `${none.answer.modelId} — ${none.answer.why}`);
 }
@@ -159,15 +166,15 @@ console.log("\nAnd it is not bought for a one-liner");
 
 console.log("\nThe tactic shapes the turn");
 {
-  const cast = resolveCast("orion", { configured: all });
+  const cast = resolveCast("quant", { configured: all });
   const plain = planTurn("what should I have for lunch", { autoStyle: true });
   check(plain.effort === undefined, "an easy question asks for no particular effort", String(plain.effort));
-  check(shapePlan(plain, getPreset("orion"), { autoStyle: true, cast }).effort === "high",
+  check(shapePlan(plain, getPreset("quant"), { autoStyle: true, cast }).effort === "high",
     "picking the careful one means it thinks hard about whatever comes next");
-  check(shapePlan(plain, getPreset("nova"), { autoStyle: true }).effort === "low",
+  check(shapePlan(plain, getPreset("flash"), { autoStyle: true }).effort === "low",
     "and picking the quick one means it does not");
 
-  const sage = shapePlan(plain, getPreset("sage"), { autoStyle: true });
+  const sage = shapePlan(plain, getPreset("tutor"), { autoStyle: true });
   /* The name is already on that line when this is drawn, so the reason does
      not repeat it: "Sage · Explanatory, because that is what it is for". */
   check(sage.register?.id === "explanatory" && Boolean(sage.register?.why),
@@ -178,12 +185,12 @@ console.log("\nThe tactic shapes the turn");
      they set an hour ago. */
   const asked = planTurn("quickly, what is a debounce", { autoStyle: true });
   check(asked.register?.id === "concise", "the request itself reads as concise", asked.register?.id);
-  check(shapePlan(asked, getPreset("sage"), { autoStyle: true }).register?.id === "concise",
+  check(shapePlan(asked, getPreset("tutor"), { autoStyle: true }).register?.id === "concise",
     "and the tactic does not overrule what they just asked for");
 
   /* And a style they chose themselves is not touched at all. */
   const chosen = planTurn("what is a debounce", { autoStyle: false });
-  check(shapePlan(chosen, getPreset("sage"), { autoStyle: false }).register === null,
+  check(shapePlan(chosen, getPreset("tutor"), { autoStyle: false }).register === null,
     "nor a style they picked on purpose");
 }
 
@@ -201,19 +208,85 @@ console.log("\nAnd the check is real, or it is not claimed");
      another opinion about taste, charged as a verdict. The list of what can
      be settled lives in `decide.ts` and this reads it rather than keeping a
      second copy that drifts. */
-  const look = shapePlan(planTurn("design a landing page layout for a bakery"), getPreset("orion"), {
-    cast: resolveCast("orion", { configured: all }),
+  const look = shapePlan(planTurn("design a landing page layout for a bakery"), getPreset("quant"), {
+    cast: resolveCast("quant", { configured: all }),
   });
   check(look.check !== "second", "and it does not grade a layout — that is two opinions, not a check", look.kind);
 }
 
 console.log("\nThe duel is two answers, and both have to be able to read the question");
 {
-  const duel = playerFor(resolveCast("mizar", { configured: all }), "duel");
-  check(Boolean(duel), "two companies answer the same question", duel ?? "nobody");
-  const big = playerFor(resolveCast("mizar", { configured: all, size: 300_000 }), "duel");
-  check(!big || spec(big).contextWindow > 300_000,
-    "and a column that could not hold the thread is not offered as a second opinion", big ?? "none");
+  const duel = playerFor(resolveCast("duet", { configured: all }), "duel");
+  check(Boolean(duel), "two companies answer the same question", duel?.modelId ?? "nobody");
+  const big = playerFor(resolveCast("duet", { configured: all, size: 300_000 }), "duel");
+  check(!big || spec(big.modelId).contextWindow > 300_000,
+    "and a column that could not hold the thread is not offered as a second opinion", big?.modelId ?? "none");
+}
+
+console.log("\nThe five briefs are five different questions");
+{
+  const of = (f: Parameters<typeof briefPrompt>[1]) => briefPrompt("how does this work", f);
+  const asks = (["cover", "plan", "risks", "misconceptions", "audience"] as const).map(of);
+  check(new Set(asks).size === 5, "a build is not briefed the way a letter is");
+  check(/order to build them in/.test(of("plan")), "the one for building asks for a plan");
+  check(/arithmetic slips|unit/.test(of("risks")), "the one for numbers asks where it goes wrong");
+  check(/already believes that is wrong/.test(of("misconceptions")), "the teaching one asks what you have got backwards");
+  check(/who reads this/.test(of("audience")), "and the writing one asks who is reading");
+}
+
+console.log("\nThe council is four jobs rather than four drafts");
+{
+  const council = resolveCast("council", { configured: all })!;
+  const one = resolveCast("one", { configured: all })!;
+  const flash = resolveCast("flash", { configured: all })!;
+  const seats = playersFor(council, "council");
+  check(seats.length === 3, "three seats, and the model that writes makes four", String(seats.length + 1));
+  check(new Set(seats.map((x) => x.angle)).size === 3,
+    "each with a different half of the question", seats.map((x) => x.angle).join(", "));
+  /* One company per job, and the fourth writes what comes of it. Four models
+     from two labs would be a committee with one opinion. */
+  const companies = new Set([council.answer.modelId, ...seats.map((x) => x.modelId)].map((id) => spec(id).provider));
+  check(companies.size === 4, "on four keys, one company per seat", [...companies].join(", "));
+  const p = (c: typeof council) => profileOf(c);
+  check(p(council).usd > p(one).usd && p(one).usd > p(flash).usd,
+    "and the prices run the way the names promise",
+    [flash, one, council].map((c) => p(c).usd.toFixed(3)).join(" < "));
+  check(p(flash).calls === 2 && p(council).calls === 4,
+    "counted in models, which is the number that surprises people",
+    `${p(flash).calls} vs ${p(council).calls}`);
+}
+
+console.log("\nEach seat is asked for its own half, and the writer is told not to average them");
+{
+  const asks = (["strategy", "logic", "knowledge"] as const).map((a) => councilPrompt("what should we build", a));
+  check(new Set(asks).size === 3, "three different askings, not one in three voices");
+  check(asks.every((a) => /Do not write the whole answer/.test(a)),
+    "none of them is asked for the answer — that is the writer's job");
+  const note = councilNote([{ who: "GPT-5.1", angle: "strategy", text: "build the small one first" }]);
+  check(/genuinely disagree/.test(note), "and disagreement is to be surfaced, not smoothed away");
+  check(/do not mention that any of this happened/i.test(note),
+    "the answer is an answer, not a report on its own making");
+  check(/you are the one accountable/.test(note), "with the writer accountable for what it keeps");
+}
+
+console.log("\nAnd four models are not convened for four words");
+{
+  check(!worthConvening("thanks"), "a council for 'thanks' is four bills for nothing");
+  check(worthConvening("should we rebuild this service or refactor what is there"),
+    "a real question gets one");
+}
+
+console.log("\nThe one for pictures keeps its eyes on a machine without them");
+{
+  /* Argus is the tactic that exists for images, so its cast is chosen for
+     that whether or not this particular message has one — picking a blind
+     model now and finding out when a screenshot arrives is the failure. */
+  const cast = resolveCast("vision", { configured: all })!;
+  check(spec(cast.answer.modelId).vision, "the writer can see", cast.answer.modelId);
+  check(cast.parts.every((x) => spec(x.modelId).vision), "and so can everybody else in it",
+    cast.parts.map((x) => x.modelId).join(", "));
+  const blind = resolveCast("vision", { configured: { deepseek: true } })!;
+  check(/read an image/i.test(blind.answer.why), "and where nothing can see, it says so", blind.answer.why);
 }
 
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
