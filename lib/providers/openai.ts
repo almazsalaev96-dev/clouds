@@ -47,12 +47,22 @@ export async function* streamOpenAICompatible(
     stream_options: { include_usage: true },
   };
 
-  // Reasoning models on both providers reject sampling parameters and use a
-  // different token-limit field. Sending the wrong one is a hard 400.
+  /* Reasoning models reject sampling parameters and take a different
+     token-limit field — but `max_completion_tokens` is OpenAI's spelling and
+     OpenAI's alone. Moonshot and DeepSeek speak this wire format and still
+     take `max_tokens`, so every "reasoning" model outside OpenAI was being
+     sent a limit under a name it does not know: rejected outright by one
+     provider and, worse, silently ignored by another, which is an answer
+     with no ceiling on it and a bill to match.
+
+     This is the cost of "OpenAI-compatible" meaning compatible-ish. The rule
+     is the provider's, not the model's capability. */
   if (model.reasoning) {
-    body.max_completion_tokens = Math.min(req.params.maxTokens, model.maxOutput);
-    if (provider === "openai" && req.params.reasoningEffort) {
-      body.reasoning_effort = req.params.reasoningEffort;
+    if (provider === "openai") {
+      body.max_completion_tokens = Math.min(req.params.maxTokens, model.maxOutput);
+      if (req.params.reasoningEffort) body.reasoning_effort = req.params.reasoningEffort;
+    } else {
+      body.max_tokens = Math.min(req.params.maxTokens, model.maxOutput);
     }
   } else {
     body.max_tokens = Math.min(req.params.maxTokens, model.maxOutput);

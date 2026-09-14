@@ -51,14 +51,16 @@ console.log("\nA subject becomes a deck");
   check(made.length === 4, "the cards are written and kept", `${made.length} cards`);
   check(made.every((c) => c.state === "new" && c.due <= Date.now()),
     "and every one of them is waiting now — a deck you cannot study today is one you will not come back for");
-  const row = p.getByRole("list", { name: "Decks" }).locator("li").first();
+  const row = p.getByRole("list", { name: "Study" }).locator("li").first();
   check(/debouncing and throttling/i.test(await row.innerText()), "the deck is named after the subject");
-  check(/4 due now/.test(await row.innerText()), "and says how many are waiting", (await row.innerText()).replace(/\n/g, " · "));
+  check(/4 due/.test(await row.innerText()), "and says how many are waiting", (await row.innerText()).replace(/\n/g, " · "));
 }
 
 console.log("\nBeing asked");
 {
-  await p.getByRole("button", { name: /^Study 4$/ }).click();
+  /* Everything waiting, across every deck, which is what somebody sitting
+     down for ten minutes actually presses. */
+  await p.getByRole("button", { name: /^Start$/ }).click();
   await p.waitForTimeout(500);
   const front = await p.locator("main p").first().innerText();
   check(/\?$/.test(front.trim()), "a question, on its own", front.slice(0, 50));
@@ -123,7 +125,7 @@ console.log("\nAn answer in a chat can become a deck too");
   const after = (await cards()).length;
   check(after > before, "and pressing it makes a deck from the answer", `${before} → ${after} cards`);
   check(/Study/.test(await p.locator("aside nav").innerText()), "which lands you in the room where it is kept");
-  check((await p.getByRole("list", { name: "Decks" }).locator("li").count()) === 2, "as a second deck, named after the conversation");
+  check((await p.getByRole("list", { name: "Study" }).locator("li").count()) === 2, "as a second deck, named after the conversation");
 }
 
 console.log("\nA deck can be looked at, and fixed");
@@ -161,7 +163,7 @@ console.log("\nAnd a card you got wrong can be explained");
   await p.getByRole("button", { name: "Back to Study" }).first().click();
   await p.waitForTimeout(600);
   /* The deck made from the chat still has everything waiting. */
-  await p.getByRole("button", { name: /^Study \d/ }).last().click();
+  await p.getByRole("button", { name: /^Start$/ }).click();
   await p.waitForTimeout(700);
   await p.keyboard.press(" ");
   await p.waitForTimeout(400);

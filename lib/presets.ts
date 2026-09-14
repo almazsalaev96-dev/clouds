@@ -392,6 +392,15 @@ export interface Player {
   as?: Flavour;
   /** For a council seat: the job it was given. */
   angle?: Angle;
+  /**
+   * True when this had to be a sibling of the writer rather than a rival.
+   *
+   * Never hidden. A brief from another model in the same lab is still a
+   * second reading and still worth having; a *check* from one shares the
+   * training data and most of the blind spots, so a reader has to be able to
+   * see which kind they are looking at.
+   */
+  sameCompany?: boolean;
 }
 
 export interface Cast {
@@ -527,33 +536,47 @@ export function resolveCast(id: string, where: Where): Cast | null {
      usually the same blind spot, so a "second opinion" from a sibling is an
      echo with a second invoice. Where there is no second company the part is
      dropped and said, never quietly filled. */
-  const elsewhere = pool.filter((m) => m.provider !== writer.provider);
   const parts: Player[] = [];
   const missing: Role[] = [];
+  let kin = 0;
   const taken = new Set<string>([writer.id]);
   const used = new Set<ProviderId>([writer.provider]);
   for (const part of preset.cast) {
     /* A duel is two answers to the same question, so its second model has to
        be able to read the question too — the writer's constraints apply. A
        brief and a check read a few hundred words and are not so bound. */
-    const from = (part.role === "duel" ? elsewhere.filter((m) => able.includes(m)) : elsewhere)
+    const field = (part.role === "duel" ? pool.filter((m) => able.includes(m)) : pool)
       .filter((m) => !taken.has(m.id))
       /* Two pairs of eyes means two pairs of eyes. */
       .filter((m) => !preset.sees || m.vision);
-    /* A third company before a second model from the second company. Orion
-       promises three and would otherwise quietly buy its brief and its check
-       from the same lab — which is most of the value of the third one gone,
-       paid for in full. */
-    const fresh = from.filter((m) => !used.has(m.provider as ProviderId));
-    const who = pickFrom(part.engines, part.want, fresh.length ? fresh : from);
+    const elsewhere = field.filter((m) => m.provider !== writer.provider);
+    /* A third company before a second model from the second company. The
+       Council promises three and would otherwise quietly buy two of its
+       seats from one lab — most of the value of the third gone, paid for in
+       full. */
+    const fresh = elsewhere.filter((m) => !used.has(m.provider as ProviderId));
+    /* And a sibling before nobody. An Armi model is a cast: one model alone
+       is the thing this whole idea exists instead of, so where a browser
+       holds one company's key the second seat goes to a different model in
+       that company rather than being dropped — a different set of weights
+       reading the question first is still a second reading. What is not done
+       is pretend: the seat is marked as a sibling, the menu says so, and no
+       claim of independence is made for it. */
+    const who = pickFrom(part.engines, part.want, fresh.length ? fresh : elsewhere.length ? elsewhere : field);
     if (who) {
-      parts.push({ role: part.role, modelId: who.id, as: part.as, angle: part.angle });
+      const sameCompany = who.provider === writer.provider;
+      if (sameCompany) kin += 1;
+      parts.push({ role: part.role, modelId: who.id, as: part.as, angle: part.angle, sameCompany });
       taken.add(who.id);
       used.add(who.provider as ProviderId);
     } else missing.push(part.role);
   }
 
-  return { answer, parts, short: missing.length ? shortfall(missing) : null };
+  return {
+    answer,
+    parts,
+    short: missing.length ? shortfall(missing) : kin ? KIN_SHORT : null,
+  };
 }
 
 const SAYS: Record<Role, string> = {
@@ -565,6 +588,16 @@ const SAYS: Record<Role, string> = {
 
 const shortfall = (missing: Role[]) =>
   `${missing.map((r) => SAYS[r]).join(" or ")} — needs a second company's key`;
+
+/**
+ * Said whenever a seat went to a sibling.
+ *
+ * Two models from one lab share training data, a house style and usually the
+ * same blind spot. That is worth something for a brief and worth least for a
+ * check, and either way it is not the independence the row would otherwise
+ * be claiming — so it is stated, with the thing that would fix it.
+ */
+const KIN_SHORT = "one company only — the second model is a sibling, not a rival. A second key fixes it.";
 
 /** Just the writer, for the places that only need to name one model. */
 export function resolvePreset(id: string, where: Where): Engine | null {

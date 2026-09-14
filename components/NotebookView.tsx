@@ -3,15 +3,15 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  BookOpen, Download, Eye, GraduationCap, HelpCircle, ListTree, Paperclip, Pencil,
-  Scissors, SpellCheck2, Tags, X,
+  BookOpen, Download, Eye, GraduationCap, HelpCircle, Highlighter, Layers, ListTree,
+  Paperclip, Pencil, Scissors, SpellCheck2, Tags, X,
 } from "lucide-react";
 import type { Note, Source } from "@/lib/types";
-import { addSource, db, deleteNote, deriveTitle, removeSource, sourcesOf } from "@/lib/db";
+import { addCards, addSource, createDeck, db, deleteNote, deriveTitle, removeSource, sourcesOf } from "@/lib/db";
 import { offerUndo } from "@/lib/undo";
 import { useAutoGrow } from "@/lib/hooks/useAutoGrow";
 import { useAutosave } from "@/lib/hooks/useAutosave";
-import { makeFromSources, reviseCanvas } from "@/lib/generate";
+import { draftCards, makeFromSources, reviseCanvas } from "@/lib/generate";
 import { citeScore, extractCitations, findIn, type Citation } from "@/lib/cite";
 import { extractPdf, isPdf } from "@/lib/pdf";
 import { Markdown } from "@/components/chat/Markdown";
@@ -43,6 +43,38 @@ const LESSONS = [
   "Six to ten lessons. Fewer and deeper beats more and thinner.",
   "Do not write a table of contents. Do not write a lesson that only says what the section of the book was about — a lesson that can be read without teaching anything is not a lesson.",
   "Markdown, headings and prose. Say nothing you did not get from the source, and where the source is unclear, say that rather than inventing a resolution.",
+].join("\n");
+
+/**
+ * Revision notes, which is not any of the other four.
+ *
+ * Lessons teach, a summary accounts for a book, terms define and questions
+ * test. None of them is the thing a student actually wants the night before:
+ * the topic, ranked — what must be known exactly, the formula with its
+ * symbols named, the mistake everyone makes, how it is asked, and four
+ * questions to find out whether any of it went in.
+ *
+ * The callout markers are not decoration and are named here on purpose: the
+ * renderer draws them (`components/chat/Callout.tsx`), so the page comes back
+ * looking like notes rather than like an essay about the notes. A model left
+ * to itself writes prose, and prose is what nobody revises from.
+ */
+const REVISION = [
+  "Replace this page with revision notes on the source.",
+  "Not a summary and not a lesson. Notes somebody revises from: dense, ranked, and scannable in five minutes.",
+  "In this order:",
+  "- a one-line statement of what the topic is actually about;",
+  "- **What you must know** — five to nine bullets, each one a thing that could be asked and marked;",
+  "- **Key terms** — the term, then what it means as this source uses it, one line each;",
+  "- **How it works** — the idea in plain words, with one worked example and the working shown;",
+  "- **Check yourself** — four questions, then their answers under a sub-heading, not omitted.",
+  "Use these callouts where they earn their place, and nowhere else:",
+  "> [!key] a fact that has to be remembered exactly",
+  "> [!formula] a formula, with every symbol named underneath it",
+  "> [!mistake] the thing people reliably get wrong, and what to do instead",
+  "> [!exam] how this is actually asked, and what earns the marks",
+  "At most six callouts in the whole page. A page where everything is highlighted has nothing highlighted.",
+  "No preamble, no table of contents, no heading that only names what a section was about. Say nothing you did not get from the source, and where the source is unclear say so rather than inventing a resolution.",
 ].join("\n");
 
 const SUMMARY = [
@@ -233,6 +265,43 @@ export function NotebookView({
      page's history. The chips send three sentences of instruction and mean one
      word, and "Turn the source into a course of lessons, and replace this…"
      as a heading is the prompt leaking into the record of what happened. */
+  /**
+   * The page, turned into cards you will actually be asked again.
+   *
+   * The gap this closes is the whole argument for a notebook living inside
+   * an assistant rather than beside one. Revision notes are read once and
+   * then sit there; the thing that makes them stick is being asked, later,
+   * at the point you are about to forget — which is a scheduler and a table,
+   * and is already in this app one room over. Without this the two rooms
+   * never meet and the notebook is a copybook.
+   */
+  const makeCards = async () => {
+    if (busyRef.current || !note) return;
+    const modelId = reviseModel;
+    if (!modelId) {
+      setNotice("No key configured yet — add one in Settings.");
+      return;
+    }
+    busyRef.current = true;
+    setBusy(true);
+    setNotice(null);
+    try {
+      const drafts = await draftCards(draft.slice(0, 20_000), { about: note.title, modelId });
+      if (!drafts?.length) {
+        setNotice("Nothing usable came back — there may not be enough on the page yet.");
+        return;
+      }
+      const deck = await createDeck(note.title || "This page", "note");
+      const n = await addCards(deck.id, drafts, "note");
+      setNotice(`${n} card${n === 1 ? "" : "s"} made — they are in Study.`);
+    } catch {
+      setNotice("That request failed. Check the key and the connection.");
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  };
+
   const run = async (text: string, label?: string) => {
     // The ref, claimed in the same tick: `busy` is a render behind, so two
     // presses in one frame both read false and both sent a request.
@@ -604,6 +673,12 @@ export function NotebookView({
                         lessons, not proofreading. */}
                     {sources.length ? (
                       <>
+                        {/* First, because it is what somebody with a textbook
+                            open and an exam coming actually wants, and the
+                            other four were all there before it. */}
+                        <NoteChip busy={busy} icon={<Highlighter size={12} />} onClick={() => void run(REVISION, "Revision notes")}>
+                          Revision notes
+                        </NoteChip>
                         <NoteChip busy={busy} icon={<GraduationCap size={12} />} onClick={() => void run(LESSONS, "Make lessons")}>
                           Make lessons
                         </NoteChip>
@@ -615,6 +690,9 @@ export function NotebookView({
                         </NoteChip>
                         <NoteChip busy={busy} icon={<HelpCircle size={12} />} onClick={() => void run(QUESTIONS, "Questions")}>
                           Questions
+                        </NoteChip>
+                        <NoteChip busy={busy} icon={<Layers size={12} />} onClick={() => void makeCards()}>
+                          Make cards
                         </NoteChip>
                       </>
                     ) : (

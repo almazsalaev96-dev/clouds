@@ -12,6 +12,7 @@ import { offerUndo } from "@/lib/undo";
 import { Button } from "@/components/ui/primitives";
 import { MessageBar } from "@/components/chat/MessageBar";
 import { DeckPanel } from "@/components/study/DeckPanel";
+import { SectionIndex } from "@/components/SectionIndex";
 import { cn } from "@/lib/utils";
 
 /**
@@ -50,6 +51,10 @@ export function StudyView({
   const [session, setSession] = React.useState<{ deckId: string | null } | null>(null);
   const [openDeck, setOpenDeck] = React.useState<string | null>(null);
   const [subject, setSubject] = React.useState("");
+  /* "New deck" puts the caret in the line that makes one. Bumping this is
+     how the shared index asks for that, since there is no such thing as an
+     empty deck worth creating. */
+  const [focusKey, setFocusKey] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
   /* A clock that ticks, so "3 due" becomes "4 due" while the page is open
@@ -119,99 +124,86 @@ export function StudyView({
   const due = dueNow(cards, now).length;
   const today = answeredToday(cards, now);
 
+  /* The same chrome as the Notebook, the Artifacts and the Projects.
+     This room was written last and grew its own header — a different title
+     size, a different empty state, its own row shape, no search — so the one
+     section a student lives in was the one that looked like it came from
+     another app. Everything specific to studying is in the lead: the line
+     that makes a deck, and what is waiting today. */
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
-      <header className="glass safe-top sticky top-0 z-10 border-b border-line">
-        <div className="mx-auto flex w-full max-w-[var(--measure)] items-center gap-3 px-4 py-3">
-          <h1 className="text-lg font-semibold tracking-[-0.02em] text-primary">Study</h1>
-          {due > 0 && <span className="tnum text-sm text-accent">{due} due</span>}
-          {/* What you have already done, which is the half that keeps
-              anybody coming back. Only once there is something to say. */}
-          {today > 0 && (
-            <span className="tnum text-sm text-tertiary">{today} answered today</span>
-          )}
+    <SectionIndex
+      title="Study"
+      newLabel="New deck"
+      loading={decks === undefined}
+      emptyTitle="Nothing to study yet."
+      emptyHint="Name a subject above, or press “Make cards from this” under any answer. Cards come back on a schedule: a minute later, ten minutes later, then days apart, and sooner again whenever you get one wrong."
+      items={(decks ?? []).map((d) => {
+        const mine = cards.filter((c) => c.deckId === d.id);
+        const p = progressOf(mine, now);
+        return {
+          id: d.id,
+          title: d.name,
+          preview:
+            `${p.total} card${p.total === 1 ? "" : "s"} · ${p.known} known` +
+            (p.due > 0 ? "" : p.nextDue ? ` · next ${whenDue(p.nextDue, now)}` : " · nothing waiting"),
+          /* The number that decides whether you open it, in the one place
+             this list puts a number that decides anything. */
+          badge: p.due > 0 ? `${p.due} due` : undefined,
+          searchText: mine.map((c) => `${c.front} ${c.back}`).join(" "),
+        };
+      })}
+      onOpen={(id: string) => setOpenDeck(id)}
+      /* There is no such thing as an empty deck worth having, so "New deck"
+         puts the cursor where a deck is actually made rather than creating a
+         row somebody then has to fill or delete. */
+      onNew={() => setFocusKey(String(Date.now()))}
+      onDelete={(id: string) => {
+        const d = (decks ?? []).find((x) => x.id === id);
+        if (d) void (async () => offerUndo(d.name, await deleteDeck(d.id)))();
+      }}
+      lead={
+        <div className="mb-4">
+          {/* The way in. A subject, and a deck a few seconds later — this is
+              the part every assistant is already good at, so it is one line
+              rather than a form. */}
+          <MessageBar
+            value={subject}
+            onChange={setSubject}
+            onSubmit={make}
+            placeholder="What are you learning? — “the French Revolution”, “React hooks”, “kanji N5”"
+            ariaLabel="What to study"
+            canSend={Boolean(subject.trim()) && !busy}
+            busy={busy}
+            className="glass"
+            focusKey={focusKey}
+          />
+          {busy && <p className="sheen mt-2 text-sm font-medium">Writing the cards</p>}
+          {notice && <p className="mt-2 text-sm text-warning">{notice}</p>}
+
+          {/* What is waiting, and the one press that clears it. Everything
+              due across every deck, because "study for ten minutes" is the
+              thing somebody actually sits down to do. */}
           {due > 0 && (
-            <Button size="sm" variant="primary" className="bloom ml-auto" onClick={() => setSession({ deckId: null })}>
-              Start
-            </Button>
+            <div className="mt-3 flex items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2.5">
+              <span className="min-w-0 flex-1 text-sm text-primary">
+                <span className="tnum font-medium text-accent">{due}</span> waiting now
+                {today > 0 && (
+                  <span className="text-tertiary"> · {today} answered today</span>
+                )}
+              </span>
+              <Button size="sm" variant="primary" className="bloom" onClick={() => setSession({ deckId: null })}>
+                Start
+              </Button>
+            </div>
+          )}
+          {due === 0 && today > 0 && (
+            <p className="mt-3 text-sm text-tertiary tnum">
+              {today} answered today · nothing else waiting.
+            </p>
           )}
         </div>
-      </header>
-
-      <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-4">
-        {/* The way in. A subject, and a deck a few seconds later — this is
-            the part every assistant is already good at, so it is one line
-            rather than a form. */}
-        <MessageBar
-          value={subject}
-          onChange={setSubject}
-          onSubmit={make}
-          placeholder="What are you learning? — “the French Revolution”, “React hooks”, “kanji N5”"
-          ariaLabel="What to study"
-          canSend={Boolean(subject.trim()) && !busy}
-          busy={busy}
-          className="glass"
-        />
-        {busy && <p className="sheen mt-2 text-sm font-medium">Writing the cards</p>}
-        {notice && <p className="mt-2 text-sm text-warning">{notice}</p>}
-
-        {decks.length === 0 && !busy ? (
-          <div className="mt-10 text-center">
-            <GraduationCap size={22} className="mx-auto text-tertiary" />
-            <p className="mt-2 text-base text-primary">Nothing to study yet.</p>
-            <p className="mx-auto mt-1 max-w-prose text-sm text-secondary">
-              Name a subject above, or press “Make cards from this” under any answer. Cards come
-              back on a schedule: a minute later, ten minutes later, then days apart, and sooner
-              again whenever you get one wrong.
-            </p>
-          </div>
-        ) : (
-          <ul className="mt-5 space-y-1.5" aria-label="Decks">
-            {decks.map((d) => {
-              const mine = cards.filter((c) => c.deckId === d.id);
-              const p = progressOf(mine, now);
-              return (
-                <li
-                  key={d.id}
-                  className="group flex items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2.5"
-                >
-                  <button
-                    onClick={() => setOpenDeck(d.id)}
-                    className="focus-inset min-w-0 flex-1 rounded-md text-left"
-                    aria-label={`Open ${d.name}`}
-                  >
-                    <span className="block truncate text-sm font-medium text-primary">{d.name}</span>
-                    <span className="block text-xs text-tertiary tnum">
-                      {p.total} card{p.total === 1 ? "" : "s"} · {p.known} known
-                      {p.due > 0
-                        ? ` · ${p.due} due now`
-                        : p.nextDue
-                          ? ` · next ${whenDue(p.nextDue, now)}`
-                          : ""}
-                    </span>
-                  </button>
-                  <Button
-                    size="sm"
-                    variant={p.due > 0 ? "primary" : "ghost"}
-                    disabled={p.due === 0}
-                    onClick={() => setSession({ deckId: d.id })}
-                  >
-                    {p.due > 0 ? `Study ${p.due}` : "Done"}
-                  </Button>
-                  <button
-                    onClick={async () => offerUndo(d.name, await deleteDeck(d.id))}
-                    aria-label={`Delete ${d.name}`}
-                    className="ctl reveal flex [--ctl:1.75rem] shrink-0 items-center justify-center rounded-sm text-tertiary hover:bg-subtle hover:text-[var(--danger)]"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-    </div>
+      }
+    />
   );
 }
 

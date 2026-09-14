@@ -409,7 +409,12 @@ function PresetRow({
           ) : (
             <>
               {preset.tagline} · <span className="text-secondary">{engine.short}</span>
-              {cast.short && <span className="text-warning"> · needs a second key</span>}
+              {cast.short && (
+                <span className="text-warning">
+                  {" · "}
+                  {cast.parts.some((x) => x.sameCompany) ? "one company" : "needs a second key"}
+                </span>
+              )}
             </>
           )}
         </span>
@@ -456,6 +461,11 @@ function CastRow({ cast }: { cast: Cast }) {
           <React.Fragment key={`${x.role}${i}`}>
             {" · "}
             <span className="text-secondary">{getModel(x.modelId).name}</span> {does(x)}
+            {/* Which kind of second opinion this is. A sibling is still a
+                second reading and is still worth having; it is not the
+                independent one, and the row that says "checks it after"
+                would otherwise be claiming it was. */}
+            {x.sameCompany && <span className="text-warning"> (sibling)</span>}
           </React.Fragment>
         ))}
       </p>

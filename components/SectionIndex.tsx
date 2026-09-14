@@ -138,7 +138,13 @@ export function SectionIndex({
             Nothing matches <span className="text-secondary">{query}</span>.
           </p>
         ) : (
-          <ul className="space-y-1">
+          <ul
+            /* Named, like every other list in the app: four rooms draw their
+               index through this component and not one of their lists had a
+               name a screen reader could announce. */
+            className="space-y-1"
+            aria-label={title}
+          >
             {filtered.map((item) => (
               <li
                 key={item.id}
@@ -155,6 +161,10 @@ export function SectionIndex({
                         to read should do something when you press it. */}
                     <button
                       onClick={() => onOpen(item.id)}
+                      /* Its own name, rather than whatever its three lines of
+                         text concatenate to: "Kanji N512 cards · 4 known" is
+                         what a screen reader read out before this. */
+                      aria-label={`Open ${item.title}`}
                       className="focus-inset flex min-w-0 flex-1 flex-col justify-center self-stretch rounded-md text-left"
                     >
                       <span className="flex items-baseline gap-2">

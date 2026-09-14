@@ -564,6 +564,7 @@ function ArmiTable({ configured }: { configured: Record<string, boolean> }) {
                 <React.Fragment key={`${x.role}${i}`}>
                   {" · "}
                   <span className="text-secondary">{getModel(x.modelId).name}</span> {does(x)}
+                  {x.sameCompany && <span className="text-warning"> (sibling)</span>}
                 </React.Fragment>
               ))}
             </p>

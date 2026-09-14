@@ -10,6 +10,8 @@ import { CodeBlock } from "./CodeBlock";
 import { ComputeBlock } from "./ComputeBlock";
 import { Diagram } from "./Diagram";
 import { Predict, parsePredict } from "./Predict";
+import { Callout } from "./Callout";
+import { calloutKind } from "@/lib/callout";
 
 /**
  * Model output is untrusted input. react-markdown does not evaluate raw HTML
@@ -62,6 +64,16 @@ function makeComponents(streaming: boolean): Components {
     },
     // CodeBlock brings its own <figure>, so the default <pre> wrapper is dropped.
     pre: ({ children }) => <>{children}</>,
+    /* A blockquote that opens with `[!key]` is not a quotation, it is a
+       ranked fact — the thing to remember, the formula, the mistake everybody
+       makes. Models write this syntax unprompted because GitHub renders it,
+       and until now it arrived as a quotation with `[!key]` visible in it,
+       which is worse than not supporting it at all. */
+    blockquote: ({ children, node }) => {
+      const kind = calloutKind(textOf(node));
+      if (!kind) return <blockquote>{children}</blockquote>;
+      return <Callout kind={kind}>{withoutMarker(children)}</Callout>;
+    },
     table: ({ children }) => (
       <div className="table-scroll">
         <table>{children}</table>
@@ -95,6 +107,42 @@ function makeComponents(streaming: boolean): Components {
     input: ({ type, checked }) =>
       type === "checkbox" ? <input type="checkbox" checked={checked} readOnly /> : null,
   };
+}
+
+/** The text of a node, for reading a marker the renderer then removes. */
+function textOf(node: unknown): string {
+  const n = node as { value?: string; children?: unknown[] } | undefined;
+  if (!n) return "";
+  if (typeof n.value === "string") return n.value;
+  return (n.children ?? []).map(textOf).join("");
+}
+
+/**
+ * The same children, with the `[!key]` marker taken off the front.
+ *
+ * Stripped from the rendered tree rather than from the markdown, because the
+ * markdown is what gets exported, copied and sent back to a model — a note
+ * that loses its own structure the moment it is drawn is a note that cannot
+ * be edited or re-made.
+ */
+function withoutMarker(children: React.ReactNode): React.ReactNode {
+  let done = false;
+  const strip = (node: React.ReactNode): React.ReactNode => {
+    if (done) return node;
+    if (typeof node === "string") {
+      const out = node.replace(/^\s*\[!\s*[a-z]+\s*\]\s*\n?/i, "");
+      if (out !== node) done = true;
+      return out;
+    }
+    if (Array.isArray(node)) return node.map(strip);
+    if (React.isValidElement(node)) {
+      const el = node as React.ReactElement<{ children?: React.ReactNode }>;
+      if (el.props.children === undefined) return node;
+      return React.cloneElement(el, { children: strip(el.props.children) });
+    }
+    return node;
+  };
+  return React.Children.map(children, strip);
 }
 
 const STATIC_COMPONENTS = makeComponents(false);

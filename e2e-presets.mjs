@@ -97,11 +97,13 @@ console.log("\nAnd every one of them says whose model it is running on");
      one of them can be what it says it is. Said on the row rather than
      discovered from a bill. */
   const duet = await p.getByRole("button", { name: /^ARMI Duet —/ }).first().innerText();
-  check(/needs a second key/i.test(duet), "and with one key it says it cannot be itself", duet.replace(/\n/g, " · "));
+  check(/one company/i.test(duet), "and with one key it says both models come from one company", duet.replace(/\n/g, " · "));
   const footer = await p.locator("text=/writes/").first().innerText();
   check(/Claude/.test(footer), "the menu names who writes", footer.replace(/\n/g, " · "));
-  check(/second company/i.test(await p.locator("[role=dialog], [data-radix-popper-content-wrapper]").first().innerText()),
-    "and spells out what the missing key would buy");
+  const panel = await p.locator("[data-radix-popper-content-wrapper]").first().innerText();
+  check(/sibling/i.test(panel) && /second key/i.test(panel),
+    "and spells out that the second model is a sibling, and what would fix it",
+    (panel.split("\n").find((l) => /sibling/i.test(l)) ?? "").slice(0, 90));
   await p.keyboard.press("Escape");
   await p.waitForTimeout(300);
 }
@@ -114,23 +116,28 @@ console.log("\nThe bar names both: the tactic you chose and the model answering"
   check(/One/.test(await bar.innerText()), "and the name is what you read at a glance", (await bar.innerText()).replace(/\n/g, " "));
 }
 
-console.log("\nWith one company's key, the second model is dropped rather than faked");
+console.log("\nWith one company's key it is still two models, and it says which kind");
 {
-  /* The whole value of a second model is that it is not the first one. Two
-     models from one lab share training data and usually the same blind spot,
-     so a brief or a check bought from a sibling is an echo with an invoice.
-     Nothing extra goes out here, and nothing claims to have. */
+  /* Minimum two models in one Armi model — that is the rule, and it holds on
+     one key. What changes is what can be claimed: a sibling reading the
+     question first is still a second reading, and it is not the independent
+     opinion two companies would give, so the menu and the answer both say
+     "sibling" rather than quietly selling one as the other. */
   await pick("ARMI One");
   await fetch(`${MOCK}/__reset`);
   await ask("why would you choose an event-sourced architecture over a CRUD one here");
   const seq = await calls();
-  check(!seq.some((r) => r.kind === "brief"),
-    "no second call is made to a sibling of the model that is answering",
+  const brief = seq.find((r) => r.kind === "brief");
+  const answer = seq.find((r) => r.kind === "answer");
+  check(Boolean(brief), "a second model is still asked what the answer must cover",
     seq.map((r) => `${r.kind}:${r.model}`).join(", "));
+  check(brief && brief.model !== answer?.model,
+    "a different model from the one writing — never the same weights twice",
+    `${brief?.model} → ${answer?.model}`);
   const shown = await p.locator(".msg").last().innerText();
-  check(/ARMI One|One —|One,/.test(shown) && !/briefed by/i.test(shown),
-    "and the answer does not say it was briefed when it was not",
-    (shown.split("\n").find((l) => /One/.test(l)) ?? "").slice(0, 80));
+  check(/ARMI One/.test(shown) && /briefed by/i.test(shown),
+    "and the answer names both of them",
+    (shown.split("\n").find((l) => /ARMI One/.test(l)) ?? "").slice(0, 90));
 }
 
 console.log("\nA name is not a costume: they reach different endpoints");

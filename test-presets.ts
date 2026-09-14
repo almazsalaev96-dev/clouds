@@ -64,20 +64,35 @@ console.log("\nAnd the second one always comes from a different company");
   for (const p of PRESETS) {
     const c = resolveCast(p.id, { configured: all })!;
     const home = spec(c.answer.modelId).provider;
-    check(c.parts.every((x) => spec(x.modelId).provider !== home),
+    check(c.parts.every((x) => spec(x.modelId).provider !== home && !x.sameCompany),
       `${p.name}: nobody in the cast shares a company with the writer`,
       c.parts.map((x) => spec(x.modelId).provider).join(", ") || "none");
   }
+  /* And where there is a choice, it is taken: a rival before a sibling. */
+  const two = resolveCast("one", { configured: { anthropic: true, openai: true } })!;
+  check(two.parts.every((x) => !x.sameCompany) && !two.short,
+    "two keys are enough for the whole cast to come from elsewhere",
+    two.parts.map((x) => x.modelId).join(", "));
 }
 
-console.log("\nWith one company's key it says what it cannot do, rather than faking it");
+console.log("\nWith one company's key it still fields a cast, and says what kind");
 {
+  /* The rule the person set: minimum two models in one Armi model. So a
+     browser holding one company's key gets a sibling rather than nothing —
+     a different set of weights reading the question first is still a second
+     reading — and the row says it is a sibling, because that is not the
+     independence a check would otherwise be claiming. */
   for (const p of PRESETS) {
     const c = resolveCast(p.id, { configured: only("anthropic") })!;
-    check(c.parts.length === 0 && Boolean(c.short),
-      `${p.name} on one key is honest about being alone`, c.short ?? "claimed a cast anyway");
-    check(/second company/.test(c.short ?? ""), `${p.name} says what would fix it`);
+    check(c.parts.length >= 1, `${p.name} is still more than one model on one key`,
+      [c.answer.modelId, ...c.parts.map((x) => x.modelId)].join(" + "));
+    check(c.parts.every((x) => x.modelId !== c.answer.modelId),
+      `${p.name} never puts the same model in two seats`);
+    check(Boolean(c.short), `${p.name} says what a second key would buy`, c.short ?? "said nothing");
   }
+  const kin = resolveCast("one", { configured: only("anthropic") })!;
+  check(kin.parts.every((x) => x.sameCompany), "and marks the seats that went to a sibling");
+  check(/sibling/.test(kin.short ?? ""), "in words, not only in a flag", kin.short ?? "");
   check(makers({ configured: only("anthropic") }).length === 1, "which is what one key means");
   check(makers({ configured: all }).length === 4, "and four keys are four companies");
 }
@@ -199,10 +214,15 @@ console.log("\nAnd the check is real, or it is not claimed");
   const code = planTurn("write a function that debounces calls");
   const both = shapePlan(code, getPreset("forge"), { cast: resolveCast("forge", { configured: all }) });
   check(both.check === "second" && /Forge/.test(both.why), "with two companies, one checks the other", both.why);
-  const alone = shapePlan(code, getPreset("forge"), { cast: resolveCast("forge", { configured: only("anthropic") }) });
-  check(alone.check !== "second", "with one, it does not pretend to", alone.check);
-  check(playerFor(resolveCast("forge", { configured: only("anthropic") }), "check") === null,
-    "because there is nobody to ask");
+  /* With one company there is still a check — the rule is two models, always
+     — but it is a sibling, and everything that draws it says so rather than
+     selling it as an independent opinion. */
+  const alone = resolveCast("forge", { configured: only("anthropic") })!;
+  const kin = playerFor(alone, "check");
+  check(Boolean(kin) && kin!.sameCompany === true, "with one company it is a sibling that checks", kin?.modelId);
+  check(kin!.modelId !== alone.answer.modelId,
+    "never the model that wrote the answer, which would be an echo of an echo");
+  check(/sibling/.test(alone.short ?? ""), "and the row says which kind of check it is", alone.short ?? "");
 
   /* A layout is not a thing a second model can settle: what comes back is
      another opinion about taste, charged as a verdict. The list of what can

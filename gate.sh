@@ -69,6 +69,8 @@ run test-decide npx jiti test-decide.ts
 run test-compute npx jiti test-compute.ts
 run test-register npx jiti test-register.ts
 run test-presets npx jiti test-presets.ts
+run test-wire  npx jiti test-wire.ts
+run test-callout npx jiti test-callout.ts
 run test-study npx jiti test-study.ts
 run test-memory npx jiti test-memory.ts
 run test-voice npx jiti test-voice.ts
