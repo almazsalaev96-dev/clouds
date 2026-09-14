@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
-  Check, FileText, MessageSquare, Paperclip, Plus,
+  Check, ChevronDown, FileText, MessageSquare, Paperclip, Plus,
   SlidersHorizontal, Sparkles, Wand2, X,
 } from "lucide-react";
 import type { ContentBlock, Style } from "@/lib/types";
@@ -75,7 +75,10 @@ export function Composer({
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [plusOpen, setPlusOpen] = React.useState(false);
   const reasoning = paramsFor(modelId).reasoningEffort;
-  const effort = reasoning ? reasoning[0].toUpperCase() + reasoning.slice(1) : "";
+  /* The same three words the picker uses. "Medium" on the bar and "Normal"
+     in the menu below it are two names for one setting, which reads as two
+     settings. */
+  const effort = reasoning ? { low: "Quick", medium: "Normal", high: "Hard" }[reasoning] : "";
 
   /* Tools carries a state, so the pill has to show it: "on" means this thread
      will not answer the way the defaults would. */
@@ -358,21 +361,19 @@ export function Composer({
           />
 
 
-          </>
-        }
-        right={
-          <>
-          {/* Which model is about to answer, an inch from the box you are
-              typing in — and changeable there. It used to live in the header,
-              two feet away from the decision it belongs to, which is how
-              people end up sending a long prompt to the wrong one. */}
+          {/* Which model is about to answer, at the left end of the row the
+              way Claude puts it — first in the line you read before you
+              type, beside the button for everything else you can add. It
+              used to sit at the right end, sharing that end with send, so
+              the two controls that could not be less alike were neighbours
+              and the one you press by accident is the irreversible one. */}
           <ModelPicker
             open={modelPickerOpen}
             onOpenChange={onModelPickerOpenChange}
             value={modelId}
             onChange={onModelChange}
             configured={configured}
-            align="end"
+            align="start"
           >
             {/* On Auto there is no provider to mark and no model to name: the
                 answer is chosen per message, and putting last message's model
@@ -395,11 +396,13 @@ export function Composer({
                   )}
                 </>
               )}
+              <ChevronDown size={12} className="shrink-0 text-tertiary" />
             </button>
           </ModelPicker>
 
           </>
         }
+        right={null}
       />
 
       {overContext && (

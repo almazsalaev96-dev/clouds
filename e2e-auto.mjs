@@ -55,9 +55,18 @@ console.log("\nThe picker offers not choosing");
   check(await trigger.isVisible(), "Auto is what the composer says when nothing is chosen");
   await trigger.click();
   await page.waitForTimeout(500);
-  check((await page.getByText("Let the app decide").count()) >= 1,
-    "and it is offered on its own, above the models — it is not one of them");
-  check((await page.getByText(/Reads what you asked for and picks/).count()) === 1,
+  /* Above every model and outside every group: it is not one of them, it is
+     the choice not to choose. Asserted by where it sits rather than by a
+     header over it — the menu is modelled on Claude's now, and a heading
+     over a single first row is furniture. */
+  const autoRow = page.locator("button").filter({ hasText: /Reads the request and picks/ }).first();
+  const firstGroup = page.getByText("Anthropic", { exact: true }).first();
+  const a = await autoRow.boundingBox();
+  const g = await firstGroup.boundingBox();
+  check(Boolean(a) && Boolean(g) && a.y < g.y,
+    "and it is offered on its own, above the models — it is not one of them",
+    a && g ? `${Math.round(a.y)} above ${Math.round(g.y)}` : "not found");
+  check((await page.getByText(/Reads the request and picks/).count()) === 1,
     "with what it will do said plainly");
   await page.screenshot({ path: `${OUT}/auto-picker.png` });
   await page.keyboard.press("Escape");

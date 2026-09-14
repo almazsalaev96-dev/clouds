@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
-import { Check, ChevronDown, Eye, Brain, Star, Wand2, Wrench } from "lucide-react";
+import { Check, ChevronDown, Search, Star, Wand2 } from "lucide-react";
 import type { ModelSpec, ProviderId } from "@/lib/types";
-import { AUTO, MODELS, PROVIDERS, getModel, formatContext } from "@/lib/models";
-import { useSettings } from "@/lib/store";
+import { AUTO, MODELS, PROVIDERS, getModel } from "@/lib/models";
+import { ProviderMark } from "@/components/ui/ProviderMark";
+import { useSettings, paramsFor } from "@/lib/store";
 import { cn, fuzzyScore } from "@/lib/utils";
 
 export function ModelPicker({
@@ -82,10 +83,22 @@ export function ModelPicker({
       <Popover.Portal>
         <Popover.Content
           align={align}
-          sideOffset={6}
-          className="z-50 w-[26rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-md glass border border-line shadow-lg anim-menu"
+          sideOffset={8}
+          /* Narrow, like the menu this is modelled on. The old one was
+             twenty-six rems of panel carrying three lines per model —
+             a name, a sentence, and a row of numbers about context
+             windows and dollars per million. Almost nobody choosing a
+             model is choosing on price in the second before they type,
+             and the numbers are still in Settings for the times they
+             are. What is left is the question the menu is for: which
+             one answers this. */
+          className="z-50 w-[20rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg glass border border-line shadow-lg anim-menu"
         >
-          <div className="border-b border-line px-3 py-2">
+          {/* Eleven models is more than a list you scan and fewer than a
+              catalogue, so the filter is a line rather than a field: no
+              border, no box, just somewhere to start typing. */}
+          <div className="flex items-center gap-2 border-b border-line px-3 py-2">
+            <Search size={13} className="shrink-0 text-tertiary" />
             <input
               autoFocus
               value={query}
@@ -96,7 +109,7 @@ export function ModelPicker({
             />
           </div>
 
-          <div className="max-h-[26rem] overflow-y-auto p-1">
+          <div className="max-h-[22rem] overflow-y-auto p-1">
             {results ? (
               results.length ? (
                 results.map(row)
@@ -110,31 +123,25 @@ export function ModelPicker({
                     for most people most of the time. The person asking is the
                     one least equipped to know whether this request wants the
                     long-context model or the fast one. */}
-                <Section label="Let the app decide">
-                  <button
-                    onClick={() => {
-                      onChange(AUTO);
-                      onOpenChange?.(false);
-                    }}
-                    className={cn(
-                      "focus-inset flex w-full items-start gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle",
-                      auto && "bg-subtle",
-                    )}
-                  >
-                    <Wand2 size={14} className="mt-0.5 shrink-0 text-[var(--accent-2)]" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium text-primary">Auto</span>
-                      <span className="block text-xs text-tertiary">
-                        Reads what you asked for and picks. Says which it chose, and why.
-                      </span>
-                    </span>
-                    {auto && <Check size={14} className="mt-0.5 shrink-0 text-accent" />}
-                  </button>
-                </Section>
+                <button
+                  onClick={() => {
+                    onChange(AUTO);
+                    onOpenChange?.(false);
+                  }}
+                  className={cn(
+                    "focus-inset flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle",
+                    auto && "bg-accent-subtle",
+                  )}
+                >
+                  <Wand2 size={14} className="shrink-0 text-[var(--accent-2)]" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-primary">Auto</span>
+                    <span className="block truncate text-xs text-tertiary">Reads the request and picks</span>
+                  </span>
+                  {auto && <Check size={14} className="shrink-0 text-accent" />}
+                </button>
 
-                {favModels.length > 0 && (
-                  <Section label="Favorites">{favModels.map(row)}</Section>
-                )}
+                {favModels.length > 0 && <Section label="Starred">{favModels.map(row)}</Section>}
                 {recent.length > 0 && <Section label="Recent">{recent.map(row)}</Section>}
                 {(Object.keys(PROVIDERS) as ProviderId[]).map((p) => {
                   const shown = new Set([...favModels, ...recent].map((m) => m.id));
@@ -149,6 +156,12 @@ export function ModelPicker({
               </>
             )}
           </div>
+
+          {/* How hard it thinks, where the model is chosen rather than two
+              screens away in Settings. Only for the models it means
+              anything for, and only when one is actually selected: on Auto
+              the effort is decided per message from the request. */}
+          {!auto && model.reasoning && <EffortRow modelId={value} />}
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
@@ -182,46 +195,78 @@ function ModelRow({
   return (
     <div
       className={cn(
-        "group flex w-full items-start gap-2 rounded-md px-2 py-1.5 transition-colors duration-[var(--dur-fast)]",
+        "group flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 transition-colors duration-[var(--dur-fast)]",
         selected ? "bg-accent-subtle" : "hover:bg-subtle",
         // Unavailable models are dimmed with a reason, never hidden: hiding
         // makes the app look like it lacks the model.
         !available && "opacity-45",
       )}
     >
+      <ProviderMark provider={m.provider} size={14} />
       <button onClick={onSelect} className="focus-inset min-w-0 flex-1 rounded-md text-left">
-        <span className="flex items-center gap-1.5">
-          <span className="truncate text-sm font-medium text-primary">{m.name}</span>
-          {m.vision && <Cap icon={<Eye size={11} />} label="Reads images" />}
-          {m.reasoning && <Cap icon={<Brain size={11} />} label="Reasons step by step" />}
-          {m.tools && <Cap icon={<Wrench size={11} />} label="Can use tools" />}
-          {selected && <Check size={13} className="ml-auto shrink-0 text-accent" />}
-        </span>
-        <span className="mt-0.5 block truncate text-xs text-secondary">{m.blurb}</span>
-        <span className="mt-0.5 flex gap-2 text-xs text-tertiary tnum">
-          <span>{formatContext(m.contextWindow)} ctx</span>
-          <span>
-            ${m.priceIn}/${m.priceOut} per 1M
-          </span>
-          {!available && <span className="text-warning">No key</span>}
+        <span className="block truncate text-sm font-medium text-primary">{m.name}</span>
+        {/* One line, and it is the one that answers "which of these do I
+            want": what the model is for. The capability icons that used to
+            sit beside the name said the same thing in symbols nobody hovers,
+            and the row of prices below it answered a question nobody was
+            asking yet. */}
+        <span className="block truncate text-xs text-tertiary">
+          {/* The first sentence of the blurb, not all of it. "Deepest
+              reasoning. Best for hard problems and long code." is two
+              answers to the question, and in a menu this narrow the second
+              one arrives as an ellipsis. The rest is in Settings. */}
+          {available ? m.blurb.split(/(?<=\.)\s/)[0].replace(/\.$/, "") : "No key for this provider yet"}
         </span>
       </button>
       <button
         onClick={onToggleFavorite}
         aria-label={favorite ? `Unstar ${m.name}` : `Star ${m.name}`}
         data-visible={favorite || undefined}
-        className="ctl reveal mt-0.5 flex [--ctl:1.5rem] shrink-0 items-center justify-center rounded-sm text-tertiary hover:bg-canvas hover:text-primary"
+        className="ctl reveal flex [--ctl:1.5rem] shrink-0 items-center justify-center rounded-sm text-tertiary hover:bg-canvas hover:text-primary"
       >
         <Star size={12} className={cn(favorite && "fill-current text-warning")} />
       </button>
+      {selected && <Check size={14} className="shrink-0 text-accent" />}
     </div>
   );
 }
 
-function Cap({ icon, label }: { icon: React.ReactNode; label: string }) {
+/**
+ * How hard this model thinks, set where it is chosen.
+ *
+ * It lived in Settings, behind a tab, next to the temperature — which is
+ * where you put something people configure once. Effort is not that: it is
+ * the difference between an answer in two seconds and a better one in
+ * twenty, and the moment anybody wants to change it is the moment they are
+ * looking at the model.
+ */
+function EffortRow({ modelId }: { modelId: string }) {
+  const setParams = useSettings((s) => s.setParams);
+  const current = paramsFor(modelId).reasoningEffort ?? "medium";
+  const options: { id: "low" | "medium" | "high"; label: string }[] = [
+    { id: "low", label: "Quick" },
+    { id: "medium", label: "Normal" },
+    { id: "high", label: "Hard" },
+  ];
   return (
-    <span title={label} aria-label={label} className="shrink-0 text-tertiary">
-      {icon}
-    </span>
+    <div className="flex items-center gap-2 border-t border-line px-3 py-2">
+      <span className="text-xs text-tertiary">Thinks</span>
+      <div role="radiogroup" aria-label="How hard it thinks" className="ml-auto inline-flex rounded-md border border-line-strong bg-canvas p-0.5">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            role="radio"
+            aria-checked={current === o.id}
+            onClick={() => setParams(modelId, { reasoningEffort: o.id })}
+            className={cn(
+              "tap inline-flex items-center rounded-xs px-2 py-0.5 text-xs transition-colors duration-[var(--dur-fast)]",
+              current === o.id ? "bg-surface font-medium text-primary shadow-sm" : "text-secondary hover:text-primary",
+            )}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
