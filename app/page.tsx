@@ -7,10 +7,11 @@ import type { ContentBlock, Message, Rating, RatingReason } from "@/lib/types";
 import { rememberRequest } from "@/lib/memory";
 import { asNote, type Outcome } from "@/lib/compute";
 import { planTurn, withPast, worthRecording, type Plan } from "@/lib/decide";
+import { AUTO_STYLE } from "@/lib/register";
 import { useVoiceMode } from "@/lib/hooks/useVoiceMode";
 import {
   addMemory, allMemories, createConversation, createNote, db, deepestLeaf, deleteConversation, pushVersion,
-  markOutcome, pastFor, recordTurn,
+  complaints, markOutcome, pastFor, recordTurn,
   exportMarkdown, pathTo, addMessage, blockText, createCanvas, createWebCanvas, createProject,
   filesOf,
 } from "@/lib/db";
@@ -428,6 +429,7 @@ export default function Page() {
       at: Date.now(),
       kind: sent.plan.kind,
       strategy: sent.plan.strategy,
+      styleId: sent.plan.register?.id,
       mode: sent.plan.mode,
       modelId: m.modelId ?? sent.modelId,
       effort: sent.plan.effort,
@@ -512,7 +514,6 @@ export default function Page() {
          screen mounted. */
       const project = conv?.projectId ? await db.projects.get(conv.projectId) : undefined;
       const files = project ? await filesOf(project.id) : [];
-      const style = findStyle(conv?.styleId ?? settings.styleId, customStyles);
       /* What the person asked to be remembered — unless they turned it off,
          or this is a temporary chat, which knows nothing and keeps nothing. */
       const memories = settings.memoryOn && !conv?.temporary ? await allMemories() : [];
@@ -533,13 +534,23 @@ export default function Page() {
          thrown away immediately. `pastFor` is what closes the loop: it asks
          how answers of this shape from this model have actually been going
          for this person, and the plan changes when the answer is "badly". */
+      /* Whether the app is choosing the register at all. A style the
+         person picked is an answer they already gave, and this does not
+         overrule it. */
+      const chosenStyle = conv?.styleId ?? settings.styleId;
+      const autoStyle = !chosenStyle || chosenStyle === AUTO_STYLE;
       const first = planTurn(asked, {
         mode: conv?.mode,
         history: history.map((m) => blockText(m.content)).join("\n").slice(-4_000),
+        autoStyle,
+        theirs: history.filter((m) => m.role === "user").map((m) => blockText(m.content)),
+        tooLong: autoStyle ? await complaints("long") : 0,
       });
       const plan = withPast(first, await pastFor(first.kind, modelId));
       planRef.current = { plan, modelId, at: Date.now() };
       const mode = findMode(plan.mode);
+      /* The register the plan chose, or the one the person chose. */
+      const style = findStyle(plan.register ? plan.register.id : chosenStyle, customStyles);
       const composed = composeSystemPrompt({
         base: conv?.systemPrompt ?? settings.systemPrompt,
         project,
@@ -569,11 +580,21 @@ export default function Page() {
         teaching: isTeaching(style?.id),
         note,
       });
+      /* Said on the answer, like the model's reason: an app that quietly
+         changes how it writes to you is an app whose answers you cannot
+         account for. Built without an em dash, because the line strips
+         everything before the first one — that belongs to the model. */
+      const registerWhy =
+        plan.register && plan.register.why && style
+          ? `${style.name}, because ${plan.register.why}`
+          : "";
+      const why = [routedWhy, registerWhy].filter(Boolean).join(" · ");
+
       await stream.send({
         conversationId,
         parentId,
         modelId,
-        routedWhy,
+        routedWhy: why || undefined,
         history,
         systemPrompt: composed.text || undefined,
         turnPrompt: turn || undefined,
@@ -945,7 +966,7 @@ export default function Page() {
       /* The one honest measure of an answer is what the person did about it,
          and this is the clearest signal there is. It goes to the record that
          decides whether answers of this shape earn a second opinion. */
-      void markOutcome(message.id, rating.up ? "good" : "bad");
+      void markOutcome(message.id, rating.up ? "good" : "bad", rating.reason);
       if (rating.up || !rating.reason || !activeId) return;
       const history = pathTo(allMessages ?? [], message.parentId);
       const modelId = message.modelId && message.modelId !== CALCULATOR ? message.modelId : threadModelId;
@@ -1721,7 +1742,12 @@ export default function Page() {
             setCompareWith,
             canUseModel: modelUsable,
             styleId: threadStyleId,
-            styles: allStyles(customStyles).map((st) => ({ id: st.id, name: st.name })),
+            styles: [
+              /* First, and not one of them: it is the choice not to choose,
+                 the same shape as Auto on the model. */
+              { id: AUTO_STYLE, name: "Auto" },
+              ...allStyles(customStyles).map((st) => ({ id: st.id, name: st.name })),
+            ],
             setStyle,
           }}
         />

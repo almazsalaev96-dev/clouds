@@ -175,6 +175,12 @@ export interface Turn {
    * good enough — the commonest outcome and the one nobody clicks.
    */
   outcome?: TurnOutcome;
+  /** Why it was not worth having, when they said. This is how the app
+      learns that somebody wants shorter answers without being told twice
+      in words. */
+  reason?: RatingReason;
+  /** The register it answered in, when the app chose it rather than the person. */
+  styleId?: string;
 }
 
 /**

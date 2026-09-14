@@ -20,6 +20,7 @@
  */
 import { taskOf, effortFor, type Task, type TaskKind } from "./task";
 import { modeFor, type Mode } from "./modes";
+import { registerFor, type Register } from "./register";
 
 /** What this turn is going to be. */
 export type Strategy =
@@ -47,6 +48,12 @@ export interface Plan {
   mode: Mode;
   effort?: "low" | "medium" | "high";
   check: Check;
+  /**
+   * How to answer, when the thread is on Auto. Null when the person has
+   * chosen a style themselves, which always wins: this is the app filling
+   * in a blank, not overruling an answer somebody already gave.
+   */
+  register: Register | null;
   /** One line, in the words a person would use. Shown, not logged. */
   why: string;
 }
@@ -92,10 +99,20 @@ export function planTurn(
     computed?: boolean;
     /** What happened last time this kind went to this model. */
     past?: Past;
+    /** Their own recent messages, for reading how they write. */
+    theirs?: string[];
+    /** How many times lately they have said an answer was too long. */
+    tooLong?: number;
+    /** False when the person picked a style: then nothing here chooses one. */
+    autoStyle?: boolean;
   } = {},
 ): Plan {
   const task = ask.trim() ? taskOf(ask, ctx.history ?? "") : null;
   const kind = task?.kind ?? "general";
+
+  const register = ctx.autoStyle
+    ? registerFor(ask, { kind, theirs: ctx.theirs, tooLong: ctx.tooLong })
+    : null;
 
   if (ctx.computed) {
     return {
@@ -104,6 +121,7 @@ export function planTurn(
       task,
       mode: "chat",
       check: "none",
+      register,
       why: "Worked out here — a sum does not need a model, and this way it is exact.",
     };
   }
@@ -125,6 +143,7 @@ export function planTurn(
     mode,
     effort,
     check: "lint",
+    register,
     why:
       strategy === "build"
         ? "Built rather than described — this app can run what it makes."

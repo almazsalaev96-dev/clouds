@@ -1,7 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import type {
   Canvas, CanvasFile, CanvasVersion, ContentBlock, Conversation, Message, Note,
-  Memory, Project, ProjectFile, Source, Style, Turn, TurnOutcome,
+  Memory, Project, ProjectFile, RatingReason, Source, Style, Turn, TurnOutcome,
 } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 
@@ -348,10 +348,24 @@ export async function recordTurn(t: Omit<Turn, "id">): Promise<Turn> {
  * has told us one thing, not two, and counting it twice would make the app
  * think it is twice as bad at this as it is.
  */
-export async function markOutcome(messageId: string, outcome: TurnOutcome): Promise<void> {
+export async function markOutcome(
+  messageId: string,
+  outcome: TurnOutcome,
+  reason?: RatingReason,
+): Promise<void> {
   const row = await db.turns.where("messageId").equals(messageId).first();
   if (!row || row.outcome) return;
-  await db.turns.update(row.id, { outcome });
+  await db.turns.update(row.id, { outcome, ...(reason ? { reason } : {}) });
+}
+
+/**
+ * How often lately they have said an answer was wrong in one particular
+ * way. Two "too long" in the last couple of dozen answers is somebody
+ * telling this app how to write, in the only vocabulary it offers them.
+ */
+export async function complaints(reason: RatingReason, window = 24): Promise<number> {
+  const rows = await db.turns.orderBy("at").reverse().limit(window).toArray();
+  return rows.filter((r) => r.reason === reason).length;
 }
 
 /** How the last few answers of this shape from this model actually went. */

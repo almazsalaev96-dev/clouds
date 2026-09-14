@@ -4,7 +4,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ModelParams, ProviderId } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
-import { DEFAULT_STYLE_ID } from "./styles";
+import { AUTO_STYLE } from "./register";
 import { DEFAULT_MODE } from "./modes";
 
 /**
@@ -198,7 +198,7 @@ export const DEFAULT_SETTINGS = {
   modelId: DEFAULT_MODEL_ID,
   reviseModelId: null,
   systemPrompt: "",
-  styleId: DEFAULT_STYLE_ID,
+  styleId: AUTO_STYLE,
   mode: DEFAULT_MODE,
   name: "",
   nameAsked: false,

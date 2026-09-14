@@ -8,6 +8,7 @@ import type { ProviderId } from "@/lib/types";
 import { PROVIDERS, getModel } from "@/lib/models";
 import { addMemory, allMemories, createStyle, db, deleteAllData, deleteMemory, deleteStyle, forgetAll, forgetTurns } from "@/lib/db";
 import { ENOUGH, TOO_MANY } from "@/lib/decide";
+import { AUTO_STYLE } from "@/lib/register";
 import { BUILT_IN_STYLES } from "@/lib/styles";
 import { offerUndo } from "@/lib/undo";
 import {
@@ -782,13 +783,34 @@ function StylesPanel() {
         <h3 className="text-sm font-medium text-primary">Response styles</h3>
         <p className="mt-1 text-xs text-tertiary">
           A style changes the shape of an answer — how long, how formal, how much it
-          explains — and nothing about what the model knows. Pick one per chat from the
-          composer.
+          explains — and nothing about what the model knows. On Auto the app reads
+          each request and picks one, and says which on the answer. Choosing one
+          yourself turns that off for the thread.
         </p>
       </section>
 
       <section className="space-y-1.5">
-        <p className="eyebrow text-faint">Built in</p>
+        <p className="eyebrow text-faint">Chosen for you</p>
+        <button
+          onClick={() => settings.setStyle(AUTO_STYLE)}
+          className={cn(
+            "focus-inset w-full rounded-lg border p-3 text-left transition-colors duration-[var(--dur-fast)]",
+            settings.styleId === AUTO_STYLE ? "border-accent bg-accent-subtle" : "border-line bg-surface hover:border-line-strong",
+          )}
+        >
+          <span className="flex items-baseline gap-2">
+            <span className="text-sm font-medium text-primary">Auto</span>
+            <span className="text-xs text-tertiary">Read from the request, and from you.</span>
+            {settings.styleId === AUTO_STYLE && <Check size={13} className="ml-auto shrink-0 text-accent" />}
+          </span>
+          <span className="mt-1 block text-xs text-tertiary">
+            Short questions get short answers; “why does it…” gets the reasoning; a letter
+            for somebody else gets written properly. Saying twice that an answer was too
+            long is taken as an instruction.
+          </span>
+        </button>
+
+        <p className="eyebrow pt-2 text-faint">Built in</p>
         {BUILT_IN_STYLES.map((st) => (
           <div key={st.id} className="rounded-lg border border-line bg-surface p-3">
             <div className="flex items-baseline gap-2">
