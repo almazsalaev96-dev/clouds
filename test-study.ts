@@ -8,7 +8,7 @@
  * lapse that starts a card over without forgetting how hard it was.
  *
  *   npx jiti test-study.ts */
-import { newCard, schedule, dueNow, progressOf, whenDue, previewGaps, DAY, MINUTE, MIN_EASE, type Card } from "./lib/study";
+import { newCard, schedule, dueNow, progressOf, whenDue, previewGaps, answeredToday, DAY, MINUTE, MIN_EASE, type Card } from "./lib/study";
 
 let failed = 0;
 const check = (p: boolean, l: string, d = "") => { if (!p) failed++; console.log(`${p ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
@@ -85,6 +85,22 @@ console.log("\nAnd it says what each answer will cost before you give it");
 {
   const gaps = previewGaps(card({ state: "review", interval: 10, ease: 2.5 }), T0);
   check(gaps.again === "in 1 minute" && /day/.test(gaps.good), "each button says when the card would come back", JSON.stringify(gaps));
+}
+
+console.log("\nA day's work");
+{
+  const answered = schedule(card(), "good", T0);
+  check(answered.lastAnswered === T0, "every answer is stamped");
+  /* Not a rolling twenty-four hours: somebody who studies at nine at night
+     and again at nine the next morning has had two days, and a window
+     would tell them they had had one. */
+  const midnight = new Date(T0); midnight.setHours(0, 0, 0, 0);
+  const lateLastNight = midnight.getTime() - 2 * 60 * 60 * 1000;
+  check(answeredToday([
+    card({ lastAnswered: T0 - 60_000 }),
+    card({ lastAnswered: lateLastNight }),
+    card({}),
+  ], T0) === 1, "and today means since midnight, not in the last day");
 }
 
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");

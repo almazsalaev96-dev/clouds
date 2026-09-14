@@ -486,6 +486,26 @@ export default function Page() {
     [settings],
   );
 
+  /**
+   * A question from somewhere else in the app, asked in a new chat.
+   *
+   * The same machinery as the Creative room's builds, without the mode:
+   * somebody who got a card wrong wants it explained, not built. The
+   * message is sent once the thread is on screen, through the same `send`
+   * as anything typed, so routing, memory and the register all apply.
+   */
+  const askInChat = React.useCallback(
+    async (text: string) => {
+      const c = await createConversation({ modelId: settings.modelId, styleId: settings.styleId });
+      queued.current = { id: c.id, text };
+      withTransition(() => {
+        setActiveId(c.id);
+        settings.setSection("chat");
+      }, "forward");
+    },
+    [settings],
+  );
+
   /** The card in the transcript, pressed. */
   const showMade = React.useCallback(
     async (m: Message) => {
@@ -1618,7 +1638,14 @@ export default function Page() {
                 />
               )}
               {settings.section === "study" && (
-                <StudyView configured={configured} onFocus={setInUse} />
+                <StudyView
+                  configured={configured}
+                  onFocus={setInUse}
+                  /* A card you got wrong, taken to the chat. The deck is
+                     inside an assistant rather than beside one, and this
+                     is the whole of what that is worth. */
+                  onAsk={(question) => void askInChat(question)}
+                />
               )}
             </>
           ) : (

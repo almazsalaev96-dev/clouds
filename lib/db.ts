@@ -395,6 +395,19 @@ export async function answerCard(card: Card, rating: Rating): Promise<Card> {
   return next;
 }
 
+/** A card, corrected. The model writes them and some of them are wrong. */
+export async function updateCard(id: string, patch: Partial<Card>): Promise<void> {
+  await db.cards.update(id, patch);
+}
+
+export async function deleteCard(id: string): Promise<() => Promise<void>> {
+  const card = await db.cards.get(id);
+  await db.cards.delete(id);
+  return async () => {
+    if (card) await db.cards.put(card);
+  };
+}
+
 export async function deleteDeck(id: string): Promise<() => Promise<void>> {
   const deck = await db.decks.get(id);
   const cards = await cardsOf(id);

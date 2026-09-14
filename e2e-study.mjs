@@ -40,7 +40,9 @@ const cards = () => p.evaluate(() => new Promise((ok) => {
 console.log("\nA subject becomes a deck");
 {
   await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
-  await p.waitForTimeout(600);
+  /* Waited for rather than slept at: the room is its own chunk and arrives
+     when it arrives. */
+  await p.getByText("Nothing to study yet.").waitFor({ timeout: 10_000 }).catch(() => {});
   check(await p.getByText("Nothing to study yet.").isVisible(), "the empty room says what it is for");
   await p.getByRole("textbox", { name: "What to study" }).fill("debouncing and throttling");
   await p.keyboard.press("Enter");
@@ -122,6 +124,54 @@ console.log("\nAn answer in a chat can become a deck too");
   check(after > before, "and pressing it makes a deck from the answer", `${before} → ${after} cards`);
   check(/Study/.test(await p.locator("aside nav").innerText()), "which lands you in the room where it is kept");
   check((await p.getByRole("list", { name: "Decks" }).locator("li").count()) === 2, "as a second deck, named after the conversation");
+}
+
+console.log("\nA deck can be looked at, and fixed");
+{
+  await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
+  await p.waitForTimeout(600);
+  await p.getByRole("button", { name: /^Open debouncing/ }).click();
+  await p.waitForTimeout(500);
+  const list = p.getByRole("list", { name: "Cards" });
+  check(await list.locator("li").count() === 4, "every card in the deck is there to read", `${await list.locator("li").count()} cards`);
+  check(/in 4 days|new|in \d+ minutes?/.test(await list.innerText()), "each saying when it is next due");
+
+  /* The model wrote these and some of them are wrong. A deck you cannot
+     correct is one you stop trusting after the third bad card. */
+  await list.getByRole("button", { name: /^Edit/ }).first().click();
+  await p.waitForTimeout(300);
+  const front = p.getByRole("textbox", { name: "Question" });
+  check(await front.count() === 1, "a card can be opened and corrected");
+  await front.fill("What does a debounce actually wait for?");
+  await p.getByRole("button", { name: "Save" }).click();
+  await p.waitForTimeout(400);
+  check(/actually wait for/.test(await list.innerText()), "and the correction sticks");
+
+  const before = await cards();
+  await list.getByRole("button", { name: /^Delete/ }).first().click();
+  await p.waitForTimeout(400);
+  check((await cards()).length === before.length - 1, "a bad card can be thrown away", `${before.length} → ${(await cards()).length}`);
+  await p.getByRole("button", { name: "Undo" }).click().catch(() => {});
+  await p.waitForTimeout(400);
+  check((await cards()).length === before.length, "and thrown away by mistake is recoverable");
+}
+
+console.log("\nAnd a card you got wrong can be explained");
+{
+  await p.getByRole("button", { name: "Back to Study" }).first().click();
+  await p.waitForTimeout(600);
+  /* The deck made from the chat still has everything waiting. */
+  await p.getByRole("button", { name: /^Study \d/ }).last().click();
+  await p.waitForTimeout(700);
+  await p.keyboard.press(" ");
+  await p.waitForTimeout(400);
+  const explain = p.getByRole("button", { name: "Explain this" });
+  check(await explain.count() === 1, "the session offers to explain the card you are looking at");
+  await explain.click();
+  await p.waitForTimeout(4000);
+  const asked = await p.locator(".msg").first().innerText();
+  check(/I am studying/.test(asked), "it opens a chat with the card in it", asked.replace(/\n/g, " ").slice(0, 60));
+  check(await p.locator(".msg").count() >= 2, "and the answer arrives there", `${await p.locator(".msg").count()} messages`);
 }
 
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors"); if (errs.length) failed++;

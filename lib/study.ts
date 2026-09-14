@@ -54,6 +54,8 @@ export interface Card {
    */
   step: number;
   createdAt: number;
+  /** When it was last answered, for "you have done thirty today". */
+  lastAnswered?: number;
   /** Where it came from, so a card can point at the thing it was made from. */
   source?: string;
 }
@@ -77,7 +79,7 @@ export const MIN_EASE = 1.3;
  * the test can compare. Nothing here reads the clock.
  */
 export function schedule(card: Card, rating: Rating, now: number): Card {
-  const next: Card = { ...card, reps: card.reps + 1 };
+  const next: Card = { ...card, reps: card.reps + 1, lastAnswered: now };
 
   /* Ease moves on every review, and only on a review: a card still in its
      learning steps has not told you anything about how hard it is, it has
@@ -208,6 +210,19 @@ export function progressOf(cards: Card[], now: number): Progress {
     due,
     nextDue: later.length ? later[0] : null,
   };
+}
+
+/**
+ * How many were answered today, where today starts at midnight where the
+ * person is. Not "in the last 24 hours": somebody studying at nine in the
+ * evening and again at nine the next morning has had two days, and a
+ * rolling window would tell them they had had one.
+ */
+export function answeredToday(cards: Card[], now: number): number {
+  const midnight = new Date(now);
+  midnight.setHours(0, 0, 0, 0);
+  const from = midnight.getTime();
+  return cards.filter((c) => (c.lastAnswered ?? 0) >= from).length;
 }
 
 /** "in 3 days", "in 2 hours", "now" — for the button that offers the next one. */

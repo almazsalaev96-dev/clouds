@@ -2,15 +2,16 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, GraduationCap, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, GraduationCap, MessageSquare, Trash2 } from "lucide-react";
 import type { Deck } from "@/lib/types";
 import { addCards, cardsOf, createDeck, db, deleteDeck, answerCard } from "@/lib/db";
 import { draftCards } from "@/lib/generate";
 import { cheapestAvailable } from "@/lib/complete";
-import { dueNow, progressOf, previewGaps, whenDue, type Card, type Rating } from "@/lib/study";
+import { answeredToday, dueNow, progressOf, previewGaps, whenDue, type Card, type Rating } from "@/lib/study";
 import { offerUndo } from "@/lib/undo";
 import { Button } from "@/components/ui/primitives";
 import { MessageBar } from "@/components/chat/MessageBar";
+import { DeckPanel } from "@/components/study/DeckPanel";
 import { cn } from "@/lib/utils";
 
 /**
@@ -30,14 +31,24 @@ import { cn } from "@/lib/utils";
 export function StudyView({
   configured,
   onFocus,
+  onAsk,
 }: {
   configured: Record<string, boolean>;
   /** Raised while a session has the window: the app gets out of the way. */
   onFocus?: (on: boolean) => void;
+  /**
+   * Take a card to the chat and ask about it.
+   *
+   * The thing a deck of cards has never been able to do and this app can:
+   * when you get one wrong, the explanation is one press away instead of a
+   * separate search in a separate place.
+   */
+  onAsk?: (question: string) => void;
 }) {
   const decks = useLiveQuery(() => db.decks.orderBy("updatedAt").reverse().toArray(), [], [] as Deck[]);
   const cards = useLiveQuery(() => db.cards.toArray(), [], [] as Card[]);
   const [session, setSession] = React.useState<{ deckId: string | null } | null>(null);
+  const [openDeck, setOpenDeck] = React.useState<string | null>(null);
   const [subject, setSubject] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
@@ -88,11 +99,25 @@ export function StudyView({
         cards={pool}
         title={session.deckId ? decks.find((d) => d.id === session.deckId)?.name ?? "Studying" : "Everything due"}
         onLeave={() => setSession(null)}
+        onAsk={onAsk}
+      />
+    );
+  }
+
+  const deck = openDeck ? decks.find((d) => d.id === openDeck) : undefined;
+  if (deck) {
+    return (
+      <DeckPanel
+        deck={deck}
+        configured={configured}
+        onBack={() => setOpenDeck(null)}
+        onStudy={() => { setOpenDeck(null); setSession({ deckId: deck.id }); }}
       />
     );
   }
 
   const due = dueNow(cards, now).length;
+  const today = answeredToday(cards, now);
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
@@ -100,6 +125,11 @@ export function StudyView({
         <div className="mx-auto flex w-full max-w-[var(--measure)] items-center gap-3 px-4 py-3">
           <h1 className="text-lg font-semibold tracking-[-0.02em] text-primary">Study</h1>
           {due > 0 && <span className="tnum text-sm text-accent">{due} due</span>}
+          {/* What you have already done, which is the half that keeps
+              anybody coming back. Only once there is something to say. */}
+          {today > 0 && (
+            <span className="tnum text-sm text-tertiary">{today} answered today</span>
+          )}
           {due > 0 && (
             <Button size="sm" variant="primary" className="bloom ml-auto" onClick={() => setSession({ deckId: null })}>
               Start
@@ -145,7 +175,11 @@ export function StudyView({
                   key={d.id}
                   className="group flex items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2.5"
                 >
-                  <span className="min-w-0 flex-1">
+                  <button
+                    onClick={() => setOpenDeck(d.id)}
+                    className="focus-inset min-w-0 flex-1 rounded-md text-left"
+                    aria-label={`Open ${d.name}`}
+                  >
                     <span className="block truncate text-sm font-medium text-primary">{d.name}</span>
                     <span className="block text-xs text-tertiary tnum">
                       {p.total} card{p.total === 1 ? "" : "s"} · {p.known} known
@@ -155,7 +189,7 @@ export function StudyView({
                           ? ` · next ${whenDue(p.nextDue, now)}`
                           : ""}
                     </span>
-                  </span>
+                  </button>
                   <Button
                     size="sm"
                     variant={p.due > 0 ? "primary" : "ghost"}
@@ -193,10 +227,12 @@ function Session({
   cards,
   title,
   onLeave,
+  onAsk,
 }: {
   cards: Card[];
   title: string;
   onLeave: () => void;
+  onAsk?: (question: string) => void;
 }) {
   const [shown, setShown] = React.useState(false);
   const [done, setDone] = React.useState(0);
@@ -240,7 +276,7 @@ function Session({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="glass safe-top sticky top-0 z-10 flex h-[var(--topbar-h)] shrink-0 items-center gap-2 border-b border-line px-3">
+      <header className="glass safe-top sticky top-0 z-10 flex h-[var(--topbar-h)] shrink-0 items-center gap-2 border-b border-line px-3 relative">
         <button
           onClick={onLeave}
           aria-label="Leave the session"
@@ -251,6 +287,17 @@ function Session({
         <span className="min-w-0 flex-1 truncate text-sm text-secondary">{title}</span>
         <span className="tnum shrink-0 text-xs text-tertiary">
           {queue.length} left{done > 0 ? ` · ${done} done` : ""}
+        </span>
+        {/* How far through, as a line rather than a fraction. A session
+            with no visible end is one people leave in the middle. */}
+        <span
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 h-0.5 bg-[var(--border-subtle)]"
+        >
+          <span
+            className="block h-full bg-accent transition-[width] duration-[var(--dur-layout)] ease-[var(--ease-out)]"
+            style={{ width: `${Math.round((done / Math.max(1, done + queue.length)) * 100)}%` }}
+          />
         </span>
       </header>
 
@@ -309,6 +356,26 @@ function Session({
                     <span className="text-xs text-tertiary tnum">{gaps?.[r]}</span>
                   </button>
                 ))}
+              </div>
+            )}
+
+            {/* The move a deck of cards has never had. You got it wrong,
+                and the explanation is one press away rather than a search
+                somewhere else — which is the whole reason for a deck that
+                lives inside an assistant rather than beside one. */}
+            {shown && onAsk && (
+              <div className="mt-3 flex justify-center">
+                <button
+                  onClick={() =>
+                    onAsk(
+                      `I am studying ${title}. I was asked: “${card.front}”\n\nThe answer given was: “${card.back}”\n\nExplain it so it sticks — why that is the answer, and the thing people get wrong about it.`,
+                    )
+                  }
+                  className="focus-inset flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                >
+                  <MessageSquare size={12} />
+                  Explain this
+                </button>
               </div>
             )}
 
