@@ -22,6 +22,17 @@ interface StreamState {
    * mine", and an answer finishes wherever it was started.
    */
   conversationId: string | null;
+  /**
+   * Which model this stream is actually being written by.
+   *
+   * The header over a streaming answer used to be drawn from whatever the
+   * picker was holding, and `getModel` answers the app default for an id it
+   * does not recognise — so on Auto, and on every Armi model, it said "Claude
+   * Sonnet 4.5" for the whole of an answer that Haiku or GPT-5.1 was writing,
+   * and then the finished message replaced it with the truth. The model that
+   * received the request is known here and nowhere else.
+   */
+  modelId: string | null;
   text: string;
   reasoning: string;
   /** Milliseconds since send. Drives the honest "thinking · 6s" counter. */
@@ -35,6 +46,7 @@ const EMPTY: StreamState = {
   phase: "idle",
   retryingInMs: 0,
   conversationId: null,
+  modelId: null,
   text: "",
   reasoning: "",
   elapsed: 0,
@@ -168,7 +180,7 @@ export function useStream(onFinish?: (m: Message) => void) {
       usageRef.current = null;
       startedRef.current = Date.now();
 
-      setState({ ...EMPTY, phase: "waiting", messageId: assistantId, conversationId: opts.conversationId });
+      setState({ ...EMPTY, phase: "waiting", messageId: assistantId, conversationId: opts.conversationId, modelId: opts.modelId });
 
       // A live elapsed counter, not a spinner: it is the difference between
       // "this is broken" and "this is working, and here is how hard".
@@ -355,7 +367,7 @@ export function useStream(onFinish?: (m: Message) => void) {
       if (!err || err.kind !== "rate_limit" || !err.retryAfterMs) return first;
 
       const wait = Math.min(err.retryAfterMs, 20_000);
-      setState({ ...EMPTY, phase: "waiting", error: err, retryingInMs: wait, conversationId: opts.conversationId });
+      setState({ ...EMPTY, phase: "waiting", error: err, retryingInMs: wait, conversationId: opts.conversationId, modelId: opts.modelId });
       const cancelled = await new Promise<boolean>((resolve) => {
         retryTimerRef.current = setTimeout(() => resolve(false), wait);
         retryCancelRef.current = () => resolve(true);

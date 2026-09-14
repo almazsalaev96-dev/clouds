@@ -150,6 +150,30 @@ console.log("\nA name is not a costume: they reach different endpoints");
   check(hard.thinking > 0, "and pays for thinking on the same question the quick one did not", String(hard.thinking));
 }
 
+console.log("\nAnd the name over an answer being written is the model writing it");
+{
+  /* The header over a streaming answer was drawn from whatever the picker
+     held, and `getModel` answers the app default for an id it does not know —
+     so every Armi model, and Auto, said "Claude Sonnet 4.5" for the whole of
+     an answer somebody else was writing, and the finished message then
+     replaced it with the truth. Read *during* the stream, which is the only
+     moment the claim exists. */
+  await pick("ARMI Flash");
+  await p.getByRole("button", { name: "New chat" }).first().click();
+  await p.waitForTimeout(350);
+  await p.locator(".composer-shell textarea").first().fill("what is a debounce");
+  await p.keyboard.press("Enter");
+  let live = "";
+  for (let i = 0; i < 40 && !live; i++) {
+    await p.waitForTimeout(50);
+    const t = await p.locator(".live-ring").first().innerText().catch(() => "");
+    if (t.trim()) live = t;
+  }
+  check(/Haiku/.test(live), "the quick one is named while it is writing", live.split("\n")[0] ?? "nothing");
+  check(!/Sonnet/.test(live), "and not the app default, which is writing nothing", live.split("\n")[0] ?? "");
+  await p.waitForTimeout(2500);
+}
+
 console.log("\nWhat the tactic is for is said to the model, not only to you");
 {
   await pick("ARMI Forge");

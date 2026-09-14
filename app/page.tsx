@@ -1876,7 +1876,12 @@ export default function Page() {
                 streamText={live ? stream.text : ""}
                 streamReasoning={live ? stream.reasoning : ""}
                 dropped={droppedFromContext}
-                streamModelId={threadModelId}
+                /* The model actually receiving this turn, not the one the
+                   picker is holding. An Armi model is a tactic — "one" is not
+                   a model id — and Auto has not chosen yet when the picker is
+                   read, so both used to draw the app default's name over an
+                   answer somebody else was writing. */
+                streamModelId={stream.modelId ?? engineOf(threadModelId, { configured, keys: settings.keys })}
                 elapsed={live ? stream.elapsed : 0}
                 retryingInMs={live ? stream.retryingInMs : 0}
                 error={live ? stream.error : null}
