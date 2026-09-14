@@ -380,23 +380,23 @@ export function Composer({
                 here would read as a setting rather than as a decision. */}
             <button
               aria-label={modelId === AUTO ? "Model: chosen automatically" : `Model: ${model.name}`}
-              className="btn-touch ctl-h focus-inset flex min-w-0 shrink items-center gap-1.5 rounded-full px-2 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+              className="btn-touch ctl-h focus-inset flex min-w-0 shrink items-center gap-1 rounded-full px-1.5 text-[0.8125rem] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
             >
               {modelId === AUTO ? (
                 <>
-                  <Wand2 size={13} className="shrink-0 text-[var(--accent-2)]" />
+                  <Wand2 size={12} className="shrink-0 text-[var(--accent-2)]" />
                   <span className="truncate">Auto</span>
                 </>
               ) : (
                 <>
-                  <ProviderMark provider={model.provider} size={13} />
+                  <ProviderMark provider={model.provider} size={12} />
                   <span className="truncate">{model.short}</span>
                   {model.reasoning && effort && (
                     <span className="hidden text-tertiary @min-[34rem]/bar:inline">{effort}</span>
                   )}
                 </>
               )}
-              <ChevronDown size={12} className="shrink-0 text-tertiary" />
+              <ChevronDown size={11} className="shrink-0 text-tertiary" />
             </button>
           </ModelPicker>
 

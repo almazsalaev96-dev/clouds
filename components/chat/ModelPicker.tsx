@@ -92,24 +92,24 @@ export function ModelPicker({
              and the numbers are still in Settings for the times they
              are. What is left is the question the menu is for: which
              one answers this. */
-          className="z-50 w-[20rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg glass border border-line shadow-lg anim-menu"
+          className="z-50 w-[17.5rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-md glass border border-line shadow-lg anim-menu"
         >
           {/* Eleven models is more than a list you scan and fewer than a
               catalogue, so the filter is a line rather than a field: no
               border, no box, just somewhere to start typing. */}
-          <div className="flex items-center gap-2 border-b border-line px-3 py-2">
-            <Search size={13} className="shrink-0 text-tertiary" />
+          <div className="flex items-center gap-1.5 border-b border-line px-2.5 py-1.5">
+            <Search size={12} className="shrink-0 text-tertiary" />
             <input
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search models"
               aria-label="Search models"
-              className="w-full bg-transparent text-sm text-primary outline-none placeholder:text-tertiary"
+              className="w-full bg-transparent text-[0.8125rem] text-primary outline-none placeholder:text-tertiary"
             />
           </div>
 
-          <div className="max-h-[22rem] overflow-y-auto p-1">
+          <div className="max-h-[19rem] overflow-y-auto p-1">
             {results ? (
               results.length ? (
                 results.map(row)
@@ -129,16 +129,16 @@ export function ModelPicker({
                     onOpenChange?.(false);
                   }}
                   className={cn(
-                    "focus-inset flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle",
+                    "tap focus-inset flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle",
                     auto && "bg-accent-subtle",
                   )}
                 >
-                  <Wand2 size={14} className="shrink-0 text-[var(--accent-2)]" />
+                  <Wand2 size={13} className="shrink-0 text-[var(--accent-2)]" />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium text-primary">Auto</span>
-                    <span className="block truncate text-xs text-tertiary">Reads the request and picks</span>
+                    <span className="block text-[0.8125rem] font-medium leading-tight text-primary">Auto</span>
+                    <span className="block truncate text-tiny text-tertiary">Reads the request and picks</span>
                   </span>
-                  {auto && <Check size={14} className="shrink-0 text-accent" />}
+                  {auto && <Check size={13} className="shrink-0 text-accent" />}
                 </button>
 
                 {favModels.length > 0 && <Section label="Starred">{favModels.map(row)}</Section>}
@@ -171,7 +171,7 @@ export function ModelPicker({
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <section className="mb-1">
-      <h3 className="px-2 pb-0.5 pt-2 text-xs font-medium text-tertiary">{label}</h3>
+      <h3 className="px-2 pb-0.5 pt-1.5 text-tiny font-medium text-tertiary">{label}</h3>
       {children}
     </section>
   );
@@ -195,22 +195,22 @@ function ModelRow({
   return (
     <div
       className={cn(
-        "group flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 transition-colors duration-[var(--dur-fast)]",
+        "tap group flex w-full items-center gap-2 rounded-sm px-2 py-1.5 transition-colors duration-[var(--dur-fast)]",
         selected ? "bg-accent-subtle" : "hover:bg-subtle",
         // Unavailable models are dimmed with a reason, never hidden: hiding
         // makes the app look like it lacks the model.
         !available && "opacity-45",
       )}
     >
-      <ProviderMark provider={m.provider} size={14} />
+      <ProviderMark provider={m.provider} size={13} />
       <button onClick={onSelect} className="focus-inset min-w-0 flex-1 rounded-md text-left">
-        <span className="block truncate text-sm font-medium text-primary">{m.name}</span>
+        <span className="block truncate text-[0.8125rem] font-medium leading-tight text-primary">{m.name}</span>
         {/* One line, and it is the one that answers "which of these do I
             want": what the model is for. The capability icons that used to
             sit beside the name said the same thing in symbols nobody hovers,
             and the row of prices below it answered a question nobody was
             asking yet. */}
-        <span className="block truncate text-xs text-tertiary">
+        <span className="block truncate text-tiny text-tertiary">
           {/* The first sentence of the blurb, not all of it. "Deepest
               reasoning. Best for hard problems and long code." is two
               answers to the question, and in a menu this narrow the second
@@ -224,9 +224,9 @@ function ModelRow({
         data-visible={favorite || undefined}
         className="ctl reveal flex [--ctl:1.5rem] shrink-0 items-center justify-center rounded-sm text-tertiary hover:bg-canvas hover:text-primary"
       >
-        <Star size={12} className={cn(favorite && "fill-current text-warning")} />
+        <Star size={11} className={cn(favorite && "fill-current text-warning")} />
       </button>
-      {selected && <Check size={14} className="shrink-0 text-accent" />}
+      {selected && <Check size={13} className="shrink-0 text-accent" />}
     </div>
   );
 }
@@ -249,8 +249,8 @@ function EffortRow({ modelId }: { modelId: string }) {
     { id: "high", label: "Hard" },
   ];
   return (
-    <div className="flex items-center gap-2 border-t border-line px-3 py-2">
-      <span className="text-xs text-tertiary">Thinks</span>
+    <div className="flex items-center gap-2 border-t border-line px-2.5 py-1.5">
+      <span className="text-tiny text-tertiary">Thinks</span>
       <div role="radiogroup" aria-label="How hard it thinks" className="ml-auto inline-flex rounded-md border border-line-strong bg-canvas p-0.5">
         {options.map((o) => (
           <button
@@ -259,7 +259,7 @@ function EffortRow({ modelId }: { modelId: string }) {
             aria-checked={current === o.id}
             onClick={() => setParams(modelId, { reasoningEffort: o.id })}
             className={cn(
-              "tap inline-flex items-center rounded-xs px-2 py-0.5 text-xs transition-colors duration-[var(--dur-fast)]",
+              "tap inline-flex items-center rounded-xs px-1.5 py-0.5 text-tiny transition-colors duration-[var(--dur-fast)]",
               current === o.id ? "bg-surface font-medium text-primary shadow-sm" : "text-secondary hover:text-primary",
             )}
           >
