@@ -127,6 +127,26 @@ export interface Conversation {
   madeId?: string;
 }
 
+/* ----------------------------------------------------------------- study -- */
+
+/**
+ * A subject you are learning, and the cards that ask you about it.
+ *
+ * Version 7 of this database dropped decks and cards, on the grounds that
+ * five destinations for one activity was more sidebar than the activity
+ * was getting used. That was true of five rooms. This is one, and it is
+ * the one thing in the app that a chat window structurally cannot do:
+ * remember, next Tuesday, what you got wrong today.
+ */
+export interface Deck {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  /** The conversation, note or subject it was made from. */
+  source?: string;
+}
+
 /* ----------------------------------------------------------------- turns -- */
 
 /**

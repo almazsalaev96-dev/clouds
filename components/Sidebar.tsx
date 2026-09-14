@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  ChevronRight, Code2, FolderOpen, Keyboard, MessagesSquare, NotebookPen,
+  ChevronRight, Code2, FolderOpen, GraduationCap, Keyboard, MessagesSquare, NotebookPen,
   PanelLeft, Pin, PinOff, Plus, Search, Settings2, Sparkles, Trash2, X,
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
@@ -36,6 +36,10 @@ const SECTIONS: { id: Section; label: string; icon: React.ReactNode }[] = [
   { id: "chat", label: "Conversations", icon: <MessagesSquare size={18} /> },
   { id: "projects", label: "Projects", icon: <FolderOpen size={18} /> },
   { id: "notebook", label: "Notebook", icon: <NotebookPen size={18} /> },
+  /* The one room here that a chat window structurally cannot be: every
+     assistant will write you flashcards, and none of them will ask you for
+     them next Tuesday. */
+  { id: "study", label: "Study", icon: <GraduationCap size={18} /> },
   /* "Artifacts", not "Code". The room holds web apps, documents and code
      files, and since a request in the chat lands here as a running thing it
      mostly holds things that are not code at all — a deck of cards, a

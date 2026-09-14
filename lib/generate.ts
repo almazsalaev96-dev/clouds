@@ -129,6 +129,47 @@ ${current.slice(0, 60_000)}`;
 }
 
 /**
+ * Cards, from a subject or from something you have already read.
+ *
+ * The model is good at this and it is the half of studying it should be
+ * doing: turning a page of prose into the twelve questions that page is
+ * actually about. What it must not do is write twelve questions that
+ * differ only in wording, or ask for a definition it has just given in
+ * the question — the commonest failure, and the one that makes a deck
+ * feel like busywork.
+ */
+export async function draftCards(
+  source: string,
+  opts: { count?: number; modelId?: string; about?: string } & Progress = {},
+): Promise<DraftCard[] | null> {
+  const count = opts.count ?? 12;
+  const prompt = `Write ${count} question-and-answer cards for somebody learning this.
+
+Rules:
+- Return JSON only: an array of objects with "front" and "back". No prose, no fence, nothing else.
+- The front is a question that can be answered from memory in a sentence or two. Not "Tell me about X".
+- The back is the answer, and only the answer: no restating the question, no "the answer is".
+- One idea per card. Split anything that needs two.
+- Ask about what matters and what is easy to get wrong — the distinction, the exception, the number, the order — not the trivia around it.
+- Never give the answer away inside the question.
+- Where the material has specifics, use them: real names, real numbers, real examples from it.
+${opts.about ? `\nThe subject is: ${opts.about}\n` : ""}
+MATERIAL
+${source.slice(0, 40_000)}`;
+
+  const out = await complete(prompt, { modelId: opts.modelId, maxTokens: 8_000, temperature: 0.3, ...opts });
+  if (!out) return null;
+  const parsed = extractJson(out);
+  if (!Array.isArray(parsed)) return null;
+  const cards = parsed
+    .filter((c): c is { front: string; back: string } =>
+      Boolean(c) && typeof (c as DraftCard).front === "string" && typeof (c as DraftCard).back === "string")
+    .map((c) => ({ front: c.front.trim(), back: c.back.trim() }))
+    .filter((c) => c.front && c.back);
+  return cards.length ? cards : null;
+}
+
+/**
  * The first draft, on a page with nothing on it yet.
  *
  * The same call as a revision from the caller's side — it returns the whole

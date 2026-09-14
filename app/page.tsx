@@ -11,7 +11,7 @@ import { AUTO_STYLE } from "@/lib/register";
 import { useVoiceMode } from "@/lib/hooks/useVoiceMode";
 import {
   addMemory, allMemories, createConversation, createNote, db, deepestLeaf, deleteConversation, pushVersion,
-  complaints, markOutcome, pastFor, recordTurn,
+  addCards, complaints, createDeck, deleteDeck, markOutcome, pastFor, recordTurn,
   exportMarkdown, pathTo, addMessage, blockText, createCanvas, createWebCanvas, createProject,
   filesOf,
 } from "@/lib/db";
@@ -88,6 +88,13 @@ const NotebookView = dynamic(
    the machinery that runs a made thing. */
 const MadePanel = dynamic(
   () => import("@/components/chat/MadePanel").then((m) => m.MadePanel),
+  { ssr: false },
+);
+
+/* Its own chunk: a room most people will not open on their first visit,
+   carrying a scheduler and a card generator nobody there needs yet. */
+const StudyView = dynamic(
+  () => import("@/components/StudyView").then((m) => m.StudyView),
   { ssr: false },
 );
 
@@ -1003,6 +1010,41 @@ export default function Page() {
     [activeId, allMessages, runTurn, threadModelId],
   );
 
+  /**
+   * An answer, turned into cards that come back.
+   *
+   * The one move this app has that a conversation does not: the answer you
+   * just read scrolls away, and the cards made from it do not. Named after
+   * the conversation, so a week later the deck says where it came from.
+   */
+  const makeCards = React.useCallback(
+    async (text: string) => {
+      const modelId = cheapestAvailable(configured);
+      if (!modelId) {
+        setNotice("No key configured yet — add one in Settings.");
+        return;
+      }
+      setNotice("Writing cards…");
+      const { draftCards } = await import("@/lib/generate");
+      const drafts = await draftCards(text, { modelId }).catch(() => null);
+      if (!drafts) {
+        setNotice("Nothing usable came back — the answer may be too short to make cards from.");
+        return;
+      }
+      const name = (conversation?.title || text.split("\n")[0] || "From a chat").slice(0, 60);
+      const deck = await createDeck(name, activeId ?? undefined);
+      const n = await addCards(deck.id, drafts, activeId ?? undefined);
+      setNotice(null);
+      withTransition(() => settings.setSection("study"), "forward");
+      /* The undo *is* the delete, not the result of one. `deleteDeck`
+         performs the deletion and hands back the way back, which is right
+         for a row somebody removed and exactly wrong here: calling it to
+         get an undo handle deleted the deck the moment it was made. */
+      offerUndo(`${n} card${n === 1 ? "" : "s"} from “${name}”`, async () => { await deleteDeck(deck.id); }, "Made");
+    },
+    [configured, conversation?.title, activeId, settings],
+  );
+
   /** Remember something the person said, from the message itself. */
   const remember = React.useCallback(
     async (text: string) => {
@@ -1575,6 +1617,9 @@ export default function Page() {
                   onBack={() => withTransition(() => setNoteId(null), "back")}
                 />
               )}
+              {settings.section === "study" && (
+                <StudyView configured={configured} onFocus={setInUse} />
+              )}
             </>
           ) : (
           <>
@@ -1651,6 +1696,7 @@ export default function Page() {
                 verifyingId={verifyingId}
                 onOpenMade={showMade}
                 onComputed={computed}
+                onMakeCards={makeCards}
                 onOpenInCanvas={keepAsCanvas}
                 onRetry={() => {
                   /* The turn that just failed, which is decided by the end of

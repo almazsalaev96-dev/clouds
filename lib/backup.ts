@@ -47,6 +47,8 @@ const TABLES = [
   "sources",
   "memories",
   "turns",
+  "decks",
+  "cards",
 ] as const;
 
 type TableName = (typeof TABLES)[number];
@@ -131,6 +133,8 @@ export function backupCounts(b: Backup): { label: string; n: number }[] {
     ["styles", "style", "styles"],
     ["sources", "source", "sources"],
     ["memories", "memory", "memories"],
+    ["decks", "deck", "decks"],
+    ["cards", "card", "cards"],
   ];
   return say
     .map(([t, one, many]) => {
@@ -154,6 +158,8 @@ const HUMAN: Record<string, [string, string]> = {
   sources: ["source", "sources"],
   memories: ["memory", "memories"],
   turns: ["decision", "decisions"],
+  decks: ["deck", "decks"],
+  cards: ["card", "cards"],
 };
 
 export function say(counts: { label: string; n: number }[]): string {

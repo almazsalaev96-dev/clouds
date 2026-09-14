@@ -304,6 +304,16 @@ createServer(async (req, res) => {
      `systemText` carries the per-turn note, which is where the output of a
      calculation is handed back. */
   const computing = /\baverage\b|\bmean of\b/i.test(asked);
+  /* Cards, when asked for cards. A deck is JSON with a shape the app
+     parses, so a mock that answered with prose would leave the parsing,
+     the de-duplication and the whole scheduler untested. */
+  const carding = /^Write \d+ question-and-answer cards/.test(asked);
+  const CARDS = JSON.stringify([
+    { front: "What does a debounce wait for?", back: "Silence — it fires once the input has stopped changing for a set interval." },
+    { front: "How does a throttle differ from a debounce?", back: "A throttle enforces a floor between calls; a debounce waits for a gap." },
+    { front: "Which one fires during a continuous burst of events?", back: "The throttle. The debounce fires only after the burst ends." },
+    { front: "What is the usual argument to both?", back: "A number of milliseconds: the gap to wait for, or the floor between calls." },
+  ]);
   const afterCompute = /This app ran the computation/.test(
     [body.system, body.turnPrompt].map((x) => (typeof x === "string" ? x : JSON.stringify(x ?? ""))).join(" "),
   );
@@ -397,6 +407,8 @@ Nothing here looks like it breaks a caller — the return type is the same array
     ? "Debouncing a search input"
     : verifying
     ? VERDICT
+    : carding
+    ? CARDS
     : afterCompute
     ? AFTER_COMPUTE
     : computing

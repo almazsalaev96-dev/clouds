@@ -108,7 +108,7 @@ console.log("\nCollapsed on a desktop window");
   const inert = await p.locator("aside").evaluate((n) => n.hasAttribute("inert"));
   check(!inert, "and it is live, not inert");
   const rooms = await p.locator("aside nav button").count();
-  check(rooms === 5, "with every room one press away", `${rooms} buttons`);
+  check(rooms === 6, "with every room one press away", `${rooms} buttons`);
   const toggles = await p.getByRole("button", { name: "Show sidebar" }).count();
   check(toggles === 1, "and exactly one way to open it, in the rail", `${toggles} found`);
   await ctx.close();

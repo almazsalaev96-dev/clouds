@@ -118,7 +118,7 @@ export type Density = "compact" | "comfortable" | "spacious";
  * and run in "code" — two rooms rendering the same thing would be two places
  * for one object.
  */
-export type Section = "chat" | "code" | "creative" | "projects" | "notebook";
+export type Section = "chat" | "code" | "creative" | "projects" | "notebook" | "study";
 
 interface Settings {
   theme: Theme;

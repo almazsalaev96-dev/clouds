@@ -1,9 +1,10 @@
 import Dexie, { type Table } from "dexie";
 import type {
   Canvas, CanvasFile, CanvasVersion, ContentBlock, Conversation, Message, Note,
-  Memory, Project, ProjectFile, RatingReason, Source, Style, Turn, TurnOutcome,
+  Deck, Memory, Project, ProjectFile, RatingReason, Source, Style, Turn, TurnOutcome,
 } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
+import { newCard, schedule, type Card, type Rating } from "./study";
 
 /**
  * Local-first. IndexedDB is the source of truth, which makes the app instant,
@@ -23,6 +24,8 @@ class ChatDB extends Dexie {
   sources!: Table<Source, string>;
   memories!: Table<Memory, string>;
   turns!: Table<Turn, string>;
+  decks!: Table<Deck, string>;
+  cards!: Table<Card, string>;
 
   constructor() {
     super("clouds");
@@ -148,6 +151,24 @@ class ChatDB extends Dexie {
        how have answers of this shape from this model been going. */
     this.version(11).stores({
       turns: "id, messageId, at, [kind+modelId]",
+    });
+
+    /* Version 12 brings cards back, as one room rather than five.
+       ---------------------------------------------------------------------
+       Version 7 dropped decks, cards and practice because three study
+       features in an app about chat was more sidebar than the activity was
+       getting used. The lesson was about the number of doors, not about the
+       idea: being asked again, later, at the point you are about to forget
+       is the whole of how anybody learns anything, and it is the one thing
+       a conversation cannot do — the cards scroll away and that is the end
+       of them.
+
+       `due` is indexed because the only question ever asked of this table
+       is "what is waiting", and `[deckId+due]` because it is also asked one
+       deck at a time. */
+    this.version(12).stores({
+      decks: "id, updatedAt",
+      cards: "id, deckId, due, [deckId+due]",
     });
   }
 }
@@ -325,6 +346,68 @@ export async function deleteConversation(id: string): Promise<() => Promise<void
       });
     };
   });
+}
+
+/* ----------------------------------------------------------------- study -- */
+
+export async function createDeck(name: string, source?: string): Promise<Deck> {
+  const now = Date.now();
+  const deck: Deck = { id: uid(), name: name.trim().slice(0, 80) || "Untitled", createdAt: now, updatedAt: now, source };
+  await db.decks.add(deck);
+  return deck;
+}
+
+/**
+ * Cards into a deck, skipping the ones already in it.
+ *
+ * Asking a model for twenty cards on a subject twice produces two decks
+ * that overlap on the easy half, and a deck that asks you the same thing
+ * twice in one session is a deck people stop trusting.
+ */
+export async function addCards(
+  deckId: string,
+  drafts: { front: string; back: string }[],
+  source?: string,
+): Promise<number> {
+  const now = Date.now();
+  const existing = new Set(
+    (await db.cards.where("deckId").equals(deckId).toArray()).map((c) => c.front.trim().toLowerCase()),
+  );
+  const fresh = drafts
+    .filter((d) => d.front.trim() && d.back.trim())
+    .filter((d) => !existing.has(d.front.trim().toLowerCase()))
+    .map((d) => newCard({ id: uid(), deckId, front: d.front.trim(), back: d.back.trim(), now, source }));
+  if (!fresh.length) return 0;
+  await db.cards.bulkAdd(fresh);
+  await db.decks.update(deckId, { updatedAt: now });
+  return fresh.length;
+}
+
+export function cardsOf(deckId: string): Promise<Card[]> {
+  return db.cards.where("deckId").equals(deckId).toArray();
+}
+
+/** An answer, scheduled. The arithmetic is in `lib/study.ts` and is pure. */
+export async function answerCard(card: Card, rating: Rating): Promise<Card> {
+  const next = schedule(card, rating, Date.now());
+  await db.cards.put(next);
+  await db.decks.update(card.deckId, { updatedAt: Date.now() });
+  return next;
+}
+
+export async function deleteDeck(id: string): Promise<() => Promise<void>> {
+  const deck = await db.decks.get(id);
+  const cards = await cardsOf(id);
+  await db.transaction("rw", db.decks, db.cards, async () => {
+    await db.cards.where("deckId").equals(id).delete();
+    await db.decks.delete(id);
+  });
+  return async () => {
+    await db.transaction("rw", db.decks, db.cards, async () => {
+      if (deck) await db.decks.put(deck);
+      if (cards.length) await db.cards.bulkPut(cards);
+    });
+  };
 }
 
 /* ----------------------------------------------------------------- turns -- */

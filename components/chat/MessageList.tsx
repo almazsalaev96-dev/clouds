@@ -39,6 +39,7 @@ function MessageListImpl({
   onSaveToNote,
   onOpenMade,
   onComputed,
+  onMakeCards,
   onOpenInCanvas,
   onContinue,
   onTighten,
@@ -73,6 +74,7 @@ function MessageListImpl({
   onSaveToNote: (text: string) => void;
   onOpenMade?: (message: Msg) => void;
   onComputed?: (message: Msg, out: import("@/lib/compute").Outcome) => void;
+  onMakeCards?: (text: string) => void;
   onOpenInCanvas: (text: string) => void;
   onContinue: () => void;
   /** Regenerate the answer without the packaging the linter found in it. */
@@ -260,6 +262,7 @@ function MessageListImpl({
                 onSaveToNote={onSaveToNote}
                 onOpenMade={onOpenMade}
                 onComputed={onComputed}
+                onMakeCards={onMakeCards}
                 onOpenInCanvas={onOpenInCanvas}
                 onContinue={onContinue}
                 onTighten={onTighten}

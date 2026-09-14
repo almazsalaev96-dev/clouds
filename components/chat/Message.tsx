@@ -4,7 +4,7 @@ import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Brain, Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Code2, Copy,
-  Download, LayoutTemplate, MoreHorizontal, NotebookPen, PanelRight, Pencil, Play, RefreshCw, Scissors, ShieldQuestion,
+  Download, GraduationCap, LayoutTemplate, MoreHorizontal, NotebookPen, PanelRight, Pencil, Play, RefreshCw, Scissors, ShieldQuestion,
   SquarePen, ThumbsDown, ThumbsUp, Volume2, X,
 } from "lucide-react";
 import { builtDocument, titleOf, withoutBuild } from "@/lib/built";
@@ -246,6 +246,7 @@ function AssistantMessageImpl({
   onSaveToNote,
   onOpenMade,
   onComputed,
+  onMakeCards,
   onOpenInCanvas,
   onContinue,
   onTighten,
@@ -269,6 +270,8 @@ function AssistantMessageImpl({
   onOpenMade?: (message: Msg) => void;
   /** A calculation in this answer finished; answer again with what it printed. */
   onComputed?: (message: Msg, out: Outcome) => void;
+  /** Turn this answer into cards that come back on a schedule. */
+  onMakeCards?: (text: string) => void;
   /** Lift this answer into a canvas and open it there. */
   onOpenInCanvas: (text: string) => void;
   /** Ask for the rest, when the answer ran out of room. */
@@ -659,6 +662,19 @@ function AssistantMessageImpl({
               sideOffset={6}
               className="z-50 w-56 rounded-md glass border border-line p-1.5 shadow-lg anim-menu"
             >
+              {/* The bridge from reading to remembering. Every assistant
+                  will write cards when asked; the difference here is that
+                  they are kept and asked again later, which is the whole
+                  of how anybody learns anything. */}
+              {onMakeCards && text && (
+                <DropdownMenu.Item
+                  onSelect={() => onMakeCards(text)}
+                  className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-secondary outline-none transition-colors duration-[var(--dur-fast)] data-[highlighted]:bg-subtle data-[highlighted]:text-primary"
+                >
+                  <GraduationCap size={15} className="text-tertiary" />
+                  Make cards from this
+                </DropdownMenu.Item>
+              )}
               <DropdownMenu.Item
                 onSelect={() => onSaveToNote(text)}
                 className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-secondary outline-none transition-colors duration-[var(--dur-fast)] data-[highlighted]:bg-subtle data-[highlighted]:text-primary"
