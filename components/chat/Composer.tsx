@@ -40,10 +40,6 @@ export function Composer({
   onStop,
   onEditLast,
   onOpenModels,
-  configured,
-  modelPickerOpen,
-  onModelPickerOpenChange,
-  onModelChange,
   voice,
 }: {
   conversationId: string;
@@ -59,10 +55,6 @@ export function Composer({
   onOpenModels: () => void;
   /** Chat or Creative. */
   /** The style this thread answers in. */
-  configured: Record<string, boolean>;
-  modelPickerOpen: boolean;
-  onModelPickerOpenChange: (o: boolean) => void;
-  onModelChange: (id: string) => void;
   /** Voice mode, where the browser can do it. */
   voice?: import("@/lib/hooks/useVoiceMode").VoiceMode;
 }) {
@@ -361,44 +353,6 @@ export function Composer({
           />
 
 
-          {/* Which model is about to answer, at the left end of the row the
-              way Claude puts it — first in the line you read before you
-              type, beside the button for everything else you can add. It
-              used to sit at the right end, sharing that end with send, so
-              the two controls that could not be less alike were neighbours
-              and the one you press by accident is the irreversible one. */}
-          <ModelPicker
-            open={modelPickerOpen}
-            onOpenChange={onModelPickerOpenChange}
-            value={modelId}
-            onChange={onModelChange}
-            configured={configured}
-            align="start"
-          >
-            {/* On Auto there is no provider to mark and no model to name: the
-                answer is chosen per message, and putting last message's model
-                here would read as a setting rather than as a decision. */}
-            <button
-              aria-label={modelId === AUTO ? "Model: chosen automatically" : `Model: ${model.name}`}
-              className="btn-touch ctl-h focus-inset flex min-w-0 shrink items-center gap-1 rounded-full px-1.5 text-[0.8125rem] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
-            >
-              {modelId === AUTO ? (
-                <>
-                  <Wand2 size={12} className="shrink-0 text-[var(--accent-2)]" />
-                  <span className="truncate">Auto</span>
-                </>
-              ) : (
-                <>
-                  <ProviderMark provider={model.provider} size={12} />
-                  <span className="truncate">{model.short}</span>
-                  {model.reasoning && effort && (
-                    <span className="hidden text-tertiary @min-[34rem]/bar:inline">{effort}</span>
-                  )}
-                </>
-              )}
-              <ChevronDown size={11} className="shrink-0 text-tertiary" />
-            </button>
-          </ModelPicker>
 
           </>
         }

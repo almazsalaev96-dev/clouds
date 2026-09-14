@@ -1436,10 +1436,6 @@ export default function Page() {
       onStop={stream.stop}
       onEditLast={editLast}
       onOpenModels={() => setModelPickerOpen(true)}
-      configured={configured}
-      modelPickerOpen={modelPickerOpen}
-      onModelPickerOpenChange={setModelPickerOpen}
-      onModelChange={setModel}
       voice={voice}
     />
   ) : null;
@@ -1582,6 +1578,11 @@ export default function Page() {
             pendingProject={pendingProject}
             temporary={conversation ? !!conversation.temporary : pendingTemporary}
             onToggleTemporary={() => setPendingTemporary((v) => !v)}
+            modelId={threadModelId}
+            configured={configured}
+            modelPickerOpen={modelPickerOpen}
+            onModelPickerOpenChange={setModelPickerOpen}
+            onModelChange={setModel}
             onMoveToProject={(pid) => {
               if (activeId) void db.conversations.update(activeId, { projectId: pid ?? undefined });
             }}

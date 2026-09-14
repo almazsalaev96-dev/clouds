@@ -3,14 +3,18 @@
 import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
-  Archive, ArchiveRestore, Check, Download, FolderOpen, MessageSquareDashed, MoreHorizontal,
-  NotebookPen, PanelLeft, Pin, PinOff, Trash2,
+  Archive, ArchiveRestore, Check, ChevronDown, Download, FolderOpen, MessageSquareDashed,
+  MoreHorizontal, NotebookPen, PanelLeft, Pin, PinOff, Trash2, Wand2,
 } from "lucide-react";
 import type { Conversation, Project } from "@/lib/types";
 import { useSettings } from "@/lib/store";
 import { formatCost, formatTokens } from "@/lib/models";
 import { cn } from "@/lib/utils";
 import { IconButton, Tooltip } from "@/components/ui/primitives";
+import { ModelPicker } from "./ModelPicker";
+import { ProviderMark } from "@/components/ui/ProviderMark";
+import { AUTO, getModel } from "@/lib/models";
+import { paramsFor } from "@/lib/store";
 
 export function TopBar({
   conversation,
@@ -27,6 +31,11 @@ export function TopBar({
   pendingProject,
   temporary,
   onToggleTemporary,
+  modelId,
+  configured,
+  modelPickerOpen,
+  onModelPickerOpenChange,
+  onModelChange,
 }: {
   conversation: Conversation | null;
   scrolled: boolean;
@@ -46,11 +55,20 @@ export function TopBar({
   temporary?: boolean;
   /** Only before the first message: a chat is temporary from its first word or not at all. */
   onToggleTemporary?: () => void;
+  /** Which model answers this thread, and the menu that changes it. */
+  modelId: string;
+  configured: Record<string, boolean>;
+  modelPickerOpen: boolean;
+  onModelPickerOpenChange: (o: boolean) => void;
+  onModelChange: (id: string) => void;
 }) {
   const { sidebarOpen, toggleSidebar } = useSettings();
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState("");
   const inProject = conversation?.projectId ?? (conversation ? null : pendingProject) ?? null;
+  const model = getModel(modelId);
+  const reasoning = paramsFor(modelId).reasoningEffort;
+  const effort = reasoning ? { low: "Quick", medium: "Normal", high: "Hard" }[reasoning] : "";
 
   return (
     <header
@@ -69,8 +87,42 @@ export function TopBar({
         </IconButton>
       )}
 
-      {/* The model picker is not here. It sits in the composer, next to the
-          box you are about to type in, where the decision actually is. */}
+      {/* Which model answers, at the top left, which is where the eye starts
+          and where every assistant with more than one model puts it. It has
+          been in three places: the header, then the composer beside send,
+          then the composer beside the plus. The composer was the wrong room
+          for it in the end — it is a fact about the whole conversation, not
+          about the message you are typing, and it has to be readable while
+          you are reading the answers rather than only while you type. */}
+      <ModelPicker
+        open={modelPickerOpen}
+        onOpenChange={onModelPickerOpenChange}
+        value={modelId}
+        onChange={onModelChange}
+        configured={configured}
+        align="start"
+      >
+        <button
+          aria-label={modelId === AUTO ? "Model: chosen automatically" : `Model: ${model.name}`}
+          className="btn-touch focus-inset flex h-8 min-w-0 shrink items-center gap-1 rounded-md px-1.5 text-[0.8125rem] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+        >
+          {modelId === AUTO ? (
+            <>
+              <Wand2 size={12} className="shrink-0 text-[var(--accent-2)]" />
+              <span className="truncate">Auto</span>
+            </>
+          ) : (
+            <>
+              <ProviderMark provider={model.provider} size={12} />
+              <span className="truncate">{model.short}</span>
+              {model.reasoning && effort && (
+                <span className="hidden text-tertiary sm:inline">{effort}</span>
+              )}
+            </>
+          )}
+          <ChevronDown size={11} className="shrink-0 text-tertiary" />
+        </button>
+      </ModelPicker>
 
       {/* Which project you are inside, where you can see it while you type.
           A chat that silently carries three pages of instructions and says
