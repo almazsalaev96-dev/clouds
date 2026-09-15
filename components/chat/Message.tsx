@@ -502,7 +502,9 @@ function AssistantMessageImpl({
 
       {message.error && <InlineError message={message.error} onRetry={() => onRegenerate(message)} />}
 
-      {message.verdict && <SecondOpinion verdict={message.verdict} />}
+      {message.verdict && (
+        <SecondOpinion verdict={message.verdict} author={Boolean(armi)} authorProvider={model?.provider} />
+      )}
 
       {/* Why not good — the one question a thumbs-down earns. Each answer is
           a reason the next attempt can act on, and picking one regenerates
@@ -905,8 +907,14 @@ export function BranchNav({
  */
 function SecondOpinion({
   verdict,
+  author,
+  authorProvider,
 }: {
   verdict: NonNullable<Msg["verdict"]>;
+  /** True when the answer above was written by one of Armi's own models. */
+  author?: boolean;
+  /** Which company wrote it, so this can say whether the check is independent. */
+  authorProvider?: string;
 }) {
   const checker = getModel(verdict.modelId);
   const said =
@@ -915,6 +923,11 @@ function SecondOpinion({
       : verdict.agrees === "partly"
         ? "mostly agrees"
         : "disagrees";
+  /* What makes this worth reading is that it did not come from the model
+     that wrote the answer — and, wherever there are two keys, not from that
+     company at all. That is the claim; which company it was is the detail,
+     and it is one hover away and named in Settings. */
+  const from = author && checker.provider !== authorProvider ? "A model from another company" : "A second model";
   return (
     <div
       className={cn(
@@ -933,8 +946,8 @@ function SecondOpinion({
         <span className="eyebrow text-faint">
           Sentinel · second opinion
         </span>
-        <span className="min-w-0 flex-1 truncate text-xs text-tertiary">
-          {checker.name} {said}
+        <span className="min-w-0 flex-1 truncate text-xs text-tertiary" title={`${checker.name} ${said}`}>
+          {from} {said}
         </span>
       </div>
       <Markdown content={verdict.text} />

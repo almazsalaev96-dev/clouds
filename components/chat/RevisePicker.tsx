@@ -5,7 +5,7 @@ import { getModel } from "@/lib/models";
 import { cheapestAvailable } from "@/lib/complete";
 import { useSettings } from "@/lib/store";
 import { ModelPicker } from "./ModelPicker";
-import { ProviderMark } from "@/components/ui/ProviderMark";
+import { Wand2 } from "lucide-react";
 
 /**
  * Which model is about to rewrite your file, on the bar, changeable there.
@@ -17,9 +17,15 @@ import { ProviderMark } from "@/components/ui/ProviderMark";
  * that edits your work, and "why did it rewrite my whole file" has a different
  * answer depending on which model did it.
  *
- * So it sits where chat puts the same control, looks the same, and is one
- * press to change. The choice is remembered; clearing it goes back to
- * cheapest-with-a-key, which is what the label says when nothing is chosen.
+ * So it sits where chat puts the same control and is one press to change.
+ * The choice is remembered; clearing it goes back to cheapest-with-a-key.
+ *
+ * What it does *not* do is wear an engine's name on the bar. Everywhere else
+ * in this app the thing on screen is an Armi model — a cast of two or three —
+ * and a rewrite is one call with no cast behind it, so there is no Armi model
+ * to name here and a vendor's name would be the only one of its kind left on
+ * a toolbar. The button says what it does; the menu, the tooltip and Settings
+ * say who is doing it.
  */
 export function useReviseModel(configured: Record<string, boolean>): string | null {
   const chosen = useSettings((s) => s.reviseModelId);
@@ -50,13 +56,18 @@ export function RevisePicker({ configured }: { configured: Record<string, boolea
       align="end"
     >
       <button
-        aria-label={model ? `Model: ${model.name}` : "Choose a model"}
+        /* What it does, not who is rented to do it. Rewriting a file is one
+           call with no tactic behind it, so there is no Armi model to name
+           here — and an engine's name is the one thing this control does not
+           need on screen, since choosing the engine is what opening it is
+           for. The name is in the menu, in the tooltip, and in Settings. */
+        aria-label={model ? `Rewrites with ${model.name}` : "Choose a model to rewrite with"}
         className="btn-touch ctl-h focus-inset flex min-w-0 shrink items-center gap-1.5 rounded-full px-2 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
       >
         {model ? (
           <>
-            <ProviderMark provider={model.provider} size={13} />
-            <span className="truncate">{model.short}</span>
+            <Wand2 size={13} className="shrink-0 text-[var(--accent-2)]" />
+            <span className="truncate">Rewrites</span>
           </>
         ) : (
           <span className="truncate text-tertiary">No key</span>
