@@ -175,11 +175,11 @@ export const PRESETS: Preset[] = [
     blurb:
       "Your primary assistant: everyday questions, writing, planning, and knowing when something needs a specialist. A model from one company lists what the answer has to get right; a model from another writes it.",
     examples: ["what is a debounce", "is this contract clause normal", "plan my week around three deadlines"],
-    engines: ["claude-sonnet-4-5", "gpt-5.1", "kimi-k2-thinking", "deepseek-chat"],
+    engines: ["claude-sonnet-4-5", "gpt-5.1", "kimi-k2-thinking", "deepseek-chat", "claude-sonnet-4-0", "gpt-5", "kimi-k2-0905"],
     want: "balanced",
     group: "everyday",
     cast: [
-      { role: "brief", as: "cover", engines: ["gpt-5.1-mini", "kimi-latest", "deepseek-chat", "claude-haiku-4-5"], want: "cheap" },
+      { role: "brief", as: "cover", engines: ["gpt-5.1-mini", "kimi-latest", "deepseek-chat", "claude-haiku-4-5", "gpt-5-nano", "gpt-4o-mini", "claude-3-5-haiku"], want: "cheap" },
     ],
     icon: "orbit",
   },
@@ -191,11 +191,11 @@ export const PRESETS: Preset[] = [
     blurb:
       "For quick questions and rewrites. The fastest engine you have a key for answers straight away, and a second company's model checks it while you are already reading.",
     examples: ["what does ECONNRESET mean", "shorten this to one line", "what time is it in Tokyo"],
-    engines: ["claude-haiku-4-5", "kimi-latest", "gpt-5.1-mini", "deepseek-chat"],
+    engines: ["claude-haiku-4-5", "kimi-latest", "gpt-5.1-mini", "deepseek-chat", "gpt-5-nano", "gpt-4o-mini", "claude-3-5-haiku"],
     want: "cheap",
     group: "everyday",
     cast: [
-      { role: "check", engines: ["gpt-5.1-mini", "deepseek-chat", "kimi-latest", "claude-haiku-4-5"], want: "cheap" },
+      { role: "check", engines: ["gpt-5.1-mini", "deepseek-chat", "kimi-latest", "claude-haiku-4-5", "gpt-4o-mini", "gpt-5-nano", "claude-3-5-haiku"], want: "cheap" },
     ],
     effort: "low",
     register: "concise",
@@ -211,12 +211,12 @@ export const PRESETS: Preset[] = [
     blurb:
       "Mathematics, economics, logic, analysis, hard strategy. One model writes down where this is most likely to go wrong before anybody answers, the strongest engine you have does the work, and a third from a different company checks it. Pure arithmetic never reaches a model at all — this app works that out exactly, for nothing.",
     examples: ["compound return over seven years", "event sourcing or CRUD, and why", "does this spreadsheet actually add up"],
-    engines: ["claude-opus-4-5", "gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner"],
+    engines: ["claude-opus-4-5", "gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner", "o3", "claude-opus-4-1", "gpt-5"],
     want: "strong",
     group: "everyday",
     cast: [
-      { role: "brief", as: "risks", engines: ["gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner", "claude-sonnet-4-5"], want: "strong" },
-      { role: "check", engines: ["gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner", "claude-opus-4-5"], want: "strong" },
+      { role: "brief", as: "risks", engines: ["gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner", "claude-sonnet-4-5", "o4-mini", "gpt-5-mini", "claude-sonnet-4-0"], want: "strong" },
+      { role: "check", engines: ["gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner", "claude-opus-4-5", "o3", "gpt-5", "claude-opus-4-1"], want: "strong" },
     ],
     effort: "high",
     stance:
@@ -235,17 +235,17 @@ export const PRESETS: Preset[] = [
     blurb:
       "The most this app can bring to one question. Three companies each take a different half of it — the strategy, the reasoning, what is actually known — a fourth writes one answer out of the three, and a fifth reads that answer back and can send it round again. Five models a turn, and by some way the dearest thing here.",
     examples: ["design my AI education startup", "should we rebuild this or refactor it", "review this plan before we commit"],
-    engines: ["claude-opus-4-5", "gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner"],
+    engines: ["claude-opus-4-5", "gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner", "claude-opus-4-1", "o3", "gpt-5"],
     want: "strong",
     group: "everyday",
     cast: [
-      { role: "council", angle: "strategy", engines: ["gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner", "claude-opus-4-5"], want: "strong" },
-      { role: "council", angle: "logic", engines: ["deepseek-reasoner", "gpt-5.1", "kimi-k2-thinking", "claude-opus-4-5"], want: "strong" },
-      { role: "council", angle: "knowledge", engines: ["kimi-k2-thinking", "gpt-5.1", "deepseek-chat", "claude-sonnet-4-5"], want: "strong" },
+      { role: "council", angle: "strategy", engines: ["gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner", "claude-opus-4-5", "gpt-5", "claude-opus-4-1"], want: "strong" },
+      { role: "council", angle: "logic", engines: ["deepseek-reasoner", "o3", "gpt-5.1", "kimi-k2-thinking", "claude-opus-4-5", "o4-mini"], want: "strong" },
+      { role: "council", angle: "knowledge", engines: ["kimi-k2-thinking", "gpt-5.1", "deepseek-chat", "claude-sonnet-4-5", "kimi-k2-0905", "gpt-4.1"], want: "strong" },
       /* And the seat that reads what came of it. Three specialists and a
          writer can still be confidently wrong together; the one job nobody
          at the table has is looking at the finished answer from outside it. */
-      { role: "check", engines: ["gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner", "claude-opus-4-5"], want: "strong" },
+      { role: "check", engines: ["gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner", "claude-opus-4-5", "o3", "claude-sonnet-4-5"], want: "strong" },
     ],
     effort: "high",
     revise: true,
@@ -259,11 +259,11 @@ export const PRESETS: Preset[] = [
     blurb:
       "Books, PDFs, research, threads that have run all day. It answers on the biggest window you have a key for, and a second company reads the summary back against what it was meant to say.",
     examples: ["summarise this 80-page report", "what changed between these two contracts", "find every mention of the deadline"],
-    engines: ["gpt-4.1", "gpt-5.1", "kimi-k2-thinking", "claude-opus-4-5"],
+    engines: ["gpt-4.1", "gpt-4.1-mini", "gpt-5.1", "kimi-k2-thinking", "claude-opus-4-5", "kimi-k2-0905", "moonshot-v1-128k"],
     want: "long",
     group: "everyday",
     cast: [
-      { role: "check", engines: ["claude-sonnet-4-5", "kimi-k2-thinking", "deepseek-chat", "gpt-5.1"], want: "balanced" },
+      { role: "check", engines: ["claude-sonnet-4-5", "kimi-k2-thinking", "deepseek-chat", "gpt-5.1", "gpt-4.1-mini", "claude-sonnet-4-0"], want: "balanced" },
     ],
     revise: true,
     icon: "layers",
@@ -278,12 +278,12 @@ export const PRESETS: Preset[] = [
     blurb:
       "Code, and pages that run beside the conversation. Another company plans the thing first — the pieces, the order, what is easy to leave out — the strongest coder you have builds it, and a third reads the result back. It would rather make the thing than describe it.",
     examples: ["build me a stopwatch with lap times", "refactor this to remove the nested loop", "why does this test fail only in CI"],
-    engines: ["claude-opus-4-5", "claude-sonnet-4-5", "gpt-5.1", "kimi-k2-thinking"],
+    engines: ["claude-opus-4-5", "claude-sonnet-4-5", "gpt-5.1", "kimi-k2-thinking", "claude-opus-4-1", "gpt-5", "deepseek-reasoner"],
     want: "strong",
     group: "job",
     cast: [
-      { role: "brief", as: "plan", engines: ["gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner", "claude-sonnet-4-5"], want: "strong" },
-      { role: "check", engines: ["gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner", "claude-opus-4-5"], want: "strong" },
+      { role: "brief", as: "plan", engines: ["gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner", "claude-sonnet-4-5", "o4-mini", "gpt-5-mini"], want: "strong" },
+      { role: "check", engines: ["gpt-5.1", "kimi-k2-thinking", "deepseek-reasoner", "claude-opus-4-5", "o3", "claude-sonnet-4-0"], want: "strong" },
     ],
     effort: "high",
     stance:
@@ -299,12 +299,12 @@ export const PRESETS: Preset[] = [
     blurb:
       "Screenshots, diagrams, photographs of a whiteboard. Two models that can actually see are given the same picture and answer side by side, because what a model gets wrong about an image it gets wrong confidently and a second reading is the only way to catch it.",
     examples: ["what is wrong in this screenshot", "read this handwriting", "turn this diagram into a description"],
-    engines: ["claude-sonnet-4-5", "gpt-5.1", "gpt-4.1", "claude-haiku-4-5"],
+    engines: ["claude-sonnet-4-5", "gpt-5.1", "gpt-4.1", "claude-haiku-4-5", "gpt-4o", "kimi-thinking", "claude-sonnet-4-0"],
     want: "balanced",
     group: "job",
     sees: true,
     cast: [
-      { role: "duel", engines: ["gpt-5.1", "gpt-4.1", "claude-sonnet-4-5", "kimi-latest"], want: "balanced" },
+      { role: "duel", engines: ["gpt-5.1", "gpt-4.1", "claude-sonnet-4-5", "kimi-latest", "gpt-4o", "o3", "kimi-thinking"], want: "balanced" },
     ],
     icon: "eye",
   },
@@ -316,12 +316,12 @@ export const PRESETS: Preset[] = [
     blurb:
       "For learning something rather than obtaining it. Another model first writes down what somebody asking this usually believes that is wrong, so the explanation starts where you actually are; the answer ends with questions you cannot pass by having just read it; and a second company checks the teaching was right before you commit it to memory. Cards made here live in Study.",
     examples: ["explain eigenvalues like I have forgotten the algebra", "teach me the water cycle", "I have an exam on the Krebs cycle on Friday"],
-    engines: ["claude-sonnet-4-5", "gpt-5.1", "kimi-latest", "deepseek-chat"],
+    engines: ["claude-sonnet-4-5", "gpt-5.1", "kimi-latest", "deepseek-chat", "claude-sonnet-4-0", "gpt-5"],
     want: "balanced",
     group: "job",
     cast: [
-      { role: "brief", as: "misconceptions", engines: ["gpt-5.1-mini", "kimi-latest", "deepseek-chat", "claude-haiku-4-5"], want: "cheap" },
-      { role: "check", engines: ["gpt-5.1-mini", "kimi-latest", "deepseek-chat", "claude-haiku-4-5"], want: "cheap" },
+      { role: "brief", as: "misconceptions", engines: ["gpt-5.1-mini", "kimi-latest", "deepseek-chat", "claude-haiku-4-5", "gpt-4o-mini", "gpt-5-nano"], want: "cheap" },
+      { role: "check", engines: ["gpt-5.1-mini", "deepseek-chat", "kimi-latest", "claude-haiku-4-5", "gpt-5-nano", "gpt-4o-mini"], want: "cheap" },
     ],
     register: "explanatory",
     stance:
@@ -336,11 +336,11 @@ export const PRESETS: Preset[] = [
     blurb:
       "Translation, where the mistake you cannot see is the one that matters. One model translates and a model from a different company reads the translation against the original and reports what drifted.",
     examples: ["translate this email into Japanese", "what does this clause say in English", "is this the right register for a formal letter"],
-    engines: ["claude-sonnet-4-5", "gpt-5.1", "kimi-k2-thinking", "deepseek-chat"],
+    engines: ["claude-sonnet-4-5", "gpt-5.1", "kimi-k2-thinking", "deepseek-chat", "kimi-latest", "gpt-5", "claude-sonnet-4-0"],
     want: "balanced",
     group: "job",
     cast: [
-      { role: "check", engines: ["gpt-5.1", "kimi-k2-thinking", "deepseek-chat", "claude-sonnet-4-5"], want: "balanced" },
+      { role: "check", engines: ["gpt-5.1", "kimi-k2-thinking", "deepseek-chat", "claude-sonnet-4-5", "kimi-latest", "gpt-4.1"], want: "balanced" },
     ],
     stance:
       "Translate the meaning and the register, not the words. Keep names, numbers, and formatting exactly as they are. Where an idiom has no equivalent, say plainly what it means rather than inventing one.",
@@ -354,11 +354,11 @@ export const PRESETS: Preset[] = [
     blurb:
       "Emails, letters, posts, anything with a reader who is not you. Another model works out who reads it and what it has to achieve before a word is written, which is the part that is usually skipped and the reason most drafts have to be rewritten.",
     examples: ["write to my landlord about the boiler", "a resignation letter that keeps the door open", "turn these notes into an announcement"],
-    engines: ["claude-sonnet-4-5", "gpt-5.1", "kimi-latest", "deepseek-chat"],
+    engines: ["claude-sonnet-4-5", "gpt-5.1", "kimi-latest", "deepseek-chat", "claude-sonnet-4-0", "gpt-4.1"],
     want: "balanced",
     group: "job",
     cast: [
-      { role: "brief", as: "audience", engines: ["gpt-5.1-mini", "kimi-latest", "deepseek-chat", "claude-haiku-4-5"], want: "cheap" },
+      { role: "brief", as: "audience", engines: ["gpt-5.1-mini", "kimi-latest", "deepseek-chat", "claude-haiku-4-5", "gpt-4o-mini", "gpt-5-nano"], want: "cheap" },
     ],
     register: "formal",
     icon: "feather",
@@ -371,11 +371,11 @@ export const PRESETS: Preset[] = [
     blurb:
       "Two companies answer the same question, side by side, and you keep the one you prefer. Where judgement or taste decides, two answers are worth more than one model's verdict — and unlike the Council, nothing is blended away.",
     examples: ["what should we call this feature", "is this opening paragraph any good", "which of these two designs"],
-    engines: ["claude-opus-4-5", "gpt-5.1", "kimi-k2-thinking", "claude-sonnet-4-5"],
+    engines: ["claude-opus-4-5", "gpt-5.1", "kimi-k2-thinking", "claude-sonnet-4-5", "o3", "gpt-5", "claude-opus-4-1"],
     want: "strong",
     group: "job",
     cast: [
-      { role: "duel", engines: ["gpt-5.1", "kimi-k2-thinking", "claude-opus-4-5", "deepseek-reasoner"], want: "strong" },
+      { role: "duel", engines: ["gpt-5.1", "kimi-k2-thinking", "claude-opus-4-5", "deepseek-reasoner", "o3", "gpt-5", "claude-opus-4-1"], want: "strong" },
     ],
     icon: "scale",
   },
@@ -471,12 +471,31 @@ const usable = (w: Where): ModelSpec[] =>
 const holds = (m: ModelSpec, size: number) =>
   Math.floor(m.contextWindow * SAFETY) - REPLY >= size;
 
+/**
+ * A window big enough to hold an ordinary conversation.
+ *
+ * Only consulted when the choice is blind. Something with a 32k window is a
+ * perfectly good model and a bad guess: the part that asked for it did not,
+ * and the thread it lands in is whatever length it happens to be.
+ */
+const ROOMY = 100_000;
+
 const pickFrom = (engines: string[], want: Want, from: ModelSpec[]): ModelSpec | null => {
   const here = new Set(from.map((m) => m.id));
   const named = engines.find((e) => here.has(e));
   if (named) return from.find((m) => m.id === named)!;
   if (!from.length) return null;
-  return [...from].sort((a, b) => RANK[want](a, b) || a.id.localeCompare(b.id))[0];
+  /* Nothing this part named has a key behind it, so what follows is a guess
+     among whatever is left — and a guess should not land on a previous
+     generation, or on a window too small to hold the thread, while a current
+     model is sitting there unchosen. Anything named by the tactic is still
+     honoured above this: asking for an older engine by name gets it.
+     `long` is exempt from the generation rule for the obvious reason — the
+     widest windows on the bench belong to the generation before, and on a
+     part whose whole job is holding a lot, size is the capability. */
+  const current = from.filter((m) => (want === "long" || !m.legacy) && m.contextWindow >= ROOMY);
+  const field = current.length ? current : from;
+  return [...field].sort((a, b) => RANK[want](a, b) || a.id.localeCompare(b.id))[0];
 };
 
 /**

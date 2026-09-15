@@ -89,6 +89,32 @@ const TRAITS: Record<string, Traits> = {
   "kimi-latest": { speed: 3, depth: 1, coding: 2 },
   "deepseek-chat": { speed: 2, depth: 2, coding: 2 },
   "deepseek-reasoner": { speed: 1, depth: 3, coding: 2 },
+
+  /* The rest of the bench. The row above says an unlisted model gets the
+     middling default so that forgetting this file is survivable — and it is,
+     for one model. It is not a policy: nineteen of twenty-nine unlisted would
+     make the middling row the router's actual opinion about most of what it
+     can call, and the whole point of the table is that price cannot tell
+     cheap-and-quick from cheap-and-slow. */
+  "claude-opus-4-1": { speed: 1, depth: 3, coding: 3 },
+  "claude-opus-4-0": { speed: 1, depth: 3, coding: 2 },
+  "claude-sonnet-4-0": { speed: 2, depth: 2, coding: 3 },
+  "claude-3-7-sonnet": { speed: 2, depth: 2, coding: 2 },
+  "claude-3-5-haiku": { speed: 3, depth: 1, coding: 1 },
+  "gpt-5": { speed: 1, depth: 3, coding: 3 },
+  "gpt-5-mini": { speed: 2, depth: 2, coding: 2 },
+  "gpt-5-nano": { speed: 3, depth: 1, coding: 1 },
+  "o3": { speed: 1, depth: 3, coding: 2 },
+  "o4-mini": { speed: 2, depth: 3, coding: 2 },
+  "gpt-4.1-mini": { speed: 3, depth: 1, coding: 2 },
+  "gpt-4.1-nano": { speed: 3, depth: 1, coding: 1 },
+  "gpt-4o": { speed: 3, depth: 1, coding: 2 },
+  "gpt-4o-mini": { speed: 3, depth: 1, coding: 1 },
+  "kimi-k2-0905": { speed: 2, depth: 2, coding: 2 },
+  "kimi-k2-turbo": { speed: 3, depth: 2, coding: 2 },
+  "kimi-thinking": { speed: 1, depth: 3, coding: 1 },
+  "moonshot-v1-128k": { speed: 2, depth: 1, coding: 1 },
+  "moonshot-v1-32k": { speed: 3, depth: 1, coding: 1 },
 };
 
 const MIDDLING: Traits = { speed: 2, depth: 2, coding: 2 };
@@ -280,6 +306,32 @@ export function route(
     reasons.push("it is longer than anything configured can hold");
   }
 
+  /* And the generation. Every other narrowing above is a requirement — this
+     one is judgement, and it belongs here rather than in the scores.
+     
+     Routing is always a blind choice: nobody named a model, which is the
+     whole point of Auto. When the bench was ten models that choice was
+     between current ones by construction. It is twenty-nine now, most of them
+     previous generations kept so that a cast has somewhere to go, and they
+     are cheap and fast in exactly the way the scoring rewards — so widening
+     the bench quietly moved the everyday answer from a flagship to a nano and
+     the one-company Anthropic answer from Sonnet 4.5 to Haiku 3.5. Nobody
+     asked for that, and nobody would have seen it happen.
+     
+     So Auto chooses among what each company currently sells. The older models
+     are bench depth for the casts, which name them deliberately, and they are
+     still routed to where they are all somebody has a key for.
+     
+     Only on Auto. Somebody who has gone into the menu and asked for Economy
+     has named a preference, and the cheapest thing that can do the job is
+     what they asked for — a previous generation included. The rule is the one
+     the casts use: a choice nobody made stays on the current generation, a
+     choice somebody made is honoured. */
+  if (ctx.effort === "auto") {
+    const current = able.filter((m) => !m.legacy);
+    if (current.length) able = current;
+  }
+
   const score = (m: ModelSpec): number => {
     const t = traitsOf(m.id);
     const cheap = cheapness(m);
@@ -309,12 +361,22 @@ export function route(
     }
   };
 
-  /* Ties broken by price, then by name, so the same request routes the same
-     way every time. A router that answers differently on identical input is
-     one nobody can reason about — including whoever has to debug it. */
+  /* Ties broken by generation, then by price, then by name, so the same
+     request routes the same way every time. A router that answers differently
+     on identical input is one nobody can reason about — including whoever has
+     to debug it.
+
+     Generation goes first because the bench now holds several years of each
+     company's work, and a previous model and a current one with the same
+     traits are not the same bet: the older one is cheaper about as often as
+     it is worse, and price alone would keep choosing it. It is only a tie
+     break — an older model that actually scores higher for this request still
+     wins, which is how the million-token windows go on being useful. */
   const best = [...able].sort((a, b) => {
     const d = score(b) - score(a);
     if (d) return d;
+    const g = Number(Boolean(a.legacy)) - Number(Boolean(b.legacy));
+    if (g) return g;
     const p = a.priceIn + a.priceOut - (b.priceIn + b.priceOut);
     if (p) return p;
     return a.id.localeCompare(b.id);
@@ -387,10 +449,17 @@ export function checker(
   if (!from) return null;
   const pool = usable(ctx.configured, ctx.keys).filter((m) => m.provider !== from);
   if (!pool.length) return null;
+  /* Nobody named a checker, so this is a blind choice and keeps to the
+     current generation like every other one. It matters more here than it
+     looks: the sort below reads price as a stand-in for capability, and the
+     bench now holds an older model priced at thirty dollars a million that
+     would win that comparison against every flagship in the building. */
+  const current = pool.filter((m) => !m.legacy);
+  const field = current.length ? current : pool;
   /* Strongest, not cheapest. Everywhere else in this file cost is a real
      consideration; here it is the wrong one — a check you cannot rely on has
      cost you the price of the call and told you nothing. */
-  return [...pool].sort((a, b) => {
+  return [...field].sort((a, b) => {
     const d = traitsOf(b.id).depth - traitsOf(a.id).depth;
     if (d) return d;
     const p = b.priceIn + b.priceOut - (a.priceIn + a.priceOut);

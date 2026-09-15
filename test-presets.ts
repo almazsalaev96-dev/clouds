@@ -45,6 +45,64 @@ console.log("\nEvery tactic names engines that exist");
     "and every one of them says what it is the right answer to");
 }
 
+console.log("\nThe bench itself is sound");
+{
+  /* Twenty-nine engines is past the point where a typo is caught by reading
+     the file. What a wrong `apiName` buys is a request that fails at the
+     provider, which looks exactly like a key problem and is not one. */
+  const ids = MODELS.map((m) => m.id);
+  check(new Set(ids).size === ids.length, "no model is in the registry twice", String(ids.length));
+  check(MODELS.every((m) => m.apiName.trim().length > 0), "every one of them has a name to send on the wire");
+  const overrun = MODELS.filter((m) => m.maxOutput > m.contextWindow);
+  check(overrun.length === 0, "and none claims to write more than it can hold", overrun.map((m) => m.id).join(", "));
+  const unpriced = MODELS.filter((m) => !(m.priceIn > 0) || !(m.priceOut > 0));
+  check(unpriced.length === 0, "and all of them cost something, so the meter is never a lie", unpriced.map((m) => m.id).join(", "));
+  for (const company of ["anthropic", "openai", "moonshot", "deepseek"] as const) {
+    const mine = MODELS.filter((m) => m.provider === company);
+    check(mine.length >= 2, `${company} brings more than one model to the bench`, String(mine.length));
+    check(mine.some((m) => !m.legacy), `and at least one of them is current`);
+  }
+}
+
+console.log("\nA deeper bench is a better cast, not just a longer list");
+{
+  /* The point of adding the previous generations. On one company's key every
+     seat used to come out of the same three models, so the Council — which
+     wants four — could not be filled at all. */
+  for (const company of ["anthropic", "openai", "moonshot"] as const) {
+    const c = resolveCast("council", { configured: only(company) })!;
+    const seats = [c.answer.modelId, ...c.parts.map((x) => x.modelId)];
+    check(c.parts.length === 4, `the Council fills all four seats on a ${company} key alone`, seats.join(" + "));
+    check(new Set(seats).size === seats.length, `and no model of theirs sits in two of them`, seats.join(" + "));
+  }
+  /* And it is still honest about what that is: five seats from one lab is
+     five readings, not five opinions, and the row has to say so. */
+  const one = resolveCast("council", { configured: only("anthropic") })!;
+  check(/sibling/.test(one.short ?? ""), "while saying plainly that they are siblings", one.short ?? "");
+}
+
+console.log("\nA guess among what is left does not land on last year's model");
+{
+  /* `pickFrom` falls through to a blind choice when nothing a part named has
+     a key. With ten engines that was nearly always a current one; with
+     twenty-nine, most of the bench is a previous generation, and without a
+     rule the cheapest thing in the building would win every time. */
+  const named = new Set(PRESETS.flatMap((p) => [...p.engines, ...p.cast.flatMap((c) => c.engines)]));
+  check(named.size >= 20, "the tactics name most of the bench between them", `${named.size} of ${MODELS.length}`);
+  for (const p of PRESETS) {
+    const c = resolveCast(p.id, { configured: all })!;
+    const chosen = [c.answer.modelId, ...c.parts.map((x) => x.modelId)];
+    const stale = chosen.filter((id) => spec(id).legacy && !named.has(id));
+    check(stale.length === 0, `${p.name} never guesses its way onto a model nobody asked for`, stale.join(", "));
+  }
+  /* And never onto a window too small to hold the thread it lands in. */
+  const cramped = PRESETS.flatMap((p) => {
+    const c = resolveCast(p.id, { configured: all })!;
+    return [c.answer.modelId, ...c.parts.map((x) => x.modelId)];
+  }).filter((id) => spec(id).contextWindow < 100_000);
+  check(cramped.length === 0, "nor onto one too small to hold an ordinary conversation", cramped.join(", "));
+}
+
 console.log("\nNot one of them is a single model");
 {
   check(PRESETS.every((p) => p.cast.length >= 1), "every Armi model has somebody else in it");
