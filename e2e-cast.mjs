@@ -225,6 +225,28 @@ console.log("\nAnd an objection is answered rather than printed under the answer
   await p.screenshot({ path: `${OUT}/cast-objection.png` });
 }
 
+console.log("\nAnd two models on the kinds that used to get one");
+{
+  /* The promise every one of these names makes, on the request most likely
+     to break it. "Teach me" is a learning question: short, and of a kind a
+     second model cannot settle — so the brief was skipped for length and the
+     check was withheld for kind, and the tactic built for teaching answered
+     alone. Read at the wire, because this is exactly the claim that cannot
+     be taken from the interface. */
+  await pick("ARMI Tutor");
+  await p.getByRole("button", { name: "New chat" }).first().click();
+  await p.waitForTimeout(350);
+  await fetch(`${MOCK}/__reset`);
+  await p.locator(".composer-shell textarea").first().fill("teach me how eigenvalues work");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(9000);
+  const seq = await calls();
+  const models = new Set(seq.map((r) => r.model));
+  check(seq.length >= 2, "a five-word teaching question is still two models",
+    seq.map((r) => `${r.kind}:${r.model}`).join(" → "));
+  check(models.size >= 2, "and they are two different models, not one asked twice", [...models].join(" vs "));
+}
+
 console.log("\nThe menu says who is in the cast, not just who fronts it");
 {
   await pick("ARMI Council");

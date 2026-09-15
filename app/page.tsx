@@ -643,6 +643,11 @@ export default function Page() {
       const shaped = shapePlan(withPast(first, await pastFor(first.kind, modelId)), preset, {
         autoStyle,
         cast,
+        /* So it can tell whether the rest of the cast is going to run: the
+           promise is two models, and the check is what keeps that promise on
+           a turn nothing else would have joined. */
+        ask: asked,
+        size: history.reduce((n, m) => n + costOf(m), 0),
       });
       /* And an effort they set on the tactic itself, from the picker, which is
          the one part of an Armi model they can overrule without leaving it. */
@@ -679,7 +684,7 @@ export default function Page() {
          ordinary answer rather than no answer. */
       const briefWith = playerFor(cast, "brief");
       let brief = "";
-      if (briefWith && !opts?.revised && worthBriefing(asked, plan)) {
+      if (briefWith && !opts?.revised && worthBriefing(asked, plan, history.reduce((n, m) => n + costOf(m), 0))) {
         brief = (await complete(briefPrompt(asked, briefWith.as), {
           modelId: briefWith.modelId,
           maxTokens: 300,

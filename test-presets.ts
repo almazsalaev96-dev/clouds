@@ -228,10 +228,79 @@ console.log("\nAnd the check is real, or it is not claimed");
      another opinion about taste, charged as a verdict. The list of what can
      be settled lives in `decide.ts` and this reads it rather than keeping a
      second copy that drifts. */
-  const look = shapePlan(planTurn("design a landing page layout for a bakery"), getPreset("quant"), {
+  const ask = "design a landing page layout for a bakery";
+  const look = shapePlan(planTurn(ask), getPreset("quant"), {
     cast: resolveCast("quant", { configured: all }),
+    ask,
   });
   check(look.check !== "second", "and it does not grade a layout — that is two opinions, not a check", look.kind);
+  /* The refinement the two-model promise forced. A verdict on a layout is
+     still two opinions rather than one fact — so it is withheld wherever
+     something else in the cast is already reading the work. Where nothing
+     else would, the alternative is not "no verdict", it is "one model", and
+     that is worse: the second model reads it back, and the line says that is
+     what it is rather than calling it a check. */
+  const soloist = shapePlan(planTurn(ask), getPreset("lingua"), {
+    cast: resolveCast("lingua", { configured: all }),
+    ask,
+  });
+  check(soloist.check === "second", "but a tactic with nobody else in it still gets a second reader", soloist.kind);
+  check(/read back by another/.test(soloist.why), "called what it is, not called a check", soloist.why);
+}
+
+console.log("\nTwo models, on every kind of request — not only the convenient ones");
+{
+  /* The promise every one of these names makes. It was being broken in three
+     places at once and nothing noticed: a brief gated at six words, so short
+     questions ran alone; a check withheld on the kinds it cannot settle, so
+     every "teach me", "write me" and "design me" ran alone — including on
+     the tactics built for exactly those; and a build, where the check was
+     skipped altogether. "Teach me how eigenvalues work" ran on one model for
+     nine of the eleven, Tutor among them.
+     
+     So this is a table, and it stays a table: every tactic against every
+     shape of request, and any row that comes back as one model is a broken
+     promise rather than a saving. */
+  const ASKS: [string, number][] = [
+    ["what is a debounce", 0],
+    ["teach me how eigenvalues work", 0],
+    ["write an email to my landlord about the boiler", 0],
+    ["design a landing page layout for a bakery", 0],
+    ["build me a stopwatch with lap times", 0],
+    ["translate this into Japanese", 0],
+    /* Two words and forty pages: the material is the question. */
+    ["summarise this", 9_000],
+  ];
+  let alone = 0;
+  for (const [ask, size] of ASKS) {
+    for (const p of PRESETS) {
+      const cast = resolveCast(p.id, { configured: all })!;
+      const plan = shapePlan(planTurn(ask, { autoStyle: true }), p, { autoStyle: true, cast, ask, size });
+      let n = 1;
+      if (playerFor(cast, "brief") && worthBriefing(ask, plan, size)) n += 1;
+      if (playersFor(cast, "council").length && worthConvening(ask, plan)) n += playersFor(cast, "council").length;
+      if (plan.check === "second" && playerFor(cast, "check")) n += 1;
+      n += playersFor(cast, "duel").length;
+      if (n < 2) {
+        alone += 1;
+        console.log(`  ✗ ${p.name} answers "${ask}" alone`);
+      }
+    }
+  }
+  check(alone === 0, `every tactic is two models or more on every shape of request`,
+    `${ASKS.length} requests × ${PRESETS.length} models`);
+}
+
+console.log("\nBut a greeting is not a question");
+{
+  /* The floor, and the only place one model is right. Three words, because
+     "what is recursion" is a question and "hi" is not — and because a second
+     model reading "thanks" is a second bill for nothing. */
+  const hi = planTurn("thanks");
+  check(!worthBriefing("thanks", hi), "nothing is bought for two words of politeness");
+  check(worthBriefing("what is recursion", hi), "and a three-word question is still a question");
+  check(worthBriefing("summarise this", hi, 9_000),
+    "nor is length in words the test when the question is forty pages long");
 }
 
 console.log("\nA check that objects is answered, not just printed");

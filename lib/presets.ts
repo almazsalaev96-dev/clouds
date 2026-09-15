@@ -838,7 +838,16 @@ export function briefNote(text: string): string {
  * the writer, and the row says the brief is for anything that is not a
  * one-liner rather than promising it on every keystroke.
  */
-export const BRIEF_WORDS = 6;
+export const BRIEF_WORDS = 3;
+/**
+ * And a request that is mostly not words.
+ *
+ * "Summarise this" is two words and forty pages, which the word count reads
+ * as small talk. Where there is material attached, the question is whatever
+ * the material is, and a second model reading it first is worth more than on
+ * almost any typed question.
+ */
+export const BRIEF_TOKENS = 2_000;
 /** And a council, which is four models, wants a question worth four models. */
 export const COUNCIL_WORDS = 8;
 
@@ -847,11 +856,12 @@ export function worthConvening(ask: string, plan?: Plan): boolean {
   return ask.trim().split(/\s+/).filter(Boolean).length >= COUNCIL_WORDS;
 }
 
-export function worthBriefing(ask: string, plan?: Plan): boolean {
+export function worthBriefing(ask: string, plan?: Plan, size = 0): boolean {
   /* The plan is optional because the duel path has not made one yet: it is
      two answers rather than one and never had a single turn to plan. The
      length rule is the same either way. */
   if (plan?.strategy === "compute") return false;
+  if (size >= BRIEF_TOKENS) return true;
   return ask.trim().split(/\s+/).filter(Boolean).length >= BRIEF_WORDS;
 }
 
@@ -899,7 +909,14 @@ export function objectionNote(verdict: { agrees: string; text: string }, who: st
 export function shapePlan(
   plan: Plan,
   preset: Preset | null,
-  ctx: { autoStyle?: boolean; cast?: Cast | null } = {},
+  ctx: {
+    autoStyle?: boolean;
+    cast?: Cast | null;
+    /** What was asked, so this can tell whether the rest of the cast will run. */
+    ask?: string;
+    /** And how much came with it. */
+    size?: number;
+  } = {},
 ): Plan {
   if (!preset) return plan;
   const next: Plan = { ...plan };
@@ -916,12 +933,39 @@ export function shapePlan(
     next.register = { id: preset.register, why: "that is what it is for" };
   }
 
-  /* The check, where one was actually arranged and where two models could
-     settle the question. Checking a poem produces two poems. */
+  /* The check, and the promise underneath every one of these names: an Armi
+     model is never one model.
+     
+     Where two models can settle something, the check is a check — it reads
+     the answer against the question and reports. Where they cannot (a poem,
+     a layout, an explanation), a verdict is two opinions rather than one
+     fact, which is why `decide.ts` withholds it. But withholding it used to
+     mean that a whole class of request — every "teach me", every "write me",
+     every "design me" — quietly ran on one model, including on the tactics
+     built for exactly those. So on those kinds the second model still reads
+     it, and the line says what that is: read back, not adjudicated.
+     
+     And only where nothing else in the cast is going to run. A turn that is
+     already being briefed, convened or duelled is already more than one
+     model, and a check on top of it is a cost without a claim. */
   const checker = playerFor(ctx.cast ?? null, "check");
-  if (checker && plan.strategy === "answer" && checkable(plan.kind)) {
-    next.check = "second";
-    next.why = `${preset.name} — written by one company's model and checked by another's.`;
+  const willBrief =
+    Boolean(playerFor(ctx.cast ?? null, "brief")) && worthBriefing(ctx.ask ?? "", plan, ctx.size);
+  const willConvene =
+    playersFor(ctx.cast ?? null, "council").length > 0 && worthConvening(ctx.ask ?? "", plan);
+  const alreadyMore = willBrief || willConvene || playersFor(ctx.cast ?? null, "duel").length > 0;
+  if (checker && plan.strategy !== "compute") {
+    if (plan.strategy === "answer" && checkable(plan.kind)) {
+      next.check = "second";
+      next.why = `${preset.name} — written by one company's model and checked by another's.`;
+    } else if (!alreadyMore) {
+      /* Including a built thing. `decide.ts` is right that a page is checked
+         by running it rather than by asking twice — but "not the best check"
+         and "no second model at all" are different, and the second is what
+         was happening to every make on a tactic whose cast is only a checker. */
+      next.check = "second";
+      next.why = `${preset.name} — written by one model and read back by another.`;
+    }
   }
 
   return next;
