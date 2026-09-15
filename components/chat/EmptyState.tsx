@@ -178,7 +178,10 @@ export function EmptyState({
                 {i > 0 && <span className="text-faint" aria-hidden>·</span>}
                 <button
                   onClick={() => onGo(w.section)}
-                  className="focus-inset flex items-center gap-1.5 rounded-full px-2 py-0.5 tnum transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                  /* Small on the page, full-sized under a finger: the row is
+                     one line of quiet text, and the thing you press is still
+                     forty-four points tall. */
+                  className="btn-touch focus-inset flex items-center gap-1.5 rounded-full px-2 py-0.5 tnum transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
                 >
                   {w.icon}
                   {w.text}

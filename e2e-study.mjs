@@ -243,6 +243,12 @@ console.log("\nA wrong card is fixed where it was noticed");
   await p.waitForTimeout(500);
 }
 
+const dayRows = () => p.evaluate(() => new Promise((ok) => {
+  const r = indexedDB.open("clouds");
+  r.onsuccess = () => { const q = r.result.transaction("studyDays").objectStore("studyDays").getAll(); q.onsuccess = () => { r.result.close(); ok(q.result); }; };
+}));
+let loggedBefore = 0;
+
 console.log("\nThe night before");
 {
   /* Practice asks everything, and changes nothing about when it comes back. */
@@ -250,6 +256,7 @@ console.log("\nThe night before");
   await p.waitForTimeout(500);
   const was = (await cards()).filter((c) => c.state === "review").map((c) => [c.id, c.due]);
   check(was.length >= 1, "a card in this deck is not due for days", `${was.length} scheduled ahead`);
+  loggedBefore = (await dayRows())[0]?.answered ?? 0;
   await p.getByRole("button", { name: "Practise every card" }).click();
   await p.waitForTimeout(600);
   /* The session's own bar — the one with the way out in it — not the first
@@ -271,11 +278,13 @@ console.log("\nThe night before");
 
 console.log("\nDays in a row, and the front door knows");
 {
-  const days = await p.evaluate(() => new Promise((ok) => {
-    const r = indexedDB.open("clouds");
-    r.onsuccess = () => { const q = r.result.transaction("studyDays").objectStore("studyDays").getAll(); q.onsuccess = () => { r.result.close(); ok(q.result); }; };
-  }));
-  check(days.length === 1 && days[0].answered >= 6, "every answer today, practice included, is written to today's row", `${days[0]?.answered} answered`);
+  /* One row, for today, and the practice answer just given is in it. Asserted
+     as a step rather than a total: how many answers the sections above gave
+     depends on which card came up first, and a number that depends on the
+     shuffle is not a claim about the log. */
+  const days = await dayRows();
+  check(days.length === 1 && days[0].answered === loggedBefore + 1,
+    "every answer today, practice included, is written to today's row", `${loggedBefore} → ${days[0]?.answered} answered`);
   await p.getByRole("button", { name: "Back to Study" }).first().click().catch(() => {});
   await p.locator("aside nav").getByRole("button", { name: "Conversations" }).first().click();
   await p.waitForTimeout(500);
