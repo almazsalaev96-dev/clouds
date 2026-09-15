@@ -105,7 +105,14 @@ console.log("\nA disagreement is shown as one");
   const shown = await page.locator("main").innerText();
   check(/SECOND OPINION/i.test(shown), "the verdict lands under the answer it is about");
   check(/mostly agrees/i.test(shown), "and says where the two ended up", "mostly agrees");
-  check(/GPT/i.test(shown), "naming who did the checking");
+  /* Who checked it, without whose product checked it. That a second company
+     read the answer is the fact that makes the verdict worth anything; which
+     of their models did the reading is a fact about the keys in this browser
+     and used to be printed over somebody else's answer. */
+  check(/from another company/i.test(shown), "saying the check came from outside the house that wrote it");
+  check(!/GPT|Claude|Kimi|DeepSeek|Sonnet|Haiku|Opus/.test(shown),
+    "and naming no company's product while it does",
+    (shown.split("\n").find((l) => /agrees|disagrees|found nothing/.test(l)) ?? "").slice(0, 80));
   check(/trailing edge/i.test(shown), "with the specific disagreement, not “some details may be inaccurate”");
   await page.screenshot({ path: `${OUT}/verify-verdict.png` });
 

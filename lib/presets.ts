@@ -635,7 +635,30 @@ const KIN_SHORT = "one company only — the second model is a sibling, not a riv
  * menu still offers them directly for anybody who would rather pick one.
  */
 export function authorName(presetId: string | undefined | null, modelId: string): string {
-  return getPreset(presetId ?? "")?.name ?? getModel(modelId).name;
+  const preset = getPreset(presetId ?? "");
+  if (preset) return preset.name;
+  /* Auto is not the absence of an Armi model, it is the one that chooses:
+     ARMI Core read the request and picked. Naming the engine it picked would
+     put a company's model at the top of an answer nobody asked that company
+     for. */
+  if (presetId === "auto") return "ARMI Core";
+  /* And a thread pinned to an engine before the menu stopped offering them.
+     It is still this app answering, and the engine belongs in Settings with
+     the rest of them rather than over the words on screen. */
+  return "Armi";
+}
+
+/**
+ * The same name, short enough for a column head or a chip.
+ *
+ * Anywhere a label has to fit, and the alternative is falling back to
+ * `getModel(id).name` — which answers with the app default for an id it does
+ * not know, and so would print a company's model over an Armi one.
+ */
+export function shortName(id: string | undefined | null): string {
+  const preset = getPreset(id ?? "");
+  if (preset) return preset.short;
+  return id === "auto" ? "ARMI Core" : "Armi";
 }
 
 /** Just the writer, for the places that only need to name one model. */
@@ -811,11 +834,15 @@ export const SEAT_NAMES: Record<Angle, string> = {
  * three drafts will otherwise average them, which loses exactly the
  * disagreement that was worth paying three models for.
  */
-export function councilNote(seats: { who: string; angle: Angle; text: string }[]): string {
+export function councilNote(seats: { angle: Angle; text: string }[]): string {
   return [
     "Three other models, from different companies, have each worked on one half of this question. Their notes are below. They have not seen each other's work and none of them wrote an answer.",
     "",
-    ...seats.map((s) => `### ${s.who}, ${SEAT_NAMES[s.angle]}\n\n${s.text.trim()}`),
+    /* Headed by the job, not by whoever did it. Three notes headed with three
+       companies' model names, under an instruction not to name them, is a
+       leak waiting for a long answer — and the seat is the only thing about
+       a note the writer is meant to weigh. */
+    ...seats.map((s) => `### On ${SEAT_NAMES[s.angle]}\n\n${s.text.trim()}`),
     "",
     "Write one answer out of these. Use what holds and drop what does not — they can be wrong, and you are the one accountable for what goes on the page. Where two of them genuinely disagree about something that matters, say so in a line and say which you are going with and why. Where all three are unsure, say that rather than picking. Do not summarise them one by one, do not name them, and do not mention that any of this happened.",
   ].join("\n");
@@ -876,7 +903,7 @@ export function worthBriefing(ask: string, plan?: Plan, size = 0): boolean {
  * one. Where the objection is wrong the writer keeps its ground and says so,
  * and where neither can settle it the reader is told that too.
  */
-export function objectionNote(verdict: { agrees: string; text: string }, who: string): string {
+export function objectionNote(verdict: { agrees: string; text: string }): string {
   return [
     `A model from a different company has read your last answer and does not fully agree. It said:`,
     "",
@@ -888,7 +915,11 @@ export function objectionNote(verdict: { agrees: string; text: string }, who: st
     "- Where it turns on a number, settle it with a ```compute block rather than arguing about it: this app runs that block and prints what it prints, so the arithmetic stops being a matter of opinion.",
     `- Where neither of you can settle it from what is here, say so in one line and say what would settle it.`,
     "",
-    `The objection came from ${who}. Do not name it, and do not write about the disagreement except in the one line the rules above allow.`,
+    /* And it is not told which model objected. The name added nothing to the
+       rewrite — the objection is the argument, not its author — and a name
+       in the prompt is a name that turns up in the answer eventually,
+       whatever the sentence after it asks for. */
+    `Do not write about the disagreement except in the one line the rules above allow.`,
   ].join("\n");
 }
 

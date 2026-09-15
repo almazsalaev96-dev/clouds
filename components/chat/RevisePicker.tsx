@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { getModel } from "@/lib/models";
+import { engineOf, getPreset } from "@/lib/presets";
 import { cheapestAvailable } from "@/lib/complete";
 import { useSettings } from "@/lib/store";
 import { ModelPicker } from "./ModelPicker";
@@ -29,10 +30,16 @@ import { Wand2 } from "lucide-react";
  */
 export function useReviseModel(configured: Record<string, boolean>): string | null {
   const chosen = useSettings((s) => s.reviseModelId);
+  const keys = useSettings((s) => s.keys);
   const cheapest = cheapestAvailable(configured);
+  /* What is stored is an Armi model; what a one-shot rewrite needs is an
+     engine. Resolved here, against the keys that are actually present, so
+     the caller gets something it can send and the person picked something
+     they can recognise. */
+  const engine = chosen ? engineOf(chosen, { configured, keys }) : null;
   // A model whose key has since been removed must not silently keep being
   // used — fall back rather than fail at the request.
-  if (chosen && configured[getModel(chosen).provider]) return chosen;
+  if (engine && (configured[getModel(engine).provider] || keys[getModel(engine).provider])) return engine;
   return cheapest;
 }
 
@@ -41,18 +48,16 @@ export function RevisePicker({ configured }: { configured: Record<string, boolea
   const [open, setOpen] = React.useState(false);
   const id = useReviseModel(configured);
   const model = id ? getModel(id) : null;
+  /* What the person chose, which is an Armi model — not what it resolved to. */
+  const chosen = getPreset(settings.reviseModelId ?? "");
 
   return (
     <ModelPicker
       open={open}
       onOpenChange={setOpen}
-      value={id ?? ""}
+      value={settings.reviseModelId ?? ""}
       onChange={(next) => settings.setReviseModel(next)}
       configured={configured}
-      /* Engines only. Revising runs one call with no plan behind it, so a row
-         here promising a second opinion or a register would promise something
-         this path cannot do. */
-      presets={false}
       align="end"
     >
       <button
@@ -60,14 +65,14 @@ export function RevisePicker({ configured }: { configured: Record<string, boolea
            call with no tactic behind it, so there is no Armi model to name
            here — and an engine's name is the one thing this control does not
            need on screen, since choosing the engine is what opening it is
-           for. The name is in the menu, in the tooltip, and in Settings. */
-        aria-label={model ? `Rewrites with ${model.name}` : "Choose a model to rewrite with"}
+           for. The Armi model is in the menu and in this label. */
+        aria-label={chosen ? `Rewrites with ${chosen.name}` : "Choose what rewrites this"}
         className="btn-touch ctl-h focus-inset flex min-w-0 shrink items-center gap-1.5 rounded-full px-2 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
       >
         {model ? (
           <>
             <Wand2 size={13} className="shrink-0 text-[var(--accent-2)]" />
-            <span className="truncate">Rewrites</span>
+            <span className="truncate">{chosen?.short ?? "Rewrites"}</span>
           </>
         ) : (
           <span className="truncate text-tertiary">No key</span>

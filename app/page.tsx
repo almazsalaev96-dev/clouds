@@ -26,7 +26,7 @@ import { builtDocument, titleOf } from "@/lib/built";
 import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, estimateTokens, getModel } from "@/lib/models";
 import {
   briefNote, briefPrompt, councilNote, councilPrompt, engineOf, getPreset, objectionNote,
-  playerFor, playersFor, resolveCast, shapePlan, worthBriefing, worthConvening,
+  playerFor, playersFor, resolveCast, shapePlan, shortName, worthBriefing, worthConvening,
 } from "@/lib/presets";
 import { costOf, fitToContext } from "@/lib/context";
 import { cheapestAvailable, complete } from "@/lib/complete";
@@ -476,6 +476,7 @@ export default function Page() {
       styleId: sent.plan.register?.id,
       mode: sent.plan.mode,
       modelId: m.modelId ?? sent.modelId,
+      presetId: m.presetId,
       effort: sent.plan.effort,
       check: sent.plan.check,
       why: sent.plan.why,
@@ -704,7 +705,6 @@ export default function Page() {
       if (seats.length && !opts?.revised && worthConvening(asked, plan)) {
         const notes = await Promise.all(
           seats.map(async (seat) => ({
-            who: getModel(seat.modelId).name,
             angle: seat.angle!,
             text:
               (await complete(councilPrompt(asked, seat.angle!), {
@@ -744,11 +744,6 @@ export default function Page() {
         plan.register && plan.register.why && style
           ? `${style.name}, because ${plan.register.why}`
           : "";
-      /* Which Armi model this was, beside the engine that answered it. The
-         header already names the engine and the leading clause is stripped
-         from this line, so what is left reads "Claude Sonnet 4.5 · Astro" —
-         the two facts a person needs to connect the name in the bar with the
-         name over the answer, and never one without the other. */
       /* The header already carries the name — this line is for what happened
          *besides* being answered: whether a second model read the question
          first, how many were consulted, and whether the tactic could not have
@@ -789,7 +784,7 @@ export default function Page() {
         /* Which Armi model this is, kept with the answer. The engine stays in
            `modelId` because a retry, a second opinion and the token meter all
            need it; what a reader is shown is the name they picked. */
-        presetId: preset?.id,
+        presetId: preset?.id ?? (picked === AUTO ? AUTO : undefined),
         routedWhy: why || undefined,
         history,
         systemPrompt: composed.text || undefined,
@@ -977,17 +972,24 @@ export default function Page() {
           conversationId: convId,
           parentId: userMessage.id,
           history,
-          /* Side by side, every column has to be an engine: the comparison is
-             about what different models say, and a tactic resolved differently
-             in each column would be comparing two things and calling it one. */
-          modelIds: [engineOf(answering, where), ...(duellists.length ? duellists : compareWith)],
+          /* Side by side, every column has to be an engine: what runs is a
+             model id, and a column handed an Armi model's id used to fall
+             through `getModel` to the app default — so "also ask ARMI Quant"
+             quietly asked the same engine as the column beside it, twice, and
+             headed the column with a name neither of them had. Each column
+             resolves its own cast's writer. */
+          modelIds: [
+            engineOf(answering, where),
+            ...(duellists.length ? duellists : compareWith.map((id) => engineOf(id, where))),
+          ],
           /* A duel is one Armi model answering twice: the columns are the
-             first answer and the second, not two companies. A comparison
-             somebody set up themselves keeps the engine names, because
-             picking those engines was the point of it. */
+             first answer and the second. A comparison somebody set up
+             themselves is between Armi models, and is headed by the names
+             they chose from — never by whichever engine those resolved to
+             in this browser. */
           labels: duellists.length
             ? ["The first answer", "The second answer", "The third answer"].slice(0, duellists.length + 1)
-            : undefined,
+            : [shortName(answering), ...compareWith.map((id) => shortName(id))],
           turnPrompt: shared ? briefNote(shared) : undefined,
         });
       } else {
@@ -1160,7 +1162,7 @@ export default function Page() {
             /* No routed reason: this turn builds its own, and it is the same
                tactic that answered the first time. */
             undefined,
-            objectionNote(verdict, getModel(who).name),
+            objectionNote(verdict),
             { revised: true },
           );
         }
@@ -1968,7 +1970,7 @@ export default function Page() {
                    read, so both used to draw the app default's name over an
                    answer somebody else was writing. */
                 streamModelId={stream.modelId ?? engineOf(threadModelId, { configured, keys: settings.keys })}
-                streamPresetId={stream.presetId ?? getPreset(threadModelId)?.id}
+                streamPresetId={stream.presetId ?? getPreset(threadModelId)?.id ?? (threadModelId === AUTO ? AUTO : undefined)}
                 elapsed={live ? stream.elapsed : 0}
                 retryingInMs={live ? stream.retryingInMs : 0}
                 error={live ? stream.error : null}

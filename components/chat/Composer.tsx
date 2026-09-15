@@ -15,7 +15,6 @@ import { fileToBase64, formatBytes, sniffKind, cn } from "@/lib/utils";
 import { isPdf, pdfBlock } from "@/lib/pdf";
 import { useSettings, useDrafts } from "@/lib/store";
 import { Tooltip } from "@/components/ui/primitives";
-import { ProviderMark } from "@/components/ui/ProviderMark";
 
 /** Longer than this and a paste becomes a chip instead of flooding the box. */
 const PASTE_COLLAPSE_CHARS = 1500;

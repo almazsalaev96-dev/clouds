@@ -145,7 +145,12 @@ console.log("\nWhat the row says");
   await page.waitForTimeout(500);
   await page.getByRole("listitem").first().click().catch(() => {});
   await page.waitForTimeout(900);
-  const picker = await page.getByRole("button", { name: /^Model: / }).count();
+  /* The control used to be labelled "Model: <engine>", because what it chose
+     was an engine. It chooses an Armi model now and says what it is for —
+     "Rewrites with ARMI Flash" — which is the same fact in the words the
+     rest of the app uses. What matters here is that there is one, and that
+     the canvas is not picking silently the way it used to. */
+  const picker = await page.getByRole("button", { name: /^(Rewrites with |Choose what rewrites)/ }).count();
   check(picker === 1, "the canvas says which model is about to rewrite the file — it used to pick one silently");
   const target = await page.locator(".composer-shell .font-mono").first().textContent().catch(() => null);
   check(Boolean(target), "and which file it is about to rewrite", target ?? "");

@@ -5,8 +5,11 @@ import { CrashNet } from "@/components/ui/CrashNet";
 
 export const metadata: Metadata = {
   title: "Armi",
+  /* What this is, in its own words. It used to be a list of four other
+     companies' models, which described the plumbing rather than the product
+     and put their names on the one line that follows this app around. */
   description:
-    "One interface for Claude, GPT, Kimi and DeepSeek — and the projects, web apps and notebook that come out of them.",
+    "Armi models — each one several AIs working a question together — with the projects, web apps and notebook that come out of them.",
 };
 
 export const viewport: Viewport = {

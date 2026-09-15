@@ -10,8 +10,10 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Armi",
     short_name: "Armi",
+    /* In step with the metadata in `app/layout.tsx`, which is the same
+       sentence in the other place it is read. */
     description:
-      "One interface for Claude, GPT, Kimi and DeepSeek — and the projects, web apps and notebook that come out of them.",
+      "Armi models — each one several AIs working a question together — with the projects, web apps and notebook that come out of them.",
     start_url: "/",
     display: "standalone",
     orientation: "any",

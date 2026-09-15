@@ -114,8 +114,10 @@ console.log("\nThe quick one answers first and is checked after");
     "from a company that did not write it", seq[j]?.model);
   const shown = await p.locator(".msg").last().innerText();
   check(/Second opinion/i.test(shown), "and the verdict lands under the answer it is about");
-  check(/GPT|Kimi|DeepSeek/.test(shown), "named by the model that gave it",
+  check(/from another company/i.test(shown), "credited to a company that did not write the answer",
     (shown.split("\n").find((l) => /mostly agrees|found nothing|disagrees/.test(l)) ?? "").slice(0, 80));
+  check(!/GPT|Kimi|DeepSeek|Claude|Sonnet|Haiku|Opus/.test(shown),
+    "and not to one of their products, which is a fact about this browser's keys");
 }
 
 console.log("\nAnd where judgement decides, two answers beat one verdict");

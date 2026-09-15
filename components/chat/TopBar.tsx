@@ -12,7 +12,6 @@ import { formatCost, formatTokens } from "@/lib/models";
 import { cn } from "@/lib/utils";
 import { IconButton, Tooltip } from "@/components/ui/primitives";
 import { ModelPicker, PresetIcon } from "./ModelPicker";
-import { ProviderMark } from "@/components/ui/ProviderMark";
 import { AUTO, getModel } from "@/lib/models";
 import { getPreset, resolvePreset } from "@/lib/presets";
 import { paramsFor } from "@/lib/store";
@@ -113,7 +112,7 @@ export function TopBar({
               ? "Model: chosen automatically"
               : preset
                 ? `Model: ${preset.name}`
-                : `Model: ${model.name}`
+                : "Model: Armi"
           }
           className="btn-touch focus-inset flex h-8 min-w-0 shrink items-center gap-1 rounded-md px-1.5 text-[0.8125rem] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
         >
@@ -136,9 +135,13 @@ export function TopBar({
               {effort && <span className="hidden text-tertiary sm:inline">{effort}</span>}
             </>
           ) : (
+            /* A thread pinned to an engine before the menu stopped offering
+               them. It keeps answering on that engine — changing what somebody
+               chose would be worse than the name — but the chip says whose app
+               this is, not whose model it rented. */
             <>
-              <ProviderMark provider={model.provider} size={12} />
-              <span className="truncate">{model.short}</span>
+              <PresetIcon id="" size={12} className="shrink-0 text-[var(--accent-2)]" />
+              <span className="truncate">Armi</span>
               {model.reasoning && effort && (
                 <span className="hidden text-tertiary sm:inline">{effort}</span>
               )}

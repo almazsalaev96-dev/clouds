@@ -12,15 +12,14 @@ import { computeBlock, type Outcome } from "@/lib/compute";
 import { ComputeScope } from "./ComputeBlock";
 import type { Finding } from "@/lib/lint";
 import type { ChatError, Message as Msg, Rating, RatingReason } from "@/lib/types";
-import { CALCULATOR, getModel, formatTokens, MODELS } from "@/lib/models";
-import { authorName, getPreset } from "@/lib/presets";
+import { CALCULATOR, getModel, formatTokens } from "@/lib/models";
+import { authorName, getPreset, PRESETS } from "@/lib/presets";
 import { blockText } from "@/lib/db";
 import { cn, describeTiming, formatDuration } from "@/lib/utils";
 import { guessLang } from "@/lib/lang";
 import { Markdown } from "./Markdown";
 import { IconButton, Button, Tooltip } from "@/components/ui/primitives";
 import { CodeBlock } from "./CodeBlock";
-import { ProviderMark } from "@/components/ui/ProviderMark";
 import { PresetIcon } from "./ModelPicker";
 import { useArtifact } from "./ArtifactPanel";
 
@@ -371,25 +370,20 @@ function AssistantMessageImpl({
           a tiny label, and a scale where one size does two jobs has a missing
           step rather than a spare one. */}
       <div className="mb-2 flex items-center gap-2 text-meta text-tertiary">
-        {/* The mark belongs to whoever the answer is credited to. An Armi
-            model is a cast of two or three engines from different companies,
-            so one company's mark over it would be picking a side; the app's
-            own is the honest one, and the engines are named in Settings. */}
-        {armi ? (
-          <PresetIcon id={armi.id} size={12} className="shrink-0 text-[var(--accent-2)]" />
-        ) : (
-          model && (
-            <span className="text-secondary">
-              <ProviderMark provider={model.provider} size={12} />
-            </span>
-          )
-        )}
+        {/* One mark, and it is Armi's. An Armi model is a cast of two or
+            three engines from different companies, so one company's mark over
+            it would be picking a side — and an answer from a thread pinned to
+            an engine before the menu stopped offering them is still this app
+            answering. Which engines were rented is in Settings. */}
+        <PresetIcon id={armi?.id ?? ""} size={12} className="shrink-0 text-[var(--accent-2)]" />
         {computed && <Calculator size={12} className="text-secondary" />}
         <span
           className="font-medium text-secondary"
-          /* Not hidden, just not shouted: the engine that wrote this is one
-             hover away here and spelled out in full in Settings. */
-          title={armi && model ? `${armi.name} — written by ${model.name}` : undefined}
+          /* No tooltip naming an engine. Which one a tactic rented for this
+             turn is a fact about the keys in this browser, not about the
+             answer, and it is the kind of detail that ends up quoted back as
+             though the app were a storefront for somebody else's models. */
+          title={armi ? armi.blurb : undefined}
         >
           {computed ? "Calculator" : (author ?? "Assistant")}
         </span>
@@ -398,7 +392,13 @@ function AssistantMessageImpl({
             model for my hard question" is only a complaint you can make if you
             were told which and why. */}
         {message.routedWhy && (
-          <span className="min-w-0 truncate text-tertiary" title={message.routedWhy}>
+          <span
+            className="min-w-0 truncate text-tertiary"
+            /* The same text the line shows, not the raw string: what is
+               stored begins with the engine's short name, which is stripped
+               here and must not come back through a tooltip. */
+            title={message.routedWhy.replace(/^[^—]*—\s*/, "").replace(/\.$/, "")}
+          >
             {message.routedWhy.replace(/^[^—]*—\s*/, "").replace(/\.$/, "")}
           </span>
         )}
@@ -503,7 +503,7 @@ function AssistantMessageImpl({
       {message.error && <InlineError message={message.error} onRetry={() => onRegenerate(message)} />}
 
       {message.verdict && (
-        <SecondOpinion verdict={message.verdict} author={Boolean(armi)} authorProvider={model?.provider} />
+        <SecondOpinion verdict={message.verdict} authorProvider={model?.provider} />
       )}
 
       {/* Why not good — the one question a thumbs-down earns. Each answer is
@@ -647,16 +647,19 @@ function AssistantMessageImpl({
               sideOffset={6}
               className="z-50 w-60 rounded-md glass border border-line p-1.5 shadow-lg anim-menu"
             >
-              {MODELS.filter((m) => m.id !== message.modelId).map((m) => (
+              {/* The same list the picker offers, because "regenerate with
+                  another model" means another of ours. It used to be every
+                  engine this app can call, by its maker's name — which made
+                  the one control people press when an answer disappoints a
+                  menu of somebody else's products. */}
+              {PRESETS.filter((x) => x.id !== message.presetId).map((x) => (
                 <DropdownMenu.Item
-                  key={m.id}
-                  onSelect={() => onRegenerate(message, m.id)}
+                  key={x.id}
+                  onSelect={() => onRegenerate(message, x.id)}
                   className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-secondary outline-none transition-colors duration-[var(--dur-fast)] data-[highlighted]:bg-subtle data-[highlighted]:text-primary"
                 >
-                  <span className="text-tertiary">
-                    <ProviderMark provider={m.provider} size={12} />
-                  </span>
-                  <span className="truncate">{m.name}</span>
+                  <PresetIcon id={x.id} size={12} className="shrink-0 text-[var(--accent-2)]" />
+                  <span className="truncate">{x.short}</span>
                 </DropdownMenu.Item>
               ))}
             </DropdownMenu.Content>
@@ -907,12 +910,9 @@ export function BranchNav({
  */
 function SecondOpinion({
   verdict,
-  author,
   authorProvider,
 }: {
   verdict: NonNullable<Msg["verdict"]>;
-  /** True when the answer above was written by one of Armi's own models. */
-  author?: boolean;
   /** Which company wrote it, so this can say whether the check is independent. */
   authorProvider?: string;
 }) {
@@ -925,9 +925,13 @@ function SecondOpinion({
         : "disagrees";
   /* What makes this worth reading is that it did not come from the model
      that wrote the answer — and, wherever there are two keys, not from that
-     company at all. That is the claim; which company it was is the detail,
-     and it is one hover away and named in Settings. */
-  const from = author && checker.provider !== authorProvider ? "A model from another company" : "A second model";
+     company at all. That is the claim, and it is a fact about the two
+     providers: it used to be gated on the answer having come from one of
+     Armi's own models as well, which said "a second model" over a genuinely
+     independent check whenever the thread was pinned to an engine. Which
+     company it was is the detail, and it stays off the screen. */
+  const from =
+    authorProvider && checker.provider !== authorProvider ? "A model from another company" : "A second model";
   return (
     <div
       className={cn(
@@ -946,7 +950,7 @@ function SecondOpinion({
         <span className="eyebrow text-faint">
           Sentinel · second opinion
         </span>
-        <span className="min-w-0 flex-1 truncate text-xs text-tertiary" title={`${checker.name} ${said}`}>
+        <span className="min-w-0 flex-1 truncate text-xs text-tertiary">
           {from} {said}
         </span>
       </div>

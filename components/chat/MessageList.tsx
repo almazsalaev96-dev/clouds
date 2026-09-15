@@ -6,7 +6,6 @@ import { lintAnswer } from "@/lib/lint";
 import { blockText } from "@/lib/db";
 import type { Rating, ChatError, Message as Msg } from "@/lib/types";
 import { PointAt, type PointAction } from "./PointAt";
-import { getModel } from "@/lib/models";
 import { authorName } from "@/lib/presets";
 import { siblingIndex, siblingsFrom } from "@/lib/db";
 import { cn, formatElapsed } from "@/lib/utils";
@@ -190,9 +189,8 @@ function MessageListImpl({
     setUnread(false);
   };
 
-  const streamModel = getModel(streamModelId);
   /* The name over an answer being written is the same name it will carry
-     once it is written. Watching "Claude Haiku 4.5" think and then reading
+     once it is written. Watching one company's model think and then reading
      "ARMI Flash" over the result is two different authors for one answer. */
   const streamAuthor = authorName(streamPresetId, streamModelId);
 
@@ -221,8 +219,7 @@ function MessageListImpl({
             <div className="mb-4 flex items-center gap-3 anim-fade">
               <span className="h-px flex-1 bg-[var(--border-subtle)]" aria-hidden />
               <span className="eyebrow text-faint">
-                {dropped} earlier {dropped === 1 ? "message" : "messages"} not sent — too long for {" "}
-                {streamModel.name}
+                {dropped} earlier {dropped === 1 ? "message" : "messages"} not sent — too long to fit
               </span>
               <span className="h-px flex-1 bg-[var(--border-subtle)]" aria-hidden />
             </div>

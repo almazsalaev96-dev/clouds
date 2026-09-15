@@ -10,9 +10,12 @@
  * A rename is the easiest thing in software to fake, so this is read at the
  * wire. Nova and Orion have to reach different endpoints with different
  * thinking budgets, Forge's instruction has to actually be in the request,
- * and every one of them has to say out loud whose model it is running on —
- * an app that renamed Anthropic's and Google's models and hid whose they
- * were would be claiming a laboratory it does not have.
+ * and a tactic that could not have the cast it wanted has to say so on the
+ * row and over the answer — an app that renamed other companies' models and
+ * then ran one of them on its own would be claiming a laboratory it does not
+ * have. What it does not do any more is print their product names: that a
+ * cast is two companies is the claim, and which two is a fact about the keys
+ * in this browser.
  *
  *   node mock-provider.mjs &
  *   ANTHROPIC_BASE_URL=http://127.0.0.1:8787 ANTHROPIC_API_KEY=sk-ant-mock npx next start -p 3100
@@ -78,16 +81,24 @@ const pick = async (name) => {
   await p.waitForTimeout(500);
 };
 
-console.log("\nThe menu offers Armi's own models first, and the engines after");
+console.log("\nThe menu offers Armi's own models, and nobody else's");
 {
   await openPicker();
   const armi = p.getByText("Armi models", { exact: true }).first();
-  const engines = p.getByText("Or an engine directly", { exact: true }).first();
+  const job = p.getByText("For a particular job", { exact: true }).first();
   const a = await armi.boundingBox();
-  const e = await engines.boundingBox();
-  check(Boolean(a) && Boolean(e) && a.y < e.y, "named tactics above, other people's models below",
-    a && e ? `${Math.round(a.y)} above ${Math.round(e.y)}` : "not found");
+  const j = await job.boundingBox();
+  check(Boolean(a) && Boolean(j) && a.y < j.y, "the five for anything above the six for one thing",
+    a && j ? `${Math.round(a.y)} above ${Math.round(j.y)}` : "not found");
   check(await p.getByRole("button", { name: /^ARMI One —/ }).isVisible(), "ARMI One is the flagship, and it is first");
+  /* The heading this replaces was "Or an engine directly", and under it was
+     every model this app can call, by its maker's name — which made Armi's
+     own models read as a skin over somebody else's catalogue. */
+  check((await p.getByText("Or an engine directly", { exact: true }).count()) === 0,
+    "and there is no shelf of other companies' products under them");
+  const menu = await p.locator("[data-radix-popper-content-wrapper]").first().innerText();
+  check(!/Claude|GPT|Kimi|DeepSeek|Sonnet|Haiku|Opus|Gemini/.test(menu),
+    "nor one of their names anywhere in the menu", menu.replace(/\n/g, " · ").slice(0, 90));
   await p.screenshot({ path: `${OUT}/presets-menu.png` });
 }
 
@@ -217,12 +228,17 @@ console.log("\nAnd a substitution is never silent");
   await p.screenshot({ path: `${OUT}/presets-answer.png` });
 }
 
-console.log("\nAnd the engines are named where a person goes to look");
+console.log("\nAnd what it is doing is said where a person goes to look");
 {
-  /* The whole rebrand rests on this: the product's name leads, and what is
-     actually being called is one place away, in full, never hidden. An app
-     that renamed other companies' models and then could not tell you whose
-     they were would be claiming a laboratory it does not have. */
+  /* The whole rebrand rests on this. The names on screen are Armi's, and an
+     app whose names were all it said would be claiming a laboratory it does
+     not have — so the one place people go to read about the models says, in
+     its own words, that it trained none of them, that each one is a cast of
+     two or three from different companies, and that which companies those
+     are is decided by the keys on the next tab. Everything a person needs to
+     know is there. Their product names are not, and are not the disclosure:
+     a name means nothing to somebody who has not heard it, and to somebody
+     who has it reads as an endorsement nobody gave. */
   await p.keyboard.press("Escape");
   await p.waitForTimeout(300);
   await p.getByRole("button", { name: /Settings/ }).first().click();
@@ -233,26 +249,34 @@ console.log("\nAnd the engines are named where a person goes to look");
   check(/trains no models of its own/i.test(panel),
     "it says plainly that it trained none of them",
     (panel.split("\n").find((l) => /trains no models/i.test(l)) ?? "").slice(0, 90));
-  check(/Claude Sonnet 4\.5/.test(panel) && /ARMI One/.test(panel),
-    "and names the engine behind each Armi model, in full");
+  check(/ARMI One/.test(panel) && /ARMI Forge/.test(panel), "and lists every one of them");
+  check(/different companies/.test(panel) && /Keys tab/.test(panel),
+    "saying a cast is several companies and where that is decided",
+    (panel.split("\n").find((l) => /Keys tab/.test(l)) ?? "").slice(0, 100));
   check(/writes/.test(panel) && /an answer/.test(panel),
     "with what each does and what a turn costs");
+  check(!/Claude|GPT|Kimi|DeepSeek|Sonnet|Haiku|Opus|Gemini/.test(panel),
+    "and nobody else's product name on the page");
   await p.screenshot({ path: `${OUT}/presets-settings.png` });
   await p.keyboard.press("Escape");
   await p.waitForTimeout(400);
 }
 
-console.log("\nThe engines are still there for anyone who wants one");
+console.log("\nA name somebody arrives with still finds the model that uses it");
 {
+  /* The one thing lost by taking the engines off the menu is the person who
+     came here having read a model's name somewhere and types it in. They are
+     not turned away with "No model matches that": the name is matched, at
+     the bottom of the scale, and what comes back is the Armi model that runs
+     on it — which is how somebody learns our name for it. Matching a word is
+     not displaying it, and nothing on screen says the word back. */
   await openPicker();
   await p.getByRole("textbox", { name: "Search models" }).fill("haiku");
   await p.waitForTimeout(400);
-  check(await p.getByText("Claude Haiku 4.5", { exact: true }).first().isVisible(),
-    "searching for a model by its own name still finds it");
-  /* And searching for an engine finds the tactic that runs on it, which is
-     how somebody learns what these names mean without reading anything. */
   check(await p.getByRole("button", { name: /^ARMI Flash —/ }).first().isVisible(),
-    "and offers the Armi model that runs on it beside it");
+    "typing an engine's name lands on the Armi model that rents it");
+  const results = await p.locator("[data-radix-popper-content-wrapper]").first().innerText();
+  check(!/haiku/i.test(results), "and the name is not echoed back at them", results.replace(/\n/g, " · ").slice(0, 80));
   await p.keyboard.press("Escape");
 }
 

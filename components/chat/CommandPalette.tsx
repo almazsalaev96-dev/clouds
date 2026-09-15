@@ -8,7 +8,7 @@ import {
   Columns2, NotebookPen, Palette, PanelLeft, Settings2, Sparkles, Sun, Trash2, Type, Wand2,
 } from "lucide-react";
 import { db } from "@/lib/db";
-import { MODELS } from "@/lib/models";
+import { PRESETS } from "@/lib/presets";
 import { useSettings, type Section } from "@/lib/store";
 import { cn, fuzzyScore } from "@/lib/utils";
 import { useReturnFocus } from "@/lib/hooks/useReturnFocus";
@@ -164,12 +164,12 @@ export function CommandPalette({
           group: "Answer",
           run: () => actions.setStyle(st.id),
         })),
-      /* One per model, because "compare" on its own is a menu inside a menu and
-         the thing you actually know is which model you want to hear from. The
-         one already answering is not in the list, and neither is a model with
-         no key — a command that silently does nothing teaches you not to trust
-         the list it is in. */
-      ...MODELS.filter((m) => m.id !== settings.modelId && actions.canUseModel(m.id)).map((m) => ({
+      /* One per Armi model, because "compare" on its own is a menu inside a
+         menu and the thing you actually know is which one you want to hear
+         from as well. The one already answering is not in the list, and
+         neither is anything with no key behind it — a command that silently
+         does nothing teaches you not to trust the list it is in. */
+      ...PRESETS.filter((m) => m.id !== settings.modelId && actions.canUseModel(m.id)).map((m) => ({
         id: `alongside-${m.id}`,
         label: actions.compareWith.includes(m.id)
           ? `Stop asking ${m.name} alongside`
@@ -205,10 +205,10 @@ export function CommandPalette({
       },
     ];
 
-    const models: Command[] = MODELS.map((m) => ({
+    const models: Command[] = PRESETS.map((m) => ({
       id: `model:${m.id}`,
       label: `Switch to ${m.name}`,
-      hint: m.blurb,
+      hint: m.tagline,
       icon: <span className="flex size-[15px] items-center justify-center text-xs text-tertiary">◆</span>,
       group: "Models",
       run: () => actions.setModel(m.id),

@@ -314,14 +314,18 @@ console.log("\nA check that objects is answered, not just printed");
     check(p.cast.some((c) => c.role === "check"),
       `${p.name} has somebody to object in the first place`);
   }
-  const note = objectionNote({ agrees: "partly", text: "The trailing edge is not the default." }, "GPT-5.1");
+  const note = objectionNote({ agrees: "partly", text: "The trailing edge is not the default." });
   check(/> The trailing edge is not the default\./.test(note), "the objection is quoted, not paraphrased");
   check(/Where the objection is wrong, keep what you had/.test(note),
     "and the writer is not told to agree — a second model is not a truth machine");
   check(/compute block rather than arguing/.test(note) && /this app runs that block/.test(note),
     "a disagreement about a number is settled by running it, not by rhetoric");
   check(/say what would settle it/.test(note), "and an unresolved disagreement is said, not smoothed");
-  check(!/^#/m.test(note) && note.includes("GPT-5.1"), "the objector is named to the writer and not to the reader");
+  /* And not even to the writer. The rewrite is answerable to the argument;
+     a company's model name in the prompt is one long answer away from being
+     a company's model name on the screen. */
+  check(!/Claude|GPT|Kimi|DeepSeek|Sonnet|Haiku|Opus|Gemini/.test(note),
+    "and nobody's model is named in it, because the objection is the argument");
 }
 
 console.log("\nThe duel is two answers, and both have to be able to read the question");
@@ -375,7 +379,9 @@ console.log("\nEach seat is asked for its own half, and the writer is told not t
   check(new Set(asks).size === 3, "three different askings, not one in three voices");
   check(asks.every((a) => /Do not write the whole answer/.test(a)),
     "none of them is asked for the answer — that is the writer's job");
-  const note = councilNote([{ who: "GPT-5.1", angle: "strategy", text: "build the small one first" }]);
+  const note = councilNote([{ angle: "strategy", text: "build the small one first" }]);
+  check(/### On /.test(note) && !/Claude|GPT|Kimi|DeepSeek/.test(note),
+    "each note is headed by the seat that wrote it rather than by a company");
   check(/genuinely disagree/.test(note), "and disagreement is to be surfaced, not smoothed away");
   check(/do not mention that any of this happened/i.test(note),
     "the answer is an answer, not a report on its own making");

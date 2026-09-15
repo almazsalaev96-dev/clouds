@@ -33,6 +33,18 @@ page.on("pageerror", (e) => errs.push("PAGE: " + e.message));
 let failed = 0;
 const check = (p, l, d = "") => { if (!p) failed++; console.log(`${p ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
 const wire = async () => (await (await fetch("http://127.0.0.1:8787/__last")).json());
+/**
+ * The call that *answered*, rather than whichever was last on the wire.
+ *
+ * Every model here is a cast now: a tactic that checks its answer afterwards
+ * leaves the verdict as the most recent request, so reading `/__last` for
+ * "which model answered this" reported the checker — a different model, from
+ * a different company where the keys allow one, chosen for a different job.
+ */
+const answered = async () =>
+  ((await (await fetch("http://127.0.0.1:8787/__recent")).json()).recent ?? [])
+    .filter((r) => r.kind === "answer")
+    .pop() ?? {};
 
 const SETTINGS = { theme: "dark", density: "comfortable", modelId: "auto", styleId: "normal", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true };
 
@@ -57,10 +69,11 @@ console.log("\nThe picker offers not choosing");
   await page.waitForTimeout(500);
   /* Above every model and outside every group: it is not one of them, it is
      the choice not to choose. Asserted by where it sits rather than by a
-     header over it — the menu is modelled on Claude's now, and a heading
-     over a single first row is furniture. */
+     header over it — a heading over a single first row is furniture. The
+     group it has to be above used to be "Anthropic", because the menu below
+     it was a shelf of other companies' products; it is "Armi models" now. */
   const autoRow = page.locator("button").filter({ hasText: /reads the request and picks/i }).first();
-  const firstGroup = page.getByText("Anthropic", { exact: true }).first();
+  const firstGroup = page.getByText("Armi models", { exact: true }).first();
   const a = await autoRow.boundingBox();
   const g = await firstGroup.boundingBox();
   check(Boolean(a) && Boolean(g) && a.y < g.y,
@@ -138,13 +151,19 @@ console.log("\nChoosing a model yourself turns all of it off");
 {
   await page.locator("button").filter({ hasText: /^Auto$/ }).first().click();
   await page.waitForTimeout(500);
+  /* Searched by an engine's name on purpose. The menu has not offered one for
+     a while, but somebody who arrives knowing a model from the news should
+     land on the Armi model that runs on it rather than on "No model matches
+     that" — matched, never drawn. */
   await page.getByRole("textbox", { name: "Search models" }).fill("haiku");
   await page.waitForTimeout(500);
-  await page.locator("button").filter({ hasText: /Claude Haiku/ }).first().click();
+  check((await page.getByText(/^No model matches/).count()) === 0,
+    "a name from the news finds the Armi model that runs on it");
+  await page.locator("button").filter({ hasText: /^ARMI Flash/ }).first().click();
   await page.waitForTimeout(600);
 
   await ask("why would you choose an event-sourced architecture over a CRUD one here");
-  const picked = (await wire()).model;
+  const picked = (await answered()).model;
   check(/haiku/i.test(picked ?? ""),
     "the model you chose is the model that answers, however the router would have judged it",
     picked);

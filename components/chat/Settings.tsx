@@ -15,7 +15,7 @@ import {
   backupCounts, buildBackup, downloadBackup, parseBackup, restoreBackup, say, BackupError,
 } from "@/lib/backup";
 import { useSettings, paramsFor, DEFAULT_PARAMS, forgetLocalStorage } from "@/lib/store";
-import { PRESETS, engineOf, getPreset, profileOf, resolveCast } from "@/lib/presets";
+import { PRESETS, engineOf, getPreset, profileOf, resolveCast, shortName } from "@/lib/presets";
 import { does } from "./ModelPicker";
 import { useReturnFocus } from "@/lib/hooks/useReturnFocus";
 import { cn } from "@/lib/utils";
@@ -296,13 +296,13 @@ function ModelPanel({ configured }: { configured: Record<string, boolean> }) {
       title="Model"
       description={
         preset
-          ? `These settings are remembered per engine. You are on ${preset.name}, which is running ${model.name} — this edits ${model.name}.`
-          : `These settings are remembered per model. You're editing ${model.name}.`
+          ? `You are on ${preset.name}. These are remembered against whichever engine it is running today, which is why they can look different after a key is added.`
+          : `These settings are remembered per model.`
       }
     >
       <Field
         label="The Armi models"
-        hint="Each one is a cast of two or three models from different companies, and this is where they are named. Armi trains no models of its own: it decides which to call, what to ask each of them, and what to do when they disagree. Prices are for a turn of ordinary size — a page or two of conversation, a few paragraphs back — summed over every model it calls."
+        hint="Each one is a cast: two or three models, from different companies wherever your keys allow it, with a different job each. Armi trains no models of its own — it decides which to call, what to ask each of them, and what to do when they disagree. Which companies those are is set by the keys on the Keys tab. Prices are for a turn of ordinary size, summed over every model it calls."
       >
         <ArmiTable configured={configured} />
       </Field>
@@ -359,7 +359,7 @@ function ModelPanel({ configured }: { configured: Record<string, boolean> }) {
         onClick={() => s.setParams(engineId, DEFAULT_PARAMS)}
         className="text-xs text-accent hover:underline"
       >
-        Reset {model.name} to defaults
+        Reset {preset ? preset.short : "Armi"} to defaults
       </button>
     </Panel>
   );
@@ -559,11 +559,11 @@ function ArmiTable({ configured }: { configured: Record<string, boolean> }) {
             </p>
             <p className="mt-0.5 text-xs text-secondary">{p.blurb}</p>
             <p className="mt-1.5 text-xs text-tertiary">
-              <span className="text-secondary">{getModel(cast.answer.modelId).name}</span> writes
+              <span className="text-secondary">one writes</span>
               {cast.parts.map((x, i) => (
                 <React.Fragment key={`${x.role}${i}`}>
                   {" · "}
-                  <span className="text-secondary">{getModel(x.modelId).name}</span> {does(x)}
+                  <span className="text-secondary">one</span> {does(x)}
                   {x.sameCompany && <span className="text-warning"> (sibling)</span>}
                 </React.Fragment>
               ))}
@@ -784,10 +784,15 @@ function MemoryPanel() {
 function Learned() {
   const turns = useLiveQuery(() => db.turns.orderBy("at").reverse().limit(400).toArray(), [], []);
   const rows = React.useMemo(() => {
-    const by = new Map<string, { kind: string; modelId: string; n: number; bad: number }>();
+    /* Grouped by the Armi model, which is the thing the person chose and the
+       only name on this screen. The rule underneath is keyed on the engine —
+       it is an engine that is bad at a kind of work — and that key is
+       untouched; this is what the record says, not what it does. */
+    const by = new Map<string, { kind: string; who: string; n: number; bad: number }>();
     for (const t of turns) {
-      const key = `${t.kind}\u0000${t.modelId}`;
-      const row = by.get(key) ?? { kind: t.kind, modelId: t.modelId, n: 0, bad: 0 };
+      const who = t.presetId ?? t.modelId;
+      const key = `${t.kind}\u0000${who}`;
+      const row = by.get(key) ?? { kind: t.kind, who, n: 0, bad: 0 };
       row.n += 1;
       if (t.outcome && t.outcome !== "good") row.bad += 1;
       by.set(key, row);
@@ -806,9 +811,9 @@ function Learned() {
         {rows.map((r) => {
           const checking = r.n >= ENOUGH && r.bad / r.n >= TOO_MANY;
           return (
-            <li key={`${r.kind}-${r.modelId}`} className="flex items-center gap-2 px-3 py-2 text-sm">
+            <li key={`${r.kind}-${r.who}`} className="flex items-center gap-2 px-3 py-2 text-sm">
               <span className="min-w-0 flex-1 truncate text-primary">
-                {r.kind} · <span className="text-secondary">{getModel(r.modelId).short}</span>
+                {r.kind} · <span className="text-secondary">{shortName(r.who)}</span>
               </span>
               <span className="tnum shrink-0 text-xs text-tertiary">
                 {r.bad} of {r.n} needed another go

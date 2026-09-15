@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Check, Square } from "lucide-react";
+import { Check, Columns2, Square } from "lucide-react";
 import type { Message } from "@/lib/types";
-import { getModel, formatTokens } from "@/lib/models";
+import { formatTokens } from "@/lib/models";
+import { shortName } from "@/lib/presets";
 import { useStream } from "@/lib/hooks/useStream";
 import { db, filesOf } from "@/lib/db";
 import { composeSystemPrompt } from "@/lib/prompt";
@@ -11,7 +12,6 @@ import { findStyle } from "@/lib/styles";
 import { useSettings } from "@/lib/store";
 import { cn, describeTiming, formatDuration, formatElapsed } from "@/lib/utils";
 import { Markdown, useThrottled } from "./Markdown";
-import { ProviderMark } from "@/components/ui/ProviderMark";
 import { Button, IconButton } from "@/components/ui/primitives";
 import { InlineError } from "./Message";
 
@@ -107,8 +107,11 @@ function CompareColumn({
   turnPrompt?: string;
   onKeep: (messageId: string, modelId: string) => void;
 }) {
-  const model = getModel(modelId);
-  const name = label ?? model.name;
+  /* Named for what the person picked, not for the engine the column runs on.
+     `getModel` answers with the app default for an id it does not know, so
+     reading the name off the engine put one company's model over every
+     column — including the one that never came from it. */
+  const name = label ?? shortName(modelId);
   const settings = useSettings();
   const [finished, setFinished] = React.useState<Message | null>(null);
   const stream = useStream(setFinished);
@@ -162,9 +165,9 @@ function CompareColumn({
       <header className="relative flex h-9 shrink-0 items-center gap-1.5 border-b border-line px-2.5 text-xs">
         {busy && <span className="field-line absolute inset-x-0 bottom-0" aria-hidden />}
         <span className="text-tertiary">
-          {busy ? <span className="think-orb" aria-hidden /> : <ProviderMark provider={model.provider} size={12} />}
+          {busy ? <span className="think-orb" aria-hidden /> : <Columns2 size={12} aria-hidden />}
         </span>
-        <span className="truncate font-medium text-secondary" title={label ? model.name : undefined}>{name}</span>
+        <span className="truncate font-medium text-secondary">{name}</span>
         <span className="ml-auto flex items-center gap-1.5 text-tertiary tnum">
           {busy && stream.elapsed > 1000 && <span>{formatElapsed(stream.elapsed)}</span>}
           {finished?.latencyMs != null && (
@@ -207,7 +210,7 @@ function CompareColumn({
             variant="secondary"
             className="w-full"
             onClick={() => onKeep(finished.id, modelId)}
-            aria-label={`Keep ${model.name}'s answer`}
+            aria-label={`Keep ${name}'s answer`}
           >
             <Check size={13} />
             Keep this one

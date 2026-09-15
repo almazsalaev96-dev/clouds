@@ -4,14 +4,13 @@ import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
   Check, ChevronDown, Eye, Feather, GraduationCap, Hammer, Languages, Layers, Orbit,
-  Scale, Search, Sigma, Star, Users, Wand2, Zap,
+  Scale, Search, Sigma, Users, Wand2, Zap,
 } from "lucide-react";
-import type { ModelSpec, ProviderId } from "@/lib/types";
-import { AUTO, MODELS, PROVIDERS, formatCost, getModel } from "@/lib/models";
+import type { ModelSpec } from "@/lib/types";
+import { AUTO, MODELS, formatCost, getModel } from "@/lib/models";
 import {
   PRESETS, SEAT_NAMES, getPreset, profileOf, resolveCast, type Cast, type Player, type Preset,
 } from "@/lib/presets";
-import { ProviderMark } from "@/components/ui/ProviderMark";
 import { useSettings, paramsFor } from "@/lib/store";
 import { cn, fuzzyScore } from "@/lib/utils";
 
@@ -57,7 +56,6 @@ export function ModelPicker({
   onChange,
   configured,
   align = "start",
-  presets = true,
   children,
 }: {
   open?: boolean;
@@ -66,25 +64,17 @@ export function ModelPicker({
   onChange: (id: string) => void;
   configured: Record<string, boolean>;
   align?: "start" | "center" | "end";
-  /**
-   * Whether Armi's own models are on offer.
-   *
-   * Off where the caller needs a plain engine and nothing else: the revise
-   * picker hands its choice to a one-shot call that runs no tactic, so a row
-   * promising a second opinion there would promise something that cannot
-   * happen.
-   */
-  presets?: boolean;
   children?: React.ReactNode;
 }) {
-  const { favorites, toggleFavorite, recentModels, keys } = useSettings();
+  const { keys } = useSettings();
   const [query, setQuery] = React.useState("");
   const auto = value === AUTO;
   const where = React.useMemo(() => ({ configured, keys }), [configured, keys]);
   /* What is actually selected: one of Armi's own models, or an engine
      directly. `getModel` answers the app default for an id it does not know,
-     so asking it about "nova" would draw Sonnet's name under Nova's row. */
-  const preset = presets ? getPreset(value) : null;
+     so asking it about "nova" would draw the default engine's name under
+     Nova's row. */
+  const preset = getPreset(value);
   const cast = preset ? resolveCast(value, where)! : null;
   const model = getModel(cast ? cast.answer.modelId : value);
 
@@ -94,42 +84,28 @@ export function ModelPicker({
 
   const results = React.useMemo(() => {
     if (!query.trim()) return null;
-    const models = MODELS.map((m) => ({
-      m,
+    /* Searched by name, by what it is for, and by the words in its blurb —
+       "code", "translate", "exam" all find the tactic built for them.
+       Engine names are matched too, at the bottom of the scale and never
+       drawn: somebody who arrives knowing the name of a model from the
+       news should land on the Armi model that runs on it rather than on
+       "No model matches that", and learn the name we do use. Matching a
+       word is not displaying it. */
+    return PRESETS.map((x) => ({
+      x,
       score: Math.max(
-        fuzzyScore(query, m.name),
-        fuzzyScore(query, PROVIDERS[m.provider].name) * 0.6,
-        fuzzyScore(query, m.blurb) * 0.3,
+        fuzzyScore(query, x.name),
+        fuzzyScore(query, x.short) * 0.9,
+        fuzzyScore(query, x.tagline) * 0.5,
+        fuzzyScore(query, x.blurb) * 0.3,
+        Math.max(0, ...x.examples.map((e) => fuzzyScore(query, e) * 0.25)),
+        Math.max(0, ...x.engines.map((id) => fuzzyScore(query, getModel(id).name) * 0.2)),
       ),
     }))
       .filter((r) => r.score > 0)
       .sort((a, b) => b.score - a.score)
-      .map((r) => r.m);
-    /* Armi's own names are searched too, and the engine's name finds them as
-       well: somebody who types "opus" and is offered Orion has learned what
-       Orion is, which is the one thing a rename can otherwise cost you. */
-    const armi = !presets
-      ? []
-      : PRESETS.map((p) => ({
-          p,
-          score: Math.max(
-            fuzzyScore(query, p.name),
-            fuzzyScore(query, p.tagline) * 0.5,
-            fuzzyScore(query, getModel(resolveCast(p.id, where)!.answer.modelId).name) * 0.4,
-            fuzzyScore(query, p.blurb) * 0.3,
-          ),
-        }))
-          .filter((r) => r.score > 0)
-          .sort((a, b) => b.score - a.score)
-          .map((r) => r.p);
-    return { models, armi };
-  }, [query, presets, where]);
-
-  const favModels = MODELS.filter((m) => favorites.includes(m.id));
-  const recent = recentModels
-    .map((id) => MODELS.find((m) => m.id === id))
-    .filter((m): m is ModelSpec => Boolean(m) && !favorites.includes(m!.id))
-    .slice(0, 3);
+      .map((r) => r.x);
+  }, [query]);
 
   const armiRow = (p: Preset) => (
     <PresetRow
@@ -146,28 +122,12 @@ export function ModelPicker({
     />
   );
 
-  const row = (m: ModelSpec) => (
-    <ModelRow
-      key={m.id}
-      model={m}
-      selected={m.id === value}
-      available={available(m)}
-      favorite={favorites.includes(m.id)}
-      onToggleFavorite={() => toggleFavorite(m.id)}
-      onSelect={() => {
-        onChange(m.id);
-        onOpenChange?.(false);
-        setQuery("");
-      }}
-    />
-  );
-
   return (
     <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger asChild>
         {children ?? (
           <button className="tap flex h-8 items-center gap-1 rounded-md px-2 text-sm font-medium text-primary transition-colors duration-[var(--dur-fast)] hover:bg-subtle">
-            {auto ? "Auto" : model.name}
+            {auto ? "Auto" : (preset?.short ?? model.name)}
             <ChevronDown size={13} className="text-tertiary" />
           </button>
         )}
@@ -203,11 +163,8 @@ export function ModelPicker({
 
           <div className="max-h-[19rem] overflow-y-auto p-1">
             {results ? (
-              results.armi.length || results.models.length ? (
-                <>
-                  {results.armi.map(armiRow)}
-                  {results.models.map(row)}
-                </>
+              results.length ? (
+                results.map(armiRow)
               ) : (
                 <p className="px-3 py-6 text-center text-xs text-tertiary">No model matches that.</p>
               )
@@ -236,51 +193,27 @@ export function ModelPicker({
                   {auto && <Check size={13} className="shrink-0 text-accent" />}
                 </button>
 
-                {/* Armi's own, which are tactics rather than weights: which
-                    engine to run on, how hard to think, how to write, and
-                    whether a second company checks the answer. Every row says
-                    what it is running on, because an app that renamed other
-                    people's models and hid whose they were would be taking
-                    credit for work it did not do. */}
-                {presets && (
-                  <>
-                    <Section label="Armi models">
-                      {PRESETS.filter((x) => x.group === "everyday").map(armiRow)}
-                    </Section>
-                    {/* The specialists, under their own heading. Thirteen rows
-                        in one list is a catalogue; five for anything and eight
-                        for one thing is a menu. */}
-                    <Section label="For a particular job">
-                      {PRESETS.filter((x) => x.group === "job").map(armiRow)}
-                    </Section>
-                  </>
-                )}
-
-                {favModels.length > 0 && <Section label="Starred">{favModels.map(row)}</Section>}
-                {recent.length > 0 && <Section label="Recent">{recent.map(row)}</Section>}
-                {presets && (
-                  <h3 className="mt-1 border-t border-line px-2 pb-0.5 pt-2 text-tiny font-medium text-tertiary">
-                    Or an engine directly
-                  </h3>
-                )}
-                {(Object.keys(PROVIDERS) as ProviderId[]).map((p) => {
-                  const shown = new Set([...favModels, ...recent].map((m) => m.id));
-                  const list = MODELS.filter((m) => m.provider === p && !shown.has(m.id));
-                  if (!list.length) return null;
-                  return (
-                    <Section key={p} label={PROVIDERS[p].name}>
-                      {list.map(row)}
-                    </Section>
-                  );
-                })}
+                {/* Armi's own, and only Armi's own.
+                    The menu used to end with every engine this app can call,
+                    listed by its maker's name — which made the product's own
+                    models look like a layer over somebody else's catalogue.
+                    They are the catalogue now. Which engines a tactic rents
+                    is not a thing to choose from a menu: it depends on the
+                    keys in this browser, it changes when one is added, and it
+                    is answered in Settings for anybody who wants to know. */}
+                <Section label="Armi models">
+                  {PRESETS.filter((x) => x.group === "everyday").map(armiRow)}
+                </Section>
+                {/* The specialists, under their own heading. Eleven rows in
+                    one list is a catalogue; five for anything and six for one
+                    thing is a menu. */}
+                <Section label="For a particular job">
+                  {PRESETS.filter((x) => x.group === "job").map(armiRow)}
+                </Section>
               </>
             )}
           </div>
 
-          {/* How hard it thinks, where the model is chosen rather than two
-              screens away in Settings. Only for the models it means
-              anything for, and only when one is actually selected: on Auto
-              the effort is decided per message from the request. */}
           {cast && <CastRow cast={cast} />}
 
           {!auto && model.reasoning && (
@@ -307,68 +240,18 @@ function Section({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-function ModelRow({
-  model: m,
-  selected,
-  available,
-  favorite,
-  onSelect,
-  onToggleFavorite,
-}: {
-  model: ModelSpec;
-  selected: boolean;
-  available: boolean;
-  favorite: boolean;
-  onSelect: () => void;
-  onToggleFavorite: () => void;
-}) {
-  return (
-    <div
-      className={cn(
-        "tap group flex w-full items-center gap-2 rounded-sm px-2 py-1.5 transition-colors duration-[var(--dur-fast)]",
-        selected ? "bg-accent-subtle" : "hover:bg-subtle",
-        // Unavailable models are dimmed with a reason, never hidden: hiding
-        // makes the app look like it lacks the model.
-        !available && "opacity-45",
-      )}
-    >
-      <ProviderMark provider={m.provider} size={13} />
-      <button onClick={onSelect} className="focus-inset min-w-0 flex-1 rounded-md text-left">
-        <span className="block truncate text-[0.8125rem] font-medium leading-tight text-primary">{m.name}</span>
-        {/* One line, and it is the one that answers "which of these do I
-            want": what the model is for. The capability icons that used to
-            sit beside the name said the same thing in symbols nobody hovers,
-            and the row of prices below it answered a question nobody was
-            asking yet. */}
-        <span className="block truncate text-tiny text-tertiary">
-          {/* The first sentence of the blurb, not all of it. "Deepest
-              reasoning. Best for hard problems and long code." is two
-              answers to the question, and in a menu this narrow the second
-              one arrives as an ellipsis. The rest is in Settings. */}
-          {available ? m.blurb.split(/(?<=\.)\s/)[0].replace(/\.$/, "") : "No key for this provider yet"}
-        </span>
-      </button>
-      <button
-        onClick={onToggleFavorite}
-        aria-label={favorite ? `Unstar ${m.name}` : `Star ${m.name}`}
-        data-visible={favorite || undefined}
-        className="ctl reveal flex [--ctl:1.5rem] shrink-0 items-center justify-center rounded-sm text-tertiary hover:bg-canvas hover:text-primary"
-      >
-        <Star size={11} className={cn(favorite && "fill-current text-warning")} />
-      </button>
-      {selected && <Check size={13} className="shrink-0 text-accent" />}
-    </div>
-  );
-}
-
 /**
- * One of Armi's own, with the engine it is running on named underneath.
+ * One of Armi's own, with what it is for underneath.
  *
- * The second line is the whole ethic of this feature in eleven words. Astro
- * is Armi's; Claude Sonnet 4.5 is Anthropic's; the row says both, every time,
- * and the person can go and pick the engine directly if they would rather.
- * Rename without the second line and the app is claiming a laboratory it does
- * not have.
+ * The second line used to name the engine the row was renting, which was the
+ * honest thing to do while the menu below it was a catalogue of engines. It
+ * is not one any more: an Armi model is a cast of two or three, the row has
+ * space for one name, and the name of the first of them is not a truer
+ * description of what answers than "two models deep" is. Who is in the cast
+ * is under the menu, in full, for whichever row is selected; which companies
+ * those turn out to be is a fact about the keys in this browser and is in
+ * Settings. What the row must never do is quietly claim a laboratory this app
+ * does not have — hence the warning when one key means the cast is siblings.
  */
 function PresetRow({
   preset,
@@ -383,7 +266,6 @@ function PresetRow({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const engine = getModel(cast.answer.modelId);
   return (
     <div
       className={cn(
@@ -417,9 +299,6 @@ function PresetRow({
           )}
         </span>
       </button>
-      <span className="shrink-0 text-tertiary" aria-hidden>
-        <ProviderMark provider={engine.provider} size={11} />
-      </span>
       {selected && <Check size={13} className="shrink-0 text-accent" />}
     </div>
   );
@@ -429,9 +308,8 @@ function PresetRow({
  * What each member of the cast is there to do, in the words a person uses.
  *
  * A council seat says which half of the question it took rather than "sits
- * on the council", because "GPT-5.1 on strategy · DeepSeek R1 on the
- * reasoning" is the whole design in one line and the other phrasing is a
- * committee.
+ * on the council", because "one on strategy · one on the reasoning" is the
+ * whole design in one line and the other phrasing is a committee.
  */
 export function does(p: Player): string {
   if (p.role === "council") return SEAT_NAMES[p.angle ?? "strategy"];
@@ -459,12 +337,7 @@ function CastRow({ cast }: { cast: Cast }) {
           nothing the reader did changed — so it lives one hover away and, in
           full, in Settings, where every tactic is listed against its engines.
           Nothing here claims to have built a model. */}
-      <p
-        className="text-tiny leading-5 text-tertiary"
-        title={[`${getModel(cast.answer.modelId).name} writes`]
-          .concat(cast.parts.map((x) => `${getModel(x.modelId).name} ${does(x)}`))
-          .join(" · ")}
-      >
+      <p className="text-tiny leading-5 text-tertiary">
         <span className="text-secondary">one writes</span>
         {cast.parts.map((x, i) => (
           <React.Fragment key={`${x.role}${i}`}>

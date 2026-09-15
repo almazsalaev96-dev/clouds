@@ -185,6 +185,15 @@ export interface Turn {
   strategy: "compute" | "build" | "answer";
   mode: string;
   modelId: string;
+  /**
+   * Which Armi model the person had chosen, where they had chosen one.
+   *
+   * The rule this record feeds is keyed on the engine, because it is the
+   * engine that is bad at a kind of work. The row on screen is keyed on this,
+   * because "ARMI Forge needed another go" is something a person can act on
+   * and the name of an engine they never picked is not.
+   */
+  presetId?: string;
   effort?: string;
   check: "none" | "lint" | "second";
   /** The one line that was shown, so the record says what the person saw. */
