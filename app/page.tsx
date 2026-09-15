@@ -30,7 +30,7 @@ import {
 } from "@/lib/presets";
 import { costOf, fitToContext } from "@/lib/context";
 import { cheapestAvailable, complete } from "@/lib/complete";
-import { useSettings, useDrafts, paramsFor, type Section } from "@/lib/store";
+import { useSettings, useDrafts, paramsFor, paramsSet, type Section } from "@/lib/store";
 import { useStream } from "@/lib/hooks/useStream";
 import { cn, inOverlay } from "@/lib/utils";
 import { offerUndo } from "@/lib/undo";
@@ -651,8 +651,11 @@ export default function Page() {
         size: history.reduce((n, m) => n + costOf(m), 0),
       });
       /* And an effort they set on the tactic itself, from the picker, which is
-         the one part of an Armi model they can overrule without leaving it. */
-      const own = preset ? paramsFor(picked).reasoningEffort : undefined;
+         the one part of an Armi model they can overrule without leaving it.
+         Only where they actually set one: `paramsFor` answers with the
+         defaults for a tactic nobody has touched, so reading it directly
+         overruled every preset's own effort with `medium` on every turn. */
+      const own = preset && paramsSet(picked) ? paramsFor(picked).reasoningEffort : undefined;
       const plan = own ? { ...shaped, effort: own } : shaped;
       /* Who checks it, decided here rather than when the answer lands: the
          cast is a property of the turn that went out, and a check chosen

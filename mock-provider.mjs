@@ -213,6 +213,11 @@ createServer(async (req, res) => {
        means: Nova and Orion can reach the same endpoint and must not reach it
        with the same budget. Null when thinking was never enabled. */
     thinking: body.thinking?.budget_tokens ?? null,
+    /* The other way of asking for it. Anthropic replaced the budget with a
+       word from the 4.6 generation on, so a probe that only ever looked at
+       `thinking` would report "this model was not told to think" about every
+       current model — which is how the shape got out of date unnoticed. */
+    effort: body.output_config?.effort ?? null,
     // The system prompt as it actually arrived, flattened across both shapes
     // the adapter can send it in. A test that asks the app what it thinks it
     // sent proves nothing; this is the wire.
@@ -272,6 +277,15 @@ createServer(async (req, res) => {
         return "`temperature` and `top_p` cannot both be specified for this model. Please use only one.";
       if (body.temperature !== undefined && body.thinking)
         return "`temperature` may not be used with extended thinking.";
+      /* The two ways of asking for thinking are exclusive, and the real API
+         rejects the old block outright on a model that takes the new one.
+         The mock cannot know which model is which, but it can refuse the one
+         request that is wrong for every model — both at once — which is what
+         a client gets when it has not noticed the shape changed. */
+      if (body.thinking && body.output_config)
+        return "`thinking` and `output_config.effort` may not be used together.";
+      if (body.temperature !== undefined && body.output_config?.effort)
+        return "`temperature` may not be used with `output_config.effort`.";
     }
     if (!Array.isArray(all) || all.length === 0) return "messages: at least one message is required";
     /* The OpenAI wire format carries the system prompt as the first message
@@ -494,6 +508,11 @@ Nothing here looks like it breaks a caller — the return type is the same array
        the most recent call, which on a tactic that briefs, answers, checks and
        answers again is a verdict rather than the answer. */
     thinking: body.thinking?.budget_tokens ?? null,
+    /* The other way of asking for it. Anthropic replaced the budget with a
+       word from the 4.6 generation on, so a probe that only ever looked at
+       `thinking` would report "this model was not told to think" about every
+       current model — which is how the shape got out of date unnoticed. */
+    effort: body.output_config?.effort ?? null,
   });
   if (recent.length > 16) recent.shift();
 

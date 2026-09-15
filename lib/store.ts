@@ -260,6 +260,22 @@ export function paramsFor(modelId: string): ModelParams {
   return useSettings.getState().params[modelId] ?? DEFAULT_PARAMS;
 }
 
+/**
+ * Whether anything was ever actually set for this model, as opposed to being
+ * answered with the defaults.
+ *
+ * `paramsFor` cannot tell the two apart — it fills in `DEFAULT_PARAMS` for an
+ * id nobody has touched — and one caller needs to. An Armi model carries its
+ * own effort ("Quant thinks hard"), which the person may overrule from the
+ * picker; reading that overrule with `paramsFor` meant every tactic was
+ * overruled with `medium` the moment it was chosen, whether or not anybody
+ * had touched the control. Quant asked for high and sent medium, Flash asked
+ * for low and sent medium, and the row's promise was ornamental.
+ */
+export function paramsSet(modelId: string): boolean {
+  return useSettings.getState().params[modelId] !== undefined;
+}
+
 /** Drafts are per-conversation and survive switching away mid-sentence. */
 interface DraftState {
   drafts: Record<string, string>;

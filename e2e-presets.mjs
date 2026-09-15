@@ -163,7 +163,8 @@ console.log("\nA name is not a costume: they reach different endpoints");
   await pick("ARMI Flash");
   const quick = await ask("what is a debounce");
   check(/haiku/i.test(quick.model ?? ""), "the quick one goes to the quick engine", quick.model);
-  check(!quick.thinking, "and does not pay a thinking budget for a one-line question", String(quick.thinking));
+  check(!quick.thinking && quick.effort !== "high" && quick.effort !== "medium",
+    "and does not buy a think for a one-line question", `budget=${quick.thinking} effort=${quick.effort}`);
 
   await pick("ARMI Quant");
   const hard = await ask("what is a debounce");
@@ -172,7 +173,13 @@ console.log("\nA name is not a costume: they reach different endpoints");
      number itself is capped at half the reply's room rather than by the
      tactic, so asserting a particular ceiling here would be asserting
      `max_tokens`, which is a different setting. */
-  check(hard.thinking > 0, "and pays for thinking on the same question the quick one did not", String(hard.thinking));
+  /* Either shape counts. Anthropic asks for thinking with a token budget on
+     the models that take one and with a word on the models that replaced
+     them, and this claim is about the tactic buying a think rather than about
+     which of the two wire shapes the engine it landed on happens to speak. */
+  check(hard.thinking > 0 || hard.effort === "high",
+    "and buys one on the same question the quick one did not",
+    `budget=${hard.thinking} effort=${hard.effort}`);
 }
 
 console.log("\nAnd the name over an answer being written is the model writing it");

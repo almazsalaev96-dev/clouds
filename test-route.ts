@@ -88,10 +88,21 @@ console.log("\nReading what a request needs");
 
 console.log("\nPicking one");
 const ALL = { anthropic: true, openai: true, moonshot: true, deepseek: true };
-const ctx = (over = {}) => ({ configured: ALL, keys: {}, effort: "auto", current: "claude-sonnet-4-5", ...over });
+const ctx = (over = {}) => ({ configured: ALL, keys: {}, effort: "auto", current: "claude-sonnet-5", ...over });
+/* What a turn of this model roughly costs, for the assertions that are about
+   cheapness rather than about a name. Several of these read `/haiku|mini/`
+   until three of those words stopped being anybody's model — a test pinned to
+   a lineup fails the week the lineup moves, and says nothing either way about
+   whether the router still works. */
+const price = (id: string) => {
+  const m = MODELS.find((x) => x.id === id)!;
+  return m.priceIn + m.priceOut * 3;
+};
 {
+  const cheapest = [...MODELS].sort((a, b) => price(a.id) - price(b.id)).slice(0, 4).map((m) => m.id);
   const quick = route("translate this to French: hello", ctx() as never);
-  check(/haiku|mini|flash/i.test(quick.modelId), "a one-line rewrite goes somewhere fast and cheap", quick.modelId);
+  check(cheapest.includes(quick.modelId), "a one-line rewrite goes somewhere fast and cheap",
+    `${quick.modelId}, against ${cheapest.join(", ")}`);
   check(/mechanical/.test(quick.why), "and says why", quick.why);
 
   const hard = route("why would you choose an event-sourced architecture here", ctx() as never);
@@ -106,7 +117,7 @@ const ctx = (over = {}) => ({ configured: ALL, keys: {}, effort: "auto", current
   check(/image/.test(seen.why), "and says so", seen.why);
 
   const onlyDeepseek = route("what is in this picture", {
-    configured: { deepseek: true }, keys: {}, effort: "auto", hasImage: true, current: "deepseek-chat",
+    configured: { deepseek: true }, keys: {}, effort: "auto", hasImage: true, current: "deepseek-flash",
   } as never);
   check(onlyDeepseek.modelId.startsWith("deepseek"),
     "with only a blind provider configured it still answers rather than inventing a key it does not have",
@@ -137,10 +148,13 @@ console.log("\nLong things go where they fit");
   check(roomFor(huge.modelId), "only something with room is chosen", huge.modelId);
   check(/k tokens to read/.test(huge.why), "and the reason says it is about length", huge.why);
 
-  // And when nothing can hold it, say so rather than sending it to be cut.
+  /* And when nothing can hold it, say so rather than sending it to be cut.
+     Sized off the widest window in the registry, because the fixed 400k words
+     that used to overflow every model now fits inside several of them. */
+  const widest = Math.max(...MODELS.map((m) => m.contextWindow));
   const vast = route("summarise this", {
-    configured: { deepseek: true }, keys: {}, effort: "auto", current: "deepseek-chat",
-    extra: "word ".repeat(400_000),
+    configured: { deepseek: true }, keys: {}, effort: "auto", current: "deepseek-flash",
+    extra: "word ".repeat(widest),
   } as never);
   check(/longer than anything configured can hold/.test(vast.why),
     "and when nothing can hold it, that is said rather than quietly truncated", vast.why);
@@ -170,7 +184,8 @@ console.log("\nWhat counts as part of the request, and what only counts as lengt
   const counted = shapeOf("summarise this", { size: 300_000 });
   check(counted.size === 300_000, "a counted size is used as given rather than re-measured from a sample");
   const ordinary = route("what time is it", { ...ctx(), size: 60_000, extra: "hello ".repeat(20_000) } as never);
-  check(/haiku|mini|kimi|deepseek-chat/i.test(ordinary.modelId),
+  const dearest = [...MODELS].sort((a, b) => price(b.id) - price(a.id)).slice(0, 6).map((m) => m.id);
+  check(!dearest.includes(ordinary.modelId),
     "and a long thread with a small question in it stays cheap", ordinary.modelId);
   const huge = route("summarise this", { ...ctx(), size: 300_000 } as never);
   check((MODELS.find((m) => m.id === huge.modelId)?.contextWindow ?? 0) >= 300_000,
@@ -179,11 +194,19 @@ console.log("\nWhat counts as part of the request, and what only counts as lengt
 
 console.log("\nWhen nothing can do it, that is said");
 {
-  const blind = route("what is in this picture", {
-    configured: { deepseek: true }, keys: {}, effort: "auto", hasImage: true, current: "deepseek-chat",
+  /* There is no company left whose whole bench is blind, so the branch that
+     says "nothing configured can read an image" has nothing to reach it
+     through any more. The rule it serves is still here and still worth
+     pinning: an image rules out the engines without eyes whatever else they
+     are good at. DeepSeek is the case with teeth — their stronger model is
+     the blind one — so a picture has to take the weaker one. */
+  const seeing = route("what is in this picture", {
+    configured: { deepseek: true }, keys: {}, effort: "auto", hasImage: true, current: "deepseek-flash",
   } as never);
-  check(/nothing configured can read an image/.test(blind.why),
-    "an image with nothing configured that can see it is not routed in silence", blind.why);
+  check(MODELS.find((m) => m.id === seeing.modelId)?.vision === true,
+    "a picture goes to a model that can see it, even where that is not the strong one", seeing.modelId);
+  check(/there is an image in this/.test(seeing.why),
+    "and the line says the picture is why", seeing.why);
 }
 
 console.log("\nEconomy means the cheap one");
@@ -232,8 +255,11 @@ console.log("\nA second opinion comes from somewhere else");
     "checking an Anthropic answer does not go back to Anthropic — a model marking its own homework agrees with itself",
     other ?? "none");
 
-  const deep = checker("claude-sonnet-4-5", { configured: ALL, keys: {} });
-  check(/gpt-5\.1$|gemini-3|reasoner/.test(deep ?? ""),
+  const deep = checker("claude-sonnet-5", { configured: ALL, keys: {} });
+  const elsewhere = MODELS.filter((m) => m.provider !== "anthropic" && !m.legacy);
+  const strongest = Math.max(...elsewhere.map((m) => m.priceIn + m.priceOut));
+  const picked = MODELS.find((m) => m.id === deep);
+  check(Boolean(picked) && picked!.priceIn + picked!.priceOut === strongest,
     "and it is the strongest available elsewhere, not the cheapest — a check you cannot rely on told you nothing",
     deep ?? "none");
 
@@ -242,7 +268,7 @@ console.log("\nA second opinion comes from somewhere else");
     "with one provider there is no second opinion, and that is said rather than faked with a sibling model",
     String(alone));
 
-  const back = checker("gpt-5.1", { configured: { anthropic: true, openai: true }, keys: {} });
+  const back = checker("gpt-5.6-terra", { configured: { anthropic: true, openai: true }, keys: {} });
   check(back?.startsWith("claude") === true, "it works in the other direction too", back ?? "none");
 }
 

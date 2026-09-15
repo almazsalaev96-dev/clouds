@@ -92,12 +92,33 @@ export async function* streamAnthropic(
       { type: "text", text: req.turnPrompt },
     ];
   }
-  // Anthropic rejects temperature alongside extended thinking, so the two are
-  // mutually exclusive rather than both sent and hoping for the best.
-  const budget = model.reasoning
-    ? thinkingBudget(body.max_tokens as number, req.params.reasoningEffort)
-    : null;
-  if (budget) {
+  /* How to ask for thinking, which changed under this app's feet.
+     
+     Every Anthropic model up to the 4.6 generation took an extended-thinking
+     block: `thinking: {type: "enabled", budget_tokens: n}`, a slice of the
+     same ceiling the answer has to fit inside. From the 4.6 generation on it
+     is `output_config.effort`, a word rather than a number, and the models
+     that take effort do not merely ignore the old block — they reject the
+     request. So this is not a preference, it is which of two wire shapes the
+     model on the other end will accept, and it is written down per model in
+     the registry rather than inferred from anything.
+     
+     Temperature is mutually exclusive with both: Anthropic rejects sampling
+     parameters alongside thinking, so it is one or the other and never both
+     sent in the hope that something lands. */
+  const budget =
+    model.thinks === "budget"
+      ? thinkingBudget(body.max_tokens as number, req.params.reasoningEffort)
+      : null;
+  if (model.thinks === "effort") {
+    /* Effort only, and no sampling parameters at all. These models think
+       adaptively — they decide for themselves whether this question is worth
+       thinking about — so there is no request where temperature is reliably
+       safe to send alongside. Omitting effort is not a gap: the API's own
+       default is `high`, and the docs say omitting it behaves exactly as
+       passing it. */
+    if (req.params.reasoningEffort) body.output_config = { effort: req.params.reasoningEffort };
+  } else if (budget) {
     body.thinking = { type: "enabled", budget_tokens: budget };
   } else if (req.params.topP < 1) {
     /* One or the other, never both. Claude 4 and later reject a request

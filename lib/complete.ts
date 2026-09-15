@@ -150,7 +150,11 @@ export async function complete(
  */
 export function cheapestAvailable(configured: Record<string, boolean>): string | null {
   const settings = useSettings.getState();
-  const preference = ["claude-haiku-4-5", "kimi-latest", "gpt-5.1-mini", "deepseek-chat"];
+  /* Named rather than derived, so the cheap jobs — titles, one-line rewrites,
+     the brief — land somewhere deliberate. Each of the four is its company's
+     cheapest current model; when one of them is retired the list needs
+     editing, which `test-presets` enforces by checking every id here exists. */
+  const preference = ["claude-haiku-4-5", "gpt-5.6-luna", "deepseek-flash", "kimi-k2.6"];
   const usable = (id: string) => {
     const p = getModel(id).provider as ProviderId;
     return Boolean(configured[p] || settings.keys[p]);

@@ -14,7 +14,8 @@ import {
   briefNote, councilPrompt, councilNote, objectionNote, makers, plainly,
 } from "./lib/presets";
 import { planTurn } from "./lib/decide";
-import { MODELS } from "./lib/models";
+import { MODELS, DEFAULT_MODEL_ID } from "./lib/models";
+import { cheapestAvailable } from "./lib/complete";
 
 let failed = 0;
 const check = (p: boolean, l: string, d = "") => { if (!p) failed++; console.log(`${p ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
@@ -64,16 +65,46 @@ console.log("\nThe bench itself is sound");
   }
 }
 
+console.log("\nAnd every id this app names anywhere is one a provider still answers to");
+{
+  /* The lesson of the generation that went past unnoticed. A model id is a
+     string, so nothing fails at build time when a provider retires one — the
+     request just comes back 400, which reads to a person exactly like a bad
+     key. Every place in the app that writes an id down by hand is checked
+     against the registry here, and the registry is checked against the
+     providers by a human reading their documentation. */
+  const known = new Set(MODELS.map((m) => m.id));
+  check(known.has(DEFAULT_MODEL_ID), "the model a fresh install falls back to exists", DEFAULT_MODEL_ID);
+  const cheap = cheapestAvailable({ anthropic: true, openai: true, moonshot: true, deepseek: true });
+  check(Boolean(cheap) && known.has(cheap!), "and so does the one the cheap jobs go to", cheap ?? "none");
+  for (const company of ["anthropic", "openai", "moonshot", "deepseek"] as const) {
+    const only1 = { anthropic: false, openai: false, moonshot: false, deepseek: false, [company]: true };
+    const c = cheapestAvailable(only1);
+    check(Boolean(c) && MODELS.find((m) => m.id === c)?.provider === company,
+      `and on a ${company} key alone it is one of theirs`, c ?? "none");
+  }
+}
+
 console.log("\nA deeper bench is a better cast, not just a longer list");
 {
   /* The point of adding the previous generations. On one company's key every
      seat used to come out of the same three models, so the Council — which
      wants four — could not be filled at all. */
   for (const company of ["anthropic", "openai", "moonshot"] as const) {
+    const bench = MODELS.filter((m) => m.provider === company).length;
+    /* Every seat the bench can fill, which is four wherever the company sells
+       five models and fewer where it does not. Asserted against the bench
+       rather than against four, because "fill four seats from four models
+       without repeating one" is not a bug to fix, it is arithmetic — and a
+       seat that cannot be filled is dropped and said, never quietly doubled
+       up. */
+    const want = Math.min(4, bench - 1);
     const c = resolveCast("council", { configured: only(company) })!;
     const seats = [c.answer.modelId, ...c.parts.map((x) => x.modelId)];
-    check(c.parts.length === 4, `the Council fills all four seats on a ${company} key alone`, seats.join(" + "));
+    check(c.parts.length === want,
+      `the Council fills every seat a ${company} key can fill — ${want} of 4`, seats.join(" + "));
     check(new Set(seats).size === seats.length, `and no model of theirs sits in two of them`, seats.join(" + "));
+    check(want === 4 || Boolean(c.short), `and says so when the bench runs out`, c.short ?? "said nothing");
   }
   /* And it is still honest about what that is: five seats from one lab is
      five readings, not five opinions, and the row has to say so. */
@@ -214,7 +245,7 @@ console.log("\nAnything that is not a preset passes straight through");
   check(resolveCast("claude-opus-4-5", { configured: all }) === null, "a model id is not a preset");
   check(resolveCast("auto", { configured: all }) === null, "and neither is Auto");
   check(engineOf("claude-opus-4-5", { configured: all }) === "claude-opus-4-5", "and it comes back unchanged");
-  check(resolvePreset("gpt-5.1", { configured: all }) === null && !isPreset("gpt-5.1"),
+  check(resolvePreset("gpt-5.6-terra", { configured: all }) === null && !isPreset("gpt-5.6-terra"),
     "which is what the picker asks before it draws a row");
 }
 
@@ -462,8 +493,20 @@ console.log("\nThe one for pictures keeps its eyes on a machine without them");
   check(spec(cast.answer.modelId).vision, "the writer can see", cast.answer.modelId);
   check(cast.parts.every((x) => spec(x.modelId).vision), "and so can everybody else in it",
     cast.parts.map((x) => x.modelId).join(", "));
-  const blind = resolveCast("vision", { configured: { deepseek: true } })!;
-  check(/read an image/i.test(blind.answer.why), "and where nothing can see, it says so", blind.answer.why);
+  /* This used to read "where nothing can see, it says so", exercised through
+     DeepSeek because both of their models were blind. One of them sees now,
+     so there is no company left whose whole bench is blind and the branch has
+     nothing to reach it through. What is still worth pinning is the rule that
+     branch exists to serve: the requirement beats the preference. DeepSeek's
+     stronger model is the one that cannot see, and this tactic takes the
+     weaker one every time rather than the better one with its eyes shut. */
+  const alone = resolveCast("vision", { configured: only("deepseek") })!;
+  check(spec(alone.answer.modelId).vision,
+    "on a bench where the strongest model is blind, the tactic takes the one that sees",
+    alone.answer.modelId);
+  check(alone.parts.every((x) => spec(x.modelId).vision),
+    "and will not fill a second pair of eyes with a model that has none",
+    alone.parts.map((x) => x.modelId).join(", ") || "no second seat");
 }
 
 console.log("\nAnd a line written by an older build is read by today's rules");

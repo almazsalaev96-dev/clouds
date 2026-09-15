@@ -273,6 +273,21 @@ export interface ModelSpec {
   vision: boolean;
   reasoning: boolean;
   tools: boolean;
+  /**
+   * How this model is told to think, which is a wire fact rather than a
+   * capability.
+   *
+   * `budget` is the extended-thinking block — `thinking: {type: "enabled",
+   * budget_tokens}` — which is what every Anthropic model took until the 4.6
+   * generation. `effort` is `output_config.effort`, which replaced it: the
+   * models that take effort *reject* the thinking block, so sending the old
+   * shape to Opus 5 or Sonnet 5 is a 400 rather than a request that merely
+   * thinks less. Absent means neither is sent.
+   *
+   * Separate from `reasoning`, which says whether the model thinks at all and
+   * is what the interface and the router read. This says how to ask.
+   */
+  thinks?: "effort" | "budget";
   legacy?: boolean;
 }
 

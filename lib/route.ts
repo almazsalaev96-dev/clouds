@@ -79,42 +79,34 @@ interface Traits {
 }
 
 const TRAITS: Record<string, Traits> = {
-  "claude-opus-4-5": { speed: 1, depth: 3, coding: 3 },
-  "claude-sonnet-4-5": { speed: 2, depth: 2, coding: 3 },
+  // Anthropic
+  "claude-fable-5-1": { speed: 1, depth: 3, coding: 3 },
+  "claude-opus-5": { speed: 2, depth: 3, coding: 3 },
+  "claude-sonnet-5": { speed: 3, depth: 2, coding: 3 },
   "claude-haiku-4-5": { speed: 3, depth: 1, coding: 2 },
-  "gpt-5.1": { speed: 1, depth: 3, coding: 3 },
-  "gpt-5.1-mini": { speed: 3, depth: 1, coding: 2 },
-  "gpt-4.1": { speed: 2, depth: 2, coding: 2 },
-  "kimi-k2-thinking": { speed: 1, depth: 3, coding: 2 },
-  "kimi-latest": { speed: 3, depth: 1, coding: 2 },
-  "deepseek-chat": { speed: 2, depth: 2, coding: 2 },
-  "deepseek-reasoner": { speed: 1, depth: 3, coding: 2 },
-
-  /* The rest of the bench. The row above says an unlisted model gets the
-     middling default so that forgetting this file is survivable — and it is,
-     for one model. It is not a policy: nineteen of twenty-nine unlisted would
-     make the middling row the router's actual opinion about most of what it
-     can call, and the whole point of the table is that price cannot tell
-     cheap-and-quick from cheap-and-slow. */
-  "claude-opus-4-1": { speed: 1, depth: 3, coding: 3 },
-  "claude-opus-4-0": { speed: 1, depth: 3, coding: 2 },
-  "claude-sonnet-4-0": { speed: 2, depth: 2, coding: 3 },
-  "claude-3-7-sonnet": { speed: 2, depth: 2, coding: 2 },
-  "claude-3-5-haiku": { speed: 3, depth: 1, coding: 1 },
-  "gpt-5": { speed: 1, depth: 3, coding: 3 },
-  "gpt-5-mini": { speed: 2, depth: 2, coding: 2 },
-  "gpt-5-nano": { speed: 3, depth: 1, coding: 1 },
-  "o3": { speed: 1, depth: 3, coding: 2 },
-  "o4-mini": { speed: 2, depth: 3, coding: 2 },
-  "gpt-4.1-mini": { speed: 3, depth: 1, coding: 2 },
-  "gpt-4.1-nano": { speed: 3, depth: 1, coding: 1 },
-  "gpt-4o": { speed: 3, depth: 1, coding: 2 },
-  "gpt-4o-mini": { speed: 3, depth: 1, coding: 1 },
-  "kimi-k2-0905": { speed: 2, depth: 2, coding: 2 },
-  "kimi-k2-turbo": { speed: 3, depth: 2, coding: 2 },
-  "kimi-thinking": { speed: 1, depth: 3, coding: 1 },
-  "moonshot-v1-128k": { speed: 2, depth: 1, coding: 1 },
-  "moonshot-v1-32k": { speed: 3, depth: 1, coding: 1 },
+  "claude-fable-5": { speed: 1, depth: 3, coding: 3 },
+  "claude-opus-4-8": { speed: 1, depth: 3, coding: 3 },
+  "claude-opus-4-7": { speed: 1, depth: 3, coding: 3 },
+  "claude-opus-4-6": { speed: 1, depth: 3, coding: 2 },
+  "claude-opus-4-5": { speed: 1, depth: 3, coding: 3 },
+  "claude-sonnet-4-6": { speed: 2, depth: 2, coding: 3 },
+  "claude-sonnet-4-5": { speed: 2, depth: 2, coding: 3 },
+  // OpenAI
+  "gpt-6-astra": { speed: 1, depth: 3, coding: 3 },
+  "gpt-5.6-sol": { speed: 1, depth: 3, coding: 3 },
+  "gpt-5.6-terra": { speed: 2, depth: 2, coding: 3 },
+  "gpt-5.6-luna": { speed: 3, depth: 1, coding: 2 },
+  "gpt-5.5": { speed: 1, depth: 3, coding: 2 },
+  "gpt-5.2": { speed: 2, depth: 2, coding: 2 },
+  "gpt-5": { speed: 2, depth: 2, coding: 2 },
+  // Moonshot
+  "kimi-k3": { speed: 1, depth: 3, coding: 2 },
+  "kimi-k2.6": { speed: 2, depth: 2, coding: 2 },
+  "kimi-k2.7-code": { speed: 2, depth: 2, coding: 3 },
+  "kimi-k2.7-code-highspeed": { speed: 3, depth: 2, coding: 3 },
+  // DeepSeek
+  "deepseek-flash": { speed: 3, depth: 1, coding: 2 },
+  "deepseek-v4-pro": { speed: 1, depth: 3, coding: 2 },
 };
 
 const MIDDLING: Traits = { speed: 2, depth: 2, coding: 2 };

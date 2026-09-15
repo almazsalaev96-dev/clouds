@@ -12,7 +12,7 @@
  *
  *   npx jiti test-wire.ts */
 import { adapterFor } from "./lib/providers";
-import { getModel } from "./lib/models";
+import { MODELS, getModel } from "./lib/models";
 import type { ChatRequest } from "./lib/types";
 
 let failed = 0;
@@ -48,10 +48,10 @@ async function sent(modelId: string, params: Partial<ChatRequest["params"]> = {}
 console.log("\nEach one is addressed to its own API, under its own name");
 {
   for (const [id, host] of [
-    ["claude-opus-4-5", "api.anthropic.com"],
-    ["gpt-5.1", "api.openai.com"],
-    ["kimi-k2-thinking", "api.moonshot.ai"],
-    ["deepseek-reasoner", "api.deepseek.com"],
+    ["claude-opus-5", "api.anthropic.com"],
+    ["gpt-5.6-terra", "api.openai.com"],
+    ["kimi-k3", "api.moonshot.ai"],
+    ["deepseek-v4-pro", "api.deepseek.com"],
   ] as const) {
     const { url, body } = await sent(id);
     check(url.includes(host), `${id} goes to ${host}`, url);
@@ -64,19 +64,19 @@ console.log("\nThe output limit is spelled the way each provider spells it");
   /* `max_completion_tokens` is OpenAI's and OpenAI's alone. Every other
      provider on this wire format takes `max_tokens`, and sending the wrong
      one is either a hard 400 or — worse — a silently unlimited answer. */
-  const openai = await sent("gpt-5.1");
+  const openai = await sent("gpt-5.6-terra");
   check(openai.body.max_completion_tokens !== undefined && openai.body.max_tokens === undefined,
     "OpenAI's reasoning models take max_completion_tokens", Object.keys(openai.body).filter((k) => /tokens/.test(k)).join(", "));
 
-  const kimi = await sent("kimi-k2-thinking");
+  const kimi = await sent("kimi-k3");
   check(kimi.body.max_tokens !== undefined && kimi.body.max_completion_tokens === undefined,
     "Kimi takes max_tokens, whatever it is capable of", Object.keys(kimi.body).filter((k) => /tokens/.test(k)).join(", "));
 
-  const r1 = await sent("deepseek-reasoner");
+  const r1 = await sent("deepseek-v4-pro");
   check(r1.body.max_tokens !== undefined && r1.body.max_completion_tokens === undefined,
     "and so does DeepSeek's reasoner", Object.keys(r1.body).filter((k) => /tokens/.test(k)).join(", "));
 
-  const chat = await sent("kimi-latest");
+  const chat = await sent("kimi-k2.6");
   check(chat.body.max_tokens !== undefined, "as does a model that does not reason at all");
   check(chat.body.temperature !== undefined, "which gets sampling parameters too");
 
@@ -88,13 +88,48 @@ console.log("\nThe output limit is spelled the way each provider spells it");
 
 console.log("\nAnthropic is its own shape, and one sampling parameter at a time");
 {
-  const { body } = await sent("claude-opus-4-5");
+  const { body } = await sent("claude-haiku-4-5");
   check(typeof body.max_tokens === "number", "max_tokens, which is required there");
   check(Boolean(body.thinking), "a thinking budget where the effort asked for one", JSON.stringify(body.thinking));
   /* Claude 4 rejects `temperature` alongside `top_p`, and rejects it outright
      with thinking enabled. One, or none. */
   const n = ["temperature", "top_p"].filter((k) => body[k] !== undefined).length;
   check(n === 0, "and no sampling parameter beside it, which that API refuses", String(n));
+}
+
+console.log("\nAnd thinking is asked for in the shape the model on the other end accepts");
+{
+  /* The one this file exists for, caught late. Anthropic replaced the
+     extended-thinking block with `output_config.effort` from the 4.6
+     generation on, and the models that take effort do not ignore the old
+     block — they reject the request. So this app could not call Opus 5,
+     Sonnet 5 or Fable 5.1 at all: every one of them was sent a shape that
+     comes back 400, which reads to a person exactly like a bad key.
+     
+     Read off `thinks` in the registry, and asserted in both directions:
+     nobody gets both, and nobody gets neither. */
+  for (const id of MODELS.filter((m) => m.provider === "anthropic").map((m) => m.id)) {
+    const { body } = await sent(id);
+    const wants = getModel(id).thinks;
+    const effort = (body.output_config as { effort?: string } | undefined)?.effort;
+    if (wants === "effort") {
+      check(effort === "high" && body.thinking === undefined,
+        `${id} is told how hard to think, and sent no thinking block`, `effort=${effort}`);
+    } else if (wants === "budget") {
+      check(Boolean(body.thinking) && body.output_config === undefined,
+        `${id} is given a thinking budget, and no effort`, JSON.stringify(body.thinking));
+    } else {
+      check(body.thinking === undefined && body.output_config === undefined,
+        `${id} is asked for neither`);
+    }
+    check(!(body.thinking && body.output_config), `${id} is never sent both shapes at once`);
+  }
+  /* And a model that thinks by effort gets no sampling parameters either:
+     these models decide for themselves whether to think, so there is no
+     request where temperature is reliably safe beside it. */
+  const { body } = await sent("claude-opus-5");
+  check(body.temperature === undefined && body.top_p === undefined,
+    "and an effort model is sent no sampling parameters at all");
 }
 
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");

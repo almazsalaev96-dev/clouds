@@ -18,7 +18,15 @@ export function thinkingBudget(
   effort: "low" | "medium" | "high" | undefined,
 ): number | null {
   if (!effort) return null;
-  const ceiling = { low: 4000, medium: 10000, high: 24000 }[effort];
+  /* Low means don't. This used to buy four thousand tokens of thinking, which
+     was invisible while the fast models were marked as not thinking at all —
+     and the moment the registry told the truth about Haiku 4.5, the tactic
+     whose whole promise is "answers now" started paying for a think before
+     every one-line rewrite. On a model billed by the token, the honest
+     reading of "quick" is no budget rather than a small one; where somebody
+     wants a little thinking, that is what medium is. */
+  if (effort === "low") return null;
+  const ceiling = { medium: 10000, high: 24000 }[effort];
   const half = Math.floor(maxTokens / 2);
   const budget = Math.min(ceiling, half);
   // Below the providers' own floor there is no point pretending.
