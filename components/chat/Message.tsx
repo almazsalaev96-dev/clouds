@@ -13,7 +13,7 @@ import { ComputeScope } from "./ComputeBlock";
 import type { Finding } from "@/lib/lint";
 import type { ChatError, Message as Msg, Rating, RatingReason } from "@/lib/types";
 import { CALCULATOR, getModel, formatTokens } from "@/lib/models";
-import { authorName, getPreset, PRESETS } from "@/lib/presets";
+import { authorName, getPreset, plainly, PRESETS } from "@/lib/presets";
 import { blockText } from "@/lib/db";
 import { cn, describeTiming, formatDuration } from "@/lib/utils";
 import { guessLang } from "@/lib/lang";
@@ -316,6 +316,10 @@ function AssistantMessageImpl({
      time, so it survives the thread being switched to something else. */
   const armi = computed ? null : getPreset(message.presetId ?? "");
   const author = computed ? null : message.modelId ? authorName(message.presetId, message.modelId) : null;
+  /* Why this model, with the names taken out — they are in the header two
+     elements to the left, and the ones stored by older builds are somebody
+     else's. */
+  const said = message.routedWhy ? plainly(message.routedWhy) : "";
   const artifact = useArtifact();
 
   const copy = () => {
@@ -391,15 +395,17 @@ function AssistantMessageImpl({
             cannot see is a router you cannot correct — and "it picked a cheap
             model for my hard question" is only a complaint you can make if you
             were told which and why. */}
-        {message.routedWhy && (
+        {said && (
           <span
             className="min-w-0 truncate text-tertiary"
-            /* The same text the line shows, not the raw string: what is
-               stored begins with the engine's short name, which is stripped
-               here and must not come back through a tooltip. */
-            title={message.routedWhy.replace(/^[^—]*—\s*/, "").replace(/\.$/, "")}
+            /* The same text the line shows, not the raw string. What is
+               stored begins with a name — and, in anything written by a build
+               from before the rebrand, with an engine's name. It is taken out
+               of both the line and the tooltip: a line written last month is
+               read today. */
+            title={said}
           >
-            {message.routedWhy.replace(/^[^—]*—\s*/, "").replace(/\.$/, "")}
+            {said}
           </span>
         )}
         <span className="reveal flex items-center gap-2">

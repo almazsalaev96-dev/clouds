@@ -11,7 +11,7 @@
 import {
   PRESETS, DEFAULT_PRESET_ID, getPreset, isPreset, resolveCast, resolvePreset, engineOf,
   playerFor, playersFor, profileOf, shapePlan, worthBriefing, worthConvening, briefPrompt,
-  briefNote, councilPrompt, councilNote, objectionNote, makers,
+  briefNote, councilPrompt, councilNote, objectionNote, makers, plainly,
 } from "./lib/presets";
 import { planTurn } from "./lib/decide";
 import { MODELS } from "./lib/models";
@@ -406,6 +406,33 @@ console.log("\nThe one for pictures keeps its eyes on a machine without them");
     cast.parts.map((x) => x.modelId).join(", "));
   const blind = resolveCast("vision", { configured: { deepseek: true } })!;
   check(/read an image/i.test(blind.answer.why), "and where nothing can see, it says so", blind.answer.why);
+}
+
+console.log("\nAnd a line written by an older build is read by today's rules");
+{
+  /* The line under an answer is stored, not recomputed, so every build that
+     ever wrote one is still on somebody's screen. The ones written before the
+     rebrand begin with the engine — which is the one thing that must not
+     survive into a version of the app that does not name engines. */
+  check(plainly("ARMI One — this is about code") === "this is about code",
+    "the name comes off the front, because the header two inches up already says it");
+  check(plainly("Claude Sonnet 4.5 · ARMI One") === "",
+    "a line that was nothing but names leaves nothing behind",
+    `"${plainly("Claude Sonnet 4.5 · ARMI One")}"`);
+  const old = plainly("Sonnet 4.5 · ARMI One — briefed first by another model");
+  check(old === "briefed first by another model", "and what it was actually telling you survives", old);
+  /* Including the shortest line this app ever wrote: the router's own, on a
+     route it had no reason to explain, which was the engine's name and a
+     full stop and nothing else. */
+  check(plainly("Sonnet 4.5.") === "", "a line that was only a name and a full stop leaves nothing");
+  for (const line of ["GPT-5.1 · ARMI Flash — this is about code", "Kimi · ARMI Duet", "Haiku 4.5 — a one-line rewrite", "Opus 4.5."]) {
+    check(!/Claude|GPT|Kimi|DeepSeek|Sonnet|Haiku|Opus/.test(plainly(line)),
+      `nothing of somebody else's is left in "${line}"`, `"${plainly(line)}"`);
+  }
+  /* And it does not eat prose that merely mentions something. The rule is
+     about whole segments, not about words inside a sentence. */
+  check(plainly("ARMI Quant — the numbers here are worth checking") === "the numbers here are worth checking",
+    "while a sentence is left as it was written");
 }
 
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");

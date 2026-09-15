@@ -649,6 +649,46 @@ export function authorName(presetId: string | undefined | null, modelId: string)
 }
 
 /**
+ * A stored line, with every name in it taken back out.
+ *
+ * The line under an answer is written once and read forever, and the builds
+ * that wrote the ones already in people's browsers put the engine's name at
+ * the front of it — "Claude Sonnet 4.5 · ARMI One — this is about code". The
+ * header above it carries the name now, so the head of the line is redundant
+ * on a good day and somebody else's product on a bad one, and a person who
+ * used this app last month would go on reading it forever.
+ *
+ * Dropping everything before the em dash handles what this app writes today.
+ * The rest is for what it used to write: any remaining segment that is just
+ * a name — an engine's, or one of ours — is dropped, and what is left is the
+ * only part that was ever telling you something.
+ */
+let NAMES: Set<string> | null = null;
+/* Built on first use rather than at module scope: `PRESETS` is declared
+   further down this file, and a top-level loop over it would read it before
+   it exists. */
+const named = (part: string) => {
+  if (!NAMES) {
+    NAMES = new Set<string>();
+    for (const m of MODELS) NAMES.add(m.name.toLowerCase()).add(m.short.toLowerCase());
+    for (const p of PRESETS) NAMES.add(p.name.toLowerCase()).add(p.short.toLowerCase());
+  }
+  return NAMES.has(part.toLowerCase());
+};
+export function plainly(line: string): string {
+  return line
+    .replace(/^[^—]*—\s*/, "")
+    .split("·")
+    .map((part) => part.trim())
+    /* A trailing full stop is part of the sentence, not part of the name:
+       the router used to write "Sonnet 4.5." as the entire line. */
+    .filter((part) => part && !named(part.replace(/\.$/, "")))
+    .join(" · ")
+    .replace(/\.$/, "")
+    .trim();
+}
+
+/**
  * The same name, short enough for a column head or a chip.
  *
  * Anywhere a label has to fit, and the alternative is falling back to

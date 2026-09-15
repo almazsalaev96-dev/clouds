@@ -1,5 +1,5 @@
 import { REPLY, SAFETY } from "./context";
-import { MODELS, getModel } from "./models";
+import { MODELS } from "./models";
 import type { ModelSpec, ProviderId } from "./types";
 import { solve, type Sum } from "./arith";
 
@@ -328,11 +328,15 @@ export function route(
   else if (shape.coding) reasons.unshift("this is about code");
   else if (shape.depth) reasons.unshift("this one needs thinking about");
 
+  /* The reasons, and only the reasons. This used to begin with the engine's
+     short name — "Sonnet 4.5 — this is about code", and on a route with no
+     reason at all it was nothing but the name — which was the line's whole
+     content on the day the header above it said the same thing. The header
+     names what answered; this says why it was chosen, and an answer with
+     nothing to say about why says nothing. */
   return {
     modelId: best.id,
-    why: reasons.length
-      ? `${getModel(best.id).short} — ${reasons.join(", and ")}.`
-      : `${getModel(best.id).short}.`,
+    why: reasons.length ? `${reasons.join(", and ")}.` : "",
   };
 }
 
