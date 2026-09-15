@@ -490,6 +490,10 @@ Nothing here looks like it breaks a caller — the return type is the same array
        slice keeps exactly the part nothing needs to assert about and drops
        the part everything does. */
     system: systemTextOf(body).slice(0, 20_000),
+    /* And how hard it was asked to think. On `__last` alone this is only ever
+       the most recent call, which on a tactic that briefs, answers, checks and
+       answers again is a verdict rather than the answer. */
+    thinking: body.thinking?.budget_tokens ?? null,
   });
   if (recent.length > 16) recent.shift();
 

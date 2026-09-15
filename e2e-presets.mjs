@@ -47,20 +47,29 @@ const openPicker = async () => { await bar.click(); await p.waitForTimeout(450);
 /* Polled rather than slept at: the request going out and a fixed wait
    expiring are different events, and on a first message the last thing on
    the wire is the little call that names the conversation. */
+/**
+ * Ask, and hand back the call that *answered* it.
+ *
+ * Not the last call on the wire: an Armi model is two or three, so by the
+ * time an answer has landed the most recent request is usually a brief for
+ * the next thing or a verdict on this one. Every claim below is about the
+ * request that carried the question.
+ */
 const ask = async (q) => {
-  const before = (await wire()).userText ?? "";
   await p.getByRole("button", { name: "New chat" }).first().click();
   await p.waitForTimeout(350);
+  await fetch(`${MOCK}/__reset`);
   await p.locator(".composer-shell textarea").first().fill(q);
   await p.keyboard.press("Enter");
-  let sent = null;
-  for (let i = 0; i < 60 && !sent; i++) {
+  let answer = null;
+  for (let i = 0; i < 70 && !answer; i++) {
     await p.waitForTimeout(150);
-    const now = await wire();
-    if ((now.userText ?? "") !== before) sent = now;
+    answer = (await calls()).filter((r) => r.kind === "answer").pop() ?? null;
   }
-  await p.waitForTimeout(2400);
-  return sent ?? (await wire());
+  /* The request has gone out; the answer it produces has not arrived yet,
+     and half of what is asserted here is drawn on the answer. */
+  await p.waitForTimeout(2600);
+  return answer ?? {};
 };
 
 const pick = async (name) => {
@@ -185,12 +194,12 @@ console.log("\nWhat the tactic is for is said to the model, not only to you");
 {
   await pick("ARMI Forge");
   const built = await ask("a stopwatch with lap times");
-  check(/build the thing rather than describing it/i.test(built.systemText ?? ""),
+  check(/build the thing rather than describing it/i.test(built.system ?? ""),
     "the one that builds is told to build");
 
   await pick("ARMI Tutor");
   const taught = await ask("what is a debounce");
-  check(/explain/i.test(taught.systemText ?? ""), "and the teaching one is told to explain");
+  check(/explain/i.test(taught.system ?? ""), "and the teaching one is told to explain");
   const shown = await p.locator(".msg").last().innerText();
   check(/Tutor/.test(shown) && /Explanatory/i.test(shown),
     "with the answer saying which one wrote it and how", (shown.split("\n").find((l) => /Tutor/.test(l)) ?? "").slice(0, 80));
