@@ -41,6 +41,9 @@ await p.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify
 await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(900);
 
+/* The registry, read by the probe for the claims that are about a model's
+   capabilities rather than about its name. */
+const { MODELS: ENGINES } = await import("./lib/models.ts");
 const wire = async () => await fetch(`${MOCK}/__last`).then((r) => r.json());
 const calls = async () =>
   ((await fetch(`${MOCK}/__recent`).then((r) => r.json())).recent ?? []).filter((r) => r.kind !== "title");
@@ -227,7 +230,14 @@ console.log("\nAnd a substitution is never silent");
 {
   await pick("ARMI Orbit");
   const long = await ask("summarise the argument for event sourcing");
-  check(/opus/i.test(long.model ?? ""), "it answers on the biggest window there is a key for", long.model);
+  /* Asserted as a property, not as a name. This read `/opus/` from when the
+     widest Anthropic window belonged to one model; every current one holds a
+     million now, so the tactic takes the cheapest of the models that are
+     equally wide — which is the right answer and was not the expected one. */
+  const room = Math.max(...ENGINES.filter((m) => m.provider === "anthropic").map((m) => m.contextWindow));
+  const got = ENGINES.find((m) => m.id === long.model);
+  check(got?.contextWindow === room, "it answers on the biggest window there is a key for",
+    `${long.model} holds ${got?.contextWindow}, the widest here is ${room}`);
   const shown = await p.locator(".msg").last().innerText();
   check(/Orbit/.test(shown) && /no key for/i.test(shown),
     "and the answer says it could not have the engine it wanted",
