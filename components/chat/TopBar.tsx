@@ -112,7 +112,7 @@ export function TopBar({
             modelId === AUTO
               ? "Model: chosen automatically"
               : preset
-                ? `Model: ${preset.name}, running on ${model.name}`
+                ? `Model: ${preset.name}`
                 : `Model: ${model.name}`
           }
           className="btn-touch focus-inset flex h-8 min-w-0 shrink items-center gap-1 rounded-md px-1.5 text-[0.8125rem] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
@@ -129,10 +129,11 @@ export function TopBar({
                   screen, and "ARMI Quant" in a chip that truncates says the
                   company twice and the model not at all. */}
               <span className="truncate">{preset.short}</span>
-              {/* Who is actually answering, where there is room for it. Not a
-                  footnote in Settings: the one place this could mislead is the
-                  one place it is written down. */}
-              <span className="hidden text-tertiary sm:inline">{model.short}</span>
+              {/* How hard it is thinking, where that is a choice somebody made.
+                  Which engine it rents is a fact about this browser's keys
+                  rather than about the model they picked, and it is in the
+                  menu below and in Settings. */}
+              {effort && <span className="hidden text-tertiary sm:inline">{effort}</span>}
             </>
           ) : (
             <>

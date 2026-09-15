@@ -618,6 +618,26 @@ const shortfall = (missing: Role[]) =>
  */
 const KIN_SHORT = "one company only — the second model is a sibling, not a rival. A second key fixes it.";
 
+/**
+ * What to call the thing that answered, wherever a reader sees it.
+ *
+ * The product's own name goes first, because that is what the person chose
+ * and what they will say when they talk about it: an answer from ARMI Quant
+ * is from ARMI Quant, the way a photograph from a camera is from the camera
+ * and not from the sensor in it. Three or four engines can sit behind one
+ * Armi model depending on which keys are in the browser, so the engine is
+ * also the wrong thing to lead with — it changes when nothing a reader did
+ * changed.
+ *
+ * What this must never become is a claim to have built them. The engines are
+ * named in full in Settings, against every tactic, with what each one does
+ * and what it costs — one place, always reachable, never hidden — and the
+ * menu still offers them directly for anybody who would rather pick one.
+ */
+export function authorName(presetId: string | undefined | null, modelId: string): string {
+  return getPreset(presetId ?? "")?.name ?? getModel(modelId).name;
+}
+
 /** Just the writer, for the places that only need to name one model. */
 export function resolvePreset(id: string, where: Where): Engine | null {
   return resolveCast(id, where)?.answer ?? null;

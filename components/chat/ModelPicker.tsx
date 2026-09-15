@@ -396,9 +396,7 @@ function PresetRow({
       <button
         onClick={onSelect}
         className="focus-inset min-w-0 flex-1 rounded-md text-left"
-        aria-label={`${preset.name} — ${preset.tagline}, running on ${engine.name}${cast.parts
-          .map((x) => ` with ${getModel(x.modelId).name} to ${job(x)}`)
-          .join("")}`}
+        aria-label={`${preset.name} — ${preset.tagline}, ${cast.parts.length + 1} models a turn`}
       >
         <span className="block truncate text-[0.8125rem] font-medium leading-tight text-primary">
           {preset.name}
@@ -408,7 +406,7 @@ function PresetRow({
             "No key configured yet"
           ) : (
             <>
-              {preset.tagline} · <span className="text-secondary">{engine.short}</span>
+              {preset.tagline}
               {cast.short && (
                 <span className="text-warning">
                   {" · "}
@@ -455,12 +453,23 @@ function CastRow({ cast }: { cast: Cast }) {
   const p = profileOf(cast);
   return (
     <div className="border-t border-line px-2.5 py-1.5">
-      <p className="text-tiny leading-5 text-tertiary">
-        <span className="text-secondary">{getModel(cast.answer.modelId).name}</span> writes
+      {/* What the cast *does*, which is the part that makes this an Armi
+          model rather than a label. Which companies it rents to do it is a
+          fact about this browser's keys — it changes when a key is added and
+          nothing the reader did changed — so it lives one hover away and, in
+          full, in Settings, where every tactic is listed against its engines.
+          Nothing here claims to have built a model. */}
+      <p
+        className="text-tiny leading-5 text-tertiary"
+        title={[`${getModel(cast.answer.modelId).name} writes`]
+          .concat(cast.parts.map((x) => `${getModel(x.modelId).name} ${does(x)}`))
+          .join(" · ")}
+      >
+        <span className="text-secondary">one writes</span>
         {cast.parts.map((x, i) => (
           <React.Fragment key={`${x.role}${i}`}>
             {" · "}
-            <span className="text-secondary">{getModel(x.modelId).name}</span> {does(x)}
+            <span className="text-secondary">one</span> {does(x)}
             {/* Which kind of second opinion this is. A sibling is still a
                 second reading and is still worth having; it is not the
                 independent one, and the row that says "checks it after"

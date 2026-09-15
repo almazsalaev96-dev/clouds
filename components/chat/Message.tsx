@@ -13,6 +13,7 @@ import { ComputeScope } from "./ComputeBlock";
 import type { Finding } from "@/lib/lint";
 import type { ChatError, Message as Msg, Rating, RatingReason } from "@/lib/types";
 import { CALCULATOR, getModel, formatTokens, MODELS } from "@/lib/models";
+import { authorName, getPreset } from "@/lib/presets";
 import { blockText } from "@/lib/db";
 import { cn, describeTiming, formatDuration } from "@/lib/utils";
 import { guessLang } from "@/lib/lang";
@@ -20,6 +21,7 @@ import { Markdown } from "./Markdown";
 import { IconButton, Button, Tooltip } from "@/components/ui/primitives";
 import { CodeBlock } from "./CodeBlock";
 import { ProviderMark } from "@/components/ui/ProviderMark";
+import { PresetIcon } from "./ModelPicker";
 import { useArtifact } from "./ArtifactPanel";
 
 /* ---------------------------------------------------------------- user ---- */
@@ -311,6 +313,10 @@ function AssistantMessageImpl({
      an answer it had no part in. */
   const computed = message.modelId === CALCULATOR;
   const model = message.modelId && !computed ? getModel(message.modelId) : null;
+  /* Which Armi model wrote it, where one did. Stamped on the answer at send
+     time, so it survives the thread being switched to something else. */
+  const armi = computed ? null : getPreset(message.presetId ?? "");
+  const author = computed ? null : message.modelId ? authorName(message.presetId, message.modelId) : null;
   const artifact = useArtifact();
 
   const copy = () => {
@@ -323,7 +329,7 @@ function AssistantMessageImpl({
      the unit people actually want to keep is usually one reply. */
   const copyAsMarkdown = () => {
     const stamp = new Date(message.createdAt).toISOString().slice(0, 10);
-    const name = (text.match(/^#{1,3}\s+(.+)$/m)?.[1] ?? model?.name ?? "answer")
+    const name = (text.match(/^#{1,3}\s+(.+)$/m)?.[1] ?? author ?? "answer")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "")
@@ -365,14 +371,27 @@ function AssistantMessageImpl({
           a tiny label, and a scale where one size does two jobs has a missing
           step rather than a spare one. */}
       <div className="mb-2 flex items-center gap-2 text-meta text-tertiary">
-        {model && (
-          <span className="text-secondary">
-            <ProviderMark provider={model.provider} size={12} />
-          </span>
+        {/* The mark belongs to whoever the answer is credited to. An Armi
+            model is a cast of two or three engines from different companies,
+            so one company's mark over it would be picking a side; the app's
+            own is the honest one, and the engines are named in Settings. */}
+        {armi ? (
+          <PresetIcon id={armi.id} size={12} className="shrink-0 text-[var(--accent-2)]" />
+        ) : (
+          model && (
+            <span className="text-secondary">
+              <ProviderMark provider={model.provider} size={12} />
+            </span>
+          )
         )}
         {computed && <Calculator size={12} className="text-secondary" />}
-        <span className="font-medium text-secondary">
-          {computed ? "Calculator" : (model?.name ?? "Assistant")}
+        <span
+          className="font-medium text-secondary"
+          /* Not hidden, just not shouted: the engine that wrote this is one
+             hover away here and spelled out in full in Settings. */
+          title={armi && model ? `${armi.name} — written by ${model.name}` : undefined}
+        >
+          {computed ? "Calculator" : (author ?? "Assistant")}
         </span>
         {/* Why this one, when the app chose it rather than you. A router you
             cannot see is a router you cannot correct — and "it picked a cheap

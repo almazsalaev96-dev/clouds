@@ -283,6 +283,8 @@ export default function Page() {
     parentId: string;
     history: Message[];
     modelIds: string[];
+    /** What to call each column, where they are one model answering twice. */
+    labels?: string[];
     /** The same brief for every column, where the tactic bought one. */
     turnPrompt?: string;
   } | null>(null);
@@ -742,22 +744,27 @@ export default function Page() {
          from this line, so what is left reads "Claude Sonnet 4.5 · Astro" —
          the two facts a person needs to connect the name in the bar with the
          name over the answer, and never one without the other. */
-      const presetWhy = preset
-        ? [
-            `${getModel(modelId).short} — ${preset.name}`,
-            cast?.answer.why,
-            /* Only what actually happened. A cast that could not be arranged
-               on these keys must not be described as though it had been, and
-               a brief that was skipped for a three-word question did not
-               happen either. */
-            brief ? `briefed by ${getModel(briefWith!.modelId).short}` : "",
-            /* The council, counted rather than named: three companies is the
-               fact, and three names is a line nobody finishes reading. */
-            council ? `${seats.length} models consulted` : "",
-          ]
-            .filter(Boolean)
-            .join(", ")
-        : "";
+      /* The header already carries the name — this line is for what happened
+         *besides* being answered: whether a second model read the question
+         first, how many were consulted, and whether the tactic could not have
+         the engine it wanted. Counted rather than named, because which
+         company was rented is a fact about this browser's keys and is spelled
+         out in Settings; the reader's question here is "what did it do", not
+         "who did you buy it from".
+
+         Only what actually happened: a cast that could not be arranged must
+         not be described as though it had, and a brief skipped for a
+         three-word question did not happen either. */
+      const extras = [
+        cast?.answer.why,
+        brief ? "briefed first by another model" : "",
+        council ? `${seats.length} models consulted` : "",
+      ].filter(Boolean);
+      /* The clause before the first dash is stripped where this is drawn —
+         the header already says the name — so it carries the name for the
+         places that read the whole string, and nothing shows at all when
+         there is nothing to add beyond having been answered. */
+      const presetWhy = preset && extras.length ? `${preset.name} — ${extras.join(", ")}` : "";
       /* And where this is a second pass, the line says so without losing who
          answered: "ARMI Council, 3 models consulted · answered again after an
          objection" is the whole account of how the words on screen came to be
@@ -774,6 +781,10 @@ export default function Page() {
         conversationId,
         parentId,
         modelId,
+        /* Which Armi model this is, kept with the answer. The engine stays in
+           `modelId` because a retry, a second opinion and the token meter all
+           need it; what a reader is shown is the name they picked. */
+        presetId: preset?.id,
         routedWhy: why || undefined,
         history,
         systemPrompt: composed.text || undefined,
@@ -965,6 +976,13 @@ export default function Page() {
              about what different models say, and a tactic resolved differently
              in each column would be comparing two things and calling it one. */
           modelIds: [engineOf(answering, where), ...(duellists.length ? duellists : compareWith)],
+          /* A duel is one Armi model answering twice: the columns are the
+             first answer and the second, not two companies. A comparison
+             somebody set up themselves keeps the engine names, because
+             picking those engines was the point of it. */
+          labels: duellists.length
+            ? ["The first answer", "The second answer", "The third answer"].slice(0, duellists.length + 1)
+            : undefined,
           turnPrompt: shared ? briefNote(shared) : undefined,
         });
       } else {
@@ -1945,6 +1963,7 @@ export default function Page() {
                    read, so both used to draw the app default's name over an
                    answer somebody else was writing. */
                 streamModelId={stream.modelId ?? engineOf(threadModelId, { configured, keys: settings.keys })}
+                streamPresetId={stream.presetId ?? getPreset(threadModelId)?.id}
                 elapsed={live ? stream.elapsed : 0}
                 retryingInMs={live ? stream.retryingInMs : 0}
                 error={live ? stream.error : null}
@@ -2000,6 +2019,7 @@ export default function Page() {
                         parentId: comparing.parentId,
                         history: comparing.history,
                         modelIds: comparing.modelIds,
+                        labels: comparing.labels,
                         turnPrompt: comparing.turnPrompt,
                         onKeep: keepCompared,
                         onCancel: () => setComparing(null),

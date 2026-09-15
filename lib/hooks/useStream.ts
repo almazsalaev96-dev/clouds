@@ -33,6 +33,8 @@ interface StreamState {
    * received the request is known here and nowhere else.
    */
   modelId: string | null;
+  /** And which Armi model that engine is answering as, where one is chosen. */
+  presetId: string | null;
   text: string;
   reasoning: string;
   /** Milliseconds since send. Drives the honest "thinking · 6s" counter. */
@@ -47,6 +49,7 @@ const EMPTY: StreamState = {
   retryingInMs: 0,
   conversationId: null,
   modelId: null,
+  presetId: null,
   text: "",
   reasoning: "",
   elapsed: 0,
@@ -159,6 +162,8 @@ export function useStream(onFinish?: (m: Message) => void) {
       modelId: string;
       /** Why this model, when the app chose it. Travels to the saved answer. */
       routedWhy?: string;
+      /** Which Armi model this turn belongs to. Travels to the saved answer. */
+      presetId?: string;
       history: Message[];
       systemPrompt?: string;
       /** The half that changes with the question. Kept out of the cached half. */
@@ -180,7 +185,7 @@ export function useStream(onFinish?: (m: Message) => void) {
       usageRef.current = null;
       startedRef.current = Date.now();
 
-      setState({ ...EMPTY, phase: "waiting", messageId: assistantId, conversationId: opts.conversationId, modelId: opts.modelId });
+      setState({ ...EMPTY, phase: "waiting", messageId: assistantId, conversationId: opts.conversationId, modelId: opts.modelId, presetId: opts.presetId ?? null });
 
       // A live elapsed counter, not a spinner: it is the difference between
       // "this is broken" and "this is working, and here is how hard".
@@ -308,6 +313,7 @@ export function useStream(onFinish?: (m: Message) => void) {
         reasoning: reasoningRef.current || undefined,
         modelId: opts.modelId,
         routedWhy: opts.routedWhy,
+        presetId: opts.presetId,
         usage,
         latencyMs,
         ttftMs: ttftRef.current ?? undefined,
@@ -367,7 +373,7 @@ export function useStream(onFinish?: (m: Message) => void) {
       if (!err || err.kind !== "rate_limit" || !err.retryAfterMs) return first;
 
       const wait = Math.min(err.retryAfterMs, 20_000);
-      setState({ ...EMPTY, phase: "waiting", error: err, retryingInMs: wait, conversationId: opts.conversationId, modelId: opts.modelId });
+      setState({ ...EMPTY, phase: "waiting", error: err, retryingInMs: wait, conversationId: opts.conversationId, modelId: opts.modelId, presetId: opts.presetId ?? null });
       const cancelled = await new Promise<boolean>((resolve) => {
         retryTimerRef.current = setTimeout(() => resolve(false), wait);
         retryCancelRef.current = () => resolve(true);

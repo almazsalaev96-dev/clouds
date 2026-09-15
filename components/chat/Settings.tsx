@@ -302,7 +302,7 @@ function ModelPanel({ configured }: { configured: Record<string, boolean> }) {
     >
       <Field
         label="The Armi models"
-        hint="Each one is a cast: who writes, and who else is involved. Prices are for a turn of ordinary size — a page or two of conversation and a few paragraphs back — summed over every model it calls."
+        hint="Each one is a cast of two or three models from different companies, and this is where they are named. Armi trains no models of its own: it decides which to call, what to ask each of them, and what to do when they disagree. Prices are for a turn of ordinary size — a page or two of conversation, a few paragraphs back — summed over every model it calls."
       >
         <ArmiTable configured={configured} />
       </Field>

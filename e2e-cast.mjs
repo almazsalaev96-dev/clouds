@@ -92,8 +92,12 @@ console.log("\nAnd what the first one wrote reaches the second one");
 
 console.log("\nThe answer says it, rather than leaving you to guess");
 {
-  const said = await line(/ARMI One/);
-  check(/ARMI One/.test(said) && /briefed by/i.test(said), "which two models made this one", said.slice(0, 100));
+  const said = await p.locator(".msg").last().innerText();
+  check(/ARMI One/.test(said), "the answer is credited to the model that was chosen",
+    (said.split("\n").find((l) => /ARMI One/.test(l)) ?? "").slice(0, 60));
+  check(/briefed first by another model/i.test(said),
+    "and says a second model read the question before it was written",
+    (said.split("\n").find((l) => /briefed first/i.test(l)) ?? "").slice(0, 80));
   await p.screenshot({ path: `${OUT}/cast-answer.png` });
 }
 

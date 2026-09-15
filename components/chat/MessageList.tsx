@@ -7,6 +7,7 @@ import { blockText } from "@/lib/db";
 import type { Rating, ChatError, Message as Msg } from "@/lib/types";
 import { PointAt, type PointAction } from "./PointAt";
 import { getModel } from "@/lib/models";
+import { authorName } from "@/lib/presets";
 import { siblingIndex, siblingsFrom } from "@/lib/db";
 import { cn, formatElapsed } from "@/lib/utils";
 import { AssistantMessage, InlineError, UserMessage } from "./Message";
@@ -29,6 +30,7 @@ function MessageListImpl({
   streamReasoning,
   dropped,
   streamModelId,
+  streamPresetId,
   elapsed,
   retryingInMs,
   error,
@@ -63,6 +65,8 @@ function MessageListImpl({
   /** Turns left out of the request to make it fit the window. */
   dropped: number;
   streamModelId: string;
+  /** The Armi model this stream is answering as, where one was chosen. */
+  streamPresetId?: string | null;
   elapsed: number;
   /** Milliseconds until the stream tries again after a rate limit; 0 otherwise. */
   retryingInMs: number;
@@ -187,6 +191,10 @@ function MessageListImpl({
   };
 
   const streamModel = getModel(streamModelId);
+  /* The name over an answer being written is the same name it will carry
+     once it is written. Watching "Claude Haiku 4.5" think and then reading
+     "ARMI Flash" over the result is two different authors for one answer. */
+  const streamAuthor = authorName(streamPresetId, streamModelId);
 
   return (
     <div className="relative min-h-0 flex-1">
@@ -214,7 +222,7 @@ function MessageListImpl({
               <span className="h-px flex-1 bg-[var(--border-subtle)]" aria-hidden />
               <span className="eyebrow text-faint">
                 {dropped} earlier {dropped === 1 ? "message" : "messages"} not sent — too long for {" "}
-                {getModel(streamModelId).name}
+                {streamModel.name}
               </span>
               <span className="h-px flex-1 bg-[var(--border-subtle)]" aria-hidden />
             </div>
@@ -287,7 +295,7 @@ function MessageListImpl({
             <StreamingMessage
               text={streamText}
               reasoning={streamReasoning}
-              modelName={streamModel.name}
+              modelName={streamAuthor}
               elapsed={elapsed}
               retryingInMs={retryingInMs}
               onSwitchModel={onSwitchModel}

@@ -40,6 +40,16 @@ export interface Message {
   reasoning?: string;
   modelId?: string;
   /**
+   * Which Armi model wrote it, where one did.
+   *
+   * Stored rather than read off the thread, because the thread's model
+   * changes and this answer's did not: an answer written by ARMI Quant in
+   * March is still ARMI Quant's in June. The engine underneath stays in
+   * `modelId` — it is what a retry, a second opinion and the token meter
+   * all need, and it is what Settings names.
+   */
+  presetId?: string;
+  /**
    * Why this model, when the app chose it rather than the person.
    *
    * Kept with the answer because that is where the question arises, and

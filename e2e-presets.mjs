@@ -82,38 +82,34 @@ console.log("\nThe menu offers Armi's own models first, and the engines after");
   await p.screenshot({ path: `${OUT}/presets-menu.png` });
 }
 
-console.log("\nAnd every one of them says whose model it is running on");
+console.log("\nEvery row says what it is for, not which company it rents");
 {
   const one = await p.getByRole("button", { name: /^ARMI One —/ }).first().innerText();
-  check(/Sonnet 4.5/.test(one), "the flagship is Armi's name for a tactic, and the row names the engine", one.replace(/\n/g, " · "));
+  check(/two models deep/i.test(one), "the flagship says what it is", one.replace(/\n/g, " · "));
+  check(!/Claude|GPT|Kimi|DeepSeek|Sonnet|Haiku|Opus/.test(one),
+    "and does not put another company's name in the row", one.replace(/\n/g, " · "));
   const flash = await p.getByRole("button", { name: /^ARMI Flash —/ }).first().innerText();
-  check(/Haiku 4.5/.test(flash), "and the quick one runs on a different engine from the everyday one", flash.replace(/\n/g, " · "));
-  /* Atlas wants Gemini's million-token window and there is no Google key
-     here. It takes the biggest thing it can reach and says so rather than
-     quietly becoming an ordinary model under a long-context name. */
-  const orbit = await p.getByRole("button", { name: /^ARMI Orbit —/ }).first().innerText();
-  check(/Opus 4.5/.test(orbit), "one that cannot have its first choice names its second", orbit.replace(/\n/g, " · "));
+  check(/checked after/i.test(flash), "the quick one says what it does differently", flash.replace(/\n/g, " · "));
   /* Every one of these is two models or three, and on one company's key not
-     one of them can be what it says it is. Said on the row rather than
-     discovered from a bill. */
+     one of them is the independent pair it would otherwise be. Said on the
+     row, because that is the part a person is choosing between. */
   const duet = await p.getByRole("button", { name: /^ARMI Duet —/ }).first().innerText();
   check(/one company/i.test(duet), "and with one key it says both models come from one company", duet.replace(/\n/g, " · "));
-  const footer = await p.locator("text=/writes/").first().innerText();
-  check(/Claude/.test(footer), "the menu names who writes", footer.replace(/\n/g, " · "));
   const panel = await p.locator("[data-radix-popper-content-wrapper]").first().innerText();
+  check(/one writes/.test(panel), "the menu says what the cast does", (panel.split("\n").find((l) => /one writes/.test(l)) ?? "").slice(0, 90));
   check(/sibling/i.test(panel) && /second key/i.test(panel),
-    "and spells out that the second model is a sibling, and what would fix it",
+    "and that the second model here is a sibling, with what would fix it",
     (panel.split("\n").find((l) => /sibling/i.test(l)) ?? "").slice(0, 90));
   await p.keyboard.press("Escape");
   await p.waitForTimeout(300);
 }
 
-console.log("\nThe bar names both: the tactic you chose and the model answering");
+console.log("\nThe bar says the name you picked");
 {
   const label = await bar.getAttribute("aria-label");
-  check(/One/.test(label ?? "") && /Claude Sonnet 4\.5/.test(label ?? ""),
-    "which is the one place a rename could mislead somebody", label);
-  check(/One/.test(await bar.innerText()), "and the name is what you read at a glance", (await bar.innerText()).replace(/\n/g, " "));
+  check(/ARMI One/.test(label ?? ""), "which is the name the person chose", label);
+  check(!/Claude|Sonnet/.test(label ?? ""), "and not the engine it happens to rent today", label);
+  check(/One/.test(await bar.innerText()), "and the same at a glance", (await bar.innerText()).replace(/\n/g, " "));
 }
 
 console.log("\nWith one company's key it is still two models, and it says which kind");
@@ -135,9 +131,11 @@ console.log("\nWith one company's key it is still two models, and it says which 
     "a different model from the one writing — never the same weights twice",
     `${brief?.model} → ${answer?.model}`);
   const shown = await p.locator(".msg").last().innerText();
-  check(/ARMI One/.test(shown) && /briefed by/i.test(shown),
-    "and the answer names both of them",
-    (shown.split("\n").find((l) => /ARMI One/.test(l)) ?? "").slice(0, 90));
+  check(/ARMI One/.test(shown), "the answer is credited to the model that was picked",
+    (shown.split("\n").find((l) => /ARMI One/.test(l)) ?? "").slice(0, 60));
+  check(/briefed first by another model/i.test(shown),
+    "and says a second model read the question first — which on one key is a sibling",
+    (shown.split("\n").find((l) => /briefed first/i.test(l)) ?? "").slice(0, 90));
 }
 
 console.log("\nA name is not a costume: they reach different endpoints");
@@ -176,8 +174,10 @@ console.log("\nAnd the name over an answer being written is the model writing it
     const t = await p.locator(".live-ring").first().innerText().catch(() => "");
     if (t.trim()) live = t;
   }
-  check(/Haiku/.test(live), "the quick one is named while it is writing", live.split("\n")[0] ?? "nothing");
-  check(!/Sonnet/.test(live), "and not the app default, which is writing nothing", live.split("\n")[0] ?? "");
+  check(/ARMI Flash/.test(live), "the model you picked is named while it is writing", live.split("\n")[0] ?? "nothing");
+  check(!/Claude|Sonnet|Haiku/.test(live),
+    "and the same name it will carry once written — not a different author halfway through",
+    live.split("\n")[0] ?? "");
   await p.waitForTimeout(2500);
 }
 
@@ -206,6 +206,31 @@ console.log("\nAnd a substitution is never silent");
     "and the answer says it could not have the engine it wanted",
     (shown.split("\n").find((l) => /Orbit/.test(l)) ?? "").slice(0, 90));
   await p.screenshot({ path: `${OUT}/presets-answer.png` });
+}
+
+console.log("\nAnd the engines are named where a person goes to look");
+{
+  /* The whole rebrand rests on this: the product's name leads, and what is
+     actually being called is one place away, in full, never hidden. An app
+     that renamed other companies' models and then could not tell you whose
+     they were would be claiming a laboratory it does not have. */
+  await p.keyboard.press("Escape");
+  await p.waitForTimeout(300);
+  await p.getByRole("button", { name: /Settings/ }).first().click();
+  await p.waitForTimeout(700);
+  await p.getByRole("button", { name: /^Model$/ }).first().click();
+  await p.waitForTimeout(500);
+  const panel = await p.locator("[role=dialog]").first().innerText();
+  check(/trains no models of its own/i.test(panel),
+    "it says plainly that it trained none of them",
+    (panel.split("\n").find((l) => /trains no models/i.test(l)) ?? "").slice(0, 90));
+  check(/Claude Sonnet 4\.5/.test(panel) && /ARMI One/.test(panel),
+    "and names the engine behind each Armi model, in full");
+  check(/writes/.test(panel) && /an answer/.test(panel),
+    "with what each does and what a turn costs");
+  await p.screenshot({ path: `${OUT}/presets-settings.png` });
+  await p.keyboard.press("Escape");
+  await p.waitForTimeout(400);
 }
 
 console.log("\nThe engines are still there for anyone who wants one");

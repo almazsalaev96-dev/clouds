@@ -29,6 +29,15 @@ export function CompareGrid({
   parentId,
   history,
   modelIds,
+  /**
+   * What to call each column.
+   *
+   * A duel is one Armi model answering twice, from two companies — so the
+   * columns are "the first answer" and "the second", not two vendors. A
+   * comparison somebody set up themselves is the opposite: they picked those
+   * engines on purpose and the names are the whole point.
+   */
+  labels,
   turnPrompt,
   onKeep,
   onCancel,
@@ -37,6 +46,7 @@ export function CompareGrid({
   parentId: string | null;
   history: Message[];
   modelIds: string[];
+  labels?: string[];
   /**
    * One extra instruction, given to every column alike.
    *
@@ -63,9 +73,10 @@ export function CompareGrid({
           modelIds.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3",
         )}
       >
-        {modelIds.map((id) => (
+        {modelIds.map((id, i) => (
           <CompareColumn
             key={id}
+            label={labels?.[i]}
             conversationId={conversationId}
             parentId={parentId}
             history={history}
@@ -84,6 +95,7 @@ function CompareColumn({
   parentId,
   history,
   modelId,
+  label,
   turnPrompt,
   onKeep,
 }: {
@@ -91,10 +103,12 @@ function CompareColumn({
   parentId: string | null;
   history: Message[];
   modelId: string;
+  label?: string;
   turnPrompt?: string;
   onKeep: (messageId: string, modelId: string) => void;
 }) {
   const model = getModel(modelId);
+  const name = label ?? model.name;
   const settings = useSettings();
   const [finished, setFinished] = React.useState<Message | null>(null);
   const stream = useStream(setFinished);
@@ -142,7 +156,7 @@ function CompareColumn({
        Stop, button." is a comparison nobody can operate without looking at it,
        which is the one thing a comparison is for. */
     <article
-      aria-label={`${model.name}'s answer`}
+      aria-label={`${name}, ${label ? "one of two answers" : "answer"}`}
       className="flex min-h-[12rem] flex-col overflow-hidden rounded-lg border border-line bg-surface"
     >
       <header className="relative flex h-9 shrink-0 items-center gap-1.5 border-b border-line px-2.5 text-xs">
@@ -150,7 +164,7 @@ function CompareColumn({
         <span className="text-tertiary">
           {busy ? <span className="think-orb" aria-hidden /> : <ProviderMark provider={model.provider} size={12} />}
         </span>
-        <span className="truncate font-medium text-secondary">{model.name}</span>
+        <span className="truncate font-medium text-secondary" title={label ? model.name : undefined}>{name}</span>
         <span className="ml-auto flex items-center gap-1.5 text-tertiary tnum">
           {busy && stream.elapsed > 1000 && <span>{formatElapsed(stream.elapsed)}</span>}
           {finished?.latencyMs != null && (
@@ -158,7 +172,7 @@ function CompareColumn({
           )}
           {finished?.usage && <span>{formatTokens(finished.usage.outputTokens)} tok</span>}
           {busy && (
-            <IconButton label={`Stop ${model.name}`} size={22} onClick={stream.stop}>
+            <IconButton label={`Stop ${name}`} size={22} onClick={stream.stop}>
               <Square size={9} fill="currentColor" />
             </IconButton>
           )}
