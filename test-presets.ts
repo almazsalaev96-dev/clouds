@@ -85,6 +85,59 @@ console.log("\nAnd every id this app names anywhere is one a provider still answ
   }
 }
 
+console.log("\nThe cast is designed, not whatever the bench happened to hand over");
+{
+  /* What "combine them" has to mean to be worth anything. Every current model
+     has a job — a bench where half the models are never cast is a list, not a
+     family — and no tactic is one company wearing three hats. */
+  const all4 = { configured: all };
+  const cast = (id: string) => {
+    const c = resolveCast(id, all4)!;
+    return [c.answer.modelId, ...c.parts.map((x) => x.modelId)];
+  };
+  const used = new Set(PRESETS.flatMap((p) => cast(p.id)));
+  const current = MODELS.filter((m) => !m.legacy);
+  const idle = current.filter((m) => !used.has(m.id));
+  check(idle.length === 0, "every model a provider currently sells has a seat somewhere",
+    idle.map((m) => m.id).join(", ") || `all ${current.length} of them`);
+  /* And the older bench is not cast when everything is available — it is
+     depth for the browsers that are missing a key, which is a different job. */
+  const stale = MODELS.filter((m) => m.legacy && used.has(m.id));
+  check(stale.length === 0, "and nothing a generation old is cast while the current one is there",
+    stale.map((m) => m.id).join(", "));
+
+  const makers = new Set(MODELS.map((m) => m.provider)).size;
+  for (const p of PRESETS) {
+    const seats = cast(p.id);
+    const labs = new Set(seats.map((id) => spec(id).provider)).size;
+    check(labs === Math.min(seats.length, makers),
+      `${p.name} spans every company it has seats for — ${labs} across ${seats.length}`,
+      seats.map((id) => spec(id).provider).join(", "));
+  }
+  /* The writers are spread too. Eleven tactics all writing on one company
+     would be one company with ten helpers, whatever the casts said. */
+  const writers = new Set(PRESETS.map((p) => spec(resolveCast(p.id, all4)!.answer.modelId).provider));
+  check(writers.size >= 3, "and the answer is not always written by the same company",
+    [...writers].join(", "));
+}
+
+console.log("\nA cast that spans fewer companies than it has seats says so");
+{
+  /* The gap a deeper bench opened. `KIN_SHORT` only ever caught a seat that
+     shared a company with the writer, which was the whole of the problem when
+     each provider had two or three models — with the bench this deep, two
+     keys fill all five council seats one-from-one-lab-four-from-the-other,
+     every one of them independent of the writer, and nothing noticed. */
+  const two = resolveCast("council", { configured: { anthropic: true, moonshot: true } })!;
+  const labs = new Set([two.answer.modelId, ...two.parts.map((x) => x.modelId)].map((id) => spec(id).provider));
+  check(two.parts.length === 4 && labs.size === 2, "two keys can now fill all five seats from two labs",
+    [...labs].join(" + "));
+  check(/companies across/.test(two.short ?? ""), "and the row says that is what happened", two.short ?? "said nothing");
+  /* And stays quiet where the spread is everything there is to spread. */
+  const four = resolveCast("council", { configured: all })!;
+  check(four.short === null, "while four keys and four companies is not a shortfall", four.short ?? "null");
+}
+
 console.log("\nA deeper bench is a better cast, not just a longer list");
 {
   /* The point of adding the previous generations. On one company's key every

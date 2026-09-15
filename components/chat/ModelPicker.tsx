@@ -289,10 +289,19 @@ function PresetRow({
           ) : (
             <>
               {preset.tagline}
+              {/* Three words for what the line under the menu says in full.
+                  This used to be a two-way choice — "one company" or "needs a
+                  second key" — which had no way to say the third thing that
+                  can now happen: every seat filled, none of them sharing with
+                  the writer, and still fewer labs than seats. */}
               {cast.short && (
                 <span className="text-warning">
                   {" · "}
-                  {cast.parts.some((x) => x.sameCompany) ? "one company" : "needs a second key"}
+                  {cast.parts.some((x) => x.sameCompany)
+                    ? "one company"
+                    : cast.parts.length < preset.cast.length
+                      ? "needs a second key"
+                      : "some seats share a company"}
                 </span>
               )}
             </>

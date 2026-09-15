@@ -175,11 +175,11 @@ export const PRESETS: Preset[] = [
     blurb:
       "Your primary assistant: everyday questions, writing, planning, and knowing when something needs a specialist. A model from one company lists what the answer has to get right; a model from another writes it.",
     examples: ["what is a debounce", "is this contract clause normal", "plan my week around three deadlines"],
-    engines: ["claude-sonnet-5", "gpt-5.6-terra", "kimi-k3", "deepseek-flash", "claude-sonnet-4-6", "gpt-5.6-sol", "kimi-k2.6"],
+    engines: ["claude-sonnet-5", "gpt-5.6-terra", "kimi-k3", "deepseek-v4-pro", "claude-sonnet-4-6", "gpt-5.5", "claude-sonnet-4-5"],
     want: "balanced",
     group: "everyday",
     cast: [
-      { role: "brief", as: "cover", engines: ["gpt-5.6-luna", "kimi-k2.6", "deepseek-flash", "claude-haiku-4-5", "gpt-5"], want: "cheap" },
+      { role: "brief", as: "cover", engines: ["gpt-5.6-luna", "kimi-k2.6", "deepseek-flash", "claude-haiku-4-5", "gpt-5.2", "gpt-5"], want: "cheap" },
     ],
     icon: "orbit",
   },
@@ -191,11 +191,11 @@ export const PRESETS: Preset[] = [
     blurb:
       "For quick questions and rewrites. The fastest engine you have a key for answers straight away, and a second company's model checks it while you are already reading.",
     examples: ["what does ECONNRESET mean", "shorten this to one line", "what time is it in Tokyo"],
-    engines: ["claude-haiku-4-5", "kimi-k2.6", "gpt-5.6-luna", "deepseek-flash", "gpt-5", "claude-sonnet-4-5"],
+    engines: ["claude-haiku-4-5", "gpt-5.6-luna", "deepseek-flash", "kimi-k2.6", "gpt-5.2", "claude-sonnet-4-5"],
     want: "cheap",
     group: "everyday",
     cast: [
-      { role: "check", engines: ["gpt-5.6-luna", "deepseek-flash", "kimi-k2.6", "claude-haiku-4-5", "gpt-5"], want: "cheap" },
+      { role: "check", engines: ["deepseek-flash", "gpt-5.6-luna", "kimi-k2.6", "claude-haiku-4-5", "gpt-5", "gpt-5.2"], want: "cheap" },
     ],
     effort: "low",
     register: "concise",
@@ -211,12 +211,12 @@ export const PRESETS: Preset[] = [
     blurb:
       "Mathematics, economics, logic, analysis, hard strategy. One model writes down where this is most likely to go wrong before anybody answers, the strongest engine you have does the work, and a third from a different company checks it. Pure arithmetic never reaches a model at all — this app works that out exactly, for nothing.",
     examples: ["compound return over seven years", "event sourcing or CRUD, and why", "does this spreadsheet actually add up"],
-    engines: ["claude-opus-5", "gpt-5.6-terra", "kimi-k3", "deepseek-v4-pro", "gpt-6-astra", "claude-fable-5-1", "gpt-5.6-sol"],
+    engines: ["claude-opus-5", "gpt-6-astra", "deepseek-v4-pro", "kimi-k3", "claude-fable-5-1", "claude-opus-4-8", "gpt-5.6-sol"],
     want: "strong",
     group: "everyday",
     cast: [
-      { role: "brief", as: "risks", engines: ["gpt-5.6-terra", "kimi-k3", "deepseek-v4-pro", "claude-sonnet-5", "gpt-5.5", "claude-sonnet-4-6"], want: "strong" },
-      { role: "check", engines: ["gpt-5.6-terra", "kimi-k3", "deepseek-v4-pro", "claude-opus-5", "gpt-6-astra", "gpt-5.6-sol", "claude-fable-5-1"], want: "strong" },
+      { role: "brief", as: "risks", engines: ["deepseek-v4-pro", "kimi-k3", "gpt-5.6-terra", "claude-sonnet-5", "gpt-5.5", "claude-sonnet-4-6"], want: "strong" },
+      { role: "check", engines: ["gpt-6-astra", "kimi-k3", "deepseek-v4-pro", "claude-opus-5", "gpt-5.6-sol", "claude-opus-4-7"], want: "strong" },
     ],
     effort: "high",
     stance:
@@ -235,17 +235,17 @@ export const PRESETS: Preset[] = [
     blurb:
       "The most this app can bring to one question. Three companies each take a different half of it — the strategy, the reasoning, what is actually known — a fourth writes one answer out of the three, and a fifth reads that answer back and can send it round again. Five models a turn, and by some way the dearest thing here.",
     examples: ["design my AI education startup", "should we rebuild this or refactor it", "review this plan before we commit"],
-    engines: ["claude-opus-5", "gpt-5.6-terra", "kimi-k3", "deepseek-v4-pro", "claude-fable-5-1", "gpt-6-astra", "claude-opus-4-8", "claude-fable-5", "gpt-5.6-sol"],
+    engines: ["claude-fable-5-1", "gpt-6-astra", "claude-opus-5", "kimi-k3", "claude-fable-5", "claude-opus-4-8", "gpt-5.6-sol"],
     want: "strong",
     group: "everyday",
     cast: [
-      { role: "council", angle: "strategy", engines: ["gpt-5.6-terra", "kimi-k3", "deepseek-v4-pro", "claude-opus-5", "gpt-5.6-sol", "claude-fable-5-1"], want: "strong" },
-      { role: "council", angle: "logic", engines: ["deepseek-v4-pro", "gpt-6-astra", "gpt-5.6-terra", "kimi-k3", "claude-opus-5", "gpt-5.5"], want: "strong" },
-      { role: "council", angle: "knowledge", engines: ["kimi-k3", "gpt-5.6-terra", "deepseek-flash", "claude-sonnet-5", "kimi-k2.6", "gpt-6-astra"], want: "strong" },
+      { role: "council", angle: "strategy", engines: ["gpt-6-astra", "kimi-k3", "claude-opus-5", "deepseek-v4-pro", "gpt-5.6-sol", "claude-opus-4-7"], want: "strong" },
+      { role: "council", angle: "logic", engines: ["deepseek-v4-pro", "kimi-k3", "gpt-6-astra", "claude-opus-5", "gpt-5.5", "claude-opus-4-6"], want: "strong" },
+      { role: "council", angle: "knowledge", engines: ["kimi-k3", "deepseek-flash", "gpt-5.6-terra", "claude-sonnet-5", "kimi-k2.6", "gpt-5.2"], want: "strong" },
       /* And the seat that reads what came of it. Three specialists and a
          writer can still be confidently wrong together; the one job nobody
          at the table has is looking at the finished answer from outside it. */
-      { role: "check", engines: ["gpt-5.6-terra", "kimi-k3", "deepseek-v4-pro", "claude-opus-5", "gpt-6-astra", "claude-sonnet-5"], want: "strong" },
+      { role: "check", engines: ["gpt-5.6-sol", "kimi-k3", "deepseek-v4-pro", "claude-opus-5", "gpt-6-astra", "claude-sonnet-4-6"], want: "strong" },
     ],
     effort: "high",
     revise: true,
@@ -259,11 +259,11 @@ export const PRESETS: Preset[] = [
     blurb:
       "Books, PDFs, research, threads that have run all day. It answers on the biggest window you have a key for, and a second company reads the summary back against what it was meant to say.",
     examples: ["summarise this 80-page report", "what changed between these two contracts", "find every mention of the deadline"],
-    engines: ["gpt-6-astra", "gpt-5.6-terra", "kimi-k3", "claude-opus-5", "claude-sonnet-4-6", "claude-fable-5", "gpt-5.5", "kimi-k2.6"],
+    engines: ["gpt-5.6-terra", "kimi-k3", "deepseek-flash", "gpt-6-astra", "claude-sonnet-5", "claude-sonnet-4-6", "gpt-5.5", "claude-fable-5"],
     want: "long",
     group: "everyday",
     cast: [
-      { role: "check", engines: ["claude-sonnet-5", "kimi-k3", "deepseek-flash", "gpt-5.6-terra", "gpt-5.5", "claude-sonnet-4-6"], want: "balanced" },
+      { role: "check", engines: ["kimi-k3", "claude-sonnet-5", "deepseek-flash", "gpt-5.6-terra", "kimi-k2.6", "claude-sonnet-4-5"], want: "balanced" },
     ],
     revise: true,
     icon: "layers",
@@ -278,12 +278,12 @@ export const PRESETS: Preset[] = [
     blurb:
       "Code, and pages that run beside the conversation. Another company plans the thing first — the pieces, the order, what is easy to leave out — the strongest coder you have builds it, and a third reads the result back. It would rather make the thing than describe it.",
     examples: ["build me a stopwatch with lap times", "refactor this to remove the nested loop", "why does this test fail only in CI"],
-    engines: ["claude-opus-5", "claude-sonnet-5", "gpt-5.6-terra", "kimi-k2.7-code", "kimi-k3", "claude-fable-5-1", "claude-opus-4-8", "deepseek-v4-pro"],
+    engines: ["claude-opus-5", "gpt-6-astra", "kimi-k2.7-code", "claude-sonnet-5", "claude-fable-5-1", "claude-opus-4-8", "deepseek-v4-pro"],
     want: "strong",
     group: "job",
     cast: [
-      { role: "brief", as: "plan", engines: ["gpt-5.6-terra", "kimi-k2.7-code", "deepseek-v4-pro", "claude-sonnet-5", "kimi-k3", "gpt-5.5", "claude-sonnet-4-6"], want: "strong" },
-      { role: "check", engines: ["gpt-5.6-terra", "kimi-k2.7-code", "deepseek-v4-pro", "claude-opus-5", "gpt-6-astra", "claude-opus-4-6"], want: "strong" },
+      { role: "brief", as: "plan", engines: ["gpt-6-astra", "deepseek-v4-pro", "kimi-k2.7-code", "claude-sonnet-5", "gpt-5.6-sol", "claude-sonnet-4-6"], want: "strong" },
+      { role: "check", engines: ["kimi-k2.7-code", "gpt-6-astra", "deepseek-v4-pro", "claude-opus-5", "kimi-k2.7-code-highspeed", "claude-opus-4-6"], want: "strong" },
     ],
     effort: "high",
     stance:
@@ -299,12 +299,12 @@ export const PRESETS: Preset[] = [
     blurb:
       "Screenshots, diagrams, photographs of a whiteboard. Two models that can actually see are given the same picture and answer side by side, because what a model gets wrong about an image it gets wrong confidently and a second reading is the only way to catch it.",
     examples: ["what is wrong in this screenshot", "read this handwriting", "turn this diagram into a description"],
-    engines: ["claude-sonnet-5", "gpt-5.6-terra", "gpt-6-astra", "claude-haiku-4-5", "gpt-5.2", "kimi-k3", "claude-sonnet-4-6"],
+    engines: ["claude-sonnet-5", "kimi-k3", "gpt-5.6-terra", "gpt-6-astra", "claude-opus-5", "claude-sonnet-4-6", "claude-opus-4-5"],
     want: "balanced",
     group: "job",
     sees: true,
     cast: [
-      { role: "duel", engines: ["gpt-5.6-terra", "gpt-6-astra", "claude-sonnet-5", "kimi-k2.6", "kimi-k2.7-code", "claude-opus-4-5", "kimi-k3"], want: "balanced" },
+      { role: "duel", engines: ["kimi-k3", "gpt-5.6-terra", "deepseek-flash", "claude-sonnet-5", "gpt-6-astra", "kimi-k2.6"], want: "balanced" },
     ],
     icon: "eye",
   },
@@ -316,12 +316,12 @@ export const PRESETS: Preset[] = [
     blurb:
       "For learning something rather than obtaining it. Another model first writes down what somebody asking this usually believes that is wrong, so the explanation starts where you actually are; the answer ends with questions you cannot pass by having just read it; and a second company checks the teaching was right before you commit it to memory. Cards made here live in Study.",
     examples: ["explain eigenvalues like I have forgotten the algebra", "teach me the water cycle", "I have an exam on the Krebs cycle on Friday"],
-    engines: ["claude-sonnet-5", "gpt-5.6-terra", "kimi-k2.6", "deepseek-flash", "claude-sonnet-4-6", "gpt-5.6-sol"],
+    engines: ["claude-sonnet-5", "gpt-5.6-terra", "kimi-k3", "deepseek-flash", "claude-sonnet-4-6", "gpt-5.5"],
     want: "balanced",
     group: "job",
     cast: [
-      { role: "brief", as: "misconceptions", engines: ["gpt-5.6-luna", "kimi-k2.6", "deepseek-flash", "claude-haiku-4-5", "gpt-5"], want: "cheap" },
-      { role: "check", engines: ["gpt-5.6-luna", "deepseek-flash", "kimi-k2.6", "claude-haiku-4-5", "gpt-5"], want: "cheap" },
+      { role: "brief", as: "misconceptions", engines: ["kimi-k2.6", "gpt-5.6-luna", "deepseek-flash", "claude-haiku-4-5", "gpt-5.2", "gpt-5"], want: "cheap" },
+      { role: "check", engines: ["gpt-5.6-luna", "deepseek-flash", "kimi-k2.6", "claude-haiku-4-5", "gpt-5", "claude-sonnet-4-5"], want: "cheap" },
     ],
     register: "explanatory",
     stance:
@@ -336,11 +336,11 @@ export const PRESETS: Preset[] = [
     blurb:
       "Translation, where the mistake you cannot see is the one that matters. One model translates and a model from a different company reads the translation against the original and reports what drifted.",
     examples: ["translate this email into Japanese", "what does this clause say in English", "is this the right register for a formal letter"],
-    engines: ["claude-sonnet-5", "gpt-5.6-terra", "kimi-k3", "deepseek-flash", "kimi-k2.6", "gpt-5.6-sol", "claude-sonnet-4-6"],
+    engines: ["kimi-k3", "claude-sonnet-5", "gpt-5.6-terra", "deepseek-v4-pro", "kimi-k2.6", "gpt-5.5", "claude-sonnet-4-6"],
     want: "balanced",
     group: "job",
     cast: [
-      { role: "check", engines: ["gpt-5.6-terra", "kimi-k3", "deepseek-flash", "claude-sonnet-5", "kimi-k2.6", "claude-sonnet-4-6", "kimi-k2.7-code-highspeed"], want: "balanced" },
+      { role: "check", engines: ["gpt-5.6-terra", "claude-sonnet-5", "deepseek-v4-pro", "kimi-k3", "gpt-6-astra", "claude-sonnet-4-5"], want: "balanced" },
     ],
     stance:
       "Translate the meaning and the register, not the words. Keep names, numbers, and formatting exactly as they are. Where an idiom has no equivalent, say plainly what it means rather than inventing one.",
@@ -354,11 +354,11 @@ export const PRESETS: Preset[] = [
     blurb:
       "Emails, letters, posts, anything with a reader who is not you. Another model works out who reads it and what it has to achieve before a word is written, which is the part that is usually skipped and the reason most drafts have to be rewritten.",
     examples: ["write to my landlord about the boiler", "a resignation letter that keeps the door open", "turn these notes into an announcement"],
-    engines: ["claude-sonnet-5", "gpt-5.6-terra", "kimi-k2.6", "deepseek-flash", "claude-sonnet-4-6", "gpt-6-astra"],
+    engines: ["gpt-5.6-sol", "claude-sonnet-5", "kimi-k3", "gpt-5.6-terra", "gpt-5.5", "claude-sonnet-4-6", "deepseek-v4-pro"],
     want: "balanced",
     group: "job",
     cast: [
-      { role: "brief", as: "audience", engines: ["gpt-5.6-luna", "kimi-k2.6", "deepseek-flash", "claude-haiku-4-5", "gpt-5"], want: "cheap" },
+      { role: "brief", as: "audience", engines: ["kimi-k2.6", "claude-haiku-4-5", "deepseek-flash", "gpt-5.6-luna", "gpt-5.2", "claude-sonnet-4-5"], want: "cheap" },
     ],
     register: "formal",
     icon: "feather",
@@ -371,11 +371,11 @@ export const PRESETS: Preset[] = [
     blurb:
       "Two companies answer the same question, side by side, and you keep the one you prefer. Where judgement or taste decides, two answers are worth more than one model's verdict — and unlike the Council, nothing is blended away.",
     examples: ["what should we call this feature", "is this opening paragraph any good", "which of these two designs"],
-    engines: ["claude-opus-5", "gpt-5.6-terra", "kimi-k3", "claude-sonnet-5", "gpt-6-astra", "claude-fable-5-1", "claude-opus-4-7", "gpt-5.6-sol"],
+    engines: ["claude-opus-5", "gpt-6-astra", "kimi-k3", "deepseek-v4-pro", "claude-fable-5-1", "claude-opus-4-7", "gpt-5.6-sol"],
     want: "strong",
     group: "job",
     cast: [
-      { role: "duel", engines: ["gpt-5.6-terra", "kimi-k3", "claude-opus-5", "deepseek-v4-pro", "gpt-6-astra", "gpt-5.6-sol", "claude-fable-5-1"], want: "strong" },
+      { role: "duel", engines: ["gpt-6-astra", "kimi-k3", "deepseek-v4-pro", "claude-opus-5", "gpt-5.6-sol", "claude-opus-4-8"], want: "strong" },
     ],
     icon: "scale",
   },
@@ -610,12 +610,27 @@ export function resolveCast(id: string, where: Where): Cast | null {
     } else missing.push(part.role);
   }
 
+  /* How many labs the finished cast actually spans, against how many seats it
+     has. Counted over the whole cast rather than against the writer, because
+     that is the claim the row makes. */
+  const seats = parts.length + 1;
+  const spread = new Set([writer.provider, ...parts.map((x) => byModel(x.modelId).provider)]).size;
   return {
     answer,
     parts,
-    short: missing.length ? shortfall(missing) : kin ? KIN_SHORT : null,
+    short: missing.length
+      ? shortfall(missing)
+      : kin
+        ? KIN_SHORT
+        : spread < Math.min(seats, MAKERS)
+          ? FEW_SHORT(spread, seats)
+          : null,
   };
 }
+
+/** How many companies this app can call at all, which caps what a cast can span. */
+const MAKERS = new Set(MODELS.map((m) => m.provider)).size;
+const byModel = (id: string) => MODELS.find((m) => m.id === id)!;
 
 const SAYS: Record<Role, string> = {
   brief: "nobody to brief it",
@@ -636,6 +651,21 @@ const shortfall = (missing: Role[]) =>
  * be claiming — so it is stated, with the thing that would fix it.
  */
 const KIN_SHORT = "one company only — the second model is a sibling, not a rival. A second key fixes it.";
+
+/**
+ * Said when the cast is filled, but from fewer companies than it has seats.
+ *
+ * `KIN_SHORT` only catches a seat that shares a company with the *writer*,
+ * which was the whole of the problem while each provider had two or three
+ * models. It is not any more. With a deep enough bench two keys can fill all
+ * five council seats — one from one lab, four from the other — and every one
+ * of those four is independent of the writer, so nothing above notices and
+ * the row goes on promising three companies taking three halves of the
+ * question. Four seats from one lab is four readings, not four opinions, and
+ * a menu that did not say so would be selling the shape of the thing.
+ */
+const FEW_SHORT = (have: number, seats: number) =>
+  `${have} companies across ${seats} seats — some of them are siblings. Another key fixes it.`;
 
 /**
  * What to call the thing that answered, wherever a reader sees it.
