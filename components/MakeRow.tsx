@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CalendarRange, CheckCheck, ListChecks, Sparkles, Timer, Wand2 } from "lucide-react";
+import { CalendarRange, CheckCheck, Columns3, GitBranch, Hourglass, ListChecks, Sparkles, Timer, Wand2 } from "lucide-react";
 import { MAKES } from "@/lib/makes";
 import { createWebCanvas } from "@/lib/db";
 
@@ -22,6 +22,9 @@ export function MakeMark({ icon, size = 15 }: { icon: string; size?: number }) {
   if (icon === "ListChecks") return <ListChecks size={size} />;
   if (icon === "CheckCheck") return <CheckCheck size={size} />;
   if (icon === "Timer") return <Timer size={size} />;
+  if (icon === "GitBranch") return <GitBranch size={size} />;
+  if (icon === "Columns3") return <Columns3 size={size} />;
+  if (icon === "Hourglass") return <Hourglass size={size} />;
   return <Sparkles size={size} />;
 }
 

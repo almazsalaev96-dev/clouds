@@ -2,12 +2,12 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ClipboardPaste, Download, Plus, Repeat, Trash2 } from "lucide-react";
 import type { Deck } from "@/lib/types";
-import { addCards, cardsOf, db, deleteCard, updateCard } from "@/lib/db";
+import { addCards, cardsOf, deleteCard, importCards, updateCard } from "@/lib/db";
 import { draftCards } from "@/lib/generate";
 import { cheapestAvailable } from "@/lib/complete";
-import { progressOf, whenDue, type Card } from "@/lib/study";
+import { clozeQuestion, exportCards, isCloze, progressOf, whenDue, type Card } from "@/lib/study";
 import { offerUndo } from "@/lib/undo";
 import { Button } from "@/components/ui/primitives";
 import { cn } from "@/lib/utils";
@@ -31,15 +31,48 @@ export function DeckPanel({
   configured,
   onBack,
   onStudy,
+  onCram,
 }: {
   deck: Deck;
   configured: Record<string, boolean>;
   onBack: () => void;
   onStudy: () => void;
+  /** Every card, regardless of the schedule, and the schedule untouched. */
+  onCram: () => void;
 }) {
   const cards = useLiveQuery(() => cardsOf(deck.id), [deck.id], [] as Card[]);
   const [busy, setBusy] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
+  const [pasting, setPasting] = React.useState(false);
+  const [pasted, setPasted] = React.useState("");
+
+  const paste = async () => {
+    const text = pasted.trim();
+    if (!text) return;
+    const { added, skipped } = await importCards(deck.id, text);
+    setNotice(
+      added
+        ? `${added} card${added === 1 ? "" : "s"} added${skipped ? ` · ${skipped} line${skipped === 1 ? "" : "s"} skipped` : ""}`
+        : "Nothing on those lines could be read as a card.",
+    );
+    if (added) {
+      setPasted("");
+      setPasting(false);
+    }
+  };
+
+  /* The deck as a file, in the form that reads back in here and into the
+     tools people came from. A deck you cannot take with you is a deck that
+     belongs to the app rather than to the person who made it. */
+  const download = () => {
+    const blob = new Blob([exportCards(cards)], { type: "text/tab-separated-values" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${deck.name.replace(/[^\w-]+/g, "-").toLowerCase() || "deck"}.tsv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   const now = Date.now();
   const p = progressOf(cards, now);
 
@@ -94,6 +127,22 @@ export function DeckPanel({
             <Plus size={13} />
             {busy ? "Writing…" : "More cards"}
           </Button>
+          <Button size="sm" variant="ghost" onClick={() => setPasting((v) => !v)} aria-label="Paste cards in">
+            <ClipboardPaste size={13} />
+          </Button>
+          {cards.length > 0 && (
+            <Button size="sm" variant="ghost" onClick={download} aria-label="Download the deck">
+              <Download size={13} />
+            </Button>
+          )}
+          {/* The night before. Everything, the ones you have forgotten most
+              first, and the schedule left exactly as it was. */}
+          {cards.length > 0 && (
+            <Button size="sm" variant="ghost" onClick={onCram} aria-label="Practise every card">
+              <Repeat size={13} />
+              Practise
+            </Button>
+          )}
           {p.due > 0 && (
             <Button size="sm" variant="primary" onClick={onStudy}>
               Study {p.due}
@@ -103,6 +152,23 @@ export function DeckPanel({
       </header>
 
       <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-4">
+        {pasting && (
+          <div className="mb-3 rounded-lg border border-line bg-surface p-2.5">
+            <textarea
+              autoFocus
+              value={pasted}
+              onChange={(e) => setPasted(e.target.value)}
+              rows={5}
+              aria-label="Cards to paste"
+              placeholder={"One card a line:\nWhat is a debounce :: Waiting for silence\nThe {{mitochondria}} is the powerhouse of the cell\nquestion<tab>answer, or question,answer"}
+              className="focus-inset w-full resize-y rounded-md border border-line bg-canvas px-2.5 py-1.5 font-mono text-xs text-primary outline-none"
+            />
+            <div className="mt-2 flex items-center justify-end gap-2">
+              <Button size="sm" variant="ghost" onClick={() => { setPasting(false); setPasted(""); }}>Cancel</Button>
+              <Button size="sm" variant="primary" disabled={!pasted.trim()} onClick={() => void paste()}>Add them</Button>
+            </div>
+          </div>
+        )}
         {notice && <p className="mb-3 text-sm text-warning">{notice}</p>}
         <ul className="space-y-1.5" aria-label="Cards">
           {cards.map((c) => (
@@ -172,7 +238,7 @@ function CardRow({ card, now }: { card: Card; now: number }) {
             className="focus-inset min-w-0 flex-1 rounded-md text-left"
             aria-label={`Edit “${card.front.slice(0, 40)}”`}
           >
-            <span className="block text-sm text-primary">{card.front}</span>
+            <span className="block text-sm text-primary">{isCloze(card.front) ? clozeQuestion(card.front) : card.front}</span>
             <span className="mt-0.5 block text-sm text-tertiary">{card.back}</span>
           </button>
           <span className="shrink-0 text-xs text-faint tnum">

@@ -2,12 +2,15 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, GraduationCap, MessageSquare, Trash2 } from "lucide-react";
+import { ChevronLeft, Flame, MessageSquare, Pencil, Trash2 } from "lucide-react";
 import type { Deck } from "@/lib/types";
-import { addCards, cardsOf, createDeck, db, deleteDeck, answerCard } from "@/lib/db";
+import { addCards, createDeck, db, deleteCard, deleteDeck, answerCard, importCards, noteStudied, updateCard } from "@/lib/db";
 import { draftCards } from "@/lib/generate";
 import { cheapestAvailable } from "@/lib/complete";
-import { answeredToday, dueNow, progressOf, previewGaps, whenDue, type Card, type Rating } from "@/lib/study";
+import {
+  answeredToday, clozeAnswer, clozeQuestion, cramOrder, dueNow, isCloze, progressOf, previewGaps, streakOf, whenDue,
+  type Card, type Rating, type StudyDay,
+} from "@/lib/study";
 import { offerUndo } from "@/lib/undo";
 import { Button } from "@/components/ui/primitives";
 import { MessageBar } from "@/components/chat/MessageBar";
@@ -48,7 +51,18 @@ export function StudyView({
 }) {
   const decks = useLiveQuery(() => db.decks.orderBy("updatedAt").reverse().toArray(), [], [] as Deck[]);
   const cards = useLiveQuery(() => db.cards.toArray(), [], [] as Card[]);
-  const [session, setSession] = React.useState<{ deckId: string | null } | null>(null);
+  const days = useLiveQuery(() => db.studyDays.toArray(), [], [] as StudyDay[]);
+  /**
+   * What is being asked, and on what terms.
+   *
+   * `due` is the schedule doing its job. `cram` is the night before: every
+   * card in the deck, the ones you have forgotten most first, and nothing
+   * you answer moves anything — the schedule made a promise about when each
+   * card comes back, and a run-through does not get to break it.
+   */
+  const [session, setSession] = React.useState<{ deckId: string | null; mode: "due" | "cram" } | null>(null);
+  const [pasting, setPasting] = React.useState(false);
+  const [pasted, setPasted] = React.useState("");
   const [openDeck, setOpenDeck] = React.useState<string | null>(null);
   const [subject, setSubject] = React.useState("");
   /* "New deck" puts the caret in the line that makes one. Bumping this is
@@ -97,11 +111,39 @@ export function StudyView({
     }
   };
 
+  /* The other way in, and the one that asks nothing of a model: a list
+     from a glossary, an export from the tool somebody used before this one,
+     cloze sentences typed by hand. Named after the first line unless the
+     subject line has something in it. */
+  const paste = async () => {
+    const text = pasted.trim();
+    if (!text || busy) return;
+    setBusy(true);
+    setNotice(null);
+    try {
+      const name = subject.trim() || text.split("\n")[0].split(/::|\t|,/)[0].trim().slice(0, 60) || "Pasted cards";
+      const deck = await createDeck(name, "pasted");
+      const { added, skipped } = await importCards(deck.id, text);
+      if (!added) {
+        await deleteDeck(deck.id);
+        setNotice("Nothing on those lines could be read as a card. One card a line: “question :: answer”, or a sentence with the answer in {{braces}}.");
+        return;
+      }
+      setNotice(skipped ? `${added} card${added === 1 ? "" : "s"} made · ${skipped} line${skipped === 1 ? "" : "s"} skipped` : null);
+      setPasted("");
+      setSubject("");
+      setPasting(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (session) {
     const pool = session.deckId ? cards.filter((c) => c.deckId === session.deckId) : cards;
     return (
       <Session
         cards={pool}
+        mode={session.mode}
         title={session.deckId ? decks.find((d) => d.id === session.deckId)?.name ?? "Studying" : "Everything due"}
         onLeave={() => setSession(null)}
         onAsk={onAsk}
@@ -116,13 +158,15 @@ export function StudyView({
         deck={deck}
         configured={configured}
         onBack={() => setOpenDeck(null)}
-        onStudy={() => { setOpenDeck(null); setSession({ deckId: deck.id }); }}
+        onStudy={() => { setOpenDeck(null); setSession({ deckId: deck.id, mode: "due" }); }}
+        onCram={() => { setOpenDeck(null); setSession({ deckId: deck.id, mode: "cram" }); }}
       />
     );
   }
 
   const due = dueNow(cards, now).length;
   const today = answeredToday(cards, now);
+  const streak = streakOf(days, now);
 
   /* The same chrome as the Notebook, the Artifacts and the Projects.
      This room was written last and grew its own header — a different title
@@ -177,7 +221,36 @@ export function StudyView({
             className="glass"
             focusKey={focusKey}
           />
-          {busy && <p className="sheen mt-2 text-sm font-medium">Writing the cards</p>}
+          {/* Or hand it a list. Hidden until asked for: the line above is the
+              way in for most people most of the time, and a second box under
+              it every time would make the room a form. */}
+          {pasting ? (
+            <div className="mt-2 rounded-lg border border-line bg-surface p-2.5">
+              <textarea
+                autoFocus
+                value={pasted}
+                onChange={(e) => setPasted(e.target.value)}
+                rows={5}
+                aria-label="Cards to paste"
+                placeholder={"One card a line:\nWhat is a debounce :: Waiting for silence\nThe {{mitochondria}} is the powerhouse of the cell\nquestion<tab>answer, or question,answer"}
+                className="focus-inset w-full resize-y rounded-md border border-line bg-canvas px-2.5 py-1.5 font-mono text-xs text-primary outline-none"
+              />
+              <div className="mt-2 flex items-center justify-end gap-2">
+                <Button size="sm" variant="ghost" onClick={() => { setPasting(false); setPasted(""); }}>Cancel</Button>
+                <Button size="sm" variant="primary" disabled={!pasted.trim() || busy} onClick={() => void paste()}>
+                  Make the deck
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setPasting(true)}
+              className="focus-inset mt-1.5 rounded-sm text-xs text-tertiary hover:text-primary hover:underline"
+            >
+              …or paste a list of cards
+            </button>
+          )}
+          {busy && !pasting && <p className="sheen mt-2 text-sm font-medium">Writing the cards</p>}
           {notice && <p className="mt-2 text-sm text-warning">{notice}</p>}
 
           {/* What is waiting, and the one press that clears it. Everything
@@ -191,7 +264,7 @@ export function StudyView({
                   <span className="text-tertiary"> · {today} answered today</span>
                 )}
               </span>
-              <Button size="sm" variant="primary" className="bloom" onClick={() => setSession({ deckId: null })}>
+              <Button size="sm" variant="primary" className="bloom" onClick={() => setSession({ deckId: null, mode: "due" })}>
                 Start
               </Button>
             </div>
@@ -199,6 +272,16 @@ export function StudyView({
           {due === 0 && today > 0 && (
             <p className="mt-3 text-sm text-tertiary tnum">
               {today} answered today · nothing else waiting.
+            </p>
+          )}
+          {/* Days in a row. The one number that is about the person rather
+              than the cards, and the reason somebody opens this room on a
+              day nothing is due. Counted from the log, not from the cards:
+              a card keeps only its last answer and forgets the day before. */}
+          {streak > 1 && (
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-tertiary tnum" aria-label={`${streak} days in a row`}>
+              <Flame size={12} className="text-[var(--accent-2)]" />
+              {streak} days in a row
             </p>
           )}
         </div>
@@ -214,37 +297,67 @@ export function StudyView({
  * it — which is the whole mechanism. A card you read the answer to is a
  * card you have not been tested on, so the reveal is a deliberate act and
  * the keyboard does it: space to show, then one to four.
+ *
+ * Two kinds of card, drawn differently. A question-and-answer card shows the
+ * question and then the answer. A cloze card shows its sentence with a hole
+ * in it, and then the same sentence whole with the missing word marked —
+ * the answer *in its place*, which is what makes a cloze worth having.
  */
 function Session({
   cards,
+  mode,
   title,
   onLeave,
   onAsk,
 }: {
   cards: Card[];
+  /** The schedule's queue, or every card regardless of it. */
+  mode: "due" | "cram";
   title: string;
   onLeave: () => void;
   onAsk?: (question: string) => void;
 }) {
   const [shown, setShown] = React.useState(false);
   const [done, setDone] = React.useState(0);
+  /* How it went, by answer, for the line at the end. A session that ends
+     with "nothing left" and no account of itself is one that leaves
+     nobody knowing whether it went well. */
+  const [tally, setTally] = React.useState<Record<Rating, number>>({ again: 0, hard: 0, good: 0, easy: 0 });
+  const [editing, setEditing] = React.useState(false);
   const now = useNow(1_000);
-  const queue = React.useMemo(() => dueNow(cards, now), [cards, now]);
+  /* In practice the order is fixed at the start and walked once, since
+     nothing answered changes when anything comes back. The schedule's queue
+     re-reads the clock every second, because a card answered "again" is
+     due again in a minute and should turn up at the end of the same sitting. */
+  const [walk, setWalk] = React.useState<string[]>(() => (mode === "cram" ? cramOrder(cards).map((c) => c.id) : []));
+  const queue = React.useMemo(() => {
+    if (mode === "cram") return walk.map((id) => cards.find((c) => c.id === id)).filter((c): c is Card => Boolean(c));
+    return dueNow(cards, now);
+  }, [cards, now, mode, walk]);
   const card = queue[0];
 
   const answer = React.useCallback(
     async (rating: Rating) => {
       if (!card) return;
       setShown(false);
+      setEditing(false);
       setDone((n) => n + 1);
-      await answerCard(card, rating);
+      setTally((t) => ({ ...t, [rating]: t[rating] + 1 }));
+      if (mode === "cram") {
+        /* Counted as studying — it is — and nothing else. The card's own
+           schedule is left exactly where it was. */
+        setWalk((w) => w.slice(1));
+        await noteStudied(rating);
+      } else {
+        await answerCard(card, rating);
+      }
     },
-    [card],
+    [card, mode],
   );
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.metaKey || e.ctrlKey || e.altKey || editing) return;
       if (e.key === "Escape") return onLeave();
       if (!card) return;
       if (!shown && (e.key === " " || e.key === "Enter")) {
@@ -262,9 +375,10 @@ function Session({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [shown, card, answer, onLeave]);
+  }, [shown, card, answer, onLeave, editing]);
 
   const gaps = card ? previewGaps(card, now) : null;
+  const cloze = card ? isCloze(card.front) : false;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -276,7 +390,10 @@ function Session({
         >
           <ChevronLeft size={16} />
         </button>
-        <span className="min-w-0 flex-1 truncate text-sm text-secondary">{title}</span>
+        <span className="min-w-0 flex-1 truncate text-sm text-secondary">
+          {title}
+          {mode === "cram" && <span className="text-tertiary"> · practice</span>}
+        </span>
         <span className="tnum shrink-0 text-xs text-tertiary">
           {queue.length} left{done > 0 ? ` · ${done} done` : ""}
         </span>
@@ -299,26 +416,42 @@ function Session({
             <p className="text-xl text-primary">Nothing left for now.</p>
             <p className="mx-auto mt-1.5 max-w-prose text-sm text-secondary">
               {done > 0
-                ? `${done} card${done === 1 ? "" : "s"} answered. The ones you found hard come back within the hour; the rest in a day or more.`
+                ? mode === "cram"
+                  ? `${done} card${done === 1 ? "" : "s"} practised. Nothing about when they come back has changed.`
+                  : `${done} card${done === 1 ? "" : "s"} answered. The ones you found hard come back within the hour; the rest in a day or more.`
                 : "Everything here is scheduled for later."}
             </p>
+            {done > 0 && (
+              /* The account of itself. Right first time is the number that
+                 tells somebody whether the deck is learned or being learned. */
+              <p className="mt-3 text-sm text-tertiary tnum" aria-label="How the session went">
+                <span className="text-primary">{tally.good + tally.easy}</span> of {done} right first time
+                {tally.again > 0 && <> · <span className="text-warning">{tally.again}</span> to see again</>}
+              </p>
+            )}
             <Button size="sm" variant="secondary" className="mt-4" onClick={onLeave}>
               Back to Study
             </Button>
           </div>
         ) : (
           <div className="w-full max-w-[var(--measure)]">
-            <div className="rounded-xl border border-line bg-surface p-6 sm:p-8">
-              <p className="text-center text-xl leading-snug text-primary sm:text-2xl">{card.front}</p>
-              {shown && (
-                <>
-                  <hr className="my-5 border-0 border-t border-line" />
-                  <p className="anim-fade whitespace-pre-wrap text-center text-lg leading-relaxed text-secondary">
-                    {card.back}
-                  </p>
-                </>
-              )}
-            </div>
+            {editing ? (
+              <EditCard card={card} onDone={() => setEditing(false)} />
+            ) : (
+              <div className="rounded-xl border border-line bg-surface p-6 sm:p-8">
+                <p className="text-center text-xl leading-snug text-primary sm:text-2xl">
+                  {cloze ? clozeQuestion(card.front) : card.front}
+                </p>
+                {shown && (
+                  <>
+                    <hr className="my-5 border-0 border-t border-line" />
+                    <p className="anim-fade whitespace-pre-wrap text-center text-lg leading-relaxed text-secondary">
+                      {cloze ? <Marked text={clozeAnswer(card.front)} /> : card.back}
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
 
             {!shown ? (
               <div className="mt-5 flex justify-center">
@@ -329,7 +462,8 @@ function Session({
             ) : (
               /* Four buttons and what each one costs, said before it is
                  pressed. A scheduler nobody can see the consequences of is
-                 one people fight rather than use. */
+                 one people fight rather than use. In practice the cost is
+                 nothing, and the buttons say that instead. */
               <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4" role="group" aria-label="How did it go">
                 {([
                   ["again", "Again", "var(--danger)"],
@@ -345,28 +479,50 @@ function Session({
                     <span className="text-sm font-medium text-primary">
                       {label} <span className="text-tertiary">{i + 1}</span>
                     </span>
-                    <span className="text-xs text-tertiary tnum">{gaps?.[r]}</span>
+                    <span className="text-xs text-tertiary tnum">{mode === "cram" ? "—" : gaps?.[r]}</span>
                   </button>
                 ))}
               </div>
             )}
 
-            {/* The move a deck of cards has never had. You got it wrong,
-                and the explanation is one press away rather than a search
-                somewhere else — which is the whole reason for a deck that
-                lives inside an assistant rather than beside one. */}
-            {shown && onAsk && (
-              <div className="mt-3 flex justify-center">
+            {/* The two moves a deck of cards has never had. You got it
+                wrong, and the explanation is one press away rather than a
+                search somewhere else. Or the card itself is wrong — the
+                answer given away in the question, a fact off by one — and
+                the moment you notice is now, mid-session, not later in a
+                list you have to find it in. */}
+            {shown && !editing && (
+              <div className="mt-3 flex flex-wrap justify-center gap-1">
+                {onAsk && (
+                  <button
+                    onClick={() =>
+                      onAsk(
+                        `I am studying ${title}. I was asked: “${cloze ? clozeQuestion(card.front) : card.front}”\n\nThe answer given was: “${card.back}”\n\nExplain it so it sticks — why that is the answer, and the thing people get wrong about it.`,
+                      )
+                    }
+                    className="focus-inset flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                  >
+                    <MessageSquare size={12} />
+                    Explain this
+                  </button>
+                )}
                 <button
-                  onClick={() =>
-                    onAsk(
-                      `I am studying ${title}. I was asked: “${card.front}”\n\nThe answer given was: “${card.back}”\n\nExplain it so it sticks — why that is the answer, and the thing people get wrong about it.`,
-                    )
-                  }
+                  onClick={() => setEditing(true)}
                   className="focus-inset flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
                 >
-                  <MessageSquare size={12} />
-                  Explain this
+                  <Pencil size={12} />
+                  Fix this card
+                </button>
+                <button
+                  onClick={async () => {
+                    setShown(false);
+                    setWalk((w) => w.filter((id) => id !== card.id));
+                    offerUndo("that card", await deleteCard(card.id));
+                  }}
+                  className="focus-inset flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-[var(--danger)]"
+                >
+                  <Trash2 size={12} />
+                  Drop it
                 </button>
               </div>
             )}
@@ -378,6 +534,65 @@ function Session({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * A card, corrected where it was being asked.
+ *
+ * The same two boxes the deck panel offers, brought to the place the fault
+ * was noticed. Saving keeps the card's schedule — a corrected answer is not
+ * a new card, and somebody who knew it under the wrong wording still knows
+ * it under the right one.
+ */
+function EditCard({ card, onDone }: { card: Card; onDone: () => void }) {
+  const [front, setFront] = React.useState(card.front);
+  const [back, setBack] = React.useState(card.back);
+  const save = async () => {
+    const f = front.trim();
+    const b = back.trim();
+    if (f && b && (f !== card.front || b !== card.back)) await updateCard(card.id, { front: f, back: b });
+    onDone();
+  };
+  return (
+    <div className="rounded-xl border border-line bg-surface p-4 sm:p-5" aria-label="Fix this card">
+      <textarea
+        autoFocus
+        value={front}
+        onChange={(e) => setFront(e.target.value)}
+        aria-label="Question"
+        rows={2}
+        className="focus-inset w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-1.5 text-sm text-primary outline-none"
+      />
+      <textarea
+        value={back}
+        onChange={(e) => setBack(e.target.value)}
+        aria-label="Answer"
+        rows={2}
+        className="focus-inset mt-2 w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-1.5 text-sm text-secondary outline-none"
+      />
+      <p className="mt-1.5 text-xs text-faint">A sentence with the answer in {"{{braces}}"} is asked with a hole in it.</p>
+      <div className="mt-2 flex justify-end gap-2">
+        <Button size="sm" variant="ghost" onClick={onDone}>Cancel</Button>
+        <Button size="sm" variant="primary" onClick={() => void save()}>Save</Button>
+      </div>
+    </div>
+  );
+}
+
+/** `**bold**` and nothing else, for the answer to a cloze. */
+function Marked({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.startsWith("**") && p.endsWith("**") ? (
+          <strong key={i} className="font-semibold text-primary">{p.slice(2, -2)}</strong>
+        ) : (
+          <React.Fragment key={i}>{p}</React.Fragment>
+        ),
+      )}
+    </>
   );
 }
 

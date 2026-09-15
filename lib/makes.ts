@@ -75,6 +75,33 @@ export const MAKES: Make[] = [
     ask: "Set this timer up for ",
     files: async () => (await load()).timer(),
   },
+  {
+    id: "mindmap",
+    name: "Mind map",
+    blurb: "A topic in the middle, branches you can grow and drag.",
+    icon: "GitBranch",
+    title: "Mind map",
+    ask: "Fill this mind map in for ",
+    files: async () => (await load()).mindmap(),
+  },
+  {
+    id: "kanban",
+    name: "Board",
+    blurb: "To do, doing, done. Drag cards across, or press the arrows.",
+    icon: "Columns3",
+    title: "Board",
+    ask: "Fill this board with ",
+    files: async () => (await load()).kanban(),
+  },
+  {
+    id: "countdown",
+    name: "Countdown",
+    blurb: "Days to the exam, and the milestones on the way.",
+    icon: "Hourglass",
+    title: "Countdown",
+    ask: "Set this countdown for ",
+    files: async () => (await load()).countdown(),
+  },
 ];
 
 export function findMake(id: string | undefined): Make | undefined {

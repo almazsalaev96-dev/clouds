@@ -4,7 +4,7 @@ import type {
   Deck, Memory, Project, ProjectFile, RatingReason, Source, Style, Turn, TurnOutcome,
 } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
-import { newCard, schedule, type Card, type Rating } from "./study";
+import { newCard, schedule, dayKey, parseCards, type Card, type Rating, type StudyDay } from "./study";
 
 /**
  * Local-first. IndexedDB is the source of truth, which makes the app instant,
@@ -26,6 +26,7 @@ class ChatDB extends Dexie {
   turns!: Table<Turn, string>;
   decks!: Table<Deck, string>;
   cards!: Table<Card, string>;
+  studyDays!: Table<StudyDay, string>;
 
   constructor() {
     super("clouds");
@@ -169,6 +170,12 @@ class ChatDB extends Dexie {
     this.version(12).stores({
       decks: "id, updatedAt",
       cards: "id, deckId, due, [deckId+due]",
+    });
+    /* One row per day studied, for the streak. The cards cannot say this
+       on their own — a card keeps only its last answer — so it is written
+       down as it happens or it cannot be counted afterwards. */
+    this.version(13).stores({
+      studyDays: "day",
     });
   }
 }
@@ -389,10 +396,50 @@ export function cardsOf(deckId: string): Promise<Card[]> {
 
 /** An answer, scheduled. The arithmetic is in `lib/study.ts` and is pure. */
 export async function answerCard(card: Card, rating: Rating): Promise<Card> {
-  const next = schedule(card, rating, Date.now());
+  const now = Date.now();
+  const next = schedule(card, rating, now);
   await db.cards.put(next);
-  await db.decks.update(card.deckId, { updatedAt: Date.now() });
+  await db.decks.update(card.deckId, { updatedAt: now });
+  await noteStudied(rating, now);
   return next;
+}
+
+/**
+ * The day's row, for the streak.
+ *
+ * Written by every answer, including one given in practice the night
+ * before an exam: practice does not move the schedule, but it is studying,
+ * and a streak that ignored the evening somebody worked hardest would be
+ * measuring the wrong thing.
+ */
+export async function noteStudied(rating: Rating, now = Date.now()): Promise<void> {
+  const day = dayKey(now);
+  const right = rating === "good" || rating === "easy" ? 1 : 0;
+  await db.transaction("rw", db.studyDays, async () => {
+    const row = await db.studyDays.get(day);
+    await db.studyDays.put(
+      row ? { ...row, answered: row.answered + 1, right: row.right + right } : { day, answered: 1, right },
+    );
+  });
+}
+
+/** Every day studied, oldest first. */
+export function studyDays(): Promise<StudyDay[]> {
+  return db.studyDays.orderBy("day").toArray();
+}
+
+/**
+ * Cards pasted in, in the shapes people already have them in.
+ *
+ * The other way into a deck, and the one that asks nothing of a model: a
+ * list from a textbook's glossary, an export from the tool somebody used
+ * before this one, a cloze sentence typed by hand. Returns what was kept
+ * and what was skipped, so the room can say both.
+ */
+export async function importCards(deckId: string, text: string): Promise<{ added: number; skipped: number }> {
+  const { cards, skipped } = parseCards(text);
+  const added = cards.length ? await addCards(deckId, cards, "pasted") : 0;
+  return { added, skipped };
 }
 
 /** A card, corrected. The model writes them and some of them are wrong. */

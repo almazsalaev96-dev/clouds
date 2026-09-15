@@ -49,6 +49,7 @@ const TABLES = [
   "turns",
   "decks",
   "cards",
+  "studyDays",
 ] as const;
 
 type TableName = (typeof TABLES)[number];
@@ -160,6 +161,7 @@ const HUMAN: Record<string, [string, string]> = {
   turns: ["decision", "decisions"],
   decks: ["deck", "decks"],
   cards: ["card", "cards"],
+  studyDays: ["day studied", "days studied"],
 };
 
 export function say(counts: { label: string; n: number }[]): string {

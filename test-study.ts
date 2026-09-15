@@ -8,7 +8,11 @@
  * lapse that starts a card over without forgetting how hard it was.
  *
  *   npx jiti test-study.ts */
-import { newCard, schedule, dueNow, progressOf, whenDue, previewGaps, answeredToday, DAY, MINUTE, MIN_EASE, type Card } from "./lib/study";
+import {
+  newCard, schedule, dueNow, progressOf, whenDue, previewGaps, answeredToday, DAY, MINUTE, MIN_EASE,
+  isCloze, clozeQuestion, clozeAnswer, clozeHidden, makeCloze, NEW_PER_DAY, cramOrder, streakOf, dayKey,
+  parseCards, exportCards, type Card,
+} from "./lib/study";
 
 let failed = 0;
 const check = (p: boolean, l: string, d = "") => { if (!p) failed++; console.log(`${p ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
@@ -101,6 +105,82 @@ console.log("\nA day's work");
     card({ lastAnswered: lateLastNight }),
     card({}),
   ], T0) === 1, "and today means since midnight, not in the last day");
+}
+
+console.log("\nA sentence with a hole in it");
+{
+  const front = "The capital of {{France}} is Paris";
+  check(isCloze(front) && !isCloze("What is the capital of France?"), "a front with braces is a cloze, and one without is not");
+  check(clozeQuestion(front) === "The capital of […] is Paris", "asked with the hole shown", clozeQuestion(front));
+  check(clozeAnswer(front) === "The capital of **France** is Paris", "answered with the word back and marked", clozeAnswer(front));
+  check(clozeHidden("{{a}} and {{b}}") === "a · b", "and what was hidden can be listed");
+  check(isCloze("The {{c1::mitochondria}} makes ATP") && clozeQuestion("The {{c1::mitochondria}} makes ATP") === "The […] makes ATP",
+    "the numbered form other tools export reads the same");
+  const made = makeCloze("Water boils at 100 degrees at sea level", "100 degrees");
+  check(made?.front === "Water boils at {{100 degrees}} at sea level" && made.back === "100 degrees",
+    "a sentence and a term make a card", made?.front);
+  check(makeCloze("Water boils", "steam") === null, "and a term that is not in the sentence makes nothing");
+  const cased = makeCloze("Paris is the capital", "paris");
+  check(cased?.back === "Paris", "matched without regard to case, but kept as written", cased?.back);
+}
+
+console.log("\nNot two hundred new cards on the first day");
+{
+  const many = Array.from({ length: 50 }, (_, i) => card({ id: `n${i}`, createdAt: T0 - i }));
+  check(dueNow(many, T0).length === NEW_PER_DAY, `a fresh deck of fifty offers ${NEW_PER_DAY} today, not fifty`, String(dueNow(many, T0).length));
+  /* Reviews are debts and are never capped; only the borrowing is. */
+  const owed = Array.from({ length: 30 }, (_, i) => card({ id: `r${i}`, state: "review", due: T0 - DAY, interval: 3 }));
+  check(dueNow([...owed, ...many], T0).length === 30 + NEW_PER_DAY, "thirty overdue reviews all come, and the new ones after them");
+  /* And the cap is the day's, not the session's. */
+  const met = many.slice(0, NEW_PER_DAY).map((c) => schedule(c, "good", T0));
+  const rest = many.slice(NEW_PER_DAY);
+  const later = dueNow([...met, ...rest], T0 + 30 * MINUTE);
+  check(later.every((c) => c.state !== "new"), "twenty started this morning means no new ones this afternoon",
+    `${later.filter((c) => c.state === "new").length} new offered`);
+  check(dueNow([...met, ...rest], T0 + DAY).filter((c) => c.state === "new").length === NEW_PER_DAY,
+    "and tomorrow the next twenty");
+  check(schedule(card(), "again", T0).introducedAt === T0 && schedule(schedule(card(), "good", T0), "again", T0 + DAY).introducedAt === T0,
+    "a card is introduced once, and forgetting it does not make it new again");
+}
+
+console.log("\nThe night before");
+{
+  const a = card({ id: "a", lapses: 0, ease: 2.5, createdAt: T0 });
+  const b = card({ id: "b", lapses: 3, ease: 2.1, createdAt: T0 + 1 });
+  const c = card({ id: "c", lapses: 0, ease: 1.7, createdAt: T0 + 2, state: "review", due: T0 + 30 * DAY });
+  const order = cramOrder([a, b, c]).map((x) => x.id);
+  check(order.join("") === "bca", "everything is asked, the ones you have forgotten most first", order.join(" → "));
+  check(cramOrder([c]).length === 1 && c.due > T0, "including a card not due for a month");
+}
+
+console.log("\nDays in a row");
+{
+  const d = (n: number) => dayKey(T0 - n * DAY);
+  const days = [d(0), d(1), d(2)].map((day) => ({ day, answered: 5, right: 3 }));
+  check(streakOf(days, T0) === 3, "three days ending today is three", String(streakOf(days, T0)));
+  check(streakOf(days.slice(1), T0) === 2, "and a streak that ends yesterday still stands this morning");
+  check(streakOf(days.slice(2), T0) === 0, "but one that ended the day before is over");
+  check(streakOf([{ day: d(0), answered: 0, right: 0 }], T0) === 0, "a day with nothing answered is not a day studied");
+}
+
+console.log("\nCards from text, and back");
+{
+  const got = parseCards([
+    "What is a debounce :: Waiting for silence",
+    "throttle\ta floor between calls",
+    "# a comment",
+    "",
+    "The {{mitochondria}} is the powerhouse",
+    "just a line with nothing to split on",
+    '"Who wrote Hamlet","Shakespeare"',
+  ].join("\n"));
+  check(got.cards.length === 4 && got.skipped === 1, "four shapes read, one line skipped and counted", `${got.cards.length} cards, ${got.skipped} skipped`);
+  check(got.cards[0].front === "What is a debounce" && got.cards[0].back === "Waiting for silence", "double colon");
+  check(got.cards[1].front === "throttle", "tab");
+  check(isCloze(got.cards[2].front) && got.cards[2].back === "mitochondria", "a cloze line, with its answer taken from the hole");
+  check(got.cards[3].front === "Who wrote Hamlet" && got.cards[3].back === "Shakespeare", "and a CSV line with quotes");
+  const out = exportCards(got.cards);
+  check(parseCards(out).cards.length === 4, "and what is written out reads back in whole");
 }
 
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");

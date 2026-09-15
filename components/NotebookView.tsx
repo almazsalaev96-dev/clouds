@@ -3,11 +3,14 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  BookOpen, Download, Eye, GraduationCap, HelpCircle, Highlighter, Layers, ListTree,
-  Paperclip, Pencil, Scissors, SpellCheck2, Tags, X,
+  BookOpen, Download, Eye, GraduationCap, HelpCircle, Highlighter, Layers, Link2, ListTree,
+  MessageSquare, Paperclip, Pencil, Scissors, SpellCheck2, Tags, X,
 } from "lucide-react";
 import type { Note, Source } from "@/lib/types";
-import { addCards, addSource, createDeck, db, deleteNote, deriveTitle, removeSource, sourcesOf } from "@/lib/db";
+import { addCards, addSource, createDeck, createNote, db, deleteNote, deriveTitle, removeSource, sourcesOf } from "@/lib/db";
+import { backlinksTo, outlineOf, readLink, readingTime, withLinks } from "@/lib/links";
+import { makeCloze } from "@/lib/study";
+import { PAGE_TEMPLATES } from "@/lib/pageTemplates";
 import { offerUndo } from "@/lib/undo";
 import { useAutoGrow } from "@/lib/hooks/useAutoGrow";
 import { useAutosave } from "@/lib/hooks/useAutosave";
@@ -123,6 +126,7 @@ export function NotebookView({
   onSelect,
   onNew,
   onBack,
+  onAsk,
 }: {
   noteId: string | null;
   configured: Record<string, boolean>;
@@ -133,6 +137,8 @@ export function NotebookView({
   onSelect: (id: string) => void;
   onNew: () => void;
   onBack: () => void;
+  /** A passage, taken to the chat with a question about it. */
+  onAsk?: (question: string) => void;
 }) {
   // No default value: `undefined` has to keep meaning "not back yet", or the
   // index cannot tell an empty library from an unanswered query.
@@ -194,7 +200,17 @@ export function NotebookView({
   const [reading, setReading] = React.useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const previewRef = React.useRef<HTMLDivElement>(null);
   const loadedFor = React.useRef<string | null>(null);
+  /**
+   * Words somebody has drawn a line under, and the sentence they sit in.
+   *
+   * The move a highlighter makes, and the one every tool built for notes has
+   * settled on: the passage you are looking at is the thing you want to ask
+   * about, or the fact you want to be asked again later. Read from the
+   * browser's own selection inside the preview, and cleared the moment it
+   * is. */
+  const [picked, setPicked] = React.useState<{ text: string; sentence: string; x: number; y: number } | null>(null);
 
   useAutoGrow(textareaRef, preview ? "" : draft);
 
@@ -480,11 +496,118 @@ export function NotebookView({
   const onCiteClick = (e: React.MouseEvent) => {
     const link = (e.target as HTMLElement).closest("a");
     const href = link?.getAttribute("href") ?? "";
+    if (readLink(href)) {
+      e.preventDefault();
+      void onLinkClick(href);
+      return;
+    }
     const m = href.match(/^#armi-cite-(\d+)$/);
     if (!m) return;
     e.preventDefault();
     const found = (note?.citations ?? []).find((c) => c.n === Number(m[1]));
     if (found) setOpenCite(found);
+  };
+
+  React.useEffect(() => {
+    if (!preview) return;
+    const onUp = () => {
+      const sel = window.getSelection();
+      const text = sel?.toString().trim() ?? "";
+      const box = previewRef.current;
+      if (!sel || !text || !box || sel.rangeCount === 0 || !box.contains(sel.anchorNode)) {
+        setPicked(null);
+        return;
+      }
+      /* The sentence around the words, for a cloze. The nearest block's
+         text, split the way a person would, and the piece that has the
+         selection in it. */
+      const block = (sel.anchorNode?.nodeType === 3 ? sel.anchorNode.parentElement : (sel.anchorNode as Element))
+        ?.closest("p, li, td, h1, h2, h3, h4, blockquote");
+      const whole = block?.textContent ?? text;
+      const sentence =
+        whole.split(/(?<=[.!?])\s+/).find((piece) => piece.includes(text)) ?? whole;
+      const rect = sel.getRangeAt(0).getBoundingClientRect();
+      const home = box.getBoundingClientRect();
+      setPicked({ text, sentence: sentence.trim(), x: rect.left + rect.width / 2 - home.left, y: rect.top - home.top });
+    };
+    const clear = () => setPicked(null);
+    document.addEventListener("mouseup", onUp);
+    document.addEventListener("keyup", onUp);
+    document.addEventListener("scroll", clear, true);
+    return () => {
+      document.removeEventListener("mouseup", onUp);
+      document.removeEventListener("keyup", onUp);
+      document.removeEventListener("scroll", clear, true);
+    };
+  }, [preview]);
+
+  /* Every page, for resolving links and for the list of what points here.
+     The index already holds them; nothing more is read. */
+  const pages = React.useMemo(() => (notes ?? []).map((n) => ({ id: n.id, title: n.title, content: n.content })), [notes]);
+  const backlinks = React.useMemo(() => (note ? backlinksTo(note, pages) : []), [note, pages]);
+  const outline = React.useMemo(() => outlineOf(draft), [draft]);
+
+  /**
+   * A link, pressed.
+   *
+   * To a page that exists: open it. To one that does not: make it, named as
+   * the link named it, and open that — so a link is never broken, it is
+   * either a page or the beginning of one. Sharing the citation handler,
+   * because both are anchors the renderer drew and one listener on the
+   * container is the whole mechanism.
+   */
+  const onLinkClick = async (href: string): Promise<boolean> => {
+    const target = readLink(href);
+    if (!target) return false;
+    if (target.kind === "note") onSelect(target.id);
+    else {
+      const made = await createNote({ title: target.title, content: `# ${target.title}\n\n` });
+      onSelect(made.id);
+    }
+    return true;
+  };
+
+  /** Scroll the preview to its nth heading, or put the caret on that line. */
+  const jumpTo = (index: number) => {
+    if (preview) {
+      const heads = previewRef.current?.querySelectorAll("h1, h2, h3, h4");
+      heads?.[index]?.scrollIntoView({ block: "start", behavior: "smooth" });
+      return;
+    }
+    const ta = textareaRef.current;
+    if (!ta) return;
+    let seen = -1;
+    let at = 0;
+    let inFence = false;
+    for (const line of draft.split("\n")) {
+      if (/^\s*```/.test(line)) inFence = !inFence;
+      else if (!inFence && /^#{1,4}\s/.test(line) && ++seen === index) break;
+      at += line.length + 1;
+    }
+    ta.focus();
+    ta.setSelectionRange(at, at);
+    const lineHeight = 26;
+    ta.scrollIntoView({ block: "nearest" });
+    window.scrollTo({ top: Math.max(0, ta.getBoundingClientRect().top + window.scrollY + (draft.slice(0, at).split("\n").length - 3) * lineHeight) });
+  };
+
+  /* A sentence from the page, with the words you chose taken out of it,
+     straight into Study. No model: the sentence is already written, and
+     the fact to remember is the one you pointed at. */
+  const clozeFromPick = async () => {
+    if (!picked || !note) return;
+    const made = makeCloze(picked.sentence, picked.text);
+    if (!made) {
+      setNotice("Choose words inside one sentence to make a card from it.");
+      return;
+    }
+    const deck =
+      (await db.decks.where("updatedAt").above(0).toArray()).find((d) => d.name === (note.title || "This page")) ??
+      (await createDeck(note.title || "This page", "note"));
+    const n = await addCards(deck.id, [made], "note");
+    setNotice(n ? "Card made — it is in Study." : "That card is already in the deck.");
+    setPicked(null);
+    window.getSelection()?.removeAllRanges();
   };
 
   const exportMarkdown = () => {
@@ -538,6 +661,7 @@ export function NotebookView({
         <span className="mr-auto flex items-center gap-2.5">
           <span className="text-xs text-tertiary tnum">
             {words} word{words === 1 ? "" : "s"}
+            {words >= 200 && <span className="text-faint"> · {readingTime(draft)}</span>}
           </span>
           <SaveBadge state={autosave.state} />
         </span>
@@ -621,14 +745,95 @@ export function NotebookView({
                   {stale} since this page was made. What is on it still says what it said then.
                 </p>
               )}
+              {/* Somewhere to stand on a long page. Read from the text, so it
+                  is there while editing too, and only once there is enough
+                  page for it to be worth the room. */}
+              {outline.length >= 3 && (
+                <nav aria-label="On this page" className="mb-4 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                  {outline.map((h) => (
+                    <button
+                      key={h.index}
+                      onClick={() => jumpTo(h.index)}
+                      className={cn(
+                        "focus-inset rounded-sm text-left text-tertiary hover:text-primary hover:underline",
+                        h.level >= 3 && "pl-2 text-faint",
+                      )}
+                    >
+                      {h.text}
+                    </button>
+                  ))}
+                </nav>
+              )}
               {preview ? (
                 draft.trim() ? (
-                  <div onClick={onCiteClick}>
-                    <Markdown content={draft} />
+                  <div ref={previewRef} onClick={onCiteClick} className="relative">
+                    <Markdown content={withLinks(draft, pages)} />
+                    {/* The offer, over the words. Three things a passage can
+                        become, and nothing that needs a menu. */}
+                    {picked && (
+                      <div
+                        role="toolbar"
+                        aria-label="Do something with the selection"
+                        className="glass anim-menu absolute z-10 flex -translate-x-1/2 -translate-y-full items-center gap-0.5 rounded-full border border-line p-0.5 shadow-lg"
+                        style={{ left: Math.max(90, picked.x), top: Math.max(0, picked.y - 6) }}
+                      >
+                        {onAsk && (
+                          <button
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              onAsk(`From my notes on ${note.title || "this page"}:\n\n> ${picked.text}\n\nExplain this — what it means, why it is true, and what people get wrong about it.`);
+                              setPicked(null);
+                            }}
+                            className="focus-inset flex items-center gap-1 rounded-full px-2.5 py-1 text-xs text-secondary hover:bg-subtle hover:text-primary"
+                          >
+                            <MessageSquare size={11} />
+                            Ask
+                          </button>
+                        )}
+                        <button
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => void clozeFromPick()}
+                          className="focus-inset flex items-center gap-1 rounded-full px-2.5 py-1 text-xs text-secondary hover:bg-subtle hover:text-primary"
+                        >
+                          <Layers size={11} />
+                          Card
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="text-sm text-tertiary">Nothing to preview yet.</p>
                 )
+              ) : !draft.trim() ? (
+                <>
+                  {/* A shape to start in, offered only while there is nothing
+                      to lose. Three structures students are taught and never
+                      remember to type. */}
+                  <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Start from a shape">
+                    {PAGE_TEMPLATES.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => {
+                          onChange(t.body);
+                          requestAnimationFrame(() => textareaRef.current?.focus());
+                        }}
+                        title={t.blurb}
+                        className="tap focus-inset rounded-full border border-line bg-surface px-3 py-1 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
+                      >
+                        {t.name}
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    ref={textareaRef}
+                    value={draft}
+                    onChange={(e) => onChange(e.target.value)}
+                    placeholder={"# Title\n\nStart writing. Markdown works — headings, lists, tables, code, $math$. Link another page with [[its title]]."}
+                    spellCheck
+                    aria-label="Page content"
+                    className="min-h-[50vh] w-full resize-none overflow-hidden bg-transparent font-sans text-base leading-[1.65] text-primary outline-none placeholder:text-tertiary"
+                  />
+                </>
               ) : (
                 <textarea
                   ref={textareaRef}
@@ -641,6 +846,29 @@ export function NotebookView({
                   // page scrolls rather than a box inside the page.
                   className="min-h-[50vh] w-full resize-none overflow-hidden bg-transparent font-sans text-base leading-[1.65] text-primary outline-none placeholder:text-tertiary"
                 />
+              )}
+              {/* Every page that names this one. The half of linking no
+                  editor gives you for free, and the reason a notebook is a
+                  shape rather than a pile. */}
+              {backlinks.length > 0 && (
+                <aside className="mt-8 border-t border-line pt-3" aria-label="Linked from">
+                  <p className="eyebrow mb-1.5 flex items-center gap-1.5 text-faint">
+                    <Link2 size={11} />
+                    Linked from
+                  </p>
+                  <ul className="flex flex-wrap gap-1.5">
+                    {backlinks.map((b) => (
+                      <li key={b.id}>
+                        <button
+                          onClick={() => onSelect(b.id)}
+                          className="tap focus-inset rounded-full border border-line bg-surface px-2.5 py-1 text-xs text-secondary hover:border-line-strong hover:text-primary"
+                        >
+                          {b.title || "Untitled note"}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </aside>
               )}
             </div>
           </div>

@@ -1,8 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { KeyRound, X } from "lucide-react";
-import { useSettings } from "@/lib/store";
+import { useLiveQuery } from "dexie-react-hooks";
+import { BookOpen, GraduationCap, KeyRound, LayoutTemplate, X } from "lucide-react";
+import { db } from "@/lib/db";
+import { dueNow, type Card } from "@/lib/study";
+import { useSettings, type Section } from "@/lib/store";
 import { Mark } from "@/components/brand/Logo";
 
 /**
@@ -44,6 +47,35 @@ function useGreeting(): string {
   return g;
 }
 
+/**
+ * What is waiting elsewhere, read off the same tables the rooms read.
+ *
+ * Cards due is the one that matters most — it is the number that decides
+ * whether today is a day you kept up — and the other two are only said when
+ * they are recent, because "3 pages" forever is furniture and "a page edited
+ * today" is a thread to pick back up.
+ */
+function useWaiting(): { section: Section; text: string; icon: React.ReactNode }[] {
+  const cards = useLiveQuery(() => db.cards.toArray(), [], [] as Card[]);
+  const notes = useLiveQuery(() => db.notes.orderBy("updatedAt").reverse().limit(1).toArray(), [], []);
+  const canvases = useLiveQuery(() => db.canvases.orderBy("updatedAt").reverse().limit(1).toArray(), [], []);
+  return React.useMemo(() => {
+    const now = Date.now();
+    const out: { section: Section; text: string; icon: React.ReactNode }[] = [];
+    const due = dueNow(cards, now).length;
+    if (due > 0) out.push({ section: "study", text: `${due} card${due === 1 ? "" : "s"} due`, icon: <GraduationCap size={12} /> });
+    const note = notes[0];
+    if (note && now - note.updatedAt < 2 * 86_400_000) {
+      out.push({ section: "notebook", text: `“${(note.title || "Untitled note").slice(0, 32)}” in the notebook`, icon: <BookOpen size={12} /> });
+    }
+    const made = canvases[0];
+    if (made && now - made.updatedAt < 2 * 86_400_000) {
+      out.push({ section: "code", text: `“${(made.title || "Untitled").slice(0, 32)}” is running`, icon: <LayoutTemplate size={12} /> });
+    }
+    return out;
+  }, [cards, notes, canvases]);
+}
+
 /** useLayoutEffect on the client, a no-op on the server, without the warning. */
 const useIsoLayoutEffect = typeof window === "undefined" ? React.useEffect : React.useLayoutEffect;
 
@@ -66,12 +98,15 @@ export function EmptyState({
   hasAnyKey,
   onExample,
   onAddKey,
+  onGo,
   children,
 }: {
   hasAnyKey: boolean;
   onExample: (text: string) => void;
   /** A working thing was made; go and open it. */
   onAddKey: () => void;
+  /** Into another room, from the line that says what is waiting there. */
+  onGo?: (section: Section) => void;
   /** The composer. */
   children: React.ReactNode;
 }) {
@@ -79,6 +114,7 @@ export function EmptyState({
   const { name, nameAsked } = settings;
   const greeting = useGreeting();
   const [draftName, setDraftName] = React.useState("");
+  const waiting = useWaiting();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
@@ -125,6 +161,32 @@ export function EmptyState({
         <div className="anim-rise" style={{ animationDelay: "70ms" }}>
           {children}
         </div>
+
+        {/* What the other rooms are holding, on the one screen everybody
+            starts on. The front door used to know nothing about the house:
+            you could have forty cards due and a page you were writing last
+            night and open to a greeting and a box, every time. One line,
+            only the rooms with something in them, each a press away. */}
+        {onGo && waiting.length > 0 && (
+          <p
+            className="anim-rise mt-4 flex flex-wrap items-center justify-center gap-x-1 gap-y-1 text-xs text-tertiary"
+            style={{ animationDelay: "100ms" }}
+            aria-label="Waiting in the other rooms"
+          >
+            {waiting.map((w, i) => (
+              <React.Fragment key={w.section}>
+                {i > 0 && <span className="text-faint" aria-hidden>·</span>}
+                <button
+                  onClick={() => onGo(w.section)}
+                  className="focus-inset flex items-center gap-1.5 rounded-full px-2 py-0.5 tnum transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                >
+                  {w.icon}
+                  {w.text}
+                </button>
+              </React.Fragment>
+            ))}
+          </p>
+        )}
 
         {!hasAnyKey && (
           <div className="mt-5 flex justify-center">

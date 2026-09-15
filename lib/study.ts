@@ -56,8 +56,73 @@ export interface Card {
   createdAt: number;
   /** When it was last answered, for "you have done thirty today". */
   lastAnswered?: number;
+  /** When it was first answered, for the cap on new cards a day. */
+  introducedAt?: number;
   /** Where it came from, so a card can point at the thing it was made from. */
   source?: string;
+}
+
+/* ---------------------------------------------------------------- cloze -- */
+
+/**
+ * A cloze card: the sentence with a hole in it.
+ *
+ * "The capital of {{France}} is Paris" asks for France. It is the card type
+ * people who use these tools seriously make most of, because it tests the
+ * fact *in its sentence* rather than as a quiz question about it — and a
+ * sentence from your own notes with one word missing is the fastest card
+ * there is to make.
+ *
+ * Kept in the same two columns as every other card: the front holds the
+ * whole sentence with the answer in double braces, the back holds the
+ * answer. So nothing in the table changes, every existing query still works,
+ * and a cloze is simply a front that contains the marker. `{{c1::x}}`, the
+ * form other tools export, is read as `{{x}}`.
+ */
+const CLOZE = /\{\{(?:c\d+::)?([^{}]+?)\}\}/g;
+
+export function isCloze(front: string): boolean {
+  CLOZE.lastIndex = 0;
+  return CLOZE.test(front);
+}
+
+/** The question as it is asked: every hole shown as a blank. */
+export function clozeQuestion(front: string): string {
+  return front.replace(CLOZE, "[…]");
+}
+
+/** The answer as it is shown: the sentence whole, with what was hidden marked. */
+export function clozeAnswer(front: string): string {
+  return front.replace(CLOZE, (_, w: string) => `**${w}**`);
+}
+
+/** What was hidden, for the back of a card made from a sentence. */
+export function clozeHidden(front: string): string {
+  const out: string[] = [];
+  front.replace(CLOZE, (_, w: string) => {
+    out.push(w);
+    return "";
+  });
+  return out.join(" · ");
+}
+
+/**
+ * A sentence, with one term made into a hole.
+ *
+ * The move a highlighter makes: you have the notes open, a phrase in them is
+ * the thing to remember, and the card is that sentence with the phrase taken
+ * out. Case is kept and the first occurrence is used; a term that is not in
+ * the sentence is not a card, and null says so rather than making one with
+ * no hole.
+ */
+export function makeCloze(sentence: string, term: string): { front: string; back: string } | null {
+  const s = sentence.trim();
+  const t = term.trim();
+  if (!s || !t) return null;
+  const at = s.toLowerCase().indexOf(t.toLowerCase());
+  if (at < 0) return null;
+  const exact = s.slice(at, at + t.length);
+  return { front: `${s.slice(0, at)}{{${exact}}}${s.slice(at + t.length)}`, back: exact };
 }
 
 export const MINUTE = 60_000;
@@ -80,6 +145,10 @@ export const MIN_EASE = 1.3;
  */
 export function schedule(card: Card, rating: Rating, now: number): Card {
   const next: Card = { ...card, reps: card.reps + 1, lastAnswered: now };
+  /* The day a card was first met, for the daily cap on new ones. Stamped
+     once and never moved: a lapse sends a card back to the start of its
+     steps, but it does not make it new again. */
+  if (card.reps === 0) next.introducedAt = now;
 
   /* Ease moves on every review, and only on a review: a card still in its
      learning steps has not told you anything about how hard it is, it has
@@ -167,16 +236,55 @@ export function newCard(init: {
   };
 }
 
+/**
+ * How many never-seen cards a day is enough.
+ *
+ * A deck of two hundred, made in one go, used to be two hundred due at once
+ * — and the first session of a new subject being a wall is the way every one
+ * of these tools loses people in the first week. Twenty is what the tools
+ * that have measured this settle on: enough to get somewhere, few enough
+ * that tomorrow's reviews of them are not a second wall. The reviews are
+ * never capped; those are debts, and the cap is about not borrowing more.
+ */
+export const NEW_PER_DAY = 20;
+
 /** What is waiting, in the order it should be asked. */
-export function dueNow(cards: Card[], now: number): Card[] {
+export function dueNow(cards: Card[], now: number, opts: { newLimit?: number } = {}): Card[] {
+  /* How many new ones have already been started today, so the cap is on the
+     day and not on the session — a person who studies twice before lunch has
+     not earned forty. */
+  const limit = opts.newLimit ?? NEW_PER_DAY;
+  const started = cards.filter((c) => c.introducedAt && c.introducedAt >= midnightOf(now)).length;
+  let room = Math.max(0, limit - started);
   return cards
     .filter((c) => c.due <= now)
     /* New cards last. Somebody who opens a deck with forty overdue reviews
        and twenty new cards should clear the backlog first — adding new
        things on top of a pile you have already forgotten is how people
        abandon this. */
-    .sort((a, b) => rank(a) - rank(b) || a.due - b.due);
+    .sort((a, b) => rank(a) - rank(b) || a.due - b.due)
+    .filter((c) => (c.state !== "new" ? true : room-- > 0));
 }
+
+/**
+ * Everything, for the night before.
+ *
+ * The scheduler is the whole point of the room and it is also the thing
+ * that says "nothing due today" the evening before an exam. Practice asks
+ * every card in the deck, the ones it has seen you get wrong first, and the
+ * answers you give change nothing about when they come back: that is a
+ * separate promise the schedule made, and a run-through the night before
+ * does not get to break it.
+ */
+export function cramOrder(cards: Card[]): Card[] {
+  return [...cards].sort((a, b) => b.lapses - a.lapses || a.ease - b.ease || a.createdAt - b.createdAt);
+}
+
+const midnightOf = (now: number) => {
+  const d = new Date(now);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+};
 
 const rank = (c: Card) => (c.state === "learning" ? 0 : c.state === "review" ? 1 : 2);
 
@@ -196,7 +304,10 @@ export interface Progress {
 }
 
 export function progressOf(cards: Card[], now: number): Progress {
-  const due = cards.filter((c) => c.due <= now).length;
+  /* Through `dueNow`, so the number on the row is the number the session
+     will actually ask. Counting every card whose time had come put "50 due"
+     on a fresh deck that the session, rightly, opens twenty of. */
+  const due = dueNow(cards, now).length;
   /* The next one waiting, whether or not something is waiting now: a deck
      with three due and the next in an hour is a different deck from one
      with three due and the next in a fortnight, and only the caller knows
@@ -219,10 +330,82 @@ export function progressOf(cards: Card[], now: number): Progress {
  * rolling window would tell them they had had one.
  */
 export function answeredToday(cards: Card[], now: number): number {
-  const midnight = new Date(now);
-  midnight.setHours(0, 0, 0, 0);
-  const from = midnight.getTime();
+  const from = midnightOf(now);
   return cards.filter((c) => (c.lastAnswered ?? 0) >= from).length;
+}
+
+/* --------------------------------------------------------------- streak -- */
+
+/**
+ * One row per day studied. The cards cannot say this on their own — a card
+ * keeps only its *last* answer, so a card met on Monday and again on
+ * Wednesday has forgotten Monday. A streak has to be written down as it
+ * happens or it cannot be counted afterwards.
+ */
+export interface StudyDay {
+  /** The calendar day, local, as YYYY-MM-DD. The key. */
+  day: string;
+  /** Cards answered that day. */
+  answered: number;
+  /** Of which were got right the first time (good or easy). */
+  right: number;
+}
+
+export function dayKey(now: number): string {
+  const d = new Date(now);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Days in a row ending today or yesterday.
+ *
+ * Yesterday counts: a streak that dies at midnight before you have had a
+ * chance to study today is a streak that punishes going to bed, and the
+ * point of it is the opposite.
+ */
+export function streakOf(days: StudyDay[], now: number): number {
+  const have = new Set(days.filter((d) => d.answered > 0).map((d) => d.day));
+  let n = 0;
+  let at = now;
+  if (!have.has(dayKey(at))) at -= DAY;
+  while (have.has(dayKey(at))) {
+    n += 1;
+    at -= DAY;
+  }
+  return n;
+}
+
+/* --------------------------------------------------------- in and out -- */
+
+/**
+ * Cards from text, in the shapes people already have them in.
+ *
+ * One card per line. "Question :: Answer" is the form written by hand; a tab
+ * between is what every one of these tools exports; a comma is a CSV. A line
+ * with a cloze marker and nothing after it is a cloze card, with the answer
+ * taken from the marker. Blank lines and lines with no divider are skipped,
+ * and the count of what was skipped is returned so it can be said.
+ */
+export function parseCards(text: string): { cards: { front: string; back: string }[]; skipped: number } {
+  const cards: { front: string; back: string }[] = [];
+  let skipped = 0;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    if (isCloze(line) && !/::|\t/.test(line.replace(CLOZE, ""))) {
+      cards.push({ front: line, back: clozeHidden(line) });
+      continue;
+    }
+    const m = line.match(/^(.+?)\s*(?:::|\t)\s*(.+)$/) ?? line.match(/^"?([^",]+?)"?\s*,\s*"?(.+?)"?$/);
+    if (m && m[1].trim() && m[2].trim()) cards.push({ front: m[1].trim(), back: m[2].trim() });
+    else skipped += 1;
+  }
+  return { cards, skipped };
+}
+
+/** The deck as text, one card a line, in the form that reads back in. */
+export function exportCards(cards: { front: string; back: string }[]): string {
+  return cards.map((c) => `${c.front.replace(/\t/g, " ")}\t${c.back.replace(/\t/g, " ")}`).join("\n") + "\n";
 }
 
 /** "in 3 days", "in 2 hours", "now" — for the button that offers the next one. */

@@ -176,6 +176,118 @@ console.log("\nAnd a card you got wrong can be explained");
   check(await p.locator(".msg").count() >= 2, "and the answer arrives there", `${await p.locator(".msg").count()} messages`);
 }
 
+console.log("\nA list pasted in becomes a deck, and asks nothing of a model");
+{
+  await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
+  await p.waitForTimeout(600);
+  const before = (await cards()).length;
+  await p.getByRole("button", { name: /paste a list of cards/ }).click();
+  await p.waitForTimeout(300);
+  await p.getByRole("textbox", { name: "Cards to paste" }).fill([
+    "What is the powerhouse of the cell :: The mitochondria",
+    "The {{Krebs cycle}} happens in the mitochondrial matrix",
+    "ATP\tadenosine triphosphate",
+    "just a line that is not a card",
+  ].join("\n"));
+  await p.getByRole("button", { name: "Make the deck" }).click();
+  await p.waitForTimeout(800);
+  const after = await cards();
+  check(after.length === before + 3, "three lines in three shapes become three cards, and one that is not a card is left out", `${before} → ${after.length}`);
+  check(/3 cards made · 1 line skipped/.test(await p.locator("main").innerText()), "and it says what was kept and what was not");
+  const cloze = after.find((c) => /\{\{Krebs cycle\}\}/.test(c.front));
+  check(Boolean(cloze) && cloze.back === "Krebs cycle", "a sentence with braces in it is a cloze card, with the answer taken from the hole", cloze?.back);
+  const row = p.getByRole("list", { name: "Study" }).locator("li").filter({ hasText: /powerhouse/ });
+  check((await row.count()) === 1, "named after its first line", (await row.first().innerText()).split("\n")[0]);
+}
+
+console.log("\nA cloze is asked with a hole in it");
+{
+  await p.getByRole("button", { name: /^Open What is the powerhouse/ }).click();
+  await p.waitForTimeout(500);
+  const list = p.getByRole("list", { name: "Cards" });
+  check(/happens in the mitochondrial matrix/.test(await list.innerText()) && /\[…\]/.test(await list.innerText()),
+    "the deck shows the sentence with its hole, not the braces");
+  /* "Study 3", on the deck — not the room's own button in the rail, which
+     answers to the same first word. */
+  await p.getByRole("button", { name: /^Study \d+/ }).click();
+  await p.waitForTimeout(600);
+  /* New cards are asked last, and the cloze was made second — so walk to it. */
+  for (let i = 0; i < 3; i++) {
+    const front = await p.locator("main p").first().innerText();
+    if (/\[…\]/.test(front)) break;
+    await p.keyboard.press(" ");
+    await p.waitForTimeout(200);
+    await p.keyboard.press("3");
+    await p.waitForTimeout(400);
+  }
+  const front = await p.locator("main p").first().innerText();
+  check(/The \[…\] happens/.test(front), "asked as the sentence with the words missing", front);
+  await p.keyboard.press(" ");
+  await p.waitForTimeout(300);
+  const shown = await p.locator("main").innerText();
+  check(/The Krebs cycle happens/.test(shown), "and answered as the sentence whole, with the words back in their place");
+  check((await p.locator("main strong").count()) >= 1, "marked, so the eye lands on what was hidden");
+}
+
+console.log("\nA wrong card is fixed where it was noticed");
+{
+  await p.getByRole("button", { name: "Fix this card" }).click();
+  await p.waitForTimeout(300);
+  const back = p.getByRole("textbox", { name: "Answer" });
+  check((await back.count()) === 1, "mid-session, the card opens for correction");
+  await back.fill("Krebs cycle (citric acid cycle)");
+  await p.getByRole("button", { name: "Save" }).click();
+  await p.waitForTimeout(500);
+  check((await cards()).some((c) => c.back === "Krebs cycle (citric acid cycle)"), "and the correction is kept");
+  await p.keyboard.press("Escape");
+  await p.waitForTimeout(500);
+}
+
+console.log("\nThe night before");
+{
+  /* Practice asks everything, and changes nothing about when it comes back. */
+  await p.getByRole("button", { name: /^Open debouncing/ }).click();
+  await p.waitForTimeout(500);
+  const was = (await cards()).filter((c) => c.state === "review").map((c) => [c.id, c.due]);
+  check(was.length >= 1, "a card in this deck is not due for days", `${was.length} scheduled ahead`);
+  await p.getByRole("button", { name: "Practise every card" }).click();
+  await p.waitForTimeout(600);
+  /* The session's own bar — the one with the way out in it — not the first
+     header on the page, which is the sidebar's. */
+  const bar = p.locator("header").filter({ has: p.getByRole("button", { name: "Leave the session" }) });
+  check(/practice/.test(await bar.innerText()), "practice says it is practice", (await bar.innerText()).replace(/\n/g, " · "));
+  const left = Number((await bar.innerText()).match(/(\d+) left/)?.[1]);
+  check(left === 4, "and asks every card, not only the ones that are due", `${left} left`);
+  await p.keyboard.press(" ");
+  await p.waitForTimeout(300);
+  check(/—/.test(await p.getByRole("group", { name: "How did it go" }).innerText()), "the buttons promise nothing about when it comes back");
+  await p.keyboard.press("1");
+  await p.waitForTimeout(500);
+  const now = await cards();
+  check(was.every(([id, due]) => now.find((c) => c.id === id)?.due === due), "and getting one wrong moves nothing — the schedule's promise is kept");
+  await p.keyboard.press("Escape");
+  await p.waitForTimeout(400);
+}
+
+console.log("\nDays in a row, and the front door knows");
+{
+  const days = await p.evaluate(() => new Promise((ok) => {
+    const r = indexedDB.open("clouds");
+    r.onsuccess = () => { const q = r.result.transaction("studyDays").objectStore("studyDays").getAll(); q.onsuccess = () => { r.result.close(); ok(q.result); }; };
+  }));
+  check(days.length === 1 && days[0].answered >= 6, "every answer today, practice included, is written to today's row", `${days[0]?.answered} answered`);
+  await p.getByRole("button", { name: "Back to Study" }).first().click().catch(() => {});
+  await p.locator("aside nav").getByRole("button", { name: "Conversations" }).first().click();
+  await p.waitForTimeout(500);
+  await p.getByRole("button", { name: /New chat/ }).first().click();
+  await p.waitForTimeout(600);
+  const strip = p.getByLabel("Waiting in the other rooms");
+  check(await strip.isVisible() && /cards? due/.test(await strip.innerText()), "a blank chat says what is waiting in Study", (await strip.innerText()).replace(/\n/g, " · "));
+  await strip.getByRole("button", { name: /cards? due/ }).click();
+  await p.waitForTimeout(600);
+  check(/Nothing to study yet|waiting now|Study/.test(await p.locator("main").innerText()), "and takes you there");
+}
+
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors"); if (errs.length) failed++;
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 await b.close(); process.exit(failed ? 1 : 0);

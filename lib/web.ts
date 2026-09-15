@@ -317,8 +317,25 @@ interface Piece {
   text: string;
 }
 
-export function assembleWeb(files: CanvasFile[], theme?: string, run = ""): Assembled {
-  const BRIDGE = bridgeFor(run);
+/**
+ * The folder as one file, to keep.
+ *
+ * Every starter and everything the model builds here is three files that
+ * only run together, which makes "download my app" a folder — and a folder
+ * is not a thing you send to somebody or open from your phone. One document
+ * with the styling and behaviour inlined is, and it is exactly what the
+ * preview already builds, minus the preview's own instruments.
+ */
+export function exportWeb(files: CanvasFile[]): string {
+  return assembleWeb(files, undefined, "", { bare: true }).html;
+}
+
+export function assembleWeb(files: CanvasFile[], theme?: string, run = "", opts: { bare?: boolean } = {}): Assembled {
+  /* Bare is the file somebody takes away: the folder inlined into one page
+     and nothing of this app's in it — no console bridge listening for
+     errors it will never be able to report to, no theme stamped on the root
+     by a preview that is not there. What is left is the thing they made. */
+  const BRIDGE = opts.bare ? "" : bridgeFor(run);
   const byName = new Map(files.map((f) => [f.name.replace(/^\.?\//, ""), f]));
   const entry = byName.get(ENTRY) ?? files.find((f) => f.lang === "html");
   if (!entry) {
@@ -381,7 +398,7 @@ export function assembleWeb(files: CanvasFile[], theme?: string, run = ""): Asse
 
   /* The bridge goes first inside <head>, so it is listening before any of your
      own code can throw. */
-  const head = BRIDGE + themeTag(theme) + baseTag();
+  const head = opts.bare ? "" : BRIDGE + themeTag(theme) + baseTag();
   const headTag = /<head[^>]*>/i.exec(src);
   if (headTag) {
     edits.push({

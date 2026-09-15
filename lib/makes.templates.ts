@@ -1439,3 +1439,499 @@ tick();
 ` },
   ];
 }
+
+export function mindmap() {
+  return [
+    { name: ENTRY, lang: "html", content: `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mind map</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="wrap wide">
+      <header class="head">
+        <div>
+          <h1 id="map-title">Mind map</h1>
+          <p class="sub">Tap a node to add a branch under it. Double-tap to rename. Drag to move.</p>
+        </div>
+        <button id="relayout" class="link" type="button">Tidy up</button>
+      </header>
+      <div class="board" id="board">
+        <svg class="wires" id="wires" aria-hidden="true"></svg>
+        <div id="nodes"></div>
+      </div>
+      <p class="tail"><span id="count"></span></p>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
+` },
+    { name: "style.css", lang: "css", content: TOKENS + `
+.wrap.wide { max-width: 980px; }
+.head { display: flex; align-items: center; gap: 14px; }
+.head .sub { margin-bottom: 0; }
+.link { margin-left: auto; min-height: 0; padding: 6px 10px; border: 0; background: none; color: var(--muted); font-size: 0.82rem; text-decoration: underline; text-underline-offset: 3px; }
+.link:hover { color: var(--ink); }
+
+/* The board scrolls in both directions and the nodes are positioned inside
+   it, so a map can grow past the window without squeezing. */
+.board { position: relative; height: min(70vh, 640px); overflow: auto; margin-top: 14px; border: 1px solid var(--line); border-radius: var(--r); background:
+  radial-gradient(color-mix(in srgb, var(--ink) 9%, transparent) 1px, transparent 1px) 0 0 / 22px 22px; }
+.wires { position: absolute; inset: 0; width: 1600px; height: 1200px; pointer-events: none; }
+.wires path { fill: none; stroke: color-mix(in srgb, var(--accent) 55%, var(--line)); stroke-width: 2; stroke-linecap: round; }
+#nodes { position: relative; width: 1600px; height: 1200px; }
+
+.node {
+  position: absolute;
+  min-height: 0;
+  max-width: 220px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 0.92rem;
+  line-height: 1.3;
+  text-align: left;
+  cursor: grab;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--ink) 6%, transparent);
+  user-select: none;
+}
+.node:active { cursor: grabbing; }
+.node.root { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; font-size: 1rem; }
+.node.d1 { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); font-weight: 500; }
+.node.d2, .node.d3 { color: var(--muted); }
+.node input { width: 100%; min-width: 120px; font: inherit; color: inherit; background: transparent; border: 0; outline: none; }
+.node .add { position: absolute; right: -10px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; min-height: 0; padding: 0; border-radius: 50%; font-size: 14px; line-height: 1; opacity: 0; transition: opacity var(--dur) var(--ease); }
+.node:hover .add, .node:focus-within .add { opacity: 1; }
+.node.new { animation: pop 0.3s var(--ease); }
+@keyframes pop { from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); } }
+
+.tail { margin: 12px 0 0; color: var(--faint); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+` },
+    { name: "app.js", lang: "js", content: `/* ------------------------------------------------------------------- map --
+   Your map. Edit it — everything below is machinery.
+   A node is { text, children }. The first one is the middle.                */
+
+const MAP = {
+  text: "The French Revolution",
+  children: [
+    { text: "Causes", children: [
+      { text: "Debt from wars", children: [] },
+      { text: "Bread prices", children: [] },
+      { text: "The Estates", children: [] },
+    ] },
+    { text: "1789", children: [
+      { text: "Estates-General", children: [] },
+      { text: "Tennis Court Oath", children: [] },
+      { text: "The Bastille", children: [] },
+    ] },
+    { text: "Terror", children: [
+      { text: "Robespierre", children: [] },
+      { text: "The guillotine", children: [] },
+    ] },
+    { text: "Aftermath", children: [
+      { text: "Napoleon", children: [] },
+    ] },
+  ],
+};
+
+/* -------------------------------------------------------------- machinery -- */
+
+const el = (id) => document.getElementById(id);
+const nodes = [];          // { data, depth, parent, x, y, node }
+let dragging = null;
+
+function walk(data, depth, parent) {
+  const n = { data, depth, parent, x: 0, y: 0, node: null };
+  nodes.push(n);
+  data.children.forEach((c) => walk(c, depth + 1, n));
+  return n;
+}
+
+/* A radial layout: the root in the middle, each branch given a wedge of the
+   circle proportional to how many leaves it has, its children spread inside
+   that wedge. Nothing clever, and it reads at a glance. */
+function layout() {
+  const cx = 800, cy = 600;
+  const root = nodes[0];
+  root.x = cx; root.y = cy;
+  const leaves = (n) => (n.data.children.length ? n.data.children.reduce((s, c) => s + leaves(find(c)), 0) : 1);
+  const find = (data) => nodes.find((n) => n.data === data);
+  const place = (n, from, to, r) => {
+    const kids = n.data.children.map(find);
+    const total = kids.reduce((s, k) => s + leaves(k), 0) || 1;
+    let a = from;
+    kids.forEach((k) => {
+      const span = ((to - from) * leaves(k)) / total;
+      const mid = a + span / 2;
+      k.x = n.x + Math.cos(mid) * r;
+      k.y = n.y + Math.sin(mid) * r;
+      place(k, mid - span / 2, mid + span / 2, r * 0.62);
+      a += span;
+    });
+  };
+  place(root, -Math.PI / 2, Math.PI * 1.5, 230);
+}
+
+function build() {
+  el("map-title").textContent = MAP.text;
+  document.title = MAP.text;
+  nodes.length = 0;
+  walk(MAP, 0, null);
+  layout();
+  const host = el("nodes");
+  host.innerHTML = "";
+  nodes.forEach((n) => {
+    const b = document.createElement("div");
+    b.className = "node " + (n.depth === 0 ? "root" : "d" + Math.min(3, n.depth));
+    b.tabIndex = 0;
+    b.setAttribute("role", "button");
+    const label = document.createElement("span");
+    label.textContent = n.data.text;
+    b.appendChild(label);
+    const add = document.createElement("button");
+    add.className = "add";
+    add.type = "button";
+    add.textContent = "+";
+    add.setAttribute("aria-label", "Add a branch under " + n.data.text);
+    add.addEventListener("click", (e) => { e.stopPropagation(); branch(n); });
+    b.appendChild(add);
+    b.addEventListener("dblclick", () => rename(n, label));
+    b.addEventListener("pointerdown", (e) => { if (e.target === add) return; dragging = { n, dx: n.x - e.clientX, dy: n.y - e.clientY }; b.setPointerCapture(e.pointerId); });
+    b.addEventListener("pointermove", (e) => { if (!dragging || dragging.n !== n) return; n.x = e.clientX + dragging.dx; n.y = e.clientY + dragging.dy; position(n); wire(); });
+    b.addEventListener("pointerup", () => { dragging = null; });
+    n.node = b;
+    host.appendChild(b);
+    position(n);
+  });
+  wire();
+  el("count").textContent = nodes.length + " nodes";
+  const board = el("board");
+  board.scrollLeft = 800 - board.clientWidth / 2;
+  board.scrollTop = 600 - board.clientHeight / 2;
+}
+
+function position(n) { n.node.style.left = n.x + "px"; n.node.style.top = n.y + "px"; }
+
+function wire() {
+  const svg = el("wires");
+  svg.innerHTML = "";
+  nodes.forEach((n) => {
+    if (!n.parent) return;
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const mx = (n.parent.x + n.x) / 2;
+    p.setAttribute("d", "M" + n.parent.x + " " + n.parent.y + " C" + mx + " " + n.parent.y + ", " + mx + " " + n.y + ", " + n.x + " " + n.y);
+    svg.appendChild(p);
+  });
+}
+
+function branch(parent) {
+  const data = { text: "New idea", children: [] };
+  parent.data.children.push(data);
+  build();
+  const made = nodes.find((n) => n.data === data);
+  made.node.classList.add("new");
+  rename(made, made.node.querySelector("span"));
+}
+
+function rename(n, label) {
+  const input = document.createElement("input");
+  input.value = n.data.text;
+  input.setAttribute("aria-label", "Rename");
+  label.replaceWith(input);
+  input.focus();
+  input.select();
+  const done = () => { n.data.text = input.value.trim() || n.data.text; build(); };
+  input.addEventListener("blur", done);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") input.blur(); if (e.key === "Escape") { input.value = n.data.text; input.blur(); } });
+}
+
+el("relayout").addEventListener("click", build);
+build();
+` },
+  ];
+}
+
+export function kanban() {
+  return [
+    { name: ENTRY, lang: "html", content: `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Board</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="wrap wide">
+      <header class="head">
+        <div>
+          <h1 id="board-title">Board</h1>
+          <p class="sub" id="board-sub">Drag a card between columns, or press → and ← on it.</p>
+        </div>
+        <form id="add" class="addrow">
+          <input id="new-text" type="text" placeholder="Add a card…" aria-label="New card" autocomplete="off" />
+          <button type="submit">Add</button>
+        </form>
+      </header>
+      <div class="columns" id="columns"></div>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
+` },
+    { name: "style.css", lang: "css", content: TOKENS + `
+.wrap.wide { max-width: 980px; }
+.head { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.head .sub { margin-bottom: 0; }
+.addrow { margin-left: auto; display: flex; gap: 6px; }
+.addrow input { min-height: 44px; padding: 0 14px; font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 999px; }
+.addrow input:focus { border-color: var(--accent); outline: none; }
+.addrow button { padding: 0 16px; }
+
+.columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 16px; align-items: start; }
+.col { border: 1px solid var(--line); border-radius: var(--r); background: color-mix(in srgb, var(--card) 60%, var(--bg)); padding: 10px; min-height: 160px; transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease); }
+.col.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--bg)); }
+.col h2 { margin: 2px 6px 10px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--faint); display: flex; justify-content: space-between; }
+.col h2 .n { font-variant-numeric: tabular-nums; color: var(--muted); }
+.col.done h2 { color: var(--good); }
+
+.card {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  margin-bottom: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  text-align: left;
+  line-height: 1.35;
+  cursor: grab;
+  animation: slideIn 0.25s var(--ease);
+}
+.card:active { cursor: grabbing; }
+.card.dragging { opacity: 0.4; }
+.card .t { display: block; }
+.card .tag { display: inline-block; margin-top: 6px; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.col.done .card .t { color: var(--faint); text-decoration: line-through; }
+@keyframes slideIn { from { opacity: 0; transform: translateY(4px); } }
+.empty { padding: 18px 8px; text-align: center; color: var(--faint); font-size: 0.82rem; }
+` },
+    { name: "app.js", lang: "js", content: `/* ----------------------------------------------------------------- board --
+   Your board. Edit it — everything below is machinery.
+   A card is { text, col, tag }; "col" is one of the COLUMNS keys.            */
+
+const TITLE = "This week";
+const SUB = "Drag a card between columns, or press → and ← on it.";
+
+const COLUMNS = [
+  { key: "todo", name: "To do" },
+  { key: "doing", name: "Doing" },
+  { key: "done", name: "Done" },
+];
+
+const CARDS = [
+  { text: "Read chapter 4 and make revision notes", col: "todo", tag: "History" },
+  { text: "Problem set 6, questions 1–8", col: "todo", tag: "Maths" },
+  { text: "Draft the essay introduction", col: "doing", tag: "English" },
+  { text: "Lab write-up: method section", col: "doing", tag: "Chemistry" },
+  { text: "Vocabulary list for Friday", col: "done", tag: "French" },
+];
+
+/* -------------------------------------------------------------- machinery -- */
+
+const el = (id) => document.getElementById(id);
+let dragged = null;
+
+function build() {
+  el("board-title").textContent = TITLE;
+  el("board-sub").textContent = SUB;
+  document.title = TITLE;
+  const host = el("columns");
+  host.innerHTML = "";
+  COLUMNS.forEach((c, ci) => {
+    const col = document.createElement("section");
+    col.className = "col" + (ci === COLUMNS.length - 1 ? " done" : "");
+    col.dataset.key = c.key;
+    const mine = CARDS.filter((k) => k.col === c.key);
+    col.innerHTML = '<h2><span></span><span class="n"></span></h2>';
+    col.querySelector("h2 span").textContent = c.name;
+    col.querySelector(".n").textContent = String(mine.length);
+    col.addEventListener("dragover", (e) => { e.preventDefault(); col.classList.add("over"); });
+    col.addEventListener("dragleave", () => col.classList.remove("over"));
+    col.addEventListener("drop", (e) => { e.preventDefault(); col.classList.remove("over"); if (dragged) move(dragged, c.key); });
+    if (!mine.length) { const p = document.createElement("p"); p.className = "empty"; p.textContent = "Nothing here"; col.appendChild(p); }
+    mine.forEach((k) => col.appendChild(cardNode(k, ci)));
+    host.appendChild(col);
+  });
+}
+
+function cardNode(k, ci) {
+  const b = document.createElement("button");
+  b.className = "card";
+  b.type = "button";
+  b.draggable = true;
+  b.innerHTML = '<span class="t"></span>';
+  b.querySelector(".t").textContent = k.text;
+  if (k.tag) { const t = document.createElement("span"); t.className = "tag"; t.textContent = k.tag; b.appendChild(t); }
+  b.addEventListener("dragstart", () => { dragged = k; b.classList.add("dragging"); });
+  b.addEventListener("dragend", () => { dragged = null; b.classList.remove("dragging"); });
+  b.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" && ci < COLUMNS.length - 1) { e.preventDefault(); move(k, COLUMNS[ci + 1].key, true); }
+    if (e.key === "ArrowLeft" && ci > 0) { e.preventDefault(); move(k, COLUMNS[ci - 1].key, true); }
+    if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); CARDS.splice(CARDS.indexOf(k), 1); build(); }
+  });
+  b.addEventListener("click", () => { if (ci < COLUMNS.length - 1) move(k, COLUMNS[ci + 1].key, true); });
+  return b;
+}
+
+function move(k, key, refocus) {
+  if (k.col === key) return;
+  k.col = key;
+  build();
+  if (refocus) {
+    const col = document.querySelector('.col[data-key="' + key + '"]');
+    const cards = col ? col.querySelectorAll(".card") : [];
+    const mine = CARDS.filter((c) => c.col === key);
+    const at = mine.indexOf(k);
+    if (cards[at]) cards[at].focus();
+  }
+}
+
+el("add").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = el("new-text").value.trim();
+  if (!text) return;
+  CARDS.unshift({ text, col: COLUMNS[0].key, tag: "" });
+  el("new-text").value = "";
+  build();
+});
+
+build();
+` },
+  ];
+}
+
+export function countdown() {
+  return [
+    { name: ENTRY, lang: "html", content: `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Countdown</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="wrap narrow">
+      <h1 id="cd-title">Countdown</h1>
+      <p class="sub" id="cd-sub"></p>
+
+      <div class="big" role="timer" aria-live="polite">
+        <div class="num"><span id="days">0</span><span class="unit">days</span></div>
+        <div class="num"><span id="hours">0</span><span class="unit">hours</span></div>
+        <div class="num"><span id="mins">0</span><span class="unit">min</span></div>
+      </div>
+      <div class="bar" aria-hidden="true"><span id="fill"></span></div>
+      <p class="tail" id="tail"></p>
+
+      <h2 class="group">On the way</h2>
+      <ol id="milestones" class="stones"></ol>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
+` },
+    { name: "style.css", lang: "css", content: TOKENS + `
+.wrap.narrow { max-width: 560px; }
+.big { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+.num { padding: 16px 8px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--card); text-align: center; }
+.num > span:first-child { display: block; font-size: 2.4rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.num .unit { display: block; margin-top: 6px; font-size: 0.72rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--faint); }
+.bar { height: 6px; margin-top: 14px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.bar span { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--accent); transition: width 0.6s var(--ease); }
+.tail { margin: 8px 0 0; color: var(--muted); font-size: 0.86rem; font-variant-numeric: tabular-nums; }
+.tail.soon { color: var(--bad); font-weight: 500; }
+.tail.past { color: var(--good); font-weight: 500; }
+
+h2.group { margin: 26px 0 6px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--faint); }
+.stones { list-style: none; margin: 0; padding: 0; }
+.stone { display: flex; align-items: baseline; gap: 12px; padding: 10px 12px; margin-bottom: 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+.stone .when { flex: 0 0 auto; width: 6.5em; color: var(--muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.stone .what { flex: 1; }
+.stone.past { opacity: 0.55; }
+.stone.past .what { text-decoration: line-through; }
+.stone.next { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.stone.next .when { color: var(--accent); font-weight: 600; }
+` },
+    { name: "app.js", lang: "js", content: `/* ------------------------------------------------------------- the date --
+   Your countdown. Edit it — everything below is machinery.
+   Dates are YYYY-MM-DD, in your own time. Milestones are things on the way. */
+
+const TITLE = "Chemistry exam";
+const WHEN = "2026-12-10";
+const FROM = "2026-09-01";          // when the run-up started, for the bar
+
+const MILESTONES = [
+  { date: "2026-10-01", text: "All topic notes finished" },
+  { date: "2026-11-01", text: "Every past paper done once" },
+  { date: "2026-11-20", text: "Second pass on the weak topics" },
+  { date: "2026-12-05", text: "Formula sheet from memory" },
+];
+
+/* -------------------------------------------------------------- machinery -- */
+
+const el = (id) => document.getElementById(id);
+const DAY = 86400000;
+const at = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d).getTime(); };
+const target = at(WHEN);
+const start = at(FROM);
+
+function pretty(ms) {
+  const d = new Date(ms);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function tick() {
+  const now = Date.now();
+  const left = target - now;
+  const days = Math.max(0, Math.floor(left / DAY));
+  const hours = Math.max(0, Math.floor((left % DAY) / 3600000));
+  const mins = Math.max(0, Math.floor((left % 3600000) / 60000));
+  el("days").textContent = String(days);
+  el("hours").textContent = String(hours);
+  el("mins").textContent = String(mins);
+  el("fill").style.width = Math.min(100, Math.max(0, ((now - start) / (target - start)) * 100)) + "%";
+  const tail = el("tail");
+  tail.className = "tail" + (left <= 0 ? " past" : days < 7 ? " soon" : "");
+  tail.textContent = left <= 0 ? "It has happened. Well done for getting here." : days === 0 ? "Today." : days === 1 ? "Tomorrow." : pretty(target) + " · " + days + " day" + (days === 1 ? "" : "s") + " to go";
+}
+
+function build() {
+  el("cd-title").textContent = TITLE;
+  el("cd-sub").textContent = pretty(target);
+  document.title = TITLE;
+  const host = el("milestones");
+  host.innerHTML = "";
+  const now = Date.now();
+  let marked = false;
+  MILESTONES.slice().sort((a, b) => at(a.date) - at(b.date)).forEach((m) => {
+    const li = document.createElement("li");
+    const past = at(m.date) < now - DAY;
+    const next = !past && !marked;
+    if (next) marked = true;
+    li.className = "stone" + (past ? " past" : "") + (next ? " next" : "");
+    li.innerHTML = '<span class="when"></span><span class="what"></span>';
+    li.querySelector(".when").textContent = pretty(at(m.date));
+    li.querySelector(".what").textContent = m.text;
+    host.appendChild(li);
+  });
+}
+
+build();
+tick();
+setInterval(tick, 30000);
+` },
+  ];
+}

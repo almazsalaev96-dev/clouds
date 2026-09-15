@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  Braces, Bug, Check, Eye, FileCode2, FilePlus2, FileText, FileType2, History,
+  Braces, Bug, Check, Download, Eye, FileCode2, FilePlus2, FileText, FileType2, History,
   LayoutTemplate, MessageSquareCode, Palette, Pencil, Play, RotateCcw,
   Maximize2, Minimize2, MousePointerClick, ScanSearch, Scroll, Terminal, TextSelect, X,
   CalendarRange, CheckCheck, ListChecks, Sparkles, Timer, Wand2,
@@ -31,7 +31,7 @@ import {
   type Progress,
 } from "@/lib/generate";
 import { collapse, diffStat, lineDiff, type DiffOp } from "@/lib/diff";
-import { assembleWeb, ENTRY, locate, runToken, webTemplate } from "@/lib/web";
+import { assembleWeb, ENTRY, exportWeb, locate, runToken, webTemplate } from "@/lib/web";
 import { DiffView } from "@/components/DiffView";
 import { MessageBar } from "@/components/chat/MessageBar";
 import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
@@ -912,6 +912,28 @@ function Editor({
                   <Button size="sm" variant="ghost" onClick={() => enterFocus()}>
                     <Maximize2 size={13} />
                     Use it
+                  </Button>
+                )}
+                {/* And take it away. A folder is three files that only run
+                    together; this is the same page the preview runs, as one
+                    document, with nothing of this app's left inside it. */}
+                {runnable && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-label="Download as one file"
+                    onClick={() => {
+                      const merged = files.map((f) => (f.name === activeFile?.name ? { ...f, content: draft } : f));
+                      const blob = new Blob([exportWeb(merged)], { type: "text/html" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `${(canvas.title || "page").replace(/[^\w-]+/g, "-").toLowerCase()}.html`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    <Download size={13} />
                   </Button>
                 )}
                 {/* Which project this belongs to. A select rather than a
@@ -1825,6 +1847,10 @@ function WebPreview({
   const [open, setOpen] = React.useState(false);
   const [nonce, setNonce] = React.useState(0);
   const nextId = React.useRef(0);
+  /* How wide the thing is being looked at. Most of what gets made here is
+     used on a phone and built on a laptop, and the width it is built at is
+     the one width it will never be used at. */
+  const [width, setWidth] = React.useState<"full" | "tablet" | "phone">("full");
 
   /* The file you are typing in is not saved yet, so the preview would run the
      copy from a keystroke ago. Debounced rather than live: re-running on every
@@ -1937,12 +1963,17 @@ function WebPreview({
         full ? "p-0" : "mx-auto max-w-[var(--measure-wide)] px-4 py-3",
       )}
     >
+      <div
+        className={cn("flex min-h-0 w-full flex-1 justify-center", width !== "full" && !full && "bg-inset rounded-lg")}
+        style={width !== "full" && !full ? { padding: "12px 0" } : undefined}
+      >
       <iframe
         key={nonce}
         ref={frameRef}
         title="Preview"
         sandbox="allow-scripts allow-forms"
         srcDoc={srcDoc}
+        style={full || width === "full" ? undefined : { maxWidth: width === "phone" ? 390 : 820, boxShadow: "0 0 0 1px var(--border-subtle)" }}
         /* Re-armed on load as well as on change. The effect above fires when
            React commits; the page inside starts listening when it parses, and
            on a reload those are not in that order — a message sent to a
@@ -1959,12 +1990,36 @@ function WebPreview({
           !full && "rounded-lg border border-line",
         )}
       />
+      </div>
 
       {/* No console in a room you are using rather than building. The error
           count is a builder's instrument; someone studying a deck of cards has
           no use for it and every reason not to see it. */}
       <div className={cn("mt-2 shrink-0", full && "hidden")}>
         <div className="flex items-center gap-1.5">
+          <Segmented
+            value={width}
+            role="radiogroup"
+            aria-label="Preview width"
+            indicatorClassName="rounded-md bg-surface shadow-[var(--shadow-sm)]"
+            className="flex items-center gap-0.5 rounded-lg border border-line bg-inset p-0.5"
+          >
+            {(["phone", "tablet", "full"] as const).map((w) => (
+              <span key={w} data-on={width === w} className="relative">
+                <button
+                  role="radio"
+                  aria-checked={width === w}
+                  onClick={() => setWidth(w)}
+                  className={cn(
+                    "relative z-10 rounded-md px-2 py-0.5 text-xs capitalize transition-colors duration-[var(--dur-fast)]",
+                    width === w ? "text-primary" : "text-tertiary hover:text-primary",
+                  )}
+                >
+                  {w}
+                </button>
+              </span>
+            ))}
+          </Segmented>
           <Button size="sm" variant="ghost" onClick={() => setOpen((v) => !v)}>
             <Terminal size={13} />
             Console

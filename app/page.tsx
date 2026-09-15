@@ -1896,6 +1896,9 @@ export default function Page() {
                   onSelect={(id) => withTransition(() => setNoteId(id), "forward")}
                   onNew={() => void createInSection("notebook")}
                   onBack={() => withTransition(() => setNoteId(null), "back")}
+                  /* A passage from a page, taken to the chat — the same door
+                     a card you got wrong goes through. */
+                  onAsk={(question) => void askInChat(question)}
                 />
               )}
               {settings.section === "study" && (
@@ -1949,6 +1952,7 @@ export default function Page() {
               hasAnyKey={hasAnyKey}
               onExample={(text) => useDrafts.getState().setDraft(activeId ?? "new", text)}
               onAddKey={openKeys}
+              onGo={(section) => withTransition(() => settings.setSection(section), "forward")}
             >
               {composer}
             </EmptyState>

@@ -204,6 +204,63 @@ console.log("\nTimer");
   check((await consoleErrors()) === "", "it runs without a single error", "console clean");
 }
 
+console.log("\nMind map");
+{
+  await back();
+  const f = await open("Mind map");
+  const nodes = await f.locator(".node").count();
+  check(nodes === 14, "a topic in the middle with its branches laid out around it", `${nodes} nodes`);
+  check((await f.locator(".node.root").innerText()).includes("French Revolution"), "the root is the subject");
+  check((await f.locator("#wires path").count()) === nodes - 1, "and every branch is wired to its parent");
+  /* Growing it. The + on a node adds a child under it and opens it for a
+     name, so a map is grown by pointing rather than by editing a file. */
+  await f.locator(".node.d1").first().hover();
+  await f.locator(".node.d1").first().locator(".add").click();
+  await page.waitForTimeout(300);
+  await f.locator(".node input").fill("Storming of the Bastille");
+  await f.locator(".node input").press("Enter");
+  await page.waitForTimeout(400);
+  check((await f.locator(".node").count()) === nodes + 1, "pressing + on a branch grows a new one under it");
+  check((await f.locator("#count").innerText()).startsWith(String(nodes + 1)), "and the count follows");
+  await page.screenshot({ path: `${OUT}/make-mindmap.png` });
+  check((await consoleErrors()) === "", "it runs without a single error", "console clean");
+  await back();
+}
+
+console.log("\nBoard");
+{
+  const f = await open("Board");
+  check((await f.locator(".col").count()) === 3, "three columns", String(await f.locator(".col").count()));
+  const before = await f.locator('.col[data-key="doing"] .card').count();
+  await f.locator('.col[data-key="todo"] .card').first().click();
+  await page.waitForTimeout(400);
+  check((await f.locator('.col[data-key="doing"] .card').count()) === before + 1, "pressing a card moves it one column along");
+  await f.locator("#new-text").fill("Revise the Krebs cycle");
+  await f.locator("#add button").click();
+  await page.waitForTimeout(300);
+  check((await f.locator('.col[data-key="todo"] .card').first().innerText()).includes("Krebs"), "a new card lands at the top of the first column");
+  await f.locator('.col[data-key="todo"] .card').first().focus();
+  await f.locator('.col[data-key="todo"] .card').first().press("ArrowRight");
+  await page.waitForTimeout(300);
+  check((await f.locator('.col[data-key="doing"] .card').first().innerText()).includes("Krebs"), "and the arrow keys move it too, for anybody not dragging");
+  await page.screenshot({ path: `${OUT}/make-board.png` });
+  check((await consoleErrors()) === "", "it runs without a single error", "console clean");
+  await back();
+}
+
+console.log("\nCountdown");
+{
+  const f = await open("Countdown");
+  const days = Number(await f.locator("#days").innerText());
+  check(Number.isFinite(days) && days >= 0, "days to go, as a number", String(days));
+  check((await f.locator(".stone").count()) === 4, "and the milestones on the way");
+  check((await f.locator(".stone.next").count()) <= 1, "with the next one marked, and only the next one");
+  const fill = await f.locator("#fill").evaluate((n) => n.style.width);
+  check(/%$/.test(fill), "a bar for how far through the run-up this is", fill);
+  await page.screenshot({ path: `${OUT}/make-countdown.png` });
+  check((await consoleErrors()) === "", "it runs without a single error", "console clean");
+}
+
 console.log("\nAfterwards");
 {
   const box = page.getByRole("textbox", { name: "Ask for a change" });
