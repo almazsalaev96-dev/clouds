@@ -10,7 +10,7 @@ import type { Note, Source } from "@/lib/types";
 import { addCards, addSource, createDeck, createNote, db, deleteNote, deriveTitle, removeSource, sourcesOf } from "@/lib/db";
 import { backlinksTo, outlineOf, readLink, readingTime, tagsIn, withLinks } from "@/lib/links";
 import { makeCloze } from "@/lib/study";
-import { select } from "@/lib/retrieve";
+import { rank, select } from "@/lib/retrieve";
 import { PAGE_TEMPLATES } from "@/lib/pageTemplates";
 import { offerUndo } from "@/lib/undo";
 import { useAutoGrow } from "@/lib/hooks/useAutoGrow";
@@ -672,7 +672,12 @@ export function NotebookView({
       seen.set(base, k);
       return { n, name: k === 1 ? base : `${base} (${k})` };
     });
-    const picked = select(q, named.map((x) => ({ name: x.name, text: x.n.content })), 200_000);
+    const chosen = select(q, named.map((x) => ({ name: x.name, text: x.n.content })), 200_000);
+    /* Most relevant first. The model reads the pages in the order they are
+       given and leans on the early ones; the page about the question should
+       be the first it sees, and the ones that never mention it last. */
+    const order = rank(q, chosen.map((c, i) => ({ source: c.name, index: i, text: c.text })), chosen.length).map((c) => c.index);
+    const picked = [...order.map((i) => chosen[i]), ...chosen.filter((_, i) => !order.includes(i))];
     const ranked = picked.map((p) => named.find((x) => x.name === p.name)!.n);
     /* The source the citations are checked against is the page as picked —
        the excerpt, where it was one — so a quote from a paragraph that was

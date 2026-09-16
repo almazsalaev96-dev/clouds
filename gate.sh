@@ -72,6 +72,8 @@ run test-presets npx jiti test-presets.ts
 run test-wire  npx jiti test-wire.ts
 run test-callout npx jiti test-callout.ts
 run test-study npx jiti test-study.ts
+run test-grade npx jiti test-grade.ts
+run test-retrieve npx jiti test-retrieve.ts
 run test-memory npx jiti test-memory.ts
 run test-voice npx jiti test-voice.ts
 run test-built npx jiti test-built.ts

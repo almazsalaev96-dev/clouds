@@ -86,9 +86,16 @@ console.log("\nAnd pressing that button opens the place where keys go");
 console.log("\nA provider having a bad day is not your key's fault");
 {
   await newChat();
-  await arm(500, '{"error":{"type":"api_error","message":"Internal server error"}}');
+  /* Twice: a provider's bad day is retried once on its own, after a short
+     wait, before it is shown — so a single failure is an answer, and the
+     error bar is what a second one looks like. */
+  await arm(500, '{"error":{"type":"api_error","message":"Internal server error"}}', 2);
   await ask("what is a debounce");
-  const e = await shown();
+  let e = await shown();
+  for (let i = 0; i < 12 && !e; i++) {
+    await page.waitForTimeout(500);
+    e = await shown();
+  }
   check(/trouble on their end/i.test(e?.text ?? ""), "it says whose problem it is", e?.text);
   check((e?.buttons ?? []).some((x) => /switch model/i.test(x)), "and offers the way round it", (e?.buttons ?? []).join(", "));
   check((e?.buttons ?? []).some((x) => /retry/i.test(x)), "as well as trying again", (e?.buttons ?? []).join(", "));
@@ -112,6 +119,7 @@ console.log("\nOne question, one error: a failure does not stack up");
   await newChat();
   await arm(503, "upstream connect error", 3);
   await ask("what is a debounce");
+  await page.waitForTimeout(3000);
   const bars = await page.evaluate(() =>
     [...document.querySelectorAll("div")].filter(
       (d) => getComputedStyle(d).borderLeftWidth === "2px" && (d.textContent ?? "").includes("trouble"),
