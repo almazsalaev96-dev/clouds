@@ -421,7 +421,7 @@ Anki's 2026 defaults are the benchmark: 90% retention, `1m 10m` steps, 15–25 n
 | S-4 ⬜ | Deck options | Per-deck new/day, desired retention (0.80–0.95), learning steps; defaults as today. |
 | S-5 ⬜ | Leech handling | A card failed 8 times is flagged "leech", pulled from the queue, and offered to Tutor: "This one keeps failing — want it explained differently or split?" |
 | S-6 ⬜ | Undo last rating | ⌘Z within the session restores the previous state. |
-| S-7 ⬜ | Heatmap | Twelve weeks of `studyDays`, cells by reviews; taps open the day's list. |
+| S-7 ✅ | Calendar | Twelve weeks of `studyDays` on the Study index, one cell a day shaded by how much was answered. ⬜ Taps open the day's list. |
 | S-8 ⬜ | "Cards from this page/chat/file" | A model call that proposes 8–12 cards from a source, each one accept/edit/discard before it exists (NotebookLM makes cards from sources only `[R]`; the accept step is what keeps them honest). |
 | S-9 ⬜ | Typed-answer marking for maths | Numeric tolerance and unit awareness (already partly in the marker); LaTeX equality by normalised string. |
 
@@ -489,7 +489,7 @@ The exam board's command words have official meanings `[R]`; a good answer to "D
 
 **SP-2 ⬜ Sessions**: a 25/5 timer that runs inside Study (the Timer starter's logic reused), logging minutes to `studyDays`; "Start a session" on the plan.
 
-**SP-3 ⬜ Learning analytics shown**: retention (actual recall rate over the last 30 days vs desired 0.90), reviews/day, minutes/day, mastery by topic, streak; each with one sentence saying what it means and what to change. No vanity numbers (Duolingo's half-life regression underlies its progress `[R]`; ARMI's FSRS stability is the equivalent and is already stored).
+**SP-3 🟡 Learning analytics shown**: built — recall rate over the last 30 days against the 90% the schedule aims for, with one sentence on what to change when it is off; the twelve-week calendar; the streak; the shakiest deck. ⬜ Minutes/day (needs sessions, SP-2) and mastery by topic (needs S-3). No vanity numbers (Duolingo's half-life regression underlies its progress `[R]`; ARMI's FSRS stability is the equivalent and is already stored).
 
 ---
 

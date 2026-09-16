@@ -4,7 +4,7 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft, Flame, Keyboard, MessageSquare, Pencil, Trash2 } from "lucide-react";
 import { mark, type Mark } from "@/lib/grade";
-import { weakestDeck } from "@/lib/plan";
+import { recallRate, weakestDeck, weeksOf } from "@/lib/plan";
 import type { Deck } from "@/lib/types";
 import { addCards, createDeck, db, deleteCard, deleteDeck, answerCard, importCards, noteStudied, updateCard } from "@/lib/db";
 import { draftCards } from "@/lib/generate";
@@ -305,6 +305,7 @@ export function StudyView({
               </button>
             </p>
           )}
+          <Record days={days} now={now} />
           {streak > 1 && (
             <p className="mt-2 flex items-center gap-1.5 text-xs text-tertiary tnum" aria-label={`${streak} days in a row`}>
               <Flame size={12} className="text-[var(--accent-2)]" />
@@ -715,4 +716,51 @@ function useNow(everyMs: number): number {
     return () => clearInterval(t);
   }, [everyMs]);
   return now;
+}
+
+
+/**
+ * The last twelve weeks, and how the month went.
+ *
+ * A calendar of days with something answered, drawn from the log, and the
+ * number the scheduler is aiming at held against the one that happened:
+ * cards known when they came up, over the last thirty days, against the
+ * ninety per cent it plans for. Numbers about the person, not the cards,
+ * and only once there is a month to read.
+ */
+function Record({ days, now }: { days: StudyDay[]; now: number }) {
+  const cells = weeksOf(days, now);
+  const active = cells.filter((c) => c.answered > 0).length;
+  if (active === 0) return null;
+  const most = Math.max(...cells.map((c) => c.answered), 1);
+  const total = cells.reduce((n, c) => n + c.answered, 0);
+  const month = recallRate(days, now);
+  return (
+    <div className="mt-3">
+      <div
+        role="img"
+        aria-label={`Last twelve weeks: ${total} cards answered on ${active} day${active === 1 ? "" : "s"}`}
+        className="grid grid-flow-col gap-[3px]"
+        style={{ gridTemplateRows: "repeat(7, 10px)", gridAutoColumns: "10px" }}
+      >
+        {cells.map((c) => (
+          <span
+            key={c.day}
+            title={c.answered ? `${c.day}: ${c.answered}` : c.day}
+            className="rounded-[2px]"
+            style={{
+              background: c.answered ? "var(--accent)" : "var(--subtle)",
+              opacity: c.answered ? 0.35 + 0.65 * (c.answered / most) : 1,
+            }}
+          />
+        ))}
+      </div>
+      {month.answered >= 20 && month.rate !== null && (
+        <p className="mt-1.5 text-xs text-tertiary tnum">
+          Known when asked, last 30 days: <span className="text-secondary">{Math.round(month.rate * 100)}%</span> of {month.answered}
+          {month.rate < 0.85 ? " — below the 90% the schedule aims for; shorter gaps would help, so would fewer new cards" : month.rate > 0.96 ? " — above the 90% aimed for; the gaps could be longer" : " — close to the 90% the schedule aims for"}
+        </p>
+      )}
+    </div>
+  );
 }

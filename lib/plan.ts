@@ -62,3 +62,40 @@ export function weakestDeck(cards: Card[], now: number, min = 5): DeckHealth | n
   const [first] = deckHealth(cards, now).filter((d) => d.reviewed >= min);
   return first && first.shaky > 0 ? first : null;
 }
+
+/* ------------------------------------------------------------ the record -- */
+
+import { DAY as A_DAY, dayKey, type StudyDay } from "./study";
+
+/**
+ * How often a card was known when it came up, over the last `span` days.
+ *
+ * The scheduler aims for ninety per cent; this is the number to hold
+ * against it. Read from the day log rather than the cards, because a card
+ * keeps only its last answer and the question is about the month.
+ */
+export function recallRate(days: StudyDay[], now: number, span = 30): { answered: number; right: number; rate: number | null } {
+  const from = dayKey(now - (span - 1) * A_DAY);
+  let answered = 0, right = 0;
+  for (const d of days) {
+    if (d.day < from) continue;
+    answered += d.answered;
+    right += d.right;
+  }
+  return { answered, right, rate: answered ? right / answered : null };
+}
+
+/**
+ * The last `weeks` weeks as a grid, oldest first, ending today: one entry a
+ * day, with how much was answered, so a calendar can be drawn from it.
+ */
+export function weeksOf(days: StudyDay[], now: number, weeks = 12): { day: string; answered: number }[] {
+  const by = new Map(days.map((d) => [d.day, d.answered]));
+  const total = weeks * 7;
+  const out: { day: string; answered: number }[] = [];
+  for (let i = total - 1; i >= 0; i--) {
+    const key = dayKey(now - i * A_DAY);
+    out.push({ day: key, answered: by.get(key) ?? 0 });
+  }
+  return out;
+}
