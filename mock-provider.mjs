@@ -282,8 +282,14 @@ createServer(async (req, res) => {
          The mock cannot know which model is which, but it can refuse the one
          request that is wrong for every model — both at once — which is what
          a client gets when it has not noticed the shape changed. */
-      if (body.thinking && body.output_config)
+      /* A budget and an effort are two answers to one question, and the
+         real API refuses the pair. Adaptive thinking is not a budget: on
+         the current models it rides alongside effort, and asking for its
+         display as a summary is how the reasoning streams at all. */
+      if (body.thinking && body.thinking.type !== "adaptive" && body.output_config)
         return "`thinking` and `output_config.effort` may not be used together.";
+      if (body.thinking?.type === "adaptive" && body.thinking.budget_tokens !== undefined)
+        return "`budget_tokens` is not accepted with adaptive thinking.";
       if (body.temperature !== undefined && body.output_config?.effort)
         return "`temperature` may not be used with `output_config.effort`.";
     }

@@ -31,5 +31,21 @@ console.log("\nWhat is worth suggesting");
   check(weakestDeck(weak, now)?.deckId === "weak", "and the shaky deck when there is one");
 }
 
+console.log("\nThe month, from the log");
+{
+  const { dayKey } = await import("./lib/study");
+  const { recallRate, weeksOf } = await import("./lib/plan");
+  const log = [
+    { day: dayKey(now), answered: 10, right: 9 },
+    { day: dayKey(now - 5 * DAY), answered: 20, right: 15 },
+    { day: dayKey(now - 40 * DAY), answered: 50, right: 10 },
+  ];
+  const r = recallRate(log, now);
+  check(r.answered === 30 && r.right === 24 && Math.abs((r.rate ?? 0) - 0.8) < 1e-9, "answers inside the window are counted and the old day is not", `${r.right}/${r.answered}`);
+  check(recallRate([], now).rate === null, "and no rate is claimed from nothing");
+  const grid = weeksOf(log, now);
+  check(grid.length === 84 && grid[83].day === dayKey(now) && grid[83].answered === 10 && grid[78].answered === 20, "twelve weeks end today, one cell a day", `${grid.length} cells`);
+}
+
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 process.exit(failed ? 1 : 0);
