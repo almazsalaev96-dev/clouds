@@ -74,6 +74,8 @@ run test-callout npx jiti test-callout.ts
 run test-study npx jiti test-study.ts
 run test-grade npx jiti test-grade.ts
 run test-retrieve npx jiti test-retrieve.ts
+run test-exam npx jiti test-exam.ts
+run test-plan npx jiti test-plan.ts
 run test-memory npx jiti test-memory.ts
 run test-voice npx jiti test-voice.ts
 run test-built npx jiti test-built.ts
@@ -88,7 +90,7 @@ serve
 for t in e2e e2e-rest e2e-canvas e2e-web e2e-code e2e-follow e2e-agent e2e-sources e2e-auto e2e-command \
          e2e-project e2e-mode e2e-pdf e2e-editor e2e-makes e2e-bar e2e-motion \
          e2e-use e2e-scale e2e-backup e2e-error e2e-storage e2e-shape e2e-point-at e2e-draw \
-         e2e-ask e2e-crash e2e-dir e2e-keep e2e-made e2e-recover e2e-compute e2e-register e2e-study e2e-notebook e2e-presets; do
+         e2e-ask e2e-crash e2e-dir e2e-keep e2e-made e2e-recover e2e-compute e2e-register e2e-study e2e-notebook e2e-plan e2e-presets; do
   run "$t" node "$t.mjs"
 done
 run test-context node test-context.mjs

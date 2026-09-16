@@ -90,7 +90,7 @@ console.log("\nThe deck most likely to be forgotten is named, with a way to prac
   check(/Shaky deck/.test(await line.innerText().catch(() => "")) && /6 of 6 likely forgotten/.test(await line.innerText().catch(() => "")), "with how many of its cards are likely gone", (await line.innerText().catch(() => "")).replace(/\n/g, " "));
   await line.getByRole("button", { name: "Practise it" }).click();
   await p.waitForTimeout(600);
-  check(/practice/.test((await p.locator("main").innerText().catch(() => "")).toLowerCase()) && /q w/.test(await p.locator("main").innerText().catch(() => "")), "and one press starts a practice run through it", (await p.locator("main").innerText().catch(() => "")).replace(/\s+/g, " ").slice(0, 80));
+  check(/practice/.test((await p.locator("main").innerText().catch(() => "")).toLowerCase()) && /qw\d/.test(await p.locator("main").innerText().catch(() => "")), "and one press starts a practice run through it", (await p.locator("main").innerText().catch(() => "")).replace(/\s+/g, " ").slice(0, 80));
 }
 
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors");

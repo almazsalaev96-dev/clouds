@@ -170,8 +170,10 @@ export function StudyView({
   const today = answeredToday(cards, now);
   const streak = streakOf(days, now);
   /* Where the trouble is, from the cards' own memory model: the deck most
-     likely to be forgotten right now, offered as a practice run. */
-  const weakest = React.useMemo(() => weakestDeck(cards, now), [cards, now]);
+     likely to be forgotten right now, offered as a practice run. Not a
+     hook: this line sits below the early returns for a session and an open
+     deck, and a hook here changes the hook count the moment one starts. */
+  const weakest = weakestDeck(cards, now);
   const weakDeck = weakest ? decks.find((d) => d.id === weakest.deckId) : undefined;
 
   /* The same chrome as the Notebook, the Artifacts and the Projects.
