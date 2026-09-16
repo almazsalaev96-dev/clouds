@@ -237,6 +237,8 @@ export default function Page() {
   const cursorRef = React.useRef(0);
   const [compareWith, setCompareWith] = React.useState<string[]>([]);
   const [canvasId, setCanvasId] = React.useState<string | null>(null);
+  /* A deck opened from outside the room — the palette, a link. */
+  const [deckId, setDeckId] = React.useState<string | null>(null);
   /* The thing this conversation built, running in a column beside it. */
   const [madeId, setMadeId] = React.useState<string | null>(null);
   /* The decision the running turn was sent with, waiting for its outcome.
@@ -1489,7 +1491,10 @@ export default function Page() {
           settings.setSection("chat");
         } else if (section === "projects") setProjectId(id);
         else if (section === "code") setCanvasId(id);
-        else setNoteId(id);
+        else if (section === "study") {
+          settings.setSection("study");
+          setDeckId(id);
+        } else setNoteId(id);
       }, "forward");
     },
     [closeDrawerOnMobile, settings],
@@ -1919,6 +1924,7 @@ export default function Page() {
               {settings.section === "study" && (
                 <StudyView
                   configured={configured}
+                  openId={deckId}
                   onFocus={setInUse}
                   /* A card you got wrong, taken to the chat. The deck is
                      inside an assistant rather than beside one, and this

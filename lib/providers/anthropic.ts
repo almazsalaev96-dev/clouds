@@ -118,6 +118,13 @@ export async function* streamAnthropic(
        default is `high`, and the docs say omitting it behaves exactly as
        passing it. */
     if (req.params.reasoningEffort) body.output_config = { effort: req.params.reasoningEffort };
+    /* Thinking is on regardless — these models decide for themselves — but
+       what comes back of it is not: the default leaves the thinking blocks
+       empty, and the person sees a long pause and then an answer. Asked for
+       as a summary, the reasoning streams while it happens, which is what
+       the "working it through" line in the row is for. Adaptive is the only
+       on-mode here; a budget on one of these models is refused outright. */
+    body.thinking = { type: "adaptive", display: "summarized" };
   } else if (budget) {
     body.thinking = { type: "enabled", budget_tokens: budget };
   } else if (req.params.topP < 1) {

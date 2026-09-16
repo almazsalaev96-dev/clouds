@@ -36,10 +36,13 @@ import { cn } from "@/lib/utils";
  */
 export function StudyView({
   configured,
+  openId,
   onFocus,
   onAsk,
 }: {
   configured: Record<string, boolean>;
+  /** A deck to open on arrival — from the palette or a link. */
+  openId?: string | null;
   /** Raised while a session has the window: the app gets out of the way. */
   onFocus?: (on: boolean) => void;
   /**
@@ -66,6 +69,9 @@ export function StudyView({
   const [pasting, setPasting] = React.useState(false);
   const [pasted, setPasted] = React.useState("");
   const [openDeck, setOpenDeck] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (openId) setOpenDeck(openId);
+  }, [openId]);
   const [subject, setSubject] = React.useState("");
   /* "New deck" puts the caret in the line that makes one. Bumping this is
      how the shared index asks for that, since there is no such thing as an

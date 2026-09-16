@@ -5,7 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   Code2, Download, FileText, FolderOpen, MessageSquare, MessageSquarePlus, Moon,
-  Columns2, NotebookPen, Palette, PanelLeft, Settings2, Sparkles, Sun, Trash2, Type, Wand2,
+  Columns2, GraduationCap, NotebookPen, Palette, PanelLeft, Settings2, Sparkles, Sun, Trash2, Type, Wand2,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { PRESETS } from "@/lib/presets";
@@ -42,7 +42,7 @@ function bodyScore(query: string, body?: string): number {
 }
 
 /** Ties broken here when two groups score the same, so the order is stable. */
-const GROUP_ORDER = ["Actions", "Go to", "View", "Models", "Chats", "Projects", "Artifacts", "Notebook"];
+const GROUP_ORDER = ["Actions", "Go to", "View", "Models", "Chats", "Projects", "Artifacts", "Notebook", "Study"];
 /** No single kind of thing may fill the list and bury the rest. */
 const PER_GROUP = 5;
 
@@ -135,6 +135,7 @@ export function CommandPalette({
   const projects = useLiveQuery(() => db.projects.orderBy("updatedAt").reverse().limit(40).toArray(), [], []);
   const canvases = useLiveQuery(() => db.canvases.orderBy("updatedAt").reverse().limit(40).toArray(), [], []);
   const notes = useLiveQuery(() => db.notes.orderBy("updatedAt").reverse().limit(60).toArray(), [], []);
+  const decks = useLiveQuery(() => db.decks.orderBy("updatedAt").reverse().limit(40).toArray(), [], []);
 
   React.useEffect(() => {
     if (open) {
@@ -276,11 +277,22 @@ export function CommandPalette({
       run: () => actions.open("notebook", n.id),
     }));
 
+    /* The fourth room, which the palette used to skip: a deck is as much a
+       thing to jump to as a page. */
+    const deckCmds: Command[] = (decks ?? []).map((d) => ({
+      id: `deck:${d.id}`,
+      label: d.name || "Untitled deck",
+      hint: d.source ? `From ${d.source}` : "Deck",
+      icon: <GraduationCap size={15} />,
+      group: "Study",
+      run: () => actions.open("study", d.id),
+    }));
+
     return [
       ...base, ...nav, ...models,
-      ...chats, ...projectCmds, ...canvasCmds, ...noteCmds,
+      ...chats, ...projectCmds, ...canvasCmds, ...noteCmds, ...deckCmds,
     ];
-  }, [actions, conversations, projects, canvases, notes, settings]);
+  }, [actions, conversations, projects, canvases, notes, decks, settings]);
 
   /* Ranking has two jobs at once: put the best thing first, and keep each
      group in one piece. Sorting purely by score interleaves a note between two

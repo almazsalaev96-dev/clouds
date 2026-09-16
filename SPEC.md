@@ -101,7 +101,7 @@ Armi
 
 **Rule IA-3 ⬜** Every object has a stable deep link (`#armi-note-<id>`, `#armi-card-<id>`, `#armi-canvas-<id>`, `#armi-chat-<id>`) so search results, citations and the home strip open the thing directly. Today only notes have one (`#armi-note-`, `#armi-new-`).
 
-**Rule IA-4 ⬜ Global search** (`Ctrl/⌘ K` already opens the command palette): one box that searches conversations, pages, cards, canvases and project files; results grouped by room, each row showing the matching line; filters by room and date. The leading products all search only conversations `[R]`; the four-room store is the reason to do better.
+**Rule IA-4 🟡 Global search.** `Ctrl/⌘ K` opens the command palette, which searches conversations, projects, canvases, pages (title and body) and decks, grouped by room with at most five per group, and opens the thing in its room ✅. ⬜ Message bodies and card fronts as searchable text; the matching line shown on the row; filters by room and date. The leading products all search only conversations `[R]`; the four-room store is the reason to do better.
 
 ### 3.2 Navigation states
 
@@ -286,7 +286,7 @@ Twenty-four models across four providers, each with: `id`, `provider`, `name` (n
 **MR-2 ✅ Wire rules per model** (tested in `test-wire.ts`): effort-style models get `output_config.effort` and no sampling params; budget-style models get `thinking: {type:"enabled", budget_tokens}` and low effort sends no thinking at all.
 
 **MR-3 ⬜ Current wire shapes to adopt** (from the provider reference, September 2026 `[R]`):
-- Anthropic current models: `thinking: {type: "adaptive", display: "summarized"}` (so reasoning streams instead of a long pause) + `output_config.effort`; `budget_tokens` only on Haiku-class models.
+- Anthropic current models: `thinking: {type: "adaptive", display: "summarized"}` (so reasoning streams instead of a long pause) + `output_config.effort` ✅; `budget_tokens` only on Haiku-class models ✅.
 - Anthropic Opus 5 / Fable: **mid-conversation system messages** (`{role:"system"}` inside `messages`) for the per-turn prompt so the cached prefix survives; not on Sonnet 5, so keep the current two-block system for it.
 - Anthropic: `stop_reason: "refusal"` handled as a callout ("Declined by the provider's safety layer") with Switch model; opt into server-side fallbacks where the provider offers them.
 - Cache: `cache_control` on the stable system block and on the last message; 1h TTL for project knowledge blocks; verify `cache_read_input_tokens > 0` in the usage meter (show "cached" on the row when it is).
@@ -713,7 +713,7 @@ Prompt versions (`HOUSE`, mode prompts, stances) get a hash stored on each messa
 | 1 | ~~Self-heal loop for canvases~~ (AR-3/4) — done | The one build-loop feature that separates a toy from a tool | 15 |
 | 2 | **Tutor hint ladder ✅, check questions, exam mode 🟡** (TU-2/3, EX-1) | The education difference | 13 |
 | 3 | **Topic mastery 🟡 (deck health built), mistakes log, today's plan** (MA-1/2, SP-1) | Turns study data into direction | 13 |
-| 4 | **Global search + deep links** (IA-3/4) | Four rooms need one door | 3 |
+| 4 | **Global search 🟡 (palette covers all rooms) + deep links** (IA-3/4) | Four rooms need one door | 3 |
 | 5 | **Permission model + plan-then-execute + tasks table** (T-2, A-1/2) | Agents, safely, locally | 10, 18 |
 | 6 | **Cards from a source with accept/edit** (S-8), image occlusion (S-1) | The two card features people ask for | 13 |
 | 7 | **Wire upgrades**: adaptive thinking, mid-conversation system messages, refusal handling, cache read display (MR-3) | Cheaper and faster on current models | 9 |
