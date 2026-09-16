@@ -13,12 +13,19 @@
  * exactly what this app is and exactly what a chat window is not. So the
  * model writes the cards, and this decides when you see them.
  *
- * The algorithm is SM-2 with the corners knocked off: two learning steps
- * before a card counts as known, an ease factor that moves with how it
- * goes, and a lapse that sends a card back to the start without throwing
- * away what it learned about its difficulty. It is the same family Anki
- * and every other serious tool uses, and its whole virtue is that it is
- * boring and predictable.
+ * The algorithm is FSRS for the gaps and two learning steps before a card
+ * counts as known. FSRS — the Free Spaced Repetition Scheduler — is what
+ * Anki has scheduled with by default since 2023, and it was fitted to half a
+ * billion real reviews: it models each card as a memory with a *stability*
+ * (how long it lasts) and a *difficulty*, predicts the chance you still know
+ * it, and asks again at the point that chance falls to nine in ten. The
+ * benchmark that matters is that it needs twenty to thirty per cent fewer
+ * reviews than the SM-2 rule this file used to run for the same retention.
+ * The learning steps are kept from that rule, because a card seen a minute
+ * ago has not told you anything about its memory yet and FSRS has nothing
+ * to say until it has. The weights are FSRS-6's published defaults, which
+ * the benchmark finds better than SM-2 for all but half a per cent of
+ * people; fitting them to one person's history is a later step.
  *
  * This file is pure. No database, no clock of its own: `now` is passed in,
  * so a test can sit on a Tuesday in March and watch a card come back.
@@ -58,6 +65,15 @@ export interface Card {
   lastAnswered?: number;
   /** When it was first answered, for the cap on new cards a day. */
   introducedAt?: number;
+  /**
+   * How long the memory lasts, in days — the gap after which there is a 90%
+   * chance of still knowing it. FSRS's own number; grows with every good
+   * answer and shrinks with a lapse. Absent on a card scheduled before FSRS
+   * arrived, and worked out from what SM-2 knew the first time it is asked.
+   */
+  stability?: number;
+  /** How hard this card is for this person, 1 (easy) to 10 (hard). */
+  difficulty?: number;
   /** Where it came from, so a card can point at the thing it was made from. */
   source?: string;
 }
@@ -130,12 +146,97 @@ export const DAY = 86_400_000;
 
 /** Two steps before a card counts as learned, in minutes. */
 export const LEARNING_STEPS = [1, 10];
-/** The first real gap once it graduates. */
-export const GRADUATING_DAYS = 1;
-/** And the gap for a card that graduates straight away. */
-export const EASY_DAYS = 4;
 /** Below this, a card is asked so often it is not worth having. */
 export const MIN_EASE = 1.3;
+
+/* ----------------------------------------------------------------- FSRS -- */
+
+/**
+ * FSRS-6's default weights, in the order the papers number them.
+ *
+ * Not to be tuned by hand. The right way to change how this schedules is
+ * `DESIRED_RETENTION` below; the weights are what the fit found, and they
+ * are better than any hand-chosen set for almost everybody.
+ */
+export const W = [
+  0.212, 1.2931, 2.3065, 8.2956, 6.4133, 0.8334, 3.0194, 0.001, 1.8722, 0.1666, 0.796,
+  1.4835, 0.0614, 0.2629, 1.6483, 0.6014, 1.8729, 0.5425, 0.0912, 0.0658, 0.1542,
+] as const;
+
+/**
+ * How sure you want to be before a card comes back.
+ *
+ * Nine in ten is the figure everybody who has measured this settles on:
+ * higher means many more reviews for a little more recall, lower means
+ * forgetting things you paid to learn. It is the one knob FSRS offers, and
+ * the whole reason the weights above are not one.
+ */
+export const DESIRED_RETENTION = 0.9;
+
+const GRADE: Record<Rating, 1 | 2 | 3 | 4> = { again: 1, hard: 2, good: 3, easy: 4 };
+const DECAY = -W[20];
+const FACTOR = Math.pow(0.9, 1 / DECAY) - 1;
+const clampD = (d: number) => Math.min(10, Math.max(1, d));
+
+/** The chance of still knowing a card `days` after it was last seen. */
+export function retrievability(days: number, stability: number): number {
+  return Math.pow(1 + (FACTOR * Math.max(0, days)) / Math.max(0.01, stability), DECAY);
+}
+
+/** The gap that brings a card back at the desired retention, in whole days. */
+export function intervalFor(stability: number, retention = DESIRED_RETENTION): number {
+  const days = (stability / FACTOR) * (Math.pow(retention, 1 / DECAY) - 1);
+  return Math.max(1, Math.round(days));
+}
+
+const initialStability = (g: 1 | 2 | 3 | 4) => W[g - 1];
+const initialDifficulty = (g: 1 | 2 | 3 | 4) => clampD(W[4] - Math.exp(W[5] * (g - 1)) + 1);
+
+/** Difficulty after an answer: nudged by the grade, pulled back toward the mean. */
+function nextDifficulty(d: number, g: 1 | 2 | 3 | 4): number {
+  const nudged = d + -W[6] * (g - 3) * ((10 - d) / 9);
+  return clampD(W[7] * initialDifficulty(4) + (1 - W[7]) * nudged);
+}
+
+/** Stability after a successful review. */
+function stabilityAfterSuccess(d: number, s: number, r: number, g: 2 | 3 | 4): number {
+  const hard = g === 2 ? W[15] : 1;
+  const easy = g === 4 ? W[16] : 1;
+  return s * (Math.exp(W[8]) * (11 - d) * Math.pow(s, -W[9]) * (Math.exp(W[10] * (1 - r)) - 1) * hard * easy + 1);
+}
+
+/** Stability after forgetting: never more than it was. */
+function stabilityAfterLapse(d: number, s: number, r: number): number {
+  const fresh = W[11] * Math.pow(d, -W[12]) * (Math.pow(s + 1, W[13]) - 1) * Math.exp(W[14] * (1 - r));
+  return Math.min(fresh, s);
+}
+
+/**
+ * Stability after a second look on the same day, which teaches little — and
+ * never *un*-teaches. FSRS-6 clamps the multiplier at one for a good or easy
+ * answer, and a port that left that out made a card seen again half an hour
+ * later come back sooner than it was already due: a right answer shrinking
+ * the memory it confirmed.
+ */
+function stabilitySameDay(s: number, g: 1 | 2 | 3 | 4): number {
+  const m = Math.exp(W[17] * (g - 3 + W[18])) * Math.pow(s, -W[19]);
+  return s * (g >= 3 ? Math.max(1, m) : m);
+}
+
+/**
+ * What a card scheduled by the old rule looks like to the new one.
+ *
+ * Stability is the gap it was on: a card the old rule was asking every
+ * thirty days had, by that rule's lights, a month of memory in it. Difficulty
+ * from the ease it earned — 2.5 was the old default and lands in the middle
+ * of FSRS's scale, and the punishing floor of 1.3 lands at the top.
+ */
+export function adopt(card: Card): { stability: number; difficulty: number } {
+  if (card.stability != null && card.difficulty != null) return { stability: card.stability, difficulty: card.difficulty };
+  const stability = Math.max(0.1, card.interval || initialStability(3));
+  const difficulty = clampD(5 + (2.5 - card.ease) * 4.5);
+  return { stability, difficulty };
+}
 
 /**
  * The card, after an answer.
@@ -150,45 +251,60 @@ export function schedule(card: Card, rating: Rating, now: number): Card {
      steps, but it does not make it new again. */
   if (card.reps === 0) next.introducedAt = now;
 
-  /* Ease moves on every review, and only on a review: a card still in its
-     learning steps has not told you anything about how hard it is, it has
-     told you that you saw it a minute ago. */
+  const g = GRADE[rating];
+
+  /* Ease is kept up to date for the row that still reads it, and for a
+     backup restored into an older build. It no longer decides anything. */
   if (card.state === "review") {
     const delta = { again: -0.2, hard: -0.15, good: 0, easy: 0.15 }[rating];
     next.ease = Math.max(MIN_EASE, round2(card.ease + delta));
   }
 
   if (rating === "again") {
-    /* Forgotten. Back to the first step — but the ease it earned stays,
-       because a card you have forgotten once is not a card you have never
-       seen, and treating it as new is how a deck fills up with things you
-       already know. */
+    /* Forgotten. Back to the first step — with what FSRS learned kept: the
+       memory is weaker now and the card is harder, and both are written
+       down, so that when it graduates again the gap starts from what is
+       actually known about it rather than from a blank. A card you have
+       forgotten once is not a card you have never seen, and treating it as
+       new is how a deck fills up with things you already know. */
+    if (card.state === "review") {
+      const { stability, difficulty } = adopt(card);
+      const r = retrievability(daysSince(card, now), stability);
+      next.stability = stabilityAfterLapse(difficulty, stability, r);
+      next.difficulty = nextDifficulty(difficulty, 1);
+      next.lapses = card.lapses + 1;
+    } else if (card.stability != null) {
+      next.difficulty = nextDifficulty(card.difficulty ?? initialDifficulty(1), 1);
+    }
     next.state = "learning";
     next.interval = 0;
     next.step = 0;
-    next.lapses = card.state === "review" ? card.lapses + 1 : card.lapses;
     next.due = now + LEARNING_STEPS[0] * MINUTE;
     return next;
   }
 
   if (card.state === "new" || card.state === "learning") {
-    if (rating === "easy") {
+    /* The first real gap is FSRS's initial stability for the grade — what
+       the fit found a card first answered "good" is worth — unless the card
+       has been round before and knows better. Easy skips the steps. */
+    const known = card.stability != null ? adopt(card) : null;
+    const graduate = (grade: 3 | 4) => {
+      const stability = known ? stabilityAfterSuccess(known.difficulty, known.stability, 1, grade) : initialStability(grade);
+      const difficulty = known ? nextDifficulty(known.difficulty, grade) : initialDifficulty(grade);
+      const days = intervalFor(stability);
       next.state = "review";
-      next.interval = EASY_DAYS;
+      next.stability = stability;
+      next.difficulty = difficulty;
+      next.interval = days;
       next.step = 0;
-      next.due = now + EASY_DAYS * DAY;
+      next.due = now + days * DAY;
       return next;
-    }
+    };
+    if (rating === "easy") return graduate(4);
     /* Hard repeats the step you are on; good moves you along it. A card
        that has been through both steps graduates. */
     const nextStep = rating === "hard" ? card.step : card.step + 1;
-    if (nextStep >= LEARNING_STEPS.length) {
-      next.state = "review";
-      next.interval = GRADUATING_DAYS;
-      next.step = 0;
-      next.due = now + GRADUATING_DAYS * DAY;
-      return next;
-    }
+    if (nextStep >= LEARNING_STEPS.length) return graduate(3);
     next.state = "learning";
     next.interval = 0;
     next.step = nextStep;
@@ -196,15 +312,26 @@ export function schedule(card: Card, rating: Rating, now: number): Card {
     return next;
   }
 
-  /* A review. The gap grows by the ease, and "hard" grows it barely. */
+  /* A review. FSRS: how likely you were to still know it, given how long it
+     has been, and how much that answer says about the memory. A second look
+     on the same day is a different, smaller thing. */
+  const { stability, difficulty } = adopt(card);
+  const elapsed = daysSince(card, now);
+  const r = retrievability(elapsed, stability);
+  const s2 = elapsed < 1 ? stabilitySameDay(stability, g) : stabilityAfterSuccess(difficulty, stability, r, g as 2 | 3 | 4);
+  const days = intervalFor(s2);
   next.step = 0;
-  const grow = rating === "hard" ? 1.2 : next.ease;
-  const days = Math.max(1, Math.round(card.interval * grow * (rating === "easy" ? 1.3 : 1)));
   next.state = "review";
+  next.stability = s2;
+  next.difficulty = nextDifficulty(difficulty, g);
   next.interval = days;
   next.due = now + days * DAY;
   return next;
 }
+
+/** Days since the card was last answered — or, for one never answered, none. */
+const daysSince = (card: Card, now: number) =>
+  card.lastAnswered ? Math.max(0, (now - card.lastAnswered) / DAY) : 0;
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 

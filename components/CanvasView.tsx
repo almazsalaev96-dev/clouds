@@ -180,6 +180,24 @@ export function CanvasView({
  * different rooms, and the only moment anyone is deciding between them is now.
  */
 function Starters({ onSelect }: { onSelect: (id: string, seed?: string) => void }) {
+  const fileRef = React.useRef<HTMLInputElement>(null);
+  /**
+   * The other direction. Last round a folder learned to leave as one file;
+   * this is a page, or a folder of them, arriving — from a download of your
+   * own, a class handout, a thing built somewhere else. Read as text and
+   * kept as files, with index.html as the door if there is one.
+   */
+  const importFiles = async (list: FileList | null) => {
+    if (!list?.length) return;
+    const files = await Promise.all(
+      Array.from(list).map(async (f) => ({ name: f.name, lang: langOfName(f.name), content: await f.text() })),
+    );
+    const entry = files.find((f) => f.name.toLowerCase() === ENTRY) ?? files.find((f) => f.lang === "html");
+    if (entry && entry.name !== ENTRY) entry.name = ENTRY;
+    const title = (entry?.content.match(/<title>([^<]*)<\/title>/i)?.[1] ?? files[0].name.replace(/\.[^.]+$/, "")).trim() || "Imported";
+    const made = await createWebCanvas(files, { title });
+    onSelect(made.id);
+  };
   const start = [
     {
       icon: <LayoutTemplate size={16} />,
@@ -203,7 +221,20 @@ function Starters({ onSelect }: { onSelect: (id: string, seed?: string) => void 
 
   return (
     <div className="mb-5">
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid gap-2 sm:grid-cols-4">
+        <input
+          ref={fileRef}
+          type="file"
+          multiple
+          accept=".html,.htm,.css,.js,.mjs,.json,.svg,.md,.txt,text/html,text/css,text/javascript"
+          aria-label="Files to open"
+          tabIndex={-1}
+          className="sr-only"
+          onChange={(e) => {
+            void importFiles(e.target.files);
+            e.target.value = "";
+          }}
+        />
         {start.map((s) => (
           <button
             key={s.title}
@@ -215,6 +246,14 @@ function Starters({ onSelect }: { onSelect: (id: string, seed?: string) => void 
             <span className="text-xs text-tertiary">{s.blurb}</span>
           </button>
         ))}
+        <button
+          onClick={() => fileRef.current?.click()}
+          className="lift focus-inset tap flex flex-col items-start gap-0.5 rounded-xl border border-dashed border-line bg-transparent p-3 text-left transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
+        >
+          <span className="text-tertiary"><FilePlus2 size={16} /></span>
+          <span className="mt-1 text-sm font-medium text-primary">Open files</span>
+          <span className="text-xs text-tertiary">A page you already have, or a folder of them.</span>
+        </button>
       </div>
 
       {/* The five that are already something used to sit here. They are in

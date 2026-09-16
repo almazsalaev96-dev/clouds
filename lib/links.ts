@@ -156,3 +156,39 @@ export function readingTime(content: string): string {
   const mins = Math.max(1, Math.round(words / 200));
   return `${mins} min read`;
 }
+
+/* ----------------------------------------------------------------- tags -- */
+
+/**
+ * `#tags`, wherever they are written.
+ *
+ * The lightest structure a notebook can have and the one every serious
+ * tool ends up with: a word with a hash in front of it, typed in the flow
+ * of the page, that the index can then be narrowed by. Not inside code,
+ * not a heading's `#`, not `#1` — a tag is letters, and it starts with one.
+ */
+export const TAG = /(?:^|[^\w#/&(\[])#([\p{L}][\p{L}\p{N}_-]{1,30})/gu;
+
+/** Every tag on a page, lowercased, once each, in order of first use. */
+export function tagsIn(content: string): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const parts = content.split(/(```[\s\S]*?```|`[^`\n]*`)/g);
+  for (let i = 0; i < parts.length; i += 2) {
+    for (const line of parts[i].split("\n")) {
+      if (/^\s*#{1,6}\s/.test(line)) continue;
+      for (const m of line.matchAll(TAG)) {
+        const t = m[1].toLowerCase();
+        if (!seen.has(t)) { seen.add(t); out.push(t); }
+      }
+    }
+  }
+  return out;
+}
+
+/** Tags across a set of pages, most used first. */
+export function tagCounts(pages: { content: string }[]): { tag: string; n: number }[] {
+  const n = new Map<string, number>();
+  for (const p of pages) for (const t of tagsIn(p.content)) n.set(t, (n.get(t) ?? 0) + 1);
+  return [...n.entries()].map(([tag, count]) => ({ tag, n: count })).sort((a, b) => b.n - a.n || a.tag.localeCompare(b.tag));
+}

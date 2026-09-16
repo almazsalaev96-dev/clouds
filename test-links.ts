@@ -1,7 +1,7 @@
 /* Pages that point at each other, and what a page says about itself.
  *
  *   npx jiti test-links.ts */
-import { linksIn, resolveTitle, withLinks, readLink, backlinksTo, outlineOf, wordCount, readingTime } from "./lib/links";
+import { linksIn, resolveTitle, withLinks, readLink, backlinksTo, outlineOf, wordCount, readingTime, tagsIn, tagCounts } from "./lib/links";
 
 let failed = 0;
 const check = (p: boolean, l: string, d = "") => { if (!p) failed++; console.log(`${p ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
@@ -68,6 +68,19 @@ console.log("\nHow long it is");
   check(readingTime("word ".repeat(1000)) === "5 min read", "two hundred words a minute", readingTime("word ".repeat(1000)));
   check(readingTime("a few words") === "1 min read", "and never zero for a page with anything on it");
   check(readingTime("") === "", "but nothing at all for an empty one");
+}
+
+console.log("\nA word with a hash in front of it");
+{
+  const md = "# Heading\n\nNotes on #biology and #cell-respiration, see issue #12 and `#not-a-tag`.\n\n```\n#nor-this\n```\n\n#Biology again, and a/b#c is not one.";
+  const tags = tagsIn(md);
+  check(tags.join(",") === "biology,cell-respiration", "tags are found, lowercased, once each", tags.join(","));
+  check(!tags.includes("12") && !tags.includes("not-a-tag") && !tags.includes("nor-this") && !tags.includes("c"),
+    "and a number, a code span, a fence, a heading and an anchor are not tags");
+  check(tagsIn("#a #b").length === 0, "nor is a single letter — a tag is a word");
+  check(tagsIn("See [the cell](#cell-structure) and [intro](#intro).").length === 0, "nor an in-page link's anchor");
+  const counts = tagCounts([{ content: "#maths #bio" }, { content: "#bio" }, { content: "#Bio #chem" }]);
+  check(counts[0].tag === "bio" && counts[0].n === 3 && counts.length === 3, "counted across pages, most used first", counts.map((c) => `${c.tag}:${c.n}`).join(" "));
 }
 
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");

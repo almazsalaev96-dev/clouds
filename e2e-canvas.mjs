@@ -194,6 +194,33 @@ check(titleNow === "debounce.ts", "the canvas is named after the block's filenam
 
 await page.screenshot({ path: `${OUT}/canvas-from-chat.png` });
 
+/* --------------------------------------------------------------- import -- */
+
+console.log("\nA page you already have, opened here");
+{
+  /* The other direction from "download as one file": a folder of your own
+     arrives, is read as text, and runs. */
+  await page.locator("aside nav").getByRole("button", { name: "Artifacts" }).first().click();
+  await page.waitForTimeout(500);
+  await page.getByRole("button", { name: /^All canvases/ }).click().catch(() => {});
+  await page.waitForTimeout(400);
+  const before = await page.getByRole("list", { name: "Artifacts" }).locator("li").count().catch(() => 0);
+  await page.getByLabel("Files to open").setInputFiles([
+    { name: "index.html", mimeType: "text/html", buffer: Buffer.from("<!doctype html><html><head><title>Brought in</title><link rel=\"stylesheet\" href=\"style.css\"></head><body><h1 id=\"h\">Hello</h1><script src=\"app.js\"></script></body></html>") },
+    { name: "style.css", mimeType: "text/css", buffer: Buffer.from("h1 { color: rgb(200, 30, 30); }") },
+    { name: "app.js", mimeType: "text/javascript", buffer: Buffer.from("document.getElementById('h').textContent = 'Hello from the file';") },
+  ]);
+  await page.waitForTimeout(1200);
+  check((await page.getByLabel("Canvas title").inputValue()) === "Brought in", "named after the page's own title", await page.getByLabel("Canvas title").inputValue());
+  const frame = page.frameLocator("iframe");
+  await frame.locator("h1").waitFor({ timeout: 6000 }).catch(() => {});
+  check((await frame.locator("h1").innerText().catch(() => "")) === "Hello from the file", "and it runs, script and all");
+  check((await frame.locator("h1").evaluate((n) => getComputedStyle(n).color).catch(() => "")) === "rgb(200, 30, 30)", "with its stylesheet");
+  await page.getByRole("button", { name: /^All canvases/ }).click();
+  await page.waitForTimeout(500);
+  check((await page.getByRole("list", { name: "Artifacts" }).locator("li").count()) === before + 1, "as one more thing made");
+}
+
 console.log(errs.length ? "\n  ✗ runtime errors:\n" + errs.map((e) => "    " + e).join("\n") : "\n  ✓ no runtime errors");
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 await b.close();

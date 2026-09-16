@@ -84,7 +84,10 @@ console.log("\nWhat you knew goes away, what you did not comes back");
   const after = await cards();
   const easy = after.filter((c) => c.state === "review");
   const again = after.filter((c) => c.state === "learning");
-  check(easy.length === 1 && easy[0].interval === 4, "the one you knew is gone for four days", `${easy[0]?.interval}d`);
+  /* Days, not minutes — the figure itself belongs to the scheduler's weights,
+     and FSRS's first gap for a card you already knew is about a week. */
+  check(easy.length === 1 && easy[0].interval >= 4 && easy[0].stability > 0,
+    "the one you knew is gone for days, with a memory written down", `${easy[0]?.interval}d`);
   check(again.length === 1 && again[0].due - Date.now() < 90_000, "the one you did not is back within the minute");
   check(again[0].reps === 1, "and it remembers having been asked");
 }
@@ -272,6 +275,43 @@ console.log("\nThe night before");
   await p.waitForTimeout(500);
   const now = await cards();
   check(was.every(([id, due]) => now.find((c) => c.id === id)?.due === due), "and getting one wrong moves nothing — the schedule's promise is kept");
+  /* But it counts as studying: the day's row went up by exactly one. */
+  const logged = (await dayRows())[0]?.answered ?? 0;
+  check(logged === loggedBefore + 1, "while still counting as a day studied — practice is in today's row", `${loggedBefore} → ${logged}`);
+  await p.keyboard.press("Escape");
+  await p.waitForTimeout(400);
+}
+
+console.log("\nTyping the answer");
+{
+  /* Recall, not recognition: type what you remember, and the marker
+     suggests a button without pressing it. */
+  await p.getByRole("button", { name: /^Open debouncing/ }).click();
+  await p.waitForTimeout(500);
+  await p.getByRole("button", { name: "Practise every card" }).click();
+  await p.waitForTimeout(600);
+  await p.getByRole("button", { name: "Type the answer" }).click();
+  await p.waitForTimeout(300);
+  const box = p.getByRole("textbox", { name: "Your answer" });
+  check(await box.isVisible(), "a box to type into, instead of a button to reveal");
+  await box.fill("something else entirely");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(400);
+  const status = await p.getByRole("status").first().innerText();
+  check(/Not quite/.test(status) && /you wrote/.test(status), "a wrong answer is marked, and what you wrote is shown beside the answer", status.slice(0, 60));
+  const again = p.getByRole("group", { name: "How did it go" }).getByRole("button").first();
+  check((await again.getAttribute("class"))?.includes("border-accent") === true, "and the marker suggests Again, without pressing it");
+  check(/press whichever is true/.test(await p.locator("main").innerText()), "the last word is yours");
+  await p.keyboard.press("3");
+  await p.waitForTimeout(400);
+  /* Now a right one, dressed differently. The mock's answers are sentences,
+     so type the whole sentence: containing the answer is right. */
+  const front2 = await p.locator("main p").first().innerText();
+  const card = (await cards()).find((c) => c.front === front2 || c.front.replace(/\{\{|\}\}/g, "") === front2);
+  await p.getByRole("textbox", { name: "Your answer" }).fill((card?.back ?? "").toUpperCase() + "!!");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(400);
+  check(/^Right/.test(await p.getByRole("status").first().innerText()), "the same answer in capitals with a shout is right");
   await p.keyboard.press("Escape");
   await p.waitForTimeout(400);
 }
@@ -283,8 +323,8 @@ console.log("\nDays in a row, and the front door knows");
      depends on which card came up first, and a number that depends on the
      shuffle is not a claim about the log. */
   const days = await dayRows();
-  check(days.length === 1 && days[0].answered === loggedBefore + 1,
-    "every answer today, practice included, is written to today's row", `${loggedBefore} → ${days[0]?.answered} answered`);
+  check(days.length === 1 && days[0].answered > loggedBefore,
+    "one row for today, and every answer since is in it", `${days[0]?.answered} answered`);
   await p.getByRole("button", { name: "Back to Study" }).first().click().catch(() => {});
   await p.locator("aside nav").getByRole("button", { name: "Conversations" }).first().click();
   await p.waitForTimeout(500);

@@ -10,6 +10,7 @@
  *   npx jiti test-study.ts */
 import {
   newCard, schedule, dueNow, progressOf, whenDue, previewGaps, answeredToday, DAY, MINUTE, MIN_EASE,
+  retrievability, intervalFor, adopt, DESIRED_RETENTION, W,
   isCloze, clozeQuestion, clozeAnswer, clozeHidden, makeCloze, NEW_PER_DAY, cramOrder, streakOf, dayKey,
   parseCards, exportCards, type Card,
 } from "./lib/study";
@@ -26,37 +27,83 @@ console.log("\nA new card walks before it runs");
   const first = schedule(card(), "good", T0);
   check(first.state === "learning" && mins(first) === 10, "a new card answered well comes back in ten minutes", `${mins(first)}m`);
   const second = schedule(first, "good", T0 + 10 * MINUTE);
-  check(second.state === "review" && second.interval === 1, "and the step after that graduates it to a day", `${second.interval}d`);
+  check(second.state === "review" && second.interval >= 1 && second.interval <= 4 && second.stability != null,
+    "and the step after that graduates it to a few days, with a memory written down", `${second.interval}d`);
   const straight = schedule(card(), "easy", T0);
-  check(straight.state === "review" && days(straight) === 4, "a card you already knew skips the steps", `${days(straight)}d`);
+  check(straight.state === "review" && days(straight) > second.interval, "a card you already knew skips the steps and goes further", `${days(straight)}d`);
   const missed = schedule(card(), "again", T0);
   check(missed.state === "learning" && mins(missed) === 1, "and one you did not know comes back in a minute");
 }
 
+console.log("\nThe memory model underneath");
+{
+  /* FSRS's two promises, as properties rather than as numbers: the exact
+     figures belong to the weights and the weights belong to the fit. */
+  check(Math.abs(retrievability(10, 10) - 0.9) < 1e-9, "a card is 90% likely to be known when its stability has elapsed", retrievability(10, 10).toFixed(4));
+  /* Flat on purpose: FSRS-6's curve has a fitted shape, and at ten times the
+     stability recall is still about two in three. The claim is that it only
+     ever goes down, not how fast. */
+  check(retrievability(0, 10) === 1 && retrievability(100, 10) < retrievability(10, 10) && retrievability(1000, 10) < retrievability(100, 10),
+    "certain the moment it was seen, and only ever fading after", retrievability(100, 10).toFixed(2));
+  check(intervalFor(10) === 10 && intervalFor(30) === 30, "the gap at the desired retention is the stability itself", `${intervalFor(10)}d, ${intervalFor(30)}d`);
+  check(intervalFor(10, 0.8) > 10 && intervalFor(10, 0.97) < 10, "asking for less certainty waits longer, and more waits less");
+  check(W.length === 21 && DESIRED_RETENTION === 0.9, "twenty-one weights, and nine in ten");
+}
+
 console.log("\nThen the gaps grow, by how it is going");
 {
-  const known = card({ state: "review", interval: 10, ease: 2.5, reps: 5 });
-  check(days(schedule(known, "good", T0)) === 25, "a good answer multiplies the gap by the ease", `10d → ${days(schedule(known, "good", T0))}d`);
-  check(days(schedule(known, "hard", T0)) === 12, "hard barely grows it", `→ ${days(schedule(known, "hard", T0))}d`);
-  check(days(schedule(known, "easy", T0)) > days(schedule(known, "good", T0)), "and easy grows it further than good");
-  check(schedule(known, "hard", T0).ease < known.ease, "hard makes the card harder from now on");
-  check(schedule(known, "easy", T0).ease > known.ease, "easy makes it easier");
-  check(schedule(known, "good", T0).ease === known.ease, "and good leaves it where it was");
+  /* A card the schedule has known for ten days, asked on the day it was due. */
+  const known = card({ state: "review", interval: 10, stability: 10, difficulty: 5, reps: 5, lastAnswered: T0 - 10 * DAY });
+  const good = schedule(known, "good", T0);
+  const hard = schedule(known, "hard", T0);
+  const easy = schedule(known, "easy", T0);
+  check(days(good) > 10 && days(good) < 60, "a good answer grows the gap, within reason", `10d → ${days(good)}d`);
+  check(days(hard) > 10 && days(hard) < days(good), "hard grows it less", `→ ${days(hard)}d`);
+  check(days(easy) > days(good), "and easy grows it more", `→ ${days(easy)}d`);
+  check(good.stability! > known.stability! && good.due === T0 + good.interval * DAY, "the memory got stronger, and the due date is the interval");
+  check(hard.difficulty! > known.difficulty! && easy.difficulty! < known.difficulty!, "hard makes the card harder from now on, easy easier");
+  /* Being early or late matters: the same answer on a card you nearly
+     forgot says more than one on a card you had just seen. */
+  const late = schedule({ ...known, lastAnswered: T0 - 40 * DAY }, "good", T0);
+  const early = schedule({ ...known, lastAnswered: T0 - 2 * DAY }, "good", T0);
+  check(late.stability! > good.stability! && good.stability! > early.stability!,
+    "a good answer after a long gap is worth more than one after a short one", `${early.stability!.toFixed(1)} < ${good.stability!.toFixed(1)} < ${late.stability!.toFixed(1)}`);
+  const sameDay = schedule({ ...known, lastAnswered: T0 - MINUTE * 30 }, "good", T0);
+  check(sameDay.stability! < good.stability! && sameDay.stability! >= known.stability!,
+    "and a second look the same day teaches little — but a right answer never makes the memory weaker", `${known.stability} → ${sameDay.stability!.toFixed(1)}`);
+  const sameDayAgain = schedule({ ...known, lastAnswered: T0 - MINUTE * 30 }, "again", T0);
+  check(sameDayAgain.stability! < known.stability!, "while a wrong one the same day still does");
 }
 
 console.log("\nForgetting something you knew");
 {
-  const known = card({ state: "review", interval: 30, ease: 2.5, reps: 9, lapses: 0 });
+  const known = card({ state: "review", interval: 30, stability: 30, difficulty: 5, reps: 9, lapses: 0, lastAnswered: T0 - 30 * DAY });
   const lapsed = schedule(known, "again", T0);
   check(lapsed.state === "learning" && mins(lapsed) === 1, "it comes back in a minute, from the start");
   check(lapsed.lapses === 1, "the lapse is counted");
-  check(lapsed.ease === 2.3, "and the card is treated as harder from now on", String(lapsed.ease));
+  check(lapsed.stability! < known.stability! && lapsed.difficulty! > known.difficulty!,
+    "and the memory is written down as weaker, the card as harder", `S ${known.stability} → ${lapsed.stability!.toFixed(1)}`);
   /* What must not happen: a card you have forgotten once being treated as
      one you have never seen. That is how a deck fills with things you know. */
   check(lapsed.reps === 10, "but it is not a new card — everything it has been through is kept");
-  let punished = card({ state: "review", interval: 5, ease: MIN_EASE });
+  const back = schedule(schedule(lapsed, "good", T0 + MINUTE), "good", T0 + 11 * MINUTE);
+  check(back.state === "review" && back.interval >= 1 && back.stability === lapsed.stability, "and when it graduates again it starts from what is known, not from a blank",
+    `${back.interval}d`);
+  let punished = card({ state: "review", interval: 5, stability: 5, difficulty: 9.5, lastAnswered: T0 - 5 * DAY });
   for (let i = 0; i < 5; i++) punished = schedule(punished, "again", T0);
-  check(punished.ease >= MIN_EASE, "and however badly it goes, the ease has a floor", String(punished.ease));
+  check(punished.difficulty! <= 10 && punished.stability! > 0, "and however badly it goes, difficulty and stability stay on the scale", `D ${punished.difficulty!.toFixed(2)}`);
+}
+
+console.log("\nA card the old rule scheduled");
+{
+  /* Everything in people's browsers was scheduled by SM-2, which knew an
+     interval and an ease. FSRS reads those once and carries on. */
+  const old = card({ state: "review", interval: 30, ease: 2.5, reps: 9, lastAnswered: T0 - 30 * DAY });
+  const seen = adopt(old);
+  check(seen.stability === 30 && seen.difficulty === 5, "a month's gap is a month's memory, and the default ease is the middle of the scale", `S ${seen.stability} D ${seen.difficulty}`);
+  check(adopt(card({ state: "review", interval: 5, ease: 1.3 })).difficulty === 10, "and the punishing floor is the top of it");
+  const next = schedule(old, "good", T0);
+  check(next.stability! > 30 && next.difficulty != null, "and it is scheduled on from there, with FSRS's numbers written down");
 }
 
 console.log("\nWhat is asked first");

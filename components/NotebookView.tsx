@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import type { Note, Source } from "@/lib/types";
 import { addCards, addSource, createDeck, createNote, db, deleteNote, deriveTitle, removeSource, sourcesOf } from "@/lib/db";
-import { backlinksTo, outlineOf, readLink, readingTime, withLinks } from "@/lib/links";
+import { backlinksTo, outlineOf, readLink, readingTime, tagsIn, withLinks } from "@/lib/links";
 import { makeCloze } from "@/lib/study";
 import { PAGE_TEMPLATES } from "@/lib/pageTemplates";
 import { offerUndo } from "@/lib/undo";
@@ -211,6 +211,37 @@ export function NotebookView({
    * browser's own selection inside the preview, and cleared the moment it
    * is. */
   const [picked, setPicked] = React.useState<{ text: string; sentence: string; x: number; y: number } | null>(null);
+  /**
+   * A question put to every page at once.
+   *
+   * The thing the grounded tools are for, and the thing a pile of pages
+   * cannot do for you: "what did I write about the Krebs cycle" answered
+   * from the pages, with each claim quoting the page it came from — and
+   * the quote checked against the page by this app, so a citation the model
+   * made up is shown as one. The pages most likely to hold the answer go
+   * in first, because a notebook can be bigger than a request.
+   */
+  const [question, setQuestion] = React.useState("");
+  const [asking, setAsking] = React.useState(false);
+  const [answer, setAnswer] = React.useState<{ body: string; citations: Citation[]; from: { id: string; title: string }[] } | null>(null);
+  /** Narrow the index to one tag, or to none. */
+  const [tag, setTag] = React.useState<string | null>(null);
+  /* One pass over the pages for both the chips and the filter, rather than
+     two regex walks of every page on every keystroke into the ask box. And
+     the tag in force is the chosen one only while it still exists: delete
+     the last page carrying it and the filter would otherwise hold an empty
+     list open with no chip left to press. */
+  const tagged = React.useMemo(() => {
+    const byId = new Map<string, string[]>();
+    for (const n of notes ?? []) byId.set(n.id, tagsIn(n.content));
+    const counts = new Map<string, number>();
+    for (const list of byId.values()) for (const t of list) counts.set(t, (counts.get(t) ?? 0) + 1);
+    return {
+      byId,
+      counts: [...counts.entries()].map(([t, n]) => ({ tag: t, n })).sort((a, b) => b.n - a.n || a.tag.localeCompare(b.tag)),
+    };
+  }, [notes]);
+  const activeTag = tag && tagged.counts.some((c) => c.tag === tag) ? tag : null;
 
   useAutoGrow(textareaRef, preview ? "" : draft);
 
@@ -610,6 +641,73 @@ export function NotebookView({
     window.getSelection()?.removeAllRanges();
   };
 
+  const askNotebook = async () => {
+    const q = question.trim();
+    if (!q || asking) return;
+    const modelId = reviseModel;
+    if (!modelId) {
+      setNotice("No key configured yet — add one in Settings.");
+      return;
+    }
+    const all = (notes ?? []).filter((n) => n.content.trim());
+    if (!all.length) {
+      setNotice("There is nothing written down yet to ask about.");
+      return;
+    }
+    /* The pages most likely to hold the answer, by how many of the
+       question's words they use. Twelve of them, twenty thousand characters
+       each — a notebook can be larger than a request, and the pages that
+       never mention the subject are not where the answer is. */
+    /* The words that carry the question. Dropping everything short lost the
+       one word that mattered in "what is DNA"; dropping the filler by name
+       keeps "DNA", "pH" and "ion" and loses "what". */
+    const filler = new Set(["what", "is", "the", "a", "an", "of", "in", "on", "to", "for", "and", "or", "how", "why", "does", "do", "did", "are", "was", "were", "my", "i", "it", "this", "that", "with", "about", "from", "by", "at", "be", "me", "tell", "explain"]);
+    const words = q.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 2 && !filler.has(w));
+    const ranked = [...all]
+      .map((n) => ({ n, score: words.reduce((k, w) => k + (n.content.toLowerCase().includes(w) ? 1 : 0), 0) }))
+      .sort((a, b) => b.score - a.score || b.n.updatedAt - a.n.updatedAt)
+      .slice(0, 12)
+      .map((x) => x.n);
+    const sources: Source[] = ranked.map((n) => ({
+      id: n.id, noteId: n.id, name: n.title || "Untitled note", text: n.content, size: n.content.length, addedAt: n.updatedAt,
+    }));
+    setAsking(true);
+    setNotice(null);
+    setAnswer(null);
+    try {
+      const raw = await makeFromSources(
+        `Answer this question from the pages: ${q}\n\nA short answer — a paragraph or two, or a list if the question wants one. If the pages do not answer it, say so in one line rather than guessing.`,
+        sources.map((x) => ({ name: x.name, text: x.text })),
+        modelId,
+        20_000,
+      );
+      if (!raw) {
+        setNotice("Nothing usable came back. Try asking it differently.");
+        return;
+      }
+      const { text: body, citations } = extractCitations(raw, sources);
+      const cited = new Set(citations.map((c) => c.sourceId));
+      setAnswer({ body, citations, from: ranked.filter((n) => cited.has(n.id)).map((n) => ({ id: n.id, title: n.title || "Untitled note" })) });
+      const score = citeScore(citations);
+      if (score.missing) setNotice(`${score.missing} of ${score.total} citation${score.total === 1 ? "" : "s"} could not be found on the page it names — marked with a “?”.`);
+    } catch {
+      setNotice("That request failed. Check the key and the connection.");
+    } finally {
+      setAsking(false);
+    }
+  };
+
+  /* The answer as a page, for the ones worth keeping. */
+  const keepAnswer = async () => {
+    if (!answer) return;
+    const made = await createNote({
+      title: question.trim().slice(0, 80),
+      content: `# ${question.trim()}\n\n${answer.body}`,
+      citations: answer.citations,
+    });
+    onSelect(made.id);
+  };
+
   const exportMarkdown = () => {
     if (!note) return;
     const blob = new Blob([draft], { type: "text/markdown" });
@@ -623,13 +721,84 @@ export function NotebookView({
 
   if (!note) {
     return (
+      <>
+      {openCite && <CitePanel cite={openCite} onClose={() => setOpenCite(null)} />}
       <SectionIndex
         title="Notebook"
         newLabel="New page"
         emptyTitle="Nothing written down yet."
         emptyHint="Keep an answer from a chat, start from a blank page, or hand it a book: attach a PDF and it will turn it into lessons, a summary, the vocabulary, or questions that test whether you followed it. Pages are markdown — the same text you can send back to a model, export, and still read in a year."
         loading={notes === undefined}
+        lead={
+          <div className="mb-4">
+            <MessageBar
+              value={question}
+              onChange={setQuestion}
+              onSubmit={() => void askNotebook()}
+              placeholder="Ask your notebook — “what did I write about the Krebs cycle?”"
+              ariaLabel="Ask your notebook"
+              canSend={Boolean(question.trim()) && !asking}
+              busy={asking}
+              className="glass"
+            />
+            {asking && <p className="sheen mt-2 text-sm font-medium">Reading the pages</p>}
+            {notice && <p className="mt-2 text-sm text-warning">{notice}</p>}
+            {answer && (
+              <div className="mt-3 rounded-xl border border-line bg-surface p-4" aria-label="The answer">
+                <div onClick={(e) => {
+                  const href = (e.target as HTMLElement).closest("a")?.getAttribute("href") ?? "";
+                  const m = href.match(/^#armi-cite-(\d+)$/);
+                  if (!m) return;
+                  e.preventDefault();
+                  const found = answer.citations.find((c) => c.n === Number(m[1]));
+                  if (found) setOpenCite(found);
+                }}>
+                  <Markdown content={answer.body} />
+                </div>
+                {/* Which pages it drew on, each a press away, and the way to
+                    keep the answer if it turned out to be one worth having. */}
+                <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-line pt-3">
+                  {answer.from.length > 0 && <span className="text-xs text-faint">From</span>}
+                  {answer.from.map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => onSelect(f.id)}
+                      className="tap focus-inset rounded-full border border-line bg-canvas px-2.5 py-1 text-xs text-secondary hover:border-line-strong hover:text-primary"
+                    >
+                      {f.title}
+                    </button>
+                  ))}
+                  <span className="ml-auto flex gap-1">
+                    <Button size="sm" variant="ghost" onClick={() => void keepAnswer()}>Keep as a page</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setAnswer(null)}>Close</Button>
+                  </span>
+                </div>
+              </div>
+            )}
+            {/* The tags, wherever they were written, as a row that narrows
+                the list. Only once there are two — one tag is a label, not a
+                way of finding anything. */}
+            {(tagged.counts.length >= 2 || activeTag) && (
+              <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Tags">
+                {tagged.counts.slice(0, 16).map((t) => (
+                  <button
+                    key={t.tag}
+                    onClick={() => setTag(activeTag === t.tag ? null : t.tag)}
+                    aria-pressed={activeTag === t.tag}
+                    className={cn(
+                      "tap focus-inset rounded-full border px-2.5 py-1 text-xs transition-colors duration-[var(--dur-fast)]",
+                      activeTag === t.tag ? "border-accent bg-accent-subtle text-accent" : "border-line bg-surface text-secondary hover:border-line-strong hover:text-primary",
+                    )}
+                  >
+                    #{t.tag} <span className="tnum text-faint">{t.n}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        }
         items={[...(notes ?? [])]
+          .filter((n) => !activeTag || (tagged.byId.get(n.id) ?? []).includes(activeTag))
           .sort((a, b) => Number(b.pinned) - Number(a.pinned))
           .map((n) => ({
             id: n.id,
@@ -650,6 +819,7 @@ export function NotebookView({
           if (note) void db.notes.update(id, { pinned: !note.pinned });
         }}
       />
+      </>
     );
   }
 

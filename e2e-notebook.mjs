@@ -153,6 +153,56 @@ console.log("\nWords you point at");
   await p.screenshot({ path: `${OUT}/notebook-select.png` });
 }
 
+console.log("\nTags, wherever they were written");
+{
+  await p.getByRole("button", { name: /^All pages/ }).click();
+  await p.waitForTimeout(500);
+  await newPage();
+  await write("# Exam plan\n\nRevise #biology first, then #chemistry. #biology again for the practical.");
+  await p.getByRole("button", { name: /^All pages/ }).click();
+  await p.waitForTimeout(500);
+  await newPage();
+  await write("# Chem notes\n\nMoles and #chemistry.");
+  await p.getByRole("button", { name: /^All pages/ }).click();
+  await p.waitForTimeout(600);
+  const tags = p.getByRole("group", { name: "Tags" });
+  check(await tags.isVisible(), "a hash-word on a page is a tag on the index");
+  check(/#chemistry\s*2/.test((await tags.innerText()).replace(/\n/g, " ")) && /#biology\s*1/.test((await tags.innerText()).replace(/\n/g, " ")),
+    "counted across pages, once a page", (await tags.innerText()).replace(/\n/g, " "));
+  const all = await p.getByRole("list", { name: "Notebook" }).locator("li").count();
+  await tags.getByRole("button", { name: /#chemistry/ }).click();
+  await p.waitForTimeout(300);
+  const some = await p.getByRole("list", { name: "Notebook" }).locator("li").count();
+  check(some === 2 && some < all, "and pressing one narrows the list to the pages that carry it", `${all} → ${some}`);
+  await tags.getByRole("button", { name: /#chemistry/ }).click();
+  await p.waitForTimeout(200);
+}
+
+console.log("\nA question put to every page at once");
+{
+  /* The mock answers a grounded ask with two real quotations and one it
+     made up; the interesting assertion is what happens to the third. */
+  await p.getByRole("textbox", { name: "Ask your notebook" }).fill("what feeds the electron transport chain");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(4000);
+  const box = p.getByLabel("The answer");
+  check(await box.isVisible(), "an answer arrives on the index, not in a chat");
+  check((await box.locator("a[href^='#armi-cite-']").count()) >= 2, "with each claim quoting the page it came from", `${await box.locator("a[href^='#armi-cite-']").count()} citations`);
+  check(/could not be found/.test(await p.locator("main").innerText()), "and the one the model made up is called out, not passed off");
+  const from = box.locator("button").filter({ hasText: /Krebs|Electron|Glycolysis|Cell/ });
+  check((await from.count()) >= 1, "naming the pages it drew on, each a press away", await from.first().innerText());
+  await box.locator("a[href^='#armi-cite-']").first().click();
+  await p.waitForTimeout(400);
+  check(await p.getByRole("button", { name: "Close the source" }).isVisible(), "pressing a citation opens the page at the quoted words");
+  await p.getByRole("button", { name: "Close the source" }).click();
+  await p.waitForTimeout(200);
+  const before = (await rows("notes")).length;
+  await p.getByRole("button", { name: "Keep as a page" }).click();
+  await p.waitForTimeout(700);
+  check((await rows("notes")).length === before + 1, "and an answer worth having becomes a page, citations and all");
+  await p.screenshot({ path: `${OUT}/notebook-ask.png` });
+}
+
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors"); if (errs.length) failed++;
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 await b.close();

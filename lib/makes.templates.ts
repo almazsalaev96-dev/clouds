@@ -1935,3 +1935,341 @@ setInterval(tick, 30000);
 ` },
   ];
 }
+
+export function whiteboard() {
+  return [
+    { name: ENTRY, lang: "html", content: `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Whiteboard</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="wrap wide">
+      <header class="head">
+        <div>
+          <h1 id="wb-title">Whiteboard</h1>
+          <p class="sub">Draw with a finger, a pen or the mouse. Hold Shift for a straight line.</p>
+        </div>
+        <div class="tools" role="toolbar" aria-label="Tools">
+          <div class="inks" id="inks"></div>
+          <div class="sizes" id="sizes"></div>
+          <button id="eraser" type="button" aria-pressed="false">Eraser</button>
+          <button id="undo" type="button">Undo</button>
+          <button id="clear" type="button">Clear</button>
+          <button id="save" type="button">Save PNG</button>
+        </div>
+      </header>
+      <canvas id="board" aria-label="Drawing" role="img"></canvas>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
+` },
+    { name: "style.css", lang: "css", content: TOKENS + `
+.wrap.wide { max-width: 980px; }
+.head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.head .sub { margin-bottom: 0; }
+.tools { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.tools button { padding: 0 12px; min-height: 40px; font-size: 0.86rem; }
+.tools button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.inks, .sizes { display: flex; gap: 4px; }
+.ink { width: 30px; height: 30px; min-height: 0; padding: 0; border: 2px solid transparent; border-radius: 50%; }
+.ink[aria-pressed="true"] { border-color: var(--ink); transform: scale(1.1); }
+.size { width: 30px; height: 30px; min-height: 0; padding: 0; display: grid; place-items: center; }
+.size i { display: block; border-radius: 50%; background: currentColor; }
+.size[aria-pressed="true"] { border-color: var(--ink); }
+#board {
+  display: block;
+  width: 100%;
+  height: min(70vh, 640px);
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--card);
+  touch-action: none;
+  cursor: crosshair;
+}
+` },
+    { name: "app.js", lang: "js", content: `/* --------------------------------------------------------------- the pens --
+   Your board. Edit it — everything below is machinery.                     */
+
+const TITLE = "Whiteboard";
+const INKS = ["#1a2650", "#3450b5", "#b3402f", "#2f7d55", "#a8801f"];
+const SIZES = [2, 4, 8, 16];
+
+/* -------------------------------------------------------------- machinery -- */
+
+const el = (id) => document.getElementById(id);
+const board = el("board");
+const ctx = board.getContext("2d");
+let ink = INKS[0], size = SIZES[1], erasing = false;
+let strokes = [];          // each: { ink, size, erase, points: [[x,y],...] }
+let current = null;
+let dpr = 1;
+
+function fit() {
+  dpr = window.devicePixelRatio || 1;
+  const r = board.getBoundingClientRect();
+  board.width = Math.round(r.width * dpr);
+  board.height = Math.round(r.height * dpr);
+  redraw();
+}
+
+function redraw() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, board.width, board.height);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  strokes.concat(current ? [current] : []).forEach((s) => {
+    ctx.globalCompositeOperation = s.erase ? "destination-out" : "source-over";
+    ctx.strokeStyle = s.ink;
+    ctx.lineWidth = s.size;
+    ctx.beginPath();
+    s.points.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+    if (s.points.length === 1) ctx.lineTo(s.points[0][0] + 0.1, s.points[0][1]);
+    ctx.stroke();
+  });
+  ctx.globalCompositeOperation = "source-over";
+}
+
+const at = (e) => { const r = board.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+
+board.addEventListener("pointerdown", (e) => {
+  board.setPointerCapture(e.pointerId);
+  current = { ink, size: erasing ? size * 3 : size, erase: erasing, points: [at(e)], straight: e.shiftKey };
+  redraw();
+});
+board.addEventListener("pointermove", (e) => {
+  if (!current) return;
+  const p = at(e);
+  if (current.straight) current.points = [current.points[0], p];
+  else current.points.push(p);
+  redraw();
+});
+const lift = () => { if (!current) return; strokes.push(current); current = null; redraw(); };
+board.addEventListener("pointerup", lift);
+board.addEventListener("pointercancel", lift);
+
+function buildTools() {
+  el("wb-title").textContent = TITLE;
+  document.title = TITLE;
+  const inks = el("inks");
+  INKS.forEach((c) => {
+    const b = document.createElement("button");
+    b.className = "ink"; b.type = "button"; b.style.background = c; b.dataset.ink = c;
+    b.setAttribute("aria-label", "Ink " + c); b.setAttribute("aria-pressed", String(c === ink));
+    b.addEventListener("click", () => { ink = c; erasing = false; syncTools(); });
+    inks.appendChild(b);
+  });
+  const sizes = el("sizes");
+  SIZES.forEach((n) => {
+    const b = document.createElement("button");
+    b.className = "size"; b.type = "button";
+    b.setAttribute("aria-label", "Pen " + n); b.setAttribute("aria-pressed", String(n === size));
+    const dot = document.createElement("i"); dot.style.width = dot.style.height = Math.min(18, n + 4) + "px";
+    b.appendChild(dot);
+    b.addEventListener("click", () => { size = n; syncTools(); });
+    sizes.appendChild(b);
+  });
+}
+function syncTools() {
+  /* The data attribute, not the style: a hex colour assigned to a style
+     comes back as rgb(), and compared against itself never matches. */
+  document.querySelectorAll(".ink").forEach((b) => b.setAttribute("aria-pressed", String(!erasing && b.dataset.ink === ink)));
+  document.querySelectorAll(".size").forEach((b) => b.setAttribute("aria-pressed", String(b.getAttribute("aria-label") === "Pen " + size)));
+  el("eraser").setAttribute("aria-pressed", String(erasing));
+}
+
+el("eraser").addEventListener("click", () => { erasing = !erasing; syncTools(); });
+el("undo").addEventListener("click", () => { strokes.pop(); redraw(); });
+el("clear").addEventListener("click", () => { strokes = []; redraw(); });
+el("save").addEventListener("click", () => {
+  /* Flattened onto the board's own colour, so the file is not transparent. */
+  const out = document.createElement("canvas");
+  out.width = board.width; out.height = board.height;
+  const o = out.getContext("2d");
+  o.fillStyle = getComputedStyle(board).backgroundColor || "#fff";
+  o.fillRect(0, 0, out.width, out.height);
+  o.drawImage(board, 0, 0);
+  const a = document.createElement("a");
+  a.download = TITLE.toLowerCase().replace(/\\s+/g, "-") + ".png";
+  a.href = out.toDataURL("image/png");
+  a.click();
+});
+window.addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key === "z") { e.preventDefault(); strokes.pop(); redraw(); } });
+window.addEventListener("resize", fit);
+
+buildTools();
+fit();
+` },
+  ];
+}
+
+export function plotter() {
+  return [
+    { name: ENTRY, lang: "html", content: `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Graph</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <h1 id="gp-title">Graph</h1>
+      <p class="sub">Type a function of x. Drag to pan, scroll to zoom, and hover to read a point.</p>
+      <div id="rows" class="rows"></div>
+      <button id="add" type="button" class="link">+ another</button>
+      <canvas id="plot" role="img" aria-label="The graph"></canvas>
+      <p class="tail" id="readout">&nbsp;</p>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
+` },
+    { name: "style.css", lang: "css", content: TOKENS + `
+.rows { display: grid; gap: 6px; }
+.row { display: flex; align-items: center; gap: 8px; }
+.row .swatch { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; }
+.row .y { color: var(--muted); font-family: ui-monospace, monospace; font-size: 0.9rem; }
+.row input { flex: 1; min-height: 40px; padding: 0 12px; font: inherit; font-family: ui-monospace, monospace; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+.row input:focus { border-color: var(--accent); outline: none; }
+.row input.bad { border-color: var(--bad); }
+.row .x { min-height: 0; width: 32px; height: 32px; padding: 0; border: 0; background: none; color: var(--faint); font-size: 18px; }
+.link { margin: 6px 0 0; min-height: 0; padding: 6px 0; border: 0; background: none; color: var(--muted); font-size: 0.82rem; text-decoration: underline; text-underline-offset: 3px; }
+#plot { display: block; width: 100%; height: min(60vh, 520px); margin-top: 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--card); touch-action: none; cursor: grab; }
+.tail { margin: 8px 0 0; min-height: 1.4em; color: var(--muted); font-family: ui-monospace, monospace; font-size: 0.82rem; }
+` },
+    { name: "app.js", lang: "js", content: `/* ------------------------------------------------------------ functions --
+   Your graph. Edit it — everything below is machinery.
+   Anything JavaScript can do with x: sin(x), x^2, sqrt(x), abs(x), exp(x), log(x), pi, e. */
+
+const TITLE = "Graph";
+const FUNCTIONS = ["sin(x)", "x^2 / 4", "cos(x) * 2"];
+const COLOURS = ["#3450b5", "#b3402f", "#2f7d55", "#a8801f", "#7a3fb5"];
+
+/* -------------------------------------------------------------- machinery -- */
+
+const el = (id) => document.getElementById(id);
+const canvas = el("plot");
+const ctx = canvas.getContext("2d");
+let view = { cx: 0, cy: 0, scale: 40 };     // pixels per unit
+let fns = FUNCTIONS.map((src, i) => ({ src, f: compile(src), colour: COLOURS[i % COLOURS.length] }));
+let dpr = 1, W = 0, H = 0;
+
+/* A function of x from a line of maths: ^ becomes **, the usual names are
+   let through, and anything else is refused rather than run. */
+function compile(src) {
+  const safe = src.replace(/\\^/g, "**").replace(/\\b(sin|cos|tan|asin|acos|atan|sqrt|abs|exp|log|log2|log10|floor|ceil|round|min|max|pow|sign|cbrt|sinh|cosh|tanh)\\b/g, "Math.$1")
+    .replace(/\\bpi\\b/g, "Math.PI").replace(/\\be\\b/g, "Math.E");
+  /* Refused unless every name in it is x or one of the maths above. A check
+     that only forbade punctuation let any bare identifier through, and a
+     line of maths is not a place to run a line of anything else. */
+  if (/[^0-9a-zA-Z_+\\-*/(). ,%]/.test(safe)) return null;
+  const names = safe.match(/[A-Za-z_][\\w.]*/g) || [];
+  if (!names.every((n) => n === "x" || /^Math\\.(sin|cos|tan|asin|acos|atan|sqrt|abs|exp|log|log2|log10|floor|ceil|round|min|max|pow|sign|cbrt|sinh|cosh|tanh|PI|E)$/.test(n))) return null;
+  try { const f = new Function("x", "return (" + safe + ");"); f(1); return f; } catch { return null; }
+}
+
+function buildRows() {
+  el("gp-title").textContent = TITLE;
+  document.title = TITLE;
+  const host = el("rows");
+  host.innerHTML = "";
+  fns.forEach((fn, i) => {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = '<span class="swatch"></span><span class="y">y =</span><input aria-label="Function ' + (i + 1) + '" spellcheck="false" /><button class="x" type="button" aria-label="Remove">×</button>';
+    row.querySelector(".swatch").style.background = fn.colour;
+    const input = row.querySelector("input");
+    input.value = fn.src;
+    input.classList.toggle("bad", !fn.f);
+    input.addEventListener("input", () => { fn.src = input.value; fn.f = compile(fn.src); input.classList.toggle("bad", !fn.f && fn.src.trim() !== ""); draw(); });
+    row.querySelector(".x").addEventListener("click", () => { fns.splice(i, 1); buildRows(); draw(); });
+    host.appendChild(row);
+  });
+}
+
+function fit() {
+  dpr = window.devicePixelRatio || 1;
+  const r = canvas.getBoundingClientRect();
+  W = r.width; H = r.height;
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  draw();
+}
+
+const toPx = (x, y) => [W / 2 + (x - view.cx) * view.scale, H / 2 - (y - view.cy) * view.scale];
+const toXY = (px, py) => [(px - W / 2) / view.scale + view.cx, (H / 2 - py) / view.scale + view.cy];
+
+function draw() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const cs = getComputedStyle(document.documentElement);
+  const line = cs.getPropertyValue("--line").trim() || "#ddd";
+  const ink = cs.getPropertyValue("--faint").trim() || "#888";
+  /* A grid at a round step: 1, 2, 5 × 10^n units, whichever gives ~60px. */
+  const raw = 60 / view.scale;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 5, 10].map((m) => m * mag).find((s) => s >= raw) || mag * 10;
+  const [x0, y1] = toXY(0, 0), [x1, y0] = toXY(W, H);
+  ctx.lineWidth = 1; ctx.strokeStyle = line; ctx.fillStyle = ink; ctx.font = "11px ui-monospace, monospace";
+  for (let x = Math.floor(x0 / step) * step; x <= x1; x += step) {
+    const [px] = toPx(x, 0); ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, H); ctx.stroke();
+    if (Math.abs(x) > 1e-9) ctx.fillText(tidy(x), px + 3, Math.min(H - 4, Math.max(12, toPx(0, 0)[1] + 12)));
+  }
+  for (let y = Math.floor(y0 / step) * step; y <= y1; y += step) {
+    const [, py] = toPx(0, y); ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(W, py); ctx.stroke();
+    if (Math.abs(y) > 1e-9) ctx.fillText(tidy(y), Math.min(W - 30, Math.max(3, toPx(0, 0)[0] + 3)), py - 3);
+  }
+  ctx.strokeStyle = ink; ctx.lineWidth = 1.5;
+  const [ox, oy] = toPx(0, 0);
+  ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(W, oy); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke();
+  /* The curves, one pixel at a time, with a break wherever the function
+     jumps — tan(x) is not a wall. */
+  fns.forEach((fn) => {
+    if (!fn.f) return;
+    ctx.strokeStyle = fn.colour; ctx.lineWidth = 2; ctx.beginPath();
+    let pen = false, last = null;
+    for (let px = 0; px <= W; px += 1) {
+      const x = toXY(px, 0)[0];
+      let y; try { y = fn.f(x); } catch { y = NaN; }
+      if (!Number.isFinite(y) || (last !== null && Math.abs(y - last) * view.scale > H * 2)) { pen = false; last = null; continue; }
+      const py = toPx(0, y)[1];
+      if (pen) ctx.lineTo(px, py); else { ctx.moveTo(px, py); pen = true; }
+      last = y;
+    }
+    ctx.stroke();
+  });
+}
+const tidy = (n) => (Math.abs(n) >= 1e6 || (Math.abs(n) < 1e-3 && n !== 0)) ? n.toExponential(1) : String(Math.round(n * 1000) / 1000);
+
+let drag = null;
+canvas.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, cx: view.cx, cy: view.cy }; canvas.setPointerCapture(e.pointerId); canvas.style.cursor = "grabbing"; });
+canvas.addEventListener("pointermove", (e) => {
+  if (drag) { view.cx = drag.cx - (e.clientX - drag.x) / view.scale; view.cy = drag.cy + (e.clientY - drag.y) / view.scale; draw(); return; }
+  const r = canvas.getBoundingClientRect();
+  const x = toXY(e.clientX - r.left, 0)[0];
+  el("readout").textContent = "x = " + tidy(x) + fns.filter((f) => f.f).map((f) => { let y; try { y = f.f(x); } catch { y = NaN; } return "   " + f.src + " = " + (Number.isFinite(y) ? tidy(y) : "—"); }).join("");
+});
+canvas.addEventListener("pointerup", () => { drag = null; canvas.style.cursor = "grab"; });
+canvas.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const r = canvas.getBoundingClientRect();
+  const [mx, my] = toXY(e.clientX - r.left, e.clientY - r.top);
+  view.scale = Math.min(2000, Math.max(2, view.scale * (e.deltaY < 0 ? 1.15 : 1 / 1.15)));
+  const [nx, ny] = toXY(e.clientX - r.left, e.clientY - r.top);
+  view.cx += mx - nx; view.cy += my - ny;
+  draw();
+}, { passive: false });
+el("add").addEventListener("click", () => { fns.push({ src: "", f: null, colour: COLOURS[fns.length % COLOURS.length] }); buildRows(); el("rows").querySelector(".row:last-child input").focus(); });
+window.addEventListener("resize", fit);
+
+buildRows();
+fit();
+` },
+  ];
+}

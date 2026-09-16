@@ -261,6 +261,55 @@ console.log("\nCountdown");
   check((await consoleErrors()) === "", "it runs without a single error", "console clean");
 }
 
+console.log("\nWhiteboard");
+{
+  await back();
+  const f = await open("Whiteboard");
+  const board = f.locator("#board");
+  const box = await board.boundingBox();
+  check(Boolean(box) && box.width > 300, "a board to draw on", `${Math.round(box?.width ?? 0)}px wide`);
+  await page.mouse.move(box.x + 60, box.y + 60);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 200, box.y + 120, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(200);
+  const inked = await board.evaluate((c) => {
+    const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+    let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n;
+  });
+  check(inked > 100, "a stroke leaves ink", `${inked} pixels`);
+  await f.locator("#undo").click();
+  await page.waitForTimeout(150);
+  const after = await board.evaluate((c) => {
+    const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+    let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n;
+  });
+  check(after === 0, "and undo takes the last stroke back");
+  await page.screenshot({ path: `${OUT}/make-whiteboard.png` });
+  check((await consoleErrors()) === "", "it runs without a single error", "console clean");
+  await back();
+}
+
+console.log("\nGraph");
+{
+  const f = await open("Graph");
+  check((await f.locator(".row").count()) === 3, "three functions to start with");
+  const bad = f.locator(".row input").first();
+  await bad.fill("sin(x");
+  await page.waitForTimeout(150);
+  check((await bad.getAttribute("class"))?.includes("bad") === true, "a line that will not parse is marked, not run");
+  await bad.fill("x^3");
+  await page.waitForTimeout(150);
+  check(!(await bad.getAttribute("class"))?.includes("bad"), "and a caret means a power, the way people write it");
+  const plot = f.locator("#plot");
+  const box = await plot.boundingBox();
+  await page.mouse.move(box.x + box.width / 2 + 40, box.y + box.height / 2);
+  await page.waitForTimeout(150);
+  check(/x = /.test(await f.locator("#readout").innerText()), "hovering reads the point", await f.locator("#readout").innerText());
+  await page.screenshot({ path: `${OUT}/make-graph.png` });
+  check((await consoleErrors()) === "", "it runs without a single error", "console clean");
+}
+
 console.log("\nAfterwards");
 {
   const box = page.getByRole("textbox", { name: "Ask for a change" });

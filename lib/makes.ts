@@ -102,6 +102,24 @@ export const MAKES: Make[] = [
     ask: "Set this countdown for ",
     files: async () => (await load()).countdown(),
   },
+  {
+    id: "whiteboard",
+    name: "Whiteboard",
+    blurb: "Draw, erase, undo. Saves as a picture.",
+    icon: "PenTool",
+    title: "Whiteboard",
+    ask: "Set this whiteboard up with ",
+    files: async () => (await load()).whiteboard(),
+  },
+  {
+    id: "plotter",
+    name: "Graph",
+    blurb: "Type y = f(x) and see it. Pan, zoom, read a point.",
+    icon: "LineChart",
+    title: "Graph",
+    ask: "Plot these on the graph: ",
+    files: async () => (await load()).plotter(),
+  },
 ];
 
 export function findMake(id: string | undefined): Make | undefined {

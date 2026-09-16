@@ -2,13 +2,14 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, Flame, MessageSquare, Pencil, Trash2 } from "lucide-react";
+import { ChevronLeft, Flame, Keyboard, MessageSquare, Pencil, Trash2 } from "lucide-react";
+import { mark, type Mark } from "@/lib/grade";
 import type { Deck } from "@/lib/types";
 import { addCards, createDeck, db, deleteCard, deleteDeck, answerCard, importCards, noteStudied, updateCard } from "@/lib/db";
 import { draftCards } from "@/lib/generate";
 import { cheapestAvailable } from "@/lib/complete";
 import {
-  answeredToday, clozeAnswer, clozeQuestion, cramOrder, dueNow, isCloze, progressOf, previewGaps, streakOf, whenDue,
+  answeredToday, clozeAnswer, clozeHidden, clozeQuestion, cramOrder, dueNow, isCloze, progressOf, previewGaps, streakOf, whenDue,
   type Card, type Rating, type StudyDay,
 } from "@/lib/study";
 import { offerUndo } from "@/lib/undo";
@@ -324,6 +325,18 @@ function Session({
      nobody knowing whether it went well. */
   const [tally, setTally] = React.useState<Record<Rating, number>>({ again: 0, hard: 0, good: 0, easy: 0 });
   const [editing, setEditing] = React.useState(false);
+  /**
+   * Write mode: type what you remember, then see.
+   *
+   * Recalling a word is a different act from recognising it, and the
+   * difference is most of what an exam tests. The marker is forgiving where
+   * it should be — case, articles, a slipped letter — and never has the last
+   * word: it suggests a button, and the person presses whichever is true.
+   */
+  const [typing, setTyping] = React.useState(false);
+  const [typed, setTyped] = React.useState("");
+  const [verdict, setVerdict] = React.useState<{ mark: Mark; why: string } | null>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const now = useNow(1_000);
   /* In practice the order is fixed at the start and walked once, since
      nothing answered changes when anything comes back. The schedule's queue
@@ -341,6 +354,8 @@ function Session({
       if (!card) return;
       setShown(false);
       setEditing(false);
+      setTyped("");
+      setVerdict(null);
       setDone((n) => n + 1);
       setTally((t) => ({ ...t, [rating]: t[rating] + 1 }));
       if (mode === "cram") {
@@ -355,11 +370,31 @@ function Session({
     [card, mode],
   );
 
+  /* Checked, then shown. The typed answer is marked against the back — or,
+     for a cloze, against what was hidden — and the verdict picks a button
+     without pressing it. */
+  const submitTyped = () => {
+    if (!card) return;
+    /* A cloze is marked against what was hidden — any one hole, where the
+       sentence has several, since the question showed them all as blanks. */
+    const expected = isCloze(card.front) ? clozeHidden(card.front).split(" · ").join(" / ") : card.back;
+    setVerdict(mark(typed, expected));
+    setShown(true);
+  };
+  const suggested: Rating | null = verdict ? (verdict.mark === "right" ? "good" : verdict.mark === "close" ? "hard" : "again") : null;
+
+  React.useEffect(() => {
+    if (typing && !shown) inputRef.current?.focus();
+  }, [typing, shown, card]);
+
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || editing) return;
       if (e.key === "Escape") return onLeave();
       if (!card) return;
+      /* While typing, the box has the keys: Enter checks, and the digits are
+         digits. Once the answer is shown the buttons take over again. */
+      if (typing && !shown) return;
       if (!shown && (e.key === " " || e.key === "Enter")) {
         e.preventDefault();
         setShown(true);
@@ -375,7 +410,7 @@ function Session({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [shown, card, answer, onLeave, editing]);
+  }, [shown, card, answer, onLeave, editing, typing]);
 
   const gaps = card ? previewGaps(card, now) : null;
   const cloze = card ? isCloze(card.front) : false;
@@ -397,6 +432,18 @@ function Session({
         <span className="tnum shrink-0 text-xs text-tertiary">
           {queue.length} left{done > 0 ? ` · ${done} done` : ""}
         </span>
+        <button
+          onClick={() => { setTyping((v) => !v); setTyped(""); setVerdict(null); }}
+          aria-pressed={typing}
+          aria-label="Type the answer"
+          title="Type the answer before seeing it"
+          className={cn(
+            "ctl focus-inset flex [--ctl:2rem] items-center justify-center rounded-md transition-colors duration-[var(--dur-fast)]",
+            typing ? "bg-accent-subtle text-accent" : "text-tertiary hover:bg-subtle hover:text-primary",
+          )}
+        >
+          <Keyboard size={15} />
+        </button>
         {/* How far through, as a line rather than a fraction. A session
             with no visible end is one people leave in the middle. */}
         <span
@@ -445,6 +492,20 @@ function Session({
                 {shown && (
                   <>
                     <hr className="my-5 border-0 border-t border-line" />
+                    {verdict && (
+                      <p
+                        role="status"
+                        className={cn(
+                          "mb-2 text-center text-xs font-medium",
+                          verdict.mark === "right" ? "text-[var(--ok,var(--success))]" : verdict.mark === "close" ? "text-warning" : "text-[var(--danger)]",
+                        )}
+                      >
+                        {verdict.mark === "right" ? "Right" : verdict.mark === "close" ? `Close — ${verdict.why}` : "Not quite"}
+                        {typed.trim() && verdict.mark !== "right" && (
+                          <span className="font-normal text-tertiary"> · you wrote “{typed.trim()}”</span>
+                        )}
+                      </p>
+                    )}
                     <p className="anim-fade whitespace-pre-wrap text-center text-lg leading-relaxed text-secondary">
                       {cloze ? <Marked text={clozeAnswer(card.front)} /> : card.back}
                     </p>
@@ -454,11 +515,29 @@ function Session({
             )}
 
             {!shown ? (
-              <div className="mt-5 flex justify-center">
-                <Button variant="primary" className="bloom" onClick={() => setShown(true)}>
-                  Show answer
-                </Button>
-              </div>
+              typing ? (
+                <form
+                  className="mt-5 flex justify-center gap-2"
+                  onSubmit={(e) => { e.preventDefault(); submitTyped(); }}
+                >
+                  <input
+                    ref={inputRef}
+                    value={typed}
+                    onChange={(e) => setTyped(e.target.value)}
+                    aria-label="Your answer"
+                    placeholder="Type the answer…"
+                    autoComplete="off"
+                    className="focus-inset h-10 w-full max-w-md rounded-full border border-line bg-surface px-4 text-sm text-primary outline-none placeholder:text-tertiary"
+                  />
+                  <Button type="submit" variant="primary" className="bloom">Check</Button>
+                </form>
+              ) : (
+                <div className="mt-5 flex justify-center">
+                  <Button variant="primary" className="bloom" onClick={() => setShown(true)}>
+                    Show answer
+                  </Button>
+                </div>
+              )
             ) : (
               /* Four buttons and what each one costs, said before it is
                  pressed. A scheduler nobody can see the consequences of is
@@ -474,7 +553,11 @@ function Session({
                   <button
                     key={r}
                     onClick={() => void answer(r)}
-                    className="tap focus-inset flex flex-col items-center gap-0.5 rounded-lg border border-line bg-surface px-3 py-2.5 transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:bg-subtle"
+                    aria-describedby={suggested === r ? "suggested" : undefined}
+                    className={cn(
+                      "tap focus-inset flex flex-col items-center gap-0.5 rounded-lg border bg-surface px-3 py-2.5 transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:bg-subtle",
+                      suggested === r ? "border-accent ring-1 ring-accent" : "border-line",
+                    )}
                   >
                     <span className="text-sm font-medium text-primary">
                       {label} <span className="text-tertiary">{i + 1}</span>
@@ -527,8 +610,10 @@ function Session({
               </div>
             )}
 
-            <p className={cn("mt-3 text-center text-xs text-faint", shown ? "" : "opacity-70")}>
-              {shown ? "1 – 4 to answer · Esc to leave" : "Space to show the answer"}
+            <p id="suggested" className={cn("mt-3 text-center text-xs text-faint", shown ? "" : "opacity-70")}>
+              {shown
+                ? suggested ? "The marker suggests one — press whichever is true · 1 – 4" : "1 – 4 to answer · Esc to leave"
+                : typing ? "Enter to check" : "Space to show the answer"}
             </p>
           </div>
         )}
