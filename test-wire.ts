@@ -113,8 +113,9 @@ console.log("\nAnd thinking is asked for in the shape the model on the other end
     const wants = getModel(id).thinks;
     const effort = (body.output_config as { effort?: string } | undefined)?.effort;
     if (wants === "effort") {
-      check(effort === "high" && body.thinking === undefined,
-        `${id} is told how hard to think, and sent no thinking block`, `effort=${effort}`);
+      const t = body.thinking as { type?: string; display?: string; budget_tokens?: number } | undefined;
+      check(effort === "high" && t?.type === "adaptive" && t.display === "summarized" && t.budget_tokens === undefined,
+        `${id} is told how hard to think, and asked for its reasoning as a summary — never a budget`, `effort=${effort} thinking=${JSON.stringify(t)}`);
     } else if (wants === "budget") {
       check(Boolean(body.thinking) && body.output_config === undefined,
         `${id} is given a thinking budget, and no effort`, JSON.stringify(body.thinking));
@@ -122,7 +123,8 @@ console.log("\nAnd thinking is asked for in the shape the model on the other end
       check(body.thinking === undefined && body.output_config === undefined,
         `${id} is asked for neither`);
     }
-    check(!(body.thinking && body.output_config), `${id} is never sent both shapes at once`);
+    const bt = body.thinking as { budget_tokens?: number } | undefined;
+    check(!(bt?.budget_tokens && body.output_config), `${id} is never sent a budget and an effort at once`);
   }
   /* And a model that thinks by effort gets no sampling parameters either:
      these models decide for themselves whether to think, so there is no

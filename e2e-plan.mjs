@@ -93,6 +93,23 @@ console.log("\nThe deck most likely to be forgotten is named, with a way to prac
   check(/practice/.test((await p.locator("main").innerText().catch(() => "")).toLowerCase()) && /qw\d/.test(await p.locator("main").innerText().catch(() => "")), "and one press starts a practice run through it", (await p.locator("main").innerText().catch(() => "")).replace(/\s+/g, " ").slice(0, 80));
 }
 
+console.log("\nA deck is a thing the palette can jump to");
+{
+  await p.keyboard.press("Escape");
+  await p.waitForTimeout(300);
+  await p.keyboard.press("Control+k");
+  const box = p.getByRole("textbox", { name: "Command palette" });
+  await box.waitFor({ timeout: 5000 }).catch(() => {});
+  await box.fill("shaky");
+  await p.waitForTimeout(400);
+  const shown = await p.locator('[role="listbox"]').innerText().catch(() => "");
+  check(/Study/.test(shown) && /Shaky deck/.test(shown), "the deck is found under its room", shown.replace(/\s+/g, " ").slice(0, 80));
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(700);
+  const main = (await p.locator("main").innerText().catch(() => "")).replace(/\s+/g, " ");
+  check(/Shaky deck/.test(main) && /qw\d/.test(main), "and opening it lands on the deck, cards and all", main.slice(0, 80));
+}
+
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors");
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 process.exit(failed ? 1 : 0);
