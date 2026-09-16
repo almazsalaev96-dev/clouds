@@ -10,6 +10,7 @@ import type { Note, Source } from "@/lib/types";
 import { addCards, addSource, createDeck, createNote, db, deleteNote, deriveTitle, removeSource, sourcesOf } from "@/lib/db";
 import { backlinksTo, outlineOf, readLink, readingTime, tagsIn, withLinks } from "@/lib/links";
 import { makeCloze } from "@/lib/study";
+import { select } from "@/lib/retrieve";
 import { PAGE_TEMPLATES } from "@/lib/pageTemplates";
 import { offerUndo } from "@/lib/undo";
 import { useAutoGrow } from "@/lib/hooks/useAutoGrow";
@@ -654,32 +655,40 @@ export function NotebookView({
       setNotice("There is nothing written down yet to ask about.");
       return;
     }
-    /* The pages most likely to hold the answer, by how many of the
-       question's words they use. Twelve of them, twenty thousand characters
-       each — a notebook can be larger than a request, and the pages that
-       never mention the subject are not where the answer is. */
-    /* The words that carry the question. Dropping everything short lost the
-       one word that mattered in "what is DNA"; dropping the filler by name
-       keeps "DNA", "pH" and "ion" and loses "what". */
-    const filler = new Set(["what", "is", "the", "a", "an", "of", "in", "on", "to", "for", "and", "or", "how", "why", "does", "do", "did", "are", "was", "were", "my", "i", "it", "this", "that", "with", "about", "from", "by", "at", "be", "me", "tell", "explain"]);
-    const words = q.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 2 && !filler.has(w));
-    const ranked = [...all]
-      .map((n) => ({ n, score: words.reduce((k, w) => k + (n.content.toLowerCase().includes(w) ? 1 : 0), 0) }))
-      .sort((a, b) => b.score - a.score || b.n.updatedAt - a.n.updatedAt)
-      .slice(0, 12)
-      .map((x) => x.n);
-    const sources: Source[] = ranked.map((n) => ({
-      id: n.id, noteId: n.id, name: n.title || "Untitled note", text: n.content, size: n.content.length, addedAt: n.updatedAt,
+    /* The parts of the pages that bear on the question, chosen by the same
+       retrieval the projects use: every page whole while it all fits, and
+       the relevant paragraphs from across the notebook when it does not. A
+       notebook can be larger than a request, and the pages that never
+       mention the subject are not where the answer is. Two hundred thousand
+       characters is room for a term's notes. */
+    /* Named uniquely. Two pages called the same thing — two untitled ones,
+       most often — would be one source to the retrieval and one page to a
+       citation, and a quote from the second would be checked against the
+       first and marked as not found. */
+    const seen = new Map<string, number>();
+    const named = all.map((n) => {
+      const base = n.title || "Untitled note";
+      const k = (seen.get(base) ?? 0) + 1;
+      seen.set(base, k);
+      return { n, name: k === 1 ? base : `${base} (${k})` };
+    });
+    const picked = select(q, named.map((x) => ({ name: x.name, text: x.n.content })), 200_000);
+    const ranked = picked.map((p) => named.find((x) => x.name === p.name)!.n);
+    /* The source the citations are checked against is the page as picked —
+       the excerpt, where it was one — so a quote from a paragraph that was
+       not sent cannot be claimed to have come from it. */
+    const sources: Source[] = picked.map((p, i) => ({
+      id: ranked[i].id, noteId: ranked[i].id, name: p.name, text: p.text, size: p.text.length, addedAt: ranked[i].updatedAt,
     }));
     setAsking(true);
     setNotice(null);
     setAnswer(null);
     try {
       const raw = await makeFromSources(
-        `Answer this question from the pages: ${q}\n\nA short answer — a paragraph or two, or a list if the question wants one. If the pages do not answer it, say so in one line rather than guessing.`,
+        `Answer this question from the pages: ${q}\n\nA short answer — a paragraph or two, or a list if the question wants one. If the pages do not answer it, say so in one line rather than guessing. A […] in a page marks something left out between two parts of it; it is not the writer's words.`,
         sources.map((x) => ({ name: x.name, text: x.text })),
         modelId,
-        20_000,
+        200_000,
       );
       if (!raw) {
         setNotice("Nothing usable came back. Try asking it differently.");

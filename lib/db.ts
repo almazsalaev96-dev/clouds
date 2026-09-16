@@ -183,6 +183,33 @@ class ChatDB extends Dexie {
 export const db = new ChatDB();
 
 /**
+ * Ask the browser to keep this.
+ *
+ * IndexedDB is "best effort" storage by default: under pressure a browser
+ * may evict a site's data without asking, and for an app that keeps a
+ * year of somebody's notes and every card they have learned that is the
+ * one failure that cannot be undone. Persistent storage is the browser's
+ * promise not to — granted silently in Chrome for a site that is used,
+ * with a prompt in Firefox, and refused nowhere it matters. Asked once,
+ * the first time there is something worth keeping, and the answer is
+ * remembered so it is never asked twice.
+ */
+let persistence: Promise<boolean> | null = null;
+export function keepForever(): Promise<boolean> {
+  if (persistence) return persistence;
+  persistence = (async () => {
+    try {
+      if (typeof navigator === "undefined" || !navigator.storage?.persist) return false;
+      if (await navigator.storage.persisted()) return true;
+      return await navigator.storage.persist();
+    } catch {
+      return false;
+    }
+  })();
+  return persistence;
+}
+
+/**
  * Without these, the first schema change hard-fails for anyone with a second
  * tab open: the new tab's open() rejects, every live query renders its empty
  * fallback forever, and the app looks like it lost all of the user's work.
@@ -231,6 +258,7 @@ export const uid = () =>
 export async function createConversation(
   init: string | Partial<Conversation> = DEFAULT_MODEL_ID,
 ): Promise<Conversation> {
+  void keepForever();
   const now = Date.now();
   const patch = typeof init === "string" ? { modelId: init } : init;
   const c: Conversation = {
@@ -358,6 +386,7 @@ export async function deleteConversation(id: string): Promise<() => Promise<void
 /* ----------------------------------------------------------------- study -- */
 
 export async function createDeck(name: string, source?: string): Promise<Deck> {
+  void keepForever();
   const now = Date.now();
   const deck: Deck = { id: uid(), name: name.trim().slice(0, 80) || "Untitled", createdAt: now, updatedAt: now, source };
   await db.decks.add(deck);
@@ -639,6 +668,7 @@ export function groupConversations(list: Conversation[]) {
 /* ----------------------------------------------------------------- notes -- */
 
 export async function createNote(init: Partial<Note> = {}): Promise<Note> {
+  void keepForever();
   const now = Date.now();
   const note: Note = {
     id: uid(),
@@ -765,6 +795,7 @@ export async function createWebCanvas(
   files: { name: string; lang: string; content: string }[],
   init: Partial<Canvas> = {},
 ): Promise<Canvas> {
+  void keepForever();
   const now = Date.now();
   const canvas: Canvas = {
     id: uid(),
@@ -870,6 +901,7 @@ export async function deleteCanvasFile(id: string): Promise<() => Promise<void>>
 }
 
 export async function createCanvas(init: Partial<Canvas> = {}): Promise<Canvas> {
+  void keepForever();
   const now = Date.now();
   const canvas: Canvas = {
     id: uid(),

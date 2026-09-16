@@ -1,7 +1,18 @@
 # Armi
 
-One interface for Claude, GPT, Kimi and DeepSeek — plus the projects, the web
-apps and the notebook that come out of talking to them. You bring the API keys.
+A study-and-build assistant that runs in your browser, on your own keys.
+
+You choose one of Armi's own models — ARMI One, Quant, Council, Forge, Orbit,
+Vision, Tutor, Lingua, Studio, Flash, Duet — and each one is a *cast*: two or
+more engines from different companies with different jobs, one writing and
+another briefing it first or checking it after. Nothing on screen names the
+engines; which companies those are is decided by the keys you hold, and said
+plainly in Settings. Around the chat are four rooms a conversation cannot be:
+**Study** (flashcards on a real spaced-repetition schedule), a **Notebook**
+(pages that cite their sources and link to each other), **Creative** (ten
+starters that open running) and **Code** (a canvas you and the model both
+write to, running beside the editor). Everything lives in this browser's
+IndexedDB; the server's one job is to forward a request to a provider.
 
 Built against [`prompts/MASTER_PROMPT.md`](prompts/MASTER_PROMPT.md), which is the
 design and engineering brief this repository implements. Where the code departs from

@@ -669,6 +669,14 @@ export default function Page() {
         base: conv?.systemPrompt ?? settings.systemPrompt,
         project,
         files,
+        /* What was asked, so a project holding more than fits sends the
+           paragraphs about the question rather than the first file, cut.
+           The last few turns rather than the last line: "tell me more about
+           that" names nothing, and the thing it means is in the turn before. */
+        query: [
+          ...history.filter((m) => m.role === "user").slice(-3).map((m) => blockText(m.content)),
+          ...history.filter((m) => m.role === "assistant").slice(-1).map((m) => blockText(m.content).slice(0, 1_500)),
+        ].join("\n"),
         style,
         mode,
         memories,
@@ -791,7 +799,9 @@ export default function Page() {
         routedWhy: why || undefined,
         history,
         systemPrompt: composed.text || undefined,
-        turnPrompt: turn || undefined,
+        /* Excerpts chosen for this question go with the turn, outside the
+           cached half; see `ComposedPrompt.volatile`. */
+        turnPrompt: [composed.volatile, turn].filter(Boolean).join("\n\n") || undefined,
         /* And how hard to think, from the same reading. `effortFor` returns
            nothing for the kinds that do not benefit, and nothing means the
            model keeps whatever it was already set to. */

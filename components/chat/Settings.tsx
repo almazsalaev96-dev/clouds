@@ -391,6 +391,75 @@ function ShortcutsPanel() {
 
 /* ---------------------------------------------------------------- data ---- */
 
+/**
+ * What this month has cost, and what everything has.
+ *
+ * An app whose whole arrangement is "you bring the keys" owes the person a
+ * running total, and it had one only per conversation, in a place nobody
+ * looks. Summed from the answers themselves — each carries what it cost —
+ * so a conversation that ran across a month boundary is counted on the
+ * days it happened. By Armi model, because that is the thing the person
+ * chose and the only name this app puts on screen.
+ */
+function Spend() {
+  /* Read once, when the panel opens, one row at a time. A live query over
+     every message would re-read the whole table — pictures and all — on
+     each rating or reply while the dialog was open, for a number that
+     changes by a fraction of a cent. */
+  const [rows, setRows] = React.useState<{ any: boolean; month: number; ever: number; by: [string, number][] } | null>(null);
+  React.useEffect(() => {
+    let live = true;
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    let month = 0, ever = 0, any = false;
+    const by = new Map<string, number>();
+    void db.messages
+      .each((m) => {
+        if (!m.usage) return;
+        any = true;
+        const usd = m.usage.costUsd ?? 0;
+        ever += usd;
+        if (m.createdAt >= from) {
+          month += usd;
+          /* An answer with no Armi model on it — a Compare column, an
+             engine picked by hand — is counted, and not put under a name
+             it did not have. */
+          const who = m.presetId ? shortName(m.presetId) : "Other";
+          by.set(who, (by.get(who) ?? 0) + usd);
+        }
+      })
+      .then(() => live && setRows({ any, month, ever, by: [...by.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6) }));
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (!rows?.any) return null;
+  return (
+    <Field label="What it has cost" hint="Chat answers, added up at the providers' published prices as they came in. The quieter calls — briefs, checks, cards, summaries — are not counted, and your bill is the provider's.">
+      <div className="rounded-md border border-line bg-canvas px-3 py-2.5 text-sm">
+        <p className="flex items-baseline justify-between">
+          <span className="text-primary">This month</span>
+          <span className="tnum font-medium text-primary">{formatCost(rows.month)}</span>
+        </p>
+        {rows.by.length > 0 && (
+          <ul className="mt-1.5 space-y-0.5 border-t border-line pt-1.5" aria-label="This month, by model">
+            {rows.by.map(([who, usd]) => (
+              <li key={who} className="flex items-baseline justify-between text-xs text-tertiary">
+                <span>{who}</span>
+                <span className="tnum">{formatCost(usd)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="mt-1.5 flex items-baseline justify-between border-t border-line pt-1.5 text-xs text-tertiary">
+          <span>Since the start</span>
+          <span className="tnum">{formatCost(rows.ever)}</span>
+        </p>
+      </div>
+    </Field>
+  );
+}
+
 function DataPanel() {
   const [confirming, setConfirming] = React.useState(false);
   const [done, setDone] = React.useState(false);
@@ -441,6 +510,8 @@ function DataPanel() {
       title="Data"
       description="Everything lives in this browser's IndexedDB and is never uploaded anywhere. Which also means clearing your browser data clears it — so take a copy."
     >
+      <Spend />
+
       {/* The half of "nothing leaves this browser" that nobody says out loud
           is "and nothing survives it". This is the answer to that. */}
       <div className="mb-3 rounded-lg border border-line p-3">

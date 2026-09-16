@@ -44,6 +44,9 @@ interface StreamState {
   messageId: string | null;
 }
 
+/** How long to wait before the one retry of a failure that tends to pass. */
+const BRIEF: Partial<Record<ChatError["kind"], number>> = { provider_down: 2_000, timeout: 2_000, network: 2_000 };
+
 const EMPTY: StreamState = {
   phase: "idle",
   retryingInMs: 0,
@@ -75,6 +78,10 @@ export function useStream(onFinish?: (m: Message) => void) {
   const errorRef = useRef<ChatError | null>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const retryCancelRef = useRef<(() => void) | null>(null);
+  /* Set when the app's own route refused the request outright — a bad body,
+     a payload too large. Sending the same thing again two seconds later is
+     not a retry, it is the same refusal with a wait in front. */
+  const refusedRef = useRef(false);
 
   const abortRef = useRef<AbortController | null>(null);
   const bufferRef = useRef("");
@@ -184,6 +191,7 @@ export function useStream(onFinish?: (m: Message) => void) {
       ttftRef.current = null;
       usageRef.current = null;
       startedRef.current = Date.now();
+      refusedRef.current = false;
 
       setState({ ...EMPTY, phase: "waiting", messageId: assistantId, conversationId: opts.conversationId, modelId: opts.modelId, presetId: opts.presetId ?? null });
 
@@ -222,6 +230,7 @@ export function useStream(onFinish?: (m: Message) => void) {
         });
 
         if (!res.ok || !res.body) {
+          refusedRef.current = true;
           error = { kind: "network", message: "The server couldn't start the request.", action: "retry" };
         } else {
           const reader = res.body.getReader();
@@ -370,15 +379,33 @@ export function useStream(onFinish?: (m: Message) => void) {
     async (opts: Parameters<typeof runOnce>[0]) => {
       const first = await runOnce(opts);
       const err = errorRef.current;
-      if (!err || err.kind !== "rate_limit" || !err.retryAfterMs) return first;
-
-      const wait = Math.min(err.retryAfterMs, 20_000);
+      if (!err) return first;
+      /* The same one retry for the failures that are nobody's fault and
+         usually over in a moment: a provider overloaded (their SDKs retry
+         these themselves, twice), a request that timed out, a connection
+         that never opened. Only when nothing arrived — an answer that broke
+         off half-way is saved as it stands, and asking again would put a
+         second one under it. */
+      const blank = !first.reasoning && !first.content.some((c) => c.type === "text" && c.text);
+      const wait =
+        err.kind === "rate_limit"
+          ? err.retryAfterMs && Math.min(err.retryAfterMs, 20_000)
+          : blank && !refusedRef.current
+            ? BRIEF[err.kind]
+            : undefined;
+      if (!wait) return first;
       setState({ ...EMPTY, phase: "waiting", error: err, retryingInMs: wait, conversationId: opts.conversationId, modelId: opts.modelId, presetId: opts.presetId ?? null });
       const cancelled = await new Promise<boolean>((resolve) => {
         retryTimerRef.current = setTimeout(() => resolve(false), wait);
         retryCancelRef.current = () => resolve(true);
       });
-      if (cancelled) return first;
+      if (cancelled) {
+        /* Stopped during the wait: the run is over, and the screen has to
+           know it. Left as it was, "Retrying · 2s" stayed up and the
+           composer stayed locked until a reload. */
+        setState({ ...EMPTY, error: err, conversationId: opts.conversationId });
+        return first;
+      }
 
       return runOnce(opts);
     },

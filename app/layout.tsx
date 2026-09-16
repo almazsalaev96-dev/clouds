@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "katex/dist/katex.min.css";
 import { CrashNet } from "@/components/ui/CrashNet";
+import { Shell } from "@/components/ui/Shell";
 
 export const metadata: Metadata = {
   title: "Armi",
@@ -76,7 +77,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           case that matters, and a boundary inside the thing that threw catches
           nothing. */}
       <body>
-        <CrashNet>{children}</CrashNet>
+        <CrashNet>
+          {children}
+          <Shell />
+        </CrashNet>
       </body>
     </html>
   );
