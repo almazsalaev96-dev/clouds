@@ -252,6 +252,23 @@ const FOLLOW_UPS: { label: string; text: string }[] = [
   { label: "Harder", text: "Take this a level up: the harder case, or what comes next." },
 ];
 
+/** An answer as it would be read out: no fences, no heading marks, no link targets. */
+function spoken(md: string): string {
+  return md
+    .replace(/```[\s\S]*?```/g, " (code) ")
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*>\s?/gm, "")
+    .replace(/\*\*|__|\*|_/g, "")
+    .replace(/\$\$?[^$]*\$\$?/g, " (equation) ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 8_000);
+}
+
 function AssistantMessageImpl({
   message,
   siblings,
@@ -369,7 +386,10 @@ function AssistantMessageImpl({
       setSpeaking(false);
       return;
     }
-    const utter = new SpeechSynthesisUtterance(text.replace(/```[\s\S]*?```/g, " code block "));
+    /* As prose: the marks that only mean something on a screen — fences,
+       heading hashes, list bullets, link targets, emphasis — are taken out
+       before a voice reads them as punctuation. */
+    const utter = new SpeechSynthesisUtterance(spoken(text));
     /* Without a language the browser reads everything in the voice it booted
        with, so an Arabic or Japanese answer came out pronounced as English —
        which is not an accent, it is unintelligible. Guessed from the script,

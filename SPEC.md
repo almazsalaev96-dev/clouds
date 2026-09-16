@@ -192,7 +192,7 @@ The rule from the flagship products: show three controls, hide the rest in one m
 | C-4 | "+" menu: Files, Photo/camera, From notebook (pick a page), From project (pick a file), Voice note | 🟡 files/images ✅; notebook/project pick ⬜ | Bottom sheet on phone. |
 | C-5 | Voice: push-to-talk and hands-free, live transcript in the box, interrupt by tapping | ✅ `lib/voice.ts` (recognition) | ⬜ Read-aloud of answers (browser TTS), per-message. |
 | C-6 | Stop (replaces Send while streaming); Esc stops | ✅ | Keep. |
-| C-7 | Context meter: a thin bar under the box when the thread passes 60% of the model's window, with "Summarise older turns" | ⬜ | `fitToContext` exists; the meter surfaces it. |
+| C-7 | Context meter: a line under the box when the thread nears the model's window ("12k of 200k — this thread is nearly full") | 🟡 line ✅ | ⬜ "Summarise older turns" beside it. |
 | C-8 | Attachments strip: thumbnails, remove, size, "will be read as text" for PDFs | ✅ | Add page count for PDFs. |
 | C-9 | Slash commands: `/study`, `/build`, `/compare`, `/check`, `/temp` | ⬜ | Typed prefixes map to the same intents the router already reads (ChatGPT `@study` `[R]`). |
 | C-10 | Ideas row under the box on an empty thread (six requests, sent as they are) | ✅ Creative; 🟡 chat | Chat gets a rotating set from the person's own weak topics when Study has data. |
@@ -228,11 +228,11 @@ The rule from the flagship products: show three controls, hide the rest in one m
 | M-1 | Streaming with a live elapsed counter; time-to-first-token and total latency recorded on the message | ✅ | Keep. |
 | M-2 | Stop keeps everything streamed; the message is marked "stopped" | ✅ | Keep. |
 | M-3 | Edit-and-branch: editing a user message creates a sibling; `‹ n/m ›` arrows navigate; leaf pointer per conversation | ✅ (`parentId`, `advanceLeaf`) | ⬜ A tree view in the thread menu for threads with > 3 branches (nobody ships this `[R]`; it is the honest way to show what the arrows hide). |
-| M-4 | Retry ▾: same model · another Armi model · "with more effort" | 🟡 Retry ✅ | Add the menu. |
+| M-4 | Retry ▾: same model · another Armi model | ✅ (Regenerate, and "Switch model" listing the other Armi models) | ⬜ "with more effort" as a third entry. |
 | M-5 | Check with another: a second cast member reads the answer and returns a verdict rendered under it (agree / disagree with the line) | ✅ (`check`, `turns`) | Keep; add "Ask both to argue" (duel) as a row action. |
 | M-6 | Rate ▲▼ feeds the router's memory of pairings (`pastFor`) | ✅ | Keep. |
 | M-7 | Copy: plain text, or Markdown with the "Copy as Markdown" modifier | 🟡 | Add the modifier. |
-| M-8 | Read aloud with the browser voice; highlight the sentence being read; Stop | ⬜ | Browser `speechSynthesis`; no network. |
+| M-8 | Read aloud with the browser voice in the language of the text; Stop on a second press; markup stripped before speaking | ✅ | ⬜ Highlight the sentence being read. |
 | M-9 | Share: export a thread as Markdown / HTML / print | 🟡 print ✅ | Add Markdown and single-file HTML export (no server share links by design). |
 | M-10 | Thinking shown collapsed, streamed live ("reasoning" events), never reformatted | ✅ | Keep; label it "Working it through" not "Thinking" for the summarised kind. |
 | M-11 | Routed-why line: one sentence in plain words, names stripped (`plainly`) | ✅ | Keep. |
@@ -269,7 +269,7 @@ Nothing saved, no memory read or written, no title call, marked with a ghost ico
 | Citations `[[cite: source | quote]]` | ✅ Notebook/sources | Unify for chat (M-16); a quote that cannot be found on the page is marked "?" — never dropped, never passed off (`lib/cite.ts`). |
 | Canvas card: a built thing beside the thread with Preview / Code / Files / Versions | ✅ | Keep (§15). |
 | Callouts: "Cut short by a safety filter", "Stopped", "Answered again after a second model objected" | ✅ | Keep. |
-| Footer line under every answer: "Armi can be wrong. Check what matters." | ⬜ | Every flagship shows one `[R]`; keep it to one line, tertiary colour. |
+| One line under the composer: "Armi can be wrong. Check what matters." | ✅ | Every flagship shows one `[R]`; one line, tertiary, under the box rather than under every answer. |
 
 **R-1 ✅** All rendering of model output is untrusted: no raw HTML in prose, links get `rel="noopener"`, srcdoc frames for anything executable.
 

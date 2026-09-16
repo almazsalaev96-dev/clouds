@@ -371,6 +371,11 @@ export function Composer({
           {formatTokens(totalTokens)} of {formatTokens(model.contextWindow)} — this thread is nearly full
         </p>
       )}
+      {/* One line, the same one every serious assistant carries, because it
+          is true: the casts argue with an answer before you read it, and the
+          answer can still be wrong. Under the box rather than under every
+          answer, where it would be read once and then be furniture. */}
+      <p className="no-print mt-1.5 px-4 text-center text-xs text-tertiary">Armi can be wrong. Check what matters.</p>
     </div>
   );
 }
