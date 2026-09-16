@@ -45,6 +45,7 @@ function MessageListImpl({
   onContinue,
   onTighten,
   onFollowUp,
+  teaching,
   onRate,
   onVerify,
   verifyingId,
@@ -84,6 +85,8 @@ function MessageListImpl({
   onTighten: (message: Msg) => void;
   /** Send a canned follow-up as the next user turn. */
   onFollowUp: (text: string) => void;
+  /** A teaching stance is on for this thread; the last row offers hints. */
+  teaching?: boolean;
   /** Store a thumbs up or down; a down with a reason regenerates with it. */
   onRate: (message: Msg, rating: Rating) => void;
   /** Ask a model from another provider whether an answer is right. */
@@ -272,6 +275,7 @@ function MessageListImpl({
                 onContinue={onContinue}
                 onTighten={onTighten}
                 onFollowUp={last ? onFollowUp : undefined}
+                teaching={teaching}
                 findings={findings}
                 onRate={onRate}
                 onSwitchModel={onSwitchModel}

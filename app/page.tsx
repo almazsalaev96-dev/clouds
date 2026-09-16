@@ -16,6 +16,7 @@ import {
   filesOf,
 } from "@/lib/db";
 import { composeSystemPrompt, composeTurnPrompt } from "@/lib/prompt";
+import { examNote } from "@/lib/exam";
 import { effortFor, taskOf } from "@/lib/task";
 import { shapeFor } from "@/lib/shape";
 import { lintAnswer } from "@/lib/lint";
@@ -745,7 +746,11 @@ export default function Page() {
         teaching: isTeaching(style?.id),
         /* What this tactic is for, said to the model rather than only to the
            person who picked it. Forge builds because it is told to build. */
-        note: [note, preset?.stance, brief ? briefNote(brief) : "", council].filter(Boolean).join("\n\n") || undefined,
+        /* And, when the question is an exam question, how it will be marked:
+           the command word's meaning and the marks to account for. Every
+           question is one in the Exam stance; elsewhere only one that
+           carries marks. */
+        note: [note, preset?.stance, examNote(asked, style?.id === "exam"), brief ? briefNote(brief) : "", council].filter(Boolean).join("\n\n") || undefined,
       });
       /* Said on the answer, like the model's reason: an app that quietly
          changes how it writes to you is an app whose answers you cannot
@@ -1999,6 +2004,7 @@ export default function Page() {
                 onContinue={() => void send([{ type: "text", text: CONTINUE_PROMPT }])}
                 onTighten={tighten}
                 onFollowUp={(text) => void send([{ type: "text", text }])}
+                teaching={isTeaching(conversation?.styleId) || getPreset(threadModelId)?.id === "tutor"}
                 onRate={rate}
                 onVerify={verify}
                 verifyingId={verifyingId}

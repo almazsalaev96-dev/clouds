@@ -432,9 +432,9 @@ The reference behaviour is shared by ChatGPT Study Mode, Gemini Guided Learning 
 | # | Requirement | Today | Spec |
 |---|---|---|---|
 | TU-1 | Stance: Tutor withholds the answer; the withheld thing is kept out of the model's context (`isTeaching` strips hints from the turn prompt) | ✅ | Keep. |
-| TU-2 | Hint ladder: hint 1 (where to look) → hint 2 (the first step) → hint 3 (the method) → worked answer, each on a press, each recorded | ⬜ | Rendered as a stepped control under the question; the level reached is stored on the attempt (§18 `attempts`). |
+| TU-2 | Hint ladder: a hint (where to look) → the first step → the method → the answer, each a press under the last answer in a teaching stance, each sent as the person's own message so the transcript records the level reached | ✅ | ⬜ Count the level reached per question into the attempts log (§13.5) once it exists. |
 | TU-3 | Check-for-understanding question after every explanation, with the person's answer marked by the marker | 🟡 | Standard in Tutor; off in other casts. |
-| TU-4 | Misconception naming: when a wrong answer matches a known pattern for the topic, the reply names it ("this is the sign error most people make with…") and offers a card | ⬜ | Patterns come from the `traps` table (already in the schema) seeded per subject. |
+| TU-4 | Misconception naming: when a wrong answer matches a known pattern for the topic, the reply names it ("this is the sign error most people make with…") and offers a card | 🟡 | The Practice stance and Tutor's misconceptions brief name them in prose today; ⬜ a `traps` table seeded per subject so the same trap is recognised across sessions. |
 | TU-5 | "Give me the answer" always works; Tutor says what it will cost the person ("You will remember it less well; here it is.") and answers | ✅ | Keep. |
 | TU-6 | Level register: IGCSE / A-Level / University changes vocabulary and depth; set once (H-1), overridable per thread | ⬜ | — |
 | TU-7 | Safety for younger users: no romance/roleplay casts, cautious on self-harm and dieting, never asks for personal details; no age gate needed because nothing is collected, but the copy assumes a teenager may be reading (OpenAI teen safeguards as the reference `[R]`) | 🟡 | Written into the house prompt. |
@@ -447,7 +447,7 @@ Photomath and Lens established the flow: photo → recognise → solve → expla
 
 ### 13.5 Mistake analysis and mastery
 
-**MA-1 ⬜ Topic mastery** from the data that already exists: FSRS stability per card aggregated by `topic` → a 0–1 mastery; attempts on Tutor questions (right/wrong/hint level) → a second signal; the two combined per topic with a simple weighted mean. Shown as a list of topics sorted weakest first, each with "what to do" (review 6 cards · try 2 questions · read your page).
+**MA-1 🟡 Mastery from the memory model.** Built: `lib/plan.ts` reads every graduated card's chance of recall right now from its FSRS stability, aggregates by deck, and the Study index names the shakiest deck ("Shakiest: Cell biology — 6 of 14 likely forgotten · Practise it") when one deck has enough graduated cards to judge and is actually below the line. ⬜ Topics on cards (S-3) so the same reading works per topic across decks; attempts on Tutor questions as a second signal; the weakest-first list with "what to do" per topic.
 
 **MA-2 ⬜ Error log**: every wrong write-mode answer and every wrong Tutor answer is stored (`attempts`) with the card/question, the answer given, and the misconception when named; the Study index gets "Mistakes" with a "Practise these" button (cram order from the log).
 
@@ -473,7 +473,7 @@ The exam board's command words have official meanings `[R]`; a good answer to "D
 | Outline / Summarise `[K]` | Main points, brief | Brevity, coverage |
 | Sketch / Show `[K]` | A diagram / demonstrate | The figure / the demonstration |
 
-**EX-1 ⬜ Exam mode** in Tutor: the question is parsed for its command word and marks ("[4]"); the reply is structured as an examiner would mark it (one line per mark point), then the model answer; then "Now you" with the marker scoring the person's attempt against the mark points (levels-of-response for essay subjects). Board and level come from H-1; other boards (Edexcel, AQA, IB) are a table entry, not a feature.
+**EX-1 🟡 Exam mode**: a question is read for its command word and marks ("[4]", "(6 marks)") by `lib/exam.ts`; when it carries marks, or the Exam stance is on, the turn prompt tells the model the word's official meaning, what a full answer must contain, and to give exactly that many numbered mark points first, then the model answer, then the invitation to try ✅. ⬜ The marker scoring the person's attempt against those points (levels-of-response for essay subjects); board and level from H-1; other boards as table entries.
 
 **EX-2 ⬜ Past-paper practice**: a project holding a paper PDF and its mark scheme; "Practise question 3" pulls the question by retrieval, hides the mark scheme until the attempt is submitted, then marks. The mark scheme is fenced as data (K-3) so it cannot instruct the marker.
 
@@ -576,7 +576,7 @@ Creative is the front door for making, not a room with its own viewer (§15 owns
 | `decks` | id, updatedAt, sourceNoteId · name, options? | Decks | ✅ (⬜ `options`) |
 | `cards` | id, deckId, due, [deckId+due] · front, back, cloze?, state, stability, difficulty, reps, lapses, lastReview, introducedAt, topic?, tags?, reverseOf?, leech? | Cards | ✅ (⬜ topic, tags, reverseOf, leech) |
 | `studyDays` | day · reviews, newCards, minutes? | Streak/heatmap | ✅ (⬜ minutes) |
-| `skills`, `traps`, `problems`, `attempts` | per schema v3 | Tutor question bank, misconceptions, attempts (hint level, correct, confidence) | 🟡 schema exists; fill by §13 |
+| `attempts` ⬜, `traps` ⬜ | id, conversationId, messageId, createdAt · question, answer, verdict?, hintLevel?, topic? / id, topic · pattern, name | Attempts and misconceptions for §13.5 (an earlier schema had `skills/traps/problems/attempts`; they were dropped in v6 and are to be redesigned, not revived) | ⬜ |
 | `canvases`, `canvasFiles`, `canvasVersions` | id, updatedAt, kind, projectId · [canvasId+order], [canvasId+name], [canvasId+createdAt] | Artifacts | ✅ |
 | `canvasData` ⬜ | canvasId · json (≤ 1 MB) | Built-app state (AR-6) | ⬜ |
 | `noteVersions` ⬜ | id, noteId, createdAt · content | Page history | ⬜ |
@@ -711,8 +711,8 @@ Prompt versions (`HOUSE`, mode prompts, stances) get a hash stored on each messa
 | Order | Work | Why first | Sections |
 |---|---|---|---|
 | 1 | ~~Self-heal loop for canvases~~ (AR-3/4) — done | The one build-loop feature that separates a toy from a tool | 15 |
-| 2 | **Tutor hint ladder, check questions, exam mode** (TU-2/3, EX-1) | The education difference; schema exists | 13 |
-| 3 | **Topic mastery, mistakes log, today's plan** (MA-1/2, SP-1) | Turns study data into direction | 13 |
+| 2 | **Tutor hint ladder ✅, check questions, exam mode 🟡** (TU-2/3, EX-1) | The education difference | 13 |
+| 3 | **Topic mastery 🟡 (deck health built), mistakes log, today's plan** (MA-1/2, SP-1) | Turns study data into direction | 13 |
 | 4 | **Global search + deep links** (IA-3/4) | Four rooms need one door | 3 |
 | 5 | **Permission model + plan-then-execute + tasks table** (T-2, A-1/2) | Agents, safely, locally | 10, 18 |
 | 6 | **Cards from a source with accept/edit** (S-8), image occlusion (S-1) | The two card features people ask for | 13 |

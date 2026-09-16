@@ -4,6 +4,7 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft, Flame, Keyboard, MessageSquare, Pencil, Trash2 } from "lucide-react";
 import { mark, type Mark } from "@/lib/grade";
+import { weakestDeck } from "@/lib/plan";
 import type { Deck } from "@/lib/types";
 import { addCards, createDeck, db, deleteCard, deleteDeck, answerCard, importCards, noteStudied, updateCard } from "@/lib/db";
 import { draftCards } from "@/lib/generate";
@@ -168,6 +169,10 @@ export function StudyView({
   const due = dueNow(cards, now).length;
   const today = answeredToday(cards, now);
   const streak = streakOf(days, now);
+  /* Where the trouble is, from the cards' own memory model: the deck most
+     likely to be forgotten right now, offered as a practice run. */
+  const weakest = React.useMemo(() => weakestDeck(cards, now), [cards, now]);
+  const weakDeck = weakest ? decks.find((d) => d.id === weakest.deckId) : undefined;
 
   /* The same chrome as the Notebook, the Artifacts and the Projects.
      This room was written last and grew its own header — a different title
@@ -279,6 +284,19 @@ export function StudyView({
               than the cards, and the reason somebody opens this room on a
               day nothing is due. Counted from the log, not from the cards:
               a card keeps only its last answer and forgets the day before. */}
+          {weakest && weakDeck && (
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-tertiary tnum" aria-label={`Shakiest deck: ${weakDeck.name}`}>
+              <span>
+                Shakiest: <span className="text-secondary">{weakDeck.name}</span> — {weakest.shaky} of {weakest.reviewed} likely forgotten
+              </span>
+              <button
+                onClick={() => setSession({ deckId: weakDeck.id, mode: "cram" })}
+                className="btn-touch press rounded-full border border-line bg-surface px-2.5 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+              >
+                Practise it
+              </button>
+            </p>
+          )}
           {streak > 1 && (
             <p className="mt-2 flex items-center gap-1.5 text-xs text-tertiary tnum" aria-label={`${streak} days in a row`}>
               <Flame size={12} className="text-[var(--accent-2)]" />

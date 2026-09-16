@@ -229,6 +229,20 @@ const MAKE_FOLLOW_UPS: { label: string; text: string }[] = [
   { label: "Explain it", text: "Explain how it works, briefly, without repeating the code." },
 ];
 
+/* The ladder a tutor climbs with you: where to look, the first step, the
+   method, and only then the answer — each a press, each a real message in
+   your own turn so the transcript shows what you asked for. "The answer"
+   is always there, because a teaching stance is not a refusal, and the
+   record of having reached for it is the honest one. */
+const TEACH_FOLLOW_UPS: { label: string; text: string }[] = [
+  { label: "A hint", text: "Give me one hint: only where to look or what to recall, not the step itself." },
+  { label: "First step", text: "Give me the first step only, and stop there so I can do the rest." },
+  { label: "The method", text: "Show me the method without the final answer — leave the last step to me." },
+  { label: "The answer", text: "Give me the full answer now, then say what I should remember from it." },
+  { label: "Quiz me", text: "Quiz me on this — one question at a time, and mark my answers." },
+  { label: "Simpler", text: "Explain that more simply — assume I'm new to this." },
+];
+
 const FOLLOW_UPS: { label: string; text: string }[] = [
   { label: "Simpler", text: "Explain that more simply — assume I'm new to this." },
   { label: "Example", text: "Give me one concrete example of that." },
@@ -252,6 +266,7 @@ function AssistantMessageImpl({
   onContinue,
   onTighten,
   onFollowUp,
+  teaching,
   findings,
   onRate,
   onSwitchModel,
@@ -281,6 +296,8 @@ function AssistantMessageImpl({
   onTighten?: (message: Msg) => void;
   /** Send one of the canned follow-ups as the next turn. Set on the last answer only. */
   onFollowUp?: (text: string) => void;
+  /** A teaching stance is on: the follow-ups become the hint ladder. */
+  teaching?: boolean;
   /** What the linter found in this answer, if it is the last one. */
   findings?: Finding[];
   /** Thumbs up or down; down with a reason regenerates with that reason. */
@@ -551,7 +568,7 @@ function AssistantMessageImpl({
           on an earlier one they would be asking about the wrong thing. */}
       {isLast && onFollowUp && !message.error && !computed && text && (
         <div className="no-print mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Follow up">
-          {(made ? MAKE_FOLLOW_UPS : FOLLOW_UPS).map((f) => (
+          {(made ? MAKE_FOLLOW_UPS : teaching ? TEACH_FOLLOW_UPS : FOLLOW_UPS).map((f) => (
             <button
               key={f.label}
               onClick={() => onFollowUp(f.text)}
