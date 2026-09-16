@@ -793,6 +793,31 @@ function Editor({
     [draft, rules, siblings, reviseModel, busy],
   );
 
+  /* The loop, bounded. A fix that was kept and still throws is asked for
+     again on its own — once more, not forever. The person pressed Fix the
+     first time; each round still arrives as a diff for them to keep or throw
+     away. After two rounds the app stops and says so, because a third
+     attempt at the same error is a model guessing, and guessing is what the
+     person can do better with a sentence about what the page should do. */
+  const healRef = React.useRef<{ armed: boolean; rounds: number; timer?: ReturnType<typeof setTimeout> }>({ armed: false, rounds: 0 });
+  const healError = React.useCallback(
+    (message: string, where?: string) => {
+      const h = healRef.current;
+      if (!h.armed) return;
+      h.armed = false;
+      if (h.timer) clearTimeout(h.timer);
+      if (h.rounds < 2) {
+        /* The request first: it clears the notice as it starts, and this one
+           has to outlive that. */
+        fixError(message, where);
+        setNotice(`The fix did not clear it — asking for another (round ${h.rounds + 1} of 2).`);
+      } else {
+        setNotice("Two fixes did not clear it. The error is in the console; try saying what the page should do instead.");
+      }
+    },
+    [fixError],
+  );
+
   const explain = async () => {
     const modelId = reviseModel;
     if (!modelId) {
@@ -855,8 +880,27 @@ function Editor({
         ? { ...p, done: [...p.done, proposal.note] }
         : p,
     );
+    /* Arm the loop only behind a fix, and only for the next few seconds:
+       an error thrown a minute later by something the person clicked is
+       theirs to look at, not a reason to rewrite the file again. */
+    {
+      const h = healRef.current;
+      if (h.timer) clearTimeout(h.timer);
+      if (proposal.note === "Fix the error") {
+        h.rounds += 1;
+        h.armed = true;
+        h.timer = setTimeout(() => { h.armed = false; }, 5_000);
+        /* A kept fix is run, because whether it worked is the only question
+           left, and the editor cannot answer it. */
+        setMode("run");
+      } else {
+        h.rounds = 0;
+        h.armed = false;
+      }
+    }
     setProposal(null);
     setReport(null);
+    setNotice(null);
     setInstruction("");
     setSelection(null);
     /* The element is let go once its change is in. What you pointed at may not
@@ -1090,6 +1134,7 @@ function Editor({
                 full={focused}
                 onEscape={leaveFocus}
                 onFix={fixError}
+                onError={healError}
                 picking={picking}
                 onPicking={setPicking}
                 onPicked={(p) => {
@@ -1861,6 +1906,7 @@ function WebPreview({
   full,
   onEscape,
   onFix,
+  onError,
   picking,
   onPicking,
   onPicked,
@@ -1876,6 +1922,8 @@ function WebPreview({
   onEscape?: () => void;
   /** Hand this error, and where it happened, to an edit. */
   onFix?: (message: string, where?: string) => void;
+  /** The first error of a run, as it happens — for the fix loop. */
+  onError?: (message: string, where?: string) => void;
   /** Crosshair on: the next click chooses an element instead of pressing it. */
   picking?: boolean;
   onPicking?: (on: boolean) => void;
@@ -1886,6 +1934,11 @@ function WebPreview({
   const [open, setOpen] = React.useState(false);
   const [nonce, setNonce] = React.useState(0);
   const nextId = React.useRef(0);
+  /* Whether this run has thrown yet. The loop wants the first error of a
+     run and only that: the same error five hundred times is one thing. */
+  const erredRef = React.useRef(false);
+  const onErrorRef = React.useRef(onError);
+  onErrorRef.current = onError;
   /* How wide the thing is being looked at. Most of what gets made here is
      used on a phone and built on a laptop, and the width it is built at is
      the one width it will never be used at. */
@@ -1977,7 +2030,13 @@ function WebPreview({
         }
         return [...l.slice(-199), { id: nextId.current++, level, text, count: 1 }];
       });
-      if (level === "error") setOpen(true);
+      if (level === "error") {
+        setOpen(true);
+        if (!erredRef.current) {
+          erredRef.current = true;
+          onErrorRef.current?.(text, fileIn(text));
+        }
+      }
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
@@ -1989,7 +2048,10 @@ function WebPreview({
 
   // Every run starts with a clean console; keeping the last run's errors is
   // how you spend ten minutes chasing something you already fixed.
-  React.useEffect(() => setLines([]), [srcDoc, nonce]);
+  React.useEffect(() => {
+    setLines([]);
+    erredRef.current = false;
+  }, [srcDoc, nonce]);
 
   // Distinct errors, not repeats of one: a loop throwing the same thing on
   // every frame is one problem, and a badge reading 400 is not more useful.

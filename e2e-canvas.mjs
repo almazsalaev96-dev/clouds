@@ -17,7 +17,8 @@ const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-119
 const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
 const page = await ctx.newPage();
 const errs = [];
-page.on("pageerror", (e) => errs.push("PAGE: " + e.message));
+/* The self-heal section below runs a page that throws on purpose. */
+page.on("pageerror", (e) => { if (!/boom on load/.test(e.message)) errs.push("PAGE: " + e.message); });
 page.on("console", (m) => { if (m.type() === "error" && !m.text().includes("404")) errs.push("CONSOLE: " + m.text()); });
 
 let failed = 0;
@@ -219,6 +220,36 @@ console.log("\nA page you already have, opened here");
   await page.getByRole("button", { name: /^All canvases/ }).click();
   await page.waitForTimeout(500);
   check((await page.getByRole("list", { name: "Artifacts" }).locator("li").count()) === before + 1, "as one more thing made");
+}
+
+/* ------------------------------------------------------------ self-heal -- */
+
+console.log("\nA page that throws is fixed, and fixed again, and then left alone");
+{
+  /* The mock's revision keeps the file as it was (one comment on top), so a
+     page that throws still throws after every "fix". That is the case the
+     loop has to be right about: ask again once on its own, then stop and
+     say so, rather than either giving up at the first failure or trying
+     forever. */
+  await page.getByLabel("Files to open").setInputFiles([
+    { name: "index.html", mimeType: "text/html", buffer: Buffer.from("<!doctype html><html><head><title>Throws</title></head><body><h1>Boom</h1><script>document.body.dataset.ran = '1'; throw new Error('boom on load');</script></body></html>") },
+  ]);
+  await page.waitForTimeout(1500);
+  const fix = page.getByRole("button", { name: /Fix this error: .*boom on load/ });
+  check(await fix.first().isVisible().catch(() => false), "the error the page threw is in the console with a Fix beside it");
+  await fix.first().click();
+  await page.getByRole("button", { name: "Keep" }).waitFor({ timeout: 15000 });
+  check(true, "the fix arrives as a diff to keep or discard");
+  await page.getByRole("button", { name: "Keep" }).click();
+  const again = page.getByText(/asking for another \(round 2 of 2\)/);
+  check(await again.waitFor({ timeout: 8000 }).then(() => true).catch(() => false), "kept, run, still throwing: it asks once more on its own");
+  await page.getByRole("button", { name: "Keep" }).waitFor({ timeout: 15000 });
+  await page.getByRole("button", { name: "Keep" }).click();
+  const stop = page.getByText(/Two fixes did not clear it/);
+  check(await stop.waitFor({ timeout: 8000 }).then(() => true).catch(() => false), "and after two it stops and says the error is still there");
+  await page.waitForTimeout(2500);
+  const third = await page.getByRole("button", { name: "Keep" }).isVisible().catch(() => false);
+  check(!third, "with no third proposal", third ? "a third diff appeared" : "");
 }
 
 console.log(errs.length ? "\n  ✗ runtime errors:\n" + errs.map((e) => "    " + e).join("\n") : "\n  ✓ no runtime errors");

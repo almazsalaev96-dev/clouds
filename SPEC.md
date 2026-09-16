@@ -524,8 +524,8 @@ The reference loop is Lovable's: every change is a version, preview full-screen,
 |---|---|---|---|
 | AR-1 | Describe → built and running beside the thread; "make the back bigger" edits in place | ✅ | Keep. |
 | AR-2 | Versions list with restore and a diff (`DiffView`) | ✅ | Add "compare any two". |
-| AR-3 | Preview widths; console panel showing the frame's errors | 🟡 widths ✅ | ⬜ Console panel. |
-| AR-4 | Self-heal: the frame posts `error`/`unhandledrejection` to the parent; the app offers "Fix it" which sends the error and the file to the writer; loop at most twice, then stop and say so | ⬜ | The single most valuable build-loop feature the flagships have and local apps do not `[R]`. |
+| AR-3 | Preview widths; console piped out of the sandboxed frame (errors, warnings, logs, repeats collapsed), opening itself on the first error, each line pointing at the file and line | ✅ | Keep. |
+| AR-4 | Self-heal: the frame posts `error`/`unhandledrejection` to the parent; "Fix this" on an error sends the error and the file to the writer and comes back as a diff; a kept fix that still throws is asked for again on its own, twice at most, then the app stops and says so | ✅ | The build-loop feature the flagships have and local apps do not `[R]`; every round is still a diff the person keeps or rejects. |
 | AR-5 | Download as one HTML; ⬜ download as a zip of files; ⬜ "Copy share link" is *not* offered (no server) — instead "Save to Downloads" and a sentence on hosting it anywhere | 🟡 | — |
 | AR-6 | Data in built apps: a canvas may `postMessage` a `save` with a JSON blob that the app stores under the canvas id (`canvasData`), and receives it on load — so a flashcard app remembers its deck without storage access | ⬜ | Bounded 1 MB; never executed. |
 | AR-7 | Starter kits (ten today: Flashcards, Timetable, Quiz, Checklist, Timer, Mind map, Board, Countdown, Whiteboard, Graph), each opening running with a half-written instruction | ✅ | ⬜ Add: Sheet (a small spreadsheet with formulas), Slides (a deck from Markdown), Form (a survey that saves via AR-6), Diagram (Mermaid editor). |
@@ -710,7 +710,7 @@ Prompt versions (`HOUSE`, mode prompts, stances) get a hash stored on each messa
 
 | Order | Work | Why first | Sections |
 |---|---|---|---|
-| 1 | **Self-heal loop for canvases** (AR-3/4) + console panel | The one build-loop feature that separates a toy from a tool | 15 |
+| 1 | ~~Self-heal loop for canvases~~ (AR-3/4) — done | The one build-loop feature that separates a toy from a tool | 15 |
 | 2 | **Tutor hint ladder, check questions, exam mode** (TU-2/3, EX-1) | The education difference; schema exists | 13 |
 | 3 | **Topic mastery, mistakes log, today's plan** (MA-1/2, SP-1) | Turns study data into direction | 13 |
 | 4 | **Global search + deep links** (IA-3/4) | Four rooms need one door | 3 |
