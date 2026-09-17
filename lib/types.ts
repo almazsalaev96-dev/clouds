@@ -569,3 +569,47 @@ export interface ProjectFile {
   size: number;
   createdAt: number;
 }
+
+/* ---------------------------------------------------------------- tutor -- */
+
+/**
+ * A document you are working through with the app, rather than one you have
+ * attached to a question.
+ *
+ * The difference is the bytes. A file dropped on the composer is read once
+ * and becomes text; a lesson keeps the original, because the thing a person
+ * points at is the *page* — a diagram, a working, a scanned answer — and a
+ * page cannot be drawn again from an extraction of its words.
+ */
+export interface Lesson {
+  id: string;
+  /** What it is called, which is the file's name until it is renamed. */
+  name: string;
+  mimeType: string;
+  /** The original, kept so any page can be drawn again. */
+  bytes: Blob;
+  /** Everything readable in it, with `--- page n ---` markers. Empty for a scan. */
+  text: string;
+  pages: number;
+  /** Where you were when you last closed it. */
+  atPage: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** One turn of the conversation beside a lesson. */
+export interface LessonTurn {
+  id: string;
+  lessonId: string;
+  at: number;
+  role: "user" | "assistant";
+  text: string;
+  /** The page it was about, so the transcript can say where you were. */
+  page?: number;
+  /** The region of that page the question was about, as a data URL. */
+  crop?: string;
+  /** Which Armi model answered, for the line over the answer. */
+  presetId?: string;
+  /** Said plainly when the app had to choose a different engine. */
+  why?: string;
+}

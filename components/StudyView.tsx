@@ -2,10 +2,13 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, Flame, Keyboard, MessageSquare, Pencil, Trash2 } from "lucide-react";
+import { ChevronLeft, FileText, Flame, Keyboard, MessageSquare, Pencil, Trash2 } from "lucide-react";
 import { mark, type Mark } from "@/lib/grade";
 import { recallRate, weakestDeck, weeksOf } from "@/lib/plan";
-import type { Deck } from "@/lib/types";
+import { Tutor } from "@/components/study/Tutor";
+import { extractPdf, isPdf } from "@/lib/pdf";
+import { createLesson, deleteLesson } from "@/lib/db";
+import type { Deck, Lesson } from "@/lib/types";
 import { addCards, createDeck, db, deleteCard, deleteDeck, answerCard, importCards, noteStudied, updateCard } from "@/lib/db";
 import { draftCards } from "@/lib/generate";
 import { cheapestAvailable } from "@/lib/complete";
@@ -69,6 +72,39 @@ export function StudyView({
   const [pasting, setPasting] = React.useState(false);
   const [pasted, setPasted] = React.useState("");
   const [openDeck, setOpenDeck] = React.useState<string | null>(null);
+  const [openLesson, setOpenLesson] = React.useState<string | null>(null);
+  const lessons = useLiveQuery(() => db.lessons.orderBy("updatedAt").reverse().toArray(), [], [] as Lesson[]);
+  const fileRef = React.useRef<HTMLInputElement>(null);
+
+  /* A document taken in to work through. The text is extracted once, here,
+     and the bytes are kept so any page can be drawn again; a scan has no
+     text and is kept anyway, because the whole point of pointing at a page
+     is that it works when there is nothing to quote. */
+  const take = async (file: File) => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      if (file.size > 40_000_000) {
+        setNotice("That file is over 40MB — too big to keep in this browser.");
+        return;
+      }
+      let text = "";
+      let pages = 1;
+      if (isPdf(file)) {
+        const out = await extractPdf(file);
+        text = out.text;
+        pages = out.pages;
+      } else if (!file.type.startsWith("image/")) {
+        text = await file.text();
+      }
+      const lesson = await createLesson({ name: file.name, mimeType: file.type || "application/pdf", bytes: file, text, pages });
+      setOpenLesson(lesson.id);
+    } catch {
+      setNotice("That file could not be opened. It may be encrypted or damaged.");
+    } finally {
+      setBusy(false);
+    }
+  };
   React.useEffect(() => {
     if (openId) setOpenDeck(openId);
   }, [openId]);
@@ -157,6 +193,11 @@ export function StudyView({
         onAsk={onAsk}
       />
     );
+  }
+
+  const lesson = openLesson ? (lessons ?? []).find((l) => l.id === openLesson) : undefined;
+  if (lesson) {
+    return <Tutor lesson={lesson} configured={configured} onLeave={() => setOpenLesson(null)} onAsk={onAsk} />;
   }
 
   const deck = openDeck ? decks.find((d) => d.id === openDeck) : undefined;
@@ -264,7 +305,62 @@ export function StudyView({
               …or paste a list of cards
             </button>
           )}
-          {busy && !pasting && <p className="sheen mt-2 text-sm font-medium">Writing the cards</p>}
+          {/* The other way to study: not cards you have made, but the thing
+              you are actually holding — a paper, a chapter, a worksheet, a
+              photograph of your own working. It opens beside a conversation
+              that can see the page. */}
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={busy}
+              className="btn-touch press focus-inset flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary disabled:opacity-50"
+            >
+              <FileText size={13} />
+              Work through a document
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/pdf,image/*,text/*,.md"
+              aria-label="A document to work through"
+              tabIndex={-1}
+              className="sr-only"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) await take(f);
+              }}
+            />
+          </div>
+
+          {(lessons ?? []).length > 0 && (
+            <ul className="mt-2 space-y-1" aria-label="Documents">
+              {(lessons ?? []).slice(0, 4).map((l) => (
+                <li key={l.id} className="tap flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2">
+                  <button
+                    onClick={() => setOpenLesson(l.id)}
+                    aria-label={`Open ${l.name}`}
+                    className="focus-inset flex min-w-0 flex-1 flex-col self-stretch rounded-md text-left"
+                  >
+                    <span className="truncate text-sm text-primary">{l.name}</span>
+                    <span className="text-xs text-tertiary tnum">
+                      {l.pages > 1 ? `page ${l.atPage} of ${l.pages}` : "1 page"}
+                      {l.text ? "" : " · pictures only"}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => void deleteLesson(l.id)}
+                    aria-label={`Remove ${l.name}`}
+                    className="ctl focus-inset flex [--ctl:1.75rem] shrink-0 items-center justify-center rounded-md text-tertiary reveal hover:bg-subtle hover:text-danger"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {busy && !pasting && <p className="sheen mt-2 text-sm font-medium">Reading it</p>}
           {notice && <p className="mt-2 text-sm text-warning">{notice}</p>}
 
           {/* What is waiting, and the one press that clears it. Everything

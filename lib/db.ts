@@ -1,7 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import type {
   Canvas, CanvasFile, CanvasVersion, ContentBlock, Conversation, Message, Note,
-  Deck, Memory, Project, ProjectFile, RatingReason, Source, Style, Turn, TurnOutcome,
+  Deck, Lesson, LessonTurn, Memory, Project, ProjectFile, RatingReason, Source, Style, Turn, TurnOutcome,
 } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 import { newCard, schedule, dayKey, parseCards, type Card, type Rating, type StudyDay } from "./study";
@@ -27,6 +27,8 @@ class ChatDB extends Dexie {
   decks!: Table<Deck, string>;
   cards!: Table<Card, string>;
   studyDays!: Table<StudyDay, string>;
+  lessons!: Table<Lesson, string>;
+  lessonTurns!: Table<LessonTurn, string>;
 
   constructor() {
     super("clouds");
@@ -176,6 +178,16 @@ class ChatDB extends Dexie {
        down as it happens or it cannot be counted afterwards. */
     this.version(13).stores({
       studyDays: "day",
+    });
+
+    /* Documents you work through, and the conversation beside each one. The
+       bytes live here rather than in `projectFiles` because a lesson is not
+       knowledge attached to a project — it is the thing on screen, and the
+       page a person points at cannot be drawn again from an extraction of
+       its words. */
+    this.version(14).stores({
+      lessons: "id, updatedAt",
+      lessonTurns: "id, lessonId, at, [lessonId+at]",
     });
   }
 }
@@ -431,6 +443,43 @@ export async function answerCard(card: Card, rating: Rating): Promise<Card> {
   await db.decks.update(card.deckId, { updatedAt: now });
   await noteStudied(rating, now);
   return next;
+}
+
+/* ---------------------------------------------------------------- tutor -- */
+
+/**
+ * Take a document in to work through.
+ *
+ * The bytes are kept so a page can be drawn again; the text is extracted
+ * once, here, because every turn of the conversation beside it wants to
+ * quote the page and re-parsing a book per question would be absurd.
+ */
+export async function createLesson(init: {
+  name: string;
+  mimeType: string;
+  bytes: Blob;
+  text: string;
+  pages: number;
+}): Promise<Lesson> {
+  void keepForever();
+  const now = Date.now();
+  const lesson: Lesson = { id: uid(), atPage: 1, createdAt: now, updatedAt: now, ...init };
+  await db.lessons.put(lesson);
+  return lesson;
+}
+
+export async function addLessonTurn(turn: Omit<LessonTurn, "id" | "at">): Promise<LessonTurn> {
+  const row: LessonTurn = { id: uid(), at: Date.now(), ...turn };
+  await db.lessonTurns.put(row);
+  await db.lessons.update(turn.lessonId, { updatedAt: row.at });
+  return row;
+}
+
+export async function deleteLesson(id: string): Promise<void> {
+  await db.transaction("rw", db.lessons, db.lessonTurns, async () => {
+    await db.lessonTurns.where("lessonId").equals(id).delete();
+    await db.lessons.delete(id);
+  });
 }
 
 /**

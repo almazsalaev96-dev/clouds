@@ -3,7 +3,7 @@
 import { getModel } from "./models";
 import { engineOf } from "./presets";
 import { useSettings } from "./store";
-import type { ProviderId } from "./types";
+import type { ContentBlock, ProviderId } from "./types";
 
 /**
  * The call, and nothing about what is in it.
@@ -49,6 +49,15 @@ export async function complete(
     maxTokens?: number;
     temperature?: number;
     system?: string;
+    /**
+     * The whole exchange, when one prompt is not the whole of it.
+     *
+     * A tutor is a conversation: "why is that step wrong" only means
+     * anything after the step was explained. Callers that want a single
+     * answer to a single question keep passing `prompt` and nothing
+     * changes for them.
+     */
+    turns?: { role: "user" | "assistant"; content: ContentBlock[] }[];
   } & Progress = {},
 ): Promise<string | null> {
   const settings = useSettings.getState();
@@ -76,7 +85,7 @@ export async function complete(
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         modelId,
-        messages: [{ role: "user", content: [{ type: "text", text: prompt }] }],
+        messages: opts.turns ?? [{ role: "user", content: [{ type: "text", text: prompt }] }],
         systemPrompt: opts.system,
         // Explicit and self-contained. These calls want a complete, parseable
         // answer, not the sampling settings someone left on the chat surface.

@@ -108,5 +108,56 @@ export async function pdfBlock(
   }
 }
 
+/**
+ * One page, drawn.
+ *
+ * The text of a document is what a model reads; the *picture* of a page is
+ * what a person points at. A tutor needs both — you cannot ask "why is this
+ * step wrong" about a paragraph you cannot see, and a diagram, a handwritten
+ * working or a scan has no text to quote at all.
+ *
+ * Rendered at a scale rather than a fixed width so the crop a person drags
+ * out of it is worth sending: a region cut from a page drawn at 200px wide
+ * is four grey squares.
+ */
+export async function renderPage(
+  data: ArrayBuffer,
+  pageNo: number,
+  opts: { width?: number } = {},
+): Promise<{ url: string; width: number; height: number; pages: number }> {
+  const mod = await load();
+  /* pdf.js takes ownership of the buffer it is given and leaves it detached,
+     which makes the second call on the same document fail with "detached
+     ArrayBuffer". The copy is per render and costs a few milliseconds. */
+  const doc = await mod.getDocument({ data: new Uint8Array(data.slice(0)) }).promise;
+  const page = await doc.getPage(Math.min(Math.max(1, pageNo), doc.numPages));
+  const base = page.getViewport({ scale: 1 });
+  /* Capped: past about 2000px the canvas costs more memory than the detail
+     is worth, and phones start refusing to allocate it. */
+  const want = Math.min(opts.width ?? 1400, 2000);
+  const viewport = page.getViewport({ scale: want / base.width });
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(viewport.width);
+  canvas.height = Math.ceil(viewport.height);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("This browser would not give us a canvas to draw the page on.");
+  await page.render({ canvasContext: ctx, viewport }).promise;
+  const url = canvas.toDataURL("image/jpeg", 0.82);
+  const pages = doc.numPages;
+  page.cleanup();
+  await doc.destroy();
+  return { url, width: canvas.width, height: canvas.height, pages };
+}
+
+/** What page `n` of an extracted document says, for the turn that asks about it. */
+export function pageText(text: string, pageNo: number): string {
+  const re = new RegExp(`^--- page ${pageNo} ---$`, "m");
+  const at = text.search(re);
+  if (at === -1) return "";
+  const rest = text.slice(at);
+  const next = rest.slice(1).search(/^--- page \d+ ---$/m);
+  return (next === -1 ? rest : rest.slice(0, next + 1)).replace(re, "").trim();
+}
+
 export const isPdf = (f: { name: string; type: string }) =>
   f.type === "application/pdf" || /\.pdf$/i.test(f.name);
