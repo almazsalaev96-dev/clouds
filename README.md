@@ -2,8 +2,8 @@
 
 A study-and-build assistant that runs in your browser, on your own keys.
 
-You choose one of Armi's own models — ARMI One, Quant, Council, Forge, Orbit,
-Vision, Tutor, Lingua, Studio, Flash, Duet — and each one is a *cast*: two or
+You choose one of Armi's own models — ARMI Polaris, Parallax, Constellation, Nova,
+Aperture, Lens, Orrery, Rosetta, Voyager, Pulsar, Binary — and each one is a *cast*: two or
 more engines from different companies with different jobs, one writing and
 another briefing it first or checking it after. Nothing on screen names the
 engines; which companies those are is decided by the keys you hold, and said
@@ -138,27 +138,27 @@ one more, *from a different company*, does a job the first cannot do for itself.
   away. Four models given four jobs produce something none of them would have
   written alone, which is the only reason to pay for four.
 
-Five are for anything: **ARMI One** (the flagship, two models deep), **ARMI Flash**
-(answers now, checked while you read), **ARMI Quant** (reasoning and numbers,
-checked twice), **ARMI Council** (four jobs, one answer) and **ARMI Orbit** (the
+Five are for anything: **ARMI Polaris** (the flagship, two models deep), **ARMI Pulsar**
+(answers now, checked while you read), **ARMI Parallax** (reasoning and numbers,
+checked twice), **ARMI Constellation** (four jobs, one answer) and **ARMI Aperture** (the
 biggest window you hold a key for, with the summary read back). Six are for one
-thing: **ARMI Forge** plans, builds and reviews code; **ARMI Vision** puts two pairs
-of eyes on a screenshot; **ARMI Tutor** teaches from what you would otherwise miss
-and then asks; **ARMI Lingua** translates and has it read back; **ARMI Studio**
-works out who is reading before it writes; **ARMI Duet** is the plain two-answer
-comparison. The row says "ARMI Quant"; the bar, where the product name is already
-everywhere, says "Quant".
+thing: **ARMI Nova** plans, builds and reviews code; **ARMI Lens** puts two pairs
+of eyes on a screenshot; **ARMI Orrery** teaches from what you would otherwise miss
+and then asks; **ARMI Rosetta** translates and has it read back; **ARMI Voyager**
+works out who is reading before it writes; **ARMI Binary** is the plain two-answer
+comparison. The row says "ARMI Parallax"; the bar, where the product name is already
+everywhere, says "Parallax".
 
 Three rules keep it honest, and each one is a test. The engine is named on every
 row, on the bar and above every answer, because this app trained nothing and must
-never look as though it did. A substitution is said out loud: Orbit with no OpenAI
+never look as though it did. A substitution is said out loud: Aperture with no OpenAI
 key answers on the biggest window it can reach *and says so*. And a cast member
 always comes from a different company or is dropped — with one key the menu says
 "needs a second key" and nothing is quietly bought from a sibling model.
 
 The menu also does the arithmetic nobody can do in their head: under the selected
 model it says how many models a turn costs and roughly what one answer comes to,
-summed over the whole cast — Flash about a penny, Council about six times that.
+summed over the whole cast — Pulsar about a penny, Constellation about six times that.
 Settings carries the long form: every cast, every price, and two or three requests
 each one is the right answer to. The engines are all still there, one heading
 further down, for anyone who would rather pick one directly.

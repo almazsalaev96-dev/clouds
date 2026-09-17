@@ -147,7 +147,7 @@ console.log("\nWhat the row says");
   await page.waitForTimeout(900);
   /* The control used to be labelled "Model: <engine>", because what it chose
      was an engine. It chooses an Armi model now and says what it is for —
-     "Rewrites with ARMI Flash" — which is the same fact in the words the
+     "Rewrites with ARMI Pulsar" — which is the same fact in the words the
      rest of the app uses. What matters here is that there is one, and that
      the canvas is not picking silently the way it used to. */
   const picker = await page.getByRole("button", { name: /^(Rewrites with |Choose what rewrites)/ }).count();

@@ -194,7 +194,7 @@ function MessageListImpl({
 
   /* The name over an answer being written is the same name it will carry
      once it is written. Watching one company's model think and then reading
-     "ARMI Flash" over the result is two different authors for one answer. */
+     "ARMI Pulsar" over the result is two different authors for one answer. */
   const streamAuthor = authorName(streamPresetId, streamModelId);
 
   return (

@@ -56,12 +56,12 @@
 
 | Element | Today | Specification |
 |---|---|---|
-| Name | **Armi** (wordmark "Armı" in Pinyon Script in the corner) ✅ | Keep. "ARMI" in caps only for the model family ("ARMI One"). |
+| Name | **Armi** (wordmark "Armı" in Pinyon Script in the corner) ✅ | Keep. "ARMI" in caps only for the model family ("ARMI Polaris"). |
 | Icon | `icon.svg` (ink ground, signal-cyan letter) + `apple-icon.png` ✅ | ⬜ Regenerate `apple-icon.png` in the new palette; add a maskable 512×512 PNG to the manifest for Android install prompts. |
 | Palette | Ice `#f3f6fc` light, case `#0b101c` dark; electric blue for structure, cyan for signal; semantic danger/success/warning tokens ✅ | Keep. Every new colour is a token in `globals.css`, never a literal. The warm half is gone: only the amber of a warning survives, because that is meaning rather than brand. |
 | Type | Inter (UI), Pinyon Script (signature), tabular numerals via `.tnum` ✅ | ⬜ Add an OpenDyslexic / Atkinson Hyperlegible option under Appearance (Claude.ai ships a dyslexic font toggle `[R]`). |
 | Voice | Plain, short, second person, no exclamation marks; copy explains why, not just what ✅ | Codify in §2.1. |
-| AI personality | Per Armi model (Tutor withholds, Forge builds, Council argues) ✅ | Keep personality in the cast's stance, never in a global "friendly" prompt. |
+| AI personality | Per Armi model (Orrery withholds, Nova builds, Constellation argues) ✅ | Keep personality in the cast's stance, never in a global "friendly" prompt. |
 | Motion | `--dur-fast/--dur-enter`, `anim-fade/rise/toast`, `lift`, `bloom`, reduced-motion respected ✅ | Keep. New motion must have a reduced-motion branch. |
 | Sound | None | Out of scope by design (a study app in a library). |
 
@@ -215,7 +215,7 @@ The rule from the flagship products: show three controls, hide the rest in one m
 │ text · attachments (thumb, name) · [Edit] [Copy]                │
 └────────────────────────────────────────────────────────────────┘
 ┌ assistant ────────────────────────────────────────────────────┐
-│ Armi One · "chose Quant: the question is numeric" · 1.8s · $0.004 │
+│ Armi Polaris · "chose Parallax: the question is numeric" · 1.8s  │
 │ (thinking, collapsed: "Working it through…")                   │
 │ body — prose, code, math, tables, citations, canvas card       │
 │ [Copy] [Retry ▾] [Check with another] [Rate ▲▼] [Read aloud]   │
@@ -249,7 +249,7 @@ The rule from the flagship products: show three controls, hide the rest in one m
 
 Every Armi model is a cast (`lib/presets.ts`): a **writer** plus one or more **parts** — *brief* (another company writes what a good answer must get right, before the writer starts), *check* (another model grades the answer after), *duel* (two answers, one judge), *council* (three opinions, one synthesis). The row shows the cast that ran as small marks after the name ("One · brief · check"). The check's verdict renders under the answer. A cast part that fails is skipped silently and noted in the routed-why line ("the check did not come back").
 
-Armi models today: **One** (the default: a strong writer with a brief and a check), **Flash** (fast, cheap, no parts), **Quant** (numbers; a checker that re-derives), **Council** (three companies, one synthesis), **Orbit** (long context), **Forge** (builds things; canvas mode), **Vision** (pictures), **Tutor** (withholds the answer; §13.3), **Lingua** (languages), **Studio** (writing), **Duet** (two answers, one judge). Auto chooses among current models by the plan (`lib/decide.ts`).
+Armi models today, named for the sky because each name states the mechanism: **Polaris** (the default you steer by: a strong writer with a brief and a check), **Pulsar** (fast, cheap, no parts), **Parallax** (numbers; the same object sighted from two positions), **Constellation** (separate stars, one figure: three companies, one synthesis), **Aperture** (how much gets in: long context), **Nova** (builds things; canvas mode), **Lens** (pictures, two of them on the same object), **Orrery** (a machine built to teach; withholds the answer; §13.3), **Rosetta** (languages), **Voyager** (a record composed for a reader who is not you: writing), **Binary** (two bodies, neither subsumed: two answers, one judge). Auto chooses among current models by the plan (`lib/decide.ts`).
 
 ### 7.3 Temporary chat ✅
 Nothing saved, no memory read or written, no title call, marked with a ghost icon in the header; the composer says so. (Claude Incognito / ChatGPT Temporary `[R]`.)
@@ -307,8 +307,8 @@ Twenty-four models across four providers, each with: `id`, `provider`, `name` (n
 | 1 | Explicit Armi model chosen | Use its cast; Auto rules skipped |
 | 2 | Attachments include images | Writer must have `vision` |
 | 3 | Thread + knowledge > 60% of a candidate's window | Prefer a `long` model; excerpt knowledge (§12) |
-| 4 | Task = build (wants a thing) | Forge cast; canvas mode on |
-| 5 | Task = numeric / proof | Quant cast (writer with reasoning, checker re-derives) |
+| 4 | Task = build (wants a thing) | Nova cast; canvas mode on |
+| 5 | Task = numeric / proof | Parallax cast (writer with reasoning, checker re-derives) |
 | 6 | Task = teach / "I don't understand" / study register | Tutor stance (§13.3) |
 | 7 | One-liner, greeting, formatting request | Flash (no parts; cheapest current model) |
 | 8 | Past outcomes for this pairing are poor (rated ▼ twice) | Next candidate |
@@ -329,7 +329,7 @@ ARMI has no server tools by design. Tools run in the browser or are declared to 
 | `read_project(query)` | local BM25 over project files | ✅ (prompt excerpts) | Same. |
 | `calculate(expr)` | local (`lib/compute.ts`) | ✅ | Keep; results quoted as data. |
 | `make_card(front, back)` | local write to Study | ✅ via selection | Tool form ⬜ so Tutor can offer "Shall I make a card?" and do it on yes. |
-| `build_canvas(files)` | local canvas store | ✅ (Forge) | Keep. |
+| `build_canvas(files)` | local canvas store | ✅ (Nova) | Keep. |
 | `run_canvas_tests()` | srcdoc frame reports console errors back | 🟡 | ⬜ Self-heal loop (§15.4). |
 | `web_search(q)` | provider server tool (Anthropic `web_search_20260209` etc.) | ⬜ | Opt-in per conversation; results quoted as data; sources strip (M-16). |
 | `fetch_url(url)` | provider server tool | ⬜ | Only URLs the person pasted. |
@@ -426,7 +426,7 @@ Anki's 2026 defaults are the benchmark: 90% retention, `1m 10m` steps, 15–25 n
 | S-8 ⬜ | "Cards from this page/chat/file" | A model call that proposes 8–12 cards from a source, each one accept/edit/discard before it exists (NotebookLM makes cards from sources only `[R]`; the accept step is what keeps them honest). |
 | S-9 ⬜ | Typed-answer marking for maths | Numeric tolerance and unit awareness (already partly in the marker); LaTeX equality by normalised string. |
 
-### 13.3 The tutoring stance (ARMI Tutor)
+### 13.3 The tutoring stance (ARMI Orrery)
 
 The reference behaviour is shared by ChatGPT Study Mode, Gemini Guided Learning and Khanmigo `[R]`: ask what the person already knows, give a hint ladder, check understanding, withhold the final answer until the person has tried, respond to mistakes rather than restating the explanation.
 

@@ -266,10 +266,10 @@ export function paramsFor(modelId: string): ModelParams {
  *
  * `paramsFor` cannot tell the two apart — it fills in `DEFAULT_PARAMS` for an
  * id nobody has touched — and one caller needs to. An Armi model carries its
- * own effort ("Quant thinks hard"), which the person may overrule from the
+ * own effort ("Parallax thinks hard"), which the person may overrule from the
  * picker; reading that overrule with `paramsFor` meant every tactic was
  * overruled with `medium` the moment it was chosen, whether or not anybody
- * had touched the control. Quant asked for high and sent medium, Flash asked
+ * had touched the control. Parallax asked for high and sent medium, Pulsar asked
  * for low and sent medium, and the row's promise was ornamental.
  */
 export function paramsSet(modelId: string): boolean {

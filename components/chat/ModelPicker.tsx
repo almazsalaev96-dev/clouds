@@ -3,8 +3,8 @@
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
-  Check, ChevronDown, Eye, Feather, GraduationCap, Hammer, Languages, Layers, Orbit,
-  Scale, Search, Sigma, Users, Wand2, Zap,
+  Aperture, Check, ChevronDown, Compass, Eye, Feather, GraduationCap, Hammer, Languages,
+  Network, Scale, Search, Sigma, Wand2, Zap,
 } from "lucide-react";
 import type { ModelSpec } from "@/lib/types";
 import { AUTO, MODELS, formatCost, getModel } from "@/lib/models";
@@ -22,11 +22,11 @@ import { cn, fuzzyScore } from "@/lib/utils";
  * this turns it into something.
  */
 const ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  orbit: Orbit,
+  compass: Compass,
   zap: Zap,
   sigma: Sigma,
-  users: Users,
-  layers: Layers,
+  network: Network,
+  aperture: Aperture,
   hammer: Hammer,
   eye: Eye,
   "graduation-cap": GraduationCap,
@@ -45,7 +45,7 @@ export function PresetIcon({
   size?: number;
   className?: string;
 }) {
-  const Icon = ICONS[getPreset(id)?.icon ?? ""] ?? Orbit;
+  const Icon = ICONS[getPreset(id)?.icon ?? ""] ?? Compass;
   return <Icon size={size} className={className} />;
 }
 

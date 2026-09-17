@@ -141,7 +141,7 @@ console.log("\nA cast that spans fewer companies than it has seats says so");
 console.log("\nA deeper bench is a better cast, not just a longer list");
 {
   /* The point of adding the previous generations. On one company's key every
-     seat used to come out of the same three models, so the Council — which
+     seat used to come out of the same three models, so the Constellation — which
      wants four — could not be filled at all. */
   for (const company of ["anthropic", "openai", "moonshot"] as const) {
     const bench = MODELS.filter((m) => m.provider === company).length;
@@ -155,7 +155,7 @@ console.log("\nA deeper bench is a better cast, not just a longer list");
     const c = resolveCast("council", { configured: only(company) })!;
     const seats = [c.answer.modelId, ...c.parts.map((x) => x.modelId)];
     check(c.parts.length === want,
-      `the Council fills every seat a ${company} key can fill — ${want} of 4`, seats.join(" + "));
+      `the Constellation fills every seat a ${company} key can fill — ${want} of 4`, seats.join(" + "));
     check(new Set(seats).size === seats.length, `and no model of theirs sits in two of them`, seats.join(" + "));
     check(want === 4 || Boolean(c.short), `and says so when the bench runs out`, c.short ?? "said nothing");
   }
@@ -355,7 +355,7 @@ console.log("\nAnd the check is real, or it is not claimed");
 {
   const code = planTurn("write a function that debounces calls");
   const both = shapePlan(code, getPreset("forge"), { cast: resolveCast("forge", { configured: all }) });
-  check(both.check === "second" && /Forge/.test(both.why), "with two companies, one checks the other", both.why);
+  check(both.check === "second" && /Nova/.test(both.why), "with two companies, one checks the other", both.why);
   /* With one company there is still a check — the rule is two models, always
      — but it is a sibling, and everything that draws it says so rather than
      selling it as an independent opinion. */
@@ -568,24 +568,24 @@ console.log("\nAnd a line written by an older build is read by today's rules");
      ever wrote one is still on somebody's screen. The ones written before the
      rebrand begin with the engine — which is the one thing that must not
      survive into a version of the app that does not name engines. */
-  check(plainly("ARMI One — this is about code") === "this is about code",
+  check(plainly("ARMI Polaris — this is about code") === "this is about code",
     "the name comes off the front, because the header two inches up already says it");
-  check(plainly("Claude Sonnet 4.5 · ARMI One") === "",
+  check(plainly("Claude Sonnet 4.5 · ARMI Polaris") === "",
     "a line that was nothing but names leaves nothing behind",
-    `"${plainly("Claude Sonnet 4.5 · ARMI One")}"`);
-  const old = plainly("Sonnet 4.5 · ARMI One — briefed first by another model");
+    `"${plainly("Claude Sonnet 4.5 · ARMI Polaris")}"`);
+  const old = plainly("Sonnet 4.5 · ARMI Polaris — briefed first by another model");
   check(old === "briefed first by another model", "and what it was actually telling you survives", old);
   /* Including the shortest line this app ever wrote: the router's own, on a
      route it had no reason to explain, which was the engine's name and a
      full stop and nothing else. */
   check(plainly("Sonnet 4.5.") === "", "a line that was only a name and a full stop leaves nothing");
-  for (const line of ["GPT-5.1 · ARMI Flash — this is about code", "Kimi · ARMI Duet", "Haiku 4.5 — a one-line rewrite", "Opus 4.5."]) {
+  for (const line of ["GPT-5.1 · ARMI Pulsar — this is about code", "Kimi · ARMI Binary", "Haiku 4.5 — a one-line rewrite", "Opus 4.5."]) {
     check(!/Claude|GPT|Kimi|DeepSeek|Sonnet|Haiku|Opus/.test(plainly(line)),
       `nothing of somebody else's is left in "${line}"`, `"${plainly(line)}"`);
   }
   /* And it does not eat prose that merely mentions something. The rule is
      about whole segments, not about words inside a sentence. */
-  check(plainly("ARMI Quant — the numbers here are worth checking") === "the numbers here are worth checking",
+  check(plainly("ARMI Parallax — the numbers here are worth checking") === "the numbers here are worth checking",
     "while a sentence is left as it was written");
 }
 

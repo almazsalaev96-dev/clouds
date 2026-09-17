@@ -125,7 +125,7 @@ export function TopBar({
             <>
               <PresetIcon id={preset.id} size={12} className="shrink-0 text-[var(--accent-2)]" />
               {/* Without the prefix: the product name is already on every
-                  screen, and "ARMI Quant" in a chip that truncates says the
+                  screen, and "ARMI Parallax" in a chip that truncates says the
                   company twice and the model not at all. */}
               <span className="truncate">{preset.short}</span>
               {/* How hard it is thinking, where that is a choice somebody made.

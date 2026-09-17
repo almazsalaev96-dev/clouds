@@ -46,7 +46,7 @@ twice or claims a thing that does not exist:
 | **ARMI ORBIT** — knowledge | Built as a model. Projects, files and PDFs exist; embeddings and vector retrieval do not — retrieval here is the context fitter plus project files. |
 | **ARMI VISION** — multimodal | Built as a model (two seeing models, side by side). Images and PDFs already worked; voice already worked. |
 | **ARMI COUNCIL** — multi-model collaboration | Built, and built the way the specification argues for: three companies take three *different halves* of the question and a fourth writes one answer, told to surface disagreement rather than average it. |
-| **ARMI CORE** — the router | Largely built and now named: `lib/route.ts` picks a model per message from capability, context, price and what the request needs; `lib/decide.ts` makes one recorded decision per turn. Stages it does not have: task decomposition and a synthesis engine outside the Council. |
+| **ARMI CORE** — the router | Largely built and now named: `lib/route.ts` picks a model per message from capability, context, price and what the request needs; `lib/decide.ts` makes one recorded decision per turn. Stages it does not have: task decomposition and a synthesis engine outside the Constellation. |
 | **ARMI SENTINEL** — verification | Built and now named on the card: a second company checks, never a sibling, and the verdict says who and what they disagreed about. |
 | **ARMI MEMORY** | Built: user-approved, visible, editable, deletable, off-switchable, never automatic. Project memory is project files and instructions. |
 | **ARMI EVAL** | Half built. Every turn's decision and its outcome are recorded and read back — that is the feedback loop. What is missing is a fixed task set scored repeatedly, which is Phase 6 below. |

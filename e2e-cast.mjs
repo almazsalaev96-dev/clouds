@@ -93,8 +93,8 @@ console.log("\nAnd what the first one wrote reaches the second one");
 console.log("\nThe answer says it, rather than leaving you to guess");
 {
   const said = await p.locator(".msg").last().innerText();
-  check(/ARMI One/.test(said), "the answer is credited to the model that was chosen",
-    (said.split("\n").find((l) => /ARMI One/.test(l)) ?? "").slice(0, 60));
+  check(/ARMI Polaris/.test(said), "the answer is credited to the model that was chosen",
+    (said.split("\n").find((l) => /ARMI Polaris/.test(l)) ?? "").slice(0, 60));
   check(/briefed first by another model/i.test(said),
     "and says a second model read the question before it was written",
     (said.split("\n").find((l) => /briefed first/i.test(l)) ?? "").slice(0, 80));
@@ -103,7 +103,7 @@ console.log("\nThe answer says it, rather than leaving you to guess");
 
 console.log("\nThe quick one answers first and is checked after");
 {
-  await pick("ARMI Flash");
+  await pick("ARMI Pulsar");
   await ask("what is a debounce", 6000);
   const seq = await calls();
   const i = seq.findIndex((r) => r.kind === "answer");
@@ -122,7 +122,7 @@ console.log("\nThe quick one answers first and is checked after");
 
 console.log("\nAnd where judgement decides, two answers beat one verdict");
 {
-  await pick("ARMI Duet");
+  await pick("ARMI Binary");
   await p.getByRole("button", { name: "New chat" }).first().click();
   await p.waitForTimeout(350);
   await fetch(`${MOCK}/__reset`);
@@ -144,7 +144,7 @@ console.log("\nThe council is three jobs and one answer, not three drafts");
      that four models can do and one cannot: three companies each take a
      different half — the strategy, the reasoning, what is actually known —
      and a fourth writes one answer out of the three. */
-  await pick("ARMI Council");
+  await pick("ARMI Constellation");
   await p.getByRole("button", { name: "New chat" }).first().click();
   await p.waitForTimeout(350);
   await fetch(`${MOCK}/__reset`);
@@ -179,9 +179,9 @@ console.log("\nThe council is three jobs and one answer, not three drafts");
      the revision did not convene one, and the first draft, which did, is
      still there under ‹1/2›. */
   const shown = await p.locator("main").innerText();
-  check(/ARMI Council/.test(shown) && /answered again/.test(shown),
+  check(/ARMI Constellation/.test(shown) && /answered again/.test(shown),
     "and the answer says which tactic wrote it and that it went round twice",
-    (shown.split("\n").find((l) => /ARMI Council/.test(l)) ?? "").slice(0, 110));
+    (shown.split("\n").find((l) => /ARMI Constellation/.test(l)) ?? "").slice(0, 110));
   check(!/3 models consulted/.test(shown),
     "without claiming a council the second draft did not hold");
   await p.screenshot({ path: `${OUT}/cast-council.png` });
@@ -194,7 +194,7 @@ console.log("\nAnd an objection is answered rather than printed under the answer
      that is still wrong, leaving the reader to do the work. On the tactics
      where being wrong costs something the writer is handed the objection and
      answers again, which is what the second model was for. */
-  await pick("ARMI Quant");
+  await pick("ARMI Parallax");
   await p.getByRole("button", { name: "New chat" }).first().click();
   await p.waitForTimeout(350);
   await fetch(`${MOCK}/__reset`);
@@ -235,7 +235,7 @@ console.log("\nAnd two models on the kinds that used to get one");
      check was withheld for kind, and the tactic built for teaching answered
      alone. Read at the wire, because this is exactly the claim that cannot
      be taken from the interface. */
-  await pick("ARMI Tutor");
+  await pick("ARMI Orrery");
   await p.getByRole("button", { name: "New chat" }).first().click();
   await p.waitForTimeout(350);
   await fetch(`${MOCK}/__reset`);
@@ -251,7 +251,7 @@ console.log("\nAnd two models on the kinds that used to get one");
 
 console.log("\nThe menu says who is in the cast, not just who fronts it");
 {
-  await pick("ARMI Council");
+  await pick("ARMI Constellation");
   await bar.click();
   await p.waitForTimeout(450);
   const panel = await p.locator("[data-radix-popper-content-wrapper]").first().innerText();
@@ -264,7 +264,7 @@ console.log("\nThe menu says who is in the cast, not just who fronts it");
   check(/models a turn/.test(panel) && /an answer/.test(panel),
     "and what a turn of it costs, counted in models and in money",
     (panel.split("\n").find((l) => /models a turn/.test(l)) ?? "").slice(0, 80));
-  await p.getByRole("button", { name: /^ARMI Quant —/ }).first().click();
+  await p.getByRole("button", { name: /^ARMI Parallax —/ }).first().click();
   await p.waitForTimeout(500);
   await bar.click();
   await p.waitForTimeout(450);

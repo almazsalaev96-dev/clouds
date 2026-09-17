@@ -159,7 +159,7 @@ console.log("\nChoosing a model yourself turns all of it off");
   await page.waitForTimeout(500);
   check((await page.getByText(/^No model matches/).count()) === 0,
     "a name from the news finds the Armi model that runs on it");
-  await page.locator("button").filter({ hasText: /^ARMI Flash/ }).first().click();
+  await page.locator("button").filter({ hasText: /^ARMI Pulsar/ }).first().click();
   await page.waitForTimeout(600);
 
   await ask("why would you choose an event-sourced architecture over a CRUD one here");

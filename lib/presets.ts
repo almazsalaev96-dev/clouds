@@ -84,7 +84,7 @@ export type Group = "everyday" | "job";
 
 export interface Preset {
   id: string;
-  /** With the prefix, as the menu and Settings say it: "ARMI Quant". */
+  /** With the prefix, as the menu and Settings say it: "ARMI Parallax". */
   name: string;
   /** Without it, for the bar, where the product name is already everywhere. */
   short: string;
@@ -156,11 +156,11 @@ export interface Preset {
  * The celestial names they had were pretty and said nothing: nobody could
  * tell from "Mizar" what it was for, and a person choosing between thirteen
  * constellations is doing astronomy rather than work. These say the job.
- * **One** is the flagship you stay on; **Quant** reasons; **Forge** builds;
- * **Orbit** holds documents; **Vision** sees; **Tutor** teaches; **Council**
+ * **Polaris** is the flagship you stay on; **Parallax** reasons; **Nova** builds;
+ * **Aperture** holds documents; **Lens** sees; **Orrery** teaches; **Constellation**
  * is the most this app can bring to one question. The prefix is the product,
- * so the row says "ARMI Quant" and the bar, where the product name is already
- * everywhere, says "Quant".
+ * so the row says "ARMI Parallax" and the bar, where the product name is already
+ * everywhere, says "Parallax".
  *
  * Five are for anything and six are for one thing, which is the split that
  * matters: somebody who does not want to think about it stays on ARMI One
@@ -170,8 +170,8 @@ export const PRESETS: Preset[] = [
   /* ------------------------------------------------------------ everyday -- */
   {
     id: "one",
-    name: "ARMI One",
-    short: "One",
+    name: "ARMI Polaris",
+    short: "Polaris",
     tagline: "The flagship, two models deep",
     blurb:
       "Your primary assistant: everyday questions, writing, planning, and knowing when something needs a specialist. A model from one company lists what the answer has to get right; a model from another writes it.",
@@ -182,12 +182,12 @@ export const PRESETS: Preset[] = [
     cast: [
       { role: "brief", as: "cover", engines: ["gpt-5.6-luna", "kimi-k2.6", "deepseek-flash", "claude-haiku-4-5", "gpt-5.2", "gpt-5"], want: "cheap" },
     ],
-    icon: "orbit",
+    icon: "compass",
   },
   {
     id: "flash",
-    name: "ARMI Flash",
-    short: "Flash",
+    name: "ARMI Pulsar",
+    short: "Pulsar",
     tagline: "Answers now, checked after",
     blurb:
       "For quick questions and rewrites. The fastest engine you have a key for answers straight away, and a second company's model checks it while you are already reading.",
@@ -206,8 +206,8 @@ export const PRESETS: Preset[] = [
   },
   {
     id: "quant",
-    name: "ARMI Quant",
-    short: "Quant",
+    name: "ARMI Parallax",
+    short: "Parallax",
     tagline: "Reasoning, checked twice",
     blurb:
       "Mathematics, economics, logic, analysis, hard strategy. One model writes down where this is most likely to go wrong before anybody answers, the strongest engine you have does the work, and a third from a different company checks it. Pure arithmetic never reaches a model at all — this app works that out exactly, for nothing.",
@@ -230,8 +230,8 @@ export const PRESETS: Preset[] = [
        question — that is four drafts and a reader made into an editor — but
        four models given four jobs, and one of them writing what comes of it. */
     id: "council",
-    name: "ARMI Council",
-    short: "Council",
+    name: "ARMI Constellation",
+    short: "Constellation",
     tagline: "Four jobs, one answer",
     blurb:
       "The most this app can bring to one question. Three companies each take a different half of it — the strategy, the reasoning, what is actually known — a fourth writes one answer out of the three, and a fifth reads that answer back and can send it round again. Five models a turn, and by some way the dearest thing here.",
@@ -250,12 +250,12 @@ export const PRESETS: Preset[] = [
     ],
     effort: "high",
     revise: true,
-    icon: "users",
+    icon: "network",
   },
   {
     id: "orbit",
-    name: "ARMI Orbit",
-    short: "Orbit",
+    name: "ARMI Aperture",
+    short: "Aperture",
     tagline: "Holds a lot, read back",
     blurb:
       "Books, PDFs, research, threads that have run all day. It answers on the biggest window you have a key for, and a second company reads the summary back against what it was meant to say.",
@@ -267,14 +267,14 @@ export const PRESETS: Preset[] = [
       { role: "check", engines: ["kimi-k3", "claude-sonnet-5", "deepseek-flash", "gpt-5.6-terra", "kimi-k2.6", "claude-sonnet-4-5"], want: "balanced" },
     ],
     revise: true,
-    icon: "layers",
+    icon: "aperture",
   },
 
   /* ----------------------------------------------------------- for a job -- */
   {
     id: "forge",
-    name: "ARMI Forge",
-    short: "Forge",
+    name: "ARMI Nova",
+    short: "Nova",
     tagline: "Plans it, builds it, reviews it",
     blurb:
       "Code, and pages that run beside the conversation. Another company plans the thing first — the pieces, the order, what is easy to leave out — the strongest coder you have builds it, and a third reads the result back. It would rather make the thing than describe it.",
@@ -294,8 +294,8 @@ export const PRESETS: Preset[] = [
   },
   {
     id: "vision",
-    name: "ARMI Vision",
-    short: "Vision",
+    name: "ARMI Lens",
+    short: "Lens",
     tagline: "Two pairs of eyes",
     blurb:
       "Screenshots, diagrams, photographs of a whiteboard. Two models that can actually see are given the same picture and answer side by side, because what a model gets wrong about an image it gets wrong confidently and a second reading is the only way to catch it.",
@@ -311,8 +311,8 @@ export const PRESETS: Preset[] = [
   },
   {
     id: "tutor",
-    name: "ARMI Tutor",
-    short: "Tutor",
+    name: "ARMI Orrery",
+    short: "Orrery",
     tagline: "Teaches, then asks",
     blurb:
       "For learning something rather than obtaining it. Another model first writes down what somebody asking this usually believes that is wrong, so the explanation starts where you actually are; the answer ends with questions you cannot pass by having just read it; and a second company checks the teaching was right before you commit it to memory. Cards made here live in Study.",
@@ -331,8 +331,8 @@ export const PRESETS: Preset[] = [
   },
   {
     id: "lingua",
-    name: "ARMI Lingua",
-    short: "Lingua",
+    name: "ARMI Rosetta",
+    short: "Rosetta",
     tagline: "Translated, then read back",
     blurb:
       "Translation, where the mistake you cannot see is the one that matters. One model translates and a model from a different company reads the translation against the original and reports what drifted.",
@@ -349,8 +349,8 @@ export const PRESETS: Preset[] = [
   },
   {
     id: "studio",
-    name: "ARMI Studio",
-    short: "Studio",
+    name: "ARMI Voyager",
+    short: "Voyager",
     tagline: "Written for someone else",
     blurb:
       "Emails, letters, posts, anything with a reader who is not you. Another model works out who reads it and what it has to achieve before a word is written, which is the part that is usually skipped and the reason most drafts have to be rewritten.",
@@ -366,11 +366,11 @@ export const PRESETS: Preset[] = [
   },
   {
     id: "duet",
-    name: "ARMI Duet",
-    short: "Duet",
+    name: "ARMI Binary",
+    short: "Binary",
     tagline: "Two answers, you choose",
     blurb:
-      "Two companies answer the same question, side by side, and you keep the one you prefer. Where judgement or taste decides, two answers are worth more than one model's verdict — and unlike the Council, nothing is blended away.",
+      "Two companies answer the same question, side by side, and you keep the one you prefer. Where judgement or taste decides, two answers are worth more than one model's verdict — and unlike Constellation, nothing is blended away.",
     examples: ["what should we call this feature", "is this opening paragraph any good", "which of these two designs"],
     engines: ["claude-opus-5", "gpt-6-astra", "kimi-k3", "deepseek-v4-pro", "claude-fable-5-1", "claude-opus-4-7", "gpt-5.6-sol"],
     want: "strong",
@@ -593,7 +593,7 @@ export function resolveCast(id: string, where: Where): Cast | null {
       .filter((m) => !preset.sees || m.vision);
     const elsewhere = field.filter((m) => m.provider !== writer.provider);
     /* A third company before a second model from the second company. The
-       Council promises three and would otherwise quietly buy two of its
+       Constellation promises three and would otherwise quietly buy two of its
        seats from one lab — most of the value of the third gone, paid for in
        full. */
     const fresh = elsewhere.filter((m) => !used.has(m.provider as ProviderId));
@@ -675,8 +675,8 @@ const FEW_SHORT = (have: number, seats: number) =>
  * What to call the thing that answered, wherever a reader sees it.
  *
  * The product's own name goes first, because that is what the person chose
- * and what they will say when they talk about it: an answer from ARMI Quant
- * is from ARMI Quant, the way a photograph from a camera is from the camera
+ * and what they will say when they talk about it: an answer from ARMI Parallax
+ * is from ARMI Parallax, the way a photograph from a camera is from the camera
  * and not from the sensor in it. Three or four engines can sit behind one
  * Armi model depending on which keys are in the browser, so the engine is
  * also the wrong thing to lead with — it changes when nothing a reader did
@@ -737,6 +737,14 @@ const GONE = [
   "kimi k2 turbo", "k2 turbo", "kimi thinking",
   "moonshot v1 128k", "moonshot v1 32k", "v1 128k", "v1 32k",
   "deepseek v3", "v3", "deepseek r1", "r1",
+  /* The names this app's own models carried before the sky came into it.
+     An answer given in September stores "ARMI Constellation" in its byline, and
+     that line is never rewritten — so without these, every conversation from
+     before the rename grows a stray name in the middle of its sentence. */
+  "armi one", "one", "armi flash", "flash", "armi quant", "quant",
+  "armi council", "council", "armi orbit", "orbit", "armi forge", "forge",
+  "armi vision", "vision", "armi tutor", "tutor", "armi lingua", "lingua",
+  "armi studio", "studio", "armi duet", "duet",
 ];
 
 let NAMES: Set<string> | null = null;

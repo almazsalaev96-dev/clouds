@@ -43,8 +43,8 @@ export interface Message {
    * Which Armi model wrote it, where one did.
    *
    * Stored rather than read off the thread, because the thread's model
-   * changes and this answer's did not: an answer written by ARMI Quant in
-   * March is still ARMI Quant's in June. The engine underneath stays in
+   * changes and this answer's did not: an answer written by ARMI Parallax in
+   * March is still ARMI Parallax's in June. The engine underneath stays in
    * `modelId` — it is what a retry, a second opinion and the token meter
    * all need, and it is what Settings names.
    */
@@ -190,7 +190,7 @@ export interface Turn {
    *
    * The rule this record feeds is keyed on the engine, because it is the
    * engine that is bad at a kind of work. The row on screen is keyed on this,
-   * because "ARMI Forge needed another go" is something a person can act on
+   * because "ARMI Nova needed another go" is something a person can act on
    * and the name of an engine they never picked is not.
    */
   presetId?: string;

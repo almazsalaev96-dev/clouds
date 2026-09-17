@@ -749,7 +749,7 @@ export default function Page() {
            the instruction said. */
         teaching: isTeaching(style?.id),
         /* What this tactic is for, said to the model rather than only to the
-           person who picked it. Forge builds because it is told to build. */
+           person who picked it. Nova builds because it is told to build. */
         /* And, when the question is an exam question, how it will be marked:
            the command word's meaning and the marks to account for. Every
            question is one in the Exam stance; elsewhere only one that
@@ -786,7 +786,7 @@ export default function Page() {
          there is nothing to add beyond having been answered. */
       const presetWhy = preset && extras.length ? `${preset.name} — ${extras.join(", ")}` : "";
       /* And where this is a second pass, the line says so without losing who
-         answered: "ARMI Council, 3 models consulted · answered again after an
+         answered: "ARMI Constellation, 3 models consulted · answered again after an
          objection" is the whole account of how the words on screen came to be
          there, and the first half of it is not less true for the second. */
       const why = [
@@ -1011,7 +1011,7 @@ export default function Page() {
           history,
           /* Side by side, every column has to be an engine: what runs is a
              model id, and a column handed an Armi model's id used to fall
-             through `getModel` to the app default — so "also ask ARMI Quant"
+             through `getModel` to the app default — so "also ask ARMI Parallax"
              quietly asked the same engine as the column beside it, twice, and
              headed the column with a name neither of them had. Each column
              resolves its own cast's writer. */
