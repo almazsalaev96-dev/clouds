@@ -12,6 +12,7 @@
  *   ANTHROPIC_BASE_URL=http://127.0.0.1:8787 npx next start -p 3100
  */
 import { createServer } from "node:http";
+import { readFileSync } from "node:fs";
 
 /** A whole page, the way Creative answers a request to make something. */
 const MADE = `Here it is.
@@ -128,6 +129,20 @@ const recent = [];
 let rateLimitOnce = process.env.MOCK_RATE_LIMIT === "1";
 let failNext = null;
 
+/**
+ * The ceiling a request asked for, whichever way it spelled it.
+ *
+ * Anthropic and most OpenAI-compatible providers send `max_tokens`, but
+ * OpenAI's own reasoning models take `max_completion_tokens` instead — and
+ * every OpenAI model this app can call is a reasoning model. Reading only the
+ * first spelling made a title on an OpenAI engine indistinguishable from an
+ * answer: `/__recent` filed it as `answer`, and `e2e-cast.mjs`, which reads
+ * that sequence to prove one turn was two companies, then took the title for
+ * the answer whenever the writer's seat went to OpenAI. The suite that exists
+ * to check the second company was the one the second company broke.
+ */
+const ceilingOf = (body) => body.max_tokens ?? body.max_completion_tokens ?? 4096;
+
 /** The instructions as they arrived, in either wire format. */
 const systemTextOf = (body) => {
   if (Array.isArray(body.system)) return body.system.map((b) => b.text ?? "").join("\n");
@@ -169,6 +184,28 @@ createServer(async (req, res) => {
     recent.length = 0;
     res.writeHead(200, { "content-type": "application/json" });
     res.end("{}");
+    return;
+  }
+  /* The catalogue, which is the one thing a mock that only answers completions
+     can never stand in for.
+     ---------------------------------------------------------------------
+     Two things ask a provider what it serves rather than asking it to write:
+     the Test button in Settings (`/api/test-key`) and `verify-live.ts`, whose
+     whole job is to catch an `apiName` the provider has retired. Neither had
+     anything to talk to here, so the endpoint the app uses to answer "is this
+     key any good" was the one endpoint the harness could not answer.
+
+     Served from lib/models.ts by reading the source, so the list cannot drift
+     from the catalogue it is standing in for — a mock that agrees with a stale
+     copy of the truth is worse than no mock. `MOCK_DROP_MODEL=gpt-5,kimi-k3`
+     withholds a name, which is how the unhappy path — we offer a model the
+     provider no longer serves — gets tested without waiting for it to happen. */
+  if ((req.url ?? "").replace(/\?.*$/, "").endsWith("/models") && (req.method ?? "GET") === "GET") {
+    const dropped = new Set((process.env.MOCK_DROP_MODEL ?? "").split(",").map((x) => x.trim()).filter(Boolean));
+    const src = readFileSync(new URL("./lib/models.ts", import.meta.url), "utf8");
+    const ids = [...src.matchAll(/^\s*apiName:\s*"([^"]+)"/gm)].map((m) => m[1]).filter((id) => !dropped.has(id));
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ object: "list", data: ids.map((id) => ({ id, object: "model" })) }));
     return;
   }
   /* Arm the next answer to fail. A whole layer of this app — every sentence a
@@ -338,15 +375,15 @@ createServer(async (req, res) => {
 
   // One 429 with a Retry-After, then behave. Proves the automatic retry both
   // waits and succeeds rather than surfacing an error the person must clear.
-  if (rateLimitOnce && (body.max_tokens ?? 4096) > 64) {
+  if (rateLimitOnce && ceilingOf(body) > 64) {
     rateLimitOnce = false;
     res.writeHead(429, { "content-type": "application/json", "retry-after": "1" });
     res.end(JSON.stringify({ type: "error", error: { type: "rate_limit_error", message: "retry-after 1" } }));
     return;
   }
-  // Titles come through as a short one-shot with a low max_tokens; answering
+  // Titles come through as a short one-shot with a low ceiling; answering
   // them with the essay would make the sidebar unreadable.
-  const isTitle = (body.max_tokens ?? 4096) <= 64;
+  const isTitle = ceilingOf(body) <= 64;
 
   /* A canvas revision asks for the whole document back, so answering it with
      the essay would prove nothing about the diff. Instead the document is

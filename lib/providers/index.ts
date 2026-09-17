@@ -17,4 +17,4 @@ export function adapterFor(modelId: string): Adapter {
   return ADAPTERS[getModel(modelId).provider];
 }
 
-export { classifyError } from "./shared";
+export { classifyError, baseUrlFor } from "./shared";

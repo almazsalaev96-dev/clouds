@@ -1667,6 +1667,50 @@ node test-fit.mjs      # a 360k-token thread trimmed to fit and answered
 MOCK_RATE_LIMIT=1 …    # restart the mock this way, then: node test-retry.mjs
 ```
 
+### And the half a mock cannot do
+
+Everything above is answered by `mock-provider.mjs`, which is agreeable in
+exactly the two places a provider is not. It echoes `model` straight back, so a
+name the provider has retired streams happily here and 404s in production. And
+it accepts whichever parameter spelling arrives, so a field sent under a name
+one provider has never heard of looks identical to one that landed. Neither is
+fixable by being careful in the mock: only the provider knows.
+
+So there is a second script, deliberately not in `gate.sh` because it needs real
+keys and spends real money — a few tenths of a cent, and it prints the tally:
+
+```bash
+npx jiti verify-live.ts           # every provider with a key
+npx jiti verify-live.ts openai    # just one
+```
+
+It reads `.env.local`, never prints a key, skips a provider that has none, and
+checks four things:
+
+- **the catalogue** — every `apiName` in `lib/models.ts` against that provider's
+  own list. An alias and a dated snapshot are one model, so `claude-haiku-4-5`
+  matches `claude-haiku-4-5-20251001`; anything else after the name is a
+  different model. That line is the whole check, and both looser versions of it
+  were written first and both hid a withdrawal: "either is a prefix of the
+  other" read `gpt-5.5` as a live `gpt-5`, and "the remainder is digits" read
+  `claude-opus-5-1-20260301` as a live `claude-opus-5`. The remainder has to be
+  a date.
+- **the wire** — one real streaming turn per parameter shape, through the
+  adapter that ships. Reasoning and non-reasoning models take different fields —
+  `max_completion_tokens` and `reasoning_effort` against `max_tokens`,
+  `temperature` and `top_p` — and the mock waves both through.
+- **the casts** — that on the keys actually present, every tactic still spans
+  two companies rather than quietly falling back to one.
+- **one turn, for real** — a brief written by one company and handed to the
+  other through `briefNote` exactly the way the app hands it over.
+
+The mock now serves a catalogue of its own at `/models`, read out of
+`lib/models.ts` so the two cannot drift. That is what lets the Test button in
+Settings — which asks a provider for its catalogue, and had nothing to ask here
+— be exercised without a key at all. `MOCK_DROP_MODEL=gpt-5,claude-opus-5`
+withholds a name, so the unhappy path (we offer a model the provider has since
+retired) is testable before the day it happens.
+
 ## How an answer is shaped before it is written
 
 The app classifies every request — `lib/task.ts` decides whether it is someone
@@ -1827,3 +1871,10 @@ DEEPSEEK_BASE_URL=...
 ```
 
 Unset, each falls back to the provider's own API.
+
+The **Test** button in Settings goes to the same place. It used to have the four
+hosts written into it, which made the green dot a lie for exactly the people
+these variables exist for: pointed at a gateway, Test went on asking
+`api.openai.com`, so a gateway token came back rejected while a real OpenAI key
+came back good and then failed on the first message. A test that does not use
+the route it is vouching for is not a test.
