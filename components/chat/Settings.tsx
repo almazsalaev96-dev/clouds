@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
 import { SHORTCUT_GROUPS } from "@/components/ShortcutsOverlay";
 
-type Tab = "keys" | "appearance" | "model" | "styles" | "memory" | "data" | "shortcuts";
+type Tab = "keys" | "appearance" | "model" | "styles" | "memory" | "data" | "shortcuts" | "privacy";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "keys", label: "API keys" },
@@ -32,6 +32,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "memory", label: "Memory" },
   { id: "shortcuts", label: "Shortcuts" },
   { id: "data", label: "Data" },
+  { id: "privacy", label: "Privacy" },
 ];
 
 export function Settings({
@@ -83,6 +84,7 @@ export function Settings({
             {tab === "memory" && <MemoryPanel />}
             {tab === "shortcuts" && <ShortcutsPanel />}
             {tab === "data" && <DataPanel />}
+            {tab === "privacy" && <PrivacyPanel />}
           </div>
 
           <Dialog.Close
@@ -94,6 +96,61 @@ export function Settings({
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+/* ------------------------------------------------------------- privacy ---- */
+
+/**
+ * What is stored, what leaves, and how to be rid of it.
+ *
+ * An app that says "nothing leaves this browser" on its front page owes the
+ * reader one screen that spells out exactly what that means, including the
+ * part where it is not absolute: a question you ask a model does leave, to
+ * the company whose key you added, because that is what asking costs. Saying
+ * only the comfortable half is how "private" becomes marketing.
+ */
+function PrivacyPanel() {
+  return (
+    <Panel title="Privacy" description="The whole of it, in the order that matters.">
+      <div className="space-y-3 text-sm">
+        <Line title="Stored in this browser">
+          Conversations, pages, cards, canvases, projects, memories, settings and what
+          answers have cost. They live in this browser&rsquo;s own database, on this
+          device. No account, no server of ours holds a copy, and clearing your browser
+          data clears them — which is why Data has a backup.
+        </Line>
+        <Line title="What leaves, and where it goes">
+          The question you ask, the thread it belongs to, and any material the answer
+          needs. It goes to the provider whose key you added, through this app&rsquo;s own
+          forwarding route, which reads nothing and keeps nothing. What that company then
+          does with it is their policy, not ours — it is worth reading once.
+        </Line>
+        <Line title="Your keys">
+          A key you paste is kept in this browser and sent only to its own provider. It is
+          never written into a backup file, never logged, and never shown in full again
+          once saved.
+        </Line>
+        <Line title="What we never do">
+          No analytics, no tracking, no telemetry, no advertising, and nothing of yours is
+          used to train anything.
+        </Line>
+        <Line title="Getting rid of it">
+          Data &rarr; Delete everything removes the lot from this browser in one press.
+          Clearing site data in your browser does the same. Anything already sent to a
+          provider is theirs to delete, on their terms.
+        </Line>
+      </div>
+    </Panel>
+  );
+}
+
+function Line({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border border-line p-3">
+      <p className="mb-1 text-sm font-medium text-primary">{title}</p>
+      <p className="text-xs leading-relaxed text-secondary">{children}</p>
+    </div>
   );
 }
 
@@ -118,10 +175,27 @@ function KeysPanel({ configured }: { configured: Record<string, boolean> }) {
   );
 }
 
+/**
+ * A stored key, shown as much as it takes to recognise it.
+ *
+ * The prefix says which provider issued it and the last four say which key
+ * it is, which is everything a person needs to answer "is the right one in
+ * here?". The middle is the part that would let somebody else use it, and
+ * it never comes back on screen.
+ */
+function maskKey(key: string): string {
+  if (!key) return "Not set";
+  if (key.length <= 12) return "•".repeat(Math.max(4, key.length));
+  return `${key.slice(0, 6)}${"•".repeat(10)}${key.slice(-4)}`;
+}
+
 function KeyRow({ provider, serverConfigured }: { provider: ProviderId; serverConfigured: boolean }) {
   const { keys, setKey } = useSettings();
   const [reveal, setReveal] = React.useState(false);
   const [testing, setTesting] = React.useState(false);
+  /* Typing starts open when there is nothing stored, and a stored key stays
+     masked until somebody asks to replace it. */
+  const [editing, setEditing] = React.useState(() => !(useSettings.getState().keys[provider] ?? ""));
   const [result, setResult] = React.useState<{ ok: boolean; message?: string; ms?: number } | null>(null);
   const meta = PROVIDERS[provider];
   const value = keys[provider] ?? "";
@@ -172,15 +246,24 @@ function KeyRow({ provider, serverConfigured }: { provider: ProviderId; serverCo
         <p className="text-xs text-secondary">
           This provider is already configured server-side. Nothing to do here.
         </p>
-      ) : (
+      ) : editing ? (
+        /* While it is being typed, and only then, the key can be read back.
+           This is the one moment it is worth showing: somebody who has just
+           pasted forty characters out of a dashboard needs to see that all
+           forty arrived. */
         <div className="flex items-center gap-1.5">
           <div className="flex h-8 flex-1 items-center gap-1.5 rounded-md border border-line-strong bg-canvas px-2 focus-within:border-accent">
             <input
+              autoFocus
               type={reveal ? "text" : "password"}
               value={value}
               onChange={(e) => {
                 setKey(provider, e.target.value.trim());
                 setResult(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && value) setEditing(false);
+                if (e.key === "Escape") setEditing(false);
               }}
               placeholder={meta.keyPrefix ? `${meta.keyPrefix}…` : "Paste your key"}
               aria-label={`${meta.name} API key`}
@@ -196,8 +279,48 @@ function KeyRow({ provider, serverConfigured }: { provider: ProviderId; serverCo
               {reveal ? <EyeOff size={13} /> : <Eye size={13} />}
             </button>
           </div>
-          <Button size="sm" onClick={test} disabled={!value || testing}>
+          <Button
+            size="sm"
+            onClick={() => {
+              setReveal(false);
+              setEditing(false);
+            }}
+            disabled={!value}
+          >
+            Done
+          </Button>
+        </div>
+      ) : (
+        /* Saved. The secret is never drawn in full again: enough of it to
+           tell one key from another, and nothing a camera over your shoulder
+           could use. Whoever owns it has it where they got it. */
+        <div className="flex flex-wrap items-center gap-1.5">
+          <code className="flex h-8 min-w-0 flex-1 items-center rounded-md border border-line bg-inset px-2 font-mono text-xs text-secondary">
+            {maskKey(value)}
+          </code>
+          <Button size="sm" onClick={test} disabled={testing}>
             {testing ? <span className="think-orb" aria-hidden /> : "Test"}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setResult(null);
+              setEditing(true);
+            }}
+          >
+            Replace
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setKey(provider, "");
+              setResult(null);
+              setEditing(true);
+            }}
+          >
+            Remove
           </Button>
         </div>
       )}

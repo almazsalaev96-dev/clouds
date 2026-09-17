@@ -5,6 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { BookOpen, GraduationCap, KeyRound, LayoutTemplate, X } from "lucide-react";
 import { db } from "@/lib/db";
 import { dueNow, type Card } from "@/lib/study";
+import { weakestDeck } from "@/lib/plan";
 import { useSettings, type Section } from "@/lib/store";
 import { Mark } from "@/components/brand/Logo";
 
@@ -76,6 +77,49 @@ function useWaiting(): { section: Section; text: string; icon: React.ReactNode }
   }, [cards, notes, canvases]);
 }
 
+/**
+ * Four ways in, and the first ones are about your own material.
+ *
+ * A blank page offering "Explain a concept" is a demo of a text box. A blank
+ * page offering "Quiz me on Cell biology — the deck you are shakiest on" is
+ * the app knowing what you were doing yesterday, which is the only reason to
+ * have the four rooms behind one door. Generic openers fill the row only
+ * when there is nothing personal to say yet.
+ *
+ * They fill the box rather than send: every one of them is a sentence you
+ * are meant to finish or aim, and sending it unedited would be the app
+ * choosing your topic for you.
+ */
+function useOpeners(): { text: string; why?: string }[] {
+  const cards = useLiveQuery(() => db.cards.toArray(), [], [] as Card[]);
+  const decks = useLiveQuery(() => db.decks.orderBy("updatedAt").reverse().limit(20).toArray(), [], []);
+  const notes = useLiveQuery(() => db.notes.orderBy("updatedAt").reverse().limit(1).toArray(), [], []);
+  return React.useMemo(() => {
+    const now = Date.now();
+    const mine: { text: string; why?: string }[] = [];
+
+    const weak = weakestDeck(cards, now);
+    const weakName = weak ? decks.find((d) => d.id === weak.deckId)?.name : undefined;
+    if (weakName) mine.push({ text: `Quiz me on ${weakName}, one question at a time, and mark my answers.`, why: "your shakiest deck" });
+
+    const due = dueNow(cards, now).length;
+    if (!weakName && due > 0) mine.push({ text: "Explain the cards I keep getting wrong, and why I keep getting them wrong.", why: `${due} due` });
+
+    const note = notes[0];
+    if (note && note.content.trim() && now - note.updatedAt < 7 * 86_400_000) {
+      mine.push({ text: `Turn my page “${(note.title || "Untitled note").slice(0, 40)}” into exam questions with mark schemes.`, why: "your latest page" });
+    }
+
+    const general = [
+      { text: "Build me a revision plan for the next two weeks, for " },
+      { text: "Explain " },
+      { text: "Make me a working quiz on " },
+      { text: "Research " },
+    ];
+    return [...mine, ...general].slice(0, 4);
+  }, [cards, decks, notes]);
+}
+
 /** useLayoutEffect on the client, a no-op on the server, without the warning. */
 const useIsoLayoutEffect = typeof window === "undefined" ? React.useEffect : React.useLayoutEffect;
 
@@ -115,6 +159,7 @@ export function EmptyState({
   const greeting = useGreeting();
   const [draftName, setDraftName] = React.useState("");
   const waiting = useWaiting();
+  const openers = useOpeners();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
@@ -160,6 +205,30 @@ export function EmptyState({
 
         <div className="anim-rise" style={{ animationDelay: "70ms" }}>
           {children}
+        </div>
+
+        {/* The four ways in. Under the box, because the box is the primary
+            action and these are a way of filling it — not a menu you choose
+            from before you are allowed to type. */}
+        <div
+          className="anim-rise mt-3 flex flex-wrap justify-center gap-1.5"
+          style={{ animationDelay: "90ms" }}
+          role="group"
+          aria-label="Ways to start"
+        >
+          {openers.map((o) => (
+            <button
+              key={o.text}
+              onClick={() => {
+                onExample(o.text);
+                document.querySelector<HTMLTextAreaElement>(".composer-shell textarea")?.focus();
+              }}
+              className="btn-touch press focus-inset flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
+            >
+              {o.text.trim().replace(/[.,]$/, "")}
+              {o.why && <span className="text-faint">{o.why}</span>}
+            </button>
+          ))}
         </div>
 
         {/* What the other rooms are holding, on the one screen everybody

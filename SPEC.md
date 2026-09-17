@@ -195,7 +195,7 @@ The rule from the flagship products: show three controls, hide the rest in one m
 | C-7 | Context meter: a line under the box when the thread nears the model's window ("12k of 200k — this thread is nearly full") | 🟡 line ✅ | ⬜ "Summarise older turns" beside it. |
 | C-8 | Attachments strip: thumbnails, remove, size, "will be read as text" for PDFs | ✅ | Add page count for PDFs. |
 | C-9 | Slash commands: `/study`, `/build`, `/compare`, `/check`, `/temp` | ⬜ | Typed prefixes map to the same intents the router already reads (ChatGPT `@study` `[R]`). |
-| C-10 | Ideas row under the box on an empty thread (six requests, sent as they are) | ✅ Creative; 🟡 chat | Chat gets a rotating set from the person's own weak topics when Study has data. |
+| C-10 | Ideas row under the box on an empty thread | ✅ Creative (six, sent as they are); ✅ chat (four openers that fill the box: the shakiest deck, the cards you keep missing, your latest page, then general ones only to fill the row) | — |
 | C-11 | Paste handling: code becomes a fenced block, long text becomes an attachment, image becomes an attachment | 🟡 | Threshold 1,500 characters. |
 | C-12 | Draft persistence per thread (unsent text survives navigation and reload) | ⬜ | `localStorage` per conversation id; wrapped in try/catch. |
 
@@ -550,13 +550,13 @@ Creative is the front door for making, not a room with its own viewer (§15 owns
 | Panel | Fields today ✅ | Add ⬜ |
 |---|---|---|
 | **Model** | Default Armi model; Auto explanation; effort default; per-preset engines (`resolveCast`) shown as Armi names only | "Prefer cheaper when the difference is small" toggle; per-provider "avoid" switch. |
-| **API keys** | One field per provider, test key, show/hide, stored in this browser only, server key wins when the host has one | Key health (last success/failure); "Where do I get one" links; a warning if a key is pasted into chat. |
+| **API keys** | One row per provider: status (set on the server / stored in this browser / not set), a "Get a key" link, test the connection, and — once saved — the key masked to its prefix and last four with Test, Replace and Remove. A secret is never drawn in full after it is stored ✅ | Key health (last success/failure); a warning if a key is pasted into chat. |
 | **Memory** | List, edit, delete, off switch; forget everything; forget turns | "From" links (ME-2). |
 | **Appearance** | Theme light/dark/system; density; your name | Font choice incl. dyslexia-friendly; text size; reduce motion override; code theme. |
 | **Data** | Spend (this month by Armi model, since the start); Save a copy (JSON backup, keys excluded); Bring back; Delete everything with inline confirm | Storage meter (`navigator.storage.estimate()`), persisted status ("kept" / "may be cleared"), export a single conversation/page/deck, scheduled backup reminder (every 30 days, dismissible). |
 | **Keyboard shortcuts** | Full list (`SHORTCUT_GROUPS`) | Rebinding is out of scope. |
 | **Study** ⬜ | — | Desired retention, new/day, learning steps (S-4); level register (TU-6); exam board and date (EX-1/3). |
-| **Privacy** ⬜ | (covered by Data copy today) | One page that says what is stored, where, what leaves (only requests to the provider you chose), and how to delete; the same sentences as the README, kept in step. |
+| **Privacy** ✅ | Its own panel: what is stored in this browser, what leaves and to whom, what happens to your keys, what the app never does, and how to be rid of all of it — including the honest half, that a question you ask does leave, to the company whose key you added | Keep in step with the README. |
 
 ---
 
