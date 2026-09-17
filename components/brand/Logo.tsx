@@ -50,7 +50,7 @@ export function Wordmark({
       <span aria-hidden className="text-current">Ar</span>
       <span
         aria-hidden
-        className={signal ? "text-[var(--accent-2)]" : "text-current"}
+        className={signal ? "text-[var(--accent-2-ink)]" : "text-current"}
         // Pinyon joins its letters, and splitting the run drops the join
         // between the r and the m. Pulling the second half back by the width
         // of that connector puts it back.

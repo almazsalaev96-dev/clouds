@@ -81,7 +81,7 @@
   /* Not pure white: a lit edge on a raised surface is painted in white, and
      a surface already at the top of the range leaves it nothing to be lighter
      than — the rim disappears and the card goes flat. This keeps a step. */
-  --bg-surface: #fbfdff;
+  --bg-surface: #fdfdff;
   /* Enough of a step from the page to be a shape on it.
      At #efe9db this sat 1.09 from the canvas while dark's sits 1.23 from its
      own — so a user's message bubble was a clear pill in dark and very nearly
@@ -89,19 +89,19 @@
      what has to match between two themes is the size of the step, not the
      colour. Text on it still clears every threshold — secondary 8.68,
      faint 4.88. */
-  --bg-subtle: #dee6f5;
+  --bg-subtle: #dfe5f3;
   /* The same step from the page as the dark theme's inset takes from its own:
      1.06 against 1.07. It was 1.17 — a deeper tint, which reads as more
      recessed and costs every character sitting on it a point of contrast,
      because in a light theme "darker" moves the panel *toward* the ink rather
      than away from it. Code blocks and quiet panels sit on this. */
-  --bg-inset: #eaeff8;
-  --bg-overlay: rgba(9, 16, 35, 0.44);
+  --bg-inset: #eaeef8;
+  --bg-overlay: rgba(11, 16, 27, 0.46);
 
-  --border-subtle: #dce3f1;
+  --border-subtle: #dde3f0;
   /* Control boundaries clear 3:1 against the page. Hairlines do not have to,
      which is why there are two of these. */
-  --border-strong: #78829a;
+  --border-strong: #798294;
 
   /* Inked to match the dark theme's strength, role for role.
      ---------------------------------------------------------------------
@@ -112,18 +112,18 @@
      did not look like the same app. These values hit the dark figures within
      a tenth. They are still the same navy: only the lightness moved, so a
      page reads as ink on a lit panel rather than as a dimmer copy of the dark one. */
-  --text-primary: #0c1426;
-  --text-secondary: #29324d;
-  --text-tertiary: #3d465f;
-  --text-faint: #545d75;
+  --text-primary: #161c2b;
+  --text-secondary: #313a4d;
+  --text-tertiary: #464e60;
+  --text-faint: #5d6576;
 
   /* Structure, deepened for daylight. */
-  --accent: #2a4bd4;
-  --accent-hover: #1f3bb0;
-  --accent-fill: #2a4bd4;
-  --accent-subtle: #e7ebfa;
+  --accent: #2253cf;
+  --accent-hover: #123eb2;
+  --accent-fill: #2253cf;
+  --accent-subtle: #e6efff;
   --accent-fg: #ffffff;
-  --accent-rgb: 42 75 212;
+  --accent-rgb: 34 83 207;
   /* The one coloured element in the wordmark. */
 
   /* The signal, deepened to carry small text.
@@ -131,14 +131,23 @@
      glows on the dark theme scores about 1.6 here. This is the same hue at
      a lightness that clears 4.5 against the page, so the one colour that
      means "powered" can also be read at 12px. */
-  --accent-2: #0d7a90;
-  --accent-2-rgb: 13 122 144;
+  --accent-2: #007d95;
+  /* The signal at text strength. --accent-2 is tuned to be *seen* — a rim, a
+     fill, a dot — and a colour tuned to be seen is not automatically a colour
+     that can be read: on the light bar the raw signal measures 4.44, which is
+     under AA, and the same letter in dark measures 11.73. That is the product's
+     own name failing one theme and shouting in the other. This is the signal
+     solved for reading instead: same hue, one target (7.0) both themes hit on
+     the bar they actually sit on. Use it wherever the signal has to be a
+     letterform rather than a shape. */
+  --accent-2-ink: #005e5f;
+  --accent-2-rgb: 0 125 149;
 
   /* Act, deepened for daylight. */
-  --cta: #14276b;
-  --cta-hover: #0d1c50;
+  --cta: #132d6c;
+  --cta-hover: #091f57;
   --cta-fg: #f3f6fc;
-  --cta-rgb: 20 39 107;
+  --cta-rgb: 19 45 108;
 
   /* The loud one. Only ever a badge, only ever with the ink on top.
      Cyan at the value that reads as lit sits near 1.6 against a light page:
@@ -146,32 +155,32 @@
      is not a badge. It keeps its true value and borrows the ink for an
      outline instead, rather than being dulled into a colour nobody would
      call a signal. */
-  --highlight: #22c9e0;
-  --highlight-fg: #06121a;
-  --highlight-edge: #0c1426;
+  --highlight: #4cdbe3;
+  --highlight-fg: #071a1a;
+  --highlight-edge: #161c2b;
   /* The highlighter. */
-  --mark: #c9e9f6;
-  --mark-fg: #0c1426;
+  --mark: #b1ecef;
+  --mark-fg: #161c2b;
 
   /* --- Status. --- */
-  --live: #0d7a90;
-  --go: #17694a;
-  --stop: #b0231c;
+  --live: #007d95;
+  --go: #006d45;
+  --stop: #ac3037;
 
-  --stop-fill: #b0231c;
+  --stop-fill: #ac3037;
 
   --success: var(--go);
-  --warning: #a4590b;
+  --warning: #995600;
   --danger: var(--stop);
-  --danger-subtle: #f9e5e3;
+  --danger-subtle: #ffe4e2;
 
   /* The field behind everything. On a light ground, colour reads as a stain long
      before it reads as depth, so this is barely there on purpose. */
-  --mesh-a: rgba(34, 201, 224, 0.10);
-  --mesh-b: rgba(42, 75, 212, 0.07);
-  --mesh-c: rgba(13, 122, 144, 0.05);
+  --mesh-a: rgba(76, 219, 227, 0.10);
+  --mesh-b: rgba(34, 83, 207, 0.07);
+  --mesh-c: rgba(0, 125, 149, 0.05);
   --grain-opacity: 0.035;
-  --glass: rgba(243, 246, 252, 0.76);
+  --glass: rgba(243, 246, 252, 0.78);
   --glow: none;
 
   /* --- Elevation. --- */
@@ -224,16 +233,16 @@
          numbers. --- */
   --rim-sm:
     inset 0 1px 0 0 rgb(255 255 255 / 0.60),
-    inset 0 -1px 0 0 rgb(26 38 80 / 0.05);
+    inset 0 -1px 0 0 rgb(22 28 43 / 0.05);
   --rim-md:
     inset 0 1px 0 0 rgb(255 255 255 / 0.80),
     inset 1px 0 0 0 rgb(255 255 255 / 0.45),
-    inset 0 -1px 0 0 rgb(26 38 80 / 0.08);
+    inset 0 -1px 0 0 rgb(22 28 43 / 0.08);
   --rim-lg:
     inset 0 1px 0 0 rgb(255 255 255 / 0.95),
     inset 1px 0 0 0 rgb(255 255 255 / 0.60),
-    inset -1px 0 0 0 rgb(26 38 80 / 0.05),
-    inset 0 -1px 0 0 rgb(26 38 80 / 0.11);
+    inset -1px 0 0 0 rgb(22 28 43 / 0.05),
+    inset 0 -1px 0 0 rgb(22 28 43 / 0.11);
   /* The full hairline ring a translucent panel needs in order to have an edge
      at all, independent of how high it is floating. Only `.glass` uses it. */
   --rim-all: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
@@ -258,18 +267,18 @@
          rather than something to remember, which is the same move `.glass
          .glass` makes and for the same reason. --- */
   --shadow-sm:
-    0 1px 1px -1px rgba(26, 38, 80, 0.07),
-    0 1px 2px -1px rgba(26, 38, 80, 0.05),
+    0 1px 1px -1px rgba(22, 28, 43, 0.07),
+    0 1px 2px -1px rgba(22, 28, 43, 0.05),
     var(--rim-sm);
   --shadow-md:
-    0 1px 2px -1px rgba(26, 38, 80, 0.06),
-    1px 3px 6px -3px rgba(26, 38, 80, 0.08),
-    2px 8px 16px -8px rgba(26, 38, 80, 0.07),
+    0 1px 2px -1px rgba(22, 28, 43, 0.06),
+    1px 3px 6px -3px rgba(22, 28, 43, 0.08),
+    2px 8px 16px -8px rgba(22, 28, 43, 0.07),
     var(--rim-md);
   --shadow-lg:
-    0 2px 4px -2px rgba(26, 38, 80, 0.07),
-    2px 8px 16px -8px rgba(26, 38, 80, 0.10),
-    5px 24px 48px -16px rgba(26, 38, 80, 0.14),
+    0 2px 4px -2px rgba(22, 28, 43, 0.07),
+    2px 8px 16px -8px rgba(22, 28, 43, 0.10),
+    5px 24px 48px -16px rgba(22, 28, 43, 0.14),
     var(--rim-lg);
 
   /* --- Motion.
@@ -378,24 +387,27 @@
 
   /* --- Syntax. Six hues, low saturation. A code block should read as one
          calm object, not a Christmas tree. --- */
-  /* Syntax, deepened to one band rather than to the dark theme's numbers.
+  /* Syntax: one band, and both themes solved to it together.
      ---------------------------------------------------------------------
-     These were the worst of it: 4.8 to 6.0 against dark's 8 to 11.5, which is
-     the washed-out code block you can see in a screenshot of the two side by
-     side. They are not matched exactly, and that is deliberate. A near-black
-     page lets a colour be light *and* saturated at once; a white one does not, so
-     chasing 11.5 here turns seven hues into seven browns — the solver's
-     answers at that target were #3b3f49, #1e2d67, #103045, #3c200d, and by
-     then nothing is a keyword rather than a number.
-     So: one band at about 7.6, well clear of AA, with the hues kept apart.
-     Measured — the two closest of the seven are 42 apart in RGB, against 50
-     before, which is the price and it is payable. */
-  --syn-comment: #454956;
-  --syn-keyword: #2b4396;
-  --syn-string: #245236;
-  --syn-function: #194d71;
-  --syn-number: #6f3c17;
-  --syn-type: #603680;
+     The older pass deepened light towards dark's numbers and stopped short,
+     because chasing dark's 11.5 on a light page turns six hues into six
+     browns — a near-black field lets a colour be light *and* saturated at
+     once, and a pale one does not. The answer was never to pick a winner:
+     it is to pick the band first and solve both sides to it. Six targets,
+     5.9 for the comment and 7.8 to 8.5 for the rest, each hue held fixed
+     while lightness moves until it lands. Dark then meets light instead of
+     light chasing dark.
+     The hues are spread further than they were, because the constraint that
+     matters in a code block is telling one token from the next, not contrast
+     against the page: grey comment, indigo keyword, azure function, green
+     string, amber number, purple type — no two nearer than about 50 degrees
+     of hue. */
+  --syn-comment: #575b63;
+  --syn-keyword: #40408a;
+  --syn-string: #005135;
+  --syn-function: #004a65;
+  --syn-number: #6b3d06;
+  --syn-type: #5f3169;
   /* There is no --syn-punct. There was, in both themes, and nothing could
      reach it: Shiki writes github-light's colours and that theme gives
      punctuation the same value as plain text, so there was no distinct colour
@@ -406,13 +418,13 @@
   /* The composer. On light it lifts with a real drop shadow; on dark a shadow
      under a dark box is invisible, so the lift there comes from a lit top edge
      instead. Both live here so the rule that uses them stays one rule. */
-  --composer-bg: rgba(251, 253, 255, 0.90);
-  --composer-line: rgba(12, 20, 38, 0.10);
-  --composer-line-focus: rgba(13, 122, 144, 0.55);
-  --composer-lift: 0 1px 2px rgb(12 20 38 / 0.05), 0 12px 32px -16px rgb(12 20 38 / 0.18);
+  --composer-bg: rgba(253, 253, 255, 0.90);
+  --composer-line: rgba(22, 28, 43, 0.10);
+  --composer-line-focus: rgba(0, 125, 149, 0.55);
+  --composer-lift: 0 1px 2px rgb(22 28 43 / 0.05), 0 12px 32px -16px rgb(22 28 43 / 0.18);
   --composer-lift-focus:
-    0 1px 2px rgb(12 20 38 / 0.05),
-    0 16px 40px -18px rgb(12 20 38 / 0.22),
+    0 1px 2px rgb(22 28 43 / 0.05),
+    0 16px 40px -18px rgb(22 28 43 / 0.22),
     0 0 0 3px rgb(var(--accent-2-rgb) / 0.20);
 }
 
@@ -447,30 +459,33 @@
 
        Every pair below is computed against WCAG (`node contrast.mjs`).
        --------------------------------------------------------------------- */
-    --bg-canvas: #0b101c;
-    --bg-surface: #141a29;
-    --bg-subtle: #1d2537;
-    --bg-inset: #070b14;
-    --bg-overlay: rgba(3, 6, 12, 0.78);
+    --bg-canvas: #0b101b;
+    --bg-surface: #141a28;
+    --bg-subtle: #1e2535;
+    --bg-inset: #070a13;
+    --bg-overlay: rgba(7, 10, 19, 0.78);
 
-    --border-subtle: #242d42;
-    --border-strong: #737f9c;
+    --border-subtle: #262e3f;
+    --border-strong: #788093;
 
-    --text-primary: #eef2fc;
-    --text-secondary: #c3cbe0;
-    --text-tertiary: #a6afc7;
-    --text-faint: #848da6;
+    --text-primary: #e5e8ed;
+    --text-secondary: #c8ccd6;
+    --text-tertiary: #acb1bd;
+    --text-faint: #898f9d;
 
-    --accent: #8fb0ff;
-    --accent-hover: #adc5ff;
-    --accent-fill: #3355d8;
-    --accent-subtle: #1a2340;
+    --accent: #92b4f8;
+    --accent-hover: #b1cbff;
+    --accent-fill: #3b63be;
+    --accent-subtle: #1b2740;
     --accent-fg: #ffffff;
-    --accent-rgb: 143 176 255;
+    --accent-rgb: 146 180 248;
     /* The one coloured element in the wordmark. */
 
-    --accent-2: #46dfe0;
-    --accent-2-rgb: 70 223 224;
+    --accent-2: #6fdcdc;
+    /* The signal at text strength — see the light block. Solved against the
+       dark bar to the same 7.0, so the wordmark weighs the same in both. */
+    --accent-2-ink: #4babac;
+    --accent-2-rgb: 111 220 220;
 
     /* Green at its true value, carrying the ink rather than white: at this
        brightness it is a lit surface, and white on it is unreadable. */
@@ -478,34 +493,34 @@
        its light-theme counterpart already had: 11.04 against the ink on it,
        where it was 8.89 and the light theme's deep-ink button was 11.67. Same
        hue, same nib; a little more of it. */
-    --cta: #5ce0e8;
-    --cta-hover: #86ecf1;
-    --cta-fg: #06121a;
-    --cta-rgb: 92 224 232;
+    --cta: #74e1e1;
+    --cta-hover: #98f0f0;
+    --cta-fg: #031515;
+    --cta-rgb: 116 225 225;
 
     /* On the deep teal it carries its own edge, so the outline is the colour. */
-    --highlight: #46dfe0;
-    --highlight-fg: #06121a;
-    --highlight-edge: #46dfe0;
-    --mark: #173a52;
-    --mark-fg: #eef2fc;
+    --highlight: #6fdcdc;
+    --highlight-fg: #031515;
+    --highlight-edge: #6fdcdc;
+    --mark: #004049;
+    --mark-fg: #e5e8ed;
 
-    --live: #46dfe0;
-    --go: #4fd39b;
-    --stop: #ff8a9b;
+    --live: #6fdcdc;
+    --go: #6fd2a4;
+    --stop: #f6979d;
 
-    --stop-fill: #b3283a;
+    --stop-fill: #b84c58;
 
     --success: var(--go);
-    --warning: #f0a561;
+    --warning: #ebab72;
     --danger: var(--stop);
-    --danger-subtle: #35151f;
+    --danger-subtle: #3c161a;
 
-    --mesh-a: rgba(70, 223, 224, 0.11);
-    --mesh-b: rgba(143, 176, 255, 0.09);
-    --mesh-c: rgba(238, 242, 252, 0.03);
+    --mesh-a: rgba(111, 220, 220, 0.11);
+    --mesh-b: rgba(146, 180, 248, 0.09);
+    --mesh-c: rgba(229, 232, 237, 0.03);
     --grain-opacity: 0.045;
-    --glass: rgba(11, 16, 28, 0.78);
+    --glass: rgba(11, 16, 27, 0.78);
     --glow: 0 0 24px -6px var(--accent-2);
 
     /* Darker and deeper, and still tinted rather than pure black: this ground
@@ -518,19 +533,19 @@
        2.03, which is the same order of step the light theme gets from its
        shadow alone. */
     --rim-sm:
-      inset 0 1px 0 0 rgb(238 242 252 / 0.06),
+      inset 0 1px 0 0 rgb(229 232 237 / 0.06),
       inset 0 -1px 0 0 rgb(0 0 0 / 0.25);
     --rim-md:
-      inset 0 1px 0 0 rgb(238 242 252 / 0.11),
-      inset 1px 0 0 0 rgb(238 242 252 / 0.055),
+      inset 0 1px 0 0 rgb(229 232 237 / 0.11),
+      inset 1px 0 0 0 rgb(229 232 237 / 0.055),
       inset 0 -1px 0 0 rgb(0 0 0 / 0.35);
     --rim-lg:
-      inset 0 1px 0 0 rgb(238 242 252 / 0.18),
-      inset 1px 0 0 0 rgb(238 242 252 / 0.09),
+      inset 0 1px 0 0 rgb(229 232 237 / 0.18),
+      inset 1px 0 0 0 rgb(229 232 237 / 0.09),
       inset -1px 0 0 0 rgb(0 0 0 / 0.20),
       inset 0 -1px 0 0 rgb(0 0 0 / 0.45);
-    --rim-all: inset 0 0 0 1px rgba(238, 242, 252, 0.05);
-    --rim-flush: inset 0 1px 0 0 rgb(238 242 252 / 0.09);
+    --rim-all: inset 0 0 0 1px rgba(229, 232, 237, 0.05);
+    --rim-flush: inset 0 1px 0 0 rgb(229 232 237 / 0.09);
 
     --shadow-sm:
       0 1px 1px -1px rgba(0, 0, 0, 0.5),
@@ -547,30 +562,36 @@
       6px 28px 56px -18px rgba(0, 0, 0, 0.7),
       var(--rim-lg);
 
-    /* The one token under 7 in either theme, and the one place the two themes
-       disagreed about what a comment *is*: dark muted it to 5.64 while light
-       kept it in the band with the other six at 7.63. A comment that recedes in
-       one theme and not the other is two different opinions shipped together. */
-    --syn-comment: #9aa3b8;
-    --syn-keyword: #8fb0ff;
-    --syn-string: #4fd39b;
-    --syn-function: #9fc4ff;
-    --syn-number: #ffbd7d;
-    --syn-type: #46dfe0;
+    /* Solved against #070a13 at the same six targets the light set was solved
+       against #eaeef8, so each token now reads at the same strength in either
+       theme — measured, the worst of the six leans 0.3%, where before the set
+       leaned 82% and was the only thing failing parity.
+       Every hue carries less chroma here than its light twin. Saturated colour
+       on a near-black field buzzes, and an hour of reading code is exactly the
+       situation where that stops being a subtlety. The comment keeps its own
+       lower target in both themes: it annotates the code rather than being it,
+       so it should recede — but by the same amount on both sides, which is
+       what it was not doing before. */
+    --syn-comment: #898c94;
+    --syn-keyword: #999fd7;
+    --syn-string: #73b393;
+    --syn-function: #70b0cf;
+    --syn-number: #cc9a6d;
+    --syn-type: #c39dcc;
 
     /* This was still `rgba(26, 50, 59, …)` — a teal from a palette two
        revisions ago that nothing pointed at any more, which is why the one
        element you look at most sat in a blue pool on an otherwise neutral
        ground. It is the lifted surface now, like every other raised thing. */
-    --composer-bg: rgba(29, 37, 55, 0.78);
-    --composer-line: rgba(238, 242, 252, 0.10);
-    --composer-line-focus: rgba(70, 223, 224, 0.55);
-    --composer-lift: inset 0 1px 0 rgb(238 242 252 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
+    --composer-bg: rgba(30, 37, 53, 0.78);
+    --composer-line: rgba(229, 232, 237, 0.10);
+    --composer-line-focus: rgba(111, 220, 220, 0.55);
+    --composer-lift: inset 0 1px 0 rgb(229 232 237 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
     /* The ring around the box you type in, only while the caret is in it, and
        in the cyan of the signal rather than in the structural blue: it marks
        where you are writing, which is the one thing a signal light does. */
     --composer-lift-focus:
-      inset 0 1px 0 rgb(238 242 252 / 0.10),
+      inset 0 1px 0 rgb(229 232 237 / 0.10),
       0 24px 56px -22px rgb(0 0 0 / 0.9),
       0 0 0 3px rgb(var(--accent-2-rgb) / 0.16);
   }
