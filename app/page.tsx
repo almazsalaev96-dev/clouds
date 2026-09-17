@@ -24,12 +24,14 @@ import { visualFor } from "@/lib/visual";
 import { allStyles, findStyle, isTeaching } from "@/lib/styles";
 import { findMode, modeFor } from "@/lib/modes";
 import { builtDocument, titleOf } from "@/lib/built";
-import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, estimateTokens, getModel } from "@/lib/models";
+import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, PROVIDERS, estimateTokens, getModel } from "@/lib/models";
 import {
   briefNote, briefPrompt, councilNote, councilPrompt, engineOf, getPreset, objectionNote,
   playerFor, playersFor, resolveCast, shapePlan, shortName, worthBriefing, worthConvening,
 } from "@/lib/presets";
 import { costOf, fitToContext } from "@/lib/context";
+import { elsewhere } from "@/lib/route";
+import { whyAvoided } from "@/lib/health";
 import { cheapestAvailable, complete } from "@/lib/complete";
 import { useSettings, useDrafts, paramsFor, paramsSet, type Section } from "@/lib/store";
 import { useStream } from "@/lib/hooks/useStream";
@@ -809,6 +811,21 @@ export default function Page() {
         /* Excerpts chosen for this question go with the turn, outside the
            cached half; see `ComposedPrompt.volatile`. */
         turnPrompt: [composed.volatile, turn].filter(Boolean).join("\n\n") || undefined,
+        /* And where to go when a company will not answer at all. Holding
+           four keys is only worth anything if the second one is tried, so
+           the turn moves to another company once and the row says so
+           rather than leaving a coloured bar and a Switch model button. */
+        elsewhere: (failed, kind) => {
+          const other = elsewhere(failed, { configured, keys: settings.keys }, {
+            vision: history.some((m) => m.content.some((c) => c.type === "image")),
+            size: history.reduce((n, m) => n + costOf(m), 0),
+          });
+          if (!other) return null;
+          return {
+            modelId: other.id,
+            why: whyAvoided(kind, PROVIDERS[failed].name),
+          };
+        },
         /* And how hard to think, from the same reading. `effortFor` returns
            nothing for the kinds that do not benefit, and nothing means the
            model keeps whatever it was already set to. */

@@ -76,6 +76,7 @@ run test-grade npx jiti test-grade.ts
 run test-retrieve npx jiti test-retrieve.ts
 run test-exam npx jiti test-exam.ts
 run test-plan npx jiti test-plan.ts
+run test-health npx jiti test-health.ts
 run test-memory npx jiti test-memory.ts
 run test-voice npx jiti test-voice.ts
 run test-built npx jiti test-built.ts
@@ -105,7 +106,7 @@ done
 echo
 echo "== two providers =="
 serve OPENAI_BASE_URL=http://127.0.0.1:8787 OPENAI_API_KEY=sk-mock
-for t in e2e-verify e2e-learn e2e-point e2e-whole e2e-cast; do run "$t" node "$t.mjs"; done
+for t in e2e-verify e2e-learn e2e-point e2e-whole e2e-cast e2e-elsewhere; do run "$t" node "$t.mjs"; done
 
 echo
 echo "== the slow mock =="

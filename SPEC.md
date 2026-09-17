@@ -293,9 +293,9 @@ Twenty-four models across four providers, each with: `id`, `provider`, `name` (n
 
 **MR-4 ✅ Router inputs** (`lib/decide.ts`, `lib/route.ts`): task kind, wants-a-thing, difficulty, modality (images?), context size, cost tier, speed need, provider availability (keys present), user preference (explicit preset wins), past outcomes for this pairing (`pastFor`).
 
-**MR-5 ⬜ Fallback within the cast.** When the writer's provider returns `provider_down` twice, the turn is re-sent to the cast's next-best writer from another company, and the routed-why line says so. Today the app retries once and then shows Switch model.
+**MR-5 ✅ Somewhere else to ask.** A provider-side refusal (`provider_down`, `rate_limit`, `quota`, `bad_key`) that survives the automatic retry moves the turn to the most capable model from a *different* company that can still read the question — vision and window kept — and the row says why ("Anthropic was having trouble a moment ago"). Kinds that would fail identically anywhere (context length, content filter) are not moved.
 
-**MR-6 ⬜ Model health.** A per-provider "last failure" timestamp (in memory) so Auto avoids a provider that failed in the last two minutes.
+**MR-6 ✅ Model health** (`lib/health.ts`). A provider that just refused is remembered in memory — two minutes for an outage, ninety seconds for a limit, ten for credit or a rejected key — and both routers step around it while it lasts. Never leaves nobody to ask: where everything is ailing the memory is ignored. Not recorded for `network`, `timeout` or `unknown`, which are as likely to be the café as the company. A model you picked by hand is still used; only the app's own choices move.
 
 **MR-7 ✅ Effort honoured**: preset effort overrides the model default; user override overrides the preset (`paramsSet`).
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ChatError, ContentBlock, Message, StreamEvent, Usage } from "../types";
+import type { ChatError, ContentBlock, Message, ProviderId, StreamEvent, Usage } from "../types";
+import { noteFailure, noteSuccess } from "../health";
 import { getModel, estimateTokens } from "../models";
 import { db, addMessage, uid } from "../db";
 import { useSettings, paramsFor } from "../store";
@@ -43,6 +44,11 @@ interface StreamState {
   error: ChatError | null;
   messageId: string | null;
 }
+
+/* The failures that are about the company rather than about the question.
+   A context-length error or a content filter would land the same way at the
+   next company, and moving the turn there would only spend a second key. */
+const ELSEWHERE = new Set<ChatError["kind"]>(["provider_down", "rate_limit", "quota", "bad_key"]);
 
 /** How long to wait before the one retry of a failure that tends to pass. */
 const BRIEF: Partial<Record<ChatError["kind"], number>> = { provider_down: 2_000, timeout: 2_000, network: 2_000 };
@@ -179,6 +185,15 @@ export function useStream(onFinish?: (m: Message) => void) {
       params?: Partial<import("../types").ModelParams>;
       /** False while comparing: the column writes, the user chooses. */
       advanceLeaf?: boolean;
+      /**
+       * Somewhere else to ask when this company will not answer.
+       *
+       * Given the provider that failed and why, the caller hands back
+       * another company's model and one line saying why the answer came
+       * from there. Returning nothing means there is nowhere else, and the
+       * error stands.
+       */
+      elsewhere?: (failed: ProviderId, kind: ChatError["kind"]) => { modelId: string; why: string } | null;
     }) => {
       const model = getModel(opts.modelId);
       const settings = useSettings.getState();
@@ -348,6 +363,12 @@ export function useStream(onFinish?: (m: Message) => void) {
         finishRef.current?.(saved);
       }
 
+      /* What just happened to this company, remembered for a couple of
+         minutes so the next question is not sent into the same wall. An
+         answer clears it; see lib/health.ts for what counts. */
+      if (error) noteFailure(model.provider as ProviderId, error.kind);
+      else noteSuccess(model.provider as ProviderId);
+
       errorRef.current = error;
       /* An error belongs to the conversation it happened in, and the screen
          only shows what belongs to the one it is looking at. Clearing the id
@@ -407,7 +428,22 @@ export function useStream(onFinish?: (m: Message) => void) {
         return first;
       }
 
-      return runOnce(opts);
+      const again = await runOnce(opts);
+
+      /* Still refused, and by the provider rather than by the request. The
+         app holds several companies' keys precisely so that this is not the
+         end of the turn: ask somewhere else, once, and say on the row that
+         it did. Only the kinds that are about the provider — a request this
+         model cannot serve at all would fail the same way anywhere. */
+      const after = errorRef.current;
+      if (!after || !ELSEWHERE.has(after.kind)) return again;
+      const other = opts.elsewhere?.(getModel(opts.modelId).provider as ProviderId, after.kind);
+      if (!other) return again;
+      return runOnce({
+        ...opts,
+        modelId: other.modelId,
+        routedWhy: [opts.routedWhy, other.why].filter(Boolean).join(" · "),
+      });
     },
     [runOnce],
   );

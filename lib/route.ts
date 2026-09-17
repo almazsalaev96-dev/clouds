@@ -1,4 +1,5 @@
 import { REPLY, SAFETY } from "./context";
+import { wellOnly } from "./health";
 import { MODELS } from "./models";
 import type { ModelSpec, ProviderId } from "./types";
 import { solve, type Sum } from "./arith";
@@ -255,7 +256,8 @@ export function route(
     };
   }
 
-  const pool = usable(ctx.configured, ctx.keys);
+  /* Minus anyone having a bad minute; see lib/health.ts. */
+  const pool = wellOnly(usable(ctx.configured, ctx.keys));
   if (!pool.length) return { modelId: ctx.current, why: "No key configured yet." };
 
   const shape = shapeOf(text, {
@@ -427,6 +429,46 @@ function providerOf(id: string): ProviderId | null {
  * is no second provider — the caller says so plainly rather than quietly
  * checking with a sibling model and calling it independent.
  */
+/**
+ * Somewhere else to ask, when a company will not answer at all.
+ *
+ * Not a second opinion — a replacement. The turn already failed; what is
+ * wanted is the nearest thing to what was asked for, from anyone else, so
+ * the person gets an answer instead of a coloured bar. Vision and window
+ * are kept because a model that cannot read the question is not a
+ * substitute for one that can.
+ */
+export function elsewhere(
+  failed: ProviderId,
+  ctx: { configured: Record<string, boolean>; keys: Record<string, string> },
+  need: { vision?: boolean; size?: number } = {},
+): ModelSpec | null {
+  let pool = usable(ctx.configured, ctx.keys).filter((m) => m.provider !== failed);
+  /* And nobody else who is also having a bad minute, unless that is
+     everybody left. */
+  pool = wellOnly(pool);
+  if (need.vision) {
+    const seeing = pool.filter((m) => m.vision);
+    if (!seeing.length) return null;
+    pool = seeing;
+  }
+  if (need.size) {
+    const roomy = pool.filter((m) => Math.floor(m.contextWindow * SAFETY) - REPLY >= need.size!);
+    if (roomy.length) pool = roomy;
+  }
+  const current = pool.filter((m) => !m.legacy);
+  const field = current.length ? current : pool;
+  if (!field.length) return null;
+  /* The most capable of what is left. A fallback that lands on the cheapest
+     thing in the building answers the question worse than the model that
+     just failed would have, which is a second disappointment. */
+  return [...field].sort((a, b) => {
+    const d = traitsOf(b.id).depth - traitsOf(a.id).depth;
+    if (d) return d;
+    return b.priceIn + b.priceOut - (a.priceIn + a.priceOut);
+  })[0];
+}
+
 export function checker(
   answeredBy: string,
   ctx: { configured: Record<string, boolean>; keys: Record<string, string> },

@@ -34,6 +34,7 @@
  * This file is pure: no React, no database, no clock. What it decides can be
  * tested with a table of keys and a size in tokens — `test-presets.ts`.
  */
+import { wellOnly } from "./health";
 import { MODELS, estimateCost, getModel } from "./models";
 import { REPLY, SAFETY } from "./context";
 import { checkable, type Plan } from "./decide";
@@ -515,7 +516,10 @@ export function resolveCast(id: string, where: Where): Cast | null {
   const preset = getPreset(id);
   if (!preset) return null;
 
-  const pool = usable(where);
+  /* Minus anyone having a bad minute. A company that just refused the
+     last question is not a good place to send this one, and the whole
+     point of holding four keys is that there is somewhere else to go. */
+  const pool = wellOnly(usable(where));
   if (!pool.length) {
     /* No keys at all. The first engine, named, so the failure that follows is
        about the missing key and not about a model nobody chose. */
