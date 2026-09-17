@@ -31,7 +31,7 @@ const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-119
 async function open(width, height) {
   const ctx = await b.newContext({ viewport: { width, height } });
   const p = await ctx.newPage();
-  await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await p.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
   await p.evaluate((s) => localStorage.setItem("store.settings.v1", s), SETTINGS);
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(700);
@@ -99,7 +99,7 @@ console.log("\nCollapsed on a desktop window");
      with the rooms one press away. It used to be zero and inert. */
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
-  await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await p.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
   await p.evaluate((s) => localStorage.setItem("store.settings.v1", s), SETTINGS.replace('"sidebarOpen":true', '"sidebarOpen":false'));
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(700);

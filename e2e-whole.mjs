@@ -33,7 +33,7 @@ const last = async () => JSON.stringify(await (await fetch("http://127.0.0.1:878
 
 const SETTINGS = { theme: "dark", density: "comfortable", modelId: "claude-sonnet-4-5", styleId: "normal", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: true, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true };
 
-await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
+await page.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
 await page.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), SETTINGS);
 await page.reload({ waitUntil: "networkidle" });
 await page.waitForTimeout(1000);

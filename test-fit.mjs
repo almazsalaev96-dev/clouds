@@ -5,7 +5,7 @@ const page = await (await b.newContext({ viewport: { width: 1440, height: 900 },
 const errs = []; page.on("pageerror", (e) => errs.push(e.message));
 const check = (p, l, d = "") => console.log(`${p ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`);
 
-await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
+await page.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
 await page.evaluate(() => localStorage.setItem("store.settings.v1", JSON.stringify({ state: { theme: "dark", density: "comfortable", modelId: "gpt-6-astra", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", lastConversationId: null }, version: 1 })));
 
 // A thread far past a small window, seeded straight into the database.

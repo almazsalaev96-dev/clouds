@@ -16,7 +16,7 @@ let bad = false;
 const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
 for (const theme of ["dark", "light"]) {
   const page = await (await browser.newContext({ viewport: { width: 1200, height: 800 } })).newPage();
-  await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await page.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
   await page.evaluate((t) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: { theme: t, density: "comfortable", modelId: "claude-sonnet-4-5", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "" }, version: 1 })), theme);
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(500);

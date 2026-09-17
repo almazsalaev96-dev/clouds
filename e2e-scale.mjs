@@ -34,7 +34,7 @@ console.log("\nWhat it costs to open");
     if (!/\.js(\?|$)/.test(r.url())) return;
     try { js += (await r.body()).length; } catch { /* redirects and aborts have none */ }
   });
-  await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await page.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
   await page.waitForTimeout(600);
   const kb = Math.round(js / 1024);
   /* The README's budget. Generous against the 245kB the build reports, because
@@ -50,7 +50,7 @@ const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
 const page = await ctx.newPage();
 const errs = [];
 page.on("pageerror", (e) => errs.push("PAGE: " + e.message));
-await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
+await page.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
 await page.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), SETTINGS);
 
 await page.evaluate(async () => {
@@ -143,7 +143,7 @@ console.log("\nAnd what a section costs to press, on a connection that is not yo
      does not work, so the frame has to arrive before the contents do. */
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
-  await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await p.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
   await p.evaluate((st) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: st, version: 1 })), SETTINGS);
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(800);

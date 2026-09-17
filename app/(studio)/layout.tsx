@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import "./globals.css";
+import "../globals.css";
 import "katex/dist/katex.min.css";
 import { CrashNet } from "@/components/ui/CrashNet";
 import { Shell } from "@/components/ui/Shell";

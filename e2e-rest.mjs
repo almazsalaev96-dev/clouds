@@ -27,7 +27,7 @@ const check = (p, l, d = "") => { if (!p) failed++; console.log(`${p ? "  ✓" :
 const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
 const p = await ctx.newPage();
 const errs = []; p.on("pageerror", (e) => errs.push(e.message));
-await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
+await p.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
 await p.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), S);
 await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(700);

@@ -43,7 +43,7 @@ export function mean(xs) {
 }
 `;
 
-await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
+await page.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
 await page.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), SETTINGS);
 await page.reload({ waitUntil: "networkidle" });
 await page.waitForTimeout(900);

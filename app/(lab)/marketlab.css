@@ -1,0 +1,336 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   MarketLab — design tokens
+   ----------------------------------------------------------------------------
+   One rule: no component hardcodes a colour, radius, shadow or duration.
+   Everything below is a token, every token has a light and a dark value, and
+   every text/background pair is checked by `node marketlab-contrast.mjs`
+   against WCAG AA rather than judged by eye.
+
+   The palette is a research instrument, not a brand exercise:
+
+     Navy / charcoal   structure and text. The page is mostly this.
+     Off-white         the paper. Cool rather than cream, so numbers read as
+                       data rather than as a letter.
+     Blue              one accent, used for interaction only — links, focus,
+                       the active row, the primary button. Never decoration.
+     Green / red       reserved *exclusively* for the sign of a financial
+                       result. A green thing in this app always means "this
+                       number went up", which is why nothing else is allowed
+                       to be green.
+     Gray              borders and rules.
+   ========================================================================= */
+
+@font-face { font-family: "InterML"; font-style: normal; font-weight: 400; font-display: swap; src: url("/fonts/inter-400.woff2") format("woff2"); }
+@font-face { font-family: "InterML"; font-style: normal; font-weight: 500; font-display: swap; src: url("/fonts/inter-500.woff2") format("woff2"); }
+@font-face { font-family: "InterML"; font-style: normal; font-weight: 600; font-display: swap; src: url("/fonts/inter-600.woff2") format("woff2"); }
+@font-face { font-family: "JetBrainsML"; font-style: normal; font-weight: 400; font-display: swap; src: url("/fonts/jetbrains-mono-400.woff2") format("woff2"); }
+@font-face { font-family: "JetBrainsML"; font-style: normal; font-weight: 500; font-display: swap; src: url("/fonts/jetbrains-mono-500.woff2") format("woff2"); }
+
+:root,
+[data-ml-theme="light"] {
+  color-scheme: light;
+
+  --ml-canvas: #f5f7fa;
+  --ml-surface: #ffffff;
+  --ml-subtle: #eceff4;
+  --ml-inset: #f2f4f8;
+  --ml-raised: #ffffff;
+  --ml-overlay: rgba(16, 24, 40, 0.45);
+
+  --ml-border: #e0e5ec;
+  /* Two border tokens, because they answer to different rules. The hairline
+     around a card is decoration and may be faint. The edge of a control is
+     how somebody finds the control, so WCAG 1.4.11 asks it to clear 3:1
+     against the surface behind it — `node marketlab-contrast.mjs` checks that
+     this one does, in both themes. */
+  --ml-border-strong: #7d8799;
+
+  --ml-text: #101828;
+  --ml-text-2: #3a4658;
+  --ml-text-3: #55627a;
+  /* 4.5:1 on every surface it is drawn on, including the inset panel, where
+     #667186 came in at 4.47 — close enough to look fine and not close enough
+     to pass. */
+  --ml-text-4: #626d82;
+
+  --ml-accent: #1a4fd0;
+  --ml-accent-hover: #123ea9;
+  --ml-accent-subtle: #e9effd;
+  --ml-accent-fg: #ffffff;
+  --ml-accent-rgb: 26 79 208;
+
+  --ml-positive: #0d7248;
+  --ml-positive-subtle: #e4f3ec;
+  --ml-negative: #b0261d;
+  --ml-negative-subtle: #fbeae8;
+  --ml-warning: #8a5300;
+  --ml-warning-subtle: #fbf0dd;
+
+  /* The deep field used behind the hero and the footer. Text on it is
+     --ml-navy-fg, never --ml-text. */
+  --ml-navy: #0c1a30;
+  --ml-navy-2: #16294a;
+  --ml-navy-fg: #eef2f8;
+  --ml-navy-fg-2: #a9b8cf;
+  --ml-navy-line: #23385c;
+
+  /* Chart ink.
+     -------------------------------------------------------------------------
+     Not chosen by eye. These five were produced by searching OKLCH space under
+     the five checks a categorical palette has to pass — lightness band, chroma
+     floor, adjacent separation under protanopia/deuteranopia/tritanopia,
+     separation under normal vision, and 3:1 contrast against the surface they
+     sit on — and they pass all five against #ffffff with no relief needed.
+     Series 1 is the interface accent, so a one-series chart matches the rest
+     of the page.
+
+     The greens and reds elsewhere in this file are NOT in this list on purpose.
+     In MarketLab green and red mean the sign of a financial result and nothing
+     else, so they are never spent on "series three". */
+  --ml-s1: #1a4fd0;
+  --ml-s2: #794600;
+  --ml-s3: #3b9f58;
+  --ml-s4: #8f52c9;
+  --ml-s5: #db4a61;
+  --ml-grid: #e5e9ef;
+  --ml-axis: #98a2b3;
+
+  --ml-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 1px rgba(16, 24, 40, 0.04);
+  --ml-shadow-md: 0 4px 12px rgba(16, 24, 40, 0.07), 0 1px 3px rgba(16, 24, 40, 0.05);
+  --ml-shadow-lg: 0 16px 40px rgba(16, 24, 40, 0.12), 0 2px 6px rgba(16, 24, 40, 0.06);
+}
+
+[data-ml-theme="dark"] {
+  color-scheme: dark;
+
+  --ml-canvas: #0a0f17;
+  --ml-surface: #111925;
+  --ml-subtle: #1a2433;
+  --ml-inset: #151d29;
+  --ml-raised: #16202e;
+  --ml-overlay: rgba(4, 8, 14, 0.6);
+
+  --ml-border: #25313f;
+  --ml-border-strong: #66748a;
+
+  --ml-text: #e9eef6;
+  --ml-text-2: #b9c3d1;
+  --ml-text-3: #98a5b6;
+  --ml-text-4: #8593a6;
+
+  --ml-accent: #74a0ff;
+  --ml-accent-hover: #93b6ff;
+  --ml-accent-subtle: #16233a;
+  --ml-accent-fg: #07101f;
+  --ml-accent-rgb: 116 160 255;
+
+  --ml-positive: #4cc48f;
+  --ml-positive-subtle: #0e2a20;
+  --ml-negative: #f4827c;
+  --ml-negative-subtle: #2e1615;
+  --ml-warning: #e0a94a;
+  --ml-warning-subtle: #2a2011;
+
+  --ml-navy: #0c1420;
+  --ml-navy-2: #14202f;
+  --ml-navy-fg: #e9eef6;
+  --ml-navy-fg-2: #a3b1c4;
+  --ml-navy-line: #26374f;
+
+  /* Re-derived for the dark surface rather than flipped: the lightness band a
+     mark has to sit in is different against #111925, and the same five checks
+     were re-run against it. */
+  --ml-s1: #4a7de0;
+  --ml-s2: #9c5c00;
+  --ml-s3: #5e9f6d;
+  --ml-s4: #ab65ed;
+  --ml-s5: #ee4965;
+  --ml-grid: #1f2a38;
+  --ml-axis: #5b6b80;
+
+  --ml-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --ml-shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --ml-shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.55);
+}
+
+@theme inline {
+  --color-ml-canvas: var(--ml-canvas);
+  --color-ml-surface: var(--ml-surface);
+  --color-ml-subtle: var(--ml-subtle);
+  --color-ml-inset: var(--ml-inset);
+  --color-ml-raised: var(--ml-raised);
+  --color-ml-border: var(--ml-border);
+  --color-ml-border-strong: var(--ml-border-strong);
+  --color-ml-text: var(--ml-text);
+  --color-ml-text-2: var(--ml-text-2);
+  --color-ml-text-3: var(--ml-text-3);
+  --color-ml-text-4: var(--ml-text-4);
+  --color-ml-accent: var(--ml-accent);
+  --color-ml-accent-hover: var(--ml-accent-hover);
+  --color-ml-accent-subtle: var(--ml-accent-subtle);
+  --color-ml-accent-fg: var(--ml-accent-fg);
+  --color-ml-positive: var(--ml-positive);
+  --color-ml-positive-subtle: var(--ml-positive-subtle);
+  --color-ml-negative: var(--ml-negative);
+  --color-ml-negative-subtle: var(--ml-negative-subtle);
+  --color-ml-warning: var(--ml-warning);
+  --color-ml-warning-subtle: var(--ml-warning-subtle);
+  --color-ml-navy: var(--ml-navy);
+  --color-ml-navy-2: var(--ml-navy-2);
+  --color-ml-navy-fg: var(--ml-navy-fg);
+  --color-ml-navy-fg-2: var(--ml-navy-fg-2);
+  --color-ml-navy-line: var(--ml-navy-line);
+
+  --radius-ml-xs: 6px;
+  --radius-ml-sm: 8px;
+  --radius-ml-md: 12px;
+  --radius-ml-lg: 16px;
+  --radius-ml-xl: 22px;
+
+  --shadow-ml-sm: var(--ml-shadow-sm);
+  --shadow-ml-md: var(--ml-shadow-md);
+  --shadow-ml-lg: var(--ml-shadow-lg);
+
+  --font-ml-sans: "InterML", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-ml-mono: "JetBrainsML", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --breakpoint-xs: 30rem;
+}
+
+@layer base {
+  /* On the document, not only on the app's root element. A background that
+     lives on a child div leaves the over-scroll gutter white — which on a
+     phone in dark mode is a white flash every time you bounce the page. */
+  html:has(.ml-root),
+  body:has(.ml-root) {
+    background: var(--ml-canvas);
+  }
+
+  .ml-root {
+    background: var(--ml-canvas);
+    color: var(--ml-text);
+    font-family: var(--font-ml-sans);
+    /* Numbers are the subject of this app. Proportional digits make a column
+       of figures ripple; `tnum` locks the advance width so 1,204 and 9,999 sit
+       on the same grid, and `cv05`/`ss03` give Inter's l and the currency
+       glyphs their unambiguous shapes. */
+    font-feature-settings: "cv05", "ss03";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .ml-root ::selection {
+    background: var(--ml-accent-subtle);
+    color: var(--ml-text);
+  }
+
+  .ml-root :focus-visible {
+    outline: 2px solid var(--ml-accent);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  /* A focus ring is the only thing between a keyboard user and a guess.
+     Never removed, only moved. */
+  .ml-root :focus:not(:focus-visible) { outline: none; }
+}
+
+@layer components {
+  /* --- Type scale -------------------------------------------------------
+     Six steps, each with its own line height and tracking. Display sizes get
+     negative tracking because Inter opens up at size; label sizes get
+     positive tracking because small caps-ish text closes up. --- */
+  .ml-display { font-size: clamp(2.1rem, 1.3rem + 2.6vw, 3.25rem); line-height: 1.06; letter-spacing: -0.028em; font-weight: 600; }
+  .ml-h1 { font-size: clamp(1.6rem, 1.2rem + 1.4vw, 2.125rem); line-height: 1.14; letter-spacing: -0.022em; font-weight: 600; }
+  .ml-h2 { font-size: 1.3125rem; line-height: 1.25; letter-spacing: -0.014em; font-weight: 600; }
+  .ml-h3 { font-size: 1.0625rem; line-height: 1.35; letter-spacing: -0.008em; font-weight: 600; }
+  .ml-body { font-size: 0.9375rem; line-height: 1.62; }
+  .ml-body-lg { font-size: 1.0625rem; line-height: 1.6; }
+  .ml-small { font-size: 0.8125rem; line-height: 1.5; }
+  .ml-label {
+    font-size: 0.6875rem; line-height: 1.3; font-weight: 600;
+    letter-spacing: 0.07em; text-transform: uppercase;
+  }
+
+  /* Any figure the user is meant to compare against another figure. */
+  .ml-num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+  .ml-mono { font-family: var(--font-ml-mono); font-variant-numeric: tabular-nums; }
+
+  .ml-prose { max-width: 68ch; }
+  .ml-prose p + p { margin-top: 0.85em; }
+
+  /* Long-form panels written as plain markdown-ish HTML. */
+  .ml-rich :where(h4) { font-size: 0.9375rem; font-weight: 600; margin-top: 1.25em; }
+  .ml-rich :where(ul) { list-style: disc; padding-left: 1.15rem; }
+  .ml-rich :where(ol) { list-style: decimal; padding-left: 1.3rem; }
+  .ml-rich :where(li) + :where(li) { margin-top: 0.3em; }
+  .ml-rich :where(strong) { font-weight: 600; color: var(--ml-text); }
+  .ml-rich :where(code) {
+    font-family: var(--font-ml-mono); font-size: 0.86em;
+    background: var(--ml-inset); border: 1px solid var(--ml-border);
+    border-radius: 5px; padding: 0.06em 0.34em;
+  }
+
+  /* Formulae. Set in the mono face so the symbols line up under each other
+     and an exponent cannot be mistaken for a footnote. */
+  .ml-formula {
+    font-family: var(--font-ml-mono);
+    font-size: 0.875rem;
+    background: var(--ml-inset);
+    border: 1px solid var(--ml-border);
+    border-radius: var(--radius-ml-sm);
+    padding: 0.7rem 0.9rem;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--ml-text-2);
+  }
+
+  /* The range input, restyled once here rather than per component. */
+  .ml-slider {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 22px; background: transparent; cursor: pointer;
+  }
+  .ml-slider::-webkit-slider-runnable-track {
+    height: 4px; border-radius: 999px;
+    background: linear-gradient(to right, var(--ml-accent) var(--ml-fill, 0%), var(--ml-subtle) var(--ml-fill, 0%));
+  }
+  .ml-slider::-moz-range-track { height: 4px; border-radius: 999px; background: var(--ml-subtle); }
+  .ml-slider::-moz-range-progress { height: 4px; border-radius: 999px; background: var(--ml-accent); }
+  .ml-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px; margin-top: -6px; border-radius: 999px;
+    background: var(--ml-surface); border: 2px solid var(--ml-accent);
+    box-shadow: var(--ml-shadow-sm);
+    transition: transform 120ms ease;
+  }
+  .ml-slider::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 999px;
+    background: var(--ml-surface); border: 2px solid var(--ml-accent);
+  }
+  .ml-slider:active::-webkit-slider-thumb { transform: scale(1.12); }
+  .ml-slider:disabled { cursor: not-allowed; opacity: 0.5; }
+
+  .ml-scroll { scrollbar-width: thin; scrollbar-color: var(--ml-border-strong) transparent; }
+  .ml-scroll::-webkit-scrollbar { width: 9px; height: 9px; }
+  .ml-scroll::-webkit-scrollbar-thumb { background: var(--ml-border-strong); border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+  .ml-scroll::-webkit-scrollbar-track { background: transparent; }
+
+  .ml-fade-in { animation: ml-fade 180ms ease-out both; }
+  @keyframes ml-fade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+}
+
+/* Anyone who has asked their system not to animate gets no animation. */
+@media (prefers-reduced-motion: reduce) {
+  .ml-root *, .ml-root *::before, .ml-root *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media print {
+  .ml-no-print { display: none !important; }
+  .ml-root { background: #fff; color: #000; }
+}

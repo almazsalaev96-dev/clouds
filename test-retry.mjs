@@ -4,7 +4,7 @@ const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-119
 const page = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
 const errs = []; page.on("pageerror", (e) => errs.push(e.message));
 const check = (p, l, d = "") => console.log(`${p ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`);
-await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
+await page.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
 await page.evaluate(() => localStorage.setItem("store.settings.v1", JSON.stringify({ state: { theme: "dark", density: "comfortable", modelId: "claude-sonnet-4-5", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", lastConversationId: null }, version: 1 })));
 await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(900);
 const ta = page.locator("textarea").first();

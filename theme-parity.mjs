@@ -81,7 +81,7 @@ const composite = ([r, g, b, a], base) =>
 
 async function measure(theme, go) {
   const page = await (await b.newContext({ viewport: { width: 1440, height: 950 } })).newPage();
-  await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await page.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
   await page.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), S(theme));
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(1200);

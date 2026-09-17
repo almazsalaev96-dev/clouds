@@ -31,7 +31,7 @@ const S = { theme: "dark", density: "comfortable", modelId: "claude-sonnet-4-5",
 const arm = (status, body, times = 1) =>
   fetch(`${MOCK}/__fail?status=${status}&body=${encodeURIComponent(body)}&times=${times}`).then((r) => r.json());
 
-await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
+await p.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
 await p.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), S);
 await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(800);

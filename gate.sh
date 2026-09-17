@@ -81,6 +81,8 @@ run test-voice npx jiti test-voice.ts
 run test-built npx jiti test-built.ts
 run test-fuzz  npx jiti test-fuzz.ts
 run test-cite  node --experimental-strip-types test-cite.mts
+run test-marketlab npx jiti test-marketlab.ts
+run marketlab-contrast node marketlab-contrast.mjs
 [ "$ONLY" = unit ] && { echo; echo "$([ $FAILED -eq 0 ] && echo "all passed" || echo "$FAILED FAILED")"; exit $FAILED; }
 
 echo
@@ -90,7 +92,8 @@ serve
 for t in e2e e2e-rest e2e-canvas e2e-web e2e-code e2e-follow e2e-agent e2e-sources e2e-auto e2e-command \
          e2e-project e2e-mode e2e-pdf e2e-editor e2e-makes e2e-bar e2e-motion \
          e2e-use e2e-scale e2e-backup e2e-error e2e-storage e2e-shape e2e-point-at e2e-draw \
-         e2e-ask e2e-crash e2e-dir e2e-keep e2e-made e2e-recover e2e-compute e2e-register e2e-study e2e-notebook e2e-plan e2e-presets; do
+         e2e-ask e2e-crash e2e-dir e2e-keep e2e-made e2e-recover e2e-compute e2e-register e2e-study e2e-notebook e2e-plan e2e-presets \
+         e2e-marketlab; do
   run "$t" node "$t.mjs"
 done
 run test-context node test-context.mjs

@@ -51,7 +51,7 @@ const READER = `(el) => {
 async function openChat(rootPx) {
   const ctx = await b.newContext({ viewport: { width: 1440, height: 950 } });
   const p = await ctx.newPage();
-  await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await p.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
   await p.evaluate((s) => localStorage.setItem("store.settings.v1", s), SETTINGS());
   await p.reload({ waitUntil: "networkidle" });
   await p.addStyleTag({ content: `html { font-size: ${rootPx}px }` });
@@ -234,7 +234,7 @@ console.log("\nNothing is nailed to a pixel size while the reader's text grows")
   for (const rootPx of [16, 24]) {
     const ctx = await b.newContext({ viewport: { width: 1440, height: 950 } });
     const p = await ctx.newPage();
-    await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
+    await p.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
     await p.evaluate((s) => localStorage.setItem("store.settings.v1", s), SETTINGS());
     await p.reload({ waitUntil: "networkidle" });
     await p.addStyleTag({ content: `html { font-size: ${rootPx}px }` });
@@ -270,7 +270,7 @@ console.log("\nHierarchy is carried by brightness, in both themes alike");
 {
   const ctx = await b.newContext({ viewport: { width: 1440, height: 950 } });
   const p = await ctx.newPage();
-  await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await p.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
   await p.evaluate((s) => localStorage.setItem("store.settings.v1", s), SETTINGS());
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(500);
@@ -311,7 +311,7 @@ console.log("\nA column that cannot get wider gets smaller text instead");
      whole pass exists to avoid. So the comparison is actually started. */
   const ctx = await b.newContext({ viewport: { width: 1440, height: 950 } });
   const p = await ctx.newPage();
-  await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await p.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
   await p.evaluate((s) => localStorage.setItem("store.settings.v1", s), SETTINGS());
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(600);

@@ -29,7 +29,7 @@ async function open(reducedMotion) {
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, reducedMotion });
   const page = await ctx.newPage();
   page.on("pageerror", (e) => errs.push("PAGE: " + e.message));
-  await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await page.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
   await page.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), SETTINGS);
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(900);

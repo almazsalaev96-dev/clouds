@@ -28,7 +28,7 @@ const check = (c, l, d = "") => { if (!c) failed++; console.log(`${c ? "  ✓" :
 /* styleId absent on purpose: this is what a new install looks like. */
 const S = { theme: "dark", density: "comfortable", modelId: "claude-sonnet-4-5", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true };
 
-await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
+await p.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
 await p.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), S);
 await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(800);

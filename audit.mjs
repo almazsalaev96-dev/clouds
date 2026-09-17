@@ -3,7 +3,7 @@
  * Measures rather than asserts: everything here is read off the live DOM.
  */
 import { chromium, devices } from "playwright";
-const URL = "http://localhost:3100";
+const URL = "http://localhost:3100/studio";
 const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
 const fail = [];
 const ok = [];

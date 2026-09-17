@@ -90,7 +90,7 @@ const HELPERS = `(() => {
 
 for (const theme of ["light", "dark"]) {
   const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
-  await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await page.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
   await page.evaluate((t) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: { theme: t, density: "comfortable", modelId: "claude-sonnet-4-5", styleId: "normal", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true }, version: 1 })), theme);
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(700);
@@ -316,7 +316,7 @@ console.log("\nboth themes");
   const span = {};
   for (const theme of ["light", "dark"]) {
     const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
-    await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
+    await page.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
     await page.evaluate((t) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: { theme: t, density: "comfortable", modelId: "claude-sonnet-4-5", sidebarOpen: false, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true }, version: 1 })), theme);
     await page.reload({ waitUntil: "networkidle" });
     await page.waitForTimeout(600);

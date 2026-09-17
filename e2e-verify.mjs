@@ -35,7 +35,7 @@ const wire = async () => (await (await fetch("http://127.0.0.1:8787/__last")).js
 
 const S = (over = {}) => ({ theme: "dark", density: "comfortable", modelId: "claude-sonnet-4-5", styleId: "normal", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true, ...over });
 
-await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
+await page.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
 await page.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), S());
 await page.reload({ waitUntil: "networkidle" });
 await page.waitForTimeout(1100);
@@ -132,7 +132,7 @@ console.log("\nWith one provider there is no second opinion, and it says so");
 {
   const solo = await b.newContext({ viewport: { width: 1440, height: 950 } });
   const p2 = await solo.newPage();
-  await p2.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await p2.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
   /* Anthropic only — and a client key for it, so the app has exactly one
      provider to work with however the server is configured. */
   await p2.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })),

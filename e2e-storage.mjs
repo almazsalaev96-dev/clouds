@@ -45,7 +45,7 @@ console.log("\nWith the database refused, the app says so instead of pretending"
   const errs = [];
   page.on("pageerror", (e) => errs.push(e.message));
 
-  await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await page.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
   await page.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), SETTINGS);
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(1800);
@@ -79,7 +79,7 @@ console.log("\nAnd with a working database it says nothing at all");
 {
   const ctx = await b.newContext({ viewport: { width: 1280, height: 860 } });
   const page = await ctx.newPage();
-  await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await page.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
   await page.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), SETTINGS);
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(1500);
@@ -109,13 +109,13 @@ console.log("\nTwo tabs of it are one app, not two");
      this repository. */
   const ctx = await b.newContext({ viewport: { width: 1280, height: 860 } });
   const A = await ctx.newPage();
-  await A.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await A.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
   await A.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), SETTINGS);
   await A.reload({ waitUntil: "networkidle" });
   await A.waitForTimeout(900);
 
   const B = await ctx.newPage();
-  await B.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await B.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
   await B.waitForTimeout(1200);
 
   const rows = (p) => p.evaluate(() => [...document.querySelectorAll("aside button[title]")].map((x) => x.getAttribute("title")));
@@ -149,7 +149,7 @@ console.log("\n\"Delete everything\" has to mean everything, keys included");
      scenario in the README is somebody wiping the app before handing over a
      laptop. They handed it over with the key still on it. */
   const page = await (await b.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
-  await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await page.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
   await page.evaluate((s) => {
     localStorage.setItem("store.settings.v1", JSON.stringify({ state: { ...s, keys: { anthropic: "sk-ant-SECRET" } }, version: 1 }));
     localStorage.setItem("store.drafts.v1", JSON.stringify({ state: { drafts: { x: "an unsent draft" } }, version: 1 }));

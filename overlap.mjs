@@ -102,7 +102,7 @@ for (const coarse of [false, true]) {
         ...(coarse ? { hasTouch: true, isMobile: true } : {}),
       });
       const page = await ctx.newPage();
-      await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
+      await page.goto("http://localhost:3100/studio", { waitUntil: "networkidle" });
       await page.evaluate(([d]) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: { theme: "dark", density: d, modelId: "claude-sonnet-4-5", styleId: "normal", mode: "chat", sidebarOpen: false, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true }, version: 1 })), [density]);
       await page.reload({ waitUntil: "networkidle" });
       await page.waitForTimeout(650);

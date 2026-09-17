@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 
-const URL = "http://localhost:3100";
+const URL = "http://localhost:3100/studio";
 const OUT = process.argv[2];
 
 const NOTE = `# Debouncing user input

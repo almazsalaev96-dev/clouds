@@ -1,3 +1,9 @@
+> **This repository now holds two applications.** MarketLab — an interactive
+> economics laboratory — is served at `/` and documented in
+> [MARKETLAB.md](./MARKETLAB.md). Armi, described below, has moved to `/studio`
+> and is otherwise unchanged. They share one Next.js app and nothing else: each
+> has its own root layout, its own stylesheet and its own design tokens.
+
 # Armi
 
 A study-and-build assistant that runs in your browser, on your own keys.
