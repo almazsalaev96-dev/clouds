@@ -121,7 +121,8 @@ Armi
 
 | Group | Tokens | Notes |
 |---|---|---|
-| Colour | `--bg`, `--surface`, `--subtle`, `--line`, `--line-strong`, `--primary`, `--secondary`, `--tertiary`, `--faint`, `--accent`, `--accent-2`, `--accent-subtle`, `--danger`, `--success`, `--highlight`, `--highlight-edge`, `--highlight-fg` | Both themes define every token; `data-theme` is always concrete (system resolved before first paint). |
+| Colour | `--bg`, `--surface`, `--subtle`, `--line`, `--line-strong`, `--primary`, `--secondary`, `--tertiary`, `--faint`, `--accent`, `--accent-2`, `--accent-2-ink`, `--accent-subtle`, `--danger`, `--success`, `--highlight`, `--highlight-edge`, `--highlight-fg` | Both themes define every token; `data-theme` is always concrete (system resolved before first paint). Derived in OKLCH from three ramps — neutral 266, structure 264, signal 196 — so lightness steps are perceptually even rather than evenly spaced in hex. Dark text tops out near L 0.92, not 0.96: white on near-black halates. Dark carries less chroma than light at every hue, because saturated colour on a dark field vibrates. `--accent-2-ink` is the signal solved for *reading* — a colour tuned to be seen is not automatically one that can be read. |
+| Syntax | `--syn-comment`, `--syn-keyword`, `--syn-string`, `--syn-function`, `--syn-number`, `--syn-type` | Both themes solved to one shared band (5.9 for the comment, 7.8–8.5 for the rest) rather than one theme chasing the other's numbers, which turns six hues into six browns on a pale page. Hues spread ≥ 50° apart: inside a code block, telling one token from the next matters more than contrast against the page. Mapped onto Shiki's github-light output in `lib/highlighter.ts`, so a theme switch needs no re-highlight. |
 | Space / radius | Tailwind scale × density multiplier; `rounded-md/lg/xl` | Density: comfortable / compact multiplies paddings, so every target is re-measured (gate: `touch`). |
 | Type | `--measure` (reading width), `--measure-wide` (code), type scale (gate: `type-scale`) | Body 15–16px; code 13px; headings ≤ 1.75rem. |
 | Motion | `--dur-fast`, `--dur-enter`, `--ease-out` | `prefers-reduced-motion` collapses to opacity only. |
@@ -490,6 +491,22 @@ The exam board's command words have official meanings `[R]`; a good answer to "D
 **SP-2 ⬜ Sessions**: a 25/5 timer that runs inside Study (the Timer starter's logic reused), logging minutes to `studyDays`; "Start a session" on the plan.
 
 **SP-3 🟡 Learning analytics shown**: built — recall rate over the last 30 days against the 90% the schedule aims for, with one sentence on what to change when it is off; the twelve-week calendar; the streak; the shakiest deck. ⬜ Minutes/day (needs sessions, SP-2) and mastery by topic (needs S-3). No vanity numbers (Duolingo's half-life regression underlies its progress `[R]`; ARMI's FSRS stability is the equivalent and is already stored).
+
+### 13.9 Working through a document (the tutor beside the page)
+
+The thing a person is actually holding — a past paper, a chapter, a worksheet, a photograph of their own working — opened *beside* a conversation rather than swallowed by one. An attachment disappears into the question; here the page stays on screen, the chat sits next to it, and both of you are looking at the same thing.
+
+| # | Requirement | Today | Spec |
+|---|---|---|---|
+| WD-1 | A PDF, image or text file is taken in, kept whole in the browser, and its pages drawn at a size worth pointing at | ✅ | Keep. 40MB ceiling, said plainly when exceeded. |
+| WD-2 | Point at a region — pen, finger or mouse — and that crop is sent as a picture alongside the page's own words, so the model is looking at what you are looking at | ✅ | Keep. Pen pressure is recorded but unused. |
+| WD-3 | The engine is chosen by the Tutor cast told there is a picture in this, so it lands on something that can see; where no key is held it says so instead of failing at the send | ✅ | Keep. |
+| WD-4 | Where you were is kept: closing and coming back opens the same page | ✅ | Keep. |
+| WD-5 | Cards made from a page go to one deck per document, reusing it on later passes (`deckForSource`) rather than leaving two decks with one name | ✅ | Keep. |
+| WD-6 | Comforts: arrow keys turn the page (not while typing, not mid-marquee); Escape drops a region drawn by accident; the chat follows the answer and lets go when you scroll up to re-read; a dropped file is taken; a removed document is offered back by name | ✅ | Gate: `e2e-comfort`. |
+| WD-7 | Handing the thread on: "Take this into a chat" carries the last answer and which page it was about into the main conversation, where the whole cast is available | ✅ | Keep. |
+| WD-8 | Highlights and annotation kept on the page between sessions | ⬜ | The crop is per-question today and forgotten after. Persisting marks needs a `lessonMarks` store. |
+| WD-9 | Reading the page aloud, and following along | ⬜ | The prose read-aloud exists in chat; wiring it to a rendered page needs the text layer positioned over the canvas. |
 
 ---
 

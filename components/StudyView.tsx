@@ -80,6 +80,13 @@ export function StudyView({
      and the bytes are kept so any page can be drawn again; a scan has no
      text and is kept anyway, because the whole point of pointing at a page
      is that it works when there is nothing to quote. */
+  /* Dropping a file on the block that offers to open one is the gesture
+     everybody makes; the composer has taken drops from the start and this did
+     not, so a dragged PDF landed on a dead surface. Counted rather than
+     boolean, because dragging over a child fires leave on the parent. */
+  const [overDrop, setOverDrop] = React.useState(false);
+  const dropDepth = React.useRef(0);
+
   const take = async (file: File) => {
     setBusy(true);
     setNotice(null);
@@ -309,14 +316,39 @@ export function StudyView({
               you are actually holding — a paper, a chapter, a worksheet, a
               photograph of your own working. It opens beside a conversation
               that can see the page. */}
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          <div
+            className={cn(
+              "mt-2 flex flex-wrap items-center gap-2 rounded-xl border-2 border-dashed p-1.5 transition-colors duration-[var(--dur-fast)]",
+              overDrop ? "border-accent bg-accent-subtle" : "border-transparent",
+            )}
+            onDragEnter={(e) => {
+              if (![...e.dataTransfer.types].includes("Files")) return;
+              e.preventDefault();
+              dropDepth.current += 1;
+              setOverDrop(true);
+            }}
+            onDragOver={(e) => {
+              if ([...e.dataTransfer.types].includes("Files")) e.preventDefault();
+            }}
+            onDragLeave={() => {
+              dropDepth.current -= 1;
+              if (dropDepth.current <= 0) setOverDrop(false);
+            }}
+            onDrop={async (e) => {
+              e.preventDefault();
+              dropDepth.current = 0;
+              setOverDrop(false);
+              const f = e.dataTransfer.files?.[0];
+              if (f) await take(f);
+            }}
+          >
             <button
               onClick={() => fileRef.current?.click()}
               disabled={busy}
               className="btn-touch press focus-inset flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary disabled:opacity-50"
             >
               <FileText size={13} />
-              Work through a document
+              {overDrop ? "Drop it here" : "Work through a document"}
             </button>
             <input
               ref={fileRef}
@@ -349,7 +381,7 @@ export function StudyView({
                     </span>
                   </button>
                   <button
-                    onClick={() => void deleteLesson(l.id)}
+                    onClick={async () => offerUndo(l.name, await deleteLesson(l.id))}
                     aria-label={`Remove ${l.name}`}
                     className="ctl focus-inset flex [--ctl:1.75rem] shrink-0 items-center justify-center rounded-md text-tertiary reveal hover:bg-subtle hover:text-danger"
                   >

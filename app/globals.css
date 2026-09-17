@@ -112,10 +112,17 @@
      did not look like the same app. These values hit the dark figures within
      a tenth. They are still the same navy: only the lightness moved, so a
      page reads as ink on a lit panel rather than as a dimmer copy of the dark one. */
-  --text-primary: #161c2b;
-  --text-secondary: #313a4d;
-  --text-tertiary: #464e60;
-  --text-faint: #5d6576;
+  /* The four rungs are solved to the dark theme's, not chosen on this side.
+     Dark is the constrained one — its top rung cannot go higher without the
+     halation this whole palette exists to avoid — so light follows it, hue and
+     chroma held, lightness moved until each rung lands on the same ratio
+     against its own canvas. Measured, the widest drift between the two ladders
+     is 0.06; deriving light on its own put secondary 1.3 apart, which is a
+     reader re-learning what "secondary" looks like every time they switch. */
+  --text-primary: #171d2c;
+  --text-secondary: #2a3245;
+  --text-tertiary: #3e4557;
+  --text-faint: #586070;
 
   /* Structure, deepened for daylight. */
   --accent: #2253cf;

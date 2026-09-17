@@ -4,9 +4,10 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft, ChevronRight, Loader2, Square, Trash2, X } from "lucide-react";
 import type { ContentBlock, Lesson, LessonTurn } from "@/lib/types";
-import { addLessonTurn, addCards, createDeck, db } from "@/lib/db";
+import { addLessonTurn, addCards, createDeck, db, deckForSource } from "@/lib/db";
 import { renderPage, pageText } from "@/lib/pdf";
 import { complete } from "@/lib/complete";
+import { draftCards } from "@/lib/generate";
 import { resolveCast, shortName } from "@/lib/presets";
 import { useSettings } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -58,6 +59,8 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
   const [notice, setNotice] = React.useState<string | null>(null);
   const pageRef = React.useRef<HTMLDivElement>(null);
   const bytes = React.useRef<ArrayBuffer | null>(null);
+  const chatRef = React.useRef<HTMLDivElement>(null);
+  const [pinned, setPinned] = React.useState(true);
 
   const turns = useLiveQuery(
     () => db.lessonTurns.where("lessonId").equals(lesson.id).sortBy("at"),
@@ -100,6 +103,49 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
   React.useEffect(() => {
     void db.lessons.update(lesson.id, { atPage: page });
   }, [lesson.id, page]);
+
+  /* Arrow keys turn the page, because that is what everybody tries first in
+     anything shaped like a document and the buttons were the only way through;
+     Escape drops a region you did not mean to draw, which the chip beside the
+     asks could already do but nobody looks there first.
+     Neither fires while a question is being typed — those keys belong to the
+     caret then — and the arrows do not fire mid-marquee, where they would move
+     the page out from under a region being drawn on it. */
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+      if (e.key === "Escape" && crop) {
+        e.preventDefault();
+        setCrop(null);
+        return;
+      }
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (drawing || lesson.pages <= 1) return;
+      e.preventDefault();
+      setPage((n) =>
+        e.key === "ArrowLeft" ? Math.max(1, n - 1) : Math.min(lesson.pages, n + 1),
+      );
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lesson.pages, drawing, crop]);
+
+  /* The chat beside the page follows the answer while you are at the bottom of
+     it, and lets go the moment you scroll up to re-read something. The main
+     transcript has done this from the start; this pane was scrolling only when
+     dragged, so a streaming answer wrote itself below the fold. */
+  const onChatScroll = React.useCallback(() => {
+    const el = chatRef.current;
+    if (!el) return;
+    setPinned(el.scrollHeight - el.scrollTop - el.clientHeight < 80);
+  }, []);
+
+  React.useLayoutEffect(() => {
+    const el = chatRef.current;
+    if (el && pinned) el.scrollTop = el.scrollHeight;
+  }, [turns.length, live, asking, pinned]);
 
   const words = React.useMemo(
     () => (lesson.text ? pageText(lesson.text, page) : ""),
@@ -214,22 +260,32 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
     setAsking(true);
     setNotice(null);
     try {
-      const out = await complete(
-        `From this page of “${lesson.name}”, write between four and eight question-and-answer cards for someone learning it.\n\nOne per line, as "Question :: Answer". No numbering, no preamble.\n\n${words.slice(0, 12_000)}`,
-        { modelId: cast.answer.modelId, maxTokens: 900, temperature: 0.3 },
-      );
-      const rows = (out ?? "")
-        .split("\n")
-        .map((l) => l.split("::"))
-        .filter((bits) => bits.length >= 2 && bits[0].trim() && bits[1].trim())
-        .map((bits) => ({ front: bits[0].replace(/^[-*\d.\s]+/, "").trim(), back: bits.slice(1).join("::").trim() }));
-      if (!rows.length) {
+      /* The app's own card writer, not a second one written here. This asked
+         for "Question :: Answer" lines and split them on a colon pair, which
+         is a whole parser — and a worse one — beside `draftCards`, which
+         already asks for JSON, states the rules a good card follows, and
+         throws away anything that comes back the wrong shape. */
+      const rows = await draftCards(words.slice(0, 12_000), {
+        count: 6,
+        modelId: cast.answer.modelId,
+        about: `page ${page} of “${lesson.name}”`,
+      });
+      if (!rows?.length) {
         setNotice("No cards came back in a shape that could be used.");
         return;
       }
-      const deck = await createDeck(lesson.name, `lesson:${lesson.id}`);
-      await addCards(deck.id, rows);
-      setNotice(`${rows.length} cards made — they are in Study.`);
+      /* One deck per document, not one per press. `addCards` already refuses
+         to put the same card in twice — that reasoning was here all along and
+         this was walking around it by making a fresh deck each time, so a
+         second pass over the same chapter left two decks with one name. */
+      const key = `lesson:${lesson.id}`;
+      const deck = (await deckForSource(key)) ?? (await createDeck(lesson.name, key));
+      const made = await addCards(deck.id, rows);
+      setNotice(
+        made
+          ? `${made} ${made === 1 ? "card" : "cards"} added to “${deck.name}” in Study.`
+          : "Those are already in the deck for this document.",
+      );
     } catch {
       setNotice("That request failed.");
     } finally {
@@ -324,7 +380,7 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
 
       {/* ------------------------------------------------------- the chat -- */}
       <div className="flex min-h-0 shrink-0 flex-col border-t border-line lg:w-[26rem] lg:border-t-0 xl:w-[30rem]">
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3" aria-label="Working through it">
+        <div ref={chatRef} onScroll={onChatScroll} className="min-h-0 flex-1 overflow-y-auto px-3 py-3" aria-label="Working through it">
           {turns.length === 0 && !asking && (
             <div className="rounded-lg border border-dashed border-line px-3 py-6 text-center">
               <p className="text-sm text-primary">Read it with me.</p>

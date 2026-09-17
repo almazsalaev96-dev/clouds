@@ -53,6 +53,14 @@ export const SHORTCUT_GROUPS: { group: string; items: [string, string[]][] }[] =
       ["Undo the last grade", ["U"]],
     ],
   },
+  {
+    group: "Working through a document",
+    items: [
+      ["Turn the page", ["←", "→"]],
+      ["Ask about the page", ["mod", "enter"]],
+      ["Forget the region you drew", ["Esc"]],
+    ],
+  },
 ];
 
 export function ShortcutsOverlay({

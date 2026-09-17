@@ -397,6 +397,16 @@ export async function deleteConversation(id: string): Promise<() => Promise<void
 
 /* ----------------------------------------------------------------- study -- */
 
+/**
+ * The deck a source already made, if it made one.
+ *
+ * Not an index: decks are counted in tens, and a scan over tens is cheaper
+ * than the schema bump and the migration it would cost to avoid it.
+ */
+export async function deckForSource(source: string): Promise<Deck | undefined> {
+  return (await db.decks.toArray()).find((d) => d.source === source);
+}
+
 export async function createDeck(name: string, source?: string): Promise<Deck> {
   void keepForever();
   const now = Date.now();
@@ -475,11 +485,27 @@ export async function addLessonTurn(turn: Omit<LessonTurn, "id" | "at">): Promis
   return row;
 }
 
-export async function deleteLesson(id: string): Promise<void> {
+/**
+ * Returns the way back, like every other delete here.
+ *
+ * A lesson is the most expensive row in the database to lose by accident: it
+ * holds the document itself, not a reference to one, plus every turn of the
+ * session spent working through it. Re-uploading the PDF does not bring back
+ * what was said about it.
+ */
+export async function deleteLesson(id: string): Promise<() => Promise<void>> {
+  const lesson = await db.lessons.get(id);
+  const turns = await db.lessonTurns.where("lessonId").equals(id).toArray();
   await db.transaction("rw", db.lessons, db.lessonTurns, async () => {
     await db.lessonTurns.where("lessonId").equals(id).delete();
     await db.lessons.delete(id);
   });
+  return async () => {
+    await db.transaction("rw", db.lessons, db.lessonTurns, async () => {
+      if (lesson) await db.lessons.put(lesson);
+      if (turns.length) await db.lessonTurns.bulkPut(turns);
+    });
+  };
 }
 
 /**
