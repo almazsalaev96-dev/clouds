@@ -57,8 +57,8 @@
 | Element | Today | Specification |
 |---|---|---|
 | Name | **Armi** (wordmark "Armı" in Pinyon Script in the corner) ✅ | Keep. "ARMI" in caps only for the model family ("ARMI One"). |
-| Icon | `icon.svg` + `apple-icon.png` ✅ | ⬜ Add maskable 512×512 PNG to the manifest for Android install prompts. |
-| Palette | Paper `#f7f3ea` light, ink `#1a1917` dark; one accent; semantic danger/success/highlight tokens ✅ | Keep. Every new colour is a token in `globals.css`, never a literal. |
+| Icon | `icon.svg` (ink ground, signal-cyan letter) + `apple-icon.png` ✅ | ⬜ Regenerate `apple-icon.png` in the new palette; add a maskable 512×512 PNG to the manifest for Android install prompts. |
+| Palette | Ice `#f3f6fc` light, case `#0b101c` dark; electric blue for structure, cyan for signal; semantic danger/success/warning tokens ✅ | Keep. Every new colour is a token in `globals.css`, never a literal. The warm half is gone: only the amber of a warning survives, because that is meaning rather than brand. |
 | Type | Inter (UI), Pinyon Script (signature), tabular numerals via `.tnum` ✅ | ⬜ Add an OpenDyslexic / Atkinson Hyperlegible option under Appearance (Claude.ai ships a dyslexic font toggle `[R]`). |
 | Voice | Plain, short, second person, no exclamation marks; copy explains why, not just what ✅ | Codify in §2.1. |
 | AI personality | Per Armi model (Tutor withholds, Forge builds, Council argues) ✅ | Keep personality in the cast's stance, never in a global "friendly" prompt. |

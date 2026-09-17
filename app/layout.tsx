@@ -14,12 +14,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // The paper, and the ink it becomes in the dark. Kept in step with the
+  // The lit panel, and the case it becomes in the dark. Kept in step with the
   // palette by hand, because the last time they drifted the iOS status bar
   // was painting a band of the previous app above this one.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f3ea" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1917" },
+    { media: "(prefers-color-scheme: light)", color: "#f3f6fc" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b101c" },
   ],
   width: "device-width",
   initialScale: 1,

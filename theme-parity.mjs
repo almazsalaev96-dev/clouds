@@ -165,8 +165,8 @@ for (const [name, go] of Object.entries(ROUTES)) {
       const a = lum(...front), c = lum(...back);
       return (Math.max(a, c) + 0.05) / (Math.min(a, c) + 0.05);
     };
-    const cl = ratio(l.color, l.bg, [247, 243, 234]);
-    const cd = ratio(d.color, d.bg, [26, 25, 23]);
+    const cl = ratio(l.color, l.bg, [243, 246, 252]);
+    const cd = ratio(d.color, d.bg, [11, 16, 28]);
     if (Math.abs(cl - cd) > 1.6) {
       colorIssues.push({ route: name, text: l.text, light: cl.toFixed(2), dark: cd.toFixed(2), gap: (cd - cl).toFixed(2), lightColor: l.color, lightBg: l.bg, darkColor: `${d.color} on ${d.bg}` });
     }
@@ -178,8 +178,8 @@ for (const [name, go] of Object.entries(ROUTES)) {
    the reason, so that "accepted" never quietly grows to mean "whatever fails
    today". Anything not on this list has to stay within the bar. */
 const ACCEPTED = [
-  { was: "rgb(140, 106, 26)", why: "the gold nib — matching dark's 8.89 needs #554010, which is brown" },
-  { was: "rgb(111, 60, 23)", why: "syntax: a cream page cannot hold a light saturated colour" },
+  { was: "rgb(13, 122, 144)", why: "the signal — cyan bright enough to read as lit cannot also be dark enough to match the dark theme's value" },
+  { was: "rgb(111, 60, 23)", why: "syntax: a light page cannot hold a light saturated colour" },
   { was: "rgb(25, 77, 113)", why: "syntax" },
   { was: "rgb(43, 67, 150)", why: "syntax" },
   { was: "rgb(96, 54, 128)", why: "syntax" },

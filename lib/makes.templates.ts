@@ -28,16 +28,16 @@ const TOKENS = `/* Tokens. Every one of these is a knob: change a value here and
    reader's system is set to without anyone choosing. */
 :root {
   color-scheme: light dark;
-  --bg: #f7f3ea;
-  --card: #fffdf9;
-  --ink: #1a2650;
-  --muted: #5d6580;
-  --faint: #8b93a8;
-  --line: #e4ddcd;
-  --accent: #3450b5;
-  --gold: #a8801f;
-  --good: #2f7d55;
-  --bad: #b3402f;
+  --bg: #f3f6fc;
+  --card: #ffffff;
+  --ink: #0c1426;
+  --muted: #4d5773;
+  --faint: #7b849c;
+  --line: #dce3f1;
+  --accent: #2a4bd4;
+  --signal: #0d7a90;
+  --good: #17694a;
+  --bad: #b0231c;
   --r: 14px;
   --dur: 0.22s;
   --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
@@ -52,9 +52,9 @@ const TOKENS = `/* Tokens. Every one of these is a knob: change a value here and
    window inside a dark room. Guarding the query with :not([data-theme="light"])
    is what lets an explicit light choice win over a dark system. */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --bg: #1a1917; --card: #232220; --ink: #f2efe9; --muted: #a8a49c; --faint: #7d7973; --line: #35322d; --accent: #aab9ff; --gold: #d9b45a; --good: #6fd1a0; --bad: #ff9d8f; }
+  :root:not([data-theme="light"]) { --bg: #0b101c; --card: #141a29; --ink: #eef2fc; --muted: #a6afc7; --faint: #848da6; --line: #242d42; --accent: #8fb0ff; --signal: #46dfe0; --good: #4fd39b; --bad: #ff8a9b; }
 }
-:root[data-theme="dark"] { --bg: #1a1917; --card: #232220; --ink: #f2efe9; --muted: #a8a49c; --faint: #7d7973; --line: #35322d; --accent: #aab9ff; --gold: #d9b45a; --good: #6fd1a0; --bad: #ff9d8f; }
+:root[data-theme="dark"] { --bg: #0b101c; --card: #141a29; --ink: #eef2fc; --muted: #a6afc7; --faint: #848da6; --line: #242d42; --accent: #8fb0ff; --signal: #46dfe0; --good: #4fd39b; --bad: #ff8a9b; }
 :root[data-theme="dark"] { color-scheme: dark; }
 :root[data-theme="light"] { color-scheme: light; }
 
@@ -203,7 +203,7 @@ export function flashcards() {
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
 }
-.count b { color: var(--gold); font-weight: 600; }
+.count b { color: var(--signal); font-weight: 600; }
 
 /* The stage owns the perspective, so the card turns in depth rather than
    squashing flat the way a plain scaleX would. */
@@ -527,7 +527,7 @@ export function timetable() {
 .block i { font-style: normal; opacity: 0.75; font-variant-numeric: tabular-nums; }
 
 .now { position: absolute; left: 0; right: 0; z-index: 3; pointer-events: none; }
-.now .rule { display: block; height: 2px; background: var(--gold); }
+.now .rule { display: block; height: 2px; background: var(--signal); }
 .now .dot {
   position: absolute;
   left: -4px;
@@ -535,14 +535,14 @@ export function timetable() {
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: var(--gold);
+  background: var(--signal);
 }
 .now .dot::after {
   content: "";
   position: absolute;
   inset: -3px;
   border-radius: 999px;
-  border: 1px solid var(--gold);
+  border: 1px solid var(--signal);
   animation: ping 2.4s var(--ease) infinite;
 }
 @keyframes ping { 0% { opacity: 0.7; transform: scale(0.6); } 70%, 100% { opacity: 0; transform: scale(1.8); } }
@@ -1288,7 +1288,7 @@ export function timer() {
   color: var(--accent);
   transition: color 0.4s var(--ease);
 }
-body.break .center .sub { color: var(--gold); }
+body.break .center .sub { color: var(--signal); }
 
 .dial { position: relative; display: grid; place-items: center; }
 .dial svg { width: min(280px, 72vw); height: auto; transform: rotate(-90deg); }
@@ -1302,7 +1302,7 @@ body.break .center .sub { color: var(--gold); }
   stroke-dashoffset: 0;
   transition: stroke 0.4s var(--ease);
 }
-body.break .ring-fill { stroke: var(--gold); }
+body.break .ring-fill { stroke: var(--signal); }
 
 .read { position: absolute; }
 output {
@@ -1332,7 +1332,7 @@ output {
   color: var(--bg);
   font-weight: 500;
 }
-body.break .row .primary { background: var(--gold); border-color: var(--gold); }
+body.break .row .primary { background: var(--signal); border-color: var(--signal); }
 
 .hint { margin-top: 16px; font-size: 0.78rem; color: var(--faint); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }

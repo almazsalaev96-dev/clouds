@@ -44,35 +44,44 @@
   color-scheme: light;
 
   /* ---------------------------------------------------------------------
-     THE PALETTE — light, the primary theme.
+     THE PALETTE — light, the daylight theme.
 
-     Taken from the object the brand is: a fountain pen on cream paper.
+     Taken from the instrument the product is: a cold, exact machine that
+     answers in the dark.
 
-       Paper   #F7F3EA   the ground. Ivory, not white and not yellow — the
-                         deckle sheet in the photograph, under warm light.
-       Ink     #1A2650   the words. A saturated navy, the colour a good blue
-                         ink dries to, and the only colour most of a screen
-                         is ever made of.
-       Gold    #D4AF5A   the nib. A jewel, never a surface: the last letters of
-                         the signature, a badge, the tip of the caret, the edge
-                         of the ring while a reply is arriving.
-       Leather #8A4B1D   the desk. Warmth in the field behind everything, and
-                         the colour of "thinking" — a state that is warm and
-                         slow rather than electric.
+       Ice     #F3F6FC   the ground. A white with the blue left in it, the
+                         colour of a lit panel rather than of paper.
+       Ink     #0C1426   the words. Near-black with a navy core, so text on
+                         either ground belongs to the same family.
+       Signal  #22C9E0   the light on the instrument. Cyan, and never a
+                         surface: a badge, the tip of the caret, the ring
+                         while a reply is arriving, the letters of the
+                         signature. It is the one thing on screen that looks
+                         powered.
+       Depth   #14276B   the case. The deep blue everything structural is
+                         built out of.
 
      Two hues for two jobs, and the difference is the whole grammar of the
-     interface: royal blue (#3450B5) is *structure* — links, focus, the active
-     row — and the deep ink (#1F2D66) is *action*, the one control on a
-     screen you are meant to press. You write with the ink. Gold on paper
-     cannot carry text at 4.5:1 at any value that also holds a 3:1 edge, so
-     gold is never asked to; it is a detail, which is what a nib is.
+     interface: electric blue (#2A4BD4) is *structure* — links, focus, the
+     active row — and the deep blue (#14276B) is *action*, the one control on
+     a screen you are meant to press. Cyan at any value bright enough to read
+     as a signal cannot carry body text at 4.5:1, so it is never asked to: it
+     is a light, and a light is a detail.
+
+     The warm half of the old palette is gone on purpose. One warm value
+     survives — the amber of a warning — because "stopped", "cut short" and
+     "that went wrong" are not brand, they are meaning, and meaning does not
+     get recoloured to match a theme.
 
      Success is forest, danger is oxblood: the greens and reds of the same
      desk, not of a traffic light. Every pair below is computed against WCAG
      (`node contrast.mjs`), not judged by eye.
      --------------------------------------------------------------------- */
-  --bg-canvas: #f7f3ea;
-  --bg-surface: #fffdf8;
+  --bg-canvas: #f3f6fc;
+  /* Not pure white: a lit edge on a raised surface is painted in white, and
+     a surface already at the top of the range leaves it nothing to be lighter
+     than — the rim disappears and the card goes flat. This keeps a step. */
+  --bg-surface: #fbfdff;
   /* Enough of a step from the page to be a shape on it.
      At #efe9db this sat 1.09 from the canvas while dark's sits 1.23 from its
      own — so a user's message bubble was a clear pill in dark and very nearly
@@ -80,19 +89,19 @@
      what has to match between two themes is the size of the step, not the
      colour. Text on it still clears every threshold — secondary 8.68,
      faint 4.88. */
-  --bg-subtle: #e7dfcd;
+  --bg-subtle: #dee6f5;
   /* The same step from the page as the dark theme's inset takes from its own:
      1.06 against 1.07. It was 1.17 — a deeper tint, which reads as more
      recessed and costs every character sitting on it a point of contrast,
      because in a light theme "darker" moves the panel *toward* the ink rather
      than away from it. Code blocks and quiet panels sit on this. */
-  --bg-inset: #f2ece0;
-  --bg-overlay: rgba(26, 38, 80, 0.42);
+  --bg-inset: #eaeff8;
+  --bg-overlay: rgba(9, 16, 35, 0.44);
 
-  --border-subtle: #e3dccb;
+  --border-subtle: #dce3f1;
   /* Control boundaries clear 3:1 against the page. Hairlines do not have to,
      which is why there are two of these. */
-  --border-strong: #7d7f88;
+  --border-strong: #78829a;
 
   /* Inked to match the dark theme's strength, role for role.
      ---------------------------------------------------------------------
@@ -102,68 +111,67 @@
      against 10.32, tertiary 5.63 against 7.59 — which is why the two themes
      did not look like the same app. These values hit the dark figures within
      a tenth. They are still the same navy: only the lightness moved, so a
-     page reads as ink on cream rather than as a dimmer copy of the dark one. */
-  --text-primary: #101731;
-  --text-secondary: #2f3857;
-  --text-tertiary: #444d65;
-  --text-faint: #575e71;
+     page reads as ink on a lit panel rather than as a dimmer copy of the dark one. */
+  --text-primary: #0c1426;
+  --text-secondary: #2c3654;
+  --text-tertiary: #414b66;
+  --text-faint: #545d75;
 
-  /* Thinking, deepened for paper. */
-  --accent: #3450b5;
-  --accent-hover: #28409a;
-  --accent-fill: #3450b5;
-  --accent-subtle: #e9ebf6;
+  /* Structure, deepened for daylight. */
+  --accent: #2a4bd4;
+  --accent-hover: #1f3bb0;
+  --accent-fill: #2a4bd4;
+  --accent-subtle: #e7ebfa;
   --accent-fg: #ffffff;
-  --accent-rgb: 52 80 181;
+  --accent-rgb: 42 75 212;
   /* The one coloured element in the wordmark. */
 
-  /* The nib, deepened to carry small text.
-     At #a8801f it scored 3.29 on cream — over the 3:1 bar for the large
-     letters of the wordmark and under the 4.5 every other use of it needs.
-     The hue and the saturation are untouched at 42° and 69%; only lightness
-     moved, 39% to 33%. Matching the dark theme's 8.89 would have meant #554010,
-     which is not gold, it is brown. */
-  --accent-2: #8c6a1a;
-  --accent-2-rgb: 140 106 26;
+  /* The signal, deepened to carry small text.
+     Cyan on a light ground is the same problem gold was: the value that
+     glows on the dark theme scores about 1.6 here. This is the same hue at
+     a lightness that clears 4.5 against the page, so the one colour that
+     means "powered" can also be read at 12px. */
+  --accent-2: #0d7a90;
+  --accent-2-rgb: 13 122 144;
 
-  /* Act, deepened for paper. */
-  --cta: #1f2d66;
-  --cta-hover: #16204c;
-  --cta-fg: #f7f3ea;
-  --cta-rgb: 31 45 102;
+  /* Act, deepened for daylight. */
+  --cta: #14276b;
+  --cta-hover: #0d1c50;
+  --cta-fg: #f3f6fc;
+  --cta-rgb: 20 39 107;
 
-  /* The loud one. Only ever a badge, only ever with the ink on top. */
-  /* Bright Green sits at 1.2:1 against Manela — on cream it is a shape with
-     no edge, and a badge you cannot find the boundary of is not a badge. It
-     keeps its true value and borrows the ink for an outline instead, which is
-     both what the palette sheet itself does and cheaper than inventing a
-     duller green nobody specified. */
-  --highlight: #d4af5a;
-  --highlight-fg: #1a2650;
-  --highlight-edge: #1a2650;
+  /* The loud one. Only ever a badge, only ever with the ink on top.
+     Cyan at the value that reads as lit sits near 1.6 against a light page:
+     it is a shape with no edge, and a badge whose boundary you cannot find
+     is not a badge. It keeps its true value and borrows the ink for an
+     outline instead, rather than being dulled into a colour nobody would
+     call a signal. */
+  --highlight: #22c9e0;
+  --highlight-fg: #06121a;
+  --highlight-edge: #0c1426;
   /* The highlighter. */
-  --mark: #f6e7b8;
-  --mark-fg: #1a2650;
+  --mark: #c9e9f6;
+  --mark-fg: #0c1426;
 
   /* --- Status. --- */
-  --live: #8a4b1d;
-  --go: #2f6b46;
-  --stop: #a6342a;
+  --live: #0d7a90;
+  --go: #17694a;
+  --stop: #b0231c;
 
-  --stop-fill: #a6342a;
+  --stop-fill: #b0231c;
 
   --success: var(--go);
-  --warning: var(--live);
+  --warning: #a4590b;
   --danger: var(--stop);
-  --danger-subtle: #f8e6e2;
+  --danger-subtle: #f9e5e3;
 
-  /* The field behind everything. On cream, colour reads as a stain long
+  /* The field behind everything. On a light ground, colour reads as a stain long
      before it reads as depth, so this is barely there on purpose. */
-  --mesh-a: rgba(184, 144, 46, 0.10);
-  --mesh-b: rgba(31, 45, 102, 0.06);
-  --mesh-c: rgba(122, 74, 42, 0.05);
+  --mesh-a: rgba(34, 201, 224, 0.10);
+  --mesh-b: rgba(42, 75, 212, 0.07);
+  --mesh-c: rgba(13, 122, 144, 0.05);
   --grain-opacity: 0.035;
-  --glass: rgba(247, 243, 234, 0.74);
+  --glass: rgba(243, 246, 252, 0.76);
   --glow: none;
 
   /* --- Elevation. --- */
@@ -209,7 +217,7 @@
          So the rim ramps, and it ramps as a *pair*, because that is what an
          edge in real light is — a catch on the side facing the source and an
          occlusion on the side facing away. Which half you actually see is the
-         only thing that differs between the two rooms. On cream the catch is
+         only thing that differs between the two rooms. In daylight the catch is
          white on near-white and reads as almost nothing while the occlusion
          carries it; on the dark ground it is the other way round. Neither
          theme gets a special case. They get different weights on the same two
@@ -375,7 +383,7 @@
      These were the worst of it: 4.8 to 6.0 against dark's 8 to 11.5, which is
      the washed-out code block you can see in a screenshot of the two side by
      side. They are not matched exactly, and that is deliberate. A near-black
-     page lets a colour be light *and* saturated at once; cream does not, so
+     page lets a colour be light *and* saturated at once; a white one does not, so
      chasing 11.5 here turns seven hues into seven browns — the solver's
      answers at that target were #3b3f49, #1e2d67, #103045, #3c200d, and by
      then nothing is a keyword rather than a number.
@@ -398,13 +406,13 @@
   /* The composer. On light it lifts with a real drop shadow; on dark a shadow
      under a dark box is invisible, so the lift there comes from a lit top edge
      instead. Both live here so the rule that uses them stays one rule. */
-  --composer-bg: rgba(255, 255, 255, 0.88);
-  --composer-line: rgba(26, 38, 80, 0.10);
-  --composer-line-focus: rgba(168, 128, 31, 0.55);
-  --composer-lift: 0 1px 2px rgb(26 38 80 / 0.05), 0 12px 32px -16px rgb(26 38 80 / 0.18);
+  --composer-bg: rgba(251, 253, 255, 0.90);
+  --composer-line: rgba(12, 20, 38, 0.10);
+  --composer-line-focus: rgba(13, 122, 144, 0.55);
+  --composer-lift: 0 1px 2px rgb(12 20 38 / 0.05), 0 12px 32px -16px rgb(12 20 38 / 0.18);
   --composer-lift-focus:
-    0 1px 2px rgb(26 38 80 / 0.05),
-    0 16px 40px -18px rgb(26 38 80 / 0.22),
+    0 1px 2px rgb(12 20 38 / 0.05),
+    0 16px 40px -18px rgb(12 20 38 / 0.22),
     0 0 0 3px rgb(var(--accent-2-rgb) / 0.20);
 }
 
@@ -430,38 +438,39 @@
        for the same reason: at eleven at night the ground has one job, which is
        to get out of the way of the words.
 
-       So the ground is a true neutral — three points of channel spread, leaning
-       warm because the brand is warm, the desk rather than the ink. The brand
-       is carried by everything on top of it and nothing underneath: the paper
-       is the text, the gold is the action and the nib, and the blue stays where
-       it is in the light theme, structure.
+       So the ground is a deep blue-black — the inside of the case rather than
+       a neutral grey, cold on purpose, and still dark enough that nothing on
+       it has to shout. The brand is carried by everything on top of it and
+       nothing underneath: the near-white is the text, the cyan is the action
+       and the signal, and the blue stays where it is in the light theme,
+       structure.
 
        Every pair below is computed against WCAG (`node contrast.mjs`).
        --------------------------------------------------------------------- */
-    --bg-canvas: #1a1917;
-    --bg-surface: #232220;
-    --bg-subtle: #2c2a27;
-    --bg-inset: #121110;
-    --bg-overlay: rgba(10, 9, 8, 0.74);
+    --bg-canvas: #0b101c;
+    --bg-surface: #141a29;
+    --bg-subtle: #1d2537;
+    --bg-inset: #070b14;
+    --bg-overlay: rgba(3, 6, 12, 0.78);
 
-    --border-subtle: #35332f;
-    --border-strong: #807c73;
+    --border-subtle: #242d42;
+    --border-strong: #737f9c;
 
-    --text-primary: #f7f3ea;
-    --text-secondary: #cbc6bb;
-    --text-tertiary: #afaa9f;
-    --text-faint: #918c83;
+    --text-primary: #eef2fc;
+    --text-secondary: #c3cbe0;
+    --text-tertiary: #a6afc7;
+    --text-faint: #848da6;
 
-    --accent: #aab9ff;
-    --accent-hover: #c3ccff;
-    --accent-fill: #4a63c9;
-    --accent-subtle: #2e2c2f;
+    --accent: #8fb0ff;
+    --accent-hover: #adc5ff;
+    --accent-fill: #3355d8;
+    --accent-subtle: #1a2340;
     --accent-fg: #ffffff;
-    --accent-rgb: 170 185 255;
+    --accent-rgb: 143 176 255;
     /* The one coloured element in the wordmark. */
 
-    --accent-2: #d9b45a;
-    --accent-2-rgb: 217 180 90;
+    --accent-2: #46dfe0;
+    --accent-2-rgb: 70 223 224;
 
     /* Green at its true value, carrying the ink rather than white: at this
        brightness it is a lit surface, and white on it is unreadable. */
@@ -469,34 +478,34 @@
        its light-theme counterpart already had: 11.04 against the ink on it,
        where it was 8.89 and the light theme's deep-ink button was 11.67. Same
        hue, same nib; a little more of it. */
-    --cta: #e8ca80;
-    --cta-hover: #f0daa0;
-    --cta-fg: #1a1917;
-    --cta-rgb: 232 202 128;
+    --cta: #5ce0e8;
+    --cta-hover: #86ecf1;
+    --cta-fg: #06121a;
+    --cta-rgb: 92 224 232;
 
     /* On the deep teal it carries its own edge, so the outline is the colour. */
-    --highlight: #d9b45a;
-    --highlight-fg: #1a1917;
-    --highlight-edge: #d9b45a;
-    --mark: #4a4022;
-    --mark-fg: #f7f3ea;
+    --highlight: #46dfe0;
+    --highlight-fg: #06121a;
+    --highlight-edge: #46dfe0;
+    --mark: #173a52;
+    --mark-fg: #eef2fc;
 
-    --live: #e0a060;
-    --go: #5fc98a;
-    --stop: #ff8a80;
+    --live: #46dfe0;
+    --go: #4fd39b;
+    --stop: #ff8a9b;
 
-    --stop-fill: #c0392b;
+    --stop-fill: #b3283a;
 
     --success: var(--go);
-    --warning: var(--live);
+    --warning: #f0a561;
     --danger: var(--stop);
-    --danger-subtle: #3a201c;
+    --danger-subtle: #35151f;
 
-    --mesh-a: rgba(217, 180, 90, 0.10);
-    --mesh-b: rgba(170, 185, 255, 0.07);
-    --mesh-c: rgba(247, 243, 234, 0.035);
+    --mesh-a: rgba(70, 223, 224, 0.11);
+    --mesh-b: rgba(143, 176, 255, 0.09);
+    --mesh-c: rgba(238, 242, 252, 0.03);
     --grain-opacity: 0.045;
-    --glass: rgba(26, 25, 23, 0.74);
+    --glass: rgba(11, 16, 28, 0.78);
     --glow: 0 0 24px -6px var(--accent-2);
 
     /* Darker and deeper, and still tinted rather than pure black: this ground
@@ -509,19 +518,19 @@
        2.03, which is the same order of step the light theme gets from its
        shadow alone. */
     --rim-sm:
-      inset 0 1px 0 0 rgb(247 243 234 / 0.06),
+      inset 0 1px 0 0 rgb(238 242 252 / 0.06),
       inset 0 -1px 0 0 rgb(0 0 0 / 0.25);
     --rim-md:
-      inset 0 1px 0 0 rgb(247 243 234 / 0.11),
-      inset 1px 0 0 0 rgb(247 243 234 / 0.055),
+      inset 0 1px 0 0 rgb(238 242 252 / 0.11),
+      inset 1px 0 0 0 rgb(238 242 252 / 0.055),
       inset 0 -1px 0 0 rgb(0 0 0 / 0.35);
     --rim-lg:
-      inset 0 1px 0 0 rgb(247 243 234 / 0.18),
-      inset 1px 0 0 0 rgb(247 243 234 / 0.09),
+      inset 0 1px 0 0 rgb(238 242 252 / 0.18),
+      inset 1px 0 0 0 rgb(238 242 252 / 0.09),
       inset -1px 0 0 0 rgb(0 0 0 / 0.20),
       inset 0 -1px 0 0 rgb(0 0 0 / 0.45);
-    --rim-all: inset 0 0 0 1px rgba(247, 243, 234, 0.05);
-    --rim-flush: inset 0 1px 0 0 rgb(247 243 234 / 0.09);
+    --rim-all: inset 0 0 0 1px rgba(238, 242, 252, 0.05);
+    --rim-flush: inset 0 1px 0 0 rgb(238 242 252 / 0.09);
 
     --shadow-sm:
       0 1px 1px -1px rgba(0, 0, 0, 0.5),
@@ -542,26 +551,26 @@
        disagreed about what a comment *is*: dark muted it to 5.64 while light
        kept it in the band with the other six at 7.63. A comment that recedes in
        one theme and not the other is two different opinions shipped together. */
-    --syn-comment: #a5a099;
-    --syn-keyword: #aab9ff;
-    --syn-string: #5fc98a;
+    --syn-comment: #9aa3b8;
+    --syn-keyword: #8fb0ff;
+    --syn-string: #4fd39b;
     --syn-function: #9fc4ff;
     --syn-number: #ffbd7d;
-    --syn-type: #d9b45a;
+    --syn-type: #46dfe0;
 
     /* This was still `rgba(26, 50, 59, …)` — a teal from a palette two
        revisions ago that nothing pointed at any more, which is why the one
        element you look at most sat in a blue pool on an otherwise neutral
        ground. It is the lifted surface now, like every other raised thing. */
-    --composer-bg: rgba(44, 42, 39, 0.76);
-    --composer-line: rgba(247, 243, 234, 0.09);
-    --composer-line-focus: rgba(217, 180, 90, 0.55);
-    --composer-lift: inset 0 1px 0 rgb(247 243 234 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
+    --composer-bg: rgba(29, 37, 55, 0.78);
+    --composer-line: rgba(238, 242, 252, 0.10);
+    --composer-line-focus: rgba(70, 223, 224, 0.55);
+    --composer-lift: inset 0 1px 0 rgb(238 242 252 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
     /* The ring around the box you type in, only while the caret is in it, and
-       in the gold of the nib rather than in the structural blue: it marks where
-       you are writing, which is the one thing a nib does. */
+       in the cyan of the signal rather than in the structural blue: it marks
+       where you are writing, which is the one thing a signal light does. */
     --composer-lift-focus:
-      inset 0 1px 0 rgb(247 243 234 / 0.10),
+      inset 0 1px 0 rgb(238 242 252 / 0.10),
       0 24px 56px -22px rgb(0 0 0 / 0.9),
       0 0 0 3px rgb(var(--accent-2-rgb) / 0.16);
   }

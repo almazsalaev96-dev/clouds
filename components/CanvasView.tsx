@@ -1057,7 +1057,7 @@ function Editor({
                     {rules && (
                       <span
                         aria-hidden
-                        className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[var(--gold)]"
+                        className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[var(--accent-2)]"
                       />
                     )}
                   </span>

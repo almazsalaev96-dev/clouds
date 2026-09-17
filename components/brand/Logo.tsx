@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
  * A signature. The brief was a fountain pen on deckle paper, and what a pen
  * writes is not a logotype — it is a name in someone's hand. So the mark is
  * the word set in a copperplate script (Pinyon, the engraved round hand of
- * nineteenth-century correspondence), in the ink, with the last two letters in
- * the gold of the nib.
+ * nineteenth-century correspondence), in the ink, with the last two letters
+ * lit in the signal cyan.
  *
  * It appears at most once per screen. A signature repeated is a watermark.
  *
@@ -23,13 +23,13 @@ import { cn } from "@/lib/utils";
 /** The name, set. */
 export function Wordmark({
   height = 32,
-  gold = true,
+  signal = true,
   className,
 }: {
   /** Cap height of the A, in px. The word is about 2.6× as wide. */
   height?: number;
-  /** The gold. Off where the mark sits on a coloured ground of its own. */
-  gold?: boolean;
+  /** The lit half. Off where the mark sits on a coloured ground of its own. */
+  signal?: boolean;
   className?: string;
 }) {
   // Pinyon's ascenders run well above the cap; sizing the font at the height
@@ -43,14 +43,14 @@ export function Wordmark({
       style={{ fontSize: size, height: size * 1.05, lineHeight: 1 }}
     >
       {/* Two tones, split at the halfway point of the word: the first half in
-          the ink, the last two letters in the gold of the nib. Two spans and
+          the ink, the last two letters in the signal cyan. Two spans and
           not one gradient, because a gradient needs `color: transparent` and
           `background-clip: text`, and in forced-colors mode that is a wordmark
           that renders as nothing at all. */}
       <span aria-hidden className="text-current">Ar</span>
       <span
         aria-hidden
-        className={gold ? "text-[var(--accent-2)]" : "text-current"}
+        className={signal ? "text-[var(--accent-2)]" : "text-current"}
         // Pinyon joins its letters, and splitting the run drops the join
         // between the r and the m. Pulling the second half back by the width
         // of that connector puts it back.
