@@ -128,6 +128,9 @@ Armi
 | Motion | `--dur-fast`, `--dur-enter`, `--ease-out` | `prefers-reduced-motion` collapses to opacity only. |
 | Controls | `--ctl` (control size), `.tap` (44pt floor), `.btn-touch` | Any new interactive element uses `.tap` or `.ctl`. |
 | Glass | `.glass` (backdrop blur surface) | Sticky headers, toasts, composer. |
+| Elevation | `--shadow-sm` (card) · `--shadow-md` (menu, floating panel) · `--shadow-lg` (dialog, palette) — each its own shadow, each with a lit rim | Three levels, never one shadow scaled. In dark the ink is plain black at rising weight and the rim does the separating, because a shadow alone vanishes on a near-black ground. `.lift` = a card row rising 2px in 180ms with its border warming toward the accent. |
+| Glow | `.bloom` — resting 0.15, hover 0.22, on the one primary action per screen | **Nothing else glows.** Seven in the app, one per screen. The send button alone carries an ambient halo. |
+| Colour budget | ~85% neutral surfaces · ~10% text hierarchy · ~5% accent | The rule that makes the accent read as valuable rather than noisy. Not yet measured by the gate; a `budget` probe sampling rendered pixels by hue is the next measured check to add. |
 
 ### 4.2 Components (existing, in `components/ui/primitives.tsx` and siblings)
 

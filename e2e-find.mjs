@@ -37,10 +37,17 @@ await p.keyboard.press("Enter");
 await p.waitForTimeout(6500);
 
 const open = async (q) => {
-  await p.keyboard.press("Escape").catch(() => {});
-  await p.keyboard.press("Meta+k");
-  await p.waitForTimeout(400);
-  await p.getByRole("combobox").or(p.getByPlaceholder(/Search|Type a command/i)).first().fill(q);
+  /* ⌘K toggles. When the palette is still open from the last section, an
+     Escape only clears its query, and the toggle then *closes* it — so the
+     fill waits on a dialog that has just gone. Open it only when it is shut. */
+  if (!(await p.getByRole("dialog").isVisible().catch(() => false))) {
+    await p.keyboard.press("Meta+k");
+    await p.waitForTimeout(400);
+  }
+  /* The palette's own box, by its label. A /Search/ placeholder regex also
+     matches the sidebar's "Search conversations" and `.first()` picked that,
+     so every query went into a box the palette never reads. */
+  await p.getByRole("dialog").getByLabel("Command palette").fill(q);
   await p.waitForTimeout(700);
 };
 
@@ -84,14 +91,16 @@ console.log("\nOne row per conversation, however many times it is mentioned");
 {
   await open("debounce");
   const rows = await p.getByRole("option").allInnerTexts();
-  const inChats = rows.filter((r) => /debounce/i.test(r));
-  const threads = new Set(inChats.map((r) => r.split("\n")[0]));
-  check(threads.size <= inChats.length, "rows exist");
+  /* Only the rows that are *this thread*: the cards group labels every row
+     with its deck's name, so counting everything that says "debounce" counts
+     five cards as five duplicate conversations. */
+  const thread = rows.filter((r) => /^Debouncing a search input/.test(r));
+  check(thread.length >= 1, "the thread is found");
   /* Twelve hits in one thread is one thing to open. Twelve rows of it is a
-     group that drowns out every other room. */
-  const dupes = inChats.length - new Set(inChats.map((r) => r.split("\n")[0])).size;
-  check(dupes <= 2, "a thread mentioned many times is still one row, not many",
-    `${inChats.length} rows across ${threads.size} titles`);
+     group that drowns out every other room. At most two rows may carry the
+     title: its own entry under Chats, and one under In conversations. */
+  check(thread.length <= 2, "a thread mentioned many times is still one row, not many",
+    `${thread.length} row(s) carry the title`);
 }
 
 console.log("\nAnd a single letter is not a search");

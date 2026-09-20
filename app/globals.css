@@ -90,6 +90,9 @@
      colour. Text on it still clears every threshold — secondary 8.68,
      faint 4.88. */
   --bg-subtle: #dfe5f3;
+  /* A section's ground: one step off the canvas, under a card. Four
+     planes read as depth; three read as a card on a page. */
+  --bg-section: #eef2f9;
   /* The same step from the page as the dark theme's inset takes from its own:
      1.06 against 1.07. It was 1.17 — a deeper tint, which reads as more
      recessed and costs every character sitting on it a point of contrast,
@@ -481,6 +484,7 @@
     --bg-canvas: #0b101b;
     --bg-surface: #141a28;
     --bg-subtle: #1e2535;
+    --bg-section: #0f1521;
     --bg-inset: #070a13;
     --bg-overlay: rgba(7, 10, 19, 0.78);
 
@@ -573,19 +577,23 @@
     --rim-all: inset 0 0 0 1px rgba(229, 232, 237, 0.05);
     --rim-flush: inset 0 1px 0 0 rgb(229 232 237 / 0.09);
 
+    /* Three elevation levels, each with its own shadow rather than one
+       shadow scaled: a card (sm), a floating panel or menu (md), a dialog or
+       the palette (lg). The ink is plain black at rising weight — on a
+       near-black ground a tinted shadow reads as a smear — and the rim is
+       kept on each, because a shadow alone vanishes against this canvas
+       and the lit edge is what actually separates two dark planes. */
     --shadow-sm:
-      0 1px 1px -1px rgba(0, 0, 0, 0.5),
-      0 1px 3px -1px rgba(0, 0, 0, 0.4),
+      0 2px 8px rgba(0, 0, 0, 0.18),
+      0 1px 2px rgba(0, 0, 0, 0.25),
       var(--rim-sm);
     --shadow-md:
-      0 1px 2px -1px rgba(0, 0, 0, 0.45),
-      1px 4px 8px -4px rgba(0, 0, 0, 0.5),
-      2px 10px 20px -10px rgba(0, 0, 0, 0.55),
+      0 8px 24px rgba(0, 0, 0, 0.28),
+      0 2px 8px rgba(0, 0, 0, 0.18),
       var(--rim-md);
     --shadow-lg:
-      0 2px 4px -2px rgba(0, 0, 0, 0.5),
-      2px 10px 20px -10px rgba(0, 0, 0, 0.58),
-      6px 28px 56px -18px rgba(0, 0, 0, 0.7),
+      0 20px 60px rgba(0, 0, 0, 0.40),
+      0 8px 24px rgba(0, 0, 0, 0.25),
       var(--rim-lg);
 
     /* Solved against #070a13 at the same six targets the light set was solved
@@ -1809,10 +1817,55 @@ body::after {
     transform var(--dur-enter) var(--ease-spring);
 }
 
+/* The send button, and only the send button, carries an ambient halo at
+   rest on top of its glow: the AI's own control gets to look lit from
+   within. Kept faint — 0.14 — because an interface where everything glows
+   has nothing that does. */
+.bloom-ai {
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.30),
+    0 0 24px rgb(var(--bloom-rgb, var(--cta-rgb)) / 0.14);
+}
+
+/* A card that lifts under the pointer. Two pixels and 180ms — enough to
+   answer the hand, not enough to make the page jump — with the border
+   warming a shade toward the accent rather than the shadow doing all the
+   work: on a dark ground a border is what defines structure. */
+.lift {
+  transition:
+    transform 180ms var(--ease-out),
+    box-shadow 180ms var(--ease-out),
+    border-color 180ms var(--ease-out);
+}
+.lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), 0 0 0 1px rgb(var(--accent-rgb) / 0.08);
+  border-color: rgb(var(--accent-rgb) / 0.22);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lift:hover { transform: none; }
+}
+
+/* An input that has the caret says so twice: the line turns and a soft
+   three-pixel halo sits outside it. Two cues because a border alone is one
+   pixel of colour on a dark field, which is easy to miss from arm's length. */
+input:focus-visible,
+textarea:focus-visible,
+.composer-shell:focus-within {
+  box-shadow: 0 0 0 3px rgb(var(--accent-2-rgb) / 0.10);
+}
+
+/* The one action per screen carries a resting glow, and a stronger one on
+   hover. Resting at 0.15 is the line between "this is the thing to press"
+   and "this is shouting": seven of these exist in the app, one per screen,
+   and the rule is that nothing else glows at all. */
+.bloom {
+  box-shadow: 0 4px 16px rgb(var(--bloom-rgb, var(--cta-rgb)) / 0.15);
+}
 .bloom:hover:not(:disabled) {
   box-shadow:
     0 0 0 1px rgb(var(--bloom-rgb, var(--cta-rgb)) / 0.35),
-    0 6px 22px -6px rgb(var(--bloom-rgb, var(--cta-rgb)) / 0.6),
+    0 6px 22px rgb(var(--bloom-rgb, var(--cta-rgb)) / 0.22),
     0 2px 6px -2px rgb(var(--bloom-rgb, var(--cta-rgb)) / 0.45);
   transform: translateY(-1px);
 }

@@ -403,7 +403,7 @@ export function StudyView({
           {(lessons ?? []).length > 0 && (
             <ul className="mt-2 space-y-1" aria-label="Documents">
               {(lessons ?? []).slice(0, 4).map((l) => (
-                <li key={l.id} className="tap flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2">
+                <li key={l.id} className="tap lift flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2">
                   <button
                     onClick={() => setOpenLesson(l.id)}
                     aria-label={`Open ${l.name}`}

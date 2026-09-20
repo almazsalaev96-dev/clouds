@@ -285,7 +285,7 @@ export function MessageBar({
               aria-hidden={streaming || undefined}
               aria-label="Send message"
               className={cn(
-                "bloom focus-inset absolute inset-0 flex items-center justify-center rounded-full transition-[opacity,background-color,color,box-shadow,transform] duration-[var(--dur-fast)] ease-[var(--ease-std)]",
+                "bloom bloom-ai focus-inset absolute inset-0 flex items-center justify-center rounded-full transition-[opacity,background-color,color,box-shadow,transform] duration-[var(--dur-fast)] ease-[var(--ease-std)]",
                 "bg-[var(--cta)] text-[var(--cta-fg)] hover:bg-[var(--cta-hover)]",
                 /* The disabled disc has to stay a disc. On a translucent
                    composer, a fill this close to the surface behind it just
