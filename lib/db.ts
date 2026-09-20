@@ -4,7 +4,10 @@ import type {
   Deck, Lesson, LessonTurn, Memory, Project, ProjectFile, RatingReason, Source, Style, Turn, TurnOutcome,
 } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
-import { newCard, schedule, dayKey, parseCards, type Card, type Rating, type StudyDay } from "./study";
+import {
+  newCard, schedule, dayKey, parseCards, makeReverse,
+  type Attempt, type Card, type Rating, type StudyDay,
+} from "./study";
 
 /**
  * Local-first. IndexedDB is the source of truth, which makes the app instant,
@@ -29,6 +32,7 @@ class ChatDB extends Dexie {
   studyDays!: Table<StudyDay, string>;
   lessons!: Table<Lesson, string>;
   lessonTurns!: Table<LessonTurn, string>;
+  attempts!: Table<Attempt, string>;
 
   constructor() {
     super("clouds");
@@ -188,6 +192,24 @@ class ChatDB extends Dexie {
     this.version(14).stores({
       lessons: "id, updatedAt",
       lessonTurns: "id, lessonId, at, [lessonId+at]",
+    });
+
+    /* What was actually answered, and what was answered *with*.
+       ---------------------------------------------------------------------
+       A card carries its schedule and nothing else: ask it what went wrong
+       and it can only say "twice". The wrong answers themselves are the
+       thing — "you wrote meiosis" is a sentence somebody can act on and
+       "lapses: 2" is not — so they are written down as they happen, because
+       this is the one kind of data that cannot be reconstructed afterwards.
+
+       `topic` is indexed on cards for the same reason it exists: every
+       reading worth having is per topic, and a scan of the whole table to
+       group by one is the query that gets slow first. The rest of the card
+       indexes are restated because Dexie reads each version as a delta and
+       an index left out of one is an index dropped. */
+    this.version(15).stores({
+      cards: "id, deckId, due, topic, [deckId+due]",
+      attempts: "id, at, cardId, topic, [topic+at]",
     });
   }
 }
@@ -424,8 +446,9 @@ export async function createDeck(name: string, source?: string): Promise<Deck> {
  */
 export async function addCards(
   deckId: string,
-  drafts: { front: string; back: string }[],
+  drafts: { front: string; back: string; topic?: string; tags?: string[] }[],
   source?: string,
+  topic?: string,
 ): Promise<number> {
   const now = Date.now();
   const existing = new Set(
@@ -434,7 +457,14 @@ export async function addCards(
   const fresh = drafts
     .filter((d) => d.front.trim() && d.back.trim())
     .filter((d) => !existing.has(d.front.trim().toLowerCase()))
-    .map((d) => newCard({ id: uid(), deckId, front: d.front.trim(), back: d.back.trim(), now, source }));
+    .map((d) => newCard({
+      id: uid(), deckId, front: d.front.trim(), back: d.back.trim(), now, source,
+      /* A topic the draft names beats one passed for the batch: a model
+         asked for cards from a chapter can label them finer than the
+         chapter can. */
+      topic: d.topic?.trim() || topic?.trim() || undefined,
+      tags: d.tags?.length ? d.tags : undefined,
+    }));
   if (!fresh.length) return 0;
   await db.cards.bulkAdd(fresh);
   await db.decks.update(deckId, { updatedAt: now });
@@ -453,6 +483,93 @@ export async function answerCard(card: Card, rating: Rating): Promise<Card> {
   await db.decks.update(card.deckId, { updatedAt: now });
   await noteStudied(rating, now);
   return next;
+}
+
+/**
+ * Put a card back the way it was before the last answer.
+ *
+ * The scheduler is pure, so undo is not a recomputation — it is the previous
+ * row, which the session still has in hand. Pressing 2 when you meant 3 buys
+ * a card back in ten minutes instead of four days, and without this the only
+ * way out is to wait for it and lie the other way.
+ *
+ * The day's tally is left alone. You did answer it; the streak is not a
+ * scoreboard to be corrected, and an undo that silently rewrote history
+ * would make the one honest number in the room dishonest.
+ */
+export async function unanswerCard(previous: Card): Promise<void> {
+  await db.cards.put(previous);
+  await db.decks.update(previous.deckId, { updatedAt: Date.now() });
+}
+
+/* ------------------------------------------------------------- attempts -- */
+
+/** One marked answer, written down. Returns the row so a caller can amend it. */
+export async function noteAttempt(a: Omit<Attempt, "id" | "at">): Promise<Attempt> {
+  const row: Attempt = { id: uid(), at: Date.now(), ...a };
+  await db.attempts.add(row);
+  return row;
+}
+
+/**
+ * The log, newest first, and bounded.
+ *
+ * Bounded because nothing above this reads more than a month of it and an
+ * unbounded read of a year of answering is a stall on opening the room.
+ */
+export async function attemptsSince(days = 60): Promise<Attempt[]> {
+  const since = Date.now() - days * 86_400_000;
+  return db.attempts.where("at").above(since).toArray();
+}
+
+export async function forgetAttempts(): Promise<() => Promise<void>> {
+  const all = await db.attempts.toArray();
+  await db.attempts.clear();
+  return async () => { if (all.length) await db.attempts.bulkPut(all); };
+}
+
+/* -------------------------------------------------------- cards, edited -- */
+
+/** Every card in the store, for the readings that run across decks. */
+export function allCards(): Promise<Card[]> {
+  return db.cards.toArray();
+}
+
+/** Label a card, or a whole deck, with what it is about. */
+export async function setTopic(cardIds: string[], topic: string): Promise<void> {
+  const t = topic.trim().slice(0, 60);
+  await db.transaction("rw", db.cards, async () => {
+    for (const id of cardIds) await db.cards.update(id, { topic: t || undefined });
+  });
+}
+
+/**
+ * The other direction of a card, as a real second card.
+ *
+ * Refused where one already exists, so pressing twice does not make two —
+ * and refused for a cloze, which has no other direction.
+ */
+export async function addReverse(card: Card): Promise<Card | null> {
+  const twin = await db.cards.where("deckId").equals(card.deckId).toArray();
+  if (twin.some((c) => c.reverseOf === card.id)) return null;
+  const made = makeReverse(card, uid(), Date.now());
+  if (!made) return null;
+  await db.cards.add(made);
+  await db.decks.update(card.deckId, { updatedAt: Date.now() });
+  return made;
+}
+
+/**
+ * Take a card out of the queue without destroying it.
+ *
+ * A leech that is deleted takes its history with it, and the history is the
+ * evidence that it was a bad card rather than a hard fact. Parked far enough
+ * out that it stops costing a slot, and findable in the deck.
+ */
+export async function parkCard(card: Card): Promise<() => Promise<void>> {
+  const before = { ...card };
+  await db.cards.update(card.id, { due: Date.now() + 365 * 86_400_000 });
+  return async () => { await db.cards.put(before); };
 }
 
 /* ---------------------------------------------------------------- tutor -- */

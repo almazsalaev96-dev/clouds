@@ -76,6 +76,22 @@ export interface Card {
   difficulty?: number;
   /** Where it came from, so a card can point at the thing it was made from. */
   source?: string;
+  /**
+   * What this card is *about*, which is not the same as which deck it is in.
+   *
+   * A deck is a box somebody made; a topic is the thing being learned. They
+   * come apart the moment a deck is made from a chapter — "Biology paper 2"
+   * holds osmosis and respiration and the light reaction, and knowing that
+   * the deck as a whole sits at 78% tells you nothing about which of the
+   * three to spend Tuesday on. Every reading that matters (what is shaky,
+   * what to practise, what keeps being got wrong) is per topic; the deck
+   * stays the box.
+   */
+  topic?: string;
+  /** Free labels, for a view across decks. */
+  tags?: string[];
+  /** The card this one is the other way round of, where it has a twin. */
+  reverseOf?: string;
 }
 
 /* ---------------------------------------------------------------- cloze -- */
@@ -343,6 +359,9 @@ export function newCard(init: {
   back: string;
   now: number;
   source?: string;
+  topic?: string;
+  tags?: string[];
+  reverseOf?: string;
 }): Card {
   return {
     id: init.id,
@@ -360,6 +379,9 @@ export function newCard(init: {
     step: 0,
     createdAt: init.now,
     source: init.source,
+    topic: init.topic,
+    tags: init.tags,
+    reverseOf: init.reverseOf,
   };
 }
 
@@ -554,4 +576,228 @@ export function previewGaps(card: Card, now: number): Record<Rating, string> {
     out[r] = whenDue(schedule(card, r, now).due, now);
   }
   return out;
+}
+
+/* --------------------------------------------------------------- leeches -- */
+
+/**
+ * How many times a card may be forgotten before it is the card's fault.
+ *
+ * Eight is the number the tools that have watched this for decades settle
+ * on, and the reason to have it at all is that a card you have forgotten
+ * eight times is not going to be learned by being shown a ninth: either it
+ * is two facts pretending to be one, or the front does not actually ask for
+ * the back, or you have never understood the thing underneath it. All three
+ * are fixed by rewriting or explaining it, and none by repetition — so the
+ * card comes out of the queue and gets offered to the tutor instead of
+ * quietly costing a slot every day for a month.
+ */
+export const LEECH_AT = 8;
+
+export function isLeech(card: Card): boolean {
+  return card.lapses >= LEECH_AT;
+}
+
+/* -------------------------------------------------------------- attempts -- */
+
+/**
+ * One answer, written down.
+ *
+ * A card remembers only its last answer, which is enough to schedule it and
+ * not nearly enough to learn anything *about* the learning. "You keep
+ * confusing mitosis with meiosis" cannot be seen from a card's state at all
+ * — it needs the wrong answers themselves, kept, with what was given beside
+ * what was wanted.
+ *
+ * Written on every marked answer, right ones included: a log of only the
+ * failures cannot tell you a rate, and a rate is what makes "six of these
+ * eight" mean something.
+ */
+export interface Attempt {
+  id: string;
+  at: number;
+  /** The card, where there was one. A tutor question has none. */
+  cardId?: string;
+  deckId?: string;
+  topic?: string;
+  /** What was asked, kept in full so the log reads without the card. */
+  question: string;
+  /** What the person wrote. Empty where they pressed a button instead. */
+  given: string;
+  /** What was wanted. */
+  expected: string;
+  right: boolean;
+  /** Whether they said they were sure, where they were asked. */
+  sure?: boolean;
+  /** The misconception, where one was named. */
+  missed?: string;
+}
+
+/* ---------------------------------------------------------------- topics -- */
+
+export interface TopicStat {
+  topic: string;
+  /** Graduated cards in this topic, across every deck. */
+  reviewed: number;
+  /** Mean chance of recalling one right now. */
+  mean: number;
+  /** How many are below the line. */
+  shaky: number;
+  /** Marked answers in the log, and how many were right. */
+  tried: number;
+  wrong: number;
+}
+
+/**
+ * How each topic is actually held, across every deck it appears in.
+ *
+ * Two signals, because neither is enough alone: the memory model says what
+ * is *likely* forgotten (it can say so about a card never got wrong, which
+ * is its whole point), and the attempts log says what has *actually* been
+ * got wrong (which the model cannot know about a card answered from a
+ * button). A topic that is shaky on both is the one to spend Tuesday on.
+ */
+export function topicStats(cards: Card[], attempts: Attempt[], now: number): TopicStat[] {
+  const by = new Map<string, TopicStat>();
+  const row = (topic: string) => {
+    let r = by.get(topic);
+    if (!r) by.set(topic, (r = { topic, reviewed: 0, mean: 0, shaky: 0, tried: 0, wrong: 0 }));
+    return r;
+  };
+  /* `mean` is accumulated as a sum here and divided at the end, so the row
+     never carries a half-finished average anybody could read by mistake. */
+  for (const c of cards) {
+    if (!c.topic) continue;
+    if (c.state !== "review" || !c.stability || c.interval <= 0) continue;
+    const last = c.due - c.interval * DAY;
+    const r = retrievability(Math.max(0, (now - last) / DAY), c.stability);
+    const t = row(c.topic);
+    t.reviewed += 1;
+    t.mean += r;
+    if (r < 0.8) t.shaky += 1;
+  }
+  for (const a of attempts) {
+    if (!a.topic) continue;
+    const t = row(a.topic);
+    t.tried += 1;
+    if (!a.right) t.wrong += 1;
+  }
+  return [...by.values()]
+    .map((t) => ({ ...t, mean: t.reviewed ? t.mean / t.reviewed : 1 }))
+    .sort((a, b) => a.mean - b.mean || b.wrong - a.wrong);
+}
+
+/**
+ * The topic most worth an hour, or nothing.
+ *
+ * Nothing when there is not enough to judge, and nothing when the weakest is
+ * held well — a nudge to practise something you know at ninety-five per cent
+ * is noise, and noise is how a line like this gets ignored on the day it
+ * matters.
+ */
+export function weakestTopic(cards: Card[], attempts: Attempt[], now: number, min = 4): TopicStat | null {
+  const [first] = topicStats(cards, attempts, now)
+    .filter((t) => t.reviewed >= min || t.tried >= min);
+  if (!first) return null;
+  return first.shaky > 0 || first.wrong > 0 ? first : null;
+}
+
+/* ----------------------------------------------------------- calibration -- */
+
+export interface Calibration {
+  sureRight: number;
+  sureWrong: number;
+  unsureRight: number;
+  unsureWrong: number;
+  /** Answers that carried a confidence at all. */
+  n: number;
+}
+
+/**
+ * The two-by-two, and the one quadrant that matters.
+ *
+ * Sure-and-wrong is the dangerous cell: it is the answer you will not
+ * check, the working you will not redo, and the question you will lose the
+ * marks on without ever feeling it coming. Not-sure-and-right is only a
+ * confidence problem. The other two are working as intended.
+ */
+export function calibration(attempts: Attempt[]): Calibration {
+  const c: Calibration = { sureRight: 0, sureWrong: 0, unsureRight: 0, unsureWrong: 0, n: 0 };
+  for (const a of attempts) {
+    if (a.sure === undefined) continue;
+    c.n += 1;
+    if (a.sure && a.right) c.sureRight += 1;
+    else if (a.sure && !a.right) c.sureWrong += 1;
+    else if (!a.sure && a.right) c.unsureRight += 1;
+    else c.unsureWrong += 1;
+  }
+  return c;
+}
+
+/** What the two-by-two is telling you, in a sentence, or nothing. */
+export function calibrationLine(c: Calibration): string | null {
+  if (c.n < 8) return null;
+  const overs = c.sureWrong / Math.max(1, c.sureWrong + c.sureRight);
+  const unders = c.unsureRight / Math.max(1, c.unsureRight + c.unsureWrong);
+  if (overs >= 0.25) {
+    return `Sure and wrong ${c.sureWrong} times of ${c.sureWrong + c.sureRight}. That is the quadrant that costs marks, because it is the answer you do not check.`;
+  }
+  if (unders >= 0.7) {
+    return `You were right ${c.unsureRight} of the ${c.unsureRight + c.unsureWrong} times you were not sure. You know more than you are giving yourself credit for.`;
+  }
+  return "Your sense of what you know matches what you know. That is worth as much as the knowing.";
+}
+
+/* -------------------------------------------------------------- mistakes -- */
+
+/**
+ * The cards you keep getting wrong, worst first.
+ *
+ * Ordered by how many times each has been missed rather than by when it is
+ * next due, because this queue answers a different question from the
+ * schedule's: not "what is owed today" but "what is not going in". A card
+ * got wrong four times outranks one got wrong once, however either is
+ * scheduled — and a card last got wrong months ago sinks, because a mistake
+ * you have since stopped making is not a mistake.
+ */
+export function mistakeQueue(attempts: Attempt[], cards: Card[], now: number, span = 30): Card[] {
+  const since = now - span * DAY;
+  const misses = new Map<string, number>();
+  for (const a of attempts) {
+    if (a.right || !a.cardId || a.at < since) continue;
+    misses.set(a.cardId, (misses.get(a.cardId) ?? 0) + 1);
+  }
+  return cards
+    .filter((c) => misses.has(c.id))
+    .sort((a, b) => (misses.get(b.id) ?? 0) - (misses.get(a.id) ?? 0));
+}
+
+/* ------------------------------------------------------- reverse cards -- */
+
+/**
+ * The same fact asked the other way.
+ *
+ * Knowing that "mitochondrion → the powerhouse" does not mean you can go
+ * from the description back to the word, and an exam asks in whichever
+ * direction it likes. A reverse is a real second card with its own
+ * schedule, because the two directions are genuinely learned at different
+ * rates — not a display toggle on one card, which would let the easy
+ * direction carry the hard one.
+ *
+ * Refused for a cloze: a sentence with a hole reversed is a hole with a
+ * sentence, which is not a question.
+ */
+export function makeReverse(card: Card, id: string, now: number): Card | null {
+  if (isCloze(card.front) || !card.front.trim() || !card.back.trim()) return null;
+  return newCard({
+    id,
+    deckId: card.deckId,
+    front: card.back,
+    back: card.front,
+    now,
+    source: card.source,
+    topic: card.topic,
+    tags: card.tags,
+    reverseOf: card.id,
+  });
 }

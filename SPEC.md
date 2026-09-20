@@ -417,11 +417,11 @@ Anki's 2026 defaults are the benchmark: 90% retention, `1m 10m` steps, 15–25 n
 | # | Requirement | Spec |
 |---|---|---|
 | S-1 ⬜ | Image occlusion cards | Draw rectangles over an image (from a photo of notes or a diagram); each rectangle is a card. Stored as `{imageId, rects[]}`; rendered in a srcdoc frame. |
-| S-2 ⬜ | Reverse cards | A basic card can generate its reverse as a sibling (`reverseOf`). |
-| S-3 ⬜ | Card tags and topic | `topic` (string) and `tags[]` on every card; a deck is a view, a topic is the unit of analytics. |
+| S-2 ✅ | Reverse cards | "Ask it backwards" mid-session makes a real second card with its own schedule (`makeReverse`, `addReverse`). Refused for a cloze, which has no other direction, and refused where a twin already exists. |
+| S-3 ✅ | Card tags and topic | `topic` and `tags[]` on every card, indexed. The writer labels them at the point of writing (`draftCards` asks for a topic per card) because afterwards it is a chore nobody does. Editable per card with a datalist of topics already in use, so two spellings do not become two topics. |
 | S-4 ⬜ | Deck options | Per-deck new/day, desired retention (0.80–0.95), learning steps; defaults as today. |
-| S-5 ⬜ | Leech handling | A card failed 8 times is flagged "leech", pulled from the queue, and offered to Tutor: "This one keeps failing — want it explained differently or split?" |
-| S-6 ⬜ | Undo last rating | ⌘Z within the session restores the previous state. |
+| S-5 ✅ | Leech handling | Eight lapses and the card says so mid-session, with two ways out: take it to the chat to work out whether it is a bad card, or park it a year so it stops costing a slot. Parking is undoable and keeps the history, which is the evidence it was a bad card. |
+| S-6 ✅ | Undo last rating | `U` puts the card back exactly as it was — the scheduler is pure, so the way back is the previous row, not a recomputation. Reachable on the end screen too, which is where a mis-press has the least slack. The day's tally stands: you did answer it. |
 | S-7 ✅ | Calendar | Twelve weeks of `studyDays` on the Study index, one cell a day shaded by how much was answered. ⬜ Taps open the day's list. |
 | S-8 ⬜ | "Cards from this page/chat/file" | A model call that proposes 8–12 cards from a source, each one accept/edit/discard before it exists (NotebookLM makes cards from sources only `[R]`; the accept step is what keeps them honest). |
 | S-9 ⬜ | Typed-answer marking for maths | Numeric tolerance and unit awareness (already partly in the marker); LaTeX equality by normalised string. |
@@ -448,11 +448,11 @@ Photomath and Lens established the flow: photo → recognise → solve → expla
 
 ### 13.5 Mistake analysis and mastery
 
-**MA-1 🟡 Mastery from the memory model.** Built: `lib/plan.ts` reads every graduated card's chance of recall right now from its FSRS stability, aggregates by deck, and the Study index names the shakiest deck ("Shakiest: Cell biology — 6 of 14 likely forgotten · Practise it") when one deck has enough graduated cards to judge and is actually below the line. ⬜ Topics on cards (S-3) so the same reading works per topic across decks; attempts on Tutor questions as a second signal; the weakest-first list with "what to do" per topic.
+**MA-1 ✅ Mastery from the memory model.** `lib/plan.ts` reads every graduated card's chance of recall now from its FSRS stability and aggregates by deck; `topicStats` does the same per *topic*, across every deck a topic appears in — which is the reading that answers "what do I do this evening". A deck is the box somebody filed it in; a topic is the thing being learned, and the two come apart the moment a deck is made from a chapter. Two signals per topic, because neither is enough alone: the model says what is likely forgotten (it can say so about a card never got wrong), and the log says what has actually been got wrong (which the model cannot know about a card answered from a button). Weakest-first, with a Practise button per row. A topic with nothing graduated draws an empty track rather than a full bar: the mean of no cards is 1 by construction, and drawing that would say "you know all of this" about a topic nobody has been asked about once.
 
-**MA-2 ⬜ Error log**: every wrong write-mode answer and every wrong Tutor answer is stored (`attempts`) with the card/question, the answer given, and the misconception when named; the Study index gets "Mistakes" with a "Practise these" button (cram order from the log).
+**MA-2 ✅ Error log**: every marked answer is stored (`attempts`), right ones included — a log of only failures cannot give a rate. Each row keeps the question and the expected answer in full, so the log reads without the card, plus what was written and the topic. The Study index carries "*n* cards you keep getting wrong · Practise these", ordered by how badly each is going and bounded to 30 days: a mistake you have stopped making is not a mistake.
 
-**MA-3 ⬜ Confidence**: an optional "How sure were you?" (sure / not sure) before revealing; calibration shown as a two-by-two (sure-and-right … not-sure-and-wrong) — the unhelpful quadrant is "sure and wrong".
+**MA-3 ✅ Confidence**: an optional "Sure?" before the reveal — before, or it is a memory of a guess rather than a guess. Off by default, because a question in front of every card is a tax on every card. Shown as the two-by-two, drawn as a grid because the shape is the message, with one sentence naming what it says. Sure-and-wrong is the quadrant that costs marks; not-sure-and-right gets its own sentence, because knowing more than you think changes how somebody walks into an exam.
 
 ### 13.6 Exam intelligence (Cambridge first)
 
@@ -729,7 +729,7 @@ Prompt versions (`HOUSE`, mode prompts, stances) get a hash stored on each messa
 |---|---|---|---|
 | 1 | ~~Self-heal loop for canvases~~ (AR-3/4) — done | The one build-loop feature that separates a toy from a tool | 15 |
 | 2 | **Tutor hint ladder ✅, check questions, exam mode 🟡** (TU-2/3, EX-1) | The education difference | 13 |
-| 3 | **Topic mastery 🟡 (deck health built), mistakes log, today's plan** (MA-1/2, SP-1) | Turns study data into direction | 13 |
+| 3 | **Topic mastery ✅, mistakes log ✅, confidence ✅, today's plan ⬜** (MA-1/2/3, SP-1) | Turns study data into direction | 13 |
 | 4 | **Global search 🟡 (palette covers all rooms) + deep links** (IA-3/4) | Four rooms need one door | 3 |
 | 5 | **Permission model + plan-then-execute + tasks table** (T-2, A-1/2) | Agents, safely, locally | 10, 18 |
 | 6 | **Cards from a source with accept/edit** (S-8), image occlusion (S-1) | The two card features people ask for | 13 |

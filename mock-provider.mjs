@@ -376,10 +376,10 @@ createServer(async (req, res) => {
      the de-duplication and the whole scheduler untested. */
   const carding = /^Write \d+ question-and-answer cards/.test(asked);
   const CARDS = JSON.stringify([
-    { front: "What does a debounce wait for?", back: "Silence — it fires once the input has stopped changing for a set interval." },
-    { front: "How does a throttle differ from a debounce?", back: "A throttle enforces a floor between calls; a debounce waits for a gap." },
-    { front: "Which one fires during a continuous burst of events?", back: "The throttle. The debounce fires only after the burst ends." },
-    { front: "What is the usual argument to both?", back: "A number of milliseconds: the gap to wait for, or the floor between calls." },
+    { front: "What does a debounce wait for?", back: "Silence — it fires once the input has stopped changing for a set interval.", topic: "debounce" },
+    { front: "How does a throttle differ from a debounce?", back: "A throttle enforces a floor between calls; a debounce waits for a gap.", topic: "throttle" },
+    { front: "Which one fires during a continuous burst of events?", back: "The throttle. The debounce fires only after the burst ends.", topic: "throttle" },
+    { front: "What is the usual argument to both?", back: "A number of milliseconds: the gap to wait for, or the floor between calls.", topic: "debounce" },
   ]);
   const afterCompute = /This app ran the computation/.test(
     [body.system, body.turnPrompt].map((x) => (typeof x === "string" ? x : JSON.stringify(x ?? ""))).join(" "),

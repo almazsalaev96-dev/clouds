@@ -6,6 +6,16 @@ export { complete, cheapestAvailable, extractJson, type Progress } from "./compl
 export interface DraftCard {
   front: string;
   back: string;
+  /**
+   * What the card is about, in two or three words.
+   *
+   * Asked for at the point the cards are written, because that is the only
+   * moment anything knows: the model has the whole source in front of it
+   * and can see that these four are osmosis and those three are active
+   * transport. Afterwards it is a labelling chore nobody does, and every
+   * reading that needs a topic quietly has none.
+   */
+  topic?: string;
 }
 
 /**
@@ -146,13 +156,14 @@ export async function draftCards(
   const prompt = `Write ${count} question-and-answer cards for somebody learning this.
 
 Rules:
-- Return JSON only: an array of objects with "front" and "back". No prose, no fence, nothing else.
+- Return JSON only: an array of objects with "front", "back" and "topic". No prose, no fence, nothing else.
 - The front is a question that can be answered from memory in a sentence or two. Not "Tell me about X".
 - The back is the answer, and only the answer: no restating the question, no "the answer is".
 - One idea per card. Split anything that needs two.
 - Ask about what matters and what is easy to get wrong — the distinction, the exception, the number, the order — not the trivia around it.
 - Never give the answer away inside the question.
 - Where the material has specifics, use them: real names, real numbers, real examples from it.
+- Give each card a "topic": two or three words for the thing it is about, finer than the material as a whole. Cards about the same thing must use the exact same topic string, or they will not group.
 ${opts.about ? `\nThe subject is: ${opts.about}\n` : ""}
 MATERIAL
 ${source.slice(0, 40_000)}`;
@@ -162,9 +173,16 @@ ${source.slice(0, 40_000)}`;
   const parsed = extractJson(out);
   if (!Array.isArray(parsed)) return null;
   const cards = parsed
-    .filter((c): c is { front: string; back: string } =>
+    .filter((c): c is DraftCard =>
       Boolean(c) && typeof (c as DraftCard).front === "string" && typeof (c as DraftCard).back === "string")
-    .map((c) => ({ front: c.front.trim(), back: c.back.trim() }))
+    .map((c) => ({
+      front: c.front.trim(),
+      back: c.back.trim(),
+      /* Optional on the way in: a model that ignores the instruction gives
+         cards with no topic, which is exactly what there was before, rather
+         than a deck that fails to save. */
+      topic: typeof c.topic === "string" && c.topic.trim() ? c.topic.trim().slice(0, 60) : undefined,
+    }))
     .filter((c) => c.front && c.back);
   return cards.length ? cards : null;
 }
