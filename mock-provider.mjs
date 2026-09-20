@@ -662,6 +662,11 @@ Nothing here looks like it breaks a caller — the return type is the same array
     send(res, "content_block_delta", { index: idx, delta: { type: "input_json_delta", partial_json: JSON.stringify({ query: asked.replace(/\s+/g, " ").slice(0, 60) }) } });
     send(res, "content_block_stop", { index: idx });
     idx++;
+    /* A search takes a moment, and the app has a line for that moment. Emitting
+       the results in the same tick as the query would make "Searching for …"
+       live for less than a frame, which is untestable and untrue to the thing
+       being mocked. */
+    await new Promise((r) => setTimeout(r, 700));
     send(res, "content_block_start", { index: idx, content_block: { type: "web_search_tool_result", tool_use_id: "srvtoolu_mock", content: PAGES } });
     send(res, "content_block_stop", { index: idx });
     idx++;

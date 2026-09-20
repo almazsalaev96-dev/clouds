@@ -99,6 +99,10 @@ export function useStream(onFinish?: (m: Message) => void) {
   const bufferRef = useRef("");
   /** Pages the answer has drawn on so far, as the provider reports them. */
   const sourcesRef = useRef<WebSource[]>([]);
+  /** Whether a search is in flight, so the first word can end it. */
+  const searchingRef = useRef(false);
+  /** Citation markers waiting for a word boundary to land on. */
+  const pendingRef = useRef<number[]>([]);
   /** When the buffer last grew. The drain holds a partial word only this long. */
   const fedRef = useRef(0);
   const shownRef = useRef("");
@@ -212,6 +216,8 @@ export function useStream(onFinish?: (m: Message) => void) {
       bufferRef.current = "";
 
       sourcesRef.current = [];
+      searchingRef.current = false;
+      pendingRef.current = [];
       fedRef.current = Date.now();
       shownRef.current = "";
       reasoningRef.current = "";
@@ -284,11 +290,37 @@ export function useStream(onFinish?: (m: Message) => void) {
               }
 
               switch (ev.type) {
-                case "text":
+                case "text": {
                   if (ttftRef.current === null) ttftRef.current = Date.now() - startedRef.current;
-                  bufferRef.current += ev.text;
+                  /* A marker held from a citation that landed mid-word goes in
+                     at the first boundary this delta offers, so the reader
+                     sees "silence [1]" and never "sil [1]ence". A provider's
+                     chunks end wherever its tokens do. */
+                  if (pendingRef.current.length) {
+                    const at = ev.text.search(/[\s.,;:!?)\]]/);
+                    if (at >= 0) {
+                      const head = ev.text.slice(0, at);
+                      const tail = ev.text.slice(at);
+                      bufferRef.current += head + pendingRef.current.map((n) => ` [${n}]`).join("");
+                      pendingRef.current = [];
+                      bufferRef.current += tail;
+                    } else {
+                      bufferRef.current += ev.text;
+                    }
+                  } else {
+                    bufferRef.current += ev.text;
+                  }
                   fedRef.current = Date.now();
+                  /* The search is over once the writing starts, not once the
+                     results land: between the two the model is reading what
+                     it found, and "Searching for …" is still the truer word
+                     for that than "Writing". */
+                  if (searchingRef.current) {
+                    searchingRef.current = false;
+                    setState((s) => ({ ...s, searching: null }));
+                  }
                   break;
+                }
                 case "reasoning":
                   if (ttftRef.current === null) ttftRef.current = Date.now() - startedRef.current;
                   reasoningRef.current += ev.text;
@@ -298,18 +330,29 @@ export function useStream(onFinish?: (m: Message) => void) {
                   /* Said while it happens. A search is the longest silent
                      stretch a turn has, and a wait with a reason on it is a
                      different wait. */
+                  searchingRef.current = true;
                   setState((s) => ({ ...s, phase: "streaming", searching: ev.query }));
                   break;
                 case "source":
                   sourcesRef.current = [...sourcesRef.current, ev.source];
-                  setState((s) => ({ ...s, sources: sourcesRef.current, searching: null }));
+                  setState((s) => ({ ...s, sources: sourcesRef.current }));
                   break;
-                case "cite":
+                case "cite": {
                   /* The marker goes into the text at the point the citation
                      attached, through the same buffer as the words, so it
-                     appears in step with them rather than jumping in. */
-                  bufferRef.current += ` [${ev.n}]`;
+                     appears in step with them rather than jumping in. The
+                     passage, where one came, lands on the source it cites. */
+                  /* At a boundary already: in it goes. Mid-word: held for the
+                     next delta's first boundary. */
+                  const sofar = shownRef.current + bufferRef.current;
+                  if (!sofar || /[\s.,;:!?)\]]$/.test(sofar)) bufferRef.current += ` [${ev.n}]`;
+                  else pendingRef.current.push(ev.n);
+                  if (ev.quote) {
+                    sourcesRef.current = sourcesRef.current.map((x) => (x.n === ev.n && !x.quote ? { ...x, quote: ev.quote } : x));
+                    setState((s) => ({ ...s, sources: sourcesRef.current }));
+                  }
                   break;
+                }
                 case "usage":
                   usageRef.current = ev.usage;
                   break;
@@ -334,7 +377,12 @@ export function useStream(onFinish?: (m: Message) => void) {
         }
       }
 
-      // Flush whatever is still buffered so no token is dropped on the floor.
+      // Flush whatever is still buffered so no token is dropped on the floor —
+      // a marker still held for a boundary that never came goes on the end.
+      if (pendingRef.current.length) {
+        bufferRef.current += pendingRef.current.map((n) => ` [${n}]`).join("");
+        pendingRef.current = [];
+      }
       const finalText = shownRef.current + bufferRef.current;
       bufferRef.current = "";
       shownRef.current = finalText;

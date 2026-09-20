@@ -326,8 +326,8 @@ export type StreamEvent =
   | { type: "searching"; query: string }
   /** A page found or fetched, as it arrives. */
   | { type: "source"; source: WebSource }
-  /** The text just written rests on source `n`. */
-  | { type: "cite"; n: number }
+  /** The text just written rests on source `n`, quoting `quote` where known. */
+  | { type: "cite"; n: number; quote?: string }
   | { type: "usage"; usage: Usage }
   | { type: "done"; stopReason: StopReason }
   | { type: "error"; error: ChatError };

@@ -45,8 +45,10 @@ console.log("\nWith it on, the model searches and the answer says what it read")
   await fetch(`${MOCK}/__reset`);
   await p.getByRole("textbox", { name: "Message" }).fill("What is the difference between a debounce and a throttle");
   await p.keyboard.press("Meta+Enter");
-  /* The searching line is up only while the search runs: catch it early. */
-  const searching = await p.locator("text=/Searching for/").first().isVisible({ timeout: 2500 }).catch(() => false);
+  /* The searching line is up only while the search runs. `waitFor`, not
+     `isVisible` — the latter answers at once, before the request has even
+     left, and a timeout passed to it changes nothing. */
+  const searching = await p.locator("text=/Searching for/").first().waitFor({ timeout: 4000 }).then(() => true).catch(() => false);
   check(searching, "while it searches, the wait says what is being searched for");
   await p.waitForTimeout(4000);
   const sent = await fetch(`${MOCK}/__last`).then((r) => r.json());
@@ -56,6 +58,11 @@ console.log("\nWith it on, the model searches and the answer says what it read")
   const msg = p.locator(".msg").last();
   const text = await msg.innerText();
   check(/\[1\]/.test(text), "the text carries a marker where a claim rests on a page", (text.match(/[^.]*\[1\][^.]*/) ?? [""])[0].trim().slice(0, 70));
+  /* The mock's chunk boundary falls inside "silence" on purpose. A marker
+     that lands where the provider's chunk happened to end reads as
+     "sil [1]ence", which the first screenshot of this feature showed. */
+  check(!/\w \[\d+\]\w/.test(text) && !/\w\[\d+\]/.test(text), "and the marker sits at a word boundary, never inside a word",
+    (text.match(/.{0,12}\[1\].{0,12}/) ?? [""])[0].replace(/\s+/g, " "));
   const strip = msg.locator("section[aria-label='Sources']");
   check(await strip.isVisible(), "and a strip of sources sits under the answer");
   const rows = await strip.locator("li").allInnerTexts();

@@ -258,7 +258,10 @@ export async function* streamAnthropic(
               const m = meet(c.url, c.title ?? "", c.cited_text);
               if (m.fresh && m.source) yield { type: "source", source: m.source };
               (b.citations ??= []).push(c);
-              yield { type: "cite", n: m.n };
+              /* The passage rides on the citation, not on the result that
+                 first named the page — so it goes out here, and the client
+                 attaches it to the source it already has. */
+              yield { type: "cite", n: m.n, quote: typeof c.cited_text === "string" ? c.cited_text : undefined };
             }
           }
           break;
