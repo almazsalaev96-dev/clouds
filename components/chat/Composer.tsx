@@ -6,6 +6,7 @@ import {
   Check, ChevronDown, FileText, MessageSquare, Paperclip, Plus,
   SlidersHorizontal, Sparkles, Wand2, X,
 } from "lucide-react";
+import { slashCommands, typingSlash } from "@/lib/slash";
 import type { ContentBlock, Style } from "@/lib/types";
 import { getModel, estimateTokens, formatTokens } from "@/lib/models";
 import { engineOf } from "@/lib/presets";
@@ -209,6 +210,8 @@ export function Composer({
 
   const draftTokens = estimateTokens(text) + attachments.reduce((n, a) => n + (a.kind === "file" ? estimateTokens(a.data) : 800), 0);
   const totalTokens = contextTokens + draftTokens;
+  /** What comes after the slash, while one is being typed at the start. */
+  const typing = typingSlash(text);
   const overContext = totalTokens > model.contextWindow * 0.9;
   const canSend = Boolean(text.trim() || attachments.length);
 
@@ -364,6 +367,35 @@ export function Composer({
         }
         right={null}
       />
+
+      {/* A slash at the start of the box opens the list of what a slash can
+          do, narrowed as it is typed. Shown here, under the box, because it
+          answers a question the person has just asked by typing "/" — and a
+          command that has to be remembered is a menu with worse discovery. */}
+      {typing !== null && (
+        <ul className="mt-1.5 flex flex-wrap gap-1 px-4" role="listbox" aria-label="Commands">
+          {slashCommands()
+            .filter((c) => c.command.startsWith(typing))
+            .slice(0, 8)
+            .map((c) => (
+              <li key={c.command}>
+                <button
+                  role="option"
+                  aria-selected={false}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setText(`/${c.command} `)}
+                  className="btn-touch press focus-inset flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
+                >
+                  <span className="font-medium text-primary">/{c.command}</span>
+                  <span className="hidden text-tertiary sm:inline">{c.does}</span>
+                </button>
+              </li>
+            ))}
+          {!slashCommands().some((c) => c.command.startsWith(typing)) && (
+            <li className="px-1 text-xs text-tertiary">No command called “/{typing}” — it will be sent as written.</li>
+          )}
+        </ul>
+      )}
 
       {overContext && (
         <p className="mt-1.5 flex items-center gap-1.5 px-4 text-xs text-warning tnum">

@@ -198,7 +198,7 @@ The rule from the flagship products: show three controls, hide the rest in one m
 | C-6 | Stop (replaces Send while streaming); Esc stops | ✅ | Keep. |
 | C-7 | Context meter: a line under the box when the thread nears the model's window ("12k of 200k — this thread is nearly full") | 🟡 line ✅ | ⬜ "Summarise older turns" beside it. |
 | C-8 | Attachments strip: thumbnails, remove, size, "will be read as text" for PDFs | ✅ | Add page count for PDFs. |
-| C-9 | Slash commands: `/study`, `/build`, `/compare`, `/check`, `/temp` | ⬜ | Typed prefixes map to the same intents the router already reads (ChatGPT `@study` `[R]`). |
+| C-9 | Slash commands | ✅ `lib/slash.ts` | `/study` `/build` `/research` `/compare` `/check` `/temp`, and every Armi model by its short name (`/parallax …`). A slash at the start of the box lists what a slash can do, narrowed as it is typed; an unknown command says so and is sent as written — a typo must not silently become a different room. The command is stripped from the message kept; a bare `/research` is a setting, not a message. `/study` beats Auto's reading for that turn: the person said which room it belongs in. `/compare` is Binary for that turn — two companies side by side, one column where only one company has a key. `/check` sets a second reading on the reply whatever the tactic would have done, and the row says so. Gate: `e2e-slash`, `test-slash`. |
 | C-10 | Ideas row under the box on an empty thread | ✅ Creative (six, sent as they are); ✅ chat (four openers that fill the box: the shakiest deck, the cards you keep missing, your latest page, then general ones only to fill the row) | — |
 | C-11 | Paste handling: code becomes a fenced block, long text becomes an attachment, image becomes an attachment | 🟡 | Threshold 1,500 characters. |
 | C-12 | Draft persistence per thread (unsent text survives navigation and reload) | ⬜ | `localStorage` per conversation id; wrapped in try/catch. |
@@ -232,7 +232,7 @@ The rule from the flagship products: show three controls, hide the rest in one m
 | M-1 | Streaming with a live elapsed counter; time-to-first-token and total latency recorded on the message | ✅ | Keep. |
 | M-2 | Stop keeps everything streamed; the message is marked "stopped" | ✅ | Keep. |
 | M-3 | Edit-and-branch: editing a user message creates a sibling; `‹ n/m ›` arrows navigate; leaf pointer per conversation | ✅ (`parentId`, `advanceLeaf`) | ⬜ A tree view in the thread menu for threads with > 3 branches (nobody ships this `[R]`; it is the honest way to show what the arrows hide). |
-| M-4 | Retry ▾: same model · another Armi model | ✅ (Regenerate, and "Switch model" listing the other Armi models) | ⬜ "with more effort" as a third entry. |
+| M-4 | Retry ▾: same model · another Armi model · with more effort | ✅ | "With more effort" is the first entry of the regenerate menu: the same model at `high`, for that turn only, ahead of the tactic's own setting and the router's reading — the person pressing it has already seen what those two produced. The row says "asked to think harder". |
 | M-5 | Check with another: a second cast member reads the answer and returns a verdict rendered under it (agree / disagree with the line) | ✅ (`check`, `turns`) | Keep; add "Ask both to argue" (duel) as a row action. |
 | M-6 | Rate ▲▼ feeds the router's memory of pairings (`pastFor`) | ✅ | Keep. |
 | M-7 | Copy: plain text, or Markdown with the "Copy as Markdown" modifier | 🟡 | Add the modifier. |

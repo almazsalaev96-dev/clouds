@@ -1,5 +1,6 @@
 "use client";
 
+import { parseSlash } from "@/lib/slash";
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { PanelLeft } from "lucide-react";
@@ -588,7 +589,13 @@ export default function Page() {
        * than either. Buying them again is paying twice for the same reading
        * and adding a round trip to a turn the person is already waiting on.
        */
-      opts?: { revised?: boolean },
+      opts?: {
+        revised?: boolean;
+        /** Think harder on this one turn, whatever the tactic would have chosen. */
+        effort?: "high";
+        /** Have a second model read this answer back, whatever the tactic would have done. */
+        check?: boolean;
+      },
     ) => {
       /* An Armi model is a tactic, and this is where it becomes a request:
          which engine it runs on given the keys that are here, how hard it
@@ -664,7 +671,14 @@ export default function Page() {
          defaults for a tactic nobody has touched, so reading it directly
          overruled every preset's own effort with `medium` on every turn. */
       const own = preset && paramsSet(picked) ? paramsFor(picked).reasoningEffort : undefined;
-      const plan = own ? { ...shaped, effort: own } : shaped;
+      /* An effort asked for on this turn beats one set on the tactic, which
+         beats the reading of the request: the person pressing "more effort"
+         has already seen the answer the other two produced. */
+      const planned = opts?.effort ? { ...shaped, effort: opts.effort } : own ? { ...shaped, effort: own } : shaped;
+      /* "/check" is the person asking for the second reading outright, on a
+         turn whose tactic may not have earned one — so it is set here, after
+         the tactic has had its say, and never taken away by it. */
+      const plan = opts?.check ? { ...planned, check: "second" as const } : planned;
       /* Who checks it, decided here rather than when the answer lands: the
          cast is a property of the turn that went out, and a check chosen
          afterwards from whatever keys exist at that moment is a different
@@ -796,6 +810,8 @@ export default function Page() {
         routedWhy || presetWhy,
         registerWhy,
         opts?.revised ? "answered again after a second model objected" : "",
+        opts?.effort ? "asked to think harder" : "",
+        opts?.check ? "read back by a second model, as asked" : "",
       ]
         .filter(Boolean)
         .join(" · ");
@@ -880,6 +896,33 @@ export default function Page() {
       let convId = activeId;
       let leaf: string | null = conversation?.leafId ?? null;
 
+      /* A slash at the front sets the room before the question. Read before
+         the conversation exists, because two of the commands — temporary and
+         research — are properties of the conversation it is about to make.
+         The command itself is never stored: the message that goes out and
+         the message kept in the thread is what came after it. */
+      const slash = parseSlash(blockText(content));
+      let slashPick: string | undefined;
+      if (slash) {
+        content = content.map((c) => (c.type === "text" ? { ...c, text: slash.text } : c));
+        if (slash.presetId) slashPick = slash.presetId;
+        /* "/compare" is Binary's whole tactic — two companies, side by side —
+           so it is that Armi model for this turn rather than a second way of
+           asking for the same thing. */
+        if (slash.compare) slashPick = "duet";
+        if (slash.research) {
+          if (convId) void db.conversations.update(convId, { research: true });
+          else setPendingResearch(true);
+        }
+        if (slash.temporary && !convId) setPendingTemporary(true);
+        /* A bare command is a setting, not a question: "/research" alone turns
+           research on and stops there, with nothing sent and the box cleared
+           by the composer as for any send. */
+        if (!slash.text.trim() && !content.some((c) => c.type !== "text")) return;
+      }
+      const wantsTemporary = pendingTemporary || Boolean(slash?.temporary);
+      const wantsResearch = pendingResearch || Boolean(slash?.research);
+
       // Conversations are created on first send, not on "New chat", so the
       // sidebar never fills with empty rows the user did not mean to make.
       if (!convId) {
@@ -899,7 +942,7 @@ export default function Page() {
           projectId: pendingProject ?? undefined,
           /* Set by the toggle in the header before there is a conversation
              for it to be a property of, like the project above. */
-          temporary: pendingTemporary, research: pendingResearch || undefined,
+          temporary: wantsTemporary, research: wantsResearch || undefined,
         });
         setPendingProject(null);
         setPendingTemporary(false);
@@ -983,7 +1026,10 @@ export default function Page() {
         return;
       }
 
-      const answering = decision?.modelId ?? threadModelId;
+      /* A tactic named by a slash beats the router's reading: the person
+         said which room this belongs in, and Auto's whole premise is that
+         they usually have not. */
+      const answering = slashPick ?? decision?.modelId ?? threadModelId;
 
       /* "Remember that I'm vegetarian" is two things: a message, sent as
          written, and a memory, saved before the answer comes back so the
@@ -1012,7 +1058,7 @@ export default function Page() {
         hasImage: content.some((b) => b.type === "image"),
         size: history.reduce((n, m) => n + costOf(m), 0),
       };
-      const duelCast = compareWith.length ? null : resolveCast(threadModelId, where);
+      const duelCast = compareWith.length ? null : resolveCast(slashPick ?? threadModelId, where);
       const duellists = playersFor(duelCast, "duel").map((p) => p.modelId);
       if (compareWith.length || duellists.length) {
         /* A duel is briefed like any other turn, and every column gets the
@@ -1052,7 +1098,7 @@ export default function Page() {
           turnPrompt: shared ? briefNote(shared) : undefined,
         });
       } else {
-        void runTurn(convId, userMessage.id, history, answering, decision?.why, note);
+        void runTurn(convId, userMessage.id, history, answering, decision?.why, note, slash?.check ? { check: true } : undefined);
       }
 
       if (isFirst) void generateTitle(convId, blockText(content));
@@ -1240,7 +1286,7 @@ export default function Page() {
 
   /** Regenerating reuses the parent, so the new answer is a sibling of the old. */
   const regenerate = React.useCallback(
-    async (message: Message, modelId?: string) => {
+    async (message: Message, modelId?: string, opts?: { effort?: "high" }) => {
       if (!activeId) return;
       void markOutcome(message.id, "retried");
       const parentId = message.parentId;
@@ -1259,7 +1305,7 @@ export default function Page() {
       // The leaf stays where it is: the old answer remains on screen and the
       // new one streams beneath it, so a worse regeneration costs nothing and
       // an aborted one costs nothing at all.
-      void runTurn(activeId, parentId, history, modelId ?? message.modelId ?? threadModelId);
+      void runTurn(activeId, parentId, history, modelId ?? message.modelId ?? threadModelId, undefined, undefined, opts?.effort ? { effort: opts.effort } : undefined);
     },
     [activeId, allMessages, runTurn, threadModelId],
   );

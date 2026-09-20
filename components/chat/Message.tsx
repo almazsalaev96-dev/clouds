@@ -297,7 +297,7 @@ function AssistantMessageImpl({
   siblings: Msg[];
   index: number;
   onNavigate: (id: string) => void;
-  onRegenerate: (message: Msg, modelId?: string) => void;
+  onRegenerate: (message: Msg, modelId?: string, opts?: { effort?: "high" }) => void;
   onSaveToNote: (text: string) => void;
   /** Show the thing this answer built, running beside the thread. */
   onOpenMade?: (message: Msg) => void;
@@ -697,6 +697,18 @@ function AssistantMessageImpl({
                   engine this app can call, by its maker's name — which made
                   the one control people press when an answer disappoints a
                   menu of somebody else's products. */}
+              {/* The same model, told to think harder. What people actually
+                  want when an answer is thin is usually not a different
+                  model but more of this one — and "high" is a word rather
+                  than a budget, so it costs nothing to offer. */}
+              <DropdownMenu.Item
+                onSelect={() => onRegenerate(message, undefined, { effort: "high" })}
+                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-secondary outline-none transition-colors duration-[var(--dur-fast)] data-[highlighted]:bg-subtle data-[highlighted]:text-primary"
+              >
+                <Brain size={12} className="shrink-0 text-[var(--accent-2)]" />
+                <span className="truncate">With more effort</span>
+              </DropdownMenu.Item>
+              <DropdownMenu.Separator className="my-1 h-px bg-[var(--border-subtle)]" />
               {PRESETS.filter((x) => x.id !== message.presetId).map((x) => (
                 <DropdownMenu.Item
                   key={x.id}
