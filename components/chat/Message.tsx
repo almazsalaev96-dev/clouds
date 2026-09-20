@@ -11,7 +11,7 @@ import { builtDocument, titleOf, withoutBuild } from "@/lib/built";
 import { computeBlock, type Outcome } from "@/lib/compute";
 import { ComputeScope } from "./ComputeBlock";
 import type { Finding } from "@/lib/lint";
-import type { ChatError, Message as Msg, Rating, RatingReason } from "@/lib/types";
+import type { ChatError, Message as Msg, Rating, RatingReason, WebSource } from "@/lib/types";
 import { CALCULATOR, getModel, formatTokens } from "@/lib/models";
 import { authorName, getPreset, plainly, PRESETS } from "@/lib/presets";
 import { blockText } from "@/lib/db";
@@ -545,6 +545,8 @@ function AssistantMessageImpl({
 
       {message.error && <InlineError message={message.error} onRetry={() => onRegenerate(message)} />}
 
+      {message.sources && message.sources.length > 0 && <Sources sources={message.sources} />}
+
       {message.verdict && (
         <SecondOpinion verdict={message.verdict} authorProvider={model?.provider} />
       )}
@@ -1055,5 +1057,43 @@ export function InlineError({
         )}
       </span>
     </div>
+  );
+}
+
+/** What a URL is, when a page had no title. */
+function hostOf(url: string): string {
+  try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; }
+}
+
+/**
+ * The pages an answer drew on, numbered to match the markers in it.
+ *
+ * A strip rather than footnotes: the numbers in the text say *where* a claim
+ * rests on a page, and the strip says *which* page, once, in a list that can
+ * be read on its own. The cited passage rides on the link as a title, so
+ * hovering says what was taken from the page without a trip to it.
+ */
+export function Sources({ sources }: { sources: WebSource[] }) {
+  return (
+    <section className="no-print mt-3 rounded-lg border border-line bg-surface px-3 py-2" aria-label="Sources">
+      <h4 className="text-tiny font-medium text-tertiary">Sources</h4>
+      <ol className="mt-1 space-y-0.5">
+        {sources.map((s) => (
+          <li key={s.n} className="flex items-baseline gap-2 text-xs">
+            <span className="w-4 shrink-0 text-right text-tertiary tnum">{s.n}</span>
+            <a
+              href={s.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={s.quote ? `“${s.quote}”` : undefined}
+              className="min-w-0 truncate text-secondary hover:text-primary hover:underline"
+            >
+              {s.title || hostOf(s.url)}
+            </a>
+            <span className="shrink-0 text-faint">{hostOf(s.url)}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }

@@ -49,6 +49,8 @@ export interface Message {
    * all need, and it is what Settings names.
    */
   presetId?: string;
+  /** The pages this answer drew on, numbered to match the markers in it. */
+  sources?: WebSource[];
   /**
    * Why this model, when the app chose it rather than the person.
    *
@@ -128,6 +130,14 @@ export interface Conversation {
    * ask something you would rather not have on the list.
    */
   temporary?: boolean;
+  /**
+   * Whether the model may search the web here.
+   *
+   * Per conversation and switchable mid-way, unlike `temporary`: a question
+   * about last week's news wants it and a question about your own notes does
+   * not, and both happen in one afternoon.
+   */
+  research?: boolean;
   /**
    * The thing this conversation is building, if it is building one. The
    * second answer that is a page updates this canvas rather than making a
@@ -292,9 +302,32 @@ export interface ModelSpec {
 }
 
 /** What a provider adapter emits. Every provider is reduced to this. */
+/** The web tools a conversation may ask for. */
+export type WebTool = "web_search" | "web_fetch";
+
+/**
+ * A page the answer drew on.
+ *
+ * Numbered in the order the model met them, so a marker in the text and a
+ * row in the strip under it say the same thing. `quote` is the passage the
+ * model cited where the provider reported one.
+ */
+export interface WebSource {
+  n: number;
+  url: string;
+  title: string;
+  quote?: string;
+}
+
 export type StreamEvent =
   | { type: "text"; text: string }
   | { type: "reasoning"; text: string }
+  /** The model is searching. Shown while it does, so the wait has a reason. */
+  | { type: "searching"; query: string }
+  /** A page found or fetched, as it arrives. */
+  | { type: "source"; source: WebSource }
+  /** The text just written rests on source `n`. */
+  | { type: "cite"; n: number }
   | { type: "usage"; usage: Usage }
   | { type: "done"; stopReason: StopReason }
   | { type: "error"; error: ChatError };
@@ -344,6 +377,12 @@ export interface ChatRequest {
   params: ModelParams;
   /** Sent only when the server has no key for this provider. */
   clientKey?: string;
+  /**
+   * Which web tools to offer the model. Opt-in per conversation: a search
+   * sends the question, in the model's own words, to the provider's search,
+   * and that is a thing to say yes to rather than have happen.
+   */
+  tools?: WebTool[];
 }
 
 /* ------------------------------------------------------------- notebook -- */

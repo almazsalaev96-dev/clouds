@@ -205,6 +205,9 @@ createServer(async (req, res) => {
     // would prove nothing.
     model: body.model,
     turns: (body.messages ?? []).length,
+    /* Who spoke last. A resumed pause_turn ends in the assistant's own tool
+       blocks; a "continue" message would end in the user. */
+    lastRole: (body.messages ?? []).at(-1)?.role ?? null,
     cachedBlocks: JSON.stringify(body).split('"cache_control"').length - 1,
     system: typeof body.system,
     temperature: body.temperature,
@@ -239,6 +242,9 @@ createServer(async (req, res) => {
       .filter((c) => c.type === "text")
       .map((c) => c.text)
       .join("\n"),
+    /* Which web tools the app offered, by type. `e2e-research` reads this to
+       prove the request carried the tool and not only that an answer came. */
+    tools: (body.tools ?? []).map((t) => t.type),
     images: (body.messages ?? [])
       .flatMap((m) => (Array.isArray(m.content) ? m.content : []))
       .filter((c) => c.type === "image").length,
@@ -635,18 +641,57 @@ Nothing here looks like it breaks a caller — the return type is the same array
   send(res, "message_start", {
     message: { id: "msg_mock", type: "message", role: "assistant", model: body.model, content: [], usage: { input_tokens: 412, output_tokens: 0 } },
   });
-  send(res, "content_block_start", { index: 0, content_block: { type: "text", text: "" } });
+
+  /* Research. When the app offered a web search, the mock searches: a
+     server_tool_use block with the query, a result block with two pages, and
+     — once the text is under way — a citation on it, in the provider's own
+     shapes, so the app's translation of all three is what gets tested. A
+     question that says "keep searching" pauses the turn after the tool
+     blocks, which is how the provider ends a round it has not finished; the
+     app is expected to send the turn straight back, and the resumed request
+     (its last message an assistant turn) gets the text. */
+  const searching = (body.tools ?? []).some((t) => /^web_search/.test(t.type ?? ""));
+  const resumed = (body.messages ?? []).at(-1)?.role === "assistant";
+  let idx = 0;
+  const PAGES = [
+    { type: "web_search_result", url: "https://example.org/debounce", title: "Debounce and throttle, explained", page_age: "2 weeks ago", encrypted_content: "x" },
+    { type: "web_search_result", url: "https://example.org/throttle", title: "Throttling in practice", page_age: "1 month ago", encrypted_content: "x" },
+  ];
+  if (searching && !resumed) {
+    send(res, "content_block_start", { index: idx, content_block: { type: "server_tool_use", id: "srvtoolu_mock", name: "web_search", input: {} } });
+    send(res, "content_block_delta", { index: idx, delta: { type: "input_json_delta", partial_json: JSON.stringify({ query: asked.replace(/\s+/g, " ").slice(0, 60) }) } });
+    send(res, "content_block_stop", { index: idx });
+    idx++;
+    send(res, "content_block_start", { index: idx, content_block: { type: "web_search_tool_result", tool_use_id: "srvtoolu_mock", content: PAGES } });
+    send(res, "content_block_stop", { index: idx });
+    idx++;
+    if (/\bkeep searching\b/i.test(asked)) {
+      send(res, "message_delta", { delta: { stop_reason: "pause_turn" }, usage: { output_tokens: 40 } });
+      send(res, "message_stop", {});
+      res.end();
+      return;
+    }
+  }
+  send(res, "content_block_start", { index: idx, content_block: { type: "text", text: "" } });
 
   /* Chunked the way a real stream arrives: a few tokens at a time, not a wall.
      MOCK_SLOW stretches it, because anything that can only be tested *during*
      a stream — the stop button, the live ring, the reveal buffer — is
      untestable against a stream that finishes in a third of a second. */
-  for (const chunk of chunks) {
-    send(res, "content_block_delta", { index: 0, delta: { type: "text_delta", text: chunk } });
+  for (const [k, chunk] of chunks.entries()) {
+    send(res, "content_block_delta", { index: idx, delta: { type: "text_delta", text: chunk } });
+    /* The citation lands after the first sentence, the way a real one
+       attaches to the text it supports rather than to the whole answer. */
+    if (searching && k === 1) {
+      send(res, "content_block_delta", { index: idx, delta: { type: "citations_delta", citation: {
+        type: "web_search_result_location", url: PAGES[0].url, title: PAGES[0].title,
+        cited_text: "A debounce waits for silence", encrypted_index: "x",
+      } } });
+    }
     await new Promise((r) => setTimeout(r, gap));
   }
 
-  send(res, "content_block_stop", { index: 0 });
+  send(res, "content_block_stop", { index: idx });
   /* A safety system cutting an answer short is a real ending and the app has
      to say so, so it needs a way to happen on purpose. Asked for by the
      question rather than by a switch, because it belongs to one turn. */

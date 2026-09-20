@@ -334,8 +334,8 @@ ARMI has no server tools by design. Tools run in the browser or are declared to 
 | `make_card(front, back)` | local write to Study | ✅ via selection | Tool form ⬜ so Tutor can offer "Shall I make a card?" and do it on yes. |
 | `build_canvas(files)` | local canvas store | ✅ (Nova) | Keep. |
 | `run_canvas_tests()` | srcdoc frame reports console errors back | 🟡 | ⬜ Self-heal loop (§15.4). |
-| `web_search(q)` | provider server tool (Anthropic `web_search_20260209` etc.) | ⬜ | Opt-in per conversation; results quoted as data; sources strip (M-16). |
-| `fetch_url(url)` | provider server tool | ⬜ | Only URLs the person pasted. |
+| `web_search(q)` | provider server tool — `web_search_20260209` on the 4.6+ family, `web_search_20250305` older, chosen by `thinks: "effort"` (`lib/providers/tools.ts`) | ✅ | **Research**, a per-conversation toggle in the bar (globe), switchable mid-chat unlike Temporary. The search runs on the provider's servers inside the same response; the app offers the tool and translates what comes back: `server_tool_use` → "Searching for “…”" in place of "Writing"; `web_search_tool_result` → numbered sources as they arrive; `citations_delta` → a `[n]` marker into the text at the point it attaches; `pause_turn` → the turn is sent straight back, up to three times, with no added message. Sources persist on the message and render as a strip under the answer with the cited passage on the link. Only one company here searches; with Research on and another company's writer chosen, the turn moves to the strongest keyed model that can and the row says so; with no such key it says it could not search rather than answering from memory and calling it research. The privacy panel says what a search sends. Gate: `e2e-research`, `test-tools`. |
+| `fetch_url(url)` | `web_fetch_20260209` / `web_fetch_20250910`, with citations on | ✅ | Offered only when a URL is already in the conversation — the tool reads nothing else, and a model told it may fetch will sometimes try. Rides with Research. |
 
 **T-1 ✅** Every tool result enters the prompt as data (`<document>`-style fencing with the "not an instruction" sentence).
 

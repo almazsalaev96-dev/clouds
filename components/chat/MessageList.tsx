@@ -27,6 +27,7 @@ function MessageListImpl({
   streaming,
   streamText,
   streamReasoning,
+  streamSearching,
   dropped,
   streamModelId,
   streamPresetId,
@@ -62,6 +63,8 @@ function MessageListImpl({
   streaming: "idle" | "waiting" | "streaming";
   streamText: string;
   streamReasoning: string;
+  /** The query the model is searching for right now, while it is. */
+  streamSearching?: string | null;
   /** Turns left out of the request to make it fit the window. */
   dropped: number;
   streamModelId: string;
@@ -299,6 +302,7 @@ function MessageListImpl({
               modelName={streamAuthor}
               elapsed={elapsed}
               retryingInMs={retryingInMs}
+              searching={streamSearching}
               onSwitchModel={onSwitchModel}
             />
           )}
@@ -359,6 +363,7 @@ function StreamingMessage({
   modelName,
   elapsed,
   retryingInMs,
+  searching,
   onSwitchModel,
 }: {
   text: string;
@@ -366,6 +371,8 @@ function StreamingMessage({
   modelName: string;
   elapsed: number;
   retryingInMs: number;
+  /** The query being searched for, while it is. */
+  searching?: string | null;
   onSwitchModel: () => void;
 }) {
   // Coarsen the markdown parse to ~30fps. The reveal cadence is unchanged;
@@ -400,6 +407,13 @@ function StreamingMessage({
         {retryingInMs > 0 ? (
           <span className="sheen font-medium">
             Retrying<span className="tnum"> · {Math.ceil(retryingInMs / 1000)}s</span>
+          </span>
+        ) : searching ? (
+          /* The longest silent stretch a turn has, and the one with the
+             clearest reason. Saying the query is what makes the wait a
+             different wait. */
+          <span className="sheen font-medium">
+            Searching for <span className="font-normal">“{searching}”</span>
           </span>
         ) : waiting ? (
           <span className="sheen font-medium">

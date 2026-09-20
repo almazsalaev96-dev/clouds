@@ -2,6 +2,7 @@ import type { ChatRequest, StreamEvent, StopReason } from "../types";
 import { getModel, estimateCost } from "../models";
 import { classifyError, sseData, sseLines, usableTurns, baseUrlFor } from "./shared";
 import { thinkingBudget } from "./thinking";
+import { URL_RE, webTools } from "./tools";
 
 export async function* streamAnthropic(
   req: ChatRequest,
@@ -44,6 +45,14 @@ export async function* streamAnthropic(
     messages,
     stream: true,
   };
+
+  /* The web, where the conversation asked for it. A search happens on the
+     provider's servers inside this same response; this only offers it. */
+  const hasUrl = messages.some((m) =>
+    (m.content as { type: string; text?: string }[]).some((c) => c.type === "text" && URL_RE.test(c.text ?? "")),
+  );
+  const tools = webTools(model, req.tools ?? [], { hasUrl });
+  if (tools.length) body.tools = tools;
 
   /* Prompt caching.
      ---------------------------------------------------------------------
@@ -140,69 +149,152 @@ export async function* streamAnthropic(
     body.temperature = req.params.temperature;
   }
 
-  const res = await fetch(`${baseUrlFor("anthropic", "https://api.anthropic.com")}/v1/messages`, {
-    method: "POST",
-    signal,
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": key,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    yield { type: "error", error: classifyError("anthropic", res.status, await res.text()) };
-    return;
-  }
-
   let inputTokens = 0;
   let outputTokens = 0;
   let stopReason: StopReason = "stop";
-  let block: "text" | "thinking" | null = null;
+  /* Pages met so far, numbered in order of meeting. A citation names a URL;
+     the reader needs a number that matches the strip under the answer. */
+  const numbered = new Map<string, number>();
+  const meet = (url: string, title: string, quote?: string) => {
+    const known = numbered.get(url);
+    if (known) return { n: known, fresh: false };
+    const n = numbered.size + 1;
+    numbered.set(url, n);
+    return { n, fresh: true, source: { n, url, title: title || url, quote } };
+  };
 
-  for await (const line of sseLines(res, signal)) {
-    const ev = sseData(line) as Record<string, any> | null;
-    if (!ev) continue;
+  /* A server tool runs a loop on the provider's side, and after ten rounds
+     of it the response stops with `pause_turn` rather than an answer. The
+     way on is to send the turn back exactly as it came — the assistant's
+     blocks, tool calls and results included — and the server picks up where
+     it left off. So each round's blocks are kept as they stream, in the
+     provider's own shape, and three resumptions is the ceiling: a search
+     that has not found its answer in forty rounds is not going to. */
+  for (let round = 0; ; round++) {
+    const res = await fetch(`${baseUrlFor("anthropic", "https://api.anthropic.com")}/v1/messages`, {
+      method: "POST",
+      signal,
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify(body),
+    });
 
-    switch (ev.type) {
-      case "message_start": {
-        /* Cached input is reported separately and priced differently: a read
-           from the cache is a tenth of the normal rate, a write is a quarter
-           more. Counting only `input_tokens` would under-report a cached turn
-           by most of its prompt and make the running cost quietly wrong — and
-           a cost readout that is wrong in the cheap direction is the kind of
-           thing nobody notices until the bill. */
-        const u = ev.message?.usage ?? {};
-        const fresh = u.input_tokens ?? 0;
-        const read = u.cache_read_input_tokens ?? 0;
-        const written = u.cache_creation_input_tokens ?? 0;
-        inputTokens = fresh + Math.round(read * 0.1) + Math.round(written * 1.25);
-        break;
-      }
-      case "content_block_start":
-        block = ev.content_block?.type === "thinking" ? "thinking" : "text";
-        break;
-      case "content_block_delta": {
-        const d = ev.delta ?? {};
-        if (d.type === "thinking_delta" && d.thinking) yield { type: "reasoning", text: d.thinking };
-        else if (d.type === "text_delta" && d.text) yield { type: "text", text: d.text };
-        break;
-      }
-      case "content_block_stop":
-        block = null;
-        break;
-      case "message_delta":
-        outputTokens = ev.usage?.output_tokens ?? outputTokens;
-        if (ev.delta?.stop_reason === "max_tokens") stopReason = "length";
-        if (ev.delta?.stop_reason === "refusal") stopReason = "refusal";
-        break;
-      case "error":
-        yield { type: "error", error: classifyError("anthropic", 500, JSON.stringify(ev.error ?? {})) };
-        return;
+    if (!res.ok) {
+      yield { type: "error", error: classifyError("anthropic", res.status, await res.text()) };
+      return;
     }
+
+    const blocks: Record<string, any>[] = [];
+    const partial = new Map<number, string>();
+    let paused = false;
+
+    for await (const line of sseLines(res, signal)) {
+      const ev = sseData(line) as Record<string, any> | null;
+      if (!ev) continue;
+
+      switch (ev.type) {
+        case "message_start": {
+          /* Cached input is reported separately and priced differently: a read
+             from the cache is a tenth of the normal rate, a write is a quarter
+             more. Counting only `input_tokens` would under-report a cached turn
+             by most of its prompt and make the running cost quietly wrong — and
+             a cost readout that is wrong in the cheap direction is the kind of
+             thing nobody notices until the bill. */
+          const u = ev.message?.usage ?? {};
+          const fresh = u.input_tokens ?? 0;
+          const read = u.cache_read_input_tokens ?? 0;
+          const written = u.cache_creation_input_tokens ?? 0;
+          inputTokens += fresh + Math.round(read * 0.1) + Math.round(written * 1.25);
+          break;
+        }
+        case "content_block_start": {
+          const cb = ev.content_block ?? {};
+          const i = ev.index as number;
+          blocks[i] = { ...cb };
+          if (cb.type === "text") blocks[i].text = cb.text ?? "";
+          if (cb.type === "thinking") blocks[i].thinking = cb.thinking ?? "";
+          if (cb.type === "server_tool_use") blocks[i].input = cb.input ?? {};
+
+          /* The results of a search, all at once. A success is a list; an
+             error is an object with a code in it, which is reported as
+             nothing found rather than as a red box — the model says so in
+             its own words a moment later. */
+          if (cb.type === "web_search_tool_result" && Array.isArray(cb.content)) {
+            for (const r of cb.content) {
+              if (r?.type !== "web_search_result" || !r.url) continue;
+              const m = meet(r.url, r.title ?? "");
+              if (m.fresh && m.source) yield { type: "source", source: m.source };
+            }
+          }
+          if (cb.type === "web_fetch_tool_result" && cb.content?.type === "web_fetch_result" && cb.content.url) {
+            const m = meet(cb.content.url, cb.content.content?.title ?? cb.content.url);
+            if (m.fresh && m.source) yield { type: "source", source: m.source };
+          }
+          break;
+        }
+        case "content_block_delta": {
+          const d = ev.delta ?? {};
+          const i = ev.index as number;
+          const b = blocks[i] ?? (blocks[i] = { type: "text", text: "" });
+          if (d.type === "thinking_delta" && d.thinking) {
+            b.thinking = (b.thinking ?? "") + d.thinking;
+            yield { type: "reasoning", text: d.thinking };
+          } else if (d.type === "text_delta" && d.text) {
+            b.text = (b.text ?? "") + d.text;
+            yield { type: "text", text: d.text };
+          } else if (d.type === "signature_delta" && d.signature) {
+            b.signature = d.signature;
+          } else if (d.type === "input_json_delta") {
+            partial.set(i, (partial.get(i) ?? "") + (d.partial_json ?? ""));
+          } else if (d.type === "citations_delta" && d.citation) {
+            /* The text just streamed rests on this page. The marker goes out
+               now, at the place the citation attaches, and the strip under
+               the answer carries the same number. */
+            const c = d.citation;
+            if (c.url) {
+              const m = meet(c.url, c.title ?? "", c.cited_text);
+              if (m.fresh && m.source) yield { type: "source", source: m.source };
+              (b.citations ??= []).push(c);
+              yield { type: "cite", n: m.n };
+            }
+          }
+          break;
+        }
+        case "content_block_stop": {
+          const i = ev.index as number;
+          const b = blocks[i];
+          const json = partial.get(i);
+          if (b && json !== undefined) {
+            try { b.input = JSON.parse(json); } catch { /* an unfinished input is kept as it was */ }
+            partial.delete(i);
+            if (b.type === "server_tool_use" && b.name === "web_search" && typeof b.input?.query === "string") {
+              yield { type: "searching", query: b.input.query };
+            }
+          }
+          break;
+        }
+        case "message_delta":
+          outputTokens += ev.usage?.output_tokens ?? 0;
+          if (ev.delta?.stop_reason === "max_tokens") stopReason = "length";
+          if (ev.delta?.stop_reason === "refusal") stopReason = "refusal";
+          if (ev.delta?.stop_reason === "pause_turn") paused = true;
+          break;
+        case "error":
+          yield { type: "error", error: classifyError("anthropic", 500, JSON.stringify(ev.error ?? {})) };
+          return;
+      }
+    }
+
+    if (paused && round < 3) {
+      messages.push({ role: "assistant", content: blocks.filter(Boolean) });
+      body.messages = messages;
+      continue;
+    }
+    break;
   }
-  void block;
 
   yield { type: "usage", usage: { inputTokens, outputTokens, costUsd: estimateCost(model, inputTokens, outputTokens) } };
   yield { type: "done", stopReason };

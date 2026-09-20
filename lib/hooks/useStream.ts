@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ChatError, ContentBlock, Message, ProviderId, StreamEvent, Usage } from "../types";
+import type { ChatError, ContentBlock, Message, ProviderId, StreamEvent, Usage, WebSource, WebTool } from "../types";
 import { noteFailure, noteSuccess } from "../health";
 import { getModel, estimateTokens } from "../models";
 import { db, addMessage, uid } from "../db";
@@ -11,6 +11,10 @@ import { fitToContext } from "../context";
 export type Phase = "idle" | "waiting" | "streaming";
 
 interface StreamState {
+  /** The query being searched right now, or nothing. */
+  searching: string | null;
+  /** Pages met so far this turn, numbered. */
+  sources: WebSource[];
   phase: Phase;
   /** Set while waiting out a rate limit before trying again. */
   retryingInMs: number;
@@ -54,6 +58,8 @@ const ELSEWHERE = new Set<ChatError["kind"]>(["provider_down", "rate_limit", "qu
 const BRIEF: Partial<Record<ChatError["kind"], number>> = { provider_down: 2_000, timeout: 2_000, network: 2_000 };
 
 const EMPTY: StreamState = {
+  searching: null,
+  sources: [],
   phase: "idle",
   retryingInMs: 0,
   conversationId: null,
@@ -91,6 +97,8 @@ export function useStream(onFinish?: (m: Message) => void) {
 
   const abortRef = useRef<AbortController | null>(null);
   const bufferRef = useRef("");
+  /** Pages the answer has drawn on so far, as the provider reports them. */
+  const sourcesRef = useRef<WebSource[]>([]);
   /** When the buffer last grew. The drain holds a partial word only this long. */
   const fedRef = useRef(0);
   const shownRef = useRef("");
@@ -193,6 +201,8 @@ export function useStream(onFinish?: (m: Message) => void) {
        * from there. Returning nothing means there is nowhere else, and the
        * error stands.
        */
+      /** Web tools to offer. Sent as given; the adapter shapes them per model. */
+      tools?: WebTool[];
       elsewhere?: (failed: ProviderId, kind: ChatError["kind"]) => { modelId: string; why: string } | null;
     }) => {
       const model = getModel(opts.modelId);
@@ -200,6 +210,8 @@ export function useStream(onFinish?: (m: Message) => void) {
       const assistantId = uid();
 
       bufferRef.current = "";
+
+      sourcesRef.current = [];
       fedRef.current = Date.now();
       shownRef.current = "";
       reasoningRef.current = "";
@@ -236,6 +248,7 @@ export function useStream(onFinish?: (m: Message) => void) {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             modelId: opts.modelId,
+            tools: opts.tools,
             messages: fitted.messages,
             systemPrompt: opts.systemPrompt || undefined,
             turnPrompt: opts.turnPrompt || undefined,
@@ -280,6 +293,22 @@ export function useStream(onFinish?: (m: Message) => void) {
                   if (ttftRef.current === null) ttftRef.current = Date.now() - startedRef.current;
                   reasoningRef.current += ev.text;
                   setState((s) => ({ ...s, phase: "streaming", reasoning: reasoningRef.current }));
+                  break;
+                case "searching":
+                  /* Said while it happens. A search is the longest silent
+                     stretch a turn has, and a wait with a reason on it is a
+                     different wait. */
+                  setState((s) => ({ ...s, phase: "streaming", searching: ev.query }));
+                  break;
+                case "source":
+                  sourcesRef.current = [...sourcesRef.current, ev.source];
+                  setState((s) => ({ ...s, sources: sourcesRef.current, searching: null }));
+                  break;
+                case "cite":
+                  /* The marker goes into the text at the point the citation
+                     attached, through the same buffer as the words, so it
+                     appears in step with them rather than jumping in. */
+                  bufferRef.current += ` [${ev.n}]`;
                   break;
                 case "usage":
                   usageRef.current = ev.usage;
@@ -338,6 +367,7 @@ export function useStream(onFinish?: (m: Message) => void) {
         modelId: opts.modelId,
         routedWhy: opts.routedWhy,
         presetId: opts.presetId,
+        sources: sourcesRef.current.length ? sourcesRef.current : undefined,
         usage,
         latencyMs,
         ttftMs: ttftRef.current ?? undefined,

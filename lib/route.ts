@@ -1,5 +1,6 @@
 import { REPLY, SAFETY } from "./context";
 import { wellOnly } from "./health";
+import { canSearch } from "./providers/tools";
 import { MODELS } from "./models";
 import type { ModelSpec, ProviderId } from "./types";
 import { solve, type Sum } from "./arith";
@@ -500,4 +501,20 @@ export function checker(
     if (p) return p;
     return a.id.localeCompare(b.id);
   })[0].id;
+}
+
+/**
+ * The strongest model with a key that can run a web search.
+ *
+ * Only one company here searches on the model's behalf, so "can search" is
+ * "is theirs and is keyed", and among those the current generation's best.
+ * Nothing when no such key is held — the caller says so rather than sending
+ * a search to a model that will answer from memory and call it research.
+ */
+export function searcher(ctx: { configured: Record<string, boolean>; keys: Record<string, string> }): ModelSpec | null {
+  const pool = usable(ctx.configured, ctx.keys).filter((m) => canSearch(m));
+  if (!pool.length) return null;
+  const current = pool.filter((m) => !m.legacy);
+  const from = current.length ? current : pool;
+  return [...from].sort((a, b) => b.priceOut - a.priceOut)[0] ?? null;
 }

@@ -125,6 +125,9 @@ function PrivacyPanel() {
           needs. It goes to the provider whose key you added, through this app&rsquo;s own
           forwarding route, which reads nothing and keeps nothing. What that company then
           does with it is their policy, not ours — it is worth reading once.
+          With Research on, the same company also runs a web search on its own servers
+          for that turn; the search terms are the model&rsquo;s reading of your question,
+          and every page it drew on is listed under the answer.
         </Line>
         <Line title="Your keys">
           A key you paste is kept in this browser and sent only to its own provider. It is

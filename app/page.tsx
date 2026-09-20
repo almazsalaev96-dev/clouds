@@ -30,7 +30,7 @@ import {
   playerFor, playersFor, resolveCast, shapePlan, shortName, worthBriefing, worthConvening,
 } from "@/lib/presets";
 import { costOf, fitToContext } from "@/lib/context";
-import { elsewhere } from "@/lib/route";
+import { elsewhere, searcher } from "@/lib/route";
 import { whyAvoided } from "@/lib/health";
 import { cheapestAvailable, complete } from "@/lib/complete";
 import { useSettings, useDrafts, paramsFor, paramsSet, type Section } from "@/lib/store";
@@ -142,6 +142,9 @@ export default function Page() {
   /* The next chat is temporary. Held here until a first message makes the
      conversation it belongs to, the way a pending project is. */
   const [pendingTemporary, setPendingTemporary] = React.useState(false);
+  /* The next chat may search. Held the same way until a first message makes
+     the conversation; after that it lives on the conversation itself. */
+  const [pendingResearch, setPendingResearch] = React.useState(false);
 
   /* Reloading should not lose your place. The last conversation is written to
      settings on every change and read back once on mount — but only after
@@ -797,15 +800,34 @@ export default function Page() {
         .filter(Boolean)
         .join(" · ");
 
+      /* Research is a thing only one company here does. When it is on and
+         the writer the cast chose is from another, the turn moves to the
+         strongest keyed model that can search, and the row says so — the
+         same rule as a company that will not answer at all, applied before
+         the send rather than after a failure. */
+      const research = conversation?.research ?? pendingResearch;
+      let writer = modelId;
+      let searchWhy = "";
+      if (research) {
+        const able = searcher({ configured, keys: settings.keys });
+        if (able && getModel(modelId).provider !== able.provider) {
+          writer = able.id;
+          searchWhy = "moved to a model that can search the web";
+        } else if (!able) {
+          searchWhy = "could not search: no key for a company that searches";
+        }
+      }
+
       await stream.send({
         conversationId,
         parentId,
-        modelId,
+        modelId: writer,
+        tools: research && !searchWhy.startsWith("could not") ? ["web_search", "web_fetch"] : undefined,
         /* Which Armi model this is, kept with the answer. The engine stays in
            `modelId` because a retry, a second opinion and the token meter all
            need it; what a reader is shown is the name they picked. */
         presetId: preset?.id ?? (picked === AUTO ? AUTO : undefined),
-        routedWhy: why || undefined,
+        routedWhy: [why, searchWhy].filter(Boolean).join(" · ") || undefined,
         history,
         systemPrompt: composed.text || undefined,
         /* Excerpts chosen for this question go with the turn, outside the
@@ -877,7 +899,7 @@ export default function Page() {
           projectId: pendingProject ?? undefined,
           /* Set by the toggle in the header before there is a conversation
              for it to be a property of, like the project above. */
-          temporary: pendingTemporary || undefined,
+          temporary: pendingTemporary, research: pendingResearch || undefined,
         });
         setPendingProject(null);
         setPendingTemporary(false);
@@ -1973,6 +1995,11 @@ export default function Page() {
             pendingProject={pendingProject}
             temporary={conversation ? !!conversation.temporary : pendingTemporary}
             onToggleTemporary={() => setPendingTemporary((v) => !v)}
+            research={conversation ? !!conversation.research : pendingResearch}
+            onToggleResearch={() => {
+              if (activeId && conversation) void db.conversations.update(activeId, { research: !conversation.research });
+              else setPendingResearch((v) => !v);
+            }}
             modelId={threadModelId}
             configured={configured}
             modelPickerOpen={modelPickerOpen}
@@ -2008,6 +2035,7 @@ export default function Page() {
                 streaming={live ? stream.phase : "idle"}
                 streamText={live ? stream.text : ""}
                 streamReasoning={live ? stream.reasoning : ""}
+                streamSearching={live ? stream.searching : null}
                 dropped={droppedFromContext}
                 /* The model actually receiving this turn, not the one the
                    picker is holding. An Armi model is a tactic — "one" is not

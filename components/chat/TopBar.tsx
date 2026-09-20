@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
-  Archive, ArchiveRestore, Check, ChevronDown, Download, FolderOpen, MessageSquareDashed,
+  Archive, ArchiveRestore, Check, ChevronDown, Download, FolderOpen, Globe, MessageSquareDashed,
   MoreHorizontal, NotebookPen, PanelLeft, Pin, PinOff, Trash2, Wand2,
 } from "lucide-react";
 import type { Conversation, Project } from "@/lib/types";
@@ -30,6 +30,8 @@ export function TopBar({
   onOpenProject,
   pendingProject,
   temporary,
+  research,
+  onToggleResearch,
   onToggleTemporary,
   modelId,
   configured,
@@ -53,6 +55,8 @@ export function TopBar({
   pendingProject?: string | null;
   /** This chat is not kept — or the next one will not be. */
   temporary?: boolean;
+  research?: boolean;
+  onToggleResearch?: () => void;
   /** Only before the first message: a chat is temporary from its first word or not at all. */
   onToggleTemporary?: () => void;
   /** Which model answers this thread, and the menu that changes it. */
@@ -221,6 +225,15 @@ export function TopBar({
             put this here, top right of a new chat, and it is the right
             place: a decision about the chat you are about to have, made
             before you have it, and impossible to make after. */}
+        {/* Research: the model may search the web in this chat. Unlike
+            temporary, switchable at any point — a question about last week's
+            news wants it and a question about your own notes does not, and
+            both happen in one afternoon. */}
+        {onToggleResearch && (
+          <IconButton label={research ? "Stop searching the web" : "Research: let it search the web"} active={research} onClick={onToggleResearch}>
+            <Globe size={16} />
+          </IconButton>
+        )}
         {!conversation && onToggleTemporary && (
           <IconButton label={temporary ? "Keep this chat" : "Temporary chat"} active={temporary} onClick={onToggleTemporary}>
             <MessageSquareDashed size={16} />
