@@ -94,7 +94,7 @@ console.log("\nAnd the stylesheet is not carrying tokens nothing asks for");
   const dark = block(':root[data-theme="dark"]');
   /* Derived values live in one block or the other legitimately; what must
      match is the colour vocabulary both themes are read against. */
-  const colourish = (n: string) => /^--(bg|text|border|accent|syn|danger|success|warning|highlight|mark|rim|glass|mesh|composer)/.test(n);
+  const colourish = (n: string) => /^--(bg|text|border|accent|syn|chart|danger|success|warning|highlight|mark|rim|glass|mesh|composer)/.test(n);
   const onlyLight = [...light].filter((n) => colourish(n) && !dark.has(n));
   const onlyDark = [...dark].filter((n) => colourish(n) && !light.has(n));
   check(onlyLight.length === 0 && onlyDark.length === 0,

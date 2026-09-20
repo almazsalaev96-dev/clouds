@@ -148,6 +148,18 @@
      the bar they actually sit on. Use it wherever the signal has to be a
      letterform rather than a shape. */
   --accent-2-ink: #005e5f;
+  /* Series colours for a chart in an answer. Four, and never a fifth: the
+     palette was validated for exactly four adjacent slots (worst
+     colour-blind separation ΔE 13.5, all above 3:1 on the surface) and a
+     fifth series folds into "Other". Lightness alternates dark/light along
+     the order so every neighbouring pair carries a luminance difference as
+     well as a hue one — the cue a colour-blind reader actually has. The
+     app's own signal cyan is not here: at chart lightness it cannot reach
+     the chroma floor inside sRGB and reads grey beside the others. */
+  --chart-1: #224bb2;
+  --chart-2: #d27908;
+  --chart-3: #006c48;
+  --chart-4: #ba71cb;
   --accent-2-rgb: 0 125 149;
 
   /* Act, deepened for daylight. */
@@ -492,6 +504,13 @@
     /* The signal at text strength — see the light block. Solved against the
        dark bar to the same 7.0, so the wordmark weighs the same in both. */
     --accent-2-ink: #4babac;
+    /* The same four hues stepped for the dark surface — inside the 0.48–0.67
+       lightness band, not a flip of the light values — and validated as a
+       set against #141a28 (worst colour-blind separation ΔE 9.4). */
+    --chart-1: #4970c6;
+    --chart-2: #ce7c22;
+    --chart-3: #007d54;
+    --chart-4: #b774c7;
     --accent-2-rgb: 111 220 220;
 
     /* Green at its true value, carrying the ink rather than white: at this

@@ -385,6 +385,37 @@ createServer(async (req, res) => {
     [body.system, body.turnPrompt].map((x) => (typeof x === "string" ? x : JSON.stringify(x ?? ""))).join(" "),
   );
   const drawing = /\bdraw\b|\bdiagram\b|\bflowchart\b/i.test(asked);
+  /* A comparison, as a table. Mixed on purpose: a figures column with a
+     blank and an "n/a" in it, a text column, a currency column, and one cell
+     with a comma — every case a sort or a CSV export gets wrong when it is
+     wrong. A tidy table would prove nothing. */
+  const tabling = /\bcompare\b|\bas a table\b/i.test(asked);
+  /* A trend, as a chart fence. Two series so the legend has to appear, a
+     gap in one so the line has to break, and thousands in the values so the
+     axis has to group them. */
+  const charting = /\bchart\b|\bplot\b|\btrend\b/i.test(asked);
+  const CHART = [
+    "Requests over the quarter, by route:",
+    "",
+    "```chart",
+    JSON.stringify({ type: "line", title: "Requests per day", unit: "req", x: ["Jul", "Aug", "Sep", "Oct"],
+      series: [{ name: "Search", values: [1200, 1800, null, 2600] }, { name: "Checkout", values: [400, 450, 700, 900] }] }),
+    "```",
+    "",
+    "Search dropped its September number — the log for that month is missing.",
+  ].join("\n");
+  const TABLE = [
+    "Three ways to wait, side by side:",
+    "",
+    "| Approach | Latency (ms) | Cost | Notes |",
+    "|---|---|---|---|",
+    "| Debounce | 300 | £0.10 | Fires after silence |",
+    "| Throttle | 100 | £1,200 | Floor between calls, see Smith, J. |",
+    "| Polling | n/a | £12 | Not recommended |",
+    "| Long poll | 2000 | | Holds the line open |",
+    "",
+    "Pick by what the interaction needs.",
+  ].join("\n");
   const gating = /\breduce\b|\bempty list\b/i.test(asked);
   const breaking = /\bfold\b/i.test(asked);
 
@@ -550,7 +581,11 @@ Nothing here looks like it breaks a caller — the return type is the same array
             ? MADE
             : drawing
               ? DRAWN
-              : breaking
+              : tabling
+                ? TABLE
+                : charting
+                  ? CHART
+                  : breaking
                 ? BROKEN_GATE
                 : gating
                   ? GATED

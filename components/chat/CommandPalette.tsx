@@ -8,9 +8,21 @@ import {
   Columns2, GraduationCap, NotebookPen, Palette, PanelLeft, Settings2, Sparkles, Sun, Trash2, Type, Wand2,
 } from "lucide-react";
 import { db } from "@/lib/db";
+import { bestHit, textOf, type Hit } from "@/lib/find";
+import type { Message } from "@/lib/types";
+import type { Card } from "@/lib/study";
 import { PRESETS } from "@/lib/presets";
 import { useSettings, type Section } from "@/lib/store";
 import { cn, fuzzyScore } from "@/lib/utils";
+
+/**
+ * How many rows a deep search reads.
+ *
+ * Far more than anybody will scroll and far less than a year of chatting.
+ * The alternative to a bound is a palette that gets slower every month it is
+ * used, which is the kind of decay nobody attributes to the right cause.
+ */
+const SCAN = 2_000;
 import { useReturnFocus } from "@/lib/hooks/useReturnFocus";
 import { Kbd } from "@/components/ui/primitives";
 
@@ -20,6 +32,16 @@ interface Command {
   hint?: string;
   /** Searched, never shown whole: the body of a note or paper. */
   body?: string;
+  /**
+   * The line this row matched on, where it came from a search of a body.
+   *
+   * Carried rather than recomputed at render because the query that produced
+   * it is the query that was typed, and the row is drawn again on every
+   * keystroke after that.
+   */
+  found?: Hit;
+  /** A score the row brings with it, for rows that are already a search hit. */
+  score?: number;
   keys?: string[];
   icon: React.ReactNode;
   group: string;
@@ -42,7 +64,13 @@ function bodyScore(query: string, body?: string): number {
 }
 
 /** Ties broken here when two groups score the same, so the order is stable. */
-const GROUP_ORDER = ["Actions", "Go to", "View", "Models", "Chats", "Projects", "Artifacts", "Notebook", "Study"];
+/* The two search groups sit last: they are what you fall back to when the
+   name did not find it, and a hit inside a thread should never push the
+   thread itself down the list. */
+const GROUP_ORDER = [
+  "Actions", "Go to", "View", "Models", "Chats", "Projects", "Artifacts", "Notebook", "Study",
+  "In conversations", "In cards",
+];
 /** No single kind of thing may fill the list and bury the rest. */
 const PER_GROUP = 5;
 
@@ -136,6 +164,24 @@ export function CommandPalette({
   const canvases = useLiveQuery(() => db.canvases.orderBy("updatedAt").reverse().limit(40).toArray(), [], []);
   const notes = useLiveQuery(() => db.notes.orderBy("updatedAt").reverse().limit(60).toArray(), [], []);
   const decks = useLiveQuery(() => db.decks.orderBy("updatedAt").reverse().limit(40).toArray(), [], []);
+
+  /* Messages and cards are searched rather than listed.
+     ---------------------------------------------------------------------
+     Every other room's rows are loaded up front and filtered in memory,
+     which works because there are tens of them. There are thousands of
+     messages: loading them all to search four words would make opening the
+     palette the slowest thing in the app. So these two queries run only
+     once something has been typed, scan the most recent rows, and stop at
+     what a group can show anyway. */
+  const deep = query.trim();
+  const hits = useLiveQuery(async () => {
+    if (deep.length < 2) return { messages: [], cards: [] };
+    const [messages, cards] = await Promise.all([
+      db.messages.orderBy("createdAt").reverse().limit(SCAN).toArray(),
+      db.cards.limit(SCAN).toArray(),
+    ]);
+    return { messages, cards };
+  }, [deep], { messages: [], cards: [] } as { messages: Message[]; cards: Card[] });
 
   React.useEffect(() => {
     if (open) {
@@ -288,11 +334,58 @@ export function CommandPalette({
       run: () => actions.open("study", d.id),
     }));
 
+    /* Inside the conversations, which is how anybody actually looks for one:
+       by a line the model wrote, not by a heading nobody chose. One row per
+       conversation — twelve hits in one thread is one thing to open, and
+       twelve rows of it is a group that drowns out the other rooms. */
+    const byThread = new Map<string, { hit: Hit; title: string }>();
+    for (const m of hits?.messages ?? []) {
+      const hit = bestHit([textOf(m.content)], deep);
+      if (!hit) continue;
+      const seen = byThread.get(m.conversationId);
+      if (!seen || hit.score > seen.hit.score) {
+        byThread.set(m.conversationId, {
+          hit,
+          title: (conversations ?? []).find((c) => c.id === m.conversationId)?.title || "Untitled chat",
+        });
+      }
+    }
+    const said: Command[] = [...byThread.entries()].map(([id, { hit, title }]) => ({
+      id: `said:${id}`,
+      label: title,
+      found: hit,
+      score: hit.score,
+      icon: <MessageSquare size={15} />,
+      group: "In conversations",
+      run: () => actions.open("chat", id),
+    }));
+
+    /* And inside the cards, where the front is the question and matching the
+       question is nearly always what was meant. */
+    const cardCmds: Command[] = (hits?.cards ?? [])
+      .map((c) => {
+        const hit = bestHit([c.front, c.back, c.topic], deep);
+        return hit ? { c, hit } : null;
+      })
+      .filter((x): x is { c: Card; hit: Hit } => Boolean(x))
+      .sort((a, b) => b.hit.score - a.hit.score)
+      .slice(0, PER_GROUP)
+      .map(({ c, hit }) => ({
+        id: `card:${c.id}`,
+        label: (decks ?? []).find((d) => d.id === c.deckId)?.name || "Card",
+        found: hit,
+        score: hit.score,
+        icon: <GraduationCap size={15} />,
+        group: "In cards",
+        run: () => actions.open("study", c.deckId),
+      }));
+
     return [
       ...base, ...nav, ...models,
       ...chats, ...projectCmds, ...canvasCmds, ...noteCmds, ...deckCmds,
+      ...said, ...cardCmds,
     ];
-  }, [actions, conversations, projects, canvases, notes, decks, settings]);
+  }, [actions, conversations, projects, canvases, notes, decks, settings, hits, deep]);
 
   /* Ranking has two jobs at once: put the best thing first, and keep each
      group in one piece. Sorting purely by score interleaves a note between two
@@ -310,7 +403,15 @@ export function CommandPalette({
     }
 
     const scored = commands
-      .map((c) => ({ c, score: Math.max(fuzzyScore(q, c.label), fuzzyScore(q, c.group) * 0.4, bodyScore(q, c.body)) }))
+      .map((c) => ({
+        c,
+        /* A row that is already a search hit brings its own score: it was
+           found by looking inside something, and re-scoring it on a label
+           that does not contain the query would throw the hit away. */
+        score: c.score
+          ? Math.max(c.score, fuzzyScore(q, c.label))
+          : Math.max(fuzzyScore(q, c.label), fuzzyScore(q, c.group) * 0.4, bodyScore(q, c.body)),
+      }))
       .filter((r) => r.score > 0);
 
     const byGroup = new Map<string, typeof scored>();
@@ -428,7 +529,17 @@ export function CommandPalette({
                     <span className="shrink-0 text-tertiary">{c.icon}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm text-primary">{c.label}</span>
-                      {c.hint && <span className="block truncate text-xs text-tertiary">{c.hint}</span>}
+                      {c.found ? (
+                        <span className="block truncate text-xs text-tertiary">
+                          {c.found.line.slice(0, c.found.at)}
+                          <mark className="rounded-[2px] bg-[var(--highlight)] px-0.5 text-[var(--highlight-fg)]">
+                            {c.found.line.slice(c.found.at, c.found.at + c.found.length)}
+                          </mark>
+                          {c.found.line.slice(c.found.at + c.found.length)}
+                        </span>
+                      ) : c.hint ? (
+                        <span className="block truncate text-xs text-tertiary">{c.hint}</span>
+                      ) : null}
                     </span>
                     {c.keys && <Kbd keys={c.keys} />}
                   </button>

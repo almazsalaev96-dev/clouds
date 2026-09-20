@@ -6,8 +6,10 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { ExternalLink } from "lucide-react";
+import { Chart } from "./Chart";
 import { CodeBlock } from "./CodeBlock";
 import { ComputeBlock } from "./ComputeBlock";
+import { DataTable } from "./DataTable";
 import { Diagram } from "./Diagram";
 import { Predict, parsePredict } from "./Predict";
 import { Callout } from "./Callout";
@@ -35,6 +37,9 @@ function makeComponents(streaming: boolean): Components {
          being asked, and it used to fall through to a language the highlighter
          did not know — losing not just the picture but the label too. */
       if (match?.[1] === "mermaid") return <Diagram src={text.replace(/\n$/, "")} streaming={streaming} />;
+      /* Numbers get drawn. The fence carries data and nothing about how to
+         draw it; everything spatial is decided by the same rules every time. */
+      if (match?.[1] === "chart") return <Chart src={text.replace(/\n$/, "")} streaming={streaming} />;
 
       /* A question you have to answer before the answer appears. Held back
          while the stream is running, because half a JSON object is not a
@@ -74,11 +79,11 @@ function makeComponents(streaming: boolean): Components {
       if (!kind) return <blockquote>{children}</blockquote>;
       return <Callout kind={kind}>{withoutMarker(children)}</Callout>;
     },
-    table: ({ children }) => (
-      <div className="table-scroll">
-        <table>{children}</table>
-      </div>
-    ),
+    /* A comparison you can act on rather than a picture of one. The two
+       things anybody wants from a table a model wrote are to order it by the
+       column they care about and to get it into a spreadsheet, and both used
+       to be a retype. */
+    table: ({ children, node }) => <DataTable node={node}>{children}</DataTable>,
     /* An in-page link is not an outward one.
        Everything here used to open in a new tab and wear the little arrow that
        promises it will, which is right for a URL and wrong for an anchor —
