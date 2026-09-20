@@ -51,8 +51,12 @@ console.log("\n“/study” answers as the tutor, and the command is not kept");
   await box().fill("/study what is a debounce");
   await p.keyboard.press("Meta+Enter");
   await p.waitForTimeout(4500);
-  const sent = await fetch(`${MOCK}/__last`).then((r) => r.json());
-  check(/explain/i.test(sent.system ?? "") || /teach|learn/i.test(sent.system ?? ""), "the request carried the tutor's stance", (sent.system ?? "").slice(0, 60));
+  /* The answer, not the last call: the Orrery's cast has a second model
+     read the answer back, so `__last` is the check, which is told the
+     answer and nothing about how to teach. */
+  const { recent } = await fetch(`${MOCK}/__recent`).then((r) => r.json());
+  const stance = recent.find((r) => r.kind === "answer")?.system ?? "";
+  check(/teach|learn|explain|understand/i.test(stance), "the request carried the tutor's stance", `${recent.map((r) => r.kind).join(" → ")}; ${stance.length} chars of instructions`);
   const user = await p.locator(".msg").first().innerText();
   check(/what is a debounce/.test(user) && !/\/study/.test(user), "the message kept is the question without its prefix", user.replace(/\s+/g, " ").slice(0, 40));
   const row = await p.locator(".msg").last().innerText();
@@ -77,13 +81,18 @@ console.log("\n“/check” asks for a second reading; “/compare” is Binary 
   await p.keyboard.press("Meta+Enter");
   await p.waitForTimeout(4500);
   const row = await p.locator(".msg").last().innerText();
-  check(/read back by a second model/.test(row), "the row says a second model was asked to read it back", (row.split("\n").find((l) => /read back/.test(l)) ?? "").slice(0, 70));
+  check(/second reading asked for/.test(row), "the row says a second reading was asked for", (row.split("\n").find((l) => /second reading/.test(l)) ?? "").slice(0, 70));
   await box().fill("/compare which of these two names is better, Nova or Lens");
   await p.keyboard.press("Meta+Enter");
   await p.waitForTimeout(4500);
-  const last = await p.locator(".msg").last().innerText();
-  check(/Binary/.test(last), "and “/compare” credits the answer to Binary — the side-by-side tactic", (last.split("\n").find((l) => /ARMI/.test(l)) ?? "").slice(0, 60));
+  /* Binary's tactic is two columns, not one row: the same side-by-side the
+     Compare button makes, headed by the answers rather than by companies. */
+  const keeps = p.getByRole("button", { name: /^Keep .*answer$/ });
+  check(/Comparing 2 models/.test(await p.locator("main").innerText()) && (await keeps.count()) === 2, "and “/compare” puts two answers side by side — Binary's tactic", `${await keeps.count()} columns to keep from`);
   check(!/\/compare|\/check/.test(await p.locator("main").innerText()), "with neither command kept in the messages");
+  await keeps.first().click();
+  await p.waitForTimeout(800);
+  check((await keeps.count()) === 0 && /debounce|Nova|Lens/i.test(await p.locator(".msg").last().innerText()), "keeping one leaves it as the answer in the thread");
 }
 
 console.log("\n“With more effort” asks the same model to think harder");

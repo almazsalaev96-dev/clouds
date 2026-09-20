@@ -811,7 +811,10 @@ export default function Page() {
         registerWhy,
         opts?.revised ? "answered again after a second model objected" : "",
         opts?.effort ? "asked to think harder" : "",
-        opts?.check ? "read back by a second model, as asked" : "",
+        /* Asked for, not done: with one company's key there is nobody to
+           read it back, and the notice says so — the row must not claim
+           what the notice denies. */
+        opts?.check ? "second reading asked for" : "",
       ]
         .filter(Boolean)
         .join(" · ");
