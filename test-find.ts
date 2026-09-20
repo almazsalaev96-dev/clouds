@@ -37,6 +37,16 @@ console.log("\nA line break is a better edge than a character count");
   check(h.line.slice(h.at, h.at + h.length) === "krebs", "offset still points at the match");
 }
 
+console.log("\nA table row reads as its cells, not its pipes");
+{
+  const h = matchLine("| Debounce | 300 | £0.10 | Fires after silence |", "silence")!;
+  check(h.line === "Debounce · 300 · £0.10 · Fires after silence", "the pipes become separators", JSON.stringify(h.line));
+  check(h.line.slice(h.at, h.at + h.length) === "silence", "and the offset still points at the match after the tidy",
+    JSON.stringify(h.line.slice(h.at, h.at + h.length)));
+  const first = matchLine("| silence first | 1 |", "silence")!;
+  check(first.at === 0 && first.line.startsWith("silence"), "including when the match was in the first cell, behind a pipe that is now gone");
+}
+
 console.log("\nAnd it refuses to match on nothing");
 {
   check(matchLine("anything at all", "a") === null,

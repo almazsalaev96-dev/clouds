@@ -51,14 +51,21 @@ export function matchLine(text: string, query: string): Hit | null {
 
   const head = from > 0 && text[from - 1] !== "\n" ? "…" : "";
   const tail = to < text.length && text[to] !== "\n" ? "…" : "";
-  const line = head + text.slice(from, to).trim() + tail;
+  const raw = text.slice(from, to).trim();
+  /* A row of a markdown table reads as its cells, not its pipes. The match
+     offset is recomputed on the tidied line rather than shifted, because a
+     pipe removed *before* the match moves it and one removed after does not,
+     and counting which is which is how off-by-ones get in. */
+  const tidy = raw.replace(/^\|\s*/, "").replace(/\s*\|$/, "").replace(/\s*\|\s*/g, " · ");
+  const line = head + tidy + tail;
+  const shown = line.toLowerCase().indexOf(q);
   return {
     /* Earlier in the text is worth more, on the same reasoning as a title
        match: what a thing opens with is more likely to be what it is about.
        Floored so a late hit is still worth more than no hit at all. */
     score: Math.max(60, 300 - at),
     line,
-    at: at - from + head.length,
+    at: shown >= 0 ? shown : at - from + head.length,
     length: q.length,
   };
 }

@@ -57,6 +57,16 @@ console.log("\nBars are marks, not stripes");
   check(/^M.*Q.*Q.*Z$/.test(barPath(L.bars[0])) && barPath({ ...L.bars[0], h: 0 }) === "", "the outline rounds the data end and a zero-height bar draws nothing");
 }
 
+console.log("\nThe axis band fits its own labels");
+{
+  const narrow = layout(parseChart('{"x":["a","b"],"series":[{"name":"A","values":[1,4]}]}')!, 600, 200);
+  const wide = layout(parseChart('{"x":["a","b"],"unit":"req","series":[{"name":"A","values":[1200,2600]}]}')!, 600, 200);
+  check(wide.plot.x > narrow.plot.x, "a chart whose ticks read “2,500 req” leaves more room on the left than one whose ticks read “4”",
+    `${narrow.plot.x}px vs ${wide.plot.x}px`);
+  check(wide.plot.x >= "2,500 req".length * 6, "enough for the widest label at the tick font", `${wide.plot.x}px for 9 characters`);
+  check(narrow.plot.x >= 28 && wide.plot.x <= 120, "and bounded either way, so a huge unit cannot eat the plot");
+}
+
 console.log("\nLines carry their gaps");
 {
   const spec = parseChart('{"type":"line","x":["a","b","c"],"series":[{"name":"A","values":[1,null,3]}]}')!;

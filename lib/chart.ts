@@ -178,12 +178,20 @@ export const GAP = 2;
  * chart never grows a scroll bar to reach its own labels — the commonest
  * way a chart card goes wrong.
  */
-export function layout(spec: ChartSpec, width: number, height: number): Layout {
-  const left = 44, right = 12, top = 8, bottom = 24;
-  const plot = { x: left, y: top, w: Math.max(40, width - left - right), h: Math.max(40, height - top - bottom) };
+/** About how wide one character of a 10px tick label is. */
+const CH = 6;
 
+export function layout(spec: ChartSpec, width: number, height: number): Layout {
   const all = spec.series.flatMap((s) => s.values).filter((v): v is number => v !== null);
   const ticks = niceTicks(Math.min(...all, 0), Math.max(...all, 0), 4, spec.type === "bar" || Math.min(...all) >= 0);
+
+  /* The left band is as wide as the widest tick label, not a constant. At
+     44px "2,500 req" lost its first digit off the edge — an axis that reads
+     ",500" is worse than no axis, because it is a number that is wrong. */
+  const widest = Math.max(...ticks.map((t) => fmt(t, spec.unit).length));
+  const left = Math.max(28, Math.min(120, widest * CH + 12));
+  const right = 12, top = 8, bottom = 24;
+  const plot = { x: left, y: top, w: Math.max(40, width - left - right), h: Math.max(40, height - top - bottom) };
   const lo = ticks[0], hi = ticks[ticks.length - 1];
   const y = (v: number) => plot.y + plot.h - ((v - lo) / (hi - lo)) * plot.h;
 
