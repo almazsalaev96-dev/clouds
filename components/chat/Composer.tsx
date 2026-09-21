@@ -4,8 +4,7 @@ import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
   Check, ChevronDown, FileText, MessageSquare, Paperclip, Plus,
-  SlidersHorizontal, Sparkles, Wand2, X,
-} from "lucide-react";
+  SlidersHorizontal, Sparkles, Wand2, X, Globe } from "lucide-react";
 import { slashCommands, typingSlash } from "@/lib/slash";
 import type { ContentBlock, Style } from "@/lib/types";
 import { getModel, estimateTokens, formatTokens } from "@/lib/models";
@@ -41,6 +40,8 @@ export function Composer({
   onStop,
   onEditLast,
   onOpenModels,
+  research,
+  onToggleResearch,
   voice,
 }: {
   conversationId: string;
@@ -56,6 +57,9 @@ export function Composer({
   onStop: () => void;
   onEditLast: () => void;
   onOpenModels: () => void;
+  /** Whether this conversation may search the web. */
+  research?: boolean;
+  onToggleResearch?: () => void;
   /** Chat or Creative. */
   /** The style this thread answers in. */
   /** Voice mode, where the browser can do it. */
@@ -344,6 +348,37 @@ export function Composer({
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
+
+          {/* The web, switched on where the question is typed.
+              ---------------------------------------------------------
+              It was a globe in the top bar, which is where a *setting*
+              goes — and this is not a setting, it is a decision about the
+              sentence being written at that moment. All three of the apps
+              this one is answering to put the tools inside the box for
+              exactly that reason: the thing that changes what the answer
+              is made of belongs next to the thing you are making it from,
+              and it has to be visible while you type rather than found
+              first. Named as well as drawn, because a globe alone is a
+              guess about what kind of globe it is. */}
+          {onToggleResearch && (
+            <Tooltip label={research ? "Stop searching the web" : "Research: let it search the web"}>
+              <button
+                type="button"
+                aria-label={research ? "Stop searching the web" : "Research: let it search the web"}
+                aria-pressed={Boolean(research)}
+                onClick={onToggleResearch}
+                className={cn(
+                  "btn-touch press focus-inset flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs transition-colors duration-[var(--dur-fast)]",
+                  research
+                    ? "border-[color-mix(in_oklab,var(--accent)_40%,transparent)] bg-accent-subtle font-medium text-accent"
+                    : "border-line text-secondary hover:border-line-strong hover:text-primary",
+                )}
+              >
+                <Globe size={14} />
+                Research
+              </button>
+            </Tooltip>
+          )}
 
           <input
             ref={fileRef}

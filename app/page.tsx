@@ -1968,6 +1968,15 @@ export default function Page() {
       onEditLast={editLast}
       configured={configured}
       onOpenModels={() => setModelPickerOpen(true)}
+      /* The web, switched on beside the box rather than in the bar: it is a
+         decision about the question being typed. Same state either way —
+         a thread that has one keeps it, and a blank page holds it until
+         there is a thread to keep it on. */
+      research={conversation ? !!conversation.research : pendingResearch}
+      onToggleResearch={() => {
+        if (activeId && conversation) void db.conversations.update(activeId, { research: !conversation.research });
+        else setPendingResearch((v) => !v);
+      }}
       voice={voice}
     />
   ) : null;
@@ -2124,11 +2133,6 @@ export default function Page() {
             pendingProject={pendingProject}
             temporary={conversation ? !!conversation.temporary : pendingTemporary}
             onToggleTemporary={() => setPendingTemporary((v) => !v)}
-            research={conversation ? !!conversation.research : pendingResearch}
-            onToggleResearch={() => {
-              if (activeId && conversation) void db.conversations.update(activeId, { research: !conversation.research });
-              else setPendingResearch((v) => !v);
-            }}
             modelId={threadModelId}
             configured={configured}
             modelPickerOpen={modelPickerOpen}

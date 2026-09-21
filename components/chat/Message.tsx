@@ -122,7 +122,14 @@ function UserMessageImpl({
   }
 
   return (
-    <div id={`m-${message.id}`} className={cn("msg group flex flex-col items-end gap-1.5 pb-3 pt-6", entering && "msg-enter")}>
+    /* A question and the answer under it are one exchange, and the space
+       has to say so. The two gaps used to be 24px inside an exchange and
+       40px between them — a ratio of 1.67, which at a glance is no ratio at
+       all: the page read as a column of evenly spaced blocks and you had to
+       re-read to find where your own question was. ChatGPT and Claude both
+       run roughly double, and doubling is the smallest difference an eye
+       reads as grouping rather than as drift. 16 inside, 48 between. */
+    <div id={`m-${message.id}`} className={cn("msg group flex flex-col items-end gap-1.5 pb-2 pt-10", entering && "msg-enter")}>
       {images.length > 0 && (
         <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
           {images.map((img, i) =>
@@ -411,7 +418,7 @@ function AssistantMessageImpl({
   };
 
   return (
-    <div id={`m-${message.id}`} className={cn("msg group rounded-lg pb-4 pt-3", entering && "msg-enter", settled && "msg-settled")}>
+    <div id={`m-${message.id}`} className={cn("msg group rounded-lg pb-4 pt-2", entering && "msg-enter", settled && "msg-settled")}>
       {/* Who is speaking, before you read what they said. In an app with four
           providers this is not metadata — it is context, and it is set a step
           above metadata to say so. 12px was doing both this job and the job of
@@ -518,7 +525,7 @@ function AssistantMessageImpl({
         )}
       </div>
 
-      {message.reasoning && <Reasoning text={message.reasoning} />}
+      {message.reasoning && <Reasoning text={message.reasoning} ms={message.ttftMs} />}
 
       {made ? (
         <>
@@ -841,9 +848,22 @@ export const AssistantMessage = React.memo(AssistantMessageImpl);
 
 /* -------------------------------------------------------------- pieces ---- */
 
-/** Collapsed by default: reasoning must never outweigh the answer visually. */
-function Reasoning({ text }: { text: string }) {
+/**
+ * Collapsed by default: reasoning must never outweigh the answer visually.
+ *
+ * Labelled with how long it took, where that is known and worth saying.
+ * "Reasoning" is a noun and tells you nothing you could not see; the number
+ * is the signal — it is the difference between a model that glanced at your
+ * question and one that sat with it, and it is the one thing about a
+ * thinking trace a person can act on without opening it. Time to the first
+ * token is exactly that measurement: the thinking happens before a word is
+ * written, so the gap before the first one *is* the thinking. Under a second
+ * and a half there was no pause worth naming, and the label goes back to the
+ * noun rather than claiming precision it has not got.
+ */
+function Reasoning({ text, ms }: { text: string; ms?: number }) {
   const [open, setOpen] = React.useState(false);
+  const thought = ms != null && ms >= 1_500 ? `Thought for ${formatDuration(ms)}` : "Reasoning";
   return (
     <div className="mb-3">
       <button
@@ -852,7 +872,7 @@ function Reasoning({ text }: { text: string }) {
         className="flex items-center gap-1 text-sm text-tertiary transition-colors duration-[var(--dur-fast)] hover:text-secondary"
       >
         <Caret size={13} className={cn("transition-transform duration-[var(--dur-fast)]", open && "rotate-90")} />
-        Reasoning
+        {thought}
       </button>
       {open && (
         <div className="mt-2 whitespace-pre-wrap border-l-2 border-line pl-3 text-sm text-secondary anim-fade">

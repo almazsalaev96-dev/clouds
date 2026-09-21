@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
-  Archive, ArchiveRestore, Check, ChevronDown, Download, FolderOpen, Globe, MessageSquareDashed,
+  Archive, ArchiveRestore, Check, ChevronDown, Download, FolderOpen, MessageSquareDashed,
   MoreHorizontal, NotebookPen, PanelLeft, Pin, PinOff, Trash2, Wand2,
 } from "lucide-react";
 import type { Conversation, Project } from "@/lib/types";
@@ -225,15 +225,12 @@ export function TopBar({
             put this here, top right of a new chat, and it is the right
             place: a decision about the chat you are about to have, made
             before you have it, and impossible to make after. */}
-        {/* Research: the model may search the web in this chat. Unlike
-            temporary, switchable at any point — a question about last week's
-            news wants it and a question about your own notes does not, and
-            both happen in one afternoon. */}
-        {onToggleResearch && (
-          <IconButton label={research ? "Stop searching the web" : "Research: let it search the web"} active={research} onClick={onToggleResearch}>
-            <Globe size={16} />
-          </IconButton>
-        )}
+        {/* Research used to be a globe here. It moved into the composer, where
+            the question it applies to is typed: it is a decision about this
+            sentence rather than a property of the room, and a bare globe in
+            the corner is also a guess about what kind of globe it is. The
+            props stay on this component because the bar still owns temporary,
+            and a room that wants the pair together has somewhere to put it. */}
         {!conversation && onToggleTemporary && (
           <IconButton label={temporary ? "Keep this chat" : "Temporary chat"} active={temporary} onClick={onToggleTemporary}>
             <MessageSquareDashed size={16} />
