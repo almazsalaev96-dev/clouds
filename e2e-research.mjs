@@ -30,7 +30,8 @@ console.log("\nOff by default, and then on");
   await p.keyboard.press("Meta+Enter");
   await p.waitForTimeout(3500);
   const sent = await fetch(`${MOCK}/__last`).then((r) => r.json());
-  check(!(sent.tools ?? []).length, "with research off, no tool rides in the request", JSON.stringify(sent.tools ?? []));
+  /* No web tool: the app's own rooms ride on every turn, and they are not the web. */
+  check(!(sent.tools ?? []).some((t) => /^web_/.test(t)), "with research off, no web tool rides in the request", JSON.stringify((sent.tools ?? []).filter((t) => /^web_/.test(t))));
   check((await p.locator(".msg section[aria-label='Sources']").count()) === 0, "and no sources are claimed");
 
   const toggle = p.getByRole("button", { name: /Research: let it search the web/ });

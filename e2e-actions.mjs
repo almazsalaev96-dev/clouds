@@ -73,6 +73,27 @@ console.log("\nA page, written and then taken back");
   check(await p.getByText(/Undone: Wrote the page/).isVisible().catch(() => false), "with a notice saying so");
 }
 
+console.log("\nA page is read back, and added to");
+{
+  await fetch(`${MOCK}/__reset`);
+  await say("save that as a note");
+  await p.waitForTimeout(5000);
+  await say("read me my debounce page");
+  await p.waitForTimeout(5000);
+  const read = await lastRow().innerText();
+  check(/Done — # Debounce, explained/.test(read), "the whole page came back, by its closest title", read.split("\n").find((l) => /Done/.test(l))?.slice(0, 60));
+  await say("add a line to my debounce page");
+  await p.waitForTimeout(5000);
+  const chip = lastRow().getByRole("list", { name: "Done in this app" });
+  check(/Added to the page “Debounce, explained”/.test(await chip.innerText().catch(() => "")), "the chip says it was added to");
+  const content = await p.evaluate(() => new Promise((res) => { const r = indexedDB.open("clouds"); r.onsuccess = () => { const t = r.result.transaction("notes").objectStore("notes").getAll(); t.onsuccess = () => res(t.result.find((n) => n.title === "Debounce, explained")?.content ?? ""); }; }));
+  check(/Added by the model/.test(content) && /^# Debounce, explained/.test(content), "the page has the line at the end and its start intact");
+  await chip.getByRole("button", { name: "Undo" }).click();
+  await p.waitForTimeout(700);
+  const restored = await p.evaluate(() => new Promise((res) => { const r = indexedDB.open("clouds"); r.onsuccess = () => { const t = r.result.transaction("notes").objectStore("notes").getAll(); t.onsuccess = () => res(t.result.find((n) => n.title === "Debounce, explained")?.content ?? ""); }; }));
+  check(!/Added by the model/.test(restored) && restored.length > 0, "and Undo puts the page back as it was");
+}
+
 console.log("\nReading tools: the study room and the clock");
 {
   await fetch(`${MOCK}/__reset`);

@@ -655,6 +655,9 @@ Nothing here looks like it breaks a caller — the return type is the same array
     if ((m = /(?:calculate|work out) (.+?)[?.]?$/i.exec(ask)) && offered.has("calculate")) return { name: "calculate", input: { expression: m[1] } };
     if (/\badd (this|that|it) to the project\b/i.test(ask) && offered.has("save_to_project")) return { name: "save_to_project", input: { name: "decisions.md", text: "We debounce the search box at 300ms." } };
     if (/what have i (made|built)/i.test(ask) && offered.has("list_made")) return { name: "list_made", input: {} };
+    if ((m = /read (?:me )?my (.+?) page/i.exec(ask)) && offered.has("read_note")) return { name: "read_note", input: { title: m[1] } };
+    if ((m = /add (?:this|that|a line) to my (.+?) page/i.exec(ask)) && offered.has("append_note")) return { name: "append_note", input: { title: m[1], content: "Added by the model: a throttle enforces a floor between calls." } };
+    if ((m = /show me (?:the )?(.+?) i (?:made|built)/i.exec(ask)) && offered.has("read_made")) return { name: "read_made", input: { title: m[1] } };
     return null;
   })();
   if (resultText) {
