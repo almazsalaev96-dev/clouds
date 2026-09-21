@@ -82,6 +82,7 @@ run test-slash npx jiti test-slash.ts
 run test-actions npx jiti test-actions.ts
 run test-recap npx jiti test-recap.ts
 run test-plain npx jiti test-plain.ts
+run test-revision npx jiti test-revision.ts
 run test-grade npx jiti test-grade.ts
 run test-retrieve npx jiti test-retrieve.ts
 run test-exam npx jiti test-exam.ts
@@ -101,7 +102,7 @@ serve
 for t in e2e e2e-rest e2e-canvas e2e-web e2e-code e2e-follow e2e-agent e2e-sources e2e-auto e2e-command \
          e2e-project e2e-mode e2e-pdf e2e-editor e2e-makes e2e-bar e2e-motion \
          e2e-use e2e-scale e2e-backup e2e-error e2e-storage e2e-shape e2e-point-at e2e-draw \
-         e2e-ask e2e-crash e2e-dir e2e-keep e2e-made e2e-recover e2e-compute e2e-register e2e-study e2e-mastery e2e-tutor e2e-comfort e2e-find e2e-table e2e-chart e2e-research e2e-slash e2e-actions e2e-recap e2e-rooms e2e-notebook e2e-plan e2e-look e2e-presets; do
+         e2e-ask e2e-crash e2e-dir e2e-keep e2e-made e2e-recover e2e-compute e2e-register e2e-study e2e-mastery e2e-tutor e2e-comfort e2e-find e2e-table e2e-chart e2e-research e2e-slash e2e-actions e2e-recap e2e-rooms e2e-notebook e2e-plan e2e-look e2e-presets e2e-pack; do
   run "$t" node "$t.mjs"
 done
 run test-context node test-context.mjs

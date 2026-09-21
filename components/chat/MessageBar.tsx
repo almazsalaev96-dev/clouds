@@ -126,9 +126,14 @@ export function MessageBar({
      itself only where the primary pointer is fine, unless the caller says
      the focus is the point (a press that made this box appear), in which
      case the keyboard is what was asked for. */
+  const firstKey = React.useRef(focusKey);
   React.useEffect(() => {
     if (!autoFocus && focusKey === undefined) return;
-    if (!focusOnTouch && typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches) return;
+    /* Only a change of key is a press. The key's first value arrives with
+       the room, and walking into a room is not asking for a keyboard. */
+    const byPress = focusKey !== firstKey.current;
+    const coarse = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
+    if (coarse && !(focusOnTouch && byPress)) return;
     const el = ref.current;
     if (!el) return;
     el.focus();

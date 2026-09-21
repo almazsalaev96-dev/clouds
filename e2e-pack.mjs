@@ -70,8 +70,10 @@ console.log("\nAny page of the pack hands over the whole pack as one file");
   check(download.suggestedFilename() === "osmosis-chapter-revision-pack.md", "named for the source", download.suggestedFilename());
   check(/^# osmosis chapter — revision pack/.test(text), "titled as the pack");
   check(/How to use this/.test(text) && /Being asked is what works/.test(text), "with how to use it on the front — because a pack read as a summary is a summary");
-  check(text.includes("# osmosis chapter — Knowledge organiser") && text.includes("# osmosis chapter — Cornell notes") && text.includes("# osmosis chapter — Exam questions"), "and all three pages inside, in order",
-    `${text.indexOf("Knowledge organiser") < text.indexOf("Cornell notes") && text.indexOf("Cornell notes") < text.indexOf("Exam questions")}`);
+  /* By heading, not by first mention: the front page names all three
+     before any of them begins. */
+  const at = ["Knowledge organiser", "Cornell notes", "Exam questions"].map((t) => text.indexOf(`# osmosis chapter — ${t}`));
+  check(at.every((i) => i >= 0) && at[0] < at[1] && at[1] < at[2], "and all three pages inside, in order", at.join(" < "));
 }
 
 console.log("\nThe cards are in Study");
@@ -90,8 +92,11 @@ console.log("\nAnd the Study room has its own way in");
   const here = await p.locator("main").innerText();
   check(/Attach the chapter/.test(here), "it lands in the Notebook on a new page, waiting for the file", (here.match(/Attach the chapter[^\n]*/) ?? [""])[0].slice(0, 70));
   await attach("krebs-cycle.txt");
-  await p.getByText(/3 pages and \d+ cards made/).waitFor({ timeout: 40_000 }).catch(() => {});
-  check(/3 pages and \d+ cards made/.test(await p.locator("main").innerText()), "and the pack is made the moment the file lands, with no second press");
+  /* Polled on the room's text, not on an element: the notice is one line
+     among others, and a second pack takes as long as the first. */
+  await p.waitForFunction(() => /3 pages( and \d+ cards)? made/.test(document.querySelector("main")?.innerText ?? ""), null, { timeout: 40_000 }).catch(() => {});
+  const made = await p.locator("main").innerText();
+  check(/3 pages and \d+ cards made/.test(made), "and the pack is made the moment the file lands, with no second press", (made.match(/3 pages[^\n]*/) ?? [""])[0].slice(0, 60));
   await go("Notebook");
   const list = await p.locator("main").innerText();
   check(list.includes("krebs cycle — Knowledge organiser"), "named for the second source", (list.match(/krebs cycle[^\n]*/) ?? [""])[0]);

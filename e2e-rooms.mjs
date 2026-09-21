@@ -102,6 +102,38 @@ console.log("\nStudy: no NaN, and cards in the order they matter");
   check(!(order[1] === "Cell q1" && order[2] === "Cell q10"), "and not sorted as text", order.slice(0, 4).join(", "));
 }
 
+console.log("\nA room starts at the top, and the frame is the screen");
+{
+  await go("Projects");
+  const top = await p.locator("main header").first().evaluate((el) => Math.round(el.getBoundingClientRect().top));
+  check(top <= 1, "with the sidebar open there is no blank bar above the room's own header", `top=${top}`);
+  const kb = await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--kb").trim());
+  check(kb === "0px" || kb === "", "with no software keyboard the frame is not shortened", `--kb=${kb || "unset"}`);
+}
+
+console.log("\nOn a touch screen the box does not raise the keyboard by itself");
+{
+  const touch = await b.newContext({ viewport: { width: 1024, height: 1366 }, hasTouch: true, isMobile: true });
+  const t = await touch.newPage();
+  await t.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await t.evaluate(() => localStorage.setItem("store.settings.v1", JSON.stringify({ state: { theme: "light", density: "comfortable", modelId: "one", styleId: "auto", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true, section: "chat" }, version: 1 })));
+  await t.reload({ waitUntil: "networkidle" });
+  await t.waitForTimeout(900);
+  const coarse = await t.evaluate(() => matchMedia("(pointer: coarse)").matches);
+  check(coarse, "the probe's touch context reads as a coarse pointer", `${coarse}`);
+  const focusedBlank = await t.evaluate(() => document.activeElement?.tagName === "TEXTAREA");
+  check(!focusedBlank, "the blank page does not put the caret in the box — that would raise the keyboard over the greeting");
+  await t.getByRole("button", { name: "Study" }).first().click();
+  await t.waitForTimeout(800);
+  const focusedRoom = await t.evaluate(() => document.activeElement?.tagName === "TEXTAREA");
+  check(!focusedRoom, "nor does walking into a room");
+  await t.getByRole("button", { name: "New deck" }).first().click();
+  await t.waitForTimeout(500);
+  const focusedAsked = await t.evaluate(() => document.activeElement?.tagName === "TEXTAREA");
+  check(focusedAsked, "but a press that means “I want to type” still puts the caret there");
+  await touch.close();
+}
+
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors");
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 await b.close();

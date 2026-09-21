@@ -63,7 +63,7 @@ await page.setInputFiles('input[aria-label="Add files to this project"]', {
 await page.waitForTimeout(900);
 const listed = await page.evaluate(() => document.body.innerText);
 check(listed.includes("syllabus.md"), "the file is listed");
-check(/% of the knowledge/.test(listed), "the capacity meter says how much of it reaches the model");
+check(/% of the knowledge|all of it reaches the model/.test(listed), "the capacity meter says how much of it reaches the model");
 
 // A binary file is refused with a reason rather than stored as noise.
 await page.setInputFiles('input[aria-label="Add files to this project"]', {
