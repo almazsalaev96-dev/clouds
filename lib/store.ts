@@ -139,6 +139,10 @@ interface Settings {
   systemPrompt: string;
   /** Standing rules the model follows everywhere, by preset id (`lib/rules.ts`). */
   rules: string[];
+  /** Whether a model's reasoning opens by itself under the answer. Off: a line to press. */
+  thinkingOpen: boolean;
+  /** The neutrals' undertone: the app's cool blue, or a warm paper. */
+  tone: "cool" | "warm";
   /** The response style new chats start with. Threads can override it. */
   styleId: string;
   /** Chat or Creative, likewise. */
@@ -171,6 +175,8 @@ interface Settings {
   setModel: (id: string) => void;
   setSystemPrompt: (s: string) => void;
   toggleRule: (id: string) => void;
+  setThinkingOpen: (v: boolean) => void;
+  setTone: (t: "cool" | "warm") => void;
   setStyle: (id: string) => void;
   setMode: (id: string) => void;
   toggleSidebar: () => void;
@@ -213,6 +219,8 @@ export const DEFAULT_SETTINGS = {
   reviseModelId: null,
   systemPrompt: "",
   rules: [],
+  thinkingOpen: false,
+  tone: "cool",
   styleId: AUTO_STYLE,
   mode: DEFAULT_MODE,
   name: "",
@@ -246,6 +254,8 @@ export const useSettings = create<Settings>()(
       setReviseModel: (reviseModelId) => set({ reviseModelId }),
       setSystemPrompt: (systemPrompt) => set({ systemPrompt }),
       toggleRule: (id) => set((st) => ({ rules: st.rules.includes(id) ? st.rules.filter((r) => r !== id) : [...st.rules, id] })),
+      setThinkingOpen: (thinkingOpen) => set({ thinkingOpen }),
+      setTone: (tone) => set({ tone }),
       setStyle: (styleId) => set({ styleId }),
       setMode: (mode) => set({ mode }),
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),

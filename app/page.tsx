@@ -150,6 +150,8 @@ export default function Page() {
   /* The next chat may search. Held the same way until a first message makes
      the conversation; after that it lives on the conversation itself. */
   const [pendingResearch, setPendingResearch] = React.useState(false);
+  /* Learn, pressed before there is a thread to stamp it on. */
+  const [pendingLearn, setPendingLearn] = React.useState(false);
 
   /* Reloading should not lose your place. The last conversation is written to
      settings on every change and read back once on mount — but only after
@@ -994,6 +996,7 @@ export default function Page() {
       }
       const wantsTemporary = pendingTemporary || Boolean(slash?.temporary);
       const wantsResearch = pendingResearch || Boolean(slash?.research);
+      const wantsLearn = pendingLearn || slash?.presetId === "tutor";
 
       // Conversations are created on first send, not on "New chat", so the
       // sidebar never fills with empty rows the user did not mean to make.
@@ -1003,6 +1006,9 @@ export default function Page() {
         const created = await createConversation({
           modelId: settings.modelId,
           styleId: settings.styleId,
+          /* Learn is the one mode stamped at creation: it was asked for by
+             a press, and a thread in it stays in it until the press again. */
+          ...(wantsLearn ? { mode: "learn" as const } : {}),
           /* No mode. It used to be stamped on the row at creation, which meant
              `conv.mode` was always set and the per-turn reading of the request
              never ran at all — every thread was permanently whatever the switch
@@ -1018,6 +1024,7 @@ export default function Page() {
         });
         setPendingProject(null);
         setPendingTemporary(false);
+        setPendingLearn(false);
         convId = created.id;
         leaf = null;
         setActiveId(created.id);
@@ -1917,6 +1924,14 @@ export default function Page() {
     setSettingsOpen(true);
   }, []);
 
+  /* The neutrals' undertone, on the root so every token reads it. The
+     pre-paint script in the layout sets it for the first frame; this keeps
+     it in step with the switch afterwards. */
+  React.useEffect(() => {
+    if (settings.tone === "warm") document.documentElement.dataset.tone = "warm";
+    else delete document.documentElement.dataset.tone;
+  }, [settings.tone]);
+
   /* The software keyboard, as a number the layout can use.
      ---------------------------------------------------------------
      On iPad and iPhone Safari the layout viewport does not shrink when the
@@ -2012,6 +2027,12 @@ export default function Page() {
       onToggleResearch={() => {
         if (activeId && conversation) void db.conversations.update(activeId, { research: !conversation.research });
         else setPendingResearch((v) => !v);
+      }}
+      placeholder={findMode((conversation ? conversation.mode : pendingLearn ? "learn" : undefined) ?? "chat").placeholder}
+      learn={conversation ? conversation.mode === "learn" : pendingLearn}
+      onToggleLearn={() => {
+        if (activeId && conversation) void db.conversations.update(activeId, { mode: conversation.mode === "learn" ? undefined : "learn" });
+        else setPendingLearn((v) => !v);
       }}
       voice={voice}
     />

@@ -57,6 +57,7 @@ const THEME_SCRIPT = `
       : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     document.documentElement.dataset.theme = t;
     if (s.density && s.density !== "comfortable") document.documentElement.dataset.density = s.density;
+    if (s.tone === "warm") document.documentElement.dataset.tone = "warm";
   } catch (e) {}
 })();
 `;

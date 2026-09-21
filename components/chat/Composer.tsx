@@ -4,7 +4,7 @@ import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
   Check, ChevronDown, FileText, MessageSquare, Paperclip, Plus,
-  SlidersHorizontal, Sparkles, Wand2, X, Globe, ListChecks } from "lucide-react";
+  SlidersHorizontal, Sparkles, Wand2, X, Globe, ListChecks, GraduationCap } from "lucide-react";
 import { slashCommands, typingSlash } from "@/lib/slash";
 import type { ContentBlock, Style } from "@/lib/types";
 import { getModel, estimateTokens, formatTokens } from "@/lib/models";
@@ -42,6 +42,9 @@ export function Composer({
   onOpenModels,
   research,
   onToggleResearch,
+  placeholder = "How can I help you today?",
+  learn,
+  onToggleLearn,
   rulesCount = 0,
   onOpenRules,
   voice,
@@ -62,6 +65,11 @@ export function Composer({
   /** Whether this conversation may search the web. */
   research?: boolean;
   onToggleResearch?: () => void;
+  /** What the box asks, so it says which mode the thread is in. */
+  placeholder?: string;
+  /** Learn: a plan, one step at a time, a check after each. A mode of the thread. */
+  learn?: boolean;
+  onToggleLearn?: () => void;
   /** How many standing rules are in force, and the way to the panel that sets them. */
   rulesCount?: number;
   onOpenRules?: () => void;
@@ -269,7 +277,7 @@ export function Composer({
         onStop={onStop}
         streaming={streaming}
         canSend={canSend}
-        placeholder="How can I help you today?"
+        placeholder={placeholder}
         onArrowUp={onEditLast}
         onPaste={onPaste}
         focusKey={conversationId}
@@ -350,6 +358,35 @@ export function Composer({
                   <Paperclip size={16} className="text-tertiary" />
                   Add photos and files
                 </button>
+                {/* The tools, each with a line saying what it does — the +
+                    menu as Gemini and ChatGPT have it, for the person who
+                    would rather read a menu than learn the chips. */}
+                {onToggleLearn && (
+                  <button
+                    onClick={() => { setPlusOpen(false); onToggleLearn(); }}
+                    aria-pressed={Boolean(learn)}
+                    className="focus-inset flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                  >
+                    <GraduationCap size={16} className="mt-0.5 shrink-0 text-tertiary" />
+                    <span className="min-w-0">
+                      <span className="block">{learn ? "Stop learning mode" : "Learn"}</span>
+                      <span className="block text-xs text-tertiary">A plan, one step at a time, a check after each.</span>
+                    </span>
+                  </button>
+                )}
+                {onToggleResearch && (
+                  <button
+                    onClick={() => { setPlusOpen(false); onToggleResearch(); }}
+                    aria-pressed={Boolean(research)}
+                    className="focus-inset flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                  >
+                    <Globe size={16} className="mt-0.5 shrink-0 text-tertiary" />
+                    <span className="min-w-0">
+                      <span className="block">{research ? "Stop searching the web" : "Research"}</span>
+                      <span className="block text-xs text-tertiary">Let it search the web and say what it read.</span>
+                    </span>
+                  </button>
+                )}
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
@@ -386,6 +423,30 @@ export function Composer({
               >
                 <Globe size={14} />
                 Research
+              </button>
+            </Tooltip>
+          )}
+
+          {/* Learn, beside Research: the other decision about the sentence
+              being written. ChatGPT's study tool and Gemini's Guided Learning
+              are both a press in the composer; here it is named, and it says
+              on the box what it does. */}
+          {onToggleLearn && (
+            <Tooltip label={learn ? "Stop learning mode" : "Learn: a plan, one step at a time, a check after each"}>
+              <button
+                type="button"
+                aria-label={learn ? "Stop learning mode" : "Learn: a plan, one step at a time, a check after each"}
+                aria-pressed={Boolean(learn)}
+                onClick={onToggleLearn}
+                className={cn(
+                  "btn-touch press focus-inset flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs transition-colors duration-[var(--dur-fast)]",
+                  learn
+                    ? "border-[color-mix(in_oklab,var(--accent)_40%,transparent)] bg-accent-subtle font-medium text-accent"
+                    : "border-line text-secondary hover:border-line-strong hover:text-primary",
+                )}
+              >
+                <GraduationCap size={14} />
+                Learn
               </button>
             </Tooltip>
           )}

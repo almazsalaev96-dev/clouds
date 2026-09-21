@@ -895,6 +895,49 @@ textarea:focus-visible {
   outline-offset: -2px;
 }
 
+/* ===========================================================================
+   TONE — a warm paper for the neutrals
+   ---------------------------------------------------------------------------
+   The app's neutrals are cool: every grey carries a little blue, which is
+   the identity. But warm off-whites reduce reported screen fatigue and are
+   what the calmest reading tools have settled on — Claude's #f5f4ed canvas
+   and #141413 ink are the reference. So the tone is a choice: the same
+   lightness step for step, with the undertone turned from blue to a
+   yellow-brown. Only the neutrals change; accents, charts and status keep
+   their colours, so contrast measured on the cool set holds here — the
+   lightness is the same, and it is the lightness that carries contrast.
+   =========================================================================== */
+:root[data-tone="warm"] {
+  --bg-canvas: #f6f3ec;
+  --bg-surface: #fffdf8;
+  --bg-subtle: #ebe5d8;
+  --bg-section: #f2eee5;
+  --bg-inset: #efeadf;
+  --bg-overlay: rgba(28, 24, 16, 0.46);
+  --border-subtle: #e4ded1;
+  --border-strong: #8a8271;
+  --text-primary: #1d1a14;
+  --text-secondary: #2f2b22;
+  --text-tertiary: #444034;
+  --text-faint: #5d584c;
+  --glass: rgba(246, 243, 236, 0.78);
+}
+:root[data-tone="warm"][data-theme="dark"] {
+  --bg-canvas: #14120e;
+  --bg-surface: #1d1a15;
+  --bg-subtle: #27231c;
+  --bg-section: #18150f;
+  --bg-inset: #0f0d09;
+  --bg-overlay: rgba(12, 10, 6, 0.78);
+  --border-subtle: #332e25;
+  --border-strong: #8b8474;
+  --text-primary: #ece7dc;
+  --text-secondary: #d2ccbf;
+  --text-tertiary: #b5aea0;
+  --text-faint: #918a7c;
+  --glass: rgba(20, 18, 14, 0.78);
+}
+
 /* ---------------------------------------------------------------------------
    GLASS
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useSettings } from "@/lib/store";
 import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
@@ -869,7 +870,11 @@ export const AssistantMessage = React.memo(AssistantMessageImpl);
  * noun rather than claiming precision it has not got.
  */
 function Reasoning({ text, ms }: { text: string; ms?: number }) {
-  const [open, setOpen] = React.useState(false);
+  /* Collapsed by default, as every flagship does it; open by default for
+     the person who reads the reasoning every time and was pressing it every
+     time (Settings → Appearance). */
+  const wantOpen = useSettings((st: { thinkingOpen: boolean }) => st.thinkingOpen);
+  const [open, setOpen] = React.useState(wantOpen);
   const thought = ms != null && ms >= 1_500 ? `Thought for ${formatDuration(ms)}` : "Reasoning";
   return (
     <div className="mb-3">

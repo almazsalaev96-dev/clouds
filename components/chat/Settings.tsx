@@ -155,7 +155,7 @@ function RulesPanel() {
                     onClick={() => s.toggleRule(r.id)}
                     className={cn(
                       "focus-inset relative h-6 w-10 shrink-0 rounded-full transition-colors duration-[var(--dur-fast)]",
-                      isOn ? "bg-[var(--cta)]" : "bg-[var(--line-strong)]",
+                      isOn ? "bg-[var(--cta)]" : "bg-[var(--border-strong)]",
                     )}
                   >
                     <span
@@ -461,6 +461,28 @@ function AppearancePanel() {
           onChange={(v) => s.setTheme(v as typeof s.theme)}
         />
       </Field>
+      <Field label="Tone" hint="The undertone of the greys. Cool is the app's blue; warm is a paper that is easier on the eyes over a long session.">
+        <Segmented
+          value={s.tone ?? "cool"}
+          options={[
+            { value: "cool", label: "Cool" },
+            { value: "warm", label: "Warm" },
+          ]}
+          onChange={(v) => s.setTone(v as "cool" | "warm")}
+        />
+      </Field>
+
+      <Field label="Thinking" hint="When a model shows its reasoning, whether it opens by itself under the answer or waits as a line to press.">
+        <Segmented
+          value={s.thinkingOpen ? "open" : "closed"}
+          options={[
+            { value: "closed", label: "A line to press" },
+            { value: "open", label: "Open by itself" },
+          ]}
+          onChange={(v) => s.setThinkingOpen(v === "open")}
+        />
+      </Field>
+
       <Field label="Density" hint="Scales every spacing value in the app.">
         <Segmented
           value={s.density}

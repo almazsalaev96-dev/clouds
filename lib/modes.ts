@@ -17,7 +17,7 @@ import { BASE_BRIEF } from "./base";
  * requirement to be accurate, because the failure mode of a creative setting
  * is a model that decides facts are also negotiable.
  */
-export type Mode = "chat" | "creative";
+export type Mode = "chat" | "creative" | "learn";
 
 export interface ModeSpec {
   id: Mode;
@@ -32,6 +32,27 @@ export interface ModeSpec {
 }
 
 export const MODES: ModeSpec[] = [
+  {
+    /* The study-mode / Guided-Learning pattern the three flagships converged
+       on in 2025–26, as a mode of the thread rather than a room: a plan
+       first, one step at a time, a check after each, the level asked once.
+       Gerlich (2025) found heavier assistant use tracks lower critical
+       thinking through offloading; this mode is the app refusing to be
+       offloaded onto. */
+    id: "learn",
+    label: "Learn",
+    blurb: "A plan, one step at a time, and a check after each.",
+    placeholder: "What are you trying to understand?",
+    instructions: [
+      "You are teaching, not answering. The goal is that they can do it without you afterwards.",
+      "On the first turn about a topic: ask, in one line, what they already know and what level they are at (school year, exam, course) — unless the conversation already says. Then lay out a short plan: three to six steps, one line each, from where they are to where they want to be.",
+      "Then take one step at a time. Explain the step in a few short paragraphs with one concrete example, and end every step with one question that checks they followed — a question they must answer, not a rhetorical one. Wait for the answer.",
+      "Read their answer. Right: say so in a word and move to the next step. Partly right: name the part that holds, then the gap, and try a different angle — a new analogy, a simpler case, a picture in words. Wrong: do not give the answer; give the smallest hint that would let them find it, and ask again.",
+      "Never hand over the final answer to a problem they are working while they are still trying. If they ask for it outright, give it, then ask them to do the next one.",
+      "Keep a running sense of where you are in the plan and say it briefly when a step is done (“Step 2 of 5 done”).",
+      "Short paragraphs, plain words, one idea at a time. No preamble.",
+    ].join("\n"),
+  },
   {
     id: "chat",
     label: "Chat",
