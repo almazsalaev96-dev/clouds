@@ -31,9 +31,12 @@ await p.evaluate(() => new Promise((ok, no) => {
   r.onerror = () => no(r.error);
   r.onsuccess = () => {
     const db = r.result, now = Date.now();
-    const tx = db.transaction(["notes", "decks", "cards"], "readwrite");
+    const tx = db.transaction(["notes", "decks", "cards", "canvases", "canvasFiles", "projects"], "readwrite");
     tx.objectStore("notes").put({ id: "n1", title: "Osmosis", content: "# Osmosis\n\nWater moves down a water-potential gradient.", createdAt: now, updatedAt: now });
     tx.objectStore("decks").put({ id: "d1", name: "Osmosis", createdAt: now, updatedAt: now });
+    tx.objectStore("canvases").put({ id: "cv1", title: "Flashcards", kind: "web", content: "", createdAt: now, updatedAt: now });
+    tx.objectStore("canvasFiles").put({ id: "cf1", canvasId: "cv1", name: "index.html", lang: "html", content: "<!doctype html><html><body><h1>Flashcards</h1></body></html>", order: 0 });
+    tx.objectStore("projects").put({ id: "pr1", name: "A-level Biology", description: "Everything for the June exams", instructions: "", createdAt: now, updatedAt: now });
     for (let i = 0; i < 4; i++) tx.objectStore("cards").put({ id: `c${i}`, deckId: "d1", front: `q${i}`, back: "a", state: "review", due: now - 1000, interval: 3, ease: 2.5, reps: 2, lapses: 0, step: 0, createdAt: now, stability: 3, difficulty: 5 });
     tx.oncomplete = () => { db.close(); ok(true); };
     tx.onerror = () => no(tx.error);
@@ -93,6 +96,63 @@ console.log("\nThe study session's hint names what a finger can do");
   await p.waitForTimeout(500);
   const after = await p.locator("#suggested").innerText();
   check(!/Esc|1 – 4/.test(after), "and nothing about keys it does not have", after.trim());
+  const again = await p.getByRole("group", { name: "How did it go" }).getByRole("button").first().innerText();
+  check(!/\d/.test(again), "and the grade buttons carry no key numbers", again.replace(/\s+/g, " "));
+  await p.keyboard.press("Escape");
+  await p.waitForTimeout(500);
+}
+
+console.log("\nA made thing's header fits a phone");
+{
+  await drawer("Artifacts");
+  await p.locator("main").getByText("Flashcards").first().click();
+  await p.waitForTimeout(1200);
+  const back = await p.getByRole("button", { name: "All canvases" }).boundingBox();
+  const title = await p.getByLabel("Canvas title").boundingBox();
+  check(back && title && Math.abs((back.y + back.height / 2) - (title.y + title.height / 2)) < 6, "the back button sits on the title's row, not between two rows", back && title ? `back ${Math.round(back.y + back.height / 2)} title ${Math.round(title.y + title.height / 2)}` : "missing");
+  const wide = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  check(wide <= 0, "and nothing pushes the page wider than the screen", `overflow ${wide}px`);
+  const picker = await p.getByLabel("Project this belongs to").boundingBox();
+  check(picker && picker.x + picker.width <= 430 + 1 || (await p.getByLabel("Project this belongs to").evaluate((el) => { const r = el.getBoundingClientRect(); const c = el.closest(".overflow-x-auto, [class*='overflow-x-auto']"); return c ? c.scrollWidth > c.clientWidth : false; })), "the controls end on the screen or scroll to it, never cut off");
+  const point = p.getByRole("button", { name: /Point at it/ });
+  if (await point.count()) {
+    const pb = await point.boundingBox();
+    check(pb && pb.height < 44, "and no control is broken over two lines", pb ? `${Math.round(pb.height)}px tall` : "missing");
+  }
+  const chips = p.getByRole("group", { name: "Shortcuts" });
+  const rows = await chips.evaluate((el) => new Set([...el.children].map((c) => Math.round(c.getBoundingClientRect().top))).size);
+  check(rows === 1, "the shortcut chips are one row that scrolls, not two over the box", `${rows} row(s)`);
+}
+
+console.log("\nThe last dashed boxes are gone, and the starters share rows");
+{
+  await drawer("Artifacts");
+  const dashed = await p.locator("main").evaluate((m) => [...m.querySelectorAll("*")].filter((el) => getComputedStyle(el).borderTopStyle === "dashed").length);
+  check(dashed === 0, "nothing on the Artifacts room is drawn with a dashed border", `${dashed} dashed`);
+  const tops = await p.locator("main").getByRole("button", { name: /Web app|Code file|Document|Open files/ }).evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+  check(new Set(tops).size <= 2 && tops.length === 4, "the four starters sit two to a row on a phone, not one under another", tops.join(", "));
+  await drawer("Creative");
+  const dashed2 = await p.locator("main").evaluate((m) => [...m.querySelectorAll("*")].filter((el) => getComputedStyle(el).borderTopStyle === "dashed").length);
+  check(dashed2 === 0, "nor on Creative", `${dashed2} dashed`);
+}
+
+console.log("\nA project's header fits a phone");
+{
+  await drawer("Projects");
+  await p.locator("main").getByText("A-level Biology").first().click();
+  await p.waitForTimeout(900);
+  const name = await p.getByLabel("Project name").boundingBox();
+  const btn = await p.getByRole("button", { name: "New chat here" }).boundingBox();
+  check(name && btn && Math.abs((name.y + name.height / 2) - (btn.y + btn.height / 2)) < 6, "the name and its button share one row", name && btn ? `name ${Math.round(name.y)} button ${Math.round(btn.y)}` : "missing");
+}
+
+console.log("\nThe blank page's waiting line wraps without a dangling dot");
+{
+  await drawer("Conversations");
+  const line = p.getByLabel("Waiting in the other rooms");
+  if (await line.count()) {
+    check(!/·/.test(await line.innerText()), "nothing between the presses but space", (await line.innerText()).replace(/\s+/g, " ").slice(0, 60));
+  } else check(true, "(nothing waiting — the line is not shown)");
 }
 
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors");
