@@ -40,7 +40,16 @@ export function DeckPanel({
   /** Every card, regardless of the schedule, and the schedule untouched. */
   onCram: () => void;
 }) {
-  const cards = useLiveQuery(() => cardsOf(deck.id), [deck.id], [] as Card[]);
+  const stored = useLiveQuery(() => cardsOf(deck.id), [deck.id], [] as Card[]);
+  /* In the order they matter, not the order the database keeps them. The
+     index is by id, and ids sort as text — a deck of numbered cards came out
+     q0, q1, q10, q11, q12 — which is no order at all to a person. Soonest
+     due first, so what is waiting is at the top, and the ones never yet
+     seen at the end. */
+  const cards = React.useMemo(
+    () => [...stored].sort((a, b) => (a.state === "new") === (b.state === "new") ? a.due - b.due : a.state === "new" ? 1 : -1),
+    [stored],
+  );
   const [busy, setBusy] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
   const [pasting, setPasting] = React.useState(false);

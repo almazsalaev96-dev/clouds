@@ -23,6 +23,7 @@ import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
 import { DiffView } from "@/components/DiffView";
 import { Button, SaveBadge } from "@/components/ui/primitives";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
+import { plainLine } from "@/lib/plain";
 import { cn } from "@/lib/utils";
 
 /**
@@ -827,7 +828,8 @@ export function NotebookView({
           .map((n) => ({
             id: n.id,
             title: n.title || "Untitled note",
-            preview: n.content.replace(/^#.*$/m, "").replace(/\s+/g, " ").trim().slice(0, 120),
+            /* The first heading is the title, so the preview starts after it. */
+            preview: plainLine(n.content.replace(/^\s*#[^\n]*\n?/, "")),
             meta: new Date(n.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
             pinned: n.pinned,
             searchText: n.content,

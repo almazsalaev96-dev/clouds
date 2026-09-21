@@ -45,6 +45,7 @@ import { CodeEditor, type Jump, type Selection } from "@/components/CodeEditor";
 import { Markdown } from "@/components/chat/Markdown";
 import { Button, IconButton, Kbd, SaveBadge } from "@/components/ui/primitives";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
+import { plainLine } from "@/lib/plain";
 
 /**
  * The canvas: a document you and the model both write to.
@@ -137,7 +138,9 @@ export function CanvasView({
           preview:
             c.kind === "web"
               ? "A web app — markup, styling and behaviour"
-              : (c.content.split("\n").find((l) => l.trim()) ?? "Empty"),
+              : c.kind === "doc"
+                ? plainLine(c.content.replace(/^\s*#[^\n]*\n?/, "")) || plainLine(c.content) || "Empty"
+                : (c.content.split("\n").find((l) => l.trim()) ?? "Empty"),
           /* Which project it is in, when it is in one — the fact that changes
              what an edit here will obey, so it belongs on the row rather than
              two screens away. */

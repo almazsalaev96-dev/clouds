@@ -79,10 +79,13 @@ export function recallRate(days: StudyDay[], now: number, span = 30): { answered
   let answered = 0, right = 0;
   for (const d of days) {
     if (d.day < from) continue;
-    answered += d.answered;
-    right += d.right;
+    /* A row written before `right` existed has no `right`, and one NaN in
+       the sum put "NaN% of 93" on the screen. A missing count is zero. */
+    answered += d.answered || 0;
+    right += d.right || 0;
   }
-  return { answered, right, rate: answered ? right / answered : null };
+  const rate = answered ? right / answered : null;
+  return { answered, right, rate: rate !== null && Number.isFinite(rate) ? rate : null };
 }
 
 /**

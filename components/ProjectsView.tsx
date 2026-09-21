@@ -61,6 +61,16 @@ export function ProjectsView({
   configured: Record<string, boolean>;
 }) {
   const projects = useLiveQuery(() => db.projects.orderBy("updatedAt").reverse().toArray(), []);
+  /* What each project holds, for the row. A project is a container, and a
+     row that names it without saying what is in it is a label on a closed
+     box: "2 files · 3 chats · yesterday" is what decides whether to open it. */
+  const counts = useLiveQuery(async () => {
+    const [files, chats] = await Promise.all([db.projectFiles.toArray(), db.conversations.toArray()]);
+    const out = new Map<string, { files: number; chats: number }>();
+    for (const f of files) out.set(f.projectId, { files: (out.get(f.projectId)?.files ?? 0) + 1, chats: out.get(f.projectId)?.chats ?? 0 });
+    for (const c of chats) if (c.projectId) out.set(c.projectId, { files: out.get(c.projectId)?.files ?? 0, chats: (out.get(c.projectId)?.chats ?? 0) + 1 });
+    return out;
+  }, [], new Map<string, { files: number; chats: number }>());
   const project = useLiveQuery(
     () => (projectId ? db.projects.get(projectId) : undefined),
     [projectId],
@@ -79,6 +89,11 @@ export function ProjectsView({
           id: p.id,
           title: p.name || "Untitled project",
           preview: p.description || firstLine(p.instructions) || "No instructions yet",
+          meta: (() => {
+            const c = counts.get(p.id);
+            const n = (k: number, one: string) => `${k} ${k === 1 ? one : one + "s"}`;
+            return [c?.files ? n(c.files, "file") : null, c?.chats ? n(c.chats, "chat") : null, sinceLabel(p.updatedAt)].filter(Boolean).join(" · ");
+          })(),
           searchText: `${p.description} ${p.instructions}`,
         }))}
         onOpen={onSelect}
@@ -103,6 +118,15 @@ export function ProjectsView({
       configured={configured}
     />
   );
+}
+
+/** "today", "yesterday", "5 days ago", or the date. */
+function sinceLabel(at: number): string {
+  const days = Math.floor((Date.now() - at) / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 14) return `${days} days ago`;
+  return new Date(at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function firstLine(s: string): string {
@@ -386,7 +410,10 @@ function ProjectPage({
                 setInstructions(e.target.value);
                 autosave.save(project.id, { instructions: e.target.value });
               }}
-              rows={6}
+              /* Three rows, not six: one line of instructions inside a box
+                 sized for a page reads as a page left blank. It grows with
+                 what is typed. */
+              rows={Math.min(12, Math.max(3, instructions.split("\n").length + 1))}
               placeholder="“You are helping with a second-year thermodynamics course. Use SI units. When I give a numeric answer, check it before agreeing.”"
               aria-label="Project instructions"
               className="focus-inset mt-2 w-full resize-y rounded-lg border border-line bg-surface px-3 py-2.5 text-sm leading-relaxed text-primary outline-none placeholder:text-tertiary"
@@ -471,8 +498,9 @@ function ProjectPage({
                   />
                 </div>
                 <p className="tnum mt-1 text-xs text-faint">
-                  {Math.round((spent / KNOWLEDGE_BUDGET_TOKENS) * 100)}% of the knowledge the model
-                  can hold
+                  {spent / KNOWLEDGE_BUDGET_TOKENS < 0.01
+                    ? `About ${spent.toLocaleString()} tokens — all of it reaches the model`
+                    : `${Math.round((spent / KNOWLEDGE_BUDGET_TOKENS) * 100)}% of the knowledge the model can hold`}
                   {overBudget.length > 0 &&
                     ` — ${overBudget.length} ${overBudget.length === 1 ? "file is" : "files are"} past it and won't be sent`}
                 </p>
@@ -482,6 +510,31 @@ function ProjectPage({
 
           {/* Ask about the whole thing */}
           <AskPanel project={project} canvases={sortedCanvases} files={files ?? []} configured={configured} />
+
+          {/* Chats */}
+          <section>
+            <h2 className="eyebrow text-faint">
+              Chats in this project
+            </h2>
+            <div className="mt-2 space-y-1">
+              {sortedChats.length === 0 ? (
+                <p className="text-xs text-tertiary">
+                  None yet. A chat started here can see everything above.
+                </p>
+              ) : (
+                sortedChats.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => onOpenChat(c.id)}
+                    className="focus-inset lift tap flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle"
+                  >
+                    <MessageSquare size={14} className="shrink-0 text-tertiary" />
+                    <span className="min-w-0 flex-1 truncate text-sm text-primary">{c.title}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </section>
 
           {/* Code */}
           <section>
@@ -504,9 +557,7 @@ function ProjectPage({
             </p>
             <div className="mt-2 space-y-1">
               {sortedCanvases.length === 0 ? (
-                <p className="text-xs text-tertiary">
-                  None yet. Code made here can see the project&rsquo;s instructions and its material.
-                </p>
+                <p className="text-xs text-tertiary">None yet.</p>
               ) : (
                 sortedCanvases.map((c) => (
                   <button
@@ -521,31 +572,6 @@ function ProjectPage({
                     <span className="shrink-0 text-xs text-faint">
                       {c.kind === "web" ? "web" : c.kind === "doc" ? "doc" : (c.lang ?? "code")}
                     </span>
-                  </button>
-                ))
-              )}
-            </div>
-          </section>
-
-          {/* Chats */}
-          <section>
-            <h2 className="eyebrow text-faint">
-              Chats in this project
-            </h2>
-            <div className="mt-2 space-y-1">
-              {sortedChats.length === 0 ? (
-                <p className="text-xs text-tertiary">
-                  None yet. A chat started here can see everything above.
-                </p>
-              ) : (
-                sortedChats.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => onOpenChat(c.id)}
-                    className="focus-inset lift tap flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle"
-                  >
-                    <MessageSquare size={14} className="shrink-0 text-tertiary" />
-                    <span className="min-w-0 flex-1 truncate text-sm text-primary">{c.title}</span>
                   </button>
                 ))
               )}
