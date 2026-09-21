@@ -1,7 +1,8 @@
 import Dexie, { type Table } from "dexie";
 import type {
   Canvas, CanvasFile, CanvasVersion, ContentBlock, Conversation, Message, Note,
-  Deck, Lesson, LessonTurn, Memory, Project, ProjectFile, RatingReason, Source, Style, Turn, TurnOutcome,
+  Deck, Lesson, LessonTurn,
+  PageInk, Memory, Project, ProjectFile, RatingReason, Source, Style, Turn, TurnOutcome,
 } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 import {
@@ -32,6 +33,7 @@ class ChatDB extends Dexie {
   studyDays!: Table<StudyDay, string>;
   lessons!: Table<Lesson, string>;
   lessonTurns!: Table<LessonTurn, string>;
+  ink!: Table<PageInk, string>;
   attempts!: Table<Attempt, string>;
 
   constructor() {
@@ -210,6 +212,11 @@ class ChatDB extends Dexie {
     this.version(15).stores({
       cards: "id, deckId, due, topic, [deckId+due]",
       attempts: "id, at, cardId, topic, [topic+at]",
+    });
+    /* Ink on a lesson's pages: one row per page that has any, found by the
+       pair, so turning a page is one indexed get. */
+    this.version(16).stores({
+      ink: "id, lessonId, [lessonId+page]",
     });
   }
 }
@@ -613,16 +620,34 @@ export async function addLessonTurn(turn: Omit<LessonTurn, "id" | "at">): Promis
 export async function deleteLesson(id: string): Promise<() => Promise<void>> {
   const lesson = await db.lessons.get(id);
   const turns = await db.lessonTurns.where("lessonId").equals(id).toArray();
-  await db.transaction("rw", db.lessons, db.lessonTurns, async () => {
+  const ink = await db.ink.where("lessonId").equals(id).toArray();
+  await db.transaction("rw", db.lessons, db.lessonTurns, db.ink, async () => {
     await db.lessonTurns.where("lessonId").equals(id).delete();
+    await db.ink.where("lessonId").equals(id).delete();
     await db.lessons.delete(id);
   });
   return async () => {
-    await db.transaction("rw", db.lessons, db.lessonTurns, async () => {
+    await db.transaction("rw", db.lessons, db.lessonTurns, db.ink, async () => {
       if (lesson) await db.lessons.put(lesson);
       if (turns.length) await db.lessonTurns.bulkPut(turns);
+      if (ink.length) await db.ink.bulkPut(ink);
     });
   };
+}
+
+/** The ink on one page, or nothing. */
+export async function inkFor(lessonId: string, page: number): Promise<PageInk | undefined> {
+  return db.ink.where("[lessonId+page]").equals([lessonId, page]).first();
+}
+
+/** Keep what is drawn on a page. An empty page's row is removed rather than kept empty. */
+export async function saveInk(lessonId: string, page: number, strokes: PageInk["strokes"]): Promise<void> {
+  const had = await inkFor(lessonId, page);
+  if (!strokes.length) {
+    if (had) await db.ink.delete(had.id);
+    return;
+  }
+  await db.ink.put({ id: had?.id ?? uid(), lessonId, page, strokes, updatedAt: Date.now() });
 }
 
 /**

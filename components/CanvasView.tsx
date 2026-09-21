@@ -224,7 +224,7 @@ function Starters({ onSelect }: { onSelect: (id: string, seed?: string) => void 
 
   return (
     <div className="mb-5">
-      <div className="grid gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <input
           ref={fileRef}
           type="file"
@@ -251,7 +251,7 @@ function Starters({ onSelect }: { onSelect: (id: string, seed?: string) => void 
         ))}
         <button
           onClick={() => fileRef.current?.click()}
-          className="lift focus-inset tap flex flex-col items-start gap-0.5 rounded-xl border border-dashed border-line bg-transparent p-3 text-left transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
+          className="lift focus-inset tap flex flex-col items-start gap-0.5 rounded-xl border border-line bg-transparent p-3 text-left transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
         >
           <span className="text-tertiary"><FilePlus2 size={16} /></span>
           <span className="mt-1 text-sm font-medium text-primary">Open files</span>
@@ -937,7 +937,7 @@ function Editor({
         </div>
       )}
       <div className={cn(focused && "hidden")}>
-      <DetailBar onBack={onBack} backLabel="All canvases" wide={canvas.kind !== "doc"}>
+      <DetailBar onBack={onBack} backLabel="All canvases" wide={canvas.kind !== "doc"} wraps>
         {/* On a phone the title and five controls do not fit on one line, and
             what loses the fight is the title — the one thing that says which
             file you are in. So the row wraps: name first, controls under it. */}
@@ -946,9 +946,13 @@ function Editor({
             value={canvas.title}
             onChange={(e) => void db.canvases.update(canvas.id, { title: e.target.value })}
             aria-label="Canvas title"
-            className="tap min-w-0 flex-1 basis-full bg-transparent text-sm font-medium text-primary outline-none sm:basis-0"
+            /* As tall as the back button on a phone, so the two share a row. */
+            className="tap min-w-0 flex-1 basis-full bg-transparent text-sm font-medium text-primary outline-none max-sm:h-9 sm:basis-0"
           />
-          <div className="flex min-w-0 shrink-0 items-center gap-1">
+          {/* Under the title on a phone, and scrolling sideways there: five
+              controls and a project picker are wider than a phone, and a row
+              that cannot scroll is a row cut off at the edge. */}
+          <div className="flex min-w-0 shrink-0 items-center gap-1 max-sm:basis-full max-sm:overflow-x-auto max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden max-sm:[&>*]:shrink-0">
             <SaveBadge state={autosave.state} />
 
             {canvas.kind === "code" && (
@@ -1489,7 +1493,11 @@ function Shortcuts({
 function Row({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="flex flex-wrap items-center gap-1.5 px-3 pb-1 pt-3"
+      /* Two rows of chips over the box on a phone put the line you type on
+         a third of the way up the screen; there they are one row that
+         scrolls sideways, which is how every phone keyboard's own strip
+         of suggestions works. */
+      className="flex flex-wrap items-center gap-1.5 px-3 pb-1 pt-3 max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden max-sm:[&>*]:shrink-0"
       role="group"
       aria-label="Shortcuts"
     >
@@ -2100,7 +2108,7 @@ function WebPreview({
           count is a builder's instrument; someone studying a deck of cards has
           no use for it and every reason not to see it. */}
       <div className={cn("mt-2 shrink-0", full && "hidden")}>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&_button]:whitespace-nowrap">
           <Segmented
             value={width}
             role="radiogroup"

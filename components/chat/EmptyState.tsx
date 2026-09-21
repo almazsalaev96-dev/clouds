@@ -198,13 +198,14 @@ export function EmptyState({
             only the rooms with something in them, each a press away. */}
         {onGo && waiting.length > 0 && (
           <p
-            className="anim-rise mt-4 flex flex-wrap items-center justify-center gap-x-1 gap-y-1 text-xs text-tertiary"
+            /* Gap, not dots, between the presses: a dot between items that
+               wrap is a dot left dangling at the end of a line on a phone. */
+            className="anim-rise mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-tertiary"
             style={{ animationDelay: "100ms" }}
             aria-label="Waiting in the other rooms"
           >
-            {waiting.map((w, i) => (
+            {waiting.map((w) => (
               <React.Fragment key={w.section}>
-                {i > 0 && <span className="text-faint" aria-hidden>·</span>}
                 <button
                   onClick={() => onGo(w.section)}
                   /* Small on the page, full-sized under a finger: the row is

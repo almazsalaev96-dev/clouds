@@ -72,7 +72,7 @@ export function MakeRow({
         <button
           onClick={onAnything}
           title="Describe anything and it gets built"
-          className="lift focus-inset tap inline-flex items-center gap-2 rounded-full border border-dashed border-line bg-transparent px-3.5 py-1.5 text-meta text-tertiary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
+          className="lift focus-inset tap inline-flex items-center gap-2 rounded-full border border-line bg-transparent px-3.5 py-1.5 text-meta text-tertiary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
         >
           <Wand2 size={14} />
           Anything else…

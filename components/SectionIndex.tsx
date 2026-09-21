@@ -261,12 +261,16 @@ export function DetailBar({
   onBack,
   backLabel,
   wide,
+  wraps,
   children,
 }: {
   onBack: () => void;
   backLabel: string;
   /** For screens whose content is wider than a reading measure — code. */
   wide?: boolean;
+  /** The children wrap to two rows on a phone, so the back button sits on
+      the first rather than floating between them. */
+  wraps?: boolean;
   children?: React.ReactNode;
 }) {
   return (
@@ -276,7 +280,7 @@ export function DetailBar({
         wide ? "max-w-[var(--measure-wide)]" : "max-w-[var(--measure)]",
       )}
     >
-      <IconButton label={backLabel} keys={["Esc"]} onClick={onBack}>
+      <IconButton label={backLabel} keys={["Esc"]} onClick={onBack} className={wraps ? "max-sm:self-start" : undefined}>
         <ChevronLeft size={16} />
       </IconButton>
       {children}

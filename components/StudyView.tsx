@@ -948,7 +948,7 @@ function Session({
                     )}
                   >
                     <span className="text-sm font-medium text-primary">
-                      {label} <span className="text-tertiary">{i + 1}</span>
+                      {label} <span className="kbd-hint text-tertiary">{i + 1}</span>
                     </span>
                     <span className="text-xs text-tertiary tnum">{mode === "cram" ? "—" : gaps?.[r]}</span>
                   </button>

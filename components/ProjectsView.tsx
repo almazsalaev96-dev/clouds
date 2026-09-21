@@ -365,12 +365,15 @@ function ProjectPage({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <DetailBar onBack={onBack} backLabel="All projects">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1 gap-y-0.5">
+        {/* One row at every width. Wrapping the button under the name left
+            the back chevron floating between two rows on a phone; a name
+            is an input, so a long one scrolls inside its box instead. */}
+        <div className="flex min-w-0 flex-1 items-center gap-x-1">
           <input
             value={project.name}
             onChange={(e) => void db.projects.update(project.id, { name: e.target.value })}
             aria-label="Project name"
-            className="tap min-w-0 flex-1 basis-full bg-transparent text-sm font-medium text-primary outline-none sm:basis-0"
+            className="tap min-w-0 flex-1 bg-transparent text-sm font-medium text-primary outline-none"
           />
           <div className="flex shrink-0 items-center gap-1">
             <SaveBadge state={autosave.state} />

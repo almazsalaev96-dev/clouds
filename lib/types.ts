@@ -719,6 +719,16 @@ export interface Lesson {
   updatedAt: number;
 }
 
+/** What is drawn on one page of a lesson, kept between sessions. */
+export interface PageInk {
+  id: string;
+  lessonId: string;
+  page: number;
+  /** Strokes in the page's own coordinates; see `lib/ink.ts`. */
+  strokes: { id: string; tool: "pen" | "hi"; points: number[] }[];
+  updatedAt: number;
+}
+
 /** One turn of the conversation beside a lesson. */
 export interface LessonTurn {
   id: string;

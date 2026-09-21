@@ -149,6 +149,92 @@ export async function renderPage(
   return { url, width: canvas.width, height: canvas.height, pages };
 }
 
+/**
+ * Where the words are on a page.
+ *
+ * The text a model reads has no position; the page a person looks at is
+ * nothing but positions. This joins them: every run of text on the page
+ * with its box in page coordinates (0..1), so a line the model quotes can
+ * be found and lit up on the page itself — which is the difference between
+ * "in the second paragraph" and a finger on the line.
+ */
+export interface TextRun { str: string; x: number; y: number; w: number; h: number }
+
+export async function pageLayout(data: ArrayBuffer, pageNo: number): Promise<TextRun[]> {
+  const mod = await load();
+  const doc = await mod.getDocument({ data: new Uint8Array(data.slice(0)) }).promise;
+  const page = await doc.getPage(Math.min(Math.max(1, pageNo), doc.numPages));
+  const vp = page.getViewport({ scale: 1 });
+  const content = await page.getTextContent();
+  const runs: TextRun[] = [];
+  for (const item of content.items) {
+    if (!("str" in item) || !item.str.trim()) continue;
+    /* transform = [a b c d e f]; e,f is the baseline origin in PDF space,
+       and the run's height is the font size, which is the vertical scale. */
+    const [a, b, , d, e, f] = item.transform as number[];
+    const h = Math.abs(d) || Math.hypot(a, b) || 10;
+    const w = item.width || 0;
+    const [x1, yTop] = vp.convertToViewportPoint(e, f + h);
+    const [x2] = vp.convertToViewportPoint(e + w, f);
+    runs.push({
+      str: item.str,
+      x: Math.min(x1, x2) / vp.width,
+      y: yTop / vp.height,
+      w: Math.abs(x2 - x1) / vp.width,
+      h: h / vp.height,
+    });
+  }
+  page.cleanup();
+  await doc.destroy();
+  return runs;
+}
+
+const squash = (t: string) => t.toLowerCase().replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, " ").trim();
+
+/**
+ * The boxes on the page that a quoted line covers — one per line of the
+ * page the quote runs across — or none when the page does not say that.
+ * Matched on squashed text: case, quotes and runs of space do not count,
+ * because the model's transcription of a line is not byte-exact.
+ */
+export function findQuote(runs: TextRun[], quote: string): { x: number; y: number; w: number; h: number }[] {
+  const q = squash(quote);
+  if (q.length < 6 || !runs.length) return [];
+  /* One string, with each character remembering which run it came from. */
+  let joined = "";
+  const owner: number[] = [];
+  runs.forEach((r, i) => {
+    const piece = squash(r.str) + " ";
+    for (let k = 0; k < piece.length; k++) owner.push(i);
+    joined += piece;
+  });
+  let at = joined.indexOf(q);
+  /* The model may quote a fragment across a line break the page shows as a
+     hyphen, or drop a word; fall back to the first eight words. */
+  if (at === -1) {
+    const head = q.split(" ").slice(0, 8).join(" ");
+    if (head.length >= 12) at = joined.indexOf(head);
+  }
+  if (at === -1) return [];
+  const end = Math.min(joined.length - 1, at + q.length - 1);
+  const hit = new Set<number>();
+  for (let k = at; k <= end; k++) hit.add(owner[k]);
+  /* Runs on the same line join into one box, so a highlight is a bar across
+     the words rather than a comb of them. */
+  const boxes: { x: number; y: number; w: number; h: number }[] = [];
+  for (const i of [...hit].sort((a, b) => a - b)) {
+    const r = runs[i];
+    const last = boxes[boxes.length - 1];
+    if (last && Math.abs(last.y - r.y) < r.h * 0.6) {
+      const x1 = Math.min(last.x, r.x);
+      const x2 = Math.max(last.x + last.w, r.x + r.w);
+      last.x = x1; last.w = x2 - x1;
+      last.h = Math.max(last.h, r.h);
+    } else boxes.push({ ...r });
+  }
+  return boxes;
+}
+
 /** What page `n` of an extracted document says, for the turn that asks about it. */
 export function pageText(text: string, pageNo: number): string {
   const re = new RegExp(`^--- page ${pageNo} ---$`, "m");

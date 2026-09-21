@@ -100,7 +100,7 @@ export function CreativeView({
         own material in.
       </p>
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-3">
         {MAKES.map((m) => (
           <button
             key={m.id}
@@ -127,7 +127,7 @@ export function CreativeView({
 
         <button
           onClick={() => document.querySelector<HTMLTextAreaElement>(".composer-shell textarea")?.focus()}
-          className="lift focus-inset tap flex flex-col items-start gap-0.5 rounded-xl border border-dashed border-line bg-transparent p-3 text-left transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
+          className="lift focus-inset tap flex flex-col items-start gap-0.5 rounded-xl border border-line bg-transparent p-3 text-left transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
         >
           <span className="text-tertiary">
             <Wand2 size={16} />
