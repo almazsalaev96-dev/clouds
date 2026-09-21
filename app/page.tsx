@@ -2096,6 +2096,7 @@ export default function Page() {
                   /* A passage from a page, taken to the chat — the same door
                      a card you got wrong goes through. */
                   onAsk={(question) => void askInChat(question)}
+                  onToChat={() => withTransition(() => settings.setSection("chat"), "back")}
                 />
               )}
               {settings.section === "study" && (

@@ -4,8 +4,7 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   BookOpen, Download, Eye, GraduationCap, HelpCircle, Highlighter, Layers, Link2, ListTree,
-  MessageSquare, Paperclip, Pencil, Scissors, SpellCheck2, Tags, X,
-} from "lucide-react";
+  MessageSquare, Paperclip, Pencil, Scissors, SpellCheck2, Tags, X, Plus } from "lucide-react";
 import type { Note, Source } from "@/lib/types";
 import { addCards, addSource, createDeck, createNote, db, deleteNote, deriveTitle, removeSource, sourcesOf } from "@/lib/db";
 import { backlinksTo, outlineOf, readLink, readingTime, tagsIn, withLinks } from "@/lib/links";
@@ -128,6 +127,7 @@ export function NotebookView({
   onNew,
   onBack,
   onAsk,
+  onToChat,
 }: {
   noteId: string | null;
   configured: Record<string, boolean>;
@@ -140,6 +140,8 @@ export function NotebookView({
   onBack: () => void;
   /** A passage, taken to the chat with a question about it. */
   onAsk?: (question: string) => void;
+  /** Into the chat, from an empty notebook: the answers that will be kept here are written there. */
+  onToChat?: () => void;
 }) {
   // No default value: `undefined` has to keep meaning "not back yet", or the
   // index cannot tell an empty library from an unanswered query.
@@ -741,9 +743,17 @@ export function NotebookView({
         title="Notebook"
         newLabel="New page"
         emptyTitle="Nothing written down yet."
-        emptyHint="Keep an answer from a chat, start from a blank page, or hand it a book: attach a PDF and it will turn it into lessons, a summary, the vocabulary, or questions that test whether you followed it. Pages are markdown — the same text you can send back to a model, export, and still read in a year."
+        emptyHint="Pages are markdown: text you can send back to a model, export, and still read in a year."
         loading={notes === undefined}
-        lead={
+        waysIn={[
+          { label: "New page", icon: <Plus size={12} />, onPick: onNew },
+          ...(onToChat ? [{ label: "Keep an answer from a chat", icon: <MessageSquare size={12} />, onPick: onToChat }] : []),
+        ]}
+        /* The box that asks the pages is not shown until there are pages:
+           "what did I write about the Krebs cycle?" over an empty notebook
+           is a question with one answer, and a box that invites it is the
+           room pretending to be fuller than it is. */
+        lead={notes && notes.length > 0 && (
           <div className="mb-4">
             <MessageBar
               value={question}
@@ -810,7 +820,7 @@ export function NotebookView({
               </div>
             )}
           </div>
-        }
+        )}
         items={[...(notes ?? [])]
           .filter((n) => !activeTag || (tagged.byId.get(n.id) ?? []).includes(activeTag))
           .sort((a, b) => Number(b.pinned) - Number(a.pinned))

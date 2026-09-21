@@ -128,7 +128,7 @@ export function CanvasView({
         title="Artifacts"
         newLabel="New canvas"
         emptyTitle="Nothing made yet."
-        emptyHint="Everything you make lands here: a page built from a conversation, a document, a file. Ask for a change and it comes back revised in place, with a diff, rather than pasted into the chat."
+        emptyHint="Everything you make lands here, and a change you ask for comes back revised in place, with a diff."
         loading={canvases === undefined}
         lead={<Starters onSelect={onSelect} />}
         items={(canvases ?? []).map((c) => ({

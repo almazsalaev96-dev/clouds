@@ -37,6 +37,7 @@ export function SectionIndex({
   onDelete,
   onTogglePin,
   lead,
+  waysIn,
 }: {
   title: string;
   items: IndexItem[];
@@ -56,6 +57,12 @@ export function SectionIndex({
   onTogglePin?: (id: string) => void;
   /** Rendered above the list, for anything more urgent than browsing it. */
   lead?: React.ReactNode;
+  /**
+   * What an empty room offers, as a line of quiet presses rather than a
+   * paragraph explaining the room. Each is a concrete first move — "Keep an
+   * answer from a chat", "Attach a PDF" — not a description of one.
+   */
+  waysIn?: { label: string; icon?: React.ReactNode; onPick: () => void }[];
 }) {
   const [query, setQuery] = React.useState("");
 
@@ -125,13 +132,33 @@ export function SectionIndex({
             ))}
           </ul>
         ) : items.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-line px-4 py-10 text-center anim-fade">
-            <p className="text-base text-primary">{emptyTitle}</p>
-            <p className="mx-auto mt-1 max-w-sm text-sm text-secondary">{emptyHint}</p>
-            <Button size="sm" variant="primary" className="mt-4" onClick={onNew}>
-              <Plus size={14} />
-              {newLabel}
-            </Button>
+          /* An empty room is a room, not a placeholder for one. This was a
+             dashed box holding a paragraph and a second copy of the button
+             the header already has — three things saying "nothing here"
+             where one would do, inside a border that made the nothing look
+             like a form to fill in. Now: the title, the one sentence, and
+             the same ways in the chat's blank page offers — as a quiet line,
+             not as chips. The button stays in the header, where it will
+             still be when the room is full. */
+          <div className="px-4 pb-6 pt-12 text-center anim-fade">
+            <p className="display-italic text-[1.25rem] text-secondary">{emptyTitle}</p>
+            <p className="mx-auto mt-2 max-w-[28rem] text-sm text-tertiary">{emptyHint}</p>
+            {waysIn && waysIn.length > 0 && (
+              <p className="mt-5 flex flex-wrap items-center justify-center gap-x-1 gap-y-1 text-xs text-tertiary" aria-label="Ways to start">
+                {waysIn.map((w, i) => (
+                  <React.Fragment key={w.label}>
+                    {i > 0 && <span className="text-faint" aria-hidden>·</span>}
+                    <button
+                      onClick={w.onPick}
+                      className="btn-touch focus-inset flex items-center gap-1.5 rounded-full px-2 py-0.5 text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                    >
+                      {w.icon}
+                      {w.label}
+                    </button>
+                  </React.Fragment>
+                ))}
+              </p>
+            )}
           </div>
         ) : filtered.length === 0 ? (
           <p className="px-1 py-8 text-center text-sm text-tertiary">

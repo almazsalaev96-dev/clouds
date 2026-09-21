@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { FileCode2, FileText, MessageSquare, Paperclip, Search, Trash2, X } from "lucide-react";
+import { FileCode2, FileText, MessageSquare, Paperclip, Search, Trash2, X, Plus } from "lucide-react";
 import type { Canvas, Project, ProjectFile } from "@/lib/types";
 import {
   addProjectFile, db, deleteProject, filesOf, removeProjectFile,
@@ -72,7 +72,8 @@ export function ProjectsView({
         title="Projects"
         newLabel="New project"
         emptyTitle="No projects yet."
-        emptyHint="A project holds instructions and material that every chat started inside it can see — a course, a codebase, a piece of writing you keep coming back to."
+        emptyHint="A project holds instructions and material every chat inside it can see — a course, a codebase, a piece of writing."
+        waysIn={[{ label: "New project", icon: <Plus size={12} />, onPick: onNew }]}
         loading={projects === undefined}
         items={(projects ?? []).map((p) => ({
           id: p.id,

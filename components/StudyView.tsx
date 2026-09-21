@@ -277,7 +277,7 @@ export function StudyView({
       newLabel="New deck"
       loading={decks === undefined}
       emptyTitle="Nothing to study yet."
-      emptyHint="Name a subject above, or press “Make cards from this” under any answer. Cards come back on a schedule: a minute later, ten minutes later, then days apart, and sooner again whenever you get one wrong."
+      emptyHint="Name a subject above, or ask for cards in any chat. They come back on a schedule — sooner whenever you get one wrong."
       items={(decks ?? []).map((d) => {
         const mine = cards.filter((c) => c.deckId === d.id);
         const p = progressOf(mine, now);
