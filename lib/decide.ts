@@ -137,7 +137,7 @@ export function planTurn(
     };
   }
 
-  const mode: Mode = ctx.mode === "creative" || ctx.mode === "chat"
+  const mode: Mode = ctx.mode === "creative" || ctx.mode === "chat" || ctx.mode === "learn"
     ? (ctx.mode as Mode)
     : modeFor(ask);
   const strategy: Strategy = mode === "creative" ? "build" : "answer";
