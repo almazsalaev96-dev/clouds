@@ -540,6 +540,31 @@ It also reports a figure of nine hundred percent [[cite: ${name} | the result wa
     text: "The description of debouncing is right.\n\nBut the second paragraph calls the trailing edge the default; it is not, and the code above it does not do that either.",
   });
 
+  /* Reading a page with someone. The answer quotes the page's own first
+     sentence on a '> ' line, because the claim worth testing is that a
+     quote can be found and lit up on the page — a made-up line could not
+     be. Marking comes back as the JSON the app draws ticks from. */
+  const tutorContent = ((body.messages ?? []).at(-1)?.content ?? []);
+  const tutorAsked = (Array.isArray(tutorContent) ? tutorContent.filter((c) => c.type === "text").map((c) => c.text).join("\n") : String(tutorContent));
+  const tutoring = /^We are working through/.test(tutorAsked);
+  const marking = tutoring && /^Mark my working/m.test(tutorAsked);
+  const pageSaid = (tutorAsked.match(/The page says:\n\n([^\n]+)/) ?? [, ""])[1].trim();
+  const TUTORED = `It comes down to this line:\n\n> ${pageSaid || "what the page shows"}\n\nRead it once more, then tell me in your own words what it claims. Which word carries the claim?`;
+  const MARKED = JSON.stringify({
+    steps: [
+      { text: "The first step follows from the page.", ok: true },
+      { text: "The second step drops the unit.", ok: false, note: "The quantity on the left is in kilopascals and the right has none." },
+      { text: "The conclusion restates the second step.", ok: false, note: "It inherits the missing unit." },
+    ],
+    summary: "One slip in the second step, carried through.",
+  });
+  const studio = /^Write a study guide|^Write eight exam-style questions|^Summarise this in five lines/.test(asked);
+  const STUDIO = /^Write a study guide/.test(asked)
+    ? "## Ten things to know\n\n1. Photosynthesis happens in the chloroplast.\n2. Respiration happens in the mitochondrion.\n\n## Key terms\n\n| Term | Meaning |\n|---|---|\n| Chloroplast | Where photosynthesis happens |\n\n## Three mistakes\n\n- Confusing the two organelles."
+    : /^Write eight/.test(asked)
+      ? "## Questions\n\n1. State where photosynthesis happens. (1)\n\n## Mark schemes\n\n1. Chloroplast (1)"
+      : "- Photosynthesis happens in the chloroplast.\n- Respiration happens in the mitochondrion.\n\nIt does not cover the light-dependent stage.";
+
   const checking = /^A change was just made to this/.test(asked);
   const CHECK = `It does what was asked: the concat is gone and the loop pushes instead.
 
@@ -577,6 +602,12 @@ Nothing here looks like it breaks a caller — the return type is the same array
 
   let text = isTitle
     ? "Debouncing a search input"
+    : marking
+    ? MARKED
+    : tutoring
+    ? TUTORED
+    : studio
+    ? STUDIO
     : recapping
     ? RECAP
     : briefing

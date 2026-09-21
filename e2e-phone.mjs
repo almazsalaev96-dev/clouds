@@ -96,8 +96,10 @@ console.log("\nThe study session's hint names what a finger can do");
   await p.waitForTimeout(500);
   const after = await p.locator("#suggested").innerText();
   check(!/Esc|1 – 4/.test(after), "and nothing about keys it does not have", after.trim());
-  const again = await p.getByRole("group", { name: "How did it go" }).getByRole("button").first().innerText();
-  check(!/\d/.test(again), "and the grade buttons carry no key numbers", again.replace(/\s+/g, " "));
+  /* The first line of the button is its name; the second says when the
+     card comes back, which has a number in it that is not a key. */
+  const again = (await p.getByRole("group", { name: "How did it go" }).getByRole("button").first().innerText()).split("\n")[0].trim();
+  check(again === "Again", "and the grade buttons carry no key numbers", again);
   await p.keyboard.press("Escape");
   await p.waitForTimeout(500);
 }
@@ -116,8 +118,10 @@ console.log("\nA made thing's header fits a phone");
   check(picker && picker.x + picker.width <= 430 + 1 || (await p.getByLabel("Project this belongs to").evaluate((el) => { const r = el.getBoundingClientRect(); const c = el.closest(".overflow-x-auto, [class*='overflow-x-auto']"); return c ? c.scrollWidth > c.clientWidth : false; })), "the controls end on the screen or scroll to it, never cut off");
   const point = p.getByRole("button", { name: /Point at it/ });
   if (await point.count()) {
+    /* Broken over two lines it would be taller than its one-line neighbour. */
     const pb = await point.boundingBox();
-    check(pb && pb.height < 44, "and no control is broken over two lines", pb ? `${Math.round(pb.height)}px tall` : "missing");
+    const rb = await p.getByRole("button", { name: /Reload/ }).boundingBox();
+    check(pb && rb && Math.abs(pb.height - rb.height) < 2, "and no control is broken over two lines", pb && rb ? `${Math.round(pb.height)}px vs ${Math.round(rb.height)}px` : "missing");
   }
   const chips = p.getByRole("group", { name: "Shortcuts" });
   const rows = await chips.evaluate((el) => new Set([...el.children].map((c) => Math.round(c.getBoundingClientRect().top))).size);
