@@ -620,6 +620,7 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
           <button
             disabled={asking}
             onClick={() => void makeCards()}
+            aria-label="Make cards"
             className="btn-touch press focus-inset rounded-full px-2 text-xs text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary disabled:opacity-50"
           >
             Cards

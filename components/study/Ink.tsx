@@ -63,8 +63,21 @@ export function Ink({
   className?: string;
 }) {
   const ref = React.useRef<HTMLDivElement>(null);
-  const [live, setLive] = React.useState<Stroke | null>(null);
-  const drag = React.useRef<{ x: number; y: number } | null>(null);
+  /* The stroke under the pen and the box under the finger are refs, not
+     state: a pen delivers samples faster than React re-renders, and a
+     handler that read the stroke from the last render would drop every
+     sample that arrived in the same task as the one that started it —
+     which is what a synthetic burst, or a very fast hand, does. The screen
+     is redrawn once a frame instead. */
+  const liveRef = React.useRef<Stroke | null>(null);
+  const dragStart = React.useRef<{ x: number; y: number } | null>(null);
+  const dragRef = React.useRef<Box | null>(null);
+  const [, redraw] = React.useReducer((n: number) => n + 1, 0);
+  const frame = React.useRef<number | null>(null);
+  const tick = () => {
+    if (frame.current !== null) return;
+    frame.current = requestAnimationFrame(() => { frame.current = null; redraw(); });
+  };
   const [width, setWidth] = React.useState(800);
   const penSeen = React.useRef(false);
   const erasing = React.useRef(false);
@@ -109,7 +122,8 @@ export function Ink({
     if (!p) return;
     try { (e.currentTarget as Element).setPointerCapture(e.pointerId); } catch { /* synthetic events have no capture */ }
     if (tool === "point") {
-      drag.current = p;
+      dragStart.current = p;
+      dragRef.current = null;
       onBox(null);
       return;
     }
@@ -119,15 +133,18 @@ export function Ink({
       return;
     }
     e.preventDefault();
-    setLive({ id: `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, tool, points: [p.x, p.y, pressureOf(e)] });
+    liveRef.current = { id: `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, tool, points: [p.x, p.y, pressureOf(e)] };
+    tick();
   };
 
   const move = (e: React.PointerEvent) => {
     if (tool === "point") {
-      if (!drag.current) return;
+      const a = dragStart.current;
+      if (!a) return;
       const p = at(e);
       if (!p) return;
-      onDrag(drag.current, p);
+      dragRef.current = { x: Math.min(a.x, p.x), y: Math.min(a.y, p.y), w: Math.abs(p.x - a.x), h: Math.abs(p.y - a.y) };
+      tick();
       return;
     }
     if (tool === "erase") {
@@ -136,6 +153,7 @@ export function Ink({
       if (p) onStrokes(eraseAt(strokes, p.x, p.y, 0.012));
       return;
     }
+    const live = liveRef.current;
     if (!live) return;
     /* Every sample, not only the one per frame the browser dispatches. */
     const samples: (PointerEvent | React.PointerEvent)[] =
@@ -148,34 +166,31 @@ export function Ink({
       const p = at(s);
       if (p) add.push(p.x, p.y, pressureOf(s));
     }
-    if (add.length) setLive((l) => (l ? { ...l, points: [...l.points, ...add] } : l));
-  };
-
-  const [dragBox, setDragBox] = React.useState<Box | null>(null);
-  const onDrag = (a: { x: number; y: number }, b: { x: number; y: number }) => {
-    setDragBox({ x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) });
+    if (add.length) { live.points.push(...add); tick(); }
   };
 
   const up = () => {
     if (tool === "point") {
-      const d = dragBox;
-      drag.current = null;
-      setDragBox(null);
+      const d = dragRef.current;
+      dragStart.current = null;
+      dragRef.current = null;
+      tick();
       /* A tap is not a selection. Below this it is somebody scrolling. */
       if (d && d.w >= 0.03 && d.h >= 0.02) onBox(d);
       return;
     }
     if (tool === "erase") { erasing.current = false; return; }
-    if (!live) return;
-    const done = live;
-    setLive(null);
+    const done = liveRef.current;
+    if (!done) return;
+    liveRef.current = null;
     onStrokes([...strokes, done]);
   };
 
-  const cancel = () => { setLive(null); drag.current = null; setDragBox(null); erasing.current = false; };
+  const cancel = () => { liveRef.current = null; dragStart.current = null; dragRef.current = null; erasing.current = false; tick(); };
 
   const px = (s: Stroke) => (widthOf(s) / 1000) * width;
-  const showing = dragging ?? dragBox;
+  const live = liveRef.current;
+  const showing = dragging ?? dragRef.current;
 
   return (
     <div

@@ -43,7 +43,7 @@ export function widthOf(s: Stroke): number {
   let n = 0;
   for (let i = 2; i < s.points.length; i += 3) { sum += s.points[i]; n++; }
   const p = n ? sum / n : 0.5;
-  return 2.6 * (0.55 + p);
+  return 3.2 * (0.55 + p);
 }
 
 /** The SVG path of a stroke, in page coordinates. */

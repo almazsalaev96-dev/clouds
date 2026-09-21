@@ -88,7 +88,8 @@ console.log("\nA pen draws on the page");
   check((await paths()) === 2, "and the highlighter is a second, wider one", `${await paths()} path(s)`);
   const hi = await p.locator("[data-tool] svg path").first().evaluate((el) => ({ w: Number(el.getAttribute("stroke-width")), o: el.getAttribute("opacity") }));
   check(hi.w > Number(width) * 2 && Number(hi.o) < 1, "translucent, under the pen's line", `${hi.w}px at ${hi.o}`);
-  check(/goes with your next question/.test(await p.locator("main").innerText()), "the line under the page says the ink goes with the question");
+  await tools.getByRole("radio", { name: "Point at a region" }).click();
+  check(/ink goes with the next question/.test(await p.locator("main").innerText()), "with the pen put down, the line under the page says the ink goes with the question");
 }
 
 console.log("\nThe ink is kept");
@@ -150,7 +151,8 @@ console.log("\nIt writes back on the page");
   await p.getByRole("group", { name: "Ask about this" }).getByRole("button", { name: "Why is it wrong?" }).click();
   await p.waitForTimeout(4000);
   const marks = p.locator("[data-tool] [aria-label^='Step ']");
-  check((await marks.count()) === 3, "marking the working puts a mark beside each step on the page", `${await marks.count()} marks`);
+  const said = (await p.locator('[aria-label="Working through it"]').innerText()).replace(/\s+/g, " ");
+  check((await marks.count()) === 3, "marking the working puts a mark beside each step on the page", `${await marks.count()} marks — chat ends: ${said.slice(-160)}`);
   const labels = await marks.evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
   check(labels[0] === "Step 1: holds" && labels[1] === "Step 2: does not hold", "a tick where it holds and a cross where it does not", labels.join(" | "));
   const chat = await p.locator('[aria-label="Working through it"]').innerText();
