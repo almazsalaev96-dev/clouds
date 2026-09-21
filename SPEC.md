@@ -337,8 +337,11 @@ ARMI has no server tools by design. Tools run in the browser or are declared to 
 | `save_cards(deck, cards[])` | local write to Study | ✅ model tool | Deck by name, made if new; cards already in it skipped; the chip opens the deck; Undo removes the cards it added (and the deck, if it made it). |
 | `study_status()` | local read of Study | ✅ model tool | Decks and counts, due now, streak, weakest topic with its recall. |
 | `save_note(title, content)` | local write to the Notebook | ✅ model tool | Markdown; title derived if none; the chip opens the page; Undo deletes it. |
+| `read_note(title)` | local read of one page (closest title) | ✅ model tool | The whole page, first 12,000 characters if longer, said so. |
+| `append_note(title, content)` | local write to the end of a page | ✅ model tool | For "add this to my X page"; Undo restores the page as it was. |
+| `read_made(id \| title)` | local read of one canvas (a web canvas as its files) | ✅ model tool | For "change the timer I built": the model reads what is there before it says what to change. |
 | `remember(fact)` | local write to memory | ✅ model tool | Not offered in a temporary chat or with memory off; Undo forgets it. |
-| `list_made(query?)` | local read of canvases | ✅ model tool | Newest first, eight at most; the chip opens the first. |
+| `list_made(query?)` | local read of canvases | ✅ model tool | Newest first, eight at most, with ids for `read_made`; the chip opens the first. |
 | `build_canvas(files)` | local canvas store | ✅ (Nova) | Keep, as a fence rather than a tool: a page is a thing to stream, not to ask for. |
 | `build_canvas(files)` | local canvas store | ✅ (Nova) | Keep. |
 | `run_canvas_tests()` | srcdoc frame reports console errors back | 🟡 | ⬜ Self-heal loop (§15.4). |

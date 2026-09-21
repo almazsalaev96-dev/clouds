@@ -48,7 +48,8 @@ console.log("\nWhat an answer did is told to the turns after it");
 console.log("\nWhich tools are offered where");
 {
   const all = actionSpecs({ conversationId: "c", projectId: "p", temporary: false, memoryOn: true }).map((s) => s.name);
-  check(all.length >= 10, "a full room offers the lot", `${all.length}: ${all.join(", ")}`);
+  check(all.length === 13, "a full room offers the lot", `${all.length}: ${all.join(", ")}`);
+  for (const name of ["read_note", "append_note", "read_made"]) check(all.includes(name), `including ${name}`);
   const temp = actionSpecs({ conversationId: "c", temporary: true, memoryOn: true }).map((s) => s.name);
   check(!temp.includes("remember"), "a temporary chat cannot remember");
   check(!temp.includes("save_to_project"), "and outside a project there is no project to add to");

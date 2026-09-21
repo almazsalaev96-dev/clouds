@@ -1812,6 +1812,31 @@ a manual step at the moment someone is already annoyed. Once — not until it
 works, because retrying a hard limit in a loop is how an account gets
 throttled harder. Stop cancels the wait.
 
+## The model can use the rooms
+
+Thirteen tools go out with every turn, to every company, unless you turn them
+off: save cards into Study, check what is due, write a page, read or add to
+one, search the notebook, search past conversations, remember something, add
+to the project, list and read what was built, do a sum exactly, and ask the
+time. They are described once (`lib/actions.ts`) and each adapter wraps them
+in its provider's envelope; every one runs in this browser against the same
+database the rooms use. The model asks; the app does it; the answer that
+follows is written from what was actually done.
+
+What was done is shown under the answer as a chip — "Saved 8 cards to
+‘Osmosis’" — with Open, which goes to the deck, page, project or canvas, and
+Undo, which takes it back. The wait says what is happening ("Saving cards")
+in place of "Writing". A writing tool is only offered where writing makes
+sense: no memory in a temporary chat, no project file outside a project. The
+model is told the manners in the system prompt — use one when it does what
+was asked, never a writing tool unasked, never claim what a tool did not do —
+and it cannot delete anything; only you can. Later turns are told in one
+line what an earlier answer did, so it is not offered twice.
+
+The setting is under Memory ("Let it use the rooms"); the Privacy panel says
+what a tool sends, which is only its own reply, back to the company already
+answering.
+
 ## Pointing at something other than the real API
 
 Each provider's host is overridable, because plenty of deployments do not talk

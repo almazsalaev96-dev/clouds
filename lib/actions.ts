@@ -219,6 +219,61 @@ const TOOLS: Tool[] = [
   },
   {
     spec: {
+      name: "read_note",
+      description:
+        "Read one Notebook page in full, by its title (closest match). Use after search_notes when a passage is not enough, or when they name a page.",
+      schema: { type: "object", properties: { title: { type: "string" } }, required: ["title"] },
+    },
+    doing: "Reading a page",
+    run: async (input) => {
+      const title = str(input.title, 120).toLowerCase();
+      if (!title) return fail("A title is needed.");
+      const notes = await db.notes.toArray();
+      const note =
+        notes.find((n) => n.title.trim().toLowerCase() === title) ??
+        notes.find((n) => n.title.toLowerCase().includes(title)) ??
+        notes.find((n) => title.includes(n.title.trim().toLowerCase()) && n.title.trim());
+      if (!note) return fail(`No page called ${q(str(input.title, 120))}. search_notes finds pages by what is in them.`);
+      const body = note.content.trim();
+      const cut = body.length > 12_000;
+      return {
+        ok: true,
+        text: `# ${note.title || "Untitled"}\n\n${cut ? body.slice(0, 12_000) + "\n\n[… the page goes on; this is the first 12,000 characters]" : body}`,
+        summary: `Read the page ${q(note.title || "Untitled")}`,
+        open: { section: "notebook", id: note.id },
+      };
+    },
+  },
+  {
+    spec: {
+      name: "append_note",
+      description:
+        "Add to the end of an existing Notebook page, by its title (closest match), in Markdown. Use when they ask to add something to a page they have. To start a new page use save_note.",
+      schema: { type: "object", properties: { title: { type: "string" }, content: { type: "string", description: "Markdown to add." } }, required: ["title", "content"] },
+    },
+    doing: "Adding to a page",
+    run: async (input) => {
+      const title = str(input.title, 120).toLowerCase();
+      const content = str(input.content, 100_000);
+      if (!title || !content) return fail("A title and something to add are needed.");
+      const notes = await db.notes.toArray();
+      const note = notes.find((n) => n.title.trim().toLowerCase() === title) ?? notes.find((n) => n.title.toLowerCase().includes(title));
+      if (!note) return fail(`No page called ${q(str(input.title, 120))}. Use save_note to make one.`);
+      const before = note.content;
+      const next = before.replace(/\s+$/, "") + (before.trim() ? "\n\n" : "") + content;
+      await db.notes.update(note.id, { content: next, updatedAt: Date.now() });
+      const summary = `Added to the page ${q(note.title || "Untitled")}`;
+      return {
+        ok: true,
+        text: `${summary} (${content.length} characters).`,
+        summary,
+        open: { section: "notebook", id: note.id },
+        undo: async () => { await db.notes.update(note.id, { content: before, updatedAt: Date.now() }); },
+      };
+    },
+  },
+  {
+    spec: {
       name: "search_conversations",
       description:
         "Search the person's earlier conversations in this app for something they discussed before, and get the matching lines with the conversation each was in. " +
@@ -311,6 +366,40 @@ const TOOLS: Tool[] = [
         .map((c) => `- ${q(c.title || "Untitled")} — ${c.kind}${c.lang ? ` (${c.lang})` : ""}, ${new Date(c.updatedAt).toISOString().slice(0, 10)}, id ${c.id}`)
         .join("\n");
       return { ok: true, text, summary: `Listed ${plural(top.length, "thing")} made here`, open: { section: "code", id: top[0].id } };
+    },
+  },
+  {
+    spec: {
+      name: "read_made",
+      description:
+        "Read one thing made in this app in full — a document, a code file or a web canvas's files — by its id from list_made or by its title (closest match). " +
+        "Use when they ask about, or want changes to, something they built earlier.",
+      schema: { type: "object", properties: { id: { type: "string" }, title: { type: "string" } } },
+    },
+    doing: "Reading what was made",
+    run: async (input) => {
+      const id = str(input.id, 40);
+      const title = str(input.title, 120).toLowerCase();
+      const all = await db.canvases.orderBy("updatedAt").reverse().limit(500).toArray();
+      const canvas =
+        (id && all.find((c) => c.id === id)) ||
+        (title && (all.find((c) => c.title.trim().toLowerCase() === title) ?? all.find((c) => c.title.toLowerCase().includes(title)))) ||
+        null;
+      if (!canvas) return fail(`Nothing made here matches ${q(id || str(input.title, 120))}. list_made shows what there is.`);
+      let body: string;
+      if (canvas.kind === "web") {
+        const files = await db.canvasFiles.where("canvasId").equals(canvas.id).toArray();
+        body = files.map((f) => `--- ${f.name} ---\n${f.content}`).join("\n\n");
+      } else {
+        body = canvas.content;
+      }
+      const cut = body.length > 24_000;
+      return {
+        ok: true,
+        text: `${q(canvas.title || "Untitled")} — ${canvas.kind}${canvas.lang ? ` (${canvas.lang})` : ""}, id ${canvas.id}\n\n${cut ? body.slice(0, 24_000) + "\n\n[… it goes on; this is the first 24,000 characters]" : body}`,
+        summary: `Read ${q(canvas.title || "Untitled")}`,
+        open: { section: "code", id: canvas.id },
+      };
     },
   },
   {
