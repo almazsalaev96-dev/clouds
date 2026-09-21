@@ -61,9 +61,10 @@ console.log("\nThey ride at the start of every conversation");
   await p.getByRole("textbox", { name: "Message" }).fill("What is a debounce");
   await p.keyboard.press("Meta+Enter");
   await p.waitForTimeout(3500);
-  const sent = await fetch(`${MOCK}/__last`).then((r) => r.json());
-  const sys = sent.system ?? "";
-  check(/## Your rules/.test(sys), "the system prompt carries a rules section");
+  /* `__recent` keeps each call's system text; `__last` only says its shape. */
+  const recent = (await fetch(`${MOCK}/__recent`).then((r) => r.json())).recent ?? [];
+  const sys = [...recent].reverse().find((r) => r.kind === "answer")?.system ?? "";
+  check(/## Your rules/.test(sys), "the system prompt carries a rules section", sys.slice(0, 40).replace(/\s+/g, " "));
   check(/- When I am working something out, give a hint before an answer/.test(sys), "with the preset's sentence as a bullet");
   check(/- Use British English spelling/.test(sys), "and the second preset's");
   check(/- Always show the units\./.test(sys) && /- Name the exam board as AQA\./.test(sys), "and each of your own lines as its own bullet");
@@ -87,8 +88,9 @@ console.log("\nAnd they hold in the document reader too");
   await fetch(`${MOCK}/__reset`);
   await p.getByRole("group", { name: "Ask about this" }).getByRole("button", { name: "Explain this page" }).click();
   await p.waitForTimeout(3500);
-  const sent = await fetch(`${MOCK}/__last`).then((r) => r.json());
-  check(/## Your rules/.test(sent.system ?? "") && /Always show the units/.test(sent.system ?? ""), "the tutor's request carries the same rules", (sent.system ?? "").slice(0, 60).replace(/\s+/g, " "));
+  const rec = (await fetch(`${MOCK}/__recent`).then((r) => r.json())).recent ?? [];
+  const tsys = [...rec].reverse().find((r) => r.kind === "answer")?.system ?? "";
+  check(/## Your rules/.test(tsys) && /Always show the units/.test(tsys), "the tutor's request carries the same rules", tsys.slice(0, 60).replace(/\s+/g, " "));
 }
 
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors");
