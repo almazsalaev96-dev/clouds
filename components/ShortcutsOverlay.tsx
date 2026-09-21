@@ -97,7 +97,7 @@ export function ShortcutsOverlay({
                     <div key={label} className="flex items-center justify-between gap-4 py-1.5">
                       <dt className="text-sm text-secondary">{label}</dt>
                       <dd className="shrink-0">
-                        <Kbd keys={keys} />
+                        <Kbd keys={keys} always />
                       </dd>
                     </div>
                   ))}

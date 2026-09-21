@@ -43,7 +43,9 @@ console.log("\nA source, and the pack made from it");
   const chip = p.getByRole("button", { name: "Revision pack" });
   check(await chip.isVisible(), "with a source attached the page offers the pack first");
   await chip.click();
-  await p.getByText(/pages? and \d+ cards? made|pages? made/).waitFor({ timeout: 40_000 }).catch(() => {});
+  /* Polled on the room's text: an element matcher answered before the
+     notice was up and the check read the room a beat too soon. */
+  await p.waitForFunction(() => /3 pages( and \d+ cards)? made|Nothing usable|request failed/.test(document.querySelector("main")?.innerText ?? ""), null, { timeout: 60_000 }).catch(() => {});
   const notice = await p.locator("main").innerText();
   check(/3 pages and \d+ cards made/.test(notice), "three pages and a deck come back", (notice.match(/3 pages[^\n]*/) ?? [""])[0].slice(0, 90));
 }

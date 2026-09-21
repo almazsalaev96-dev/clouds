@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/primitives";
 import { MessageBar } from "@/components/chat/MessageBar";
 import { DeckPanel } from "@/components/study/DeckPanel";
 import { SectionIndex } from "@/components/SectionIndex";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 
 /**
@@ -580,6 +581,10 @@ function Session({
   onAsk?: (question: string) => void;
 }) {
   const [shown, setShown] = React.useState(false);
+  /* On a phone there is no Space, no 1–4 and no Esc, and a hint that names
+     them is a hint about somebody else's device. Server answers "fine",
+     which is the desk, and the phone corrects itself on the first frame. */
+  const fine = useMediaQuery("(pointer: fine)");
   const [done, setDone] = React.useState(0);
   /* How it went, by answer, for the line at the end. A session that ends
      with "nothing left" and no account of itself is one that leaves
@@ -1047,9 +1052,10 @@ function Session({
 
             <p id="suggested" className={cn("mt-3 text-center text-xs text-faint", shown ? "" : "opacity-70")}>
               {shown
-                ? suggested ? "The marker suggests one — press whichever is true · 1 – 4" : "1 – 4 to answer · Esc to leave"
+                ? suggested ? (fine ? "The marker suggests one — press whichever is true · 1 – 4" : "The marker suggests one — press whichever is true")
+                  : fine ? "1 – 4 to answer · Esc to leave" : "Press how it went"
                 : asking && sure === null ? "Say whether you are sure, then look"
-                : typing ? "Enter to check" : "Space to show the answer"}
+                : typing ? (fine ? "Enter to check" : "Send to check") : fine ? "Space to show the answer" : "Tap to show the answer"}
               {!shown && undoable && (
                 <>
                   {" · "}

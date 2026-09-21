@@ -44,11 +44,17 @@ export function Tooltip({
   );
 }
 
-export function Kbd({ keys }: { keys: string[] }) {
+/**
+ * A key hint. On a phone there are no keys, so a hint beside a button is
+ * noise there and hides itself; a list *of* shortcuts (`always`) stays,
+ * because an iPad with a keyboard is a coarse pointer too and the list is
+ * where that person looks.
+ */
+export function Kbd({ keys, always }: { keys: string[]; always?: boolean }) {
   const [mac, setMac] = React.useState(true);
   React.useEffect(() => setMac(isMac()), []);
   return (
-    <span className="flex gap-0.5">
+    <span className={always ? "flex gap-0.5" : "kbd-hint flex gap-0.5"}>
       {keys.map((k) => (
         <kbd
           key={k}

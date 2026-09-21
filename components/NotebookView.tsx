@@ -261,7 +261,9 @@ export function NotebookView({
       setNotice(null);
       setInstruction("");
       setOpenCite(null);
-      requestAnimationFrame(() => textareaRef.current?.focus());
+      /* On a desk the caret is a gift; on a phone opening a page to read it
+         must not raise the keyboard over it. */
+      if (!window.matchMedia?.("(pointer: coarse)").matches) requestAnimationFrame(() => textareaRef.current?.focus());
     }
   }, [note]);
 
@@ -1143,7 +1145,7 @@ export function NotebookView({
                     placeholder={"# Title\n\nStart writing. Markdown works — headings, lists, tables, code, $math$. Link another page with [[its title]]."}
                     spellCheck
                     aria-label="Page content"
-                    className="min-h-[50vh] w-full resize-none overflow-hidden bg-transparent font-sans text-base leading-[1.65] text-primary outline-none placeholder:text-tertiary"
+                    className="bare min-h-[50vh] w-full resize-none overflow-hidden bg-transparent font-sans text-base leading-[1.65] text-primary outline-none placeholder:text-tertiary"
                   />
                 </>
               ) : (
@@ -1156,7 +1158,7 @@ export function NotebookView({
                   aria-label="Page content"
                   // Field-sizing keeps the box exactly as tall as the text, so the
                   // page scrolls rather than a box inside the page.
-                  className="min-h-[50vh] w-full resize-none overflow-hidden bg-transparent font-sans text-base leading-[1.65] text-primary outline-none placeholder:text-tertiary"
+                  className="bare min-h-[50vh] w-full resize-none overflow-hidden bg-transparent font-sans text-base leading-[1.65] text-primary outline-none placeholder:text-tertiary"
                 />
               )}
               {/* Every page that names this one. The half of linking no
@@ -1303,6 +1305,9 @@ export function NotebookView({
                     <button
                       onClick={() => fileRef.current?.click()}
                       disabled={reading}
+                      /* The word is hidden on a phone, so the name is on the
+                         button itself, or the paperclip is a mute icon. */
+                      aria-label={reading ? "Reading…" : sources.length ? "Add another" : "Read something"}
                       className="btn-touch ctl-h focus-inset flex shrink-0 items-center gap-1.5 rounded-full px-2.5 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary disabled:opacity-50"
                     >
                       <Paperclip size={16} />

@@ -58,16 +58,34 @@ export function Settings({
         <Dialog.Overlay className="fixed inset-0 z-50 bg-[var(--bg-overlay)] anim-scrim" />
         <Dialog.Content
           onCloseAutoFocus={returnFocus}
-          className="fixed left-1/2 top-1/2 z-50 flex h-[34rem] max-h-[calc(100vh-3rem)] w-[44rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl glass border border-line shadow-lg anim-modal"
+          /* Two shapes. Wide, a window with the pages down its left side.
+             Narrow — under 40rem, which is every phone — the same window
+             at 44rem wide was cut off at the screen's edge with its heading
+             and half of every field outside it, so there it is the whole
+             screen with the pages as a strip across the top that scrolls
+             sideways, and the fields get the full width under it. */
+          className={cn(
+            "fixed z-50 flex overflow-hidden glass border border-line shadow-lg anim-modal",
+            "inset-0 flex-col rounded-none",
+            "sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-[34rem] sm:max-h-[calc(100vh-3rem)] sm:w-[44rem] sm:max-w-[calc(100vw-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:flex-row sm:rounded-xl",
+          )}
         >
-          <nav className="flex w-40 shrink-0 flex-col gap-0.5 border-r border-line bg-subtle p-2">
-            <Dialog.Title className="px-2 py-2 text-sm font-medium text-primary">Settings</Dialog.Title>
+          <nav
+            aria-label="Settings pages"
+            className={cn(
+              "flex shrink-0 gap-0.5 border-line bg-subtle p-2",
+              "safe-top h-14 flex-row items-center overflow-x-auto border-b pe-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+              "sm:h-auto sm:items-stretch",
+              "sm:w-40 sm:flex-col sm:overflow-visible sm:border-b-0 sm:border-r sm:pe-2",
+            )}
+          >
+            <Dialog.Title className="px-2 py-2 text-sm font-medium text-primary max-sm:sr-only">Settings</Dialog.Title>
             {TABS.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 className={cn(
-                  "rounded-md px-2 py-1.5 text-left text-sm transition-colors duration-[var(--dur-fast)]",
+                  "shrink-0 whitespace-nowrap rounded-md px-2 py-1.5 text-left text-sm transition-colors duration-[var(--dur-fast)] max-sm:min-h-9",
                   tab === t.id ? "bg-canvas font-medium text-primary" : "text-secondary hover:text-primary",
                 )}
               >
@@ -76,7 +94,7 @@ export function Settings({
             ))}
           </nav>
 
-          <div className="flex-1 overflow-y-auto p-5">
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
             {tab === "keys" && <KeysPanel configured={configured} />}
             {tab === "appearance" && <AppearancePanel />}
             {tab === "model" && <ModelPanel configured={configured} />}
@@ -89,7 +107,7 @@ export function Settings({
 
           <Dialog.Close
             aria-label="Close settings"
-            className="ctl absolute right-3 top-3 flex [--ctl:1.75rem] items-center justify-center rounded-md text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+            className="ctl absolute right-3 top-[0.875rem] sm:top-3 flex [--ctl:1.75rem] items-center justify-center rounded-md text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
           >
             <X size={15} />
           </Dialog.Close>
@@ -508,7 +526,7 @@ function ShortcutsPanel() {
               <div key={label} className="flex items-center justify-between gap-4 py-2">
                 <dt className="text-sm text-secondary">{label}</dt>
                 <dd className="shrink-0">
-                  <Kbd keys={keys} />
+                  <Kbd keys={keys} always />
                 </dd>
               </div>
             ))}

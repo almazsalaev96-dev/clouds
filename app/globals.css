@@ -958,6 +958,12 @@ textarea:focus-visible {
   background: color-mix(in oklab, var(--bg-surface) 92%, transparent);
   box-shadow: none;
 }
+/* The sidebar is canvas-tinted glass, so a sticky date header inside it
+   takes the canvas tint too: on the surface colour it was a white bar
+   across a grey column — three of them, one per day group. */
+aside.glass .glass {
+  background: color-mix(in oklab, var(--bg-canvas) 94%, transparent);
+}
 
 /* The unprefixed property, restated where the build cannot take it away.
    ---------------------------------------------------------------------
@@ -1383,6 +1389,13 @@ textarea:focus-visible {
 @media (hover: none) {
   .reveal {
     opacity: 1;
+  }
+}
+/* A key hint on a screen with no keys. Phones only — an iPad is a coarse
+   pointer with a keyboard sometimes attached, and its hints can stay. */
+@media (pointer: coarse) and (max-width: 40rem) {
+  .kbd-hint {
+    display: none;
   }
 }
 
@@ -1912,6 +1925,13 @@ textarea:focus-visible {
   box-shadow: 0 0 0 3px rgb(var(--accent-2-rgb) / 0.10);
 }
 .composer-shell :is(input, textarea):focus-visible {
+  box-shadow: none;
+}
+/* A page is not a field. The Notebook's editor is the sheet itself — no
+   border, no surface of its own — so a halo around it draws a box around
+   the whole page the moment you start to write. */
+textarea.bare:focus-visible,
+[class*="focus-within:"] :is(input, textarea):focus-visible {
   box-shadow: none;
 }
 

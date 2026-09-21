@@ -198,13 +198,15 @@ export function MessageBar({
           the text is doing, so the container query stacks it — the same bar
           is 266px inside a 320px phone and inside a 1024px window with the
           sidebar out, and a viewport breakpoint would call the second one
-          wide. Below that width the left group takes a whole row of its own
-          too, and the right group keeps the end of the last row, so send is
-          still the last thing on the last line at every width. */}
+          wide. Below that width the two groups share the row under the line
+          when they fit — one paperclip and three buttons do, on a phone —
+          and the right group wraps to a row of its own only when they do
+          not, so send is still the last thing on the last line at every
+          width without a row spent on a paperclip alone. */}
       <div className="flex flex-wrap items-end gap-1 px-2.5 pb-2.5 pt-2.5">
         <div
           className={cn(
-            "flex min-w-0 flex-wrap items-center gap-1 empty:hidden @max-[34rem]/bar:order-2 @max-[34rem]/bar:basis-full",
+            "flex min-w-0 flex-wrap items-center gap-1 empty:hidden @max-[34rem]/bar:order-2",
             stacked ? "order-2" : "order-1",
           )}
         >
