@@ -96,7 +96,11 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
     [configured, settings.keys],
   );
 
-  /* Drawn on arrival and on every page change. The bytes are read once. */
+  /* Drawn on arrival and on every page change — and only then. Keyed on the
+     lesson's id rather than its bytes: every turn saved bumps the lesson's
+     row, the live query hands back a fresh Blob for the same file, and an
+     effect keyed on the Blob redrew the page and wiped the marks the answer
+     had just put on it. The bytes are read once. */
   React.useEffect(() => {
     let alive = true;
     setHighlights([]);
@@ -119,7 +123,8 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
       }
     })();
     return () => { alive = false; };
-  }, [lesson.bytes, lesson.mimeType, page]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lesson.id, lesson.mimeType, page]);
 
   /* The ink on this page, loaded when the page changes and kept on every
      stroke. Keyed so a save from the page just left cannot land on the new
