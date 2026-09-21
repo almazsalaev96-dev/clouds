@@ -450,7 +450,14 @@
      instead. Both live here so the rule that uses them stays one rule. */
   --composer-bg: rgba(253, 253, 255, 0.90);
   --composer-line: rgba(22, 28, 43, 0.10);
-  --composer-line-focus: rgba(0, 125, 149, 0.55);
+  /* The box is focused on every blank page and at the top of every room —
+     the app focuses it for you — so whatever focus looks like here is what
+     this app looks like at rest. At 0.55 with a 3px ring that was a lit
+     border on the largest object on screen, permanently: the light that
+     never turns off, which the comment on `.composer-shell` warns about and
+     which the tokens then went and built. The line warms, the shadow
+     deepens, and neither of those is a colour you notice first. */
+  --composer-line-focus: rgba(0, 125, 149, 0.34);
   /* The one surface you look at in every session, so it sits a clear step
      above the page rather than a suspicion above it: the resting shadow used
      to be pulled back 16px of spread out of 32 of blur, which on paper is no
@@ -465,7 +472,7 @@
     0 1px 2px rgb(22 28 43 / 0.06),
     1px 8px 20px -6px rgb(22 28 43 / 0.16),
     3px 22px 48px -16px rgb(22 28 43 / 0.20),
-    0 0 0 3px rgb(var(--accent-2-rgb) / 0.20);
+    0 0 0 3px rgb(var(--accent-2-rgb) / 0.11);
 }
 
 /* The dark palette is a palette for a lit screen, and paper is not one. Left
@@ -587,8 +594,12 @@
       inset 0 1px 0 0 rgb(229 232 237 / 0.11),
       inset 1px 0 0 0 rgb(229 232 237 / 0.055),
       inset 0 -1px 0 0 rgb(0 0 0 / 0.35);
+    /* The top catch carries the whole of the dark theme's elevation — black
+       on near-black is not a cue — so when the light ramp was rebuilt to
+       reach the screen, this is the number that had to move with it or the
+       two rooms would be a factor of two apart. */
     --rim-lg:
-      inset 0 1px 0 0 rgb(229 232 237 / 0.18),
+      inset 0 1px 0 0 rgb(229 232 237 / 0.23),
       inset 1px 0 0 0 rgb(229 232 237 / 0.09),
       inset -1px 0 0 0 rgb(0 0 0 / 0.20),
       inset 0 -1px 0 0 rgb(0 0 0 / 0.45);
@@ -641,7 +652,7 @@
        ground. It is the lifted surface now, like every other raised thing. */
     --composer-bg: rgba(30, 37, 53, 0.78);
     --composer-line: rgba(229, 232, 237, 0.10);
-    --composer-line-focus: rgba(111, 220, 220, 0.55);
+    --composer-line-focus: rgba(111, 220, 220, 0.38);
     --composer-lift: inset 0 1px 0 rgb(229 232 237 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
     /* The ring around the box you type in, only while the caret is in it, and
        in the cyan of the signal rather than in the structural blue: it marks
@@ -649,7 +660,7 @@
     --composer-lift-focus:
       inset 0 1px 0 rgb(229 232 237 / 0.10),
       0 24px 56px -22px rgb(0 0 0 / 0.9),
-      0 0 0 3px rgb(var(--accent-2-rgb) / 0.16);
+      0 0 0 3px rgb(var(--accent-2-rgb) / 0.10);
   }
 }
 

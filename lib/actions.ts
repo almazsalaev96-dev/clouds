@@ -122,9 +122,15 @@ const TOOLS: Tool[] = [
       const added = await addCards(deck.id, drafts, ctx.conversationId);
       const skipped = drafts.length - added;
       const summary = `Saved ${plural(added, "card")} to ${q(deck.name)}${skipped ? ` (${skipped} already there)` : ""}`;
+      /* No id in the reply. A tool's answer is read by a model that is about
+         to write a sentence with it, and every id handed over came back out
+         in the sentence: "Saved 3 cards to “Debounce”. Deck id
+         muawfbw8wtrdjnla." An id the model cannot use is an id it should not
+         be shown; the two tools that take one (`read_made`) are given them
+         by the tool that lists them, and nowhere else. */
       return {
         ok: true,
-        text: `${summary}. Deck id ${deck.id}. The person can study it in the Study room.`,
+        text: summary,
         summary,
         open: { section: "study", id: deck.id },
         undo: async () => {
@@ -190,7 +196,7 @@ const TOOLS: Tool[] = [
       const summary = `Wrote the page ${q(title)}`;
       return {
         ok: true,
-        text: `${summary} in the Notebook (page id ${note.id}).`,
+        text: `${summary} in the Notebook.`,
         summary,
         open: { section: "notebook", id: note.id },
         undo: async () => { await deleteNote(note.id); },
@@ -396,7 +402,7 @@ const TOOLS: Tool[] = [
       const cut = body.length > 24_000;
       return {
         ok: true,
-        text: `${q(canvas.title || "Untitled")} — ${canvas.kind}${canvas.lang ? ` (${canvas.lang})` : ""}, id ${canvas.id}\n\n${cut ? body.slice(0, 24_000) + "\n\n[… it goes on; this is the first 24,000 characters]" : body}`,
+        text: `${q(canvas.title || "Untitled")} — ${canvas.kind}${canvas.lang ? ` (${canvas.lang})` : ""}\n\n${cut ? body.slice(0, 24_000) + "\n\n[… it goes on; this is the first 24,000 characters]" : body}`,
         summary: `Read ${q(canvas.title || "Untitled")}`,
         open: { section: "code", id: canvas.id },
       };

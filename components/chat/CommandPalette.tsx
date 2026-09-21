@@ -328,7 +328,11 @@ export function CommandPalette({
     const deckCmds: Command[] = (decks ?? []).map((d) => ({
       id: `deck:${d.id}`,
       label: d.name || "Untitled deck",
-      hint: d.source ? `From ${d.source}` : "Deck",
+      /* `source` is a conversation id, which is a fact about the database
+         and not about anything: "From muawfbo4wi2ytzwb" was on screen. The
+         thread it came out of has a name; where it no longer exists, the row
+         says what the thing is instead. */
+      hint: (d.source && (conversations ?? []).find((c) => c.id === d.source)?.title) || "Deck",
       icon: <GraduationCap size={15} />,
       group: "Study",
       run: () => actions.open("study", d.id),

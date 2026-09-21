@@ -504,6 +504,13 @@ It also reports a figure of nine hundred percent [[cite: ${name} | the result wa
      different company and asks what a good answer has to get right; what
      comes back has to turn up inside the *next* request, which is the only
      assertion worth making about it. Deliberately quotable. */
+  /* The record of the turns that no longer fit. Answered with something
+     naming what it was told, so a test can prove the record was made from
+     the dropped turns and then rode with the next request rather than
+     merely having been asked for. */
+  const recapping = /^Below is the opening of a conversation that has grown too long/.test(asked);
+  const RECAP = `Here is the record:\n\nWorking on: ${/revision planner/i.test(asked) ? "a revision planner" : "a long thread"}. Said earlier: ${/pangolin/i.test(asked) ? "pangolins came up" : "nothing notable"}.`;
+
   const briefing = /^Another model is about to answer the question below/.test(asked);
   const BRIEF = `- say what a debounce delays rather than what it prevents
 - the trailing edge is not the default
@@ -545,7 +552,7 @@ Nothing here looks like it breaks a caller — the return type is the same array
      alone can only ever show whichever was most recent. */
   recent.push({
     model: body.model,
-    kind: isTitle ? "title" : briefing ? "brief" : seated ? "council" : verifying ? "verify" : "answer",
+    kind: isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : verifying ? "verify" : "answer",
     /* What that call was told, bounded. `__last` is only ever the most
        recent request, and a turn that goes out three times — brief, answer,
        and the answer again after an objection — cannot be read from it: the
@@ -570,6 +577,8 @@ Nothing here looks like it breaks a caller — the return type is the same array
 
   let text = isTitle
     ? "Debouncing a search input"
+    : recapping
+    ? RECAP
     : briefing
     ? BRIEF
     : seated

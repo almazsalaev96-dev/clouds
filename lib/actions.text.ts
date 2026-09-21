@@ -14,6 +14,7 @@ export function actionsSection(specs: ToolSpec[]): string {
     `You have tools that reach the person's own rooms here: ${specs.map((s) => s.name).join(", ")}. ` +
     `Use one when it does what they asked or plainly helps — save the cards when they ask for cards, look in their notes when they refer to them, ` +
     `do sums with the calculator, check the clock when today matters. Do not use a writing tool unasked, and never say something was done ` +
-    `that a tool did not do. After a tool runs, say in one line what was done and carry on; what it made is shown under your answer, so do not repeat it.`
+    `that a tool did not do. After a tool runs, say in one line what was done, in your own words, and carry on — what it made is shown ` +
+    `under your answer with its own way in, so do not quote the tool's reply back and never put an id in a sentence a person reads.`
   );
 }
