@@ -288,19 +288,27 @@
          Folding them together makes applying one without the other impossible
          rather than something to remember, which is the same move `.glass
          .glass` makes and for the same reason. --- */
+  /* Every layer here used to carry a negative spread — `-1px`, `-3px`,
+     `-8px`, `-16px` — which pulls the shadow back inside the element's own
+     footprint before it is drawn. Stacked three deep that is a ramp that
+     exists in the stylesheet and not on the screen: on a tablet in daylight
+     the whole app read as line art on paper, every card flush with the
+     canvas. The blur now reaches past the edge on each level, the negative
+     spread is kept only where it stops a tight layer doubling the hairline,
+     and the ink stays the app's own (22 28 43) rather than black, because a
+     neutral-black shadow on a blue-grey canvas goes muddy. */
   --shadow-sm:
-    0 1px 1px -1px rgba(22, 28, 43, 0.07),
-    0 1px 2px -1px rgba(22, 28, 43, 0.05),
+    0 1px 2px rgba(22, 28, 43, 0.07),
+    0 1px 3px -1px rgba(22, 28, 43, 0.06),
     var(--rim-sm);
   --shadow-md:
-    0 1px 2px -1px rgba(22, 28, 43, 0.06),
-    1px 3px 6px -3px rgba(22, 28, 43, 0.08),
-    2px 8px 16px -8px rgba(22, 28, 43, 0.07),
+    1px 2px 4px -1px rgba(22, 28, 43, 0.08),
+    1px 5px 12px -3px rgba(22, 28, 43, 0.13),
     var(--rim-md);
   --shadow-lg:
-    0 2px 4px -2px rgba(22, 28, 43, 0.07),
-    2px 8px 16px -8px rgba(22, 28, 43, 0.10),
-    5px 24px 48px -16px rgba(22, 28, 43, 0.14),
+    2px 4px 8px -2px rgba(22, 28, 43, 0.08),
+    3px 10px 20px -6px rgba(22, 28, 43, 0.12),
+    5px 26px 56px -14px rgba(22, 28, 43, 0.22),
     var(--rim-lg);
 
   /* --- Motion.
@@ -443,10 +451,20 @@
   --composer-bg: rgba(253, 253, 255, 0.90);
   --composer-line: rgba(22, 28, 43, 0.10);
   --composer-line-focus: rgba(0, 125, 149, 0.55);
-  --composer-lift: 0 1px 2px rgb(22 28 43 / 0.05), 0 12px 32px -16px rgb(22 28 43 / 0.18);
+  /* The one surface you look at in every session, so it sits a clear step
+     above the page rather than a suspicion above it: the resting shadow used
+     to be pulled back 16px of spread out of 32 of blur, which on paper is no
+     shadow. Focus deepens the same shadow and adds the ring — it does not
+     swap one for the other, because a box that changes shape when you touch
+     it reads as a different box. */
+  --composer-lift:
+    0 1px 2px rgb(22 28 43 / 0.06),
+    1px 6px 16px -6px rgb(22 28 43 / 0.14),
+    2px 16px 36px -14px rgb(22 28 43 / 0.16);
   --composer-lift-focus:
-    0 1px 2px rgb(22 28 43 / 0.05),
-    0 16px 40px -18px rgb(22 28 43 / 0.22),
+    0 1px 2px rgb(22 28 43 / 0.06),
+    1px 8px 20px -6px rgb(22 28 43 / 0.16),
+    3px 22px 48px -16px rgb(22 28 43 / 0.20),
     0 0 0 3px rgb(var(--accent-2-rgb) / 0.20);
 }
 
@@ -1852,11 +1870,28 @@ body::after {
 
 /* An input that has the caret says so twice: the line turns and a soft
    three-pixel halo sits outside it. Two cues because a border alone is one
-   pixel of colour on a dark field, which is easy to miss from arm's length. */
+   pixel of colour on a dark field, which is easy to miss from arm's length.
+
+   Only where the field is its own object, though — and that qualification is
+   the whole of this block. A box-shadow follows the element's own corners,
+   and the line you type on inside the composer is a bare transparent
+   textarea with no radius at all: the halo drew a hard-cornered rectangle
+   inside a 28px pill, every time the caret landed, which on a tablet with a
+   keyboard attached is *always*. A square inside a round box, in the one
+   place everybody looks. The shell already turns its line and deepens its
+   shadow for exactly this, so the field inside it says nothing.
+
+   The shell itself is gone from this list for a second reason: it sat below
+   `.composer-shell:focus-within` in the file and therefore replaced
+   `--composer-lift-focus` outright — so focusing the composer *removed* its
+   elevation and downgraded its ring from 0.20 to 0.10. Two rules, one
+   property, and the one that won was the one that knew least. */
 input:focus-visible,
-textarea:focus-visible,
-.composer-shell:focus-within {
+textarea:focus-visible {
   box-shadow: 0 0 0 3px rgb(var(--accent-2-rgb) / 0.10);
+}
+.composer-shell :is(input, textarea):focus-visible {
+  box-shadow: none;
 }
 
 /* The one action per screen carries a resting glow, and a stronger one on

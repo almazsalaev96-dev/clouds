@@ -171,6 +171,12 @@ export interface Conversation {
   systemPrompt?: string;
   /** The project this belongs to, if any. Its instructions and knowledge apply. */
   projectId?: string;
+  /**
+   * What the turns that no longer fit established, carried forward in their
+   * place. Written when the window first overflows and extended when the
+   * boundary moves; see `lib/recap.ts`.
+   */
+  recap?: Recap;
   /** The response style. Unset means the app default, which is Normal. */
   styleId?: string;
   /** Chat or Creative. Unset means the app default, which is Chat. */
@@ -301,6 +307,14 @@ export type TurnOutcome = "good" | "bad" | "retried" | "edited" | "tightened";
  * own words. Kept on this device only, shown in full in Settings, and each
  * one deletable — a memory you cannot read is a rumour about you.
  */
+/** A record of the turns a conversation can no longer afford to send. */
+export interface Recap {
+  text: string;
+  /** The last message it covers. Remade only when the drop reaches past it. */
+  throughId: string;
+  at: number;
+}
+
 export interface Memory {
   id: string;
   text: string;

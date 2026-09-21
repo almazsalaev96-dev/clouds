@@ -5,7 +5,6 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { BookOpen, GraduationCap, KeyRound, LayoutTemplate, X } from "lucide-react";
 import { db } from "@/lib/db";
 import { dueNow, type Card } from "@/lib/study";
-import { weakestDeck } from "@/lib/plan";
 import { useSettings, type Section } from "@/lib/store";
 import { Mark } from "@/components/brand/Logo";
 
@@ -77,48 +76,20 @@ function useWaiting(): { section: Section; text: string; icon: React.ReactNode }
   }, [cards, notes, canvases]);
 }
 
-/**
- * Four ways in, and the first ones are about your own material.
- *
- * A blank page offering "Explain a concept" is a demo of a text box. A blank
- * page offering "Quiz me on Cell biology — the deck you are shakiest on" is
- * the app knowing what you were doing yesterday, which is the only reason to
- * have the four rooms behind one door. Generic openers fill the row only
- * when there is nothing personal to say yet.
- *
- * They fill the box rather than send: every one of them is a sentence you
- * are meant to finish or aim, and sending it unedited would be the app
- * choosing your topic for you.
- */
-function useOpeners(): { text: string; why?: string }[] {
-  const cards = useLiveQuery(() => db.cards.toArray(), [], [] as Card[]);
-  const decks = useLiveQuery(() => db.decks.orderBy("updatedAt").reverse().limit(20).toArray(), [], []);
-  const notes = useLiveQuery(() => db.notes.orderBy("updatedAt").reverse().limit(1).toArray(), [], []);
-  return React.useMemo(() => {
-    const now = Date.now();
-    const mine: { text: string; why?: string }[] = [];
+/* The four boxed openers that used to live here are gone.
+   ---------------------------------------------------------------------------
+   They were a good idea rendered as the wrong object. Half of them were
+   sentences you were meant to finish — "Explain ", "Make me a working quiz
+   on " — and a half-sentence inside a hard-edged chip does not read as an
+   invitation to keep typing, it reads as a label that got cut off. Four of
+   them under the box turned the blank page into a menu you had to get past
+   before you were allowed to type, which is the opposite of what a blank
+   page is for.
 
-    const weak = weakestDeck(cards, now);
-    const weakName = weak ? decks.find((d) => d.id === weak.deckId)?.name : undefined;
-    if (weakName) mine.push({ text: `Quiz me on ${weakName}, one question at a time, and mark my answers.`, why: "your shakiest deck" });
-
-    const due = dueNow(cards, now).length;
-    if (!weakName && due > 0) mine.push({ text: "Explain the cards I keep getting wrong, and why I keep getting them wrong.", why: `${due} due` });
-
-    const note = notes[0];
-    if (note && note.content.trim() && now - note.updatedAt < 7 * 86_400_000) {
-      mine.push({ text: `Turn my page “${(note.title || "Untitled note").slice(0, 40)}” into exam questions with mark schemes.`, why: "your latest page" });
-    }
-
-    const general = [
-      { text: "Build me a revision plan for the next two weeks, for " },
-      { text: "Explain " },
-      { text: "Make me a working quiz on " },
-      { text: "Research " },
-    ];
-    return [...mine, ...general].slice(0, 4);
-  }, [cards, decks, notes]);
-}
+   What they were actually for survives in two better places: the line below
+   says what is genuinely waiting in the other rooms, and a slash in the box
+   lists what this app can be asked to do, in the box, while you are already
+   typing. --- */
 
 /** useLayoutEffect on the client, a no-op on the server, without the warning. */
 const useIsoLayoutEffect = typeof window === "undefined" ? React.useEffect : React.useLayoutEffect;
@@ -130,8 +101,8 @@ const useIsoLayoutEffect = typeof window === "undefined" ? React.useEffect : Rea
  * bottom of the window, because an empty thread has no transcript to sit under
  * — leaving the box at the bottom puts half a screen of nothing between the
  * greeting and the only thing you can do, and asks you to travel that distance
- * to start. Centred, the greeting, the box and the suggestions are one object,
- * and the first thing you read is directly above the first thing you type.
+ * to start. Centred, the greeting and the box are one object, and the first
+ * thing you read is directly above the first thing you type.
  *
  * On the first send the composer moves to the dock. That transition is the
  * app telling you the room changed: there is a conversation now, and the
@@ -140,14 +111,12 @@ const useIsoLayoutEffect = typeof window === "undefined" ? React.useEffect : Rea
 
 export function EmptyState({
   hasAnyKey,
-  onExample,
   onAddKey,
   onGo,
   children,
 }: {
   hasAnyKey: boolean;
-  onExample: (text: string) => void;
-  /** A working thing was made; go and open it. */
+  /** No key yet: the one button that fixes that. */
   onAddKey: () => void;
   /** Into another room, from the line that says what is waiting there. */
   onGo?: (section: Section) => void;
@@ -159,7 +128,6 @@ export function EmptyState({
   const greeting = useGreeting();
   const [draftName, setDraftName] = React.useState("");
   const waiting = useWaiting();
-  const openers = useOpeners();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
@@ -207,29 +175,21 @@ export function EmptyState({
           {children}
         </div>
 
-        {/* The four ways in. Under the box, because the box is the primary
-            action and these are a way of filling it — not a menu you choose
-            from before you are allowed to type. */}
-        <div
-          className="anim-rise mt-3 flex flex-wrap justify-center gap-1.5"
-          style={{ animationDelay: "90ms" }}
-          role="group"
-          aria-label="Ways to start"
-        >
-          {openers.map((o) => (
-            <button
-              key={o.text}
-              onClick={() => {
-                onExample(o.text);
-                document.querySelector<HTMLTextAreaElement>(".composer-shell textarea")?.focus();
-              }}
-              className="btn-touch press focus-inset flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
-            >
-              {o.text.trim().replace(/[.,]$/, "")}
-              {o.why && <span className="text-faint">{o.why}</span>}
-            </button>
-          ))}
-        </div>
+        {/* With nothing waiting elsewhere, the space under the box says the
+            one thing a blank page can usefully teach: that the box does more
+            than take a sentence. A line of text rather than a row of chips —
+            the four chips this replaced were the reason the page looked like
+            a form. Never shown alongside the waiting line: two quiet rows
+            under the box are one row too many, and what is actually due
+            beats what is merely possible. */}
+        {waiting.length === 0 && hasAnyKey && (
+          <p
+            className="anim-rise mt-4 text-center text-xs text-tertiary"
+            style={{ animationDelay: "100ms" }}
+          >
+            Type <span className="font-medium text-secondary">/</span> to see what it can be asked to do
+          </p>
+        )}
 
         {/* What the other rooms are holding, on the one screen everybody
             starts on. The front door used to know nothing about the house:

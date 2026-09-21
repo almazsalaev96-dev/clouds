@@ -1806,6 +1806,17 @@ It only engages once the prefix is big enough to pay back the 25% a cache
 write costs. Cached reads and writes are priced into the running cost, so the
 number on screen stays true.
 
+**What no longer fits is summarised rather than forgotten.** Past the window
+the oldest turns stop being sent, and a conversation that quietly loses its own
+beginning is a different, worse conversation — it forgets what you are
+building, what you decided, and that you asked it twice not to use bullet
+points. So those turns are read once by the cheapest model you have a key for
+and carried forward as a short record: the work, the decisions, the names and
+dates, how you said you want to be answered, what is unfinished. It is bought
+again only when the boundary moves, seeded with the record before it, and
+quoted to the model as data rather than as instructions. The line above the
+transcript says "summarised" instead of "not sent".
+
 **A rate limit is waited out, once.** The provider usually says exactly how
 long. Surfacing that as an error to click through turns a two-second wait into
 a manual step at the moment someone is already annoyed. Once — not until it

@@ -2,6 +2,7 @@
 
 import { parseSlash } from "@/lib/slash";
 import { actionSpecs, doingOf, keepUndo, runAction, undoAction, type ActionContext } from "@/lib/actions";
+import { cleanRecap, covers, recapPrompt, recapSection, RECAP_TOKENS } from "@/lib/recap";
 import type { Action } from "@/lib/types";
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -850,6 +851,57 @@ export default function Page() {
         }
       }
 
+      /* And what the window will not hold.
+         ---------------------------------------------------------------
+         The fitter drops the oldest turns and the transcript says so. That
+         is honest and it is still a conversation that has forgotten its
+         own beginning, so before the turn goes out the dropped half is read
+         once by a cheap model and carried as a record. Made only when the
+         boundary moves past what the last record covered — otherwise this
+         would be a second model call on every question — and never fatal:
+         a record that cannot be written leaves the turn exactly as it was.
+         Computed with the same inputs the stream will fit with, so the two
+         agree about what is being left out. */
+      let recapNote = "";
+      try {
+        /* Fitted against what the request will actually carry, plus room for
+           the record itself — which is circular otherwise: the record is
+           written because turns were dropped, and adding it to the prompt
+           drops one more. Reserving its ceiling makes this fit the
+           conservative one, so the record always reaches at least as far as
+           the turns that end up left out. Covering one turn twice is a
+           repetition; covering one turn short is a hole. */
+        const RECAP_ROOM = " ".repeat(5_000);
+        const fit = fitToContext(
+          history,
+          getModel(writer),
+          paramsFor(writer),
+          [composed.text, composed.volatile, turn, RECAP_ROOM].filter(Boolean).join("\n\n"),
+        );
+        if (fit.dropped > 0) {
+          let recap = (await db.conversations.get(conversationId))?.recap;
+          if (!covers(history, recap, fit.dropped)) {
+            const scribe = cheapestAvailable(configured);
+            const text = scribe
+              ? cleanRecap(
+                  await complete(recapPrompt(history.slice(0, fit.dropped), recap?.text), {
+                    modelId: scribe,
+                    maxTokens: RECAP_TOKENS,
+                    temperature: 0.2,
+                  }).catch(() => null),
+                )
+              : "";
+            if (text) {
+              recap = { text, throughId: history[fit.dropped - 1].id, at: Date.now() };
+              await db.conversations.update(conversationId, { recap });
+            }
+          }
+          if (recap?.text) recapNote = recapSection(recap.text, fit.dropped);
+        }
+      } catch {
+        /* A thread that cannot be summarised is sent trimmed, as before. */
+      }
+
       await stream.send({
         conversationId,
         parentId,
@@ -867,7 +919,7 @@ export default function Page() {
         systemPrompt: composed.text || undefined,
         /* Excerpts chosen for this question go with the turn, outside the
            cached half; see `ComposedPrompt.volatile`. */
-        turnPrompt: [composed.volatile, turn].filter(Boolean).join("\n\n") || undefined,
+        turnPrompt: [recapNote, composed.volatile, turn].filter(Boolean).join("\n\n") || undefined,
         /* And where to go when a company will not answer at all. Holding
            four keys is only worth anything if the second one is tried, so
            the turn moves to another company once and the row says so
@@ -2092,7 +2144,6 @@ export default function Page() {
           {showEmpty ? (
             <EmptyState
               hasAnyKey={hasAnyKey}
-              onExample={(text) => useDrafts.getState().setDraft(activeId ?? "new", text)}
               onAddKey={openKeys}
               onGo={(section) => withTransition(() => settings.setSection(section), "forward")}
             >
@@ -2118,6 +2169,7 @@ export default function Page() {
                 onOpenAction={(open) => selectInSection(open.section as Section, open.id ?? "")}
                 onUndoAction={undoDone}
                 dropped={droppedFromContext}
+                recapped={Boolean(conversation?.recap)}
                 /* The model actually receiving this turn, not the one the
                    picker is holding. An Armi model is a tactic — "one" is not
                    a model id — and Auto has not chosen yet when the picker is

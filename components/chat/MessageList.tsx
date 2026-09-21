@@ -33,6 +33,7 @@ function MessageListImpl({
   onOpenAction,
   onUndoAction,
   dropped,
+  recapped,
   streamModelId,
   streamPresetId,
   elapsed,
@@ -77,6 +78,8 @@ function MessageListImpl({
   onUndoAction?: (message: Msg, action: Action) => void;
   /** Turns left out of the request to make it fit the window. */
   dropped: number;
+  /** Whether what was dropped was read and is being carried as a record. */
+  recapped?: boolean;
   streamModelId: string;
   /** The Armi model this stream is answering as, where one was chosen. */
   streamPresetId?: string | null;
@@ -235,7 +238,8 @@ function MessageListImpl({
             <div className="mb-4 flex items-center gap-3 anim-fade">
               <span className="h-px flex-1 bg-[var(--border-subtle)]" aria-hidden />
               <span className="eyebrow text-faint">
-                {dropped} earlier {dropped === 1 ? "message" : "messages"} not sent — too long to fit
+                {dropped} earlier {dropped === 1 ? "message" : "messages"}{" "}
+                {recapped ? "summarised — the thread outgrew one request" : "not sent — too long to fit"}
               </span>
               <span className="h-px flex-1 bg-[var(--border-subtle)]" aria-hidden />
             </div>
