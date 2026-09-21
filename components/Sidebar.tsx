@@ -257,10 +257,10 @@ export function Sidebar({
               <span className="min-w-0 flex-1 truncate text-sm text-secondary group-hover:text-primary">
                 {name.trim() || "Settings"}
               </span>
-              <Settings2
-                size={14}
-                className="shrink-0 text-tertiary opacity-0 transition-opacity duration-[var(--dur-fast)] group-hover:opacity-100"
-              />
+              {/* `reveal`, not a bare hover: on a touch screen there is no
+                  hover, and a row that reads "Almaz" with nothing beside it
+                  gives no sign it is the way to Settings. */}
+              <Settings2 size={14} className="reveal shrink-0 text-tertiary" />
             </button>
             <IconButton label="Keyboard shortcuts" keys={["?"]} onClick={onOpenShortcuts}>
               <Keyboard size={15} />
