@@ -168,6 +168,8 @@ Today: no wizard. A signature, a greeting that knows the hour and your name, the
 2. "Which subjects?" — free text with suggestions (seeds Notebook templates and Study decks).
 3. "Add a key when you are ready" — one line explaining keys stay in this browser, with a "Later" that is the same size as "Add key".
 
+**H-1b ✅ Every room's empty state is the same object as the chat's**: the title in the display italic, one sentence, and the ways in as a quiet line of presses — no dashed box, no paragraph, no second copy of the header's button. The empty Notebook does not offer to be asked. Populated, the rooms are held to `e2e-rooms`: previews are prose (`lib/plain.ts`), a deck lists soonest-due first, a project row counts its files and chats, the knowledge meter never says 0% of something that fits, and the recall line never says NaN.
+
 **H-2 ✅** Empty states are invitations with a verb ("What should we make?", "Nothing written down yet"), each with the primary action beside them.
 
 **H-3 🟡 Home strip.** Today: cards due, pages, things made. Add: "Continue" (last conversation, last canvas), "Today's plan" (from §13.8), and the exam countdown when one is set.
