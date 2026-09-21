@@ -34,11 +34,20 @@ console.log("\nOff by default, and then on");
   check(!(sent.tools ?? []).some((t) => /^web_/.test(t)), "with research off, no web tool rides in the request", JSON.stringify((sent.tools ?? []).filter((t) => /^web_/.test(t))));
   check((await p.locator(".msg section[aria-label='Sources']").count()) === 0, "and no sources are claimed");
 
+  /* In the composer, beside the box — not an icon in the bar. A tool is a
+     decision about the sentence being typed, so it lives where it is typed,
+     and it is named rather than drawn as a bare globe. */
   const toggle = p.getByRole("button", { name: /Research: let it search the web/ });
-  check(await toggle.isVisible(), "the toggle is in the bar");
+  check(await toggle.isVisible(), "the toggle is there to find");
+  const inBox = p.locator(".composer-shell").getByRole("button", { name: /Research: let it search the web/ });
+  check(await inBox.count() === 1, "and it is inside the composer, where the question is written");
+  check(/Research/.test(await inBox.innerText()), "with its name on it, not a bare globe", (await inBox.innerText()).trim());
+  check((await toggle.getAttribute("aria-pressed")) === "false", "off, and it says so");
   await toggle.click();
   await p.waitForTimeout(300);
-  check(await p.getByRole("button", { name: /Stop searching the web/ }).isVisible(), "and pressing it says it is on");
+  const on = p.locator(".composer-shell").getByRole("button", { name: /Stop searching the web/ });
+  check(await on.isVisible(), "and pressing it says it is on");
+  check((await on.getAttribute("aria-pressed")) === "true", "to a screen reader as well as to an eye");
 }
 
 console.log("\nWith it on, the model searches and the answer says what it read");

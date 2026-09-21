@@ -393,6 +393,8 @@
      below matters more than it did: a longer line needs more air under it to
      keep the eye from dropping to the wrong one on the way back. */
   --measure: 47.5rem;
+  /* What the prose inside that container is allowed to be. See `.prose`. */
+  --measure-text: 41rem;
   /* Wider than prose, for a page-shaped sheet and its toolbar. */
   --measure-wide: 52rem;
   /* 280, the middle of the 260-300 band and the width the spec recommends.
@@ -2159,6 +2161,33 @@ textarea:focus-visible {
 .prose > * + * { margin-top: var(--read-gap, 1em); }
 .prose > *:first-child { margin-top: 0; }
 .prose > *:last-child { margin-bottom: 0; }
+
+/* --- The line, and what is allowed to run past it. -------------------------
+   A line of text is read by an eye that has to find the start of the next
+   one, and past about seventy characters it starts landing on the wrong
+   line. Measured on the paragraph this app really renders — not on a row of
+   digits, which are among the widest glyphs in a proportional face and
+   under-report a line by a fifth — the 47.5rem column was setting 76
+   characters. That is where the general-purpose assistants sit, and this is
+   not one: a person reading four paragraphs about osmosis is doing
+   sustained reading, which is the case the 45-75 band was measured on.
+
+   So the *container* stays 47.5rem, because a four-column table wants that
+   and a code block wants more, and the *text* inside it is capped shorter.
+   That is not a compromise, it is how a technical document has been set
+   since long before the web: a narrow column of prose with the figures
+   running full width through it. Tables, code, charts, images and the cards
+   for built things are deliberately not in this list. */
+.prose > p,
+.prose > ul,
+.prose > ol,
+.prose > blockquote,
+.prose > h1,
+.prose > h2,
+.prose > h3,
+.prose > h4 {
+  max-width: var(--measure-text, 41rem);
+}
 
 .prose h1, .prose h2, .prose h3, .prose h4 {
   font-weight: 600;

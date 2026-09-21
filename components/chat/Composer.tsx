@@ -368,7 +368,12 @@ export function Composer({
                 aria-pressed={Boolean(research)}
                 onClick={onToggleResearch}
                 className={cn(
-                  "btn-touch press focus-inset flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs transition-colors duration-[var(--dur-fast)]",
+                  /* `btn-touch` only lifts this to 44pt under a coarse
+                     pointer; with a mouse it was the height of its own text,
+                     19px, which is under the 24 the width sweep holds every
+                     control to. A height that does not depend on the input
+                     device. */
+                  "btn-touch press focus-inset flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs transition-colors duration-[var(--dur-fast)]",
                   research
                     ? "border-[color-mix(in_oklab,var(--accent)_40%,transparent)] bg-accent-subtle font-medium text-accent"
                     : "border-line text-secondary hover:border-line-strong hover:text-primary",
@@ -419,7 +424,7 @@ export function Composer({
                   aria-selected={false}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => setText(`/${c.command} `)}
-                  className="btn-touch press focus-inset flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
+                  className="btn-touch press focus-inset flex h-7 items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
                 >
                   <span className="font-medium text-primary">/{c.command}</span>
                   <span className="hidden text-tertiary sm:inline">{c.does}</span>

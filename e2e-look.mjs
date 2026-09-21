@@ -1,9 +1,10 @@
 /**
  * The front door, the keys, and the page that says what leaves.
  *
- * Three claims worth a browser: a blank page offers ways in that are about
- * your own material, a key you have saved is never drawn in full again, and
- * the privacy page says the uncomfortable half out loud.
+ * Three claims worth a browser: a blank page is a greeting and a box with
+ * nothing to get past, and still knows what is waiting in the other rooms; a
+ * key you have saved is never drawn in full again; and the privacy page says
+ * the uncomfortable half out loud.
  *
  *   node mock-provider.mjs &
  *   ANTHROPIC_BASE_URL=http://127.0.0.1:8787 ANTHROPIC_API_KEY=sk-ant-mock npx next start -p 3100
@@ -23,22 +24,27 @@ await p.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify
 await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(900);
 
-console.log("\nA blank page offers a way in");
+console.log("\nA blank page is a greeting and a box, and nothing to get past");
 {
-  const row = p.getByRole("group", { name: "Ways to start" });
-  check(await row.isVisible().catch(() => false), "there are openers under the box");
-  const labels = await row.getByRole("button").allInnerTexts();
-  check(labels.length === 4, "four of them, not a menu", `${labels.length}`);
-  await row.getByRole("button").first().click();
-  await p.waitForTimeout(400);
+  /* The four boxed openers are deleted. Half of them were sentences you
+     were meant to finish, and a cut-off half-sentence inside a hard chip
+     reads as a label that got clipped rather than as an invitation; four of
+     them turned the blank page into a form. What they were for is in two
+     better places now — the line below says what is genuinely waiting in
+     the other rooms, and a slash lists the commands in the box, while you
+     are already typing. */
+  check((await p.getByRole("group", { name: "Ways to start" }).count()) === 0, "no chips to get past before you may type");
   const box = p.locator(".composer-shell textarea").first();
-  const typed = await box.inputValue();
-  check(typed.length > 0, "pressing one fills the box rather than sending it", typed.slice(0, 48));
-  check(await box.evaluate((el) => el === document.activeElement), "with the caret already in it, to finish the sentence");
+  check(await box.evaluate((el) => el === document.activeElement), "the caret is already in the box");
+  check(/Type \/ to see what it can be asked to do/.test(await p.locator("main").innerText()), "and one line says what a slash is for");
+  await box.fill("/stu");
+  await p.waitForTimeout(300);
+  const list = p.getByRole("listbox", { name: "Commands" });
+  check(await list.isVisible(), "which it is: typing one lists them, in the box");
   await box.fill("");
 }
 
-console.log("\nAnd once the material is yours, the openers are about it");
+console.log("\nAnd it still knows what is waiting in the other rooms");
 {
   const now = Date.now(), DAY = 86_400_000;
   await p.evaluate(({ now, DAY }) => new Promise((ok, no) => {
@@ -57,9 +63,20 @@ console.log("\nAnd once the material is yours, the openers are about it");
   }), { now, DAY });
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(900);
-  const labels = await p.getByRole("group", { name: "Ways to start" }).getByRole("button").allInnerTexts();
-  check(labels.some((t) => /Cell biology/.test(t)), "the deck you are shakiest on is the first way in", labels[0]?.slice(0, 60));
-  check(labels.some((t) => /shakiest/.test(t)), "and it says why it is being offered");
+  /* The four openers are gone; what they were for is not. The one line
+     under the box is about the person's own material rather than about what
+     an assistant can do in general, and it is a press away from the room it
+     names. */
+  const waiting = p.getByLabel("Waiting in the other rooms");
+  check(await waiting.isVisible(), "a line under the box says what is due");
+  const said = await waiting.innerText();
+  check(/6 cards due/.test(said), "with the real number, not a suggestion", said.replace(/\s+/g, " ").slice(0, 60));
+  check((await p.locator("main").innerText()).includes("Type /") === false, "and the slash line stands down, because something real outranks it");
+  await waiting.getByRole("button").first().click();
+  await p.waitForTimeout(700);
+  check(/Study/.test(await p.locator("main").innerText()), "pressing it goes to the room it named");
+  await p.getByRole("button", { name: "Conversations" }).first().click();
+  await p.waitForTimeout(500);
 }
 
 console.log("\nA key you have saved is not shown again");

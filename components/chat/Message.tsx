@@ -129,7 +129,14 @@ function UserMessageImpl({
        re-read to find where your own question was. ChatGPT and Claude both
        run roughly double, and doubling is the smallest difference an eye
        reads as grouping rather than as drift. 16 inside, 48 between. */
-    <div id={`m-${message.id}`} className={cn("msg group flex flex-col items-end gap-1.5 pb-2 pt-10", entering && "msg-enter")}>
+    /* And the two halves of the conversation share one column. The answer's
+       text is capped at the reading measure and set from the left; the
+       bubble was capped at 85% of the *container*, which is wider — so your
+       own question hung past the right edge of every answer under it by
+       about fifty pixels, which is exactly the amount that reads as a
+       mistake rather than as a choice. Capped to the same measure, the two
+       right edges are one line. */
+    <div id={`m-${message.id}`} className={cn("msg group flex w-full max-w-[var(--measure-text)] flex-col items-end gap-1.5 pb-2 pt-8", entering && "msg-enter")}>
       {images.length > 0 && (
         <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
           {images.map((img, i) =>
