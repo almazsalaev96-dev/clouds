@@ -612,6 +612,7 @@ Creative is the front door for making, not a room with its own viewer (§15 owns
 | **Data** | Spend (this month by Armi model, since the start); Save a copy (JSON backup, keys excluded); Bring back; Delete everything with inline confirm | Storage meter (`navigator.storage.estimate()`), persisted status ("kept" / "may be cleared"), export a single conversation/page/deck, scheduled backup reminder (every 30 days, dismissible). |
 | **Keyboard shortcuts** | Full list (`SHORTCUT_GROUPS`) | Rebinding is out of scope. |
 | **Study** ⬜ | — | Desired retention, new/day, learning steps (S-4); level register (TU-6); exam board and date (EX-1/3). |
+| **Rules** ✅ | Eleven presets as switches (hints before answers, check I followed, exam standard, plain words, keep it short, one example every time, no preamble, ask before guessing, say when unsure, quote what you relied on, British English), grouped by what they change; a box for your own lines, one a line; the count of what is in force. Sent as a "## Your rules" bullet list after the house rules and before a project's, in chat, compare and the tutor; the composer shows "N rules" while you type, a press from the panel. Gate: `e2e-rules`. | Per-room rules; rules a project overrides. |
 | **Privacy** ✅ | Its own panel: what is stored in this browser, what leaves and to whom, what happens to your keys, what the app never does, and how to be rid of all of it — including the honest half, that a question you ask does leave, to the company whose key you added | Keep in step with the README. |
 
 ---

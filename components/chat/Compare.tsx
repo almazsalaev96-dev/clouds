@@ -8,6 +8,7 @@ import { shortName } from "@/lib/presets";
 import { useStream } from "@/lib/hooks/useStream";
 import { db, filesOf } from "@/lib/db";
 import { composeSystemPrompt } from "@/lib/prompt";
+import { rulesText } from "@/lib/rules";
 import { findStyle } from "@/lib/styles";
 import { useSettings } from "@/lib/store";
 import { cn, describeTiming, formatDuration, formatElapsed } from "@/lib/utils";
@@ -128,7 +129,7 @@ function CompareColumn({
       const files = project ? await filesOf(project.id) : [];
       const custom = await db.styles.toArray();
       const composed = composeSystemPrompt({
-        base: conv?.systemPrompt ?? settings.systemPrompt,
+        base: [rulesText(settings.rules ?? [], settings.systemPrompt), conv?.systemPrompt ?? ""].filter(Boolean).join("\n\n"),
         project,
         files,
         style: findStyle(conv?.styleId ?? settings.styleId, custom),

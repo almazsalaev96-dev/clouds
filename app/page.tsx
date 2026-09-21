@@ -20,6 +20,7 @@ import {
   filesOf,
 } from "@/lib/db";
 import { composeSystemPrompt, composeTurnPrompt } from "@/lib/prompt";
+import { rulesCount, rulesText } from "@/lib/rules";
 import { examNote } from "@/lib/exam";
 import { effortFor, taskOf } from "@/lib/task";
 import { shapeFor } from "@/lib/shape";
@@ -239,7 +240,7 @@ export default function Page() {
   const [modelPickerOpen, setModelPickerOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   if (settingsOpen) everOpened.current.settings = true;
-  const [settingsTab, setSettingsTab] = React.useState<"keys" | "appearance" | "model" | "styles" | "data" | "shortcuts">("keys");
+  const [settingsTab, setSettingsTab] = React.useState<"keys" | "appearance" | "model" | "rules" | "styles" | "data" | "shortcuts">("keys");
   const [scrolled, setScrolled] = React.useState(false);
   const [artifact, setArtifact] = React.useState<Artifact | null>(null);
   /** Where j/k currently sit in the transcript. */
@@ -701,7 +702,7 @@ export default function Page() {
       /* The register the plan chose, or the one the person chose. */
       const style = findStyle(plan.register ? plan.register.id : chosenStyle, customStyles);
       const composed = composeSystemPrompt({
-        base: conv?.systemPrompt ?? settings.systemPrompt,
+        base: [rulesText(settings.rules ?? [], settings.systemPrompt), conv?.systemPrompt ?? ""].filter(Boolean).join("\n\n"),
         project,
         files,
         /* What was asked, so a project holding more than fits sends the
@@ -1911,6 +1912,10 @@ export default function Page() {
     setSettingsTab("keys");
     setSettingsOpen(true);
   }, []);
+  const openRules = React.useCallback(() => {
+    setSettingsTab("rules");
+    setSettingsOpen(true);
+  }, []);
 
   /* The software keyboard, as a number the layout can use.
      ---------------------------------------------------------------
@@ -1997,6 +2002,8 @@ export default function Page() {
       onEditLast={editLast}
       configured={configured}
       onOpenModels={() => setModelPickerOpen(true)}
+      rulesCount={rulesCount(settings.rules ?? [], settings.systemPrompt)}
+      onOpenRules={openRules}
       /* The web, switched on beside the box rather than in the bar: it is a
          decision about the question being typed. Same state either way —
          a thread that has one keeps it, and a blank page holds it until

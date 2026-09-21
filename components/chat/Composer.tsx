@@ -4,7 +4,7 @@ import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
   Check, ChevronDown, FileText, MessageSquare, Paperclip, Plus,
-  SlidersHorizontal, Sparkles, Wand2, X, Globe } from "lucide-react";
+  SlidersHorizontal, Sparkles, Wand2, X, Globe, ListChecks } from "lucide-react";
 import { slashCommands, typingSlash } from "@/lib/slash";
 import type { ContentBlock, Style } from "@/lib/types";
 import { getModel, estimateTokens, formatTokens } from "@/lib/models";
@@ -42,6 +42,8 @@ export function Composer({
   onOpenModels,
   research,
   onToggleResearch,
+  rulesCount = 0,
+  onOpenRules,
   voice,
 }: {
   conversationId: string;
@@ -60,6 +62,9 @@ export function Composer({
   /** Whether this conversation may search the web. */
   research?: boolean;
   onToggleResearch?: () => void;
+  /** How many standing rules are in force, and the way to the panel that sets them. */
+  rulesCount?: number;
+  onOpenRules?: () => void;
   /** Chat or Creative. */
   /** The style this thread answers in. */
   /** Voice mode, where the browser can do it. */
@@ -381,6 +386,25 @@ export function Composer({
               >
                 <Globe size={14} />
                 Research
+              </button>
+            </Tooltip>
+          )}
+
+          {/* The rules in force, said in one word and a number, a press from
+              the panel that sets them. Quiet, because it is a fact about
+              every answer rather than a choice about this one — and there
+              at all because a rule nobody can see being applied is a rule
+              they will forget they set. */}
+          {onOpenRules && rulesCount > 0 && (
+            <Tooltip label="Your rules — what it must and must not do, everywhere">
+              <button
+                type="button"
+                onClick={onOpenRules}
+                aria-label={`${rulesCount} ${rulesCount === 1 ? "rule" : "rules"} in force — open the rules`}
+                className="btn-touch press focus-inset flex h-7 shrink-0 items-center gap-1 rounded-full px-2 text-xs text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+              >
+                <ListChecks size={13} />
+                {rulesCount} {rulesCount === 1 ? "rule" : "rules"}
               </button>
             </Tooltip>
           )}

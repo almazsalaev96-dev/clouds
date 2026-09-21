@@ -11,6 +11,7 @@ import { complete } from "@/lib/complete";
 import { draftCards } from "@/lib/generate";
 import { resolveCast, shortName } from "@/lib/presets";
 import { useSettings } from "@/lib/store";
+import { rulesText } from "@/lib/rules";
 import { cn } from "@/lib/utils";
 import { Button, Tooltip } from "@/components/ui/primitives";
 import { MessageBar } from "@/components/chat/MessageBar";
@@ -277,7 +278,7 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
         maxTokens: 1400,
         temperature: 0.3,
         turns: [...history, { role: "user", content: now }],
-        system: opts.marking ? `${TUTOR_STANCE}\n\n${MARKING_STANCE}` : TUTOR_STANCE,
+        system: [rulesText(settings.rules ?? [], settings.systemPrompt), TUTOR_STANCE, opts.marking ? MARKING_STANCE : ""].filter(Boolean).join("\n\n"),
         onText: opts.marking ? undefined : setLive,
       });
       if (out) {

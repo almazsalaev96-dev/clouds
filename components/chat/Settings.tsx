@@ -19,15 +19,17 @@ import { PRESETS, engineOf, getPreset, profileOf, resolveCast, shortName } from 
 import { does } from "./ModelPicker";
 import { useReturnFocus } from "@/lib/hooks/useReturnFocus";
 import { cn } from "@/lib/utils";
+import { GROUPS, RULES, rulesCount } from "@/lib/rules";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
 import { SHORTCUT_GROUPS } from "@/components/ShortcutsOverlay";
 
-type Tab = "keys" | "appearance" | "model" | "styles" | "memory" | "data" | "shortcuts" | "privacy";
+type Tab = "keys" | "appearance" | "model" | "styles" | "memory" | "data" | "shortcuts" | "privacy" | "rules";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "keys", label: "API keys" },
   { id: "appearance", label: "Appearance" },
   { id: "model", label: "Model" },
+  { id: "rules", label: "Rules" },
   { id: "styles", label: "Styles" },
   { id: "memory", label: "Memory" },
   { id: "shortcuts", label: "Shortcuts" },
@@ -98,6 +100,7 @@ export function Settings({
             {tab === "keys" && <KeysPanel configured={configured} />}
             {tab === "appearance" && <AppearancePanel />}
             {tab === "model" && <ModelPanel configured={configured} />}
+            {tab === "rules" && <RulesPanel />}
             {tab === "styles" && <StylesPanel />}
             {tab === "memory" && <MemoryPanel />}
             {tab === "shortcuts" && <ShortcutsPanel />}
@@ -114,6 +117,73 @@ export function Settings({
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+/* --------------------------------------------------------------- rules ---- */
+
+/**
+ * What it must and must not do, everywhere. Each preset is one sentence a
+ * person would say to a tutor, as a switch; the box under them is for the
+ * rest. A count in the composer says how many are in force, because a rule
+ * nobody can see being applied is a rule they will forget they set.
+ */
+function RulesPanel() {
+  const s = useSettings();
+  const on = s.rules ?? [];
+  const count = rulesCount(on, s.systemPrompt);
+  return (
+    <Panel
+      title="Rules"
+      description={`What it must and must not do, in every room and every answer. ${count === 0 ? "None set yet." : count === 1 ? "One rule is in force." : `${count} rules are in force.`}`}
+    >
+      {GROUPS.map((g) => (
+        <Field key={g.id} label={g.label}>
+          <div className="divide-y divide-line rounded-lg border border-line bg-surface">
+            {RULES.filter((r) => r.group === g.id).map((r) => {
+              const isOn = on.includes(r.id);
+              return (
+                <label key={r.id} className="tap flex cursor-pointer items-center gap-3 px-3 py-2.5">
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm text-primary">{r.label}</span>
+                    <span className="block text-xs text-tertiary">{r.blurb}</span>
+                  </span>
+                  <button
+                    role="switch"
+                    aria-checked={isOn}
+                    aria-label={r.label}
+                    onClick={() => s.toggleRule(r.id)}
+                    className={cn(
+                      "focus-inset relative h-6 w-10 shrink-0 rounded-full transition-colors duration-[var(--dur-fast)]",
+                      isOn ? "bg-[var(--cta)]" : "bg-[var(--line-strong)]",
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-[var(--shadow-sm)] transition-transform duration-[var(--dur-fast)]",
+                        isOn ? "translate-x-[1.125rem]" : "translate-x-0.5",
+                      )}
+                    />
+                  </button>
+                </label>
+              );
+            })}
+          </div>
+        </Field>
+      ))}
+
+      <Field label="Your own rules" hint="One a line. Specific and action-shaped works — “always show the units”, not “be helpful”. These go at the start of every conversation, after the presets.">
+        <textarea
+          value={s.systemPrompt}
+          onChange={(e) => s.setSystemPrompt(e.target.value)}
+          rows={4}
+          aria-label="Your own rules"
+          placeholder={"Always show the units.\nCall the exam board AQA, not the board."}
+          className="w-full resize-y rounded-md border border-line-strong bg-canvas px-2.5 py-2 text-sm text-primary outline-none focus:border-accent"
+        />
+      </Field>
+    </Panel>
   );
 }
 
@@ -453,16 +523,6 @@ function ModelPanel({ configured }: { configured: Record<string, boolean> }) {
         hint="Each one is a cast: two or three models, from different companies wherever your keys allow it, with a different job each. Armi trains no models of its own — it decides which to call, what to ask each of them, and what to do when they disagree. Which companies those are is set by the keys on the Keys tab. Prices are for a turn of ordinary size, summed over every model it calls."
       >
         <ArmiTable configured={configured} />
-      </Field>
-
-      <Field label="System prompt" hint="Sent at the start of every conversation.">
-        <textarea
-          value={s.systemPrompt}
-          onChange={(e) => s.setSystemPrompt(e.target.value)}
-          rows={4}
-          placeholder="e.g. Be concise. Show code before explaining it."
-          className="w-full resize-y rounded-md border border-line-strong bg-canvas px-2.5 py-2 text-sm text-primary outline-none focus:border-accent"
-        />
       </Field>
 
       <Field label={`Temperature — ${params.temperature.toFixed(2)}`} hint="Lower is more predictable.">

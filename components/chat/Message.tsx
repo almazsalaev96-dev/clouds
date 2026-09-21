@@ -440,7 +440,7 @@ function AssistantMessageImpl({
         <PresetIcon id={armi?.id ?? ""} size={12} className="shrink-0 text-[var(--accent-2)]" />
         {computed && <Calculator size={12} className="text-secondary" />}
         <span
-          className="font-medium text-secondary"
+          className="whitespace-nowrap font-medium text-secondary"
           /* No tooltip naming an engine. Which one a tactic rented for this
              turn is a fact about the keys in this browser, not about the
              answer, and it is the kind of detail that ends up quoted back as

@@ -137,6 +137,8 @@ interface Settings {
    */
   reviseModelId: string | null;
   systemPrompt: string;
+  /** Standing rules the model follows everywhere, by preset id (`lib/rules.ts`). */
+  rules: string[];
   /** The response style new chats start with. Threads can override it. */
   styleId: string;
   /** Chat or Creative, likewise. */
@@ -168,6 +170,7 @@ interface Settings {
   setLastConversation: (id: string | null) => void;
   setModel: (id: string) => void;
   setSystemPrompt: (s: string) => void;
+  toggleRule: (id: string) => void;
   setStyle: (id: string) => void;
   setMode: (id: string) => void;
   toggleSidebar: () => void;
@@ -209,6 +212,7 @@ export const DEFAULT_SETTINGS = {
   modelId: DEFAULT_PRESET_ID,
   reviseModelId: null,
   systemPrompt: "",
+  rules: [],
   styleId: AUTO_STYLE,
   mode: DEFAULT_MODE,
   name: "",
@@ -241,6 +245,7 @@ export const useSettings = create<Settings>()(
         })),
       setReviseModel: (reviseModelId) => set({ reviseModelId }),
       setSystemPrompt: (systemPrompt) => set({ systemPrompt }),
+      toggleRule: (id) => set((st) => ({ rules: st.rules.includes(id) ? st.rules.filter((r) => r !== id) : [...st.rules, id] })),
       setStyle: (styleId) => set({ styleId }),
       setMode: (mode) => set({ mode }),
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
