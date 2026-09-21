@@ -1912,6 +1912,35 @@ export default function Page() {
     setSettingsOpen(true);
   }, []);
 
+  /* The software keyboard, as a number the layout can use.
+     ---------------------------------------------------------------
+     On iPad and iPhone Safari the layout viewport does not shrink when the
+     keyboard comes up — `100dvh` stays the height of the screen — so a box
+     docked to the bottom of the frame is docked under the keyboard, and
+     what you see while you type is the transcript's tail sliding about as
+     Safari scrolls the caret into view. The visual viewport knows the
+     truth; its height is written to `--kb` and the frame is that much
+     shorter, so the composer stands on the keyboard rather than beneath
+     it. Under a hundred pixels is a toolbar showing or hiding, not a
+     keyboard, and is ignored so the frame does not twitch on every scroll. */
+  React.useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const root = document.documentElement;
+    const apply = () => {
+      const gap = Math.round(window.innerHeight - vv.height - vv.offsetTop);
+      root.style.setProperty("--kb", `${gap > 100 ? gap : 0}px`);
+    };
+    apply();
+    vv.addEventListener("resize", apply);
+    vv.addEventListener("scroll", apply);
+    return () => {
+      vv.removeEventListener("resize", apply);
+      vv.removeEventListener("scroll", apply);
+      root.style.removeProperty("--kb");
+    };
+  }, []);
+
   /** Is the one live stream the one this screen is showing? */
   const live = stream.conversationId !== null && stream.conversationId === activeId;
   React.useEffect(() => {
@@ -2012,23 +2041,20 @@ export default function Page() {
         <main className="vt-room relative flex min-w-0 flex-1 flex-col">
           {settings.section !== "chat" ? (
             <>
-              <header
-                className={cn(
-                  "no-print h-[var(--topbar-h)] shrink-0 items-center gap-1 border-b border-transparent px-2",
-                  inUse ? "hidden" : "flex",
-                )}
-              >
-                {/* Below `md` only. On a desk the collapsed sidebar is a rail
-                    and the toggle lives in it; two "Show sidebar" buttons
-                    on one screen is one more than a screen reader should
-                    have to explain. */}
-                {!settings.sidebarOpen && (
-                  <IconButton label="Show sidebar" keys={["mod", "\\"]} onClick={settings.toggleSidebar} className="md:hidden">
+              {/* A bar only when there is something to put in it. This was a
+                  topbar-height strip in every room whose one occupant — the
+                  sidebar toggle — appears below `md` with the sidebar closed,
+                  so on a tablet with the sidebar open it was fifty-six pixels
+                  of nothing above every room's own header: two headers, one
+                  of them blank. Below `md` the toggle still needs somewhere to
+                  be; everywhere else the room starts at the top. */}
+              {!settings.sidebarOpen && !inUse && (
+                <header className="no-print flex h-[var(--topbar-h)] shrink-0 items-center gap-1 border-b border-transparent px-2 md:hidden">
+                  <IconButton label="Show sidebar" keys={["mod", "\\"]} onClick={settings.toggleSidebar}>
                     <PanelLeft size={16} />
                   </IconButton>
-                )}
-
-              </header>
+                </header>
+              )}
               {settings.section === "projects" && (
                 <ProjectsView
                   projectId={projectId}

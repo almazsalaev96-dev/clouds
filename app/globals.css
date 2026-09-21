@@ -1184,6 +1184,14 @@ textarea:focus-visible {
    and unreachable on a phone.
 --------------------------------------------------------------------------- */
 
+/* The frame is the screen less the keyboard. `--kb` is written by the shell
+   from the visual viewport (see app/page.tsx); it is 0 wherever the layout
+   viewport already shrinks for the keyboard, and the keyboard's height on
+   iOS, where it does not. Unlayered on purpose so it wins over `h-dvh`. */
+.app-frame {
+  height: calc(100dvh - var(--kb, 0px));
+}
+
 /* The scrolling shell fills the screen; its children take the insets. */
 .app-shell {
   padding-left: env(safe-area-inset-left);

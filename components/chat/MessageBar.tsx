@@ -60,6 +60,8 @@ export interface MessageBarProps {
   /** Voice mode: listen, send, speak, listen. Hidden where unsupported. */
   voice?: { supported: boolean; phase: "off" | "listening" | "thinking" | "speaking"; toggle: () => void };
   className?: string;
+  /** Focus even on a touch screen: the box was asked for by a press. */
+  focusOnTouch?: boolean;
 }
 
 export function MessageBar({
@@ -80,6 +82,7 @@ export function MessageBar({
   onPaste,
   autoFocus,
   focusKey,
+  focusOnTouch,
   className,
 }: MessageBarProps) {
   const settings = useSettings();
@@ -115,8 +118,17 @@ export function MessageBar({
      its presence stacks the bar too. */
   const stacked = tall || Boolean(above);
 
+  /* Focus is a gift on a desk and a cost on a tablet. With a keyboard on
+     the desk, putting the caret in the box saves the click everybody was
+     about to make. On a touch screen the same focus raises the software
+     keyboard over half the page before a word of it has been read — every
+     room you walk into, every conversation you open. So the box focuses
+     itself only where the primary pointer is fine, unless the caller says
+     the focus is the point (a press that made this box appear), in which
+     case the keyboard is what was asked for. */
   React.useEffect(() => {
     if (!autoFocus && focusKey === undefined) return;
+    if (!focusOnTouch && typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches) return;
     const el = ref.current;
     if (!el) return;
     el.focus();

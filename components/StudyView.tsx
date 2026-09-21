@@ -317,6 +317,9 @@ export function StudyView({
             busy={busy}
             className="glass"
             focusKey={focusKey}
+            /* "New deck" is a press that means "I want to type": the
+               keyboard is what was asked for, on a tablet as much as a desk. */
+            focusOnTouch
           />
           {/* Or hand it a list. Hidden until asked for: the line above is the
               way in for most people most of the time, and a second box under
