@@ -1,3 +1,5 @@
+import type { ToolSpec } from "./types";
+import { actionsSection } from "./actions.text";
 import { memorySection } from "./memory";
 import { select } from "./retrieve";
 import { HOUSE } from "./answer";
@@ -43,6 +45,8 @@ export interface PromptParts {
   mode?: ModeSpec;
   /** What the person asked to be remembered. Empty in a temporary chat. */
   memories?: Memory[];
+  /** The app's own tools on offer this conversation, so the model knows the manners. */
+  actions?: ToolSpec[];
 }
 
 export interface ComposedPrompt {
@@ -146,6 +150,11 @@ export function composeSystemPrompt(parts: PromptParts): ComposedPrompt {
       }
     }
   }
+
+  /* What it can do here. After the knowledge and before the style: it is
+     about the app, which outranks the material and not the person's voice. */
+  const actions = actionsSection(parts.actions ?? []);
+  if (actions) sections.push(actions);
 
   const style = parts.style?.instructions.trim();
   if (style) sections.push(`## Response style\n\n${style}`);

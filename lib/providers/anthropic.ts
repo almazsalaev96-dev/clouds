@@ -15,7 +15,21 @@ export async function* streamAnthropic(
      transcript is put in order before it is sent rather than hopefully. The
      old fallback — an empty text block for a message with no content — was
      a 400 with a friendly name on it. */
-  const messages = usableTurns(req.messages).map((t) => {
+  const messages: { role: string; content: unknown[] }[] = usableTurns(req.messages, "anthropic").map((t) => {
+    /* A tool round goes back in the provider's own shape: the assistant's
+       blocks as they came, then one result per call. */
+    if (t.raw) return { role: "assistant", content: Array.isArray(t.raw) ? (t.raw as unknown[]) : [t.raw] };
+    if (t.results) {
+      return {
+        role: "user",
+        content: t.results.map((r) => ({
+          type: "tool_result",
+          tool_use_id: r.toolUseId,
+          content: r.text,
+          ...(r.ok ? {} : { is_error: true }),
+        })),
+      };
+    }
     const content: unknown[] = [];
     for (const img of t.images) {
       content.push({
@@ -51,7 +65,10 @@ export async function* streamAnthropic(
   const hasUrl = messages.some((m) =>
     (m.content as { type: string; text?: string }[]).some((c) => c.type === "text" && URL_RE.test(c.text ?? "")),
   );
-  const tools = webTools(model, req.tools ?? [], { hasUrl });
+  const tools: Record<string, unknown>[] = webTools(model, req.tools ?? [], { hasUrl });
+  /* And this app's own rooms, as tools the model can ask for. They run in
+     the browser, where the data is; what goes over the wire is the ask. */
+  for (const a of req.actions ?? []) tools.push({ name: a.name, description: a.description, input_schema: a.schema });
   if (tools.length) body.tools = tools;
 
   /* Prompt caching.
@@ -152,6 +169,9 @@ export async function* streamAnthropic(
   let inputTokens = 0;
   let outputTokens = 0;
   let stopReason: StopReason = "stop";
+  /* Set when the model stopped to have this app run something. The round
+     ends here; the client runs the tools and asks again with the results. */
+  let wantsTools = false;
   /* Pages met so far, numbered in order of meeting. A citation names a URL;
      the reader needs a number that matches the strip under the answer. */
   const numbered = new Map<string, number>();
@@ -217,6 +237,7 @@ export async function* streamAnthropic(
           if (cb.type === "text") blocks[i].text = cb.text ?? "";
           if (cb.type === "thinking") blocks[i].thinking = cb.thinking ?? "";
           if (cb.type === "server_tool_use") blocks[i].input = cb.input ?? {};
+          if (cb.type === "tool_use") blocks[i].input = cb.input ?? {};
 
           /* The results of a search, all at once. A success is a list; an
              error is an object with a code in it, which is reported as
@@ -277,6 +298,11 @@ export async function* streamAnthropic(
               yield { type: "searching", query: b.input.query };
             }
           }
+          /* A tool of this app's, asked for. Said now so the wait between
+             the ask and the answer has a name on it. A call with no input
+             at all never sees a delta, so this is the one place both kinds
+             pass through. */
+          if (b?.type === "tool_use" && typeof b.name === "string") yield { type: "acting", name: b.name };
           break;
         }
         case "message_delta":
@@ -284,6 +310,7 @@ export async function* streamAnthropic(
           if (ev.delta?.stop_reason === "max_tokens") stopReason = "length";
           if (ev.delta?.stop_reason === "refusal") stopReason = "refusal";
           if (ev.delta?.stop_reason === "pause_turn") paused = true;
+          if (ev.delta?.stop_reason === "tool_use") wantsTools = true;
           break;
         case "error":
           yield { type: "error", error: classifyError("anthropic", 500, JSON.stringify(ev.error ?? {})) };
@@ -295,6 +322,19 @@ export async function* streamAnthropic(
       messages.push({ role: "assistant", content: blocks.filter(Boolean) });
       body.messages = messages;
       continue;
+    }
+    if (wantsTools) {
+      /* Handed to the client whole. An empty text block is dropped, because
+         the provider refuses one on the way back in; everything else —
+         thinking, with its signature — has to go back exactly as it came. */
+      const content = blocks.filter((b) => b && !(b.type === "text" && !String(b.text ?? "").trim()));
+      const calls = content
+        .filter((b) => b.type === "tool_use" && typeof b.id === "string" && typeof b.name === "string")
+        .map((b) => ({ id: b.id as string, name: b.name as string, input: (b.input ?? {}) as Record<string, unknown> }));
+      if (calls.length) {
+        stopReason = "tool";
+        yield { type: "calls", calls, raw: { provider: "anthropic", content } };
+      }
     }
     break;
   }

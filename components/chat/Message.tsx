@@ -3,15 +3,16 @@
 import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
-  Brain, Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Code2, Copy,
-  Download, GraduationCap, LayoutTemplate, MoreHorizontal, NotebookPen, PanelRight, Pencil, Play, RefreshCw, Scissors, ShieldQuestion,
+  AlertCircle, Brain, Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Clock, Code2, Copy,
+  Download, FolderPlus, GraduationCap, LayoutTemplate, MoreHorizontal, NotebookPen, PanelRight, Pencil, Play, RefreshCw, Scissors, Search, ShieldQuestion,
   SquarePen, ThumbsDown, ThumbsUp, Volume2, X,
 } from "lucide-react";
 import { builtDocument, titleOf, withoutBuild } from "@/lib/built";
 import { computeBlock, type Outcome } from "@/lib/compute";
 import { ComputeScope } from "./ComputeBlock";
 import type { Finding } from "@/lib/lint";
-import type { ChatError, Message as Msg, Rating, RatingReason, WebSource } from "@/lib/types";
+import type { Action, ChatError, Message as Msg, Rating, RatingReason, WebSource } from "@/lib/types";
+import { canUndo } from "@/lib/actions";
 import { CALCULATOR, getModel, formatTokens } from "@/lib/models";
 import { authorName, getPreset, plainly, PRESETS } from "@/lib/presets";
 import { blockText } from "@/lib/db";
@@ -292,12 +293,18 @@ function AssistantMessageImpl({
   entering,
   settled,
   isLast,
+  onOpenAction,
+  onUndoAction,
 }: {
   message: Msg;
   siblings: Msg[];
   index: number;
   onNavigate: (id: string) => void;
   onRegenerate: (message: Msg, modelId?: string, opts?: { effort?: "high" }) => void;
+  /** Go to the thing an action made. */
+  onOpenAction?: (open: NonNullable<Action["open"]>) => void;
+  /** Take an action back. */
+  onUndoAction?: (message: Msg, action: Action) => void;
   onSaveToNote: (text: string) => void;
   /** Show the thing this answer built, running beside the thread. */
   onOpenMade?: (message: Msg) => void;
@@ -546,6 +553,14 @@ function AssistantMessageImpl({
       {message.error && <InlineError message={message.error} onRetry={() => onRegenerate(message)} />}
 
       {message.sources && message.sources.length > 0 && <Sources sources={message.sources} />}
+
+      {message.actions && message.actions.length > 0 && (
+        <Actions
+          actions={message.actions}
+          onOpen={onOpenAction}
+          onUndo={onUndoAction ? (a) => onUndoAction(message, a) : undefined}
+        />
+      )}
 
       {message.verdict && (
         <SecondOpinion verdict={message.verdict} authorProvider={model?.provider} />
@@ -1085,6 +1100,95 @@ function hostOf(url: string): string {
  * be read on its own. The cited passage rides on the link as a title, so
  * hovering says what was taken from the page without a trip to it.
  */
+/**
+ * What the answer did, one chip per action.
+ *
+ * Under the answer rather than in it, because the text is the model's and
+ * this is the app's account of what actually happened — a deck with eight
+ * cards in it exists whether or not the sentence above says so. Open goes
+ * to the thing; Undo takes it back, for as long as this session remembers
+ * how, and the chip says so afterwards rather than vanishing.
+ */
+export function Actions({
+  actions,
+  onOpen,
+  onUndo,
+  live,
+}: {
+  actions: Action[];
+  onOpen?: (open: NonNullable<Action["open"]>) => void;
+  onUndo?: (action: Action) => void;
+  /** Still streaming: no undo yet, the turn is not over. */
+  live?: boolean;
+}) {
+  return (
+    <ul className="no-print mt-3 flex flex-wrap gap-1.5" aria-label="Done in this app">
+      {actions.map((a) => (
+        <li
+          key={a.id}
+          className={cn(
+            "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs",
+            a.undone
+              ? "border-line text-faint line-through"
+              : a.ok
+                ? "border-line bg-surface text-secondary"
+                : "border-danger/40 bg-danger/5 text-danger",
+          )}
+        >
+          <ActionIcon name={a.name} ok={a.ok} />
+          <span className="max-w-[24rem] truncate">{a.summary}</span>
+          {!a.undone && a.ok && a.open && onOpen && (
+            <button
+              type="button"
+              onClick={() => onOpen(a.open!)}
+              className="ml-0.5 rounded px-1 font-medium text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Open
+            </button>
+          )}
+          {!live && !a.undone && a.ok && onUndo && canUndo(a.id) && (
+            <button
+              type="button"
+              onClick={() => onUndo(a)}
+              className="rounded px-1 font-medium text-tertiary hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Undo
+            </button>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ActionIcon({ name, ok }: { name: string; ok: boolean }) {
+  const size = 12;
+  const cls = ok ? "shrink-0 text-tertiary" : "shrink-0";
+  if (!ok) return <AlertCircle size={size} className={cls} aria-hidden />;
+  switch (name) {
+    case "save_cards":
+    case "study_status":
+      return <GraduationCap size={size} className={cls} aria-hidden />;
+    case "save_note":
+    case "search_notes":
+      return <NotebookPen size={size} className={cls} aria-hidden />;
+    case "remember":
+      return <Brain size={size} className={cls} aria-hidden />;
+    case "save_to_project":
+      return <FolderPlus size={size} className={cls} aria-hidden />;
+    case "list_made":
+      return <Code2 size={size} className={cls} aria-hidden />;
+    case "search_conversations":
+      return <Search size={size} className={cls} aria-hidden />;
+    case "calculate":
+      return <Calculator size={size} className={cls} aria-hidden />;
+    case "now":
+      return <Clock size={size} className={cls} aria-hidden />;
+    default:
+      return <Check size={size} className={cls} aria-hidden />;
+  }
+}
+
 export function Sources({ sources }: { sources: WebSource[] }) {
   return (
     <section className="no-print mt-3 rounded-lg border border-line bg-surface px-3 py-2" aria-label="Sources">

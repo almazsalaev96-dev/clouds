@@ -7,7 +7,15 @@ export type Role = "user" | "assistant" | "system";
 export type ContentBlock =
   | { type: "text"; text: string }
   | { type: "image"; mimeType: string; data: string; name?: string }
-  | { type: "file"; mimeType: string; name: string; text: string };
+  | { type: "file"; mimeType: string; name: string; text: string }
+  /**
+   * A tool the model asked this app to run, and what came back. Both live
+   * only inside a turn: the finished answer keeps a record of what was done
+   * (`Message.actions`) rather than the wire blocks, which are the
+   * provider's shape and not worth a migration.
+   */
+  | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
+  | { type: "tool_result"; toolUseId: string; name: string; text: string; ok: boolean };
 
 export interface Usage {
   inputTokens: number;
@@ -15,7 +23,43 @@ export interface Usage {
   costUsd: number;
 }
 
-export type StopReason = "stop" | "length" | "aborted" | "error" | "refusal";
+export type StopReason = "stop" | "length" | "aborted" | "error" | "refusal" | "tool";
+
+/**
+ * A tool this app offers the model — one of its own rooms, reachable from
+ * any conversation. The schema is JSON Schema; each adapter wraps it in
+ * its provider's envelope.
+ */
+export interface ToolSpec {
+  name: string;
+  description: string;
+  schema: Record<string, unknown>;
+}
+
+/** One request from the model to run a tool. */
+export interface ToolCall {
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+}
+
+/**
+ * Something the model did in one of this app's rooms during an answer,
+ * kept with the answer so the reader can see it, open it, and take it
+ * back. Not the wire blocks: what was done, in words.
+ */
+export interface Action {
+  id: string;
+  name: string;
+  /** "Saved 8 cards to “Osmosis”" — the line on the chip. */
+  summary: string;
+  ok: boolean;
+  at: number;
+  /** Where the thing it made lives, when it made one. */
+  open?: { section: string; id?: string };
+  /** Taken back, by the person, after the fact. */
+  undone?: boolean;
+}
 
 /**
  * Messages carry a parentId, so a conversation is a tree rendered as a linear
@@ -51,6 +95,18 @@ export interface Message {
   presetId?: string;
   /** The pages this answer drew on, numbered to match the markers in it. */
   sources?: WebSource[];
+  /** What it did in this app's rooms on the way to the answer. */
+  actions?: Action[];
+  /**
+   * The assistant turn as the provider sent it, when it asked for tools.
+   *
+   * In memory only, for the rest of that one turn: a provider that is
+   * handed back its own tool calls wants them in its own shape — Anthropic
+   * with the thinking blocks and their signatures intact, OpenAI with its
+   * `tool_calls` array — and translating them through this app's blocks
+   * and back would lose exactly the parts it checks. Never stored.
+   */
+  raw?: { provider: ProviderId; content: unknown };
   /**
    * Why this model, when the app chose it rather than the person.
    *
@@ -328,6 +384,13 @@ export type StreamEvent =
   | { type: "source"; source: WebSource }
   /** The text just written rests on source `n`, quoting `quote` where known. */
   | { type: "cite"; n: number; quote?: string }
+  /** The model is about to use one of this app's tools. Shown while it does. */
+  | { type: "acting"; name: string }
+  /**
+   * The model stopped to have tools run. The client runs them, appends
+   * this turn and the results to the transcript, and asks again.
+   */
+  | { type: "calls"; calls: ToolCall[]; raw: { provider: ProviderId; content: unknown } }
   | { type: "usage"; usage: Usage }
   | { type: "done"; stopReason: StopReason }
   | { type: "error"; error: ChatError };
@@ -383,6 +446,12 @@ export interface ChatRequest {
    * and that is a thing to say yes to rather than have happen.
    */
   tools?: WebTool[];
+  /**
+   * This app's own tools, offered to the model for this turn: save cards,
+   * write a page, look something up in the notebook. Run in the browser,
+   * where the data is; the model only asks.
+   */
+  actions?: ToolSpec[];
 }
 
 /* ------------------------------------------------------------- notebook -- */

@@ -244,7 +244,7 @@ createServer(async (req, res) => {
       .join("\n"),
     /* Which web tools the app offered, by type. `e2e-research` reads this to
        prove the request carried the tool and not only that an answer came. */
-    tools: (body.tools ?? []).map((t) => t.type),
+    tools: (body.tools ?? []).map((t) => t.function?.name ?? t.type ?? t.name),
     images: (body.messages ?? [])
       .flatMap((m) => (Array.isArray(m.content) ? m.content : []))
       .filter((c) => c.type === "image").length,
@@ -313,11 +313,20 @@ createServer(async (req, res) => {
     let expect = "user";
     for (let i = 0; i < ms.length; i++) {
       const m = ms[i];
+      /* The OpenAI shape's tool round: an assistant message whose content is
+         null beside its `tool_calls`, then one `tool` message per call in
+         the user's place. Both are legal there and the alternation rule
+         reads them as the turns they stand in for. */
+      if (openaiShape && m.role === "tool") {
+        if (expect !== "user") return `messages.${i + offset}: a tool message must follow an assistant message with tool_calls`;
+        if (i + 1 >= ms.length || ms[i + 1].role !== "tool") expect = "assistant";
+        continue;
+      }
       const blocks = Array.isArray(m.content) ? m.content : [{ type: "text", text: m.content }];
       if (!blocks.length) return `messages.${i + offset}.content: must not be empty`;
       for (let j = 0; j < blocks.length; j++) {
         const b = blocks[j];
-        if (b && b.type === "text" && !String(b.text ?? "").trim())
+        if (b && b.type === "text" && !String(b.text ?? "").trim() && !(openaiShape && m.tool_calls))
           return `messages.${i + offset}.content.${j}.text: text content blocks must be non-empty`;
       }
       if (m.role !== expect)
@@ -604,6 +613,58 @@ Nothing here looks like it breaks a caller — the return type is the same array
     text = lines.join("\n");
   }
 
+  /* This app's own tools, when it offered them.
+     ---------------------------------------------------------------------
+     A tool call is the one thing a model does that the app has to *act*
+     on rather than show, and the whole round trip — the ask in the
+     provider's shape, the app running it against its own database, the
+     result going back, the answer that follows — is untestable against a
+     mock that only ever writes prose. So when the request carries one of
+     the app's tools and the last thing the person said asks for what that
+     tool does, the mock asks for the tool; and when the request comes back
+     carrying a result, it answers with what the result said, so a test can
+     prove the answer was written from what the app actually did. Decided
+     from the last thing the person typed, not the whole transcript: after
+     the cards are saved, the transcript still says "make me cards". */
+  const isOpenAI = (req.url ?? "").includes("/chat/completions");
+  const offered = new Set((body.tools ?? []).map((t) => (isOpenAI ? t.function?.name : t.name)).filter(Boolean));
+  const lastMsg = (body.messages ?? []).at(-1);
+  const lastText = (m) => (Array.isArray(m?.content) ? m.content.filter((c) => c.type === "text").map((c) => c.text).join("\n") : typeof m?.content === "string" ? m.content : "");
+  const lastAsk = [...(body.messages ?? [])].reverse().find((m) => m.role === "user" && lastText(m).trim());
+  const ask = lastText(lastAsk);
+  const resultText = isOpenAI
+    ? lastMsg?.role === "tool" ? String(lastMsg.content ?? "") : ""
+    : Array.isArray(lastMsg?.content)
+      ? lastMsg.content.filter((c) => c.type === "tool_result").map((c) => (typeof c.content === "string" ? c.content : JSON.stringify(c.content))).join("\n")
+      : "";
+  const wantsTool = (() => {
+    if (!offered.size || resultText) return null;
+    let m;
+    if (/\bflashcards\b|\bmake me (some )?cards\b|\bcards (about|on|for)\b/i.test(ask) && offered.has("save_cards"))
+      return { name: "save_cards", input: { deck: "Debounce", cards: [
+        { front: "What does a debounce wait for?", back: "Silence — a gap in the input.", topic: "debounce" },
+        { front: "What does a throttle enforce?", back: "A floor between calls.", topic: "throttle" },
+        { front: "Which fires during a continuous burst?", back: "The throttle.", topic: "throttle" },
+      ] } };
+    if (/\bsave (this|that|it) (as|to) (a )?(note|page)\b/i.test(ask) && offered.has("save_note"))
+      return { name: "save_note", input: { title: "Debounce, explained", content: "# Debounce, explained\n\nA debounce waits for silence: the call fires once the input has stopped changing for a set interval.\n\nA throttle enforces a floor between calls instead." } };
+    if (/what('s| is) due\b|how('s| is) my (study|revision)/i.test(ask) && offered.has("study_status")) return { name: "study_status", input: {} };
+    if ((m = /search my notes (?:for|about) (.+?)[?.]?$/i.exec(ask)) && offered.has("search_notes")) return { name: "search_notes", input: { query: m[1] } };
+    if ((m = /(?:did we talk about|what did we say about) (.+?)[?.]?$/i.exec(ask)) && offered.has("search_conversations")) return { name: "search_conversations", input: { query: m[1] } };
+    if (/what time is it|what('s| is) (the )?(date|day) today/i.test(ask) && offered.has("now")) return { name: "now", input: {} };
+    if ((m = /(?:calculate|work out) (.+?)[?.]?$/i.exec(ask)) && offered.has("calculate")) return { name: "calculate", input: { expression: m[1] } };
+    if (/\badd (this|that|it) to the project\b/i.test(ask) && offered.has("save_to_project")) return { name: "save_to_project", input: { name: "decisions.md", text: "We debounce the search box at 300ms." } };
+    if (/what have i (made|built)/i.test(ask) && offered.has("list_made")) return { name: "list_made", input: {} };
+    return null;
+  })();
+  if (resultText) {
+    /* The answer after the doing, written from the result. The pause is
+       the round trip a real provider takes to read it; without it the
+       "Saving cards" line lives for less than a frame. */
+    await new Promise((r) => setTimeout(r, 600));
+    text = `Done — ${resultText.replace(/\s+/g, " ").slice(0, 300)}`;
+  }
+
   const gap = process.env.MOCK_SLOW ? 140 : 12;
   const chunks = text.match(/[\s\S]{1,14}/g) ?? [];
 
@@ -623,6 +684,21 @@ Nothing here looks like it breaks a caller — the return type is the same array
     });
     const frame = (o) => res.write(`data: ${JSON.stringify(o)}\n\n`);
     frame({ id: "chatcmpl-mock", object: "chat.completion.chunk", model: body.model, choices: [{ index: 0, delta: { role: "assistant" } }] });
+    if (wantsTool) {
+      /* A call, in pieces: the id and name first, then the arguments as
+         fragments of JSON, which is how this format streams them. */
+      const args = JSON.stringify(wantsTool.input);
+      frame({ id: "chatcmpl-mock", object: "chat.completion.chunk", model: body.model, choices: [{ index: 0, delta: { tool_calls: [{ index: 0, id: "call_mock1", type: "function", function: { name: wantsTool.name, arguments: "" } }] } }] });
+      const cut = Math.floor(args.length / 2);
+      for (const part of [args.slice(0, cut), args.slice(cut)]) {
+        frame({ id: "chatcmpl-mock", object: "chat.completion.chunk", model: body.model, choices: [{ index: 0, delta: { tool_calls: [{ index: 0, function: { arguments: part } }] } }] });
+        await new Promise((r) => setTimeout(r, gap));
+      }
+      frame({ id: "chatcmpl-mock", object: "chat.completion.chunk", model: body.model, choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }], usage: { prompt_tokens: 412, completion_tokens: 40, total_tokens: 452 } });
+      res.write("data: [DONE]\n\n");
+      res.end();
+      return;
+    }
     for (const chunk of chunks) {
       frame({ id: "chatcmpl-mock", object: "chat.completion.chunk", model: body.model, choices: [{ index: 0, delta: { content: chunk } }] });
       await new Promise((r) => setTimeout(r, gap));
@@ -650,6 +726,23 @@ Nothing here looks like it breaks a caller — the return type is the same array
      blocks, which is how the provider ends a round it has not finished; the
      app is expected to send the turn straight back, and the resumed request
      (its last message an assistant turn) gets the text. */
+  if (wantsTool) {
+    /* The ask, in this provider's shape: a tool_use block whose input
+       arrives as fragments of JSON, then the turn stops on `tool_use`. */
+    const args = JSON.stringify(wantsTool.input);
+    send(res, "content_block_start", { index: 0, content_block: { type: "tool_use", id: "toolu_mock1", name: wantsTool.name, input: {} } });
+    const cut = Math.floor(args.length / 2);
+    for (const part of [args.slice(0, cut), args.slice(cut)]) {
+      send(res, "content_block_delta", { index: 0, delta: { type: "input_json_delta", partial_json: part } });
+      await new Promise((r) => setTimeout(r, gap));
+    }
+    send(res, "content_block_stop", { index: 0 });
+    send(res, "message_delta", { delta: { stop_reason: "tool_use" }, usage: { output_tokens: 40 } });
+    send(res, "message_stop", {});
+    res.end();
+    return;
+  }
+
   const searching = (body.tools ?? []).some((t) => /^web_search/.test(t.type ?? ""));
   const resumed = (body.messages ?? []).at(-1)?.role === "assistant";
   let idx = 0;

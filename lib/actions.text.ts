@@ -1,0 +1,19 @@
+import type { ToolSpec } from "./types";
+
+/**
+ * The paragraph that tells the model what it can do here, for the system
+ * prompt. Short: the tools describe themselves; this says the manners.
+ *
+ * In its own file because the prompt composer runs on the server too, and
+ * the registry beside it opens the browser's database on import.
+ */
+export function actionsSection(specs: ToolSpec[]): string {
+  if (!specs.length) return "";
+  return (
+    `## What you can do in this app\n\n` +
+    `You have tools that reach the person's own rooms here: ${specs.map((s) => s.name).join(", ")}. ` +
+    `Use one when it does what they asked or plainly helps — save the cards when they ask for cards, look in their notes when they refer to them, ` +
+    `do sums with the calculator, check the clock when today matters. Do not use a writing tool unasked, and never say something was done ` +
+    `that a tool did not do. After a tool runs, say in one line what was done and carry on; what it made is shown under your answer, so do not repeat it.`
+  );
+}

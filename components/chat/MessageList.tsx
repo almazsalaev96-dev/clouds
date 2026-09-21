@@ -4,12 +4,12 @@ import * as React from "react";
 import { ArrowDown, Zap } from "lucide-react";
 import { lintAnswer } from "@/lib/lint";
 import { blockText } from "@/lib/db";
-import type { Rating, ChatError, Message as Msg } from "@/lib/types";
+import type { Action, Rating, ChatError, Message as Msg } from "@/lib/types";
 import { PointAt, type PointAction } from "./PointAt";
 import { authorName } from "@/lib/presets";
 import { siblingIndex, siblingsFrom } from "@/lib/db";
 import { cn, formatElapsed } from "@/lib/utils";
-import { AssistantMessage, InlineError, UserMessage } from "./Message";
+import { AssistantMessage, InlineError, UserMessage, Actions } from "./Message";
 import { builtDocument, building, titleOf, withoutBuild } from "@/lib/built";
 import { Markdown, useThrottled } from "./Markdown";
 import { CompareGrid } from "./Compare";
@@ -28,6 +28,10 @@ function MessageListImpl({
   streamText,
   streamReasoning,
   streamSearching,
+  streamActing,
+  streamActions,
+  onOpenAction,
+  onUndoAction,
   dropped,
   streamModelId,
   streamPresetId,
@@ -65,6 +69,12 @@ function MessageListImpl({
   streamReasoning: string;
   /** The query the model is searching for right now, while it is. */
   streamSearching?: string | null;
+  /** What the app is doing for the model right now: "Saving cards". */
+  streamActing?: string | null;
+  /** What it has done so far this turn. */
+  streamActions?: Action[];
+  onOpenAction?: (open: NonNullable<Action["open"]>) => void;
+  onUndoAction?: (message: Msg, action: Action) => void;
   /** Turns left out of the request to make it fit the window. */
   dropped: number;
   streamModelId: string;
@@ -283,6 +293,8 @@ function MessageListImpl({
                 onRate={onRate}
                 onSwitchModel={onSwitchModel}
                 onVerify={onVerify}
+                onOpenAction={onOpenAction}
+                onUndoAction={onUndoAction}
                 verifying={verifyingId === m.id}
                 entering={entering}
                 settled={m.id === settledId}
@@ -303,6 +315,9 @@ function MessageListImpl({
               elapsed={elapsed}
               retryingInMs={retryingInMs}
               searching={streamSearching}
+              acting={streamActing}
+              actions={streamActions}
+              onOpenAction={onOpenAction}
               onSwitchModel={onSwitchModel}
             />
           )}
@@ -364,6 +379,9 @@ function StreamingMessage({
   elapsed,
   retryingInMs,
   searching,
+  acting,
+  actions,
+  onOpenAction,
   onSwitchModel,
 }: {
   text: string;
@@ -373,6 +391,10 @@ function StreamingMessage({
   retryingInMs: number;
   /** The query being searched for, while it is. */
   searching?: string | null;
+  /** The tool being run, while it is. */
+  acting?: string | null;
+  actions?: Action[];
+  onOpenAction?: (open: NonNullable<Action["open"]>) => void;
   onSwitchModel: () => void;
 }) {
   // Coarsen the markdown parse to ~30fps. The reveal cadence is unchanged;
@@ -415,6 +437,10 @@ function StreamingMessage({
           <span className="sheen font-medium">
             Searching for <span className="font-normal">“{searching}”</span>
           </span>
+        ) : acting ? (
+          /* The app doing something for the model — saving, reading,
+             working out — and the round trip after. Named, not "Writing". */
+          <span className="sheen font-medium">{acting}</span>
         ) : waiting ? (
           <span className="sheen font-medium">
             Thinking{elapsed > PATIENCE_MS && <span className="tnum"> · {formatElapsed(elapsed)}</span>}
@@ -455,6 +481,8 @@ function StreamingMessage({
           <span className="caret" aria-hidden />
         </div>
       )}
+
+      {actions && actions.length > 0 && <Actions actions={actions} onOpen={onOpenAction} live />}
 
       {waiting && elapsed > IMPATIENCE_MS && (
         <button

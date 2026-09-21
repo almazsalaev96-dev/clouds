@@ -1,6 +1,8 @@
 "use client";
 
 import { parseSlash } from "@/lib/slash";
+import { actionSpecs, doingOf, keepUndo, runAction, undoAction, type ActionContext } from "@/lib/actions";
+import type { Action } from "@/lib/types";
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { PanelLeft } from "lucide-react";
@@ -624,6 +626,16 @@ export default function Page() {
       /* What the person asked to be remembered — unless they turned it off,
          or this is a temporary chat, which knows nothing and keeps nothing. */
       const memories = settings.memoryOn && !conv?.temporary ? await allMemories() : [];
+      /* The rooms, as tools, where the person allows it. Decided per turn
+         from the conversation it is in: no memory in a temporary chat, no
+         project file outside a project. */
+      const room: ActionContext = {
+        conversationId,
+        projectId: conv?.projectId,
+        temporary: Boolean(conv?.temporary),
+        memoryOn: settings.memoryOn,
+      };
+      const offered = settings.actionsOn ? actionSpecs(room) : [];
       /* The mode is read off the request rather than set on a switch.
          Choosing between Chat and Creative was a question about the machine,
          asked before the person had said what they wanted and answerable only
@@ -702,6 +714,7 @@ export default function Page() {
         style,
         mode,
         memories,
+        actions: offered,
       });
       /* What kind of job this is, and therefore what a good answer to it looks
          like. The app has classified requests since `task.ts` was written and
@@ -842,6 +855,9 @@ export default function Page() {
         parentId,
         modelId: writer,
         tools: research && !searchWhy.startsWith("could not") ? ["web_search", "web_fetch"] : undefined,
+        actions: offered.length
+          ? { specs: offered, run: (call) => runAction(call, room), doing: doingOf, keep: (id, done) => keepUndo(id, done.undo) }
+          : undefined,
         /* Which Armi model this is, kept with the answer. The engine stays in
            `modelId` because a retry, a second opinion and the token meter all
            need it; what a reader is shown is the name they picked. */
@@ -873,7 +889,7 @@ export default function Page() {
         params: { ...mode.params, ...(plan.effort ? { reasoningEffort: plan.effort } : {}) },
       });
     },
-    [stream, settings.systemPrompt, settings.styleId, settings.mode, settings.memoryOn, settings.keys, configured, customStyles],
+    [stream, settings.systemPrompt, settings.styleId, settings.mode, settings.memoryOn, settings.actionsOn, settings.keys, configured, customStyles],
   );
 
   /** Same rule as the model: the open thread owns it, the app holds the default. */
@@ -1288,6 +1304,18 @@ export default function Page() {
   verifyRef.current = verify as (m: Message, pinned?: string) => void;
 
   /** Regenerating reuses the parent, so the new answer is a sibling of the old. */
+  /* Taking back what an answer did. The closure that knows how lives with
+     the registry for this session; here the record on the message is
+     marked, so the chip says "undone" and a later turn is not told the
+     cards are there. */
+  const undoDone = React.useCallback(async (message: Message, action: Action) => {
+    const ok = await undoAction(action.id);
+    if (!ok) return;
+    const actions = (message.actions ?? []).map((a) => (a.id === action.id ? { ...a, undone: true } : a));
+    await db.messages.update(message.id, { actions });
+    setNotice(`Undone: ${action.summary}`);
+  }, []);
+
   const regenerate = React.useCallback(
     async (message: Message, modelId?: string, opts?: { effort?: "high" }) => {
       if (!activeId) return;
@@ -2085,6 +2113,10 @@ export default function Page() {
                 streamText={live ? stream.text : ""}
                 streamReasoning={live ? stream.reasoning : ""}
                 streamSearching={live ? stream.searching : null}
+                streamActing={live ? stream.acting : null}
+                streamActions={live ? stream.actions : undefined}
+                onOpenAction={(open) => selectInSection(open.section as Section, open.id ?? "")}
+                onUndoAction={undoDone}
                 dropped={droppedFromContext}
                 /* The model actually receiving this turn, not the one the
                    picker is holding. An Armi model is a tactic — "one" is not

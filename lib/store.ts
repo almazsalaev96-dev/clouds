@@ -149,6 +149,11 @@ interface Settings {
   sendOnEnter: boolean;
   /** Whether what was remembered goes into the prompt. Off keeps the list, unused. */
   memoryOn: boolean;
+  /**
+   * Whether the model may use this app's rooms as tools — save cards, write
+   * a page, look in the notebook. Off, it can only answer.
+   */
+  actionsOn: boolean;
   showLineNumbers: boolean;
   wrapCode: boolean;
   /** Browser-held keys, used only when the server has none for that provider. */
@@ -211,6 +216,7 @@ export const DEFAULT_SETTINGS = {
   sidebarOpen: true,
   sendOnEnter: true,
   memoryOn: true,
+  actionsOn: true,
   showLineNumbers: false,
   wrapCode: false,
   keys: {} as Record<string, string>,

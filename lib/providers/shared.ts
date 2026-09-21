@@ -175,6 +175,27 @@ export interface Turn {
   role: "user" | "assistant";
   text: string;
   images: ReturnType<typeof imagesOf>;
+  /**
+   * An assistant turn that asked for tools, in the provider's own shape.
+   * Set only for the provider it came from; sent back verbatim.
+   */
+  raw?: unknown;
+  /** What this app's tools answered, in reply to the `raw` turn before. */
+  results?: { toolUseId: string; name: string; text: string; ok: boolean }[];
+}
+
+/**
+ * The record of what an answer did, for the turns after it.
+ *
+ * The tool blocks themselves are not stored, so a later turn would not know
+ * that the cards were saved or the page written — and would offer to do it
+ * again. One line per action, appended to the answer's text on the wire and
+ * nowhere else.
+ */
+export function didOf(m: Message): string {
+  const done = (m.actions ?? []).filter((a) => a.ok && !a.undone);
+  if (!done.length) return "";
+  return `\n\n[Done in this app: ${done.map((a) => a.summary).join("; ")}]`;
 }
 
 /**
@@ -203,16 +224,33 @@ export interface Turn {
  * how one of them ended up sending `{ type: "text", text: "" }` as a
  * deliberate fallback for a message with no content.
  */
-export function usableTurns(messages: Message[]): Turn[] {
+export function usableTurns(messages: Message[], provider?: ProviderId): Turn[] {
   const turns: Turn[] = [];
   for (const m of messages) {
     if (m.role === "system") continue;
     const role = m.role === "assistant" ? "assistant" : "user";
+    /* A tool round, kept whole. The assistant's own blocks go back as they
+       came, and the results answer them one for one; neither is merged
+       with a neighbour, because the provider checks that every call has
+       its result in the very next turn. A `raw` from another company —
+       there is none today, since the round lives and dies inside one
+       turn — would be sent as its text instead, and the results after it
+       dropped, which is the honest reading of "that company's calls". */
+    if (role === "assistant" && m.raw && provider && m.raw.provider === provider) {
+      turns.push({ role, text: "", images: [], raw: m.raw.content });
+      continue;
+    }
+    const results = m.content.filter((b): b is Extract<typeof b, { type: "tool_result" }> => b.type === "tool_result");
+    if (role === "user" && results.length) {
+      const last = turns[turns.length - 1];
+      if (last?.raw) turns.push({ role, text: "", images: [], results });
+      continue;
+    }
     const images = role === "user" ? imagesOf(m) : [];
-    const text = textOf(m).trim();
+    const text = (textOf(m) + (role === "assistant" ? didOf(m) : "")).trim();
     if (!text && !images.length) continue;
     const last = turns[turns.length - 1];
-    if (last && last.role === role) {
+    if (last && last.role === role && !last.raw && !last.results) {
       last.text = [last.text, text].filter(Boolean).join("\n\n");
       last.images = [...last.images, ...images];
       continue;

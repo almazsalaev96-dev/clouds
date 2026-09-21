@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ChatError, ContentBlock, Message, ProviderId, StreamEvent, Usage, WebSource, WebTool } from "../types";
+import type { Action, ChatError, ContentBlock, Message, ProviderId, StreamEvent, ToolCall, ToolSpec, Usage, WebSource, WebTool } from "../types";
+import type { ActionDone } from "../actions";
 import { noteFailure, noteSuccess } from "../health";
 import { getModel, estimateTokens } from "../models";
 import { db, addMessage, uid } from "../db";
@@ -13,6 +14,10 @@ export type Phase = "idle" | "waiting" | "streaming";
 interface StreamState {
   /** The query being searched right now, or nothing. */
   searching: string | null;
+  /** What this app is doing for the model right now: "Saving cards". */
+  acting: string | null;
+  /** What it has done so far this turn, as it happens. */
+  actions: Action[];
   /** Pages met so far this turn, numbered. */
   sources: WebSource[];
   phase: Phase;
@@ -59,6 +64,8 @@ const BRIEF: Partial<Record<ChatError["kind"], number>> = { provider_down: 2_000
 
 const EMPTY: StreamState = {
   searching: null,
+  acting: null,
+  actions: [],
   sources: [],
   phase: "idle",
   retryingInMs: 0,
@@ -101,6 +108,10 @@ export function useStream(onFinish?: (m: Message) => void) {
   const sourcesRef = useRef<WebSource[]>([]);
   /** Whether a search is in flight, so the first word can end it. */
   const searchingRef = useRef(false);
+  /** Whether a tool is in flight, likewise. */
+  const actingRef = useRef(false);
+  /** What was done this turn, in order. Goes on the saved answer. */
+  const actionsRef = useRef<Action[]>([]);
   /** Citation markers waiting for a word boundary to land on. */
   const pendingRef = useRef<number[]>([]);
   /** When the buffer last grew. The drain holds a partial word only this long. */
@@ -207,6 +218,18 @@ export function useStream(onFinish?: (m: Message) => void) {
        */
       /** Web tools to offer. Sent as given; the adapter shapes them per model. */
       tools?: WebTool[];
+      /**
+       * This app's own tools, and how to run one. The model asks; the
+       * answer is run here, in the browser, and the turn goes on.
+       */
+      actions?: {
+        specs: ToolSpec[];
+        run: (call: ToolCall) => Promise<ActionDone>;
+        /** The line for the wait: "Saving cards". */
+        doing: (name: string) => string;
+        /** Keep what a done action can take back, by the action's id. */
+        keep?: (actionId: string, done: ActionDone) => void;
+      };
       elsewhere?: (failed: ProviderId, kind: ChatError["kind"]) => { modelId: string; why: string } | null;
     }) => {
       const model = getModel(opts.modelId);
@@ -217,6 +240,8 @@ export function useStream(onFinish?: (m: Message) => void) {
 
       sourcesRef.current = [];
       searchingRef.current = false;
+      actingRef.current = false;
+      actionsRef.current = [];
       pendingRef.current = [];
       fedRef.current = Date.now();
       shownRef.current = "";
@@ -247,7 +272,19 @@ export function useStream(onFinish?: (m: Message) => void) {
       const params = { ...paramsFor(opts.modelId), ...(opts.params ?? {}) };
       const fitted = fitToContext(opts.history, model, params, (opts.systemPrompt ?? "") + (opts.turnPrompt ?? ""));
 
+      /* The transcript for this turn. A tool round appends to it — the
+         model's ask and this app's answer — and the request goes again,
+         which is how one answer comes to have saved the cards it describes.
+         Five rounds is the ceiling: an answer that has asked for tools five
+         times and still has nothing to say is not going to. */
+      let turns: Message[] = fitted.messages;
+      const ROUNDS = 5;
+
       try {
+        for (let round = 0; round < ROUNDS; round++) {
+        let calls: ToolCall[] = [];
+        let raw: { provider: ProviderId; content: unknown } | null = null;
+        stopReason = "stop";
         const res = await fetch("/api/chat", {
           method: "POST",
           signal: ac.signal,
@@ -255,7 +292,8 @@ export function useStream(onFinish?: (m: Message) => void) {
           body: JSON.stringify({
             modelId: opts.modelId,
             tools: opts.tools,
-            messages: fitted.messages,
+            actions: opts.actions?.specs.length ? opts.actions.specs : undefined,
+            messages: turns,
             systemPrompt: opts.systemPrompt || undefined,
             turnPrompt: opts.turnPrompt || undefined,
             params,
@@ -319,8 +357,22 @@ export function useStream(onFinish?: (m: Message) => void) {
                     searchingRef.current = false;
                     setState((s) => ({ ...s, searching: null }));
                   }
+                  if (actingRef.current) {
+                    actingRef.current = false;
+                    setState((s) => ({ ...s, acting: null }));
+                  }
                   break;
                 }
+                case "acting":
+                  /* The ask has gone out; the doing is a moment away. Named
+                     now so the pause has a reason on it. */
+                  actingRef.current = true;
+                  setState((s) => ({ ...s, phase: "streaming", acting: opts.actions?.doing(ev.name) ?? "Working" }));
+                  break;
+                case "calls":
+                  calls = ev.calls;
+                  raw = ev.raw;
+                  break;
                 case "reasoning":
                   if (ttftRef.current === null) ttftRef.current = Date.now() - startedRef.current;
                   reasoningRef.current += ev.text;
@@ -366,6 +418,31 @@ export function useStream(onFinish?: (m: Message) => void) {
             }
           }
         }
+
+        /* The model stopped to have something done. Do it, write down what
+           was done, hand the result back, and go round again. Anything else
+           — an answer, an error, a stop — ends the turn here. */
+        if (stopReason !== "tool" || !calls.length || !raw || !opts.actions || error || ac.signal.aborted) break;
+        const results: Extract<ContentBlock, { type: "tool_result" }>[] = [];
+        for (const call of calls) {
+          actingRef.current = true;
+          setState((s) => ({ ...s, phase: "streaming", acting: opts.actions?.doing(call.name) ?? "Working" }));
+          const done = await opts.actions.run(call);
+          const id = uid();
+          const action: Action = { id, name: call.name, summary: done.summary, ok: done.ok, at: Date.now(), open: done.open };
+          opts.actions.keep?.(id, done);
+          actionsRef.current = [...actionsRef.current, action];
+          setState((s) => ({ ...s, actions: actionsRef.current }));
+          results.push({ type: "tool_result", toolUseId: call.id, name: call.name, text: done.text, ok: done.ok });
+        }
+        /* Words said before the ask stay; the words after it follow on. */
+        if (shownRef.current + bufferRef.current) bufferRef.current += "\n\n";
+        turns = [
+          ...turns,
+          { id: uid(), conversationId: opts.conversationId, parentId: null, role: "assistant", content: [], raw, createdAt: Date.now() },
+          { id: uid(), conversationId: opts.conversationId, parentId: null, role: "user", content: results, createdAt: Date.now() },
+        ];
+        }
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
           // Stopping is a legitimate outcome, not a failure. Everything already
@@ -388,6 +465,9 @@ export function useStream(onFinish?: (m: Message) => void) {
       shownRef.current = finalText;
       stopLoops();
 
+      /* A turn that ran out of rounds mid-ask ended; "tool" is not a way an
+         answer stops, it is a way a round does. */
+      if (stopReason === "tool") stopReason = "stop";
       const latencyMs = Date.now() - startedRef.current;
       const usage =
         usageRef.current ??
@@ -416,6 +496,7 @@ export function useStream(onFinish?: (m: Message) => void) {
         routedWhy: opts.routedWhy,
         presetId: opts.presetId,
         sources: sourcesRef.current.length ? sourcesRef.current : undefined,
+        actions: actionsRef.current.length ? actionsRef.current : undefined,
         usage,
         latencyMs,
         ttftMs: ttftRef.current ?? undefined,

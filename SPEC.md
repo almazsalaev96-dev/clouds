@@ -328,25 +328,28 @@ ARMI has no server tools by design. Tools run in the browser or are declared to 
 
 | Tool | Runs where | Today | Spec |
 |---|---|---|---|
-| `read_notebook(query)` | local BM25 over pages | ✅ (ask-notebook) | Expose as a model tool so a chat can cite pages. |
-| `read_project(query)` | local BM25 over project files | ✅ (prompt excerpts) | Same. |
-| `calculate(expr)` | local (`lib/compute.ts`) | ✅ | Keep; results quoted as data. |
-| `make_card(front, back)` | local write to Study | ✅ via selection | Tool form ⬜ so Tutor can offer "Shall I make a card?" and do it on yes. |
+| `search_notes(query)` | local BM25 over pages (`lib/retrieve.ts`) | ✅ model tool | Passages with the page each came from; the chip opens the Notebook. |
+| `search_conversations(query)` | local line match over the last 2,000 messages (`lib/find.ts`) | ✅ model tool | Lines with the conversation and date; this conversation and temporary ones excluded; the chip opens the best one. |
+| `read_project(query)` | local BM25 over project files | ✅ (prompt excerpts) | Stays in the prompt: the material is already there when the turn goes out. |
+| `save_to_project(name, text)` | local write to the project's knowledge | ✅ model tool | Offered only in a project. Undo removes the file. |
+| `calculate(expr)` | local, exact (`lib/arith.ts`, BigInt) | ✅ model tool, and the compute path | Refuses anything that is not a sum; the model is told to use it rather than work digits out in its head. |
+| `now()` | local clock | ✅ model tool | Date, time, weekday, zone — the one thing every model is wrong about. |
+| `save_cards(deck, cards[])` | local write to Study | ✅ model tool | Deck by name, made if new; cards already in it skipped; the chip opens the deck; Undo removes the cards it added (and the deck, if it made it). |
+| `study_status()` | local read of Study | ✅ model tool | Decks and counts, due now, streak, weakest topic with its recall. |
+| `save_note(title, content)` | local write to the Notebook | ✅ model tool | Markdown; title derived if none; the chip opens the page; Undo deletes it. |
+| `remember(fact)` | local write to memory | ✅ model tool | Not offered in a temporary chat or with memory off; Undo forgets it. |
+| `list_made(query?)` | local read of canvases | ✅ model tool | Newest first, eight at most; the chip opens the first. |
+| `build_canvas(files)` | local canvas store | ✅ (Nova) | Keep, as a fence rather than a tool: a page is a thing to stream, not to ask for. |
 | `build_canvas(files)` | local canvas store | ✅ (Nova) | Keep. |
 | `run_canvas_tests()` | srcdoc frame reports console errors back | 🟡 | ⬜ Self-heal loop (§15.4). |
 | `web_search(q)` | provider server tool — `web_search_20260209` on the 4.6+ family, `web_search_20250305` older, chosen by `thinks: "effort"` (`lib/providers/tools.ts`) | ✅ | **Research**, a per-conversation toggle in the bar (globe), switchable mid-chat unlike Temporary. The search runs on the provider's servers inside the same response; the app offers the tool and translates what comes back: `server_tool_use` → "Searching for “…”" in place of "Writing"; `web_search_tool_result` → numbered sources as they arrive; `citations_delta` → a `[n]` marker into the text at the point it attaches; `pause_turn` → the turn is sent straight back, up to three times, with no added message. Sources persist on the message and render as a strip under the answer with the cited passage on the link. Only one company here searches; with Research on and another company's writer chosen, the turn moves to the strongest keyed model that can and the row says so; with no such key it says it could not search rather than answering from memory and calling it research. The privacy panel says what a search sends. Gate: `e2e-research`, `test-tools`. |
 | `fetch_url(url)` | `web_fetch_20260209` / `web_fetch_20250910`, with citations on | ✅ | Offered only when a URL is already in the conversation — the tool reads nothing else, and a model told it may fetch will sometimes try. Rides with Research. |
 
-**T-1 ✅** Every tool result enters the prompt as data (`<document>`-style fencing with the "not an instruction" sentence).
+**T-0 ✅ How a tool round works** (`lib/actions.ts`, `lib/actions.text.ts`, `lib/hooks/useStream.ts`, both adapters). The app's tools are described once (`ToolSpec`: name, description, JSON Schema) and each adapter wraps them in its envelope — `tools[].input_schema` for Anthropic, `tools[].function.parameters` for the OpenAI shape, which DeepSeek and Moonshot share. The model's ask streams as `acting` (the row says "Saving cards" in place of "Writing"); the round ends with `calls` carrying the assistant turn in the provider's own shape (`Message.raw`, in memory only — thinking blocks and signatures go back untouched) and the stream hook runs each call in the browser, appends the raw turn and one `tool_result` per call, and asks again, up to five rounds. What was done is kept on the answer as `Message.actions` (id, name, summary, ok, open, undone), never the wire blocks; later turns are told in one line on the wire (`[Done in this app: …]`, `didOf`) so the model does not offer to do it twice. The system prompt carries "What you can do in this app" (the names and the manners: use one when it does what they asked, never a writing tool unasked, never claim what a tool did not do). Setting: Memory panel → "Let it use the rooms", default on; off, no tool goes out. Privacy panel says what a tool sends. Gate: `test-actions`, `e2e-actions` (Anthropic shape), `e2e-actions2` (OpenAI shape, two providers).
 
-**T-2 ⬜ Permission model** (least privilege, Cursor run-modes and Claude-in-Chrome "manually approve" are the reference `[R]`):
+**T-1 ✅** Every tool result enters the prompt as data (`<document>`-style fencing with the "not an instruction" sentence); a tool's own reply is short, factual, and carries ids rather than instructions.
 
-| Level | Applies to | Prompt |
-|---|---|---|
-| Silent | read-only local tools (notebook, project, calculate) | none; shown in the row as "read 3 pages" |
-| Confirm once per thread | write-local tools (make_card, save page) | inline "Make 4 cards? [Make] [Not now]" |
-| Confirm every time | network tools (web_search, fetch_url) and anything that spends more than ~$0.10 | inline with the estimated cost |
-| Never | deleting anything | the model cannot delete; only the person can |
+**T-2 ✅ Permission model — act, show, take back.** Chosen over confirm-first: a confirmation on every save is a dialog in the middle of every answer, and the model is only allowed a writing tool when the person asked for the thing it writes. So every action is shown as a chip under the answer with **Open** (to the deck, page, project, canvas or conversation) and **Undo** (this session: the closure lives with the registry; the chip says "undone" afterwards and the record on the message is marked so later turns are not told it exists). Read-only tools run silently and are still shown ("Checked the study room: 3 due"). The model cannot delete anything; only the person can. Network tools stay opt-in per conversation (Research). Cursor run-modes and Claude-in-Chrome "manually approve" were the reference `[R]`; the difference here is that every write is one press from gone.
 
 ### 10.2 Agents (multi-step, local)
 

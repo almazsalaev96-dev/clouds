@@ -128,6 +128,10 @@ function PrivacyPanel() {
           With Research on, the same company also runs a web search on its own servers
           for that turn; the search terms are the model&rsquo;s reading of your question,
           and every page it drew on is listed under the answer.
+          When the model uses one of the rooms — saves cards, looks in your notes —
+          the tool runs in this browser and only what it answers goes back to that
+          same company as part of the turn: the passages a search found, the count
+          of cards saved. Nothing is sent that the turn did not already involve.
         </Line>
         <Line title="Your keys">
           A key you paste is kept in this browser and sent only to its own provider. It is
@@ -895,6 +899,13 @@ function MemoryPanel() {
         onChange={(memoryOn) => settings.set({ memoryOn })}
         label="Use memory"
         hint="Off keeps the list but sends none of it."
+      />
+
+      <Toggle
+        checked={settings.actionsOn}
+        onChange={(actionsOn) => settings.set({ actionsOn })}
+        label="Let it use the rooms"
+        hint="The model can save cards, write a page, keep a memory, add to a project, look in your notes and past conversations, do sums exactly and check the clock — each one shown under the answer with Undo. Off, it can only answer."
       />
 
       <Field label="Add something to remember">
