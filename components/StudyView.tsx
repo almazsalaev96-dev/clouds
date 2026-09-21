@@ -3,8 +3,7 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  ArrowLeftRight, ChevronLeft, FileText, Flame, Gauge, Keyboard, MessageSquare, Pencil, Trash2,
-} from "lucide-react";
+  ArrowLeftRight, ChevronLeft, FileText, Flame, Gauge, Keyboard, MessageSquare, Pencil, Trash2, BookMarked } from "lucide-react";
 import { mark, type Mark } from "@/lib/grade";
 import { recallRate, weakestDeck, weeksOf } from "@/lib/plan";
 import { Tutor } from "@/components/study/Tutor";
@@ -48,6 +47,7 @@ export function StudyView({
   openId,
   onFocus,
   onAsk,
+  onPack,
 }: {
   configured: Record<string, boolean>;
   /** A deck to open on arrival — from the palette or a link. */
@@ -62,6 +62,12 @@ export function StudyView({
    * separate search in a separate place.
    */
   onAsk?: (question: string) => void;
+  /**
+   * A chapter in, a revision pack out: the organiser, the Cornell notes,
+   * the exam questions, and the cards. Made in the Notebook, where pages
+   * live; offered here, where the person with the exam is standing.
+   */
+  onPack?: () => void;
 }) {
   const decks = useLiveQuery(() => db.decks.orderBy("updatedAt").reverse().toArray(), [], [] as Deck[]);
   const cards = useLiveQuery(() => db.cards.toArray(), [], [] as Card[]);
@@ -388,6 +394,16 @@ export function StudyView({
               <FileText size={13} />
               {overDrop ? "Drop it here" : "Work through a document"}
             </button>
+            {onPack && (
+              <button
+                onClick={onPack}
+                disabled={busy}
+                className="btn-touch press focus-inset flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary disabled:opacity-50"
+              >
+                <BookMarked size={13} />
+                Make a revision pack
+              </button>
+            )}
             <input
               ref={fileRef}
               type="file"

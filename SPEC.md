@@ -444,6 +444,19 @@ Anki's 2026 defaults are the benchmark: 90% retention, `1m 10m` steps, 15–25 n
 | S-8 ⬜ | "Cards from this page/chat/file" | A model call that proposes 8–12 cards from a source, each one accept/edit/discard before it exists (NotebookLM makes cards from sources only `[R]`; the accept step is what keeps them honest). |
 | S-9 ⬜ | Typed-answer marking for maths | Numeric tolerance and unit awareness (already partly in the marker); LaTeX equality by normalised string. |
 
+### 13.2b Revision pack ✅
+
+**RP-1 ✅** A source (PDF or text) in, four things out, all from one press — "Revision pack" on a Notebook page with a source attached, or "Make a revision pack" in the Study room, which opens a new page in the Notebook waiting for the file and makes the pack the moment it lands. Recipes in `lib/revision.ts`, built on Dunlosky et al. 2013 (practice testing and distributed practice high-utility; summarising, highlighting and rereading low) and Roediger & Karpicke 2006 — see RESEARCH §3b.
+
+| Page | Shape | Why |
+|---|---|---|
+| `<source> — Knowledge organiser` | Must know (ranked) · Key terms (table) · Formulas and rules · Processes (steps) · Common mistakes · How it is asked (command words + what earns full marks) · Links | The one page to pin up and be quizzed from; the command words are where marks are lost |
+| `<source> — Cornell notes` | Per idea: a `Cue \| Notes` table whose cues can be got wrong, a three-sentence summary; then the whole thing in ten lines | Cover the notes and it is a practice test |
+| `<source> — Exam questions` | Twelve in three tiers with marks, per-mark scheme, model answer, "where marks are lost" | The testing effect, marked the way the paper marks |
+| Deck `<source>` in Study | Cards drafted from the organiser | Distributed practice on the schedule |
+
+**RP-2 ✅** Every page carries verified citations into the source (`lib/cite.ts`); a quotation not found is shown as such. **RP-3 ✅** Any page of a pack offers **Download the pack**: one markdown file, titled for the source, with how to use it on the front, pages in reading order. Print → PDF through the existing paper stylesheet. **RP-4 ✅** Stop leaves the pages already made. Gate: `test-revision`, `e2e-pack`.
+
 ### 13.3 The tutoring stance (ARMI Orrery)
 
 The reference behaviour is shared by ChatGPT Study Mode, Gemini Guided Learning and Khanmigo `[R]`: ask what the person already knows, give a hint ladder, check understanding, withhold the final answer until the person has tried, respond to mistakes rather than restating the explanation.

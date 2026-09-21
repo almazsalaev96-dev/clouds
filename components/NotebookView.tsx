@@ -4,7 +4,7 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   BookOpen, Download, Eye, GraduationCap, HelpCircle, Highlighter, Layers, Link2, ListTree,
-  MessageSquare, Paperclip, Pencil, Scissors, SpellCheck2, Tags, X, Plus } from "lucide-react";
+  MessageSquare, Paperclip, Pencil, Scissors, SpellCheck2, Tags, X, Plus, BookMarked } from "lucide-react";
 import type { Note, Source } from "@/lib/types";
 import { addCards, addSource, createDeck, createNote, db, deleteNote, deriveTitle, removeSource, sourcesOf } from "@/lib/db";
 import { backlinksTo, outlineOf, readLink, readingTime, tagsIn, withLinks } from "@/lib/links";
@@ -24,6 +24,7 @@ import { DiffView } from "@/components/DiffView";
 import { Button, SaveBadge } from "@/components/ui/primitives";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
 import { plainLine } from "@/lib/plain";
+import { PACK, packMarkdown, packOf, packTitle, sourceName } from "@/lib/revision";
 import { cn } from "@/lib/utils";
 
 /**
@@ -293,7 +294,16 @@ export function NotebookView({
     const meant = askedForRef.current.key === note.id;
     askedRef.current = ask.nonce;
     askedForRef.current = null;
-    if (meant) {
+    if (meant && ask.text === "/pack") {
+      /* Handed from Study with nothing attached yet: ask for the file, and
+         make the pack the moment it lands. */
+      packOnAttach.current = true;
+      setNotice("Attach the chapter — a PDF or a text file — and the pack is made the moment it lands.");
+      /* Best effort: a picker opened from an effect only opens while the
+         press that got us here still counts as a gesture. The notice and
+         the attach control cover the case where it does not. */
+      fileRef.current?.click();
+    } else if (meant) {
       setInstruction(ask.text);
       void run(ask.text);
     }
@@ -351,6 +361,109 @@ export function NotebookView({
       busyRef.current = false;
       setBusy(false);
     }
+  };
+
+  /**
+   * The pack: three pages and a deck out of what is attached.
+   *
+   * Not "replace this page" three times. A pack is a set — the organiser to
+   * pin up, the Cornell notes to cover and answer, the questions to sit
+   * under time — and a set wants to be pages beside each other, named for
+   * the source, that come back as one file. See lib/revision.ts for why
+   * these three and not a summary.
+   */
+  const runPack = async () => {
+    if (busyRef.current || !note || !sources.length) return;
+    const modelId = reviseModel;
+    if (!modelId) {
+      setNotice("No key configured yet — add one in Settings.");
+      return;
+    }
+    busyRef.current = true;
+    setBusy(true);
+    setNotice(null);
+    const source = sourceName(sources);
+    const made: Note[] = [];
+    try {
+      const ctrl = new AbortController();
+      abortRef.current = ctrl;
+      for (const recipe of PACK) {
+        setNotice(`Writing the ${recipe.label.toLowerCase()}…`);
+        setLive("");
+        const raw = await makeFromSources(
+          recipe.instruction,
+          sources.map((x) => ({ name: x.name, text: x.text })),
+          modelId,
+          undefined,
+          { signal: ctrl.signal, onText: setLive },
+        );
+        if (stopped()) {
+          setNotice(made.length ? `Stopped after ${made.length} page${made.length === 1 ? "" : "s"}.` : "Stopped. Nothing was made.");
+          return;
+        }
+        if (!raw) continue;
+        const { text: body, citations } = extractCitations(raw, sources);
+        const page = await createNote({
+          title: packTitle(source, recipe),
+          content: body,
+          citations,
+          madeAt: Date.now(),
+          madeFrom: sources.map((x) => x.id),
+          sourceConversationId: note.sourceConversationId,
+        });
+        made.push(page);
+      }
+      /* Cards from the organiser: it is the ranked list of what can be
+         asked, which is what a deck should be made of. */
+      const organiser = made.find((m) => m.title.endsWith("Knowledge organiser"));
+      let cards = 0;
+      if (organiser) {
+        setNotice("Making the cards…");
+        const drafts = await draftCards(organiser.content.slice(0, 20_000), { about: source, modelId }).catch(() => null);
+        if (drafts?.length) {
+          const deck = await createDeck(source, "pack");
+          cards = await addCards(deck.id, drafts, "pack");
+        }
+      }
+      if (!made.length) {
+        setNotice("Nothing usable came back. Try again, or attach a clearer source.");
+        return;
+      }
+      setNotice(
+        `${made.length} page${made.length === 1 ? "" : "s"}${cards ? ` and ${cards} card${cards === 1 ? "" : "s"}` : ""} made — ` +
+          `the pages are in the Notebook${cards ? ", the cards in Study" : ""}. Download the pack from any of its pages.`,
+      );
+      onSelect(made[0].id);
+    } catch {
+      setNotice("That request failed. Check the key and the connection.");
+    } finally {
+      setLive("");
+      busyRef.current = false;
+      setBusy(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (!packOnAttach.current || !sources.length || busyRef.current) return;
+    packOnAttach.current = false;
+    void runPack();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sources.length]);
+
+  /** The pack this page is part of, if it is part of one. */
+  const pack = React.useMemo(() => (note ? packOf(note, notes ?? []) : []), [note, notes]);
+
+  /** The pack as one file, with how to use it on the front. */
+  const downloadPack = () => {
+    if (!note || !pack.length) return;
+    const source = note.title.split(" — ")[0];
+    const blob = new Blob([packMarkdown(source, pack)], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${source.replace(/[^\w-]+/g, "-").toLowerCase()}-revision-pack.md`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const run = async (text: string, label?: string) => {
@@ -441,6 +554,9 @@ export function NotebookView({
 
   /** Read a file in and keep it. PDFs get their text pulled out; the rest
       are read as text, which covers markdown, plain notes and source. */
+  /** Set by the Study room's "Make a revision pack": the next source makes one. */
+  const packOnAttach = React.useRef(false);
+
   const attach = async (file: File) => {
     if (!noteId) return;
     setReading(true);
@@ -1095,11 +1211,22 @@ export function NotebookView({
                         book attached the page is not a draft to tidy, it is an
                         empty seat in front of the material — so the offer is
                         lessons, not proofreading. */}
+                    {pack.length > 0 && (
+                      <NoteChip busy={false} icon={<Download size={12} />} onClick={downloadPack}>
+                        Download the pack
+                      </NoteChip>
+                    )}
                     {sources.length ? (
                       <>
                         {/* First, because it is what somebody with a textbook
                             open and an exam coming actually wants, and the
                             other four were all there before it. */}
+                        {/* The pack first: it is the thing a student with a
+                            chapter and an exam actually needs, and the five
+                            single pages after it are its parts. */}
+                        <NoteChip busy={busy} icon={<BookMarked size={12} />} onClick={() => void runPack()}>
+                          Revision pack
+                        </NoteChip>
                         <NoteChip busy={busy} icon={<Highlighter size={12} />} onClick={() => void run(REVISION, "Revision notes")}>
                           Revision notes
                         </NoteChip>

@@ -2134,6 +2134,18 @@ export default function Page() {
                      inside an assistant rather than beside one, and this
                      is the whole of what that is worth. */
                   onAsk={(question) => void askInChat(question)}
+                  /* A new page in the Notebook, opened with the file picker
+                     up and the pack queued for whatever lands in it. */
+                  onPack={() => {
+                    void (async () => {
+                      const page = await createNote();
+                      setHanded({ text: "/pack", nonce: Date.now(), to: "notebook" });
+                      withTransition(() => {
+                        setNoteId(page.id);
+                        settings.setSection("notebook");
+                      }, "forward");
+                    })();
+                  }}
                 />
               )}
             </>

@@ -92,6 +92,41 @@ The thread through all of it: the products people rate highest in 2026 — Claud
 
 ---
 
+### 3b. Revision notes that raise marks — what the evidence says, and what the pack is
+
+The question was: a book goes in, and what comes out should make the person score as high as possible. So the question is really "which study techniques raise test scores", and that one has an answer.
+
+**The evidence.** Dunlosky, Rawson, Marsh, Nathan & Willingham, *Improving Students' Learning With Effective Learning Techniques* (Psychological Science in the Public Interest, 2013) reviewed ten techniques across hundreds of studies and rated them by utility:
+
+| Utility | Technique | What it is |
+|---|---|---|
+| **High** | Practice testing | Answering questions from memory — the "testing effect" |
+| **High** | Distributed practice | Spacing sessions out over days rather than one block |
+| Moderate | Elaborative interrogation | Asking "why is that true?" of each fact |
+| Moderate | Self-explanation | Explaining how a new idea relates to what you know |
+| Moderate | Interleaved practice | Mixing problem types in one session |
+| **Low** | Summarising | Writing a summary of the text |
+| **Low** | Highlighting | Marking the text |
+| **Low** | Rereading | Reading it again |
+| Low | Keyword mnemonic, imagery | |
+
+The five things almost every student actually does are the five rated low. Roediger & Karpicke (*Psychological Science*, 2006) put a number on the first row: after one reading, a group that was **tested** retained about 56% a week later; a group that **reread** three times retained about 42% — and the rereaders rated their own confidence higher. Bjork's "desirable difficulties" is the same result from the other side: the techniques that feel effortful in the session are the ones that survive to the exam, and the ones that feel fluent are the ones that don't.
+
+On marks specifically, every examiner's report in the English system says the same two things each year: candidates lose marks on the **command word** (a *describe* answered with reasons, an *evaluate* answered with a list, a *calculate* with no units) and on **not knowing what a full-mark answer contains** — the points the scheme is looking for.
+
+**Two formats built on that evidence.** Cornell notes (Walter Pauk, Cornell University, 1962): a page split into a narrow cue column of questions, a wide notes column, and a summary strip at the bottom — revised by covering the notes and answering the cues, which turns the page itself into a practice test. Knowledge organisers (English secondary schools, widespread after ~2015): one page per topic listing exactly what must be known — terms, facts, formulas, diagrams — ranked, used for low-stakes quizzing and "look, cover, write, check".
+
+**What the pack is, and why each piece.** A revision pack (`lib/revision.ts`) is made from one source and is four things, each a different way of being asked rather than a different way of being told:
+
+1. **Knowledge organiser** — must-know facts ranked most-examined first; key terms as a table; formulas with symbols named; processes as numbered steps; the five common mistakes with what to do instead; *how it is asked* — the command words for the topic and what a full-mark answer to each contains (`lib/exam.ts`); links to the topics either side. At most three `[!key]` callouts: a page where everything is highlighted has nothing highlighted.
+2. **Cornell notes** — six to twelve sections, each a `Cue | Notes` table where every cue is a question that can be got wrong (never "answered by the sentence before"), a three-sentence summary in the student's voice, and ten lines for the whole thing. Cover the right column: it is a retrieval sheet.
+3. **Exam questions with mark schemes** — twelve in three tiers (recall 1–2 marks, apply 3–4, evaluate 6–8), each with a per-mark scheme in the examiner's words, a model answer written the way a strong candidate writes under time, and the one line "where marks are lost". For evaluate questions, what separates the middle band from the top.
+4. **Cards into Study** — drafted from the organiser, so the ranked facts come back on the schedule (FSRS, `lib/study.ts`), which is the distributed practice row.
+
+The pack downloads as one markdown file whose first page says how to use it — read the organiser once then cover it and write it out; answer the cues with the notes covered; sit the questions under time before reading the schemes — because a pack read as a summary is a summary, and summarising is on the low-utility row. What is deliberately **not** in the pack: a summary, a highlighted version of the text, a "reread this" list.
+
+**Sources.** Dunlosky et al. 2013, PSPI 14(1) 4–58. Roediger & Karpicke 2006, Psychological Science 17(3) 249–255. Bjork & Bjork, "Making things hard on yourself, but in a good way" (2011). Pauk, *How to Study in College* (1962). Ofqual/AQA/Cambridge command-word guidance and examiners' reports (annual).
+
 ## 4. Tutor — a document beside the chat
 
 **Now.** PDF/image/text taken in and kept whole; page rendered; pen/finger/mouse marquee sends a crop as an image beside the page's text; page-aware asks; cards from the page into one deck per document; arrow keys, Escape, scroll-follow, drag-and-drop, undoable delete.
