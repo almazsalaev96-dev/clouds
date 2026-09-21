@@ -393,7 +393,10 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
       {/* ------------------------------------------------------- the page -- */}
-      <div className="flex min-h-0 flex-1 flex-col border-line lg:border-r">
+      {/* Stacked under lg the page keeps a fixed share of the screen and the
+          chat scrolls in the rest; left to flex, a chat with three answers in
+          it pushed the page down to a sliver on a phone. */}
+      <div className="flex min-h-0 flex-1 flex-col border-line max-lg:h-[46dvh] max-lg:flex-none lg:border-r">
         <header className="glass safe-top sticky top-0 z-10 flex h-[var(--topbar-h)] shrink-0 items-center gap-1.5 border-b border-line px-2">
           <button
             onClick={onLeave}
@@ -506,7 +509,7 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
       {/* ------------------------------------------------------- the chat -- */}
       <div
         className={cn(
-          "flex min-h-0 shrink-0 flex-col border-t border-line lg:border-t-0",
+          "flex min-h-0 flex-col border-t border-line max-lg:flex-1 lg:shrink-0 lg:border-t-0",
           /* With a pencil down the page is the thing; the chat gives it room. */
           penSeen ? "lg:w-[22rem] xl:w-[26rem]" : "lg:w-[26rem] xl:w-[30rem]",
         )}

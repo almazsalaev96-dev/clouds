@@ -169,6 +169,20 @@ console.log("\nAnd a study guide made from it lands in the Notebook");
   check(/osmosis — Study guide/.test(await p.locator("main").innerText()), "and it is there, named for the document");
 }
 
+console.log("\nOn a phone the page keeps its share of the screen");
+{
+  await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
+  await p.waitForTimeout(600);
+  await p.getByRole("button", { name: /Open osmosis\.pdf/ }).click();
+  await p.getByRole("img", { name: /Page 1 of osmosis\.pdf/ }).waitFor({ timeout: 20000 });
+  await p.setViewportSize({ width: 430, height: 932 });
+  await p.waitForTimeout(800);
+  const img = await p.getByRole("img", { name: /Page 1 of/ }).boundingBox();
+  const pane = await p.locator('[aria-label="Working through it"]').boundingBox();
+  check(img && img.height > 250 && img.y < 400, "the page is a page, not a sliver above the chat", img ? `page ${Math.round(img.height)}px tall at y=${Math.round(img.y)}` : "missing");
+  check(pane && pane.y + pane.height <= 932 && pane.height > 120, "and the chat scrolls in the rest of the screen", pane ? `chat ${Math.round(pane.height)}px ending at ${Math.round(pane.y + pane.height)}` : "missing");
+}
+
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors");
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 await b.close();
