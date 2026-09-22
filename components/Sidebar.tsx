@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  ChevronRight, Code2, FolderOpen, GraduationCap, Keyboard, MessagesSquare, NotebookPen,
+  ChevronRight, FolderOpen, GraduationCap, Keyboard, Library, MessagesSquare, NotebookPen,
   PanelLeft, Pin, PinOff, Plus, Search, Settings2, Sparkles, Trash2, X,
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
@@ -29,25 +29,45 @@ import { Segmented } from "@/components/ui/Segmented";
    and stays out of it — the conversations are the list underneath, and you get
    back to them by opening one or by starting a new one, which is what the two
    controls above this already do. */
+/* The order is the design, and it is not alphabetical or historical.
+   ---------------------------------------------------------------------
+   The serial-position effect is one of the oldest results in cognitive
+   psychology and it is about lists exactly like this one: the first and the
+   last item are found and remembered far more reliably than anything in the
+   middle. A six-room list therefore has two good seats and four ordinary
+   ones, and which rooms get them is a decision rather than an accident.
+
+   It was an accident. Study — the one room in this app that a chat window
+   structurally cannot be, and the reason somebody chooses this over the
+   thing they already have — sat fourth of six, which is the worst position
+   in the list. Creative sat last, holding the strongest seat in the column
+   for the room that is opened least.
+
+   So: Conversations first, because it is where nearly every session starts
+   and primacy is wasted on anything else. Study second, where it is still
+   above the fold of attention. The three supporting rooms in the middle,
+   which is what the middle is for. Library last, because "where is the
+   thing I made" is the other question people arrive with, and recency is
+   the seat for the destination you go looking for rather than the one you
+   land on. */
 const SECTIONS: { id: Section; label: string; icon: React.ReactNode }[] = [
   /* Conversations is in the list too, and has to be: with the header switch
      gone there was no way back to the thread you were reading except opening
      one, and "New chat" is not that — it is a different conversation. */
-  { id: "chat", label: "Conversations", icon: <MessagesSquare size={18} /> },
-  { id: "projects", label: "Projects", icon: <FolderOpen size={18} /> },
-  { id: "notebook", label: "Notebook", icon: <NotebookPen size={18} /> },
-  /* The one room here that a chat window structurally cannot be: every
-     assistant will write you flashcards, and none of them will ask you for
-     them next Tuesday. */
-  { id: "study", label: "Study", icon: <GraduationCap size={18} /> },
-  /* "Artifacts", not "Code". The room holds web apps, documents and code
-     files, and since a request in the chat lands here as a running thing it
-     mostly holds things that are not code at all — a deck of cards, a
-     timetable, a tracker. Claude calls this drawer Artifacts and is right
-     to: the name has to cover everything the app makes, and "Code" sent
-     everyone who was not a programmer straight past it. */
-  { id: "code", label: "Artifacts", icon: <Code2 size={18} /> },
-  { id: "creative", label: "Creative", icon: <Sparkles size={18} /> },
+  { id: "chat", label: "Conversations", icon: <MessagesSquare size={20} /> },
+  { id: "study", label: "Study", icon: <GraduationCap size={20} /> },
+  { id: "notebook", label: "Notebook", icon: <NotebookPen size={20} /> },
+  { id: "projects", label: "Projects", icon: <FolderOpen size={20} /> },
+  { id: "creative", label: "Creative", icon: <Sparkles size={20} /> },
+  /* "Library", not "Artifacts", and not "Code" before it. The room holds web
+     apps, documents and code files, and since a request in the chat lands
+     here as a running thing it mostly holds things that are not code at all
+     — a deck of cards, a timetable, a tracker. "Code" sent everyone who was
+     not a programmer straight past it; "Artifacts" is a word this industry
+     uses and nobody else does. "Library" is what a person calls the place
+     their own things are kept, and it is the word the tools they already use
+     put in the same slot. */
+  { id: "code", label: "Library", icon: <Library size={20} /> },
 ];
 
 export function Sidebar({
@@ -87,6 +107,15 @@ export function Sidebar({
           "glass safe-y no-print z-40 flex shrink-0 flex-col overflow-hidden border-r border-line",
           "fixed inset-y-0 left-0 w-[var(--sidebar-w)] transition-transform duration-[var(--dur-layout)] ease-[var(--ease-out)]",
           "md:relative md:z-auto md:transition-[width]",
+          /* On a desk and a tablet the column stops being a wall and
+             becomes a panel: inset from three edges, cornered, lifted,
+             with the page visible around it. A border welded to the
+             viewport edge says "this is the frame of the application";
+             a panel says "this is one surface among others", which is
+             the truer description of a list of rooms. Flush on a phone,
+             where the drawer covers the screen and a margin around it
+             would be a gap to nowhere. */
+          "md:my-2 md:ml-2 md:rounded-xl md:border-r-0 md:shadow-md",
           sidebarOpen
             ? "translate-x-0 md:w-[var(--sidebar-w)]"
             : "-translate-x-full md:w-[var(--rail-w)] md:translate-x-0",
@@ -136,9 +165,9 @@ export function Sidebar({
           <div className="space-y-1 px-2 pb-2">
             <button
               onClick={onNewChat}
-              className="tap group flex h-9 w-full items-center gap-2 rounded-md border border-line bg-canvas px-2.5 text-sm font-medium text-primary transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
+              className="tap group flex h-11 w-full items-center gap-3 rounded-md border border-line bg-canvas px-3 text-[0.9375rem] font-medium text-primary transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
             >
-              <Plus size={15} className="text-tertiary transition-colors duration-[var(--dur-fast)] group-hover:text-accent" />
+              <Plus size={17} className="text-tertiary transition-colors duration-[var(--dur-fast)] group-hover:text-accent" />
               New chat
               <span className="ml-auto reveal">
                 <Kbd keys={["mod", "N"]} />
@@ -203,13 +232,20 @@ export function Sidebar({
                     data-on={on}
                     onClick={() => onGoToSection(s.id)}
                     aria-current={on}
-                    /* 36 tall, 10 of side padding, an 18px mark. It was 32/8/15,
-                       which is a row built to the size of its text rather than
-                       to the size of a thing you point at — the spec's floor
-                       for a navigation item is 36, and the four pixels are the
-                       difference between a list you read and a list you use. */
+                    /* 44 tall, 12 of side padding, a 20px mark, and the label
+                       at 15 rather than 14.
+
+                       It went 32 → 36 → 44 and each step was the same
+                       argument won more completely: a row built to the size
+                       of its text is a row you read, and this is a row you
+                       put a finger on. 36 was the floor for a pointer; 44 is
+                       the floor Apple sets for a touch target and the size
+                       every tablet-first tool in this class has settled on,
+                       measured off the reference at ~42. On a desk the extra
+                       height costs nothing but air, which a list of six
+                       rooms has to spare. */
                     className={cn(
-                      "tap flex h-9 w-full items-center gap-2.5 rounded-sm px-2.5 text-sm transition-colors duration-[var(--dur-fast)]",
+                      "tap flex h-11 w-full items-center gap-3 rounded-md px-3 text-[0.9375rem] transition-colors duration-[var(--dur-fast)]",
                       // The row only changes the colour of its ink; the fill
                       // underneath it is the one element that moves.
                       on ? "font-medium text-primary" : "text-secondary hover:bg-canvas hover:text-primary",

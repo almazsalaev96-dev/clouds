@@ -433,3 +433,64 @@ never carries text, never means a state, and never becomes a fifth accent
 paper it lands on is white at midnight too. Ink under a 0.38 wash of it
 reads at 15.1, which is the point: the words stay the words.
 
+### §4g — Where a room belongs in a list
+
+The ask was for the shell of the reference app: the panel, the colour, the
+sizes, "put them to perfect psychological place". The first three are
+measurement. The fourth is an actual result from cognitive psychology, and
+it had been ignored.
+
+**The serial-position effect** — first described by Ebbinghaus, and one of
+the most reliably replicated findings in the field — is that the first and
+last items in a list are recalled far more readily than anything in the
+middle. It is about lists exactly like a column of rooms: six entries means
+two good seats and four ordinary ones, and which room gets which is a
+decision whether or not anybody makes it.
+
+Nobody had made it. The order was the order the rooms were built in:
+
+| seat | was | strength |
+|---|---|---|
+| 1 — primacy | Conversations | strong |
+| 2 | Projects | ordinary |
+| 3 | Notebook | ordinary |
+| 4 | **Study** | weakest position in the list |
+| 5 | Artifacts | ordinary |
+| 6 — recency | Creative | strong |
+
+Study — the one room a chat window structurally cannot be, and the reason
+somebody picks this over the tool they already have — sat in the single
+worst position. Creative, the least-opened room, held the second-strongest
+seat in the column.
+
+The order now is Conversations, Study, Notebook, Projects, Creative,
+Library. Primacy goes to where nearly every session starts; the seat below
+it to the room that is the product's reason to exist; the middle to the
+three supporting rooms, which is what a middle is for; and recency to
+Library, because "where is the thing I made" is the other question people
+arrive with, and the last seat suits a destination you go *looking* for
+rather than one you land on.
+
+**Sizes, measured off the reference rather than guessed.** Rows went 32 →
+36 → 44. Each step was the same argument won more completely: a row built
+to the size of its text is a row you read, and this is a row you put a
+finger on. 36 was the floor for a pointer; 44 is Apple's floor for a touch
+target and what the reference measures at (~42 at its scale). Icons 18 →
+20, label 14 → 15, side padding 10 → 12.
+
+**The panel, not the wall.** A border welded to the viewport edge says
+"this is the frame of the application". A panel inset from three edges,
+cornered and lifted, says "this is one surface among others" — which is the
+truer description of a list of rooms, and is what all three references do
+now. Flush on a phone, where a drawer covers the screen and a margin would
+be a gap to nowhere.
+
+**And the light ground, by the same method as §4f.** The canvas was
+defensible at 0.0086 chroma (Gemini's surface is 0.0079), but everything
+above it was not: `bg-subtle` at 0.020, the borders at 0.019, and **every
+word of text at 0.030**. Cut to 35%, the text lands at 0.011 and the
+surfaces between 0.003 and 0.007 — inside the band the three references
+occupy (ChatGPT 0.000, Claude 0.0054, Gemini 0.0079). Contrast moves by
+under 0.05 on every pair, for the same reason as before: luminance carries
+contrast and none of it changed. The light mesh is halved too.
+

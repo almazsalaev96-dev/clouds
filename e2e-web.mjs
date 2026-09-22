@@ -38,7 +38,7 @@ await page.waitForTimeout(900);
 
 /* --------------------------------------------------------------- create -- */
 
-await page.locator("aside nav").getByRole("button", { name: "Artifacts" }).first().click();
+await page.locator("aside nav").getByRole("button", { name: "Library" }).first().click();
 await page.waitForTimeout(400);
 check(await page.getByRole("button", { name: /Web app/ }).isVisible().catch(() => false), "the index offers the three shapes a canvas can be");
 

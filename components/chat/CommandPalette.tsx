@@ -4,7 +4,7 @@ import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  Code2, Download, FileText, FolderOpen, MessageSquare, MessageSquarePlus, Moon,
+  Code2, Download, FileText, FolderOpen, Library, MessageSquare, MessageSquarePlus, Moon,
   Columns2, GraduationCap, NotebookPen, Palette, PanelLeft, Settings2, Sparkles, Sun, Trash2, Type, Wand2,
 } from "lucide-react";
 import { db } from "@/lib/db";
@@ -68,7 +68,7 @@ function bodyScore(query: string, body?: string): number {
    name did not find it, and a hit inside a thread should never push the
    thread itself down the list. */
 const GROUP_ORDER = [
-  "Actions", "Go to", "View", "Models", "Chats", "Projects", "Artifacts", "Notebook", "Study",
+  "Actions", "Go to", "View", "Models", "Chats", "Projects", "Library", "Notebook", "Study",
   "In conversations", "In cards",
 ];
 /** No single kind of thing may fill the list and bury the rest. */
@@ -267,7 +267,7 @@ export function CommandPalette({
     const nav: Command[] = (
       [
         ["chat", "Chats", <MessageSquare key="c" size={15} />],
-        ["code", "Artifacts", <Code2 key="k" size={15} />],
+        ["code", "Library", <Library key="k" size={15} />],
         ["creative", "Creative", <Sparkles key="v" size={15} />],
         ["projects", "Projects", <FolderOpen key="j" size={15} />],
         ["notebook", "Notebook", <NotebookPen key="n" size={15} />],
@@ -309,7 +309,7 @@ export function CommandPalette({
       hint: c.content.split("\n").find((l) => l.trim()) ?? "Empty",
       body: c.content,
       icon: <Code2 size={15} />,
-      group: "Artifacts",
+      group: "Library",
       run: () => actions.open("code", c.id),
     }));
 

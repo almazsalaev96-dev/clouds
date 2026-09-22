@@ -79,7 +79,7 @@ console.log("\nNotebook and Artifacts: previews are prose");
   const t = await main();
   check(!/#{1,6} |^- |\s- Hypotonic/m.test(t), "no heading or bullet marks leak into a row", (t.match(/Water moves[^\n]*/) ?? [""])[0]);
   check(/The three words Hypotonic Isotonic Hypertonic/.test(t), "the words are all still there");
-  await go("Artifacts");
+  await go("Library");
   const a = await main();
   check(!/# Essay plan/.test(a) && /Essay plan/.test(a), "a document's row shows its text, not its heading mark", (a.match(/Essay plan[^\n]*\n[^\n]*/) ?? [""])[0].replace(/\n/g, " · "));
 }

@@ -106,7 +106,7 @@ console.log("\nThe study session's hint names what a finger can do");
 
 console.log("\nA made thing's header fits a phone");
 {
-  await drawer("Artifacts");
+  await drawer("Library");
   await p.locator("main").getByText("Flashcards").first().click();
   await p.waitForTimeout(1200);
   const back = await p.getByRole("button", { name: "All canvases" }).boundingBox();
@@ -130,7 +130,7 @@ console.log("\nA made thing's header fits a phone");
 
 console.log("\nThe last dashed boxes are gone, and the starters share rows");
 {
-  await drawer("Artifacts");
+  await drawer("Library");
   const dashed = await p.locator("main").evaluate((m) => [...m.querySelectorAll("*")].filter((el) => getComputedStyle(el).borderTopStyle === "dashed").length);
   check(dashed === 0, "nothing on the Artifacts room is drawn with a dashed border", `${dashed} dashed`);
   const tops = await p.locator("main").getByRole("button", { name: /Web app|Code file|Document|Open files/ }).evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
