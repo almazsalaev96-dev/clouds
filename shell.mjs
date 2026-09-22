@@ -93,10 +93,12 @@ console.log("\nOn a desktop window");
   await ctx.close();
 }
 
-console.log("\nCollapsed on a desktop window");
+console.log("\nHidden on a desktop window");
 {
-  /* A collapsed sidebar is a rail, not an absence: 64-72px of live controls
-     with the rooms one press away. It used to be zero and inert. */
+  /* Hidden is hidden. There used to be a 64-72px rail of icons left behind
+     on a desk; the person who hid the panel on a tablet wanted the page,
+     not a thinner panel. Nothing is left, nothing is reachable, and the
+     one switch in the bar brings it back. */
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
   await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
@@ -104,13 +106,13 @@ console.log("\nCollapsed on a desktop window");
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(700);
   const aside = await p.locator("aside").boundingBox();
-  band(aside ? aside.width : null, 64, 72, "the rail");
+  check(!aside || aside.width <= 1, "the sidebar takes no width at all", aside ? `${Math.round(aside.width)}px` : "not laid out");
   const inert = await p.locator("aside").evaluate((n) => n.hasAttribute("inert"));
-  check(!inert, "and it is live, not inert");
-  const rooms = await p.locator("aside nav button").count();
-  check(rooms === 6, "with every room one press away", `${rooms} buttons`);
+  check(inert, "and what is inside it cannot be reached by tab");
+  const mainX = await p.locator("main").boundingBox();
+  check(Boolean(mainX) && mainX.x <= 8, "so the page starts at the left edge", mainX ? `${Math.round(mainX.x)}px in` : "no main");
   const toggles = await p.getByRole("button", { name: "Show sidebar" }).count();
-  check(toggles === 1, "and exactly one way to open it, in the rail", `${toggles} found`);
+  check(toggles === 1, "and exactly one way to bring it back, in the bar", `${toggles} found`);
   await ctx.close();
 }
 

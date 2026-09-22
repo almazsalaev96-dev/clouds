@@ -4,7 +4,7 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   ChevronRight, FolderOpen, GraduationCap, Keyboard, Library, MessagesSquare, NotebookPen,
-  PanelLeft, Pin, PinOff, Plus, Search, Settings2, Sparkles, Trash2, X,
+  Pin, PinOff, Plus, Search, Settings2, Sparkles, Trash2, X,
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { db, deleteConversation, groupConversations } from "@/lib/db";
@@ -12,7 +12,6 @@ import { useDebounced } from "@/lib/hooks/useDebounced";
 import { Lockup } from "@/components/brand/Logo";
 import { offerUndo } from "@/lib/undo";
 import { useSettings, type Section } from "@/lib/store";
-import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 import { IconButton, Kbd, Tooltip } from "@/components/ui/primitives";
 import { Segmented } from "@/components/ui/Segmented";
@@ -91,12 +90,11 @@ export function Sidebar({
      left running behind a shut box is a list that is missing rows for a
      reason nobody can see. */
   const [searching, setSearching] = React.useState(false);
-  /* A desk gets a rail when this is closed; a phone gets nothing, off-screen.
-     The breakpoint is the same `md` the classes below switch on, so the two
-     can never disagree about which one you are looking at. */
-  const desktop = useMediaQuery("(min-width: 48rem)");
-  const rail = !sidebarOpen && desktop;
-
+  /* Closed is closed. It used to leave a 72px rail of icons on a desk,
+     on the theory that "collapse" is not "hide" — and the person hiding
+     the panel on a tablet did not want a thinner panel, they wanted the
+     page. The rooms are one press away through the switch in the bar,
+     which never moves, and through the palette. */
   return (
     <>
       {sidebarOpen && (
@@ -122,7 +120,7 @@ export function Sidebar({
           "md:my-2 md:ml-2 md:rounded-xl md:border-r-0 md:shadow-md",
           sidebarOpen
             ? "translate-x-0 md:w-[var(--sidebar-w)]"
-            : "-translate-x-full md:w-[var(--rail-w)] md:translate-x-0",
+            : "-translate-x-full md:w-0 md:translate-x-0 md:my-0 md:ml-0 md:shadow-none",
         )}
         /* `inert` as well as `aria-hidden`, and the pair is the point.
            Collapsed, this becomes `w-0` with `overflow-hidden` — clipped to
@@ -135,21 +133,9 @@ export function Sidebar({
            browser makes it worse by scrolling a focused child of an
            `overflow:hidden` box into view, which drags the clipped column
            back over the page. `inert` removes both at once. */
-        /* …and only when there is nothing to reach. Collapsed on a desk the
-           rail is a column of live controls; collapsed on a phone the drawer
-           is off-screen and has to be inert for the reason above. */
-        inert={!sidebarOpen && !desktop}
-        aria-hidden={!sidebarOpen && !desktop}
+        inert={!sidebarOpen}
+        aria-hidden={!sidebarOpen}
       >
-        {rail ? (
-          <Rail
-            section={section}
-            name={name}
-            onGoToSection={onGoToSection}
-            onNewChat={onNewChat}
-            onOpenSettings={onOpenSettings}
-          />
-        ) : (
         <div className="flex w-[var(--sidebar-w)] flex-1 flex-col">
           {/* The name, and one round control. The switch that hides this
               panel is not here any more — it was a button drawn on the thing
@@ -338,76 +324,8 @@ export function Sidebar({
             </IconButton>
           </div>
         </div>
-        )}
       </aside>
     </>
-  );
-}
-
-/* ------------------------------------------------------------------ rail -- */
-
-/* The sidebar, folded.
-   Everything that was a row becomes its icon, in the same order and at the
-   same height, so the eye that learned the open list finds each thing where
-   it was. The rooms keep their sliding mark. The search box and the history
-   are the two things that do not fold — a search field with no room for a
-   query is a decoration, and the history is what you opened the sidebar to
-   see — so pressing the toggle is how you get to them, which is where the
-   toggle was anyway. Every icon carries its name as a tooltip and as its
-   accessible name, so nothing here is a guess. */
-function Rail({
-  section,
-  name,
-  onGoToSection,
-  onNewChat,
-  onOpenSettings,
-}: {
-  section: Section;
-  name: string;
-  onGoToSection: (section: Section) => void;
-  onNewChat: () => void;
-  onOpenSettings: () => void;
-}) {
-  return (
-    <div className="flex w-[var(--rail-w)] flex-1 flex-col items-center">
-      {/* No copy of the switch here any more. It is in the bar beside the
-          model, where it stays whether this is a rail or a panel — and two
-          controls with one job is how a person learns that neither is the
-          real one. The rail keeps the rooms, which is what it is for. */}
-      <div className="h-[var(--topbar-h)]" aria-hidden />
-
-      <div className="pb-2">
-        <IconButton label="New chat" keys={["mod", "N"]} onClick={onNewChat} className="border border-line bg-canvas">
-          <Plus size={18} />
-        </IconButton>
-      </div>
-
-      <nav aria-label="Sections">
-        <Segmented value={section} indicatorClassName="rounded-sm bg-subtle" className="flex flex-col items-center gap-1">
-          {SECTIONS.map((s) => {
-            const on = section === s.id;
-            return (
-              <IconButton
-                key={s.id}
-                label={s.label}
-                data-on={on}
-                aria-current={on}
-                onClick={() => onGoToSection(s.id)}
-                className={cn("rounded-sm", on ? "text-accent hover:text-accent" : "")}
-              >
-                {s.icon}
-              </IconButton>
-            );
-          })}
-        </Segmented>
-      </nav>
-
-      <div className="mt-auto flex flex-col items-center border-t border-line py-2">
-        <IconButton label={name.trim() ? `Settings — ${name.trim()}` : "Settings"} onClick={onOpenSettings}>
-          <Settings2 size={16} />
-        </IconButton>
-      </div>
-    </div>
   );
 }
 
