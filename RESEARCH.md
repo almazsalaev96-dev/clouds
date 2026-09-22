@@ -433,6 +433,74 @@ never carries text, never means a state, and never becomes a fifth accent
 paper it lands on is white at midnight too. Ink under a 0.38 wash of it
 reads at 15.1, which is the point: the words stay the words.
 
+### §4i — Gold or blue: which colour should the action be
+
+Asked to bring the gold back "if it is better than the blue, and if not,
+not", the answer had to be a measurement, because the last time the
+question came up it was settled by taste, twice, in opposite directions.
+
+**What the references do.** Three of the four assistants this app is held
+against use one warm or one cool accent and nothing else. ChatGPT: a blue
+disc for voice and a blue pill for the new chat, no accent anywhere else.
+Gemini: a blue-to-violet gradient on the brand and the send control. Claude:
+a single terracotta (`#c96442` on dark, `#da7756` on light) on the send
+control and the brand, on a warm neutral ground — and it is the one of the
+three whose dark theme people describe as "premium" rather than "dark
+mode". Warm accent on a black ground is a known read: it is what the
+reference with the best-liked dark theme does, and it is what this app's
+own identity — a fountain pen, ink and a gold nib — did before the blue
+round replaced it.
+
+**Legibility, dark.** The question was whether gold can do the cyan's job
+on black without losing anything, and it can:
+
+| role | cyan (before) | gold (after) | on |
+|---|---|---|---|
+| signal, text strength | `#7ecdcd` 11.4 | `#d9b45a` 10.6 | black |
+| signal on a panel | 9.8 | 9.1 | `#171717` |
+| signal on a field | 8.3 | 7.7 | `#262626` |
+| the button, ink on fill | `#84d1d1` 10.7 | `#c29e3f` 7.2 (held level with the light button's 5.5) | its own fill |
+| the ink for reading | `#4babac` 7.0 | `#c09e4a` 7.0 | the bar |
+
+Every pair stays far above AA, and the ink for reading is solved to the
+same 7.0 target the cyan was, so the wordmark weighs what it weighed.
+
+**Legibility, light — the fact that decides placement.** Gold cannot carry
+text on a light page. `#d4af5a` measures 1.9 against the canvas; to reach
+4.6 it has to darken to `#8c6b06`, which is an ochre, and to the 7.0 the
+ink target asks for, `#6e4e00`, which is brown. That is not a flaw to fix,
+it is what gold is: a colour of high lightness. So in the light theme gold
+is a **fill and a stroke, never a word** — the button (an old gold, `#ac8830`, the lightest that still holds the
+3:1 edge the app's own gate asks of a control, 5.5 with the ink on it),
+the highlight chip in the bright gold with an ochre edge, the search mark — and wherever the signal has to be read as a letterform it is the
+ochre ink. That is precisely the rule the app's first identity wrote down
+("gold is the nib — a jewel, never a surface") and the blue round threw
+away.
+
+**The collisions, measured in OKLab.** A new accent has to stay away from
+the three colours that mean something.
+
+| pair | ΔE | verdict |
+|---|---|---|
+| gold vs the marker `#ffd23f` | 10.5 dark · 12.0 light | apart — and the marker is only ever a wash on a page, the gold only ever a stroke or fill |
+| gold vs the warning, before `#ebab72` | **5.0** | too close for a colour-blind reader |
+| gold vs the warning, after `#f39a6e` | 8.5 | apart; the warning moved one step toward red and still reads at 9.7 on black |
+| gold vs danger `#f6979d` | 15 | apart |
+| gold vs chart-2 `#ce7c22` | 13.8 | apart; the chart set is untouched |
+
+The one cost of the change is the warning colour moving, and it moved to a
+value that is better separated from the gold than it was from the old cyan
+was from the go-green (6.7).
+
+**Verdict.** Gold is the action colour, in both themes: the send disc, the
+one button a screen asks you to press, the ring while an answer arrives,
+the live dot, the caret's leading edge, the search mark, the letter in the
+wordmark. Blue stays structure — links, the active row, focus. Yellow stays
+the highlighter. Gold never becomes text in light, and never becomes a
+fifth accent anywhere. Where it goes is not "where it was in the old
+screenshot"; it is where the signal colour already went, because those are
+the places the eye is meant to land.
+
 ### §4g — Where a room belongs in a list
 
 The ask was for the shell of the reference app: the panel, the colour, the

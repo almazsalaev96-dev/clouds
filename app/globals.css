@@ -146,7 +146,7 @@
      glows on the dark theme scores about 1.6 here. This is the same hue at
      a lightness that clears 4.5 against the page, so the one colour that
      means "powered" can also be read at 12px. */
-  --accent-2: #007d95;
+  --accent-2: #8c6b06;
   /* The signal at text strength. --accent-2 is tuned to be *seen* — a rim, a
      fill, a dot — and a colour tuned to be seen is not automatically a colour
      that can be read: on the light bar the raw signal measures 4.44, which is
@@ -155,7 +155,7 @@
      solved for reading instead: same hue, one target (7.0) both themes hit on
      the bar they actually sit on. Use it wherever the signal has to be a
      letterform rather than a shape. */
-  --accent-2-ink: #005e5f;
+  --accent-2-ink: #6e4e00;
   /* Series colours for a chart in an answer. Four, and never a fifth: the
      palette was validated for exactly four adjacent slots (worst
      colour-blind separation ΔE 13.5, all above 3:1 on the surface) and a
@@ -168,13 +168,17 @@
   --chart-2: #d27908;
   --chart-3: #006c48;
   --chart-4: #ba71cb;
-  --accent-2-rgb: 0 125 149;
+  --accent-2-rgb: 140 107 6;
 
   /* Act, deepened for daylight. */
-  --cta: #132d6c;
-  --cta-hover: #091f57;
-  --cta-fg: #f3f6fc;
-  --cta-rgb: 19 45 108;
+  /* Old gold, not the bright one: the lightest gold that still holds the
+     3:1 edge the app asks of every control on the light page (3.07), with
+     5.5 for the ink on it. The bright gold is a fill for things that carry
+     their own edge — the highlight chip, the mark. */
+  --cta: #ac8830;
+  --cta-hover: #a07c21;
+  --cta-fg: #1a1400;
+  --cta-rgb: 172 136 48;
 
   /* The loud one. Only ever a badge, only ever with the ink on top.
      Cyan at the value that reads as lit sits near 1.6 against a light page:
@@ -182,22 +186,22 @@
      is not a badge. It keeps its true value and borrows the ink for an
      outline instead, rather than being dulled into a colour nobody would
      call a signal. */
-  --highlight: #4cdbe3;
-  --highlight-fg: #071a1a;
-  --highlight-edge: #161c2b;
+  --highlight: #d4af5a;
+  --highlight-fg: #1a1400;
+  --highlight-edge: #8f6f12;
   /* The highlighter. */
-  --mark: #b1ecef;
+  --mark: #fbe9b0;
   --mark-fg: #161c2b;
 
   /* --- Status. --- */
-  --live: #007d95;
+  --live: #8c6b06;
   --go: #006d45;
   --stop: #ac3037;
 
   --stop-fill: #ac3037;
 
   --success: var(--go);
-  --warning: #995600;
+  --warning: #9c3b00;
   --danger: var(--stop);
   --danger-subtle: #ffe4e2;
 
@@ -225,9 +229,9 @@
      not barely there enough. Halved, for the reason the dark one was: four
      washes across the whole page are not depth, they are a tint over every
      word, and none of the three grounds this is measured against has one. */
-  --mesh-a: rgba(76, 219, 227, 0.05);
+  --mesh-a: rgba(212, 175, 90, 0.05);
   --mesh-b: rgba(34, 83, 207, 0.035);
-  --mesh-c: rgba(0, 125, 149, 0.025);
+  --mesh-c: rgba(140, 107, 6, 0.025);
   --grain-opacity: 0.035;
   --glass: rgba(243, 246, 252, 0.78);
   --glow: none;
@@ -483,7 +487,7 @@
      never turns off, which the comment on `.composer-shell` warns about and
      which the tokens then went and built. The line warms, the shadow
      deepens, and neither of those is a colour you notice first. */
-  --composer-line-focus: rgba(0, 125, 149, 0.34);
+  --composer-line-focus: rgba(140, 107, 6, 0.34);
   /* The one surface you look at in every session, so it sits a clear step
      above the page rather than a suspicion above it: the resting shadow used
      to be pulled back 16px of spread out of 32 of blur, which on paper is no
@@ -585,10 +589,17 @@
     --accent-rgb: 163 186 231;
     /* The one coloured element in the wordmark. */
 
-    --accent-2: #7ecdcd;
+    /* The signal is gold now, not cyan — the nib the brand began with,
+       brought back on the evidence in RESEARCH §4i: on black it reads at
+       10.6, the cyan's equal, and warm-on-black is the read the reference
+       with the best-liked dark theme has. It is the *action* colour only:
+       the send disc, the one button a screen asks you to press, the ring
+       while an answer arrives, the letter in the wordmark. Blue stays
+       structure. The marker stays the highlighter, ΔE 10.5 away. */
+    --accent-2: #d9b45a;
     /* The signal at text strength — see the light block. Solved against the
        dark bar to the same 7.0, so the wordmark weighs the same in both. */
-    --accent-2-ink: #4babac;
+    --accent-2-ink: #c09e4a;
     /* The same four hues stepped for the dark surface — inside the 0.48–0.67
        lightness band, not a flip of the light values — and validated as a
        set against #141a28 (worst colour-blind separation ΔE 9.4). */
@@ -596,7 +607,7 @@
     --chart-2: #ce7c22;
     --chart-3: #007d54;
     --chart-4: #b774c7;
-    --accent-2-rgb: 126 205 205;
+    --accent-2-rgb: 217 180 90;
 
     /* Green at its true value, carrying the ink rather than white: at this
        brightness it is a lit surface, and white on it is unreadable. */
@@ -604,15 +615,18 @@
        its light-theme counterpart already had: 11.04 against the ink on it,
        where it was 8.89 and the light theme's deep-ink button was 11.67. Same
        hue, same nib; a little more of it. */
-    --cta: #84d1d1;
-    --cta-hover: #a9dfdf;
-    --cta-fg: #031515;
-    --cta-rgb: 132 209 209;
+    /* A step below the signal, so the ink on it weighs what the ink on the
+       light button weighs (7.2 against 5.5; theme-parity holds the two
+       within reach of each other). It still reads at 8.3 on black. */
+    --cta: #c29e3f;
+    --cta-hover: #cfaa4d;
+    --cta-fg: #1a1400;
+    --cta-rgb: 194 158 63;
 
     /* On the deep teal it carries its own edge, so the outline is the colour. */
-    --highlight: #7ecdcd;
-    --highlight-fg: #031515;
-    --highlight-edge: #6fdcdc;
+    --highlight: #d9b45a;
+    --highlight-fg: #1a1400;
+    --highlight-edge: #e6c26a;
 
     /* The one token in the book that does not step with the theme, and the
        reason is that what it is drawn on does not either: a marker only ever
@@ -621,21 +635,21 @@
        it to the room around the paper rather than to the paper. */
     --marker: #ffd23f;
     --marker-rgb: 255 210 63;
-    --mark: #004049;
+    --mark: #3a2f0a;
     --mark-fg: #e4e4e4;
 
-    --live: #6fdcdc;
+    --live: #e6c26a;
     --go: #6fd2a4;
     --stop: #f6979d;
 
     --stop-fill: #b84c58;
 
     --success: var(--go);
-    --warning: #ebab72;
+    --warning: #f39a6e;
     --danger: var(--stop);
     --danger-subtle: #3c161a;
 
-    --mesh-a: rgba(111, 220, 220, 0.018);
+    --mesh-a: rgba(217, 180, 90, 0.018);
     --mesh-b: rgba(146, 180, 248, 0.014);
     --mesh-c: rgba(232, 232, 232, 0.008);
     --grain-opacity: 0.045;
@@ -718,7 +732,7 @@
        ground lost its blue. */
     --composer-bg: rgba(23, 23, 23, 0.9);
     --composer-line: rgba(231, 232, 233, 0.10);
-    --composer-line-focus: rgba(111, 220, 220, 0.38);
+    --composer-line-focus: rgba(217, 180, 90, 0.42);
     --composer-lift: inset 0 1px 0 rgb(231 232 233 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
     /* The ring around the box you type in, only while the caret is in it, and
        in the cyan of the signal rather than in the structural blue: it marks
