@@ -453,20 +453,18 @@ function AssistantMessageImpl({
         {/* Why this one, when the app chose it rather than you. A router you
             cannot see is a router you cannot correct — and "it picked a cheap
             model for my hard question" is only a complaint you can make if you
-            were told which and why. */}
-        {said && (
-          <span
-            className="min-w-0 truncate text-tertiary"
-            /* The same text the line shows, not the raw string. What is
-               stored begins with a name — and, in anything written by a build
-               from before the rebrand, with an engine's name. It is taken out
-               of both the line and the tooltip: a line written last month is
-               read today. */
-            title={said}
-          >
-            {said}
-          </span>
-        )}
+            were told which and why.
+
+            On its own line, whole. It used to share the name's row under a
+            `truncate`, so every answer in the app was topped by a sentence
+            cut off mid-word with an ellipsis — the most repeated piece of
+            furniture in the transcript, and the one that always looked
+            broken. Hiding it was the wrong repair: six separate claims this
+            app makes about its own honesty are made *in* this line — that
+            the checker came from another company, that a turn went round
+            twice, that the engine it wanted was not available. A sentence
+            worth saying is worth the room to say it, so it gets a line. */}
+
         <span className="reveal flex items-center gap-2">
           {message.latencyMs != null && (
             <span className="tnum" title={describeTiming(message.latencyMs, message.ttftMs)}>
@@ -532,6 +530,8 @@ function AssistantMessageImpl({
           </span>
         )}
       </div>
+
+      {said && <p className="-mt-1 mb-2 text-meta text-tertiary">{said}</p>}
 
       {message.reasoning && <Reasoning text={message.reasoning} ms={message.ttftMs} />}
 

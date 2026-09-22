@@ -539,8 +539,6 @@ function Row({
         active ? "bg-accent-subtle" : "hover:bg-canvas",
       )}
     >
-      {active && <span aria-hidden className="absolute left-0 top-1.5 h-5 w-0.5 rounded-full bg-accent" />}
-
       {/* `h-full`, because a row is a target and a line of text is not. The
           button used to be as tall as its own text — 21px inside a 32px row —
           so the eleven pixels of air that make the row comfortable to read
@@ -557,7 +555,13 @@ function Row({
         <span className="flex min-w-0 flex-1 items-baseline gap-2">
           {/* A hollow bullet, at the weight of a hairline. The rows had nothing
               down their left edge, so a long title and a short one started in
-              the same place but did not look like they did. */}
+              the same place but did not look like they did.
+
+              It is also the only mark the active row needs beside its fill.
+              There used to be a third: a vertical bar pinned to `left-0`,
+              which sat *outside* the pill's rounded corner and read as a
+              line poking out of it rather than as a marker. Three signals
+              for one state, and the third was the one that looked broken. */}
           <span
             aria-hidden
             className={cn(
