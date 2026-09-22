@@ -97,6 +97,39 @@ console.log("\nNotebook and Library: previews are prose");
     (a.match(/[^\n]*\|[^\n]*/) ?? ["none"])[0]);
 }
 
+console.log("\nLibrary: one room for everything made");
+{
+  /* It listed canvases and only canvases, under a name that promised more.
+     The page written in the Notebook a moment ago is in the same list now,
+     and opens into the room that edits it. */
+  await go("Library");
+  const lib = p.getByRole("list", { name: "Library" });
+  check(/Hypotonic/.test(await lib.innerText()), "a page from the Notebook is listed beside the documents",
+    (await lib.innerText()).split("\n").find((l) => /Hypotonic/.test(l)) ?? "not there");
+  const chips = p.getByRole("group", { name: "Kinds" });
+  check(await chips.isVisible(), "with a row of kinds to narrow it by");
+  await chips.getByRole("button", { name: "Pages" }).click();
+  await p.waitForTimeout(300);
+  check(/Hypotonic/.test(await lib.innerText()) && !/Essay plan/.test(await lib.innerText()),
+    "Pages keeps the page and drops the document");
+  await chips.getByRole("button", { name: "Documents" }).click();
+  await p.waitForTimeout(300);
+  check(/Essay plan/.test(await lib.innerText()) && !/Hypotonic/.test(await lib.innerText()),
+    "Documents does the reverse");
+  await chips.getByRole("button", { name: "All" }).click();
+  await p.waitForTimeout(300);
+  /* And opening the page lands in the Notebook, not in a canvas editor. */
+  await lib.locator("li", { hasText: "Hypotonic" }).getByRole("button", { name: /^Open / }).first().click();
+  /* Waited for, not glanced at: the Notebook is its own chunk. And read off
+     the editor's value rather than the pane's text — a textarea's content is
+     not in `innerText`, which is where the first draft of this looked. */
+  const inEditor = await p.getByRole("button", { name: "Preview" }).waitFor({ timeout: 4000 }).then(() => true).catch(() => false);
+  const body = inEditor ? await p.locator("main textarea").first().inputValue().catch(() => "") : "";
+  check(inEditor && /Hypotonic/.test(body),
+    "and opening it goes to the Notebook's editor, the room that edits a page",
+    inEditor ? `editor holds ${body.length} chars` : "no editor");
+}
+
 console.log("\nStudy: no NaN, and cards in the order they matter");
 {
   await go("Study");

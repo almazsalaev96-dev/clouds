@@ -35,10 +35,13 @@ await page.waitForTimeout(900);
 /* --------------------------------------------------------------- create -- */
 
 await page.locator("aside nav").getByRole("button", { name: "Library" }).first().click();
-await page.waitForTimeout(400);
-check(await page.getByText("Nothing made yet.").isVisible().catch(() => false), "the empty state explains what lands here");
+/* Waited for rather than glanced at: the Library is its own chunk now, like
+   the other rooms, and arrives after a round trip plus three queries. A
+   400ms glance was a race the claim did not need to run. */
+check(await page.getByText("Nothing made yet.").waitFor({ timeout: 4000 }).then(() => true).catch(() => false),
+  "the empty state explains what lands here");
 
-await page.getByRole("button", { name: /New canvas/i }).first().click();
+await page.getByRole("button", { name: /New (canvas|document)/i }).first().click();
 await page.waitForTimeout(600);
 
 const body = page.getByLabel("Canvas content");

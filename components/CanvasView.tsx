@@ -183,7 +183,7 @@ export function CanvasView({
  * shapes are not variations of a setting you would go looking for — they are
  * different rooms, and the only moment anyone is deciding between them is now.
  */
-function Starters({ onSelect }: { onSelect: (id: string, seed?: string) => void }) {
+export function Starters({ onSelect }: { onSelect: (id: string, seed?: string) => void }) {
   const fileRef = React.useRef<HTMLInputElement>(null);
   /**
    * The other direction. Last round a folder learned to leave as one file;

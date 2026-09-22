@@ -15,6 +15,13 @@ export interface IndexItem {
   pinned?: boolean;
   /** The full body, searched but never drawn. */
   searchText?: string;
+  /**
+   * What kind of thing this is, at a glance. A room that holds one kind of
+   * thing needs none; a room that holds five needs the reader to tell a
+   * deck from a page before reading the title, which is what a mark before
+   * the title is for.
+   */
+  icon?: React.ReactNode;
 }
 
 /**
@@ -192,8 +199,10 @@ export function SectionIndex({
                          text concatenate to: "Kanji N512 cards · 4 known" is
                          what a screen reader read out before this. */
                       aria-label={`Open ${item.title}`}
-                      className="focus-inset flex min-w-0 flex-1 flex-col justify-center self-stretch rounded-md text-left"
+                      className="focus-inset flex min-w-0 flex-1 items-center gap-3 self-stretch rounded-md text-left"
                     >
+                      {item.icon && <span className="shrink-0 text-tertiary" aria-hidden>{item.icon}</span>}
+                      <span className="flex min-w-0 flex-1 flex-col justify-center">
                       <span className="flex items-baseline gap-2">
                         <span className="truncate text-sm font-medium text-primary">{item.title}</span>
                         {item.meta && <span className="shrink-0 text-xs text-tertiary">{item.meta}</span>}
@@ -201,6 +210,7 @@ export function SectionIndex({
                       {item.preview && (
                         <span className="mt-0.5 block truncate text-xs text-secondary">{item.preview}</span>
                       )}
+                      </span>
                     </button>
 
                     {item.pinned && !onTogglePin && (

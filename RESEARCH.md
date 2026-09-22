@@ -494,3 +494,38 @@ occupy (ChatGPT 0.000, Claude 0.0054, Gemini 0.0079). Contrast moves by
 under 0.05 on every pair, for the same reason as before: luminance carries
 contrast and none of it changed. The light mesh is halved too.
 
+### §4h — Where the things you made should live
+
+Asked for a Library holding everything made, the question was its shape,
+and two products had already answered it.
+
+**ChatGPT's Library** is one chronological place for the things you
+generated, with edit, download and delete available from there rather than
+from the conversation that made each one. The thing is the unit; the
+conversation is provenance. **Google Drive** went the other way on the same
+problem in 2024: its home used to make you pick Files *or* Folders and now
+shows both in one list, narrowed by search chips for type and date rather
+than split into views. The lesson from both is the same and it is the one
+that matters: **a split view asks the reader the question they came to
+avoid answering** — which room did I make that in.
+
+ARMI's version was three lists in three rooms. A page in the Notebook, a
+deck in Study, a document in the room that was called Code, then Artifacts,
+then Library — a name that promised the unified thing while listing a
+third of it.
+
+So the Library is one list now: pages, decks, documents, code files and
+web apps, newest first across all of them, because the date is the one
+fact a person reliably remembers about something they made. A row of kind
+chips narrows it — only for kinds that exist, since a chip for a kind with
+nothing in it is a control that does nothing when pressed. Each row says
+what it is before it says what it is called (a mark before the title), and
+opens into the room that knows how to edit it: a page into the Notebook, a
+deck into Study, a document into the editor.
+
+**What stays where it was: making things.** The starters here make
+canvases; a page is written in the Notebook and a deck in Study. A room
+that can make everything is a room that explains itself for a paragraph
+before it lets you do anything, and every reference product keeps creation
+close to the surface that edits the result.
+

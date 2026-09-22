@@ -54,6 +54,12 @@ console.log("\nThe two that were showing their own file format");
     "and where a name was written for the reader, that is the one shown",
     plainLine("See [[transport-in-plants|the transport page]]"));
 
+  /* The dot marks a break the text does not already mark: after a full stop
+     it read as a second full stop on the Library's first row. */
+  const sentenceThenBullets = plainLine("Water moves down the gradient.\n- Ψ = Ψs + Ψp\n- Turgid vs plasmolysed");
+  check(sentenceThenBullets === "Water moves down the gradient. Ψ = Ψs + Ψp · Turgid vs plasmolysed",
+    "no dot after a full stop, and still one between the bullets", sentenceThenBullets);
+
   /* A table of nothing but a rule is not a table anybody wants previewed. */
   check(plainLine("|---|---|\n") === "", "a rule on its own leaves nothing", `"${plainLine("|---|---|")}"`);
 }

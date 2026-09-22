@@ -77,7 +77,13 @@ export function plainLine(markdown: string, max = 120): string {
 
   let out = "";
   for (let i = 0; i < parts.length; i++) {
-    if (i) out += parts[i].apart || parts[i - 1].apart ? " · " : " ";
+    if (i) {
+      /* A dot marks a break the text does not already mark. After a full
+         stop it is a second full stop, which is what "potential. · Ψ" looked
+         like on the Library's first row. */
+      const marked = /[.!?:;]$/.test(parts[i - 1].text);
+      out += !marked && (parts[i].apart || parts[i - 1].apart) ? " · " : " ";
+    }
     out += parts[i].text;
   }
   out = out.replace(/\s+/g, " ").trim();

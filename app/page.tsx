@@ -111,6 +111,13 @@ const StudyView = dynamic(
   { ssr: false },
 );
 
+/* The unified index. Its own chunk for the same reason as the rooms it
+   lists: a first question does not need the code that lists decks. */
+const LibraryView = dynamic(
+  () => import("@/components/LibraryView").then((m) => m.LibraryView),
+  { ssr: false, loading: () => <SectionSkeleton title="Library" newLabel="New document" /> },
+);
+
 const ShortcutsOverlay = dynamic(
   () => import("@/components/ShortcutsOverlay").then((m) => m.ShortcutsOverlay),
   { ssr: false },
@@ -1688,6 +1695,28 @@ export default function Page() {
     [closeDrawerOnMobile, settings],
   );
 
+  /* From the Library, which lists things from three rooms: open in the one
+     that edits it. `selectInSection` assumes you are already in the room;
+     this is the version for when you are not. */
+  const openFromLibrary = React.useCallback(
+    (kind: "page" | "deck" | "canvas", id: string) => {
+      withTransition(() => {
+        closeDrawerOnMobile();
+        if (kind === "page") {
+          setNoteId(id);
+          settings.setSection("notebook");
+        } else if (kind === "deck") {
+          setDeckId(id);
+          settings.setSection("study");
+        } else {
+          setCanvasSeed(undefined);
+          setCanvasId(id);
+        }
+      }, "forward");
+    },
+    [closeDrawerOnMobile, settings],
+  );
+
   /** Lift an answer into a canvas and go there. */
   const keepAsCanvas = React.useCallback(
     async (text: string) => {
@@ -2113,7 +2142,19 @@ export default function Page() {
                   configured={configured}
                 />
               )}
-              {settings.section === "code" && (
+              {settings.section === "code" && !canvasId && (
+                <LibraryView
+                  onOpen={openFromLibrary}
+                  onNewCanvas={(id, seed) =>
+                    withTransition(() => {
+                      setCanvasSeed(seed);
+                      setCanvasId(id);
+                    }, "forward")
+                  }
+                  onNew={() => void createInSection("code")}
+                />
+              )}
+              {settings.section === "code" && canvasId && (
                 <CanvasView
                   canvasId={canvasId}
                   configured={configured}
