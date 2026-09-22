@@ -196,6 +196,25 @@
   --danger: var(--stop);
   --danger-subtle: #ffe4e2;
 
+
+  /* The highlighter, and nothing else.
+     ---------------------------------------------------------------------
+     A fourth hue has to earn its place or it is decoration, and this one
+     earns it by fixing a collision. The words the model points at on a page
+     were drawn in the signal colour — the same cyan as every control you are
+     meant to press — so "here is the sentence I read" and "here is a button"
+     were the same colour, and the page looked clickable where it was only
+     marked. A highlighter is yellow everywhere outside a screen, which makes
+     it the one colour that needs no legend.
+
+     Reserved the way the status colours are: it is never a fifth accent, it
+     never carries text, and it never means a state. It marks a passage, over
+     a document, in both themes — the paper under it is white either way, so
+     it does not step with the theme. Ink on a 0.38 wash of it reads at 15.1,
+     which is the point of a highlighter: the words stay the words. */
+  --marker: #ffd23f;
+  --marker-rgb: 255 210 63;
+
   /* The field behind everything. On a light ground, colour reads as a stain long
      before it reads as depth, so this is barely there on purpose. */
   --mesh-a: rgba(76, 219, 227, 0.10);
@@ -499,29 +518,46 @@
        for the same reason: at eleven at night the ground has one job, which is
        to get out of the way of the words.
 
-       So the ground is a deep blue-black — the inside of the case rather than
-       a neutral grey, cold on purpose, and still dark enough that nothing on
-       it has to shout. The brand is carried by everything on top of it and
-       nothing underneath: the near-white is the text, the cyan is the action
-       and the signal, and the blue stays where it is in the light theme,
-       structure.
+       It said that, and then did something else. The ground was a deep
+       blue-black at 0.024 chroma, which is six times Gemini's ground and
+       twelve times ChatGPT's, and under four soft washes of cyan and blue
+       that took the brightest part of it to 0.029 — seven times Claude's.
+       Measured rather than argued: none of the three carries more than
+       0.004, and two of them carry none at all. A ground at seven times
+       that is not a dark theme with a cool cast, it is a blue screen, and
+       every answer on it was being read through a wash.
+
+       So the lightness ramp is untouched, to the last step, and the colour
+       is taken out of it: the same hue, at a sixth of the chroma, which
+       lands at 0.004 — the amount Claude's warm charcoal carries, on the
+       cool side instead of the warm. Every contrast pair moves by less
+       than one part in five hundred, because luminance is what carries
+       contrast and none of it changed.
+
+       What is kept is the one thing none of the three has: the mesh. At
+       half its old strength it is a presence at the corners rather than a
+       wash over the words — 0.011 at the very centre of a blob that falls
+       to nothing, against 0.029 before. The brand is carried by what sits
+       on the ground, not by the ground: the near-white is the text, the
+       cyan is the action and the signal, the blue is structure, and the
+       yellow is a highlighter and nothing else.
 
        Every pair below is computed against WCAG (`node contrast.mjs`).
        --------------------------------------------------------------------- */
-    --bg-canvas: #0b101b;
-    --bg-surface: #141a28;
-    --bg-subtle: #1e2535;
-    --bg-section: #0f1521;
-    --bg-inset: #070a13;
-    --bg-overlay: rgba(7, 10, 19, 0.78);
+    --bg-canvas: #0f1012;
+    --bg-surface: #191a1d;
+    --bg-subtle: #242528;
+    --bg-section: #141517;
+    --bg-inset: #0a0a0c;
+    --bg-overlay: rgba(10, 10, 12, 0.78);
 
-    --border-subtle: #262e3f;
-    --border-strong: #788093;
+    --border-subtle: #2d2e31;
+    --border-strong: #7f8083;
 
-    --text-primary: #e5e8ed;
-    --text-secondary: #c8ccd6;
-    --text-tertiary: #acb1bd;
-    --text-faint: #898f9d;
+    --text-primary: #e7e8e9;
+    --text-secondary: #cbccce;
+    --text-tertiary: #b0b1b3;
+    --text-faint: #8e8f91;
 
     --accent: #a3bae7;
     --accent-hover: #c1d0ef;
@@ -559,8 +595,16 @@
     --highlight: #7ecdcd;
     --highlight-fg: #031515;
     --highlight-edge: #6fdcdc;
+
+    /* The one token in the book that does not step with the theme, and the
+       reason is that what it is drawn on does not either: a marker only ever
+       lands on a page in the Study room, and a page is white at midnight as
+       well as at noon. Stepping it down for the dark theme would be matching
+       it to the room around the paper rather than to the paper. */
+    --marker: #ffd23f;
+    --marker-rgb: 255 210 63;
     --mark: #004049;
-    --mark-fg: #e5e8ed;
+    --mark-fg: #e7e8e9;
 
     --live: #6fdcdc;
     --go: #6fd2a4;
@@ -573,11 +617,11 @@
     --danger: var(--stop);
     --danger-subtle: #3c161a;
 
-    --mesh-a: rgba(111, 220, 220, 0.11);
-    --mesh-b: rgba(146, 180, 248, 0.09);
-    --mesh-c: rgba(229, 232, 237, 0.03);
+    --mesh-a: rgba(111, 220, 220, 0.055);
+    --mesh-b: rgba(146, 180, 248, 0.045);
+    --mesh-c: rgba(231, 232, 233, 0.02);
     --grain-opacity: 0.045;
-    --glass: rgba(11, 16, 27, 0.78);
+    --glass: rgba(15, 16, 18, 0.78);
     --glow: 0 0 24px -6px var(--accent-2);
 
     /* Darker and deeper, and still tinted rather than pure black: this ground
@@ -590,23 +634,23 @@
        2.03, which is the same order of step the light theme gets from its
        shadow alone. */
     --rim-sm:
-      inset 0 1px 0 0 rgb(229 232 237 / 0.06),
+      inset 0 1px 0 0 rgb(231 232 233 / 0.06),
       inset 0 -1px 0 0 rgb(0 0 0 / 0.25);
     --rim-md:
-      inset 0 1px 0 0 rgb(229 232 237 / 0.11),
-      inset 1px 0 0 0 rgb(229 232 237 / 0.055),
+      inset 0 1px 0 0 rgb(231 232 233 / 0.11),
+      inset 1px 0 0 0 rgb(231 232 233 / 0.055),
       inset 0 -1px 0 0 rgb(0 0 0 / 0.35);
     /* The top catch carries the whole of the dark theme's elevation — black
        on near-black is not a cue — so when the light ramp was rebuilt to
        reach the screen, this is the number that had to move with it or the
        two rooms would be a factor of two apart. */
     --rim-lg:
-      inset 0 1px 0 0 rgb(229 232 237 / 0.23),
-      inset 1px 0 0 0 rgb(229 232 237 / 0.09),
+      inset 0 1px 0 0 rgb(231 232 233 / 0.23),
+      inset 1px 0 0 0 rgb(231 232 233 / 0.09),
       inset -1px 0 0 0 rgb(0 0 0 / 0.20),
       inset 0 -1px 0 0 rgb(0 0 0 / 0.45);
-    --rim-all: inset 0 0 0 1px rgba(229, 232, 237, 0.05);
-    --rim-flush: inset 0 1px 0 0 rgb(229 232 237 / 0.09);
+    --rim-all: inset 0 0 0 1px rgba(231, 232, 233, 0.05);
+    --rim-flush: inset 0 1px 0 0 rgb(231 232 233 / 0.09);
 
     /* Three elevation levels, each with its own shadow rather than one
        shadow scaled: a card (sm), a floating panel or menu (md), a dialog or
@@ -651,16 +695,18 @@
     /* This was still `rgba(26, 50, 59, …)` — a teal from a palette two
        revisions ago that nothing pointed at any more, which is why the one
        element you look at most sat in a blue pool on an otherwise neutral
-       ground. It is the lifted surface now, like every other raised thing. */
-    --composer-bg: rgba(30, 37, 53, 0.78);
-    --composer-line: rgba(229, 232, 237, 0.10);
+       ground. It is the lifted surface now, like every other raised thing —
+       which means it follows `--bg-subtle`, and followed it again when the
+       ground lost its blue. */
+    --composer-bg: rgba(36, 37, 40, 0.78);
+    --composer-line: rgba(231, 232, 233, 0.10);
     --composer-line-focus: rgba(111, 220, 220, 0.38);
-    --composer-lift: inset 0 1px 0 rgb(229 232 237 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
+    --composer-lift: inset 0 1px 0 rgb(231 232 233 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
     /* The ring around the box you type in, only while the caret is in it, and
        in the cyan of the signal rather than in the structural blue: it marks
        where you are writing, which is the one thing a signal light does. */
     --composer-lift-focus:
-      inset 0 1px 0 rgb(229 232 237 / 0.10),
+      inset 0 1px 0 rgb(231 232 233 / 0.10),
       0 24px 56px -22px rgb(0 0 0 / 0.9),
       0 0 0 3px rgb(var(--accent-2-rgb) / 0.10);
   }

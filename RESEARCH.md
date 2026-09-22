@@ -381,3 +381,55 @@ visible half is the counted line under the list — the flagship menus (a
 model list that grows when you sign in, a tool row that appears with a
 subscription) all fail the same way, by changing silently; a person who
 never saw the row has no way of knowing a key would add it.
+
+### §4f — What colour is a dark theme, measured
+
+Asked to make the ground "like ChatGPT black or Claude or Gemini", the
+useful move was to stop arguing about it and put the four side by side in
+OKLCH, where chroma is the number that says how much colour a near-black
+is actually carrying.
+
+| ground | hex | L | chroma |
+|---|---|---|---|
+| ChatGPT, classic | `#212121` | 0.248 | **0.000** |
+| ChatGPT, near-black | `#0d0d0d` | 0.159 | **0.000** |
+| Material, canonical | `#121212` | 0.182 | **0.000** |
+| Gemini | `#131314` | 0.187 | **0.002** |
+| Claude | `#1a1a18` | 0.217 | **0.004** |
+| **ARMI, before** | `#0b101b` | 0.174 | **0.024** |
+
+Six times Gemini. Twelve times nothing. And that is the token alone: the
+app lays four soft radial washes of cyan and blue over it, and at the
+centre of one the ground reaches **0.029 chroma** — seven times Claude's.
+Two of the three reference grounds carry no colour whatsoever.
+
+That is the whole finding. The stylesheet's own comment already said the
+right thing — "a dark theme is not a colour; it is the absence of one" —
+and then set a blue screen. Every answer in the app was being read through
+a wash.
+
+**What it cost to fix: nothing measurable.** Contrast is carried by
+luminance, and chroma at this level contributes almost none of it, so
+taking the colour out while holding every lightness step moves every
+text-on-ground pair by less than one part in five hundred — 15.48 → 15.52
+on body text. The depth ramp, the elevation rims and the type scale are
+untouched because none of them is a hue.
+
+**What is kept.** The mesh, at half strength — the one thing none of the
+three has, and the only reason the app does not look like a clone of
+whichever it copied. Halved, the brightest point of a blob sits at 0.011
+and falls to nothing across a few centimetres; before, it sat at 0.029
+across the whole screen.
+
+**Where the yellow went.** A fourth hue is decoration unless it settles
+something, and this one settles a collision that was already on screen:
+the passage the model points at in a document was drawn in the signal
+colour, the same cyan as every control meant to be pressed, so "I read
+this sentence" and "press this" were one colour. A highlighter is yellow
+everywhere outside a screen, which makes it the only colour in the set
+that needs no legend. It is reserved the way the status colours are — it
+never carries text, never means a state, and never becomes a fifth accent
+— and it is the one token that does not step between themes, because the
+paper it lands on is white at midnight too. Ink under a 0.38 wash of it
+reads at 15.1, which is the point: the words stay the words.
+

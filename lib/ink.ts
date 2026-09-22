@@ -34,6 +34,9 @@ export interface Stroke {
 }
 
 /** Ink colours. Fixed, because the page underneath is always the page. */
+/* The two nibs. The highlighter is `--marker` and must stay in step with it:
+   the literal is here rather than a variable because these are also painted
+   into a canvas by `composite`, and a canvas cannot read a custom property. */
 export const INK = { pen: "#1f3f9e", hi: "#ffd23f" } as const;
 
 /** Stroke width in thousandths of the page's width. */

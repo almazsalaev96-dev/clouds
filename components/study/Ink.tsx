@@ -231,9 +231,13 @@ export function Ink({
         {[...strokes, ...(live ? [live] : [])].filter((s) => s.tool === "pen").map((s) => (
           <path key={s.id} d={pathOf(s)} fill="none" stroke={INK.pen} strokeWidth={px(s)} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
         ))}
-        {/* The words it pointed at. */}
+        {/* The words it pointed at — in the marker, not in the signal colour.
+            These were cyan, which is what every control you are meant to
+            press is drawn in, so a sentence the model had merely read looked
+            like something to tap. A highlighter says "I read this here" and
+            says it without a legend. */}
         {(highlights ?? []).map((h, i) => (
-          <rect key={i} x={h.x - 0.004} y={h.y - 0.004} width={h.w + 0.008} height={h.h + 0.008} rx={0.004} fill="rgb(var(--accent-2-rgb) / 0.28)" stroke="rgb(var(--accent-2-rgb) / 0.9)" strokeWidth={1.5} vectorEffect="non-scaling-stroke" className="anim-fade" data-highlight />
+          <rect key={i} x={h.x - 0.004} y={h.y - 0.004} width={h.w + 0.008} height={h.h + 0.008} rx={0.004} fill="rgb(var(--marker-rgb) / 0.34)" stroke="rgb(var(--marker-rgb) / 0.95)" strokeWidth={1.5} vectorEffect="non-scaling-stroke" className="anim-fade" data-highlight />
         ))}
       </svg>
 
