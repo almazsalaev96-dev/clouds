@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { whyItFailed } from "@/lib/complete";
 import { useLiveQuery } from "dexie-react-hooks";
 import { FileCode2, FileText, MessageSquare, Paperclip, Search, Trash2, X, Plus } from "lucide-react";
 import type { Canvas, Project, ProjectFile } from "@/lib/types";
@@ -200,8 +201,8 @@ function AskPanel({
       const out = await askProject(question, sources, modelId);
       if (out) setAnswer(out);
       else setNotice("Nothing came back. Try again.");
-    } catch {
-      setNotice("That request failed. Check the key and the connection.");
+    } catch (err) {
+      setNotice(whyItFailed(err, "That request failed. Check the key and the connection."));
     } finally {
       setBusy(false);
     }

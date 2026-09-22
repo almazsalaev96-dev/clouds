@@ -1017,6 +1017,25 @@ heading, and link URLs printed in full.
   do not arrive one at a time and `wellOnly` hands the whole bench back once
   everybody is ailing — which is precisely when a one-step hop would walk back
   into the company that just refused.
+- **Every room says what actually went wrong, and carries the work elsewhere.**
+  Reported from the Notebook, with a book attached and a revision pack asked
+  for: *"Nothing usable came back. Try saying it differently."* Nothing was
+  wrong with what was said — the key was out of credit. Chat had been honest
+  about this for a long time because chat goes through the stream hook;
+  everything else goes through `complete`, which met the provider's classified
+  error and did this with it: `if (ev.type === "error") return null`. One line,
+  and downstream of it nine rooms telling people to rephrase a question that
+  was never the problem, plus fifteen `catch {}` blocks saying "That request
+  failed. Check the key and the connection" — the same failure of nerve with
+  better manners. The error is carried now (`Refused`), every one of those
+  fifteen prints the real sentence, and `complete` walks the bench itself
+  before giving up, so the Notebook, the Study room, the tutor, the canvas and
+  the deck all fail over exactly as chat does. Writing the test for it turned
+  up two more: `complete` resolved every Armi id with `configured: {}`, so a
+  deployment holding its keys in the server's environment — the arrangement
+  this app recommends — looked to it like one with no keys at all; and the
+  egress check matched a bare "blocked by", so "blocked by the safety filter"
+  was reported as a connection problem and retried like one.
 - All four adapters exercised against their live APIs with a deliberately invalid
   key: each returns a correctly classified `bad_key` through the SSE stream, and a
   provider with no key returns `no_key` before any request is made.

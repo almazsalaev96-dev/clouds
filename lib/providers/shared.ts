@@ -68,9 +68,14 @@ export function classifyError(
      the internet. Telling someone their key is wrong when the request never
      left the building sends them to re-issue a key that was always fine. If
      the body reads like a network refusal rather than an auth failure, say so
-     — and point at retrying rather than at the key. */
+     — and point at retrying rather than at the key.
+
+     "Blocked by" has to say *what* blocked it. On its own it caught "blocked
+     by the safety filter", so a refusal to answer was reported as a
+     connection problem and then retried like one — twice the wait, and an
+     account of itself that sent the reader to check their wi-fi. */
   const looksLikeBlockedEgress =
-    /not in allowlist|blocked by|proxy|firewall|egress|enotfound|econnrefused|etimedout|getaddrinfo|tunneling socket|certificate/.test(
+    /not in allowlist|blocked by (the )?(proxy|firewall|gateway|network|administrator|security policy)|proxy|firewall|egress|enotfound|econnrefused|etimedout|getaddrinfo|tunneling socket|certificate/.test(
       lower,
     ) && !looksLikeKeyProblem;
 

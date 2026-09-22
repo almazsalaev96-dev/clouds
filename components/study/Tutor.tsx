@@ -7,7 +7,7 @@ import type { ContentBlock, Lesson, LessonTurn } from "@/lib/types";
 import { addLessonTurn, addCards, createDeck, createNote, db, deckForSource, inkFor, saveInk } from "@/lib/db";
 import { renderPage, pageText, pageLayout, findQuote, type TextRun } from "@/lib/pdf";
 import { boundsOf, composite, marksMarkdown, parseMarks, quotesIn, type Stroke, type Tool } from "@/lib/ink";
-import { complete } from "@/lib/complete";
+import { complete, whyItFailed } from "@/lib/complete";
 import { draftCards } from "@/lib/generate";
 import { resolveCast, shortName } from "@/lib/presets";
 import { useSettings } from "@/lib/store";
@@ -306,8 +306,8 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
       } else {
         setNotice("Nothing usable came back. Try asking it differently.");
       }
-    } catch {
-      setNotice("That request failed. Check the key and the connection.");
+    } catch (err) {
+      setNotice(whyItFailed(err, "That request failed. Check the key and the connection."));
     } finally {
       setAsking(false);
       setLive("");
@@ -337,8 +337,8 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
       const title = `${lesson.name.replace(/\.[^.]+$/, "")} — ${spec.label}`;
       await createNote({ title, content: `# ${title}\n\n${out.trim()}` });
       setNotice(`“${title}” is in the Notebook.`);
-    } catch {
-      setNotice("That request failed.");
+    } catch (err) {
+      setNotice(whyItFailed(err, "That request failed."));
     } finally {
       setAsking(false);
     }
@@ -374,8 +374,8 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
           ? `${made} ${made === 1 ? "card" : "cards"} added to “${deck.name}” in Study.`
           : "Those are already in the deck for this document.",
       );
-    } catch {
-      setNotice("That request failed.");
+    } catch (err) {
+      setNotice(whyItFailed(err, "That request failed."));
     } finally {
       setAsking(false);
     }

@@ -2,8 +2,12 @@
 
 import { getModel } from "./models";
 import { engineOf } from "./presets";
+import { elsewhere } from "./route";
+import { noteFailure, noteSuccess, whyAvoided, worthMoving } from "./health";
+import { getConfigured } from "./configured";
+import { PROVIDERS } from "./models";
 import { useSettings } from "./store";
-import type { ContentBlock, ProviderId } from "./types";
+import type { ChatError, ContentBlock, ProviderId } from "./types";
 
 /**
  * The call, and nothing about what is in it.
@@ -17,9 +21,18 @@ import type { ContentBlock, ProviderId } from "./types";
  * One-shot generation for the things the app asks for on the user's behalf —
  * a conversation title, a set of flashcards, a first draft of a paper.
  *
- * Deliberately not the streaming path: none of these are read as they arrive,
- * so the extra machinery would buy nothing. Failure is a returned null, never
- * a thrown error, because every caller here is doing something optional.
+ * Deliberately not the streaming path in the chat sense — none of these turns
+ * become a message — but a failure here is reported exactly as carefully,
+ * because for a long time it was not. A provider's classified error arrived
+ * on this stream and was discarded with `return null`, and every room built
+ * on this said some version of "Nothing usable came back. Try saying it
+ * differently." to somebody whose key had simply run out of credit. That is
+ * advice nobody can act on, about a fault that is not theirs, and it was the
+ * app's answer to a spent balance everywhere except chat.
+ *
+ * So the error is carried (`Refused`, below), and before it is raised the
+ * turn is offered to whoever else has a key — the same walk chat does, in
+ * the one place every room's one-shot calls already pass through.
  */
 /**
  * Watching it work, and being able to stop it.
@@ -35,14 +48,54 @@ import type { ContentBlock, ProviderId } from "./types";
  * built on the one-shot path, which is the right shape for a title and the
  * wrong one for anything you are sitting and waiting for.
  */
+/**
+ * A provider said no, and this is exactly what it said.
+ *
+ * Thrown rather than swallowed so a room can print the real sentence. The
+ * classified error rides along, so a caller that wants to behave differently
+ * for an empty balance than for a rate limit can, without parsing prose.
+ */
+export class Refused extends Error {
+  constructor(readonly error: ChatError) {
+    super(error.message);
+    this.name = "Refused";
+  }
+}
+
+/**
+ * What to put on screen for a caught failure.
+ *
+ * The provider's own classified sentence where there is one, and the
+ * caller's fallback only for the failures that genuinely have no better
+ * account of themselves. The fallback is never allowed to overwrite a real
+ * reason, which is the whole mistake this replaces: nine rooms telling
+ * people to rephrase a question that was never the problem.
+ */
+export function whyItFailed(err: unknown, fallback: string): string {
+  if (err instanceof Refused) return err.error.message;
+  if (err instanceof DOMException && err.name === "AbortError") return "Stopped.";
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
+}
+
 export interface Progress {
   /** Called with everything received so far, each time more arrives. */
   onText?: (soFar: string) => void;
   /** Aborts the request. What had arrived is returned rather than discarded. */
   signal?: AbortSignal;
+  /**
+   * A company refused and the work moved to another one.
+   *
+   * Passed on rather than hidden: a revision pack that quietly came from a
+   * different model than the one on screen is the app deciding something on
+   * the reader's behalf and not mentioning it.
+   */
+  onMoved?: (why: string, toModelId: string) => void;
 }
 
-export async function complete(
+/** One attempt at one model. Raises `Refused` when the provider says no. */
+async function askOnce(
+  modelId: string,
   prompt: string,
   opts: {
     modelId?: string;
@@ -61,11 +114,6 @@ export async function complete(
   } & Progress = {},
 ): Promise<string | null> {
   const settings = useSettings.getState();
-  /* One-shot work — a title, a set of cards, a revision — runs no tactic, so
-     an Armi model held as the app default is resolved to its engine first.
-     Without this the id goes out as "astro", nothing matches it, and the call
-     is quietly answered by whatever the registry falls back to. */
-  const modelId = engineOf(opts.modelId ?? settings.modelId, { configured: {}, keys: settings.keys });
   const provider = getModel(modelId).provider;
 
   /* Outside the try, so an abort mid-stream can still hand back what arrived. */
@@ -120,7 +168,12 @@ export async function complete(
             opts.onText?.(out);
           }
           if (ev.type === "done") finished = true;
-          if (ev.type === "error") return null;
+          /* Kept, not dropped. This one line was the whole of why a spent key
+             read as "try saying it differently" in every room but chat. */
+          if (ev.type === "error") {
+            noteFailure(provider as ProviderId, ev.error.kind);
+            throw new Refused(ev.error as ChatError);
+          }
         } catch {
           /* partial frame */
         }
@@ -143,6 +196,57 @@ export async function complete(
        treated it as an answer. */
     if (opts.signal?.aborted) return out.trim() || null;
     throw err;
+  }
+}
+
+/* How many companies one of these may be carried to. The same bound chat
+   uses, for the same reason: four in the registry, so three is everybody
+   else once each. */
+const HOPS = 3;
+
+/**
+ * Ask, and keep asking elsewhere while somebody else has a key.
+ *
+ * The rooms that call this are not doing anything optional any more — a
+ * revision pack, a set of cards, a page from a book is the thing the person
+ * came to do — so one company being out of credit must not be the end of it.
+ * Only the failures that are about the company are carried; a request the
+ * model cannot serve would fail the same way at the next one.
+ */
+export async function complete(
+  prompt: string,
+  opts: Parameters<typeof askOnce>[2] = {},
+): Promise<string | null> {
+  const settings = useSettings.getState();
+  const configured = getConfigured();
+  /* One-shot work — a title, a set of cards, a revision — runs no tactic, so
+     an Armi model held as the app default is resolved to its engine first.
+     Without this the id goes out as "astro", nothing matches it, and the call
+     is quietly answered by whatever the registry falls back to.
+
+     With the server's own keys in hand, which they were not: this read
+     `configured: {}`, so a deployment holding its keys in the environment —
+     the arrangement this app recommends — resolved as though it had none. */
+  let modelId = engineOf(opts.modelId ?? settings.modelId, { configured, keys: settings.keys });
+  const tried: ProviderId[] = [];
+
+  for (;;) {
+    const provider = getModel(modelId).provider as ProviderId;
+    tried.push(provider);
+    try {
+      const out = await askOnce(modelId, prompt, opts);
+      noteSuccess(provider);
+      return out;
+    } catch (err) {
+      const kind = err instanceof Refused ? err.error.kind : null;
+      if (!kind || !worthMoving(kind) || tried.length > HOPS) throw err;
+      const other = elsewhere(tried, { configured, keys: settings.keys });
+      if (!other) throw err;
+      /* Said out loud where the caller can pass it on, rather than the room
+         quietly producing a page from a model nobody chose. */
+      opts.onMoved?.(whyAvoided(kind, PROVIDERS[provider].name), other.id);
+      modelId = other.id;
+    }
   }
 }
 

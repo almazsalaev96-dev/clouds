@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { whyItFailed } from "@/lib/complete";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   Braces, Bug, Check, Download, Eye, FileCode2, FilePlus2, FileText, FileType2, History,
@@ -585,7 +586,7 @@ function Editor({
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     setLive("");
-    return { signal: ctrl.signal, onText: setLive };
+    return { signal: ctrl.signal, onText: setLive, onMoved: (why: string) => setNotice(`${why} — asked another model instead.`) };
   }, []);
 
   /**
@@ -678,8 +679,8 @@ function Editor({
       else if (out.trim() === draft.trim())
         setNotice("It came back unchanged — the instruction may not apply here.");
       else setProposal({ content: out, note: label ?? text, before: draft });
-    } catch {
-      setNotice("That request failed. Check the key and the connection.");
+    } catch (err) {
+      setNotice(whyItFailed(err, "That request failed. Check the key and the connection."));
     } finally {
       settle();
     }
@@ -701,8 +702,8 @@ function Editor({
         setReport({ kind: "review", text: out });
         if (stopped()) setNotice("Stopped — this is as far as it got.");
       } else setNotice(stopped() ? "Stopped." : "The model didn't return a review. Try again.");
-    } catch {
-      setNotice("That request failed. Check the key and the connection.");
+    } catch (err) {
+      setNotice(whyItFailed(err, "That request failed. Check the key and the connection."));
     } finally {
       settle();
     }
@@ -735,8 +736,8 @@ function Editor({
         setPlan({ ...out, done: [] });
         setInstruction("");
       }
-    } catch {
-      setNotice("That request failed. Check the key and the connection.");
+    } catch (err) {
+      setNotice(whyItFailed(err, "That request failed. Check the key and the connection."));
     } finally {
       settle();
     }
@@ -770,8 +771,8 @@ function Editor({
         setReport({ kind: "check", text: out });
         if (stopped()) setNotice("Stopped — this is as far as it got.");
       } else setNotice(stopped() ? "Stopped." : "The check didn't come back. Try again.");
-    } catch {
-      setNotice("That request failed. Check the key and the connection.");
+    } catch (err) {
+      setNotice(whyItFailed(err, "That request failed. Check the key and the connection."));
     } finally {
       settle();
     }
@@ -834,8 +835,8 @@ function Editor({
         kind: "explain",
         text: (await explainCode(draft, doc.lang, modelId, siblings, undefined, watching())) ?? "Nothing came back.",
       });
-    } catch {
-      setNotice("That request failed. Check the key and the connection.");
+    } catch (err) {
+      setNotice(whyItFailed(err, "That request failed. Check the key and the connection."));
     } finally {
       settle();
     }

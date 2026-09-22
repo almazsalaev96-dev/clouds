@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { whyItFailed } from "@/lib/complete";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   BookOpen, Download, Eye, GraduationCap, HelpCircle, Highlighter, Layers, Link2, ListTree,
@@ -357,8 +358,8 @@ export function NotebookView({
       const deck = await createDeck(note.title || "This page", "note");
       const n = await addCards(deck.id, drafts, "note");
       setNotice(`${n} card${n === 1 ? "" : "s"} made — they are in Study.`);
-    } catch {
-      setNotice("That request failed. Check the key and the connection.");
+    } catch (err) {
+      setNotice(whyItFailed(err, "That request failed. Check the key and the connection."));
     } finally {
       busyRef.current = false;
       setBusy(false);
@@ -397,7 +398,7 @@ export function NotebookView({
           sources.map((x) => ({ name: x.name, text: x.text })),
           modelId,
           undefined,
-          { signal: ctrl.signal, onText: setLive },
+          { signal: ctrl.signal, onText: setLive, onMoved: (why: string) => setNotice(`${why} — asked another model instead.`) },
         );
         if (stopped()) {
           setNotice(made.length ? `Stopped after ${made.length} page${made.length === 1 ? "" : "s"}.` : "Stopped. Nothing was made.");
@@ -436,8 +437,8 @@ export function NotebookView({
           `the pages are in the Notebook${cards ? ", the cards in Study" : ""}. Download the pack from any of its pages.`,
       );
       onSelect(made[0].id);
-    } catch {
-      setNotice("That request failed. Check the key and the connection.");
+    } catch (err) {
+      setNotice(whyItFailed(err, "That request failed. Check the key and the connection."));
     } finally {
       setLive("");
       busyRef.current = false;
@@ -496,7 +497,7 @@ export function NotebookView({
           sources.map((s) => ({ name: s.name, text: s.text })),
           modelId,
           undefined,
-          { signal: ctrl.signal, onText: setLive },
+          { signal: ctrl.signal, onText: setLive, onMoved: (why: string) => setNotice(`${why} — asked another model instead.`) },
         );
         /* A page cut off mid-sentence is not a page, and its citations are
            whatever happened to have arrived. Stop means nothing happened. */
@@ -537,6 +538,7 @@ export function NotebookView({
       setLive("");
       const out = await reviseCanvas(draft, text, "doc", undefined, modelId, undefined, 120_000, undefined, {
         signal: ctrl.signal,
+        onMoved: (why: string) => setNotice(`${why} — asked another model instead.`),
         onText: setLive,
       });
       if (stopped()) setNotice("Stopped. The page is unchanged.");
@@ -544,8 +546,8 @@ export function NotebookView({
       else if (out.trim() === draft.trim())
         setNotice("It came back unchanged — the instruction may not apply here.");
       else setProposal({ for: note.id, content: out, note: label ?? text });
-    } catch {
-      setNotice("That request failed. Check the key and the connection.");
+    } catch (err) {
+      setNotice(whyItFailed(err, "That request failed. Check the key and the connection."));
     } finally {
       abortRef.current = null;
       setLive(null);
@@ -825,8 +827,8 @@ export function NotebookView({
       setAnswer({ body, citations, from: ranked.filter((n) => cited.has(n.id)).map((n) => ({ id: n.id, title: n.title || "Untitled note" })) });
       const score = citeScore(citations);
       if (score.missing) setNotice(`${score.missing} of ${score.total} citation${score.total === 1 ? "" : "s"} could not be found on the page it names — marked with a “?”.`);
-    } catch {
-      setNotice("That request failed. Check the key and the connection.");
+    } catch (err) {
+      setNotice(whyItFailed(err, "That request failed. Check the key and the connection."));
     } finally {
       setAsking(false);
     }

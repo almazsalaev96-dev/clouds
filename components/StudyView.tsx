@@ -15,7 +15,7 @@ import {
   importCards, noteAttempt, noteStudied, parkCard, unanswerCard, updateCard,
 } from "@/lib/db";
 import { draftCards } from "@/lib/generate";
-import { cheapestAvailable } from "@/lib/complete";
+import { cheapestAvailable, whyItFailed } from "@/lib/complete";
 import {
   answeredToday, calibration, calibrationLine, clozeAnswer, clozeHidden, clozeQuestion, cramOrder,
   dueNow, isCloze, isLeech, mistakeQueue, progressOf, previewGaps, streakOf, topicStats, weakestTopic, whenDue,
@@ -184,8 +184,8 @@ export function StudyView({
       const deck = await createDeck(about, "typed");
       await addCards(deck.id, drafts, "typed");
       setSubject("");
-    } catch {
-      setNotice("That request failed. Check the key and the connection.");
+    } catch (err) {
+      setNotice(whyItFailed(err, "That request failed. Check the key and the connection."));
     } finally {
       setBusy(false);
     }

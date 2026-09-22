@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Action, ChatError, ContentBlock, Message, ProviderId, StreamEvent, ToolCall, ToolSpec, Usage, WebSource, WebTool } from "../types";
 import type { ActionDone } from "../actions";
-import { noteFailure, noteSuccess } from "../health";
+import { noteFailure, noteSuccess, worthMoving } from "../health";
 import { getModel, estimateTokens } from "../models";
 import { db, addMessage, uid } from "../db";
 import { useSettings, paramsFor } from "../store";
@@ -54,10 +54,6 @@ interface StreamState {
   messageId: string | null;
 }
 
-/* The failures that are about the company rather than about the question.
-   A context-length error or a content filter would land the same way at the
-   next company, and moving the turn there would only spend a second key. */
-const ELSEWHERE = new Set<ChatError["kind"]>(["provider_down", "rate_limit", "quota", "bad_key"]);
 
 /* How many companies a single turn may be carried to before it gives up.
    There are four in the registry, so three is "everybody else, once each" —
@@ -612,7 +608,7 @@ export function useStream(onFinish?: (m: Message) => void) {
       let why = opts.routedWhy;
       while (tried.length <= HOPS) {
         const after = errorRef.current;
-        if (!after || !ELSEWHERE.has(after.kind)) return result;
+        if (!after || !worthMoving(after.kind)) return result;
         const other = opts.elsewhere?.(tried, after.kind);
         if (!other) return result;
         why = [why, other.why].filter(Boolean).join(" · ");

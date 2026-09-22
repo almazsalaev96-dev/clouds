@@ -6,7 +6,7 @@ import { ChevronLeft, ClipboardPaste, Download, Plus, Repeat, Trash2 } from "luc
 import type { Deck } from "@/lib/types";
 import { addCards, cardsOf, deleteCard, importCards, updateCard } from "@/lib/db";
 import { draftCards } from "@/lib/generate";
-import { cheapestAvailable } from "@/lib/complete";
+import { cheapestAvailable, whyItFailed } from "@/lib/complete";
 import { clozeQuestion, exportCards, isCloze, progressOf, whenDue, type Card } from "@/lib/study";
 import { offerUndo } from "@/lib/undo";
 import { Button } from "@/components/ui/primitives";
@@ -107,8 +107,8 @@ export function DeckPanel({
       }
       const n = await addCards(deck.id, drafts, deck.source);
       setNotice(n === 0 ? "Everything it wrote was already here." : null);
-    } catch {
-      setNotice("That request failed. Check the key and the connection.");
+    } catch (err) {
+      setNotice(whyItFailed(err, "That request failed. Check the key and the connection."));
     } finally {
       setBusy(false);
     }

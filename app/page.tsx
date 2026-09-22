@@ -36,6 +36,7 @@ import {
 } from "@/lib/presets";
 import { costOf, fitToContext } from "@/lib/context";
 import { elsewhere, searcher } from "@/lib/route";
+import { setConfigured as setConfiguredGlobal } from "@/lib/configured";
 import { whyAvoided } from "@/lib/health";
 import { cheapestAvailable, complete } from "@/lib/complete";
 import { useSettings, useDrafts, paramsFor, paramsSet, type Section } from "@/lib/store";
@@ -341,8 +342,18 @@ export default function Page() {
   React.useEffect(() => {
     fetch("/api/models")
       .then((r) => r.json())
-      .then((d) => setConfigured(d.configured ?? {}))
-      .catch(() => setConfigured({}));
+      .then((d) => {
+        setConfigured(d.configured ?? {});
+        /* And where the one-shot calls can read it. They run outside React
+           and decide which engine to use and where to go when one refuses;
+           without this they saw an installation whose keys live in the
+           server's environment as one with no keys at all. */
+        setConfiguredGlobal(d.configured ?? {});
+      })
+      .catch(() => {
+        setConfigured({});
+        setConfiguredGlobal({});
+      });
   }, []);
 
   /* --- Data ------------------------------------------------------------- */
