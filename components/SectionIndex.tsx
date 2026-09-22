@@ -208,7 +208,7 @@ export function SectionIndex({
                     )}
 
                     {item.badge && (
-                      <span className="shrink-0 rounded-full border border-[var(--highlight-edge)] bg-[var(--highlight)] px-1.5 text-xs font-semibold text-[var(--highlight-fg)] tnum">
+                      <span className="badge-count shrink-0">
                         {item.badge}
                       </span>
                     )}

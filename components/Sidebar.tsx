@@ -673,7 +673,7 @@ function Row({
       </button>
 
       {badge && (
-        <span className="mr-1 shrink-0 rounded-full border border-[var(--highlight-edge)] bg-[var(--highlight)] px-1.5 text-xs font-medium text-[var(--highlight-fg)] tnum group-hover:hidden">
+        <span className="badge-count mr-1 shrink-0 group-hover:hidden">
           {badge}
         </span>
       )}

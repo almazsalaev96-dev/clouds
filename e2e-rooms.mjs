@@ -73,15 +73,28 @@ console.log("\nProjects: a row says what is inside");
   check(Number(rows) <= 4, "one line of instructions gets a box for a few lines, not a page", `rows=${rows}`);
 }
 
-console.log("\nNotebook and Artifacts: previews are prose");
+console.log("\nNotebook and Library: previews are prose");
 {
   await go("Notebook");
   const t = await main();
   check(!/#{1,6} |^- |\s- Hypotonic/m.test(t), "no heading or bullet marks leak into a row", (t.match(/Water moves[^\n]*/) ?? [""])[0]);
-  check(/The three words Hypotonic Isotonic Hypertonic/.test(t), "the words are all still there");
+  /* With a dot between them rather than a space. Three bullets glued
+     together made one run-on sentence with no punctuation anywhere in it,
+     and a reader had to guess where each ended. */
+  check(/The three words · Hypotonic · Isotonic · Hypertonic/.test(t),
+    "the words are all still there, and the three are still three",
+    (t.match(/The three words[^\n]*/) ?? [""])[0]);
+  /* The two kinds of markup that were reaching the screen whole: a table,
+     which previewed as its own pipes, and a link to another page, which
+     kept its brackets. */
+  check(!/\|\s*-{2,}/.test(t) && !/\[\[/.test(t),
+    "and no table rule or wiki bracket survives into a row",
+    (t.match(/[^\n]*(\|\s*-{2,}|\[\[)[^\n]*/) ?? ["none"])[0]);
   await go("Library");
   const a = await main();
   check(!/# Essay plan/.test(a) && /Essay plan/.test(a), "a document's row shows its text, not its heading mark", (a.match(/Essay plan[^\n]*\n[^\n]*/) ?? [""])[0].replace(/\n/g, " · "));
+  check(!/\|\s*-{2,}/.test(a), "and a document built round a table previews as words, not as pipes",
+    (a.match(/[^\n]*\|[^\n]*/) ?? ["none"])[0]);
 }
 
 console.log("\nStudy: no NaN, and cards in the order they matter");

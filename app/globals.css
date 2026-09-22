@@ -1407,6 +1407,34 @@ aside.glass .glass {
   }
 }
 
+/* A count is not a control.
+   ---------------------------------------------------------------------
+   These were drawn in the signal colour — a filled cyan pill with a
+   brighter cyan edge, which is the exact treatment every control you are
+   meant to press wears. So "2 due" beside a deck and "3" beside a folder
+   read as buttons, and the eye stopped on each of them looking for
+   something to do. They are numbers: how many cards are waiting, how many
+   pages are in there. A number's job is to be read on the way past.
+
+   So: the surface a raised thing already uses, a hairline, and the ink of
+   ordinary secondary text. It still reads as a distinct object — it is a
+   pill on a row — and it no longer claims to be pressable. The signal
+   colour goes back to meaning "this does something", which is the only way
+   it means anything.
+
+   Tabular figures, because a column of counts that jumps about as the
+   digits change is a column nobody can compare down. */
+.badge-count {
+  border-radius: 9999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  padding-inline: 0.375rem;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 /* The undo bar's clock. Reduced motion keeps the line — it is state, not
    decoration — and only stops it from travelling. */
 .undo-clock {
