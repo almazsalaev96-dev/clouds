@@ -512,6 +512,32 @@ const pickFrom = (engines: string[], want: Want, from: ModelSpec[]): ModelSpec |
  * value the picker holds — a model id, a preset id, "auto" — and act on what
  * comes back.
  */
+/**
+ * Whether an Armi model can actually do its job with the keys in hand.
+ *
+ * Not "would it resolve" — it always resolves, because the resolver
+ * substitutes: with one company's key a cast that wants a second opinion
+ * from elsewhere takes it from a sibling, which is the documented and
+ * tested behaviour and is a reasonable answer. This is the narrower
+ * question of a *hard* requirement going unmet, and today there is exactly
+ * one: a tactic that exists for pictures needs something that can see. A
+ * DeepSeek-only browser has no such model, so Lens is offered and cannot
+ * work, which is the one case where the menu was lying.
+ *
+ * With nothing configured at all every tactic passes: the picker says "No
+ * key configured yet" across the whole list, and hiding the list as well
+ * would leave a person staring at nothing with no way to learn what they
+ * are missing.
+ */
+export function canRun(id: string, where: Where): boolean {
+  const preset = getPreset(id);
+  if (!preset) return false;
+  const pool = usable(where);
+  if (!pool.length) return true;
+  if (preset.sees && !pool.some((m) => m.vision)) return false;
+  return true;
+}
+
 export function resolveCast(id: string, where: Where): Cast | null {
   const preset = getPreset(id);
   if (!preset) return null;

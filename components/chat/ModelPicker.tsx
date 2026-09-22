@@ -9,7 +9,7 @@ import {
 import type { ModelSpec } from "@/lib/types";
 import { AUTO, MODELS, formatCost, getModel } from "@/lib/models";
 import {
-  PRESETS, SEAT_NAMES, getPreset, profileOf, resolveCast, type Cast, type Player, type Preset,
+  PRESETS, SEAT_NAMES, canRun, getPreset, profileOf, resolveCast, type Cast, type Player, type Preset,
 } from "@/lib/presets";
 import { useSettings, paramsFor } from "@/lib/store";
 import { cn, fuzzyScore } from "@/lib/utils";
@@ -82,6 +82,23 @@ export function ModelPicker({
   /* A tactic needs a key — any key. Which one it lands on is its own affair. */
   const anyKey = MODELS.some(available);
 
+  /* Only what these keys can actually run.
+     A tactic whose cast cannot be filled from this browser's keys would
+     still answer — every one of them substitutes rather than fails — but
+     it would answer as something quieter than its name, and a menu that
+     offers a choice which silently degrades is lying about the choice. So
+     it is not offered. The one it must never hide is the one already
+     selected: a row that vanished when a key was removed would leave the
+     composer naming a model the menu says does not exist. What is hidden
+     is said, once, at the foot of the list — this is a menu that grows
+     when you add a key, and somebody who never sees the rows has no way
+     of knowing that. */
+  const runnable = React.useCallback(
+    (p: Preset) => p.id === value || canRun(p.id, where),
+    [value, where],
+  );
+  const hidden = PRESETS.filter((p) => !runnable(p)).length;
+
   const results = React.useMemo(() => {
     if (!query.trim()) return null;
     /* Searched by name, by what it is for, and by the words in its blurb —
@@ -91,7 +108,7 @@ export function ModelPicker({
        news should land on the Armi model that runs on it rather than on
        "No model matches that", and learn the name we do use. Matching a
        word is not displaying it. */
-    return PRESETS.map((x) => ({
+    return PRESETS.filter(runnable).map((x) => ({
       x,
       score: Math.max(
         fuzzyScore(query, x.name),
@@ -105,7 +122,7 @@ export function ModelPicker({
       .filter((r) => r.score > 0)
       .sort((a, b) => b.score - a.score)
       .map((r) => r.x);
-  }, [query]);
+  }, [query, runnable]);
 
   const armiRow = (p: Preset) => (
     <PresetRow
@@ -202,14 +219,19 @@ export function ModelPicker({
                     keys in this browser, it changes when one is added, and it
                     is answered in Settings for anybody who wants to know. */}
                 <Section label="Armi models">
-                  {PRESETS.filter((x) => x.group === "everyday").map(armiRow)}
+                  {PRESETS.filter((x) => x.group === "everyday" && runnable(x)).map(armiRow)}
                 </Section>
                 {/* The specialists, under their own heading. Eleven rows in
                     one list is a catalogue; five for anything and six for one
                     thing is a menu. */}
                 <Section label="For a particular job">
-                  {PRESETS.filter((x) => x.group === "job").map(armiRow)}
+                  {PRESETS.filter((x) => x.group === "job" && runnable(x)).map(armiRow)}
                 </Section>
+                {hidden > 0 && (
+                  <p className="px-2 pb-1 pt-0.5 text-tiny text-faint">
+                    {hidden} more appear{hidden === 1 ? "s" : ""} when you add another key
+                  </p>
+                )}
               </>
             )}
           </div>

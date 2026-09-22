@@ -354,3 +354,30 @@ Design: [Design Studio: UI trends 2026](https://medium.com/@designstudiouiux/the
 Onboarding: [Userpilot onboarding 2026](https://userpilot.com/blog/best-user-onboarding-experience/) · [Appcues onboarding flows](https://www.appcues.com/blog/best-user-onboarding-examples) · [Mobbin empty states](https://mobbin.com/glossary/empty-state) · [UXCam onboarding examples](https://uxcam.com/blog/10-apps-with-great-user-onboarding/)
 
 iPad: [Fastio iPad AI apps](https://fast.io/resources/best-ai-apps-for-ipad-2026/) · [Lifestack iPad productivity](https://lifestack.ai/blog/ipad-productivity) · [iPadOS 26](https://en.wikipedia.org/wiki/IPadOS_26)
+
+### §4e — One key, every model
+
+The question behind "make it so only one model can be worked, like only
+ChatGPT": what happens to a product whose named models are each a *cast* of
+two or three engines, when the person has one company's key?
+
+Three answers were possible. Drop to the engines one key can run and stop
+calling them Armi models — which throws away the layer the product is. Offer
+them all and let the short ones quietly answer with half a cast — which is
+the one a menu must never do, because the name then promises a second
+opinion nobody got. Or offer what runs and say what does not.
+
+The measurement settled it. Walking every preset against each provider
+alone: **every Armi model already runs on any single key.** A cast that
+cannot be filled from one company substitutes within it and says so — "one
+company", "needs a second key", "(sibling)" — which is a short answer, not a
+wrong one. Only a *hard* requirement has no substitution: a tactic that must
+look at a picture needs a model that can see. All four companies in the
+registry carry one, so today nothing is hidden at all.
+
+So `canRun` is a guard rather than a feature: it hides nothing now and keeps
+the menu honest the day an engine list grows a company that cannot see. The
+visible half is the counted line under the list — the flagship menus (a
+model list that grows when you sign in, a tool row that appears with a
+subscription) all fail the same way, by changing silently; a person who
+never saw the row has no way of knowing a key would add it.

@@ -102,6 +102,15 @@ console.log("\nThe menu offers Armi's own models, and nobody else's");
   const menu = await p.locator("[data-radix-popper-content-wrapper]").first().innerText();
   check(!/Claude|GPT|Kimi|DeepSeek|Sonnet|Haiku|Opus|Gemini/.test(menu),
     "nor one of their names anywhere in the menu", menu.replace(/\n/g, " · ").slice(0, 90));
+  /* One key, every model. The menu lists an Armi model only when this
+     browser's keys can run it — so the claim worth measuring, with one
+     company's key in, is that the filter takes nothing away. A short cast
+     is not a missing one: it substitutes within the company and says so on
+     the row. Only a hard requirement hides a row, and all four companies
+     carry a model that can see. */
+  const rows = await p.locator("[data-radix-popper-content-wrapper]").first().getByRole("button", { name: / — / }).count();
+  check(rows === 11, "all eleven are offered on one company's key", `${rows} rows`);
+  check(!/more appear/.test(menu), "so nothing says any are waiting on a second key");
   await p.screenshot({ path: `${OUT}/presets-menu.png` });
 }
 

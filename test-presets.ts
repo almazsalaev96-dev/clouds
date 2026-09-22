@@ -10,7 +10,7 @@
  *   npx jiti test-presets.ts */
 import {
   PRESETS, DEFAULT_PRESET_ID, getPreset, isPreset, resolveCast, resolvePreset, engineOf,
-  playerFor, playersFor, profileOf, shapePlan, worthBriefing, worthConvening, briefPrompt,
+  playerFor, playersFor, profileOf, shapePlan, worthBriefing, worthConvening, briefPrompt, canRun,
   briefNote, councilPrompt, councilNote, objectionNote, makers, plainly,
 } from "./lib/presets";
 import { planTurn } from "./lib/decide";
@@ -587,6 +587,31 @@ console.log("\nAnd a line written by an older build is read by today's rules");
      about whole segments, not about words inside a sentence. */
   check(plainly("ARMI Parallax — the numbers here are worth checking") === "the numbers here are worth checking",
     "while a sentence is left as it was written");
+}
+
+console.log("\nOne key is enough for every one of them");
+{
+  /* The claim the picker rests on. An Armi model is a cast, and a cast can
+     be short — but short is a thing it says, out loud, in the row and under
+     the menu. What it must never be is impossible: a name that cannot run
+     at all on the key somebody actually has. Today none of them is, on any
+     of the four, which is why nothing is hidden; the moment an engine list
+     grows a company whose models cannot see, `canRun` is what keeps ARMI
+     Lens out of a menu it would fail in. */
+  for (const p of ["anthropic", "openai", "moonshot", "deepseek"]) {
+    const off = PRESETS.filter((x) => !canRun(x.id, { configured: only(p) })).map((x) => x.name);
+    check(off.length === 0, `every Armi model runs on ${p} alone`, off.join(", "));
+  }
+  /* With nothing configured the menu is a shop window, not a filter: every
+     row is drawn, greyed, saying it needs a key. Hiding them all would
+     leave somebody who has just installed this looking at an empty list. */
+  check(PRESETS.every((x) => canRun(x.id, { configured: {} })), "and with no key at all, nothing is hidden yet");
+  /* What it does test is the hard requirement. The one tactic that cannot
+     substitute its way out is the one that has to look at a picture. */
+  const sees = PRESETS.filter((x) => x.sees);
+  check(sees.length > 0, "at least one of them needs eyes", sees.map((x) => x.name).join(", "));
+  check(canRun(sees[0].id, { configured: all }), "which it has when every key is in");
+  check(!canRun("not-a-preset", { configured: all }), "and a name that is not a tactic runs nowhere");
 }
 
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
