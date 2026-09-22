@@ -123,5 +123,41 @@ console.log("\nNothing throws on the bodies that are not JSON at all");
   }
 }
 
+console.log("\nOut of credit is out of credit, whatever status it arrives under");
+{
+  /* Reported from the live app, and the whole of why it was a dead end.
+     Anthropic says a spent balance with a 400 and an `invalid_request_error`,
+     not a 429 — so none of the 400 branches matched, the kind fell through to
+     `unknown`, and `unknown` is deliberately three things at once: not
+     remembered as a provider ailment, not a reason to ask anywhere else, and
+     shown by quoting the provider's own sentence. The person got a wall of
+     API prose and a Retry that could only fail again, on a key that will not
+     refill itself while they wait.
+
+     Each of the four says it differently and only one of them uses 429. What
+     they have in common is the words, so that is what is read. */
+  const cases: [number, string, ProviderId][] = [
+    [400, '{"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."}}', "anthropic"],
+    [429, '{"error":{"message":"You exceeded your current quota, please check your plan and billing details.","type":"insufficient_quota"}}', "openai"],
+    [402, '{"error":{"message":"Insufficient Balance"}}', "deepseek"],
+    [401, '{"error":{"message":"Your account org-xxx<xxx@x.com> is not active, please check your account balance."}}', "moonshot"],
+  ];
+  for (const [status, body, provider] of cases) {
+    const got = at(status, body, provider);
+    check(got.kind === "quota", `${provider} at ${status} is out of credit, not a mystery`, got.kind);
+    check(!/refused the request/.test(got.message), "and is told in the app's own words", got.message);
+  }
+  /* And the line it must not cross. A key that is wrong is not a key that is
+     empty: one is fixed by pasting a new one and the other by paying, and
+     sending somebody to the wrong one of those wastes their afternoon. */
+  check(at(401, '{"error":{"message":"invalid x-api-key"}}').kind === "bad_key", "a rejected key is still a rejected key");
+  check(at(429, '{"error":{"message":"rate_limit_error"}}').kind === "rate_limit", "and a rate limit is still a rate limit");
+  /* "Billing" on its own is not a diagnosis — a provider mentioning a billing
+     page in passing while refusing something else would otherwise send the
+     turn to another company for no reason. */
+  check(at(400, '{"error":{"message":"The model gpt-9 does not exist or you do not have access to it. See your billing page for the plans that include it."}}', "openai").kind !== "quota",
+    "while a message that merely mentions billing is not a spent balance");
+}
+
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 process.exit(failed ? 1 : 0);

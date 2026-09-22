@@ -1000,6 +1000,23 @@ heading, and link URLs printed in full.
   registry's `wire` field is for. Covered by `test-wire` (what goes on the wire)
   and `test-responses` (a whole tool round driven through it, call and result and
   the answer written from what the result said).
+- **A spent balance no longer ends the turn.** Reported from the live app: a
+  wall of Anthropic's own API prose and a Retry that could only fail again,
+  while three other keys sat unused. The failover machinery was already there
+  and never fired, because the classifier decides by status and the four
+  providers disagree — Anthropic reports an empty balance with a **400** and an
+  `invalid_request_error`, DeepSeek with a **402**, Moonshot with a **401** that
+  reads exactly like a rejected key, and only OpenAI uses 429. Everything else
+  fell to `unknown`, which is deliberately three things at once: not remembered
+  as a provider ailment, not a reason to ask anywhere else, and shown by quoting
+  the provider verbatim. Read by its words instead, it is `quota` — the turn
+  moves to another company and that one is stepped around for ten minutes. The
+  same fix stopped Moonshot's balance message sending people to re-paste a key
+  that was fine. And the walk goes down the whole bench now rather than one step
+  off it, carrying the list of who has already refused, because empty balances
+  do not arrive one at a time and `wellOnly` hands the whole bench back once
+  everybody is ailing — which is precisely when a one-step hop would walk back
+  into the company that just refused.
 - All four adapters exercised against their live APIs with a deliberately invalid
   key: each returns a correctly classified `bad_key` through the SSE stream, and a
   provider with no key returns `no_key` before any request is made.

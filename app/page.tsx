@@ -924,18 +924,19 @@ export default function Page() {
            cached half; see `ComposedPrompt.volatile`. */
         turnPrompt: [recapNote, composed.volatile, turn].filter(Boolean).join("\n\n") || undefined,
         /* And where to go when a company will not answer at all. Holding
-           four keys is only worth anything if the second one is tried, so
-           the turn moves to another company once and the row says so
-           rather than leaving a coloured bar and a Switch model button. */
-        elsewhere: (failed, kind) => {
-          const other = elsewhere(failed, { configured, keys: settings.keys }, {
+           four keys is only worth anything if the others are tried, so the
+           turn walks down the bench — each company once, whoever has already
+           refused travelling with the ask — and the row says so rather than
+           leaving a coloured bar and a Switch model button. */
+        elsewhere: (tried, kind) => {
+          const other = elsewhere(tried, { configured, keys: settings.keys }, {
             vision: history.some((m) => m.content.some((c) => c.type === "image")),
             size: history.reduce((n, m) => n + costOf(m), 0),
           });
           if (!other) return null;
           return {
             modelId: other.id,
-            why: whyAvoided(kind, PROVIDERS[failed].name),
+            why: whyAvoided(kind, PROVIDERS[tried[tried.length - 1]].name),
           };
         },
         /* And how hard to think, from the same reading. `effortFor` returns

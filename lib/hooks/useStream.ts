@@ -59,6 +59,12 @@ interface StreamState {
    next company, and moving the turn there would only spend a second key. */
 const ELSEWHERE = new Set<ChatError["kind"]>(["provider_down", "rate_limit", "quota", "bad_key"]);
 
+/* How many companies a single turn may be carried to before it gives up.
+   There are four in the registry, so three is "everybody else, once each" —
+   a bound rather than a budget, since `elsewhere` runs out of providers
+   before this runs out of hops in every real arrangement of keys. */
+const HOPS = 3;
+
 /** How long to wait before the one retry of a failure that tends to pass. */
 const BRIEF: Partial<Record<ChatError["kind"], number>> = { provider_down: 2_000, timeout: 2_000, network: 2_000 };
 
@@ -230,7 +236,7 @@ export function useStream(onFinish?: (m: Message) => void) {
         /** Keep what a done action can take back, by the action's id. */
         keep?: (actionId: string, done: ActionDone) => void;
       };
-      elsewhere?: (failed: ProviderId, kind: ChatError["kind"]) => { modelId: string; why: string } | null;
+      elsewhere?: (tried: ProviderId[], kind: ChatError["kind"]) => { modelId: string; why: string } | null;
     }) => {
       const model = getModel(opts.modelId);
       const settings = useSettings.getState();
@@ -587,22 +593,33 @@ export function useStream(onFinish?: (m: Message) => void) {
         return first;
       }
 
-      const again = await runOnce(opts);
+      let result = await runOnce(opts);
 
       /* Still refused, and by the provider rather than by the request. The
          app holds several companies' keys precisely so that this is not the
-         end of the turn: ask somewhere else, once, and say on the row that
-         it did. Only the kinds that are about the provider — a request this
-         model cannot serve at all would fail the same way anywhere. */
-      const after = errorRef.current;
-      if (!after || !ELSEWHERE.has(after.kind)) return again;
-      const other = opts.elsewhere?.(getModel(opts.modelId).provider as ProviderId, after.kind);
-      if (!other) return again;
-      return runOnce({
-        ...opts,
-        modelId: other.modelId,
-        routedWhy: [opts.routedWhy, other.why].filter(Boolean).join(" · "),
-      });
+         end of the turn: ask somewhere else and say on the row that it did.
+         Only the kinds that are about the provider — a request this model
+         cannot serve at all would fail the same way anywhere.
+
+         Down the bench rather than one step off it. One hop was enough while
+         this only fired for a provider having a bad minute; it is not enough
+         for the failure that sends people here, which is an empty balance —
+         those do not arrive one at a time, and stopping after the second
+         company leaves two untried keys and a coloured bar. Each is asked at
+         most once, the list of who has already refused travels with the ask,
+         and the row ends up carrying the whole story. */
+      const tried: ProviderId[] = [getModel(opts.modelId).provider as ProviderId];
+      let why = opts.routedWhy;
+      while (tried.length <= HOPS) {
+        const after = errorRef.current;
+        if (!after || !ELSEWHERE.has(after.kind)) return result;
+        const other = opts.elsewhere?.(tried, after.kind);
+        if (!other) return result;
+        why = [why, other.why].filter(Boolean).join(" · ");
+        tried.push(getModel(other.modelId).provider as ProviderId);
+        result = await runOnce({ ...opts, modelId: other.modelId, routedWhy: why });
+      }
+      return result;
     },
     [runOnce],
   );

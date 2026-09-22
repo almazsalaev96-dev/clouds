@@ -74,7 +74,31 @@ export function classifyError(
       lower,
     ) && !looksLikeKeyProblem;
 
+  /* A spent balance, which no two of them report the same way and only one
+     of them reports with a 429. Anthropic says it with a 400 and an
+     `invalid_request_error`; DeepSeek with a 402; Moonshot with a 401 that
+     otherwise reads exactly like a rejected key. Classified by the words
+     rather than the status, because the status is where the agreement ends.
+
+     It matters more than a tidier sentence. `unknown` is three things at
+     once — not remembered as a provider ailment, not a reason to ask
+     anywhere else, and shown by quoting the provider's own prose — so a
+     spent key produced a wall of API text and a Retry that could only fail
+     again, on every turn, while other keys sat unused. As `quota` it is
+     none of those: the turn moves to another company, and this one is
+     stepped around for ten minutes.
+
+     "Billing" alone is not a diagnosis: a provider naming its billing page
+     while refusing something else is not out of credit, and the words that
+     mean an empty balance are the ones read here. */
+  const looksLikeOutOfCredit =
+    status === 402 ||
+    /credit balance|insufficient[ _-]?(quota|balance|funds)|out of credit|purchase credits|exceeded your current quota|quota[ _-]?exceeded|account balance|arrearage/.test(
+      lower,
+    );
+
   if (looksLikeBlockedEgress) kind = "network";
+  else if (looksLikeOutOfCredit) kind = "quota";
   else if (status === 401 || (status === 403 && !looksLikeBlockedEgress) || looksLikeKeyProblem) kind = "bad_key";
   else if (status === 429) kind = lower.includes("quota") || lower.includes("billing") ? "quota" : "rate_limit";
   else if (status === 400 && (lower.includes("context") || lower.includes("too long") || lower.includes("max_tokens"))) kind = "context_length";

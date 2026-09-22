@@ -440,11 +440,17 @@ function providerOf(id: string): ProviderId | null {
  * substitute for one that can.
  */
 export function elsewhere(
-  failed: ProviderId,
+  failed: ProviderId | ProviderId[],
   ctx: { configured: Record<string, boolean>; keys: Record<string, string> },
   need: { vision?: boolean; size?: number } = {},
 ): ModelSpec | null {
-  let pool = usable(ctx.configured, ctx.keys).filter((m) => m.provider !== failed);
+  /* Everyone already asked, not merely the last one. A turn can fall over
+     more than once — two empty balances is an ordinary Tuesday for somebody
+     holding four keys — and `wellOnly` below deliberately hands back the
+     whole bench when every provider is ailing, so without the full list a
+     second hop would walk straight back into the company that just refused. */
+  const spent = new Set<ProviderId>(Array.isArray(failed) ? failed : [failed]);
+  let pool = usable(ctx.configured, ctx.keys).filter((m) => !spent.has(m.provider as ProviderId));
   /* And nobody else who is also having a bad minute, unless that is
      everybody left. */
   pool = wellOnly(pool);

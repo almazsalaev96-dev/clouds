@@ -9,7 +9,8 @@
    changing the app to fit itself. */
 import { solve } from "./lib/arith";
 import { MODELS } from "./lib/models";
-import { checker, route, shapeOf } from "./lib/route";
+import { checker, elsewhere, route, shapeOf } from "./lib/route";
+import { forgetHealth, noteFailure } from "./lib/health";
 
 let failed = 0;
 const check = (p: boolean, l: string, d = "") => { if (!p) failed++; console.log(`${p ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
@@ -270,6 +271,37 @@ console.log("\nA second opinion comes from somewhere else");
 
   const back = checker("gpt-5.6-terra", { configured: { anthropic: true, openai: true }, keys: {} });
   check(back?.startsWith("claude") === true, "it works in the other direction too", back ?? "none");
+}
+
+console.log("\nWhen a company will not answer, the turn walks down the bench");
+{
+  const all = { anthropic: true, openai: true, moonshot: true, deepseek: true };
+  const ctx = { configured: all, keys: {} as Record<string, string> };
+  forgetHealth();
+  /* One refusal: somebody else, and never the one that just refused. */
+  const first = elsewhere("anthropic", ctx);
+  check(Boolean(first) && first!.provider !== "anthropic", "one company out, another answers", first?.id ?? "nobody");
+
+  /* Two, which is what an empty balance actually looks like: they do not
+     arrive one at a time. The company that refused first must not come back
+     round — and it would, without the full list, because `wellOnly` hands
+     the whole bench back once everybody is marked unwell. */
+  noteFailure("anthropic", "quota");
+  noteFailure(first!.provider, "quota");
+  const second = elsewhere(["anthropic", first!.provider], ctx);
+  check(Boolean(second), "two out, a third still answers", second?.id ?? "nobody");
+  check(second!.provider !== "anthropic" && second!.provider !== first!.provider,
+    "and it is nobody who has already refused", second?.provider ?? "-");
+
+  const third = elsewhere(["anthropic", first!.provider, second!.provider], ctx);
+  check(Boolean(third) && ![first!.provider, second!.provider, "anthropic"].includes(third!.provider),
+    "and the fourth key is tried before anybody gives up", third?.provider ?? "nobody");
+
+  /* And it stops rather than looping. Four companies, four refusals, nothing
+     left — the caller says so plainly instead of asking one of them twice. */
+  const none = elsewhere(["anthropic", "openai", "moonshot", "deepseek"], ctx);
+  check(none === null, "with everybody asked, it says so rather than going round again", none ? (none as { id: string }).id : "nobody");
+  forgetHealth();
 }
 
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
