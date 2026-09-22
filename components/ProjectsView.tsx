@@ -492,15 +492,24 @@ function ProjectPage({
 
             {files !== undefined && files.length > 0 && (
               <div className="mt-2">
-                <div className="h-1 overflow-hidden rounded-full bg-inset">
-                  <div
-                    className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-[var(--dur-layout)]"
-                    style={{
-                      width: `${Math.min(100, (spent / KNOWLEDGE_BUDGET_TOKENS) * 100)}%`,
-                    }}
-                  />
-                </div>
-                <p className="tnum mt-1 text-xs text-faint">
+                {/* Only once there is a bar to draw. A project of two small
+                    files fills a thousandth of the budget, and a 1px fill at
+                    the left end of an almost invisible track does not read as
+                    "nearly empty" — it reads as a stray mark under the file
+                    list, which is what it looked like. Under a hundredth the
+                    sentence below says it in words instead, which it was
+                    already doing. */}
+                {spent / KNOWLEDGE_BUDGET_TOKENS >= 0.01 && (
+                  <div className="h-1 overflow-hidden rounded-full bg-inset">
+                    <div
+                      className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-[var(--dur-layout)]"
+                      style={{
+                        width: `${Math.min(100, (spent / KNOWLEDGE_BUDGET_TOKENS) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                )}
+                <p className="tnum text-xs text-faint">
                   {spent / KNOWLEDGE_BUDGET_TOKENS < 0.01
                     ? `About ${spent.toLocaleString()} tokens — all of it reaches the model`
                     : `${Math.round((spent / KNOWLEDGE_BUDGET_TOKENS) * 100)}% of the knowledge the model can hold`}

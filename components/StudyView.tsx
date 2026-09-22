@@ -1194,6 +1194,12 @@ function Record({ days, now }: { days: StudyDay[]; now: number }) {
   const month = recallRate(days, now);
   return (
     <div className="mt-3">
+      {/* Said, not only announced. The grid carried its meaning in an
+          aria-label and nothing else, so a sighted reader got twelve weeks of
+          unlabelled squares directly above a line about the last thirty days
+          — two different spans, one of them captioned, and the caption
+          belonged to the other one. */}
+      <p className="eyebrow mb-1.5 text-faint">Last 12 weeks</p>
       <div
         role="img"
         aria-label={`Last twelve weeks: ${total} cards answered on ${active} day${active === 1 ? "" : "s"}`}
