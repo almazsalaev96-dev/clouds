@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { connect, hostOf, type Connector } from "@/lib/mcp";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Download, ExternalLink, Eye, EyeOff, Plus, Trash2, Upload, X } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -24,14 +23,13 @@ import { GROUPS, RULES, rulesCount } from "@/lib/rules";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
 import { SHORTCUT_GROUPS } from "@/components/ShortcutsOverlay";
 
-type Tab = "keys" | "appearance" | "model" | "styles" | "memory" | "data" | "shortcuts" | "privacy" | "rules" | "connectors";
+type Tab = "keys" | "appearance" | "model" | "styles" | "memory" | "data" | "shortcuts" | "privacy" | "rules";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "keys", label: "API keys" },
   { id: "appearance", label: "Appearance" },
   { id: "model", label: "Model" },
   { id: "rules", label: "Rules" },
-  { id: "connectors", label: "Connectors" },
   { id: "styles", label: "Styles" },
   { id: "memory", label: "Memory" },
   { id: "shortcuts", label: "Shortcuts" },
@@ -103,7 +101,6 @@ export function Settings({
             {tab === "appearance" && <AppearancePanel />}
             {tab === "model" && <ModelPanel configured={configured} />}
             {tab === "rules" && <RulesPanel />}
-            {tab === "connectors" && <ConnectorsPanel />}
             {tab === "styles" && <StylesPanel />}
             {tab === "memory" && <MemoryPanel />}
             {tab === "shortcuts" && <ShortcutsPanel />}
@@ -1304,163 +1301,6 @@ function StylesPanel() {
           ))
         )}
       </section>
-    </div>
-  );
-}
-
-/**
- * Outside services, and what it costs to let one in.
- *
- * The one panel in this app that has to argue against itself. Everything
- * else here is a setting about this browser; a connector is a decision to
- * send what you type to a machine that is neither yours nor a model
- * provider's, and the honest version of that screen says so before the
- * field rather than in a footnote after it.
- *
- * Adding one is two steps and they are separate on purpose: connecting
- * shows what the server can do, and nothing is offered to a model until
- * somebody has read that list and switched it on.
- */
-function ConnectorsPanel() {
-  const connectors = useSettings((s) => s.connectors ?? []);
-  const addConnector = useSettings((s) => s.addConnector);
-  const updateConnector = useSettings((s) => s.updateConnector);
-  const removeConnector = useSettings((s) => s.removeConnector);
-  const [url, setUrl] = React.useState("");
-  const [token, setToken] = React.useState("");
-  const [busy, setBusy] = React.useState(false);
-  const [trouble, setTrouble] = React.useState<string | null>(null);
-
-  const add = async () => {
-    if (!url.trim() || busy) return;
-    setBusy(true);
-    setTrouble(null);
-    try {
-      const { name, tools } = await connect({ url: url.trim(), token: token.trim() || undefined });
-      if (!tools.length) {
-        setTrouble("That server connected but offers no tools, so there is nothing to switch on yet.");
-        return;
-      }
-      addConnector({
-        id: crypto.randomUUID(),
-        name,
-        url: url.trim(),
-        token: token.trim() || undefined,
-        /* Off. A list of tools somebody has not read yet is not consent,
-           and this is the one switch in the app that sends data outward. */
-        enabled: false,
-        tools,
-        addedAt: Date.now(),
-      });
-      setUrl("");
-      setToken("");
-    } catch (err) {
-      setTrouble(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const refresh = async (c: Connector) => {
-    try {
-      const { tools } = await connect(c);
-      updateConnector(c.id, { tools, trouble: undefined });
-    } catch (err) {
-      updateConnector(c.id, { trouble: err instanceof Error ? err.message : String(err) });
-    }
-  };
-
-  return (
-    <div className="space-y-5">
-      <Field
-        label="Connectors"
-        hint="An outside service the model can use — your mail, your files, your notes. Bring the address of a server that speaks the Model Context Protocol, the same thing the connectors in other assistants run on, and a token if it wants one."
-      >
-        <div />
-      </Field>
-
-      {/* Said before the field, not after it. */}
-      <p className="rounded-md border border-[var(--border-strong)] bg-subtle px-3 py-2.5 text-sm leading-6 text-secondary">
-        <span className="font-medium text-primary">This is the one part of the app that reaches outside.</span>{" "}
-        Everywhere else, what you type goes only to the company whose API key you added. A connector that is switched on
-        can be handed your question, and whatever it answers with comes back into the conversation. Turn on only the
-        services you would hand the same question to yourself.
-      </p>
-
-      <div className="space-y-2">
-        <input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://example.com/mcp"
-          aria-label="Connector address"
-          className="h-10 w-full rounded-md border border-line bg-canvas px-3 text-sm text-primary outline-none placeholder:text-tertiary focus-visible:border-line-strong"
-        />
-        <input
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-          type="password"
-          placeholder="Token, if the server asks for one"
-          aria-label="Connector token"
-          className="h-10 w-full rounded-md border border-line bg-canvas px-3 text-sm text-primary outline-none placeholder:text-tertiary focus-visible:border-line-strong"
-        />
-        <Button onClick={add} disabled={busy || !url.trim()}>
-          {busy ? "Connecting…" : "Connect"}
-        </Button>
-        {trouble && <p className="text-sm text-danger">{trouble}</p>}
-      </div>
-
-      {connectors.length === 0 ? (
-        <p className="text-sm text-tertiary">Nothing connected yet.</p>
-      ) : (
-        <ul className="space-y-3">
-          {connectors.map((c) => (
-            <li key={c.id} className="rounded-md border border-line p-3">
-              <div className="flex items-center gap-2">
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-primary">{c.name}</span>
-                  <span className="block truncate text-tiny text-tertiary">{hostOf(c.url)}</span>
-                </span>
-                <button
-                  role="switch"
-                  aria-checked={c.enabled}
-                  aria-label={`${c.name} — ${c.enabled ? "on" : "off"}`}
-                  onClick={() => updateConnector(c.id, { enabled: !c.enabled })}
-                  className={cn(
-                    "tap relative h-6 w-10 shrink-0 rounded-full transition-colors duration-[var(--dur-fast)]",
-                    c.enabled ? "bg-accent-fill" : "bg-[var(--border-strong)]",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "absolute top-0.5 h-5 w-5 rounded-full bg-surface transition-transform duration-[var(--dur-fast)]",
-                      c.enabled ? "translate-x-[1.125rem]" : "translate-x-0.5",
-                    )}
-                  />
-                </button>
-              </div>
-              {/* Every tool, by name, because "connect your mail" is not a
-                  description of what a thing may do and a list of verbs is. */}
-              <ul className="mt-2 space-y-1">
-                {c.tools.map((t) => (
-                  <li key={t.name} className="text-tiny leading-5 text-tertiary">
-                    <span className="text-secondary">{t.name}</span>
-                    {t.description ? ` — ${t.description.slice(0, 120)}` : ""}
-                  </li>
-                ))}
-              </ul>
-              {c.trouble && <p className="mt-2 text-tiny text-danger">{c.trouble}</p>}
-              <div className="mt-2 flex gap-3">
-                <button onClick={() => refresh(c)} className="tap text-tiny text-secondary underline-offset-2 hover:underline">
-                  Check again
-                </button>
-                <button onClick={() => removeConnector(c.id)} className="tap text-tiny text-danger underline-offset-2 hover:underline">
-                  Remove
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }

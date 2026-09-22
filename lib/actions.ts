@@ -23,8 +23,6 @@
  */
 
 import type { ToolCall, ToolSpec } from "./types";
-import { callTool, connectorSpecs, ownerOf } from "./mcp";
-import { useSettings } from "./store";
 import {
   addCards,
   addMemory,
@@ -447,57 +445,16 @@ const TOOLS: Tool[] = [
 
 /** The tools to offer in this conversation. */
 export function actionSpecs(ctx: ActionContext): ToolSpec[] {
-  /* The rooms first, then whatever outside services are switched on. In that
-     order deliberately: a model reading a tool list treats the top of it as
-     the ordinary way to do things, and the ordinary way to save a card is
-     the card room rather than somebody's server. */
-  return [
-    ...TOOLS.filter((t) => !t.offered || t.offered(ctx)).map((t) => t.spec),
-    ...connectorSpecs(useSettings.getState().connectors ?? []),
-  ];
+  return TOOLS.filter((t) => !t.offered || t.offered(ctx)).map((t) => t.spec);
 }
 
 /** The line to show while a named tool runs. */
 export function doingOf(name: string): string {
-  const own = TOOLS.find((t) => t.spec.name === name);
-  if (own) return own.doing;
-  /* A connector's tool says whose it is while it runs, because that is the
-     moment it matters: something is leaving this browser, and the chip
-     saying "Asking Gmail" is the only place a person sees it happen. */
-  const owner = ownerOf(name, useSettings.getState().connectors ?? []);
-  return owner ? `Asking ${owner.conn.name}` : "Working";
-}
-
-/**
- * One call to an outside service.
- *
- * Kept apart from the room tools above and behaving differently in one
- * respect: there is nothing to undo. A card this app saved can be
- * unsaved; an email somebody else's server sent is gone, and offering a
- * button that pretends otherwise would be the worst kind of lie in this
- * file.
- */
-async function runConnectorTool(call: ToolCall): Promise<ActionDone> {
-  const connectors = useSettings.getState().connectors ?? [];
-  const owner = ownerOf(call.name, connectors);
-  if (!owner) return fail(`No tool called ${q(call.name)}.`);
-  const { conn, tool } = owner;
-  if (!conn.enabled) return fail(`${q(conn.name)} is switched off, so ${q(tool)} did not run.`);
-  try {
-    const said = await callTool(conn, tool, call.input ?? {});
-    return {
-      ok: true,
-      text: said.slice(0, 8_000),
-      summary: `${conn.name} · ${tool}`,
-    };
-  } catch (err) {
-    const why = err instanceof Error ? err.message : String(err);
-    return fail(`${conn.name} could not run ${q(tool)}: ${why.slice(0, 200)}`);
-  }
+  return TOOLS.find((t) => t.spec.name === name)?.doing ?? "Working";
 }
 
 /** The rooms this can reach, for the settings line and the docs. */
-export const ACTION_AREAS = ["Study", "Notebook", "Memory", "Projects", "Artifacts", "Conversations", "Calculator", "Clock"] as const;
+export const ACTION_AREAS = ["Study", "Notebook", "Memory", "Projects", "Library", "Conversations", "Calculator", "Clock"] as const;
 
 /**
  * Run one call. Never throws: a tool that fails answers the model with why,
@@ -505,11 +462,7 @@ export const ACTION_AREAS = ["Study", "Notebook", "Memory", "Projects", "Artifac
  */
 export async function runAction(call: ToolCall, ctx: ActionContext): Promise<ActionDone> {
   const tool = TOOLS.find((t) => t.spec.name === call.name);
-  /* Not one of this app's rooms — so it belongs to a connector, or to
-     nobody. Checked before the failure, because "no tool called that" is
-     the right answer for a name nobody owns and the wrong one for a tool
-     that exists on a service that has since been switched off. */
-  if (!tool) return runConnectorTool(call);
+  if (!tool) return fail(`No tool called ${q(call.name)}.`);
   if (tool.offered && !tool.offered(ctx)) return fail(`${q(call.name)} is not available in this conversation.`);
   if (tool.offered && !tool.offered(ctx)) return fail(`${q(call.name)} is not available in this conversation.`);
   try {

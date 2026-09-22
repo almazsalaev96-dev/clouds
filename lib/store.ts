@@ -1,7 +1,6 @@
 "use client";
 
 import { create } from "zustand";
-import type { Connector } from "./mcp";
 import { persist } from "zustand/middleware";
 import type { ModelParams, ProviderId } from "./types";
 import { DEFAULT_PRESET_ID } from "./presets";
@@ -140,8 +139,6 @@ interface Settings {
   systemPrompt: string;
   /** Standing rules the model follows everywhere, by preset id (`lib/rules.ts`). */
   rules: string[];
-  /** Outside services this browser can reach. Tokens live here, like keys. */
-  connectors: Connector[];
   /** Whether a model's reasoning opens by itself under the answer. Off: a line to press. */
   thinkingOpen: boolean;
   /** The neutrals' undertone: the app's cool blue, or a warm paper. */
@@ -178,9 +175,6 @@ interface Settings {
   setModel: (id: string) => void;
   setSystemPrompt: (s: string) => void;
   toggleRule: (id: string) => void;
-  addConnector: (c: Connector) => void;
-  updateConnector: (id: string, patch: Partial<Connector>) => void;
-  removeConnector: (id: string) => void;
   setThinkingOpen: (v: boolean) => void;
   setTone: (t: "cool" | "warm") => void;
   setStyle: (id: string) => void;
@@ -235,7 +229,6 @@ export const DEFAULT_SETTINGS = {
   sendOnEnter: true,
   memoryOn: true,
   actionsOn: true,
-  connectors: [],
   showLineNumbers: false,
   wrapCode: false,
   keys: {} as Record<string, string>,
@@ -261,10 +254,6 @@ export const useSettings = create<Settings>()(
       setReviseModel: (reviseModelId) => set({ reviseModelId }),
       setSystemPrompt: (systemPrompt) => set({ systemPrompt }),
       toggleRule: (id) => set((st) => ({ rules: st.rules.includes(id) ? st.rules.filter((r) => r !== id) : [...st.rules, id] })),
-      addConnector: (c) => set((st) => ({ connectors: [...st.connectors, c] })),
-      updateConnector: (id, patch) =>
-        set((st) => ({ connectors: st.connectors.map((c) => (c.id === id ? { ...c, ...patch } : c)) })),
-      removeConnector: (id) => set((st) => ({ connectors: st.connectors.filter((c) => c.id !== id) })),
       setThinkingOpen: (thinkingOpen) => set({ thinkingOpen }),
       setTone: (tone) => set({ tone }),
       setStyle: (styleId) => set({ styleId }),

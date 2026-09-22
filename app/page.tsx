@@ -250,7 +250,7 @@ export default function Page() {
   const [modelPickerOpen, setModelPickerOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   if (settingsOpen) everOpened.current.settings = true;
-  const [settingsTab, setSettingsTab] = React.useState<"keys" | "appearance" | "model" | "rules" | "connectors" | "styles" | "data" | "shortcuts">("keys");
+  const [settingsTab, setSettingsTab] = React.useState<"keys" | "appearance" | "model" | "rules" | "styles" | "data" | "shortcuts">("keys");
   const [scrolled, setScrolled] = React.useState(false);
   const [artifact, setArtifact] = React.useState<Artifact | null>(null);
   /** Where j/k currently sit in the transcript. */
@@ -1964,10 +1964,6 @@ export default function Page() {
     setSettingsTab("rules");
     setSettingsOpen(true);
   }, []);
-  const openPlugins = React.useCallback(() => {
-    setSettingsTab("connectors");
-    setSettingsOpen(true);
-  }, []);
 
   /* The neutrals' undertone, on the root so every token reads it. The
      pre-paint script in the layout sets it for the first frame; this keeps
@@ -2105,7 +2101,6 @@ export default function Page() {
           onNewChat={() => void createInSection("chat")}
           onGoToSection={goToSection}
           onOpenSettings={openKeys}
-          onOpenPlugins={openPlugins}
           onOpenShortcuts={() => setShortcutsOpen(true)}
         />
         )}
