@@ -757,6 +757,11 @@ Nothing here looks like it breaks a caller — the return type is the same array
   }
 
   const gap = process.env.MOCK_SLOW ? 140 : 12;
+  /* MOCK_STALL=ms holds the first event back, the way a reasoning model on
+     a long prompt does. What is being tested is not the mock's patience
+     but the route's: whether bytes reach the browser while nothing has
+     arrived from the provider yet. */
+  const stall = () => (process.env.MOCK_STALL ? new Promise((r) => setTimeout(r, Number(process.env.MOCK_STALL))) : Promise.resolve());
   const chunks = text.match(/[\s\S]{1,14}/g) ?? [];
 
   /* The same answers, in OpenAI's wire format.
@@ -783,6 +788,7 @@ Nothing here looks like it breaks a caller — the return type is the same array
       connection: "keep-alive",
     });
     const frame = (o) => res.write(`data: ${JSON.stringify(o)}\n\n`);
+  await stall();
     frame({ type: "response.created", response: { id: "resp_mock", status: "in_progress" } });
     /* The summary, and only when it was asked for — this is the endpoint
        that has one, which is half the reason the app is here. */
@@ -826,6 +832,7 @@ Nothing here looks like it breaks a caller — the return type is the same array
       connection: "keep-alive",
     });
     const frame = (o) => res.write(`data: ${JSON.stringify(o)}\n\n`);
+  await stall();
     frame({ id: "chatcmpl-mock", object: "chat.completion.chunk", model: body.model, choices: [{ index: 0, delta: { role: "assistant" } }] });
     if (wantsTool) {
       /* A call, in pieces: the id and name first, then the arguments as
@@ -857,6 +864,7 @@ Nothing here looks like it breaks a caller — the return type is the same array
     "cache-control": "no-cache",
     connection: "keep-alive",
   });
+  await stall();
   send(res, "message_start", {
     message: { id: "msg_mock", type: "message", role: "assistant", model: body.model, content: [], usage: { input_tokens: 412, output_tokens: 0 } },
   });

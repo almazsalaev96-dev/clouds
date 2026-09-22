@@ -38,6 +38,32 @@ export async function POST(req: NextRequest) {
         }
       };
 
+      /* Bytes now, and bytes every ten seconds until the provider speaks.
+         ---------------------------------------------------------------
+         Seen on a revision pack from a 988-page book: "The connection ended
+         before the answer did." Nothing had ended at the provider. A large
+         source on a reasoning model can sit for half a minute before its
+         first event, and everything between this browser and the model —
+         the edge runtime's first-byte deadline, a proxy's idle timeout, a
+         phone's radio — treats a silent connection as a dead one. The
+         client then sees a stream that stopped without a `done` and reports
+         the only thing it knows.
+
+         SSE has a frame for exactly this: a comment line, which every
+         parser in this app already skips. One goes out immediately so the
+         first byte is instant, and one every ten seconds while the upstream
+         is quiet, so nothing in the middle ever has a reason to hang up. */
+      const enc = new TextEncoder();
+      const comment = (s: string) => {
+        try {
+          controller.enqueue(enc.encode(`: ${s}\n\n`));
+        } catch {
+          /* gone */
+        }
+      };
+      comment("open");
+      const heartbeat = setInterval(() => comment("ping"), 10_000);
+
       if (!key) {
         const error: ChatError = {
           kind: "no_key",
@@ -45,6 +71,7 @@ export async function POST(req: NextRequest) {
           action: "add_key",
         };
         emit({ type: "error", error });
+        clearInterval(heartbeat);
         controller.close();
         return;
       }
@@ -75,6 +102,7 @@ export async function POST(req: NextRequest) {
           });
         }
       } finally {
+        clearInterval(heartbeat);
         controller.close();
       }
     },

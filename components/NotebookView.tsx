@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
+import * as Popover from "@radix-ui/react-popover";
 import { whyItFailed } from "@/lib/complete";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   BookOpen, Download, Eye, GraduationCap, HelpCircle, Highlighter, Layers, Link2, ListTree,
-  MessageSquare, Paperclip, Pencil, Scissors, SpellCheck2, Tags, X, Plus, BookMarked } from "lucide-react";
+  MessageSquare, Paperclip, Pencil, Scissors, SpellCheck2, Tags, X, Plus, BookMarked, ChevronDown } from "lucide-react";
 import type { Note, Source } from "@/lib/types";
 import { addCards, addSource, createDeck, createNote, db, deleteNote, deriveTitle, removeSource, sourcesOf } from "@/lib/db";
 import { backlinksTo, outlineOf, readLink, readingTime, tagsIn, withLinks } from "@/lib/links";
@@ -1222,45 +1223,44 @@ export function NotebookView({
                     )}
                     {sources.length ? (
                       <>
-                        {/* First, because it is what somebody with a textbook
-                            open and an exam coming actually wants, and the
-                            other four were all there before it. */}
-                        {/* The pack first: it is the thing a student with a
-                            chapter and an exam actually needs, and the five
-                            single pages after it are its parts. */}
+                        {/* The pack stays out, because it is what somebody
+                            with a chapter and an exam actually came for. The
+                            six single pages that are its parts sit behind one
+                            press. They were seven chips across two rows —
+                            a wall the eye had to read before it could find
+                            the one it wanted, on a bar that is meant to be a
+                            line you type into. The composer had already
+                            settled this: tools are chosen from a menu, not
+                            left staring. */}
                         <NoteChip busy={busy} icon={<BookMarked size={12} />} onClick={() => void runPack()}>
                           Revision pack
                         </NoteChip>
-                        <NoteChip busy={busy} icon={<Highlighter size={12} />} onClick={() => void run(REVISION, "Revision notes")}>
-                          Revision notes
-                        </NoteChip>
-                        <NoteChip busy={busy} icon={<GraduationCap size={12} />} onClick={() => void run(LESSONS, "Make lessons")}>
-                          Make lessons
-                        </NoteChip>
-                        <NoteChip busy={busy} icon={<BookOpen size={12} />} onClick={() => void run(SUMMARY, "Summarise it")}>
-                          Summarise it
-                        </NoteChip>
-                        <NoteChip busy={busy} icon={<Tags size={12} />} onClick={() => void run(TERMS, "Key terms")}>
-                          Key terms
-                        </NoteChip>
-                        <NoteChip busy={busy} icon={<HelpCircle size={12} />} onClick={() => void run(QUESTIONS, "Questions")}>
-                          Questions
-                        </NoteChip>
-                        <NoteChip busy={busy} icon={<Layers size={12} />} onClick={() => void makeCards()}>
-                          Make cards
-                        </NoteChip>
+                        <NoteMenu
+                          busy={busy}
+                          label="More ways to use this"
+                          items={[
+                            { name: "Revision notes", blurb: "The material rewritten as notes to revise from.", icon: <Highlighter size={15} />, run: () => void run(REVISION, "Revision notes") },
+                            { name: "Make lessons", blurb: "A short course, a lesson a section.", icon: <GraduationCap size={15} />, run: () => void run(LESSONS, "Make lessons") },
+                            { name: "Summarise it", blurb: "The whole thing on one page.", icon: <BookOpen size={15} />, run: () => void run(SUMMARY, "Summarise it") },
+                            { name: "Key terms", blurb: "Each term, and what it means as this source uses it.", icon: <Tags size={15} />, run: () => void run(TERMS, "Key terms") },
+                            { name: "Questions", blurb: "Exam-style questions, with answers.", icon: <HelpCircle size={15} />, run: () => void run(QUESTIONS, "Questions") },
+                            { name: "Make cards", blurb: "Flashcards into a deck, ready to study.", icon: <Layers size={15} />, run: () => void makeCards() },
+                          ]}
+                        />
                       </>
                     ) : (
                       <>
                         <NoteChip busy={busy} icon={<Scissors size={12} />} onClick={() => void run("Tighten this. Cut every word that is not doing work, and keep every fact.", "Tighten")}>
                           Tighten
                         </NoteChip>
-                        <NoteChip busy={busy} icon={<SpellCheck2 size={12} />} onClick={() => void run("Fix the spelling, grammar and punctuation. Change nothing else — not the wording, not the structure.", "Proofread")}>
-                          Proofread
-                        </NoteChip>
-                        <NoteChip busy={busy} icon={<ListTree size={12} />} onClick={() => void run("Add headings and a little structure where the page has grown long enough to need them. Do not rewrite the prose.", "Add structure")}>
-                          Add structure
-                        </NoteChip>
+                        <NoteMenu
+                          busy={busy}
+                          label="More ways to edit this"
+                          items={[
+                            { name: "Proofread", blurb: "Spelling, grammar and punctuation. Nothing else.", icon: <SpellCheck2 size={15} />, run: () => void run("Fix the spelling, grammar and punctuation. Change nothing else — not the wording, not the structure.", "Proofread") },
+                            { name: "Add structure", blurb: "Headings where the page has grown long enough to need them.", icon: <ListTree size={15} />, run: () => void run("Add headings and a little structure where the page has grown long enough to need them. Do not rewrite the prose.", "Add structure") },
+                          ]}
+                        />
                       </>
                     )}
                   </div>
@@ -1431,6 +1431,67 @@ function splitAround(context: string, quote: string): { text: string; hit: boole
     { text: context.slice(at.start, at.end), hit: true },
     { text: context.slice(at.end), hit: false },
   ].filter((p) => p.text);
+}
+
+/**
+ * The rest of what a page can be turned into, behind one press.
+ *
+ * The same shape as the composer's + menu — a trigger that looks like the
+ * chips beside it, a panel that names each thing with a line of what it
+ * does — so the two rooms teach one habit rather than two.
+ */
+function NoteMenu({
+  busy,
+  label,
+  items,
+}: {
+  busy: boolean;
+  label: string;
+  items: { name: string; blurb: string; icon: React.ReactNode; run: () => void }[];
+}) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <button
+          disabled={busy}
+          aria-label={label}
+          className={cn(
+            "tap focus-inset inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-xs text-secondary transition-colors duration-[var(--dur-fast)]",
+            "hover:border-line-strong hover:text-primary disabled:opacity-50",
+            open && "border-line-strong text-primary",
+          )}
+        >
+          More
+          <ChevronDown size={12} className="text-tertiary" />
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          align="start"
+          sideOffset={6}
+          className="z-50 w-72 rounded-md glass border border-line p-1.5 shadow-lg anim-menu"
+        >
+          {items.map((it) => (
+            <button
+              key={it.name}
+              onClick={() => {
+                setOpen(false);
+                it.run();
+              }}
+              className="focus-inset flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+            >
+              <span className="mt-0.5 shrink-0 text-tertiary">{it.icon}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block">{it.name}</span>
+                <span className="block text-xs text-tertiary">{it.blurb}</span>
+              </span>
+            </button>
+          ))}
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
 }
 
 function NoteChip({

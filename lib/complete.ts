@@ -180,7 +180,14 @@ async function askOnce(
       }
     }
     if (!finished && !opts.signal?.aborted) {
-      throw new Error("The connection ended before the answer did.");
+      /* Said with the likely cause and the thing to do about it. "The
+         connection ended before the answer did" was true and useless: it
+         happens when a long source on a slow model outlasts what sits
+         between this browser and the provider, and a person told only that
+         the connection ended checks their wi-fi. */
+      throw new Error(
+        "The connection dropped before the answer finished. That happens with very long material on a slow model — try a smaller section, or ask again.",
+      );
     }
     return out.trim() || null;
   } catch (err) {

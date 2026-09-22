@@ -135,6 +135,12 @@ mock mock-provider.mjs MOCK_RATE_LIMIT=1
 serve
 run test-retry node test-retry.mjs
 
+echo
+echo "== a mock that holds its first event =="
+mock mock-provider.mjs MOCK_STALL=4000
+serve
+run e2e-stall node e2e-stall.mjs
+
 mock mock-provider.mjs
 echo
 [ $FAILED -eq 0 ] && echo "all passed" || echo "$FAILED FAILED"

@@ -143,6 +143,12 @@ console.log("\nWhat the row says");
   // Back to a canvas, where both halves of the row have something in them.
   await page.locator("aside nav").getByRole("button", { name: "Library" }).click();
   await page.waitForTimeout(500);
+  /* The Library lists pages beside canvases now, newest first, and the newest
+     thing here is the notebook page made a moment ago. Narrow to the kind
+     that is a canvas before taking the first row. */
+  const kinds = page.getByRole("group", { name: "Kinds" }).getByRole("button", { name: /^(Apps|Code|Documents)$/ });
+  if (await kinds.count()) await kinds.first().click();
+  await page.waitForTimeout(300);
   await page.getByRole("listitem").first().click().catch(() => {});
   await page.waitForTimeout(900);
   /* The control used to be labelled "Model: <engine>", because what it chose

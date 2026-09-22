@@ -161,8 +161,15 @@ console.log("\nA book becomes lessons");
   await page.waitForTimeout(900);
   check((await page.locator(".composer-shell").innerText()).includes("tides.txt"),
     "and it says what it is holding", "tides.txt");
+  /* With a source attached the bar's first offer is the revision pack and
+     the rest sit behind "More" — seven chips in a row was the wall the bar
+     used to be. The lessons are one press further, not gone. */
+  check(await page.getByRole("button", { name: /Revision pack/ }).isVisible(),
+    "what you can do with it changed — the offer is a revision pack, not proofreading");
+  await page.getByRole("button", { name: "More ways to use this" }).click();
+  await page.waitForTimeout(300);
   check(await page.getByRole("button", { name: /Make lessons/ }).isVisible(),
-    "what you can do with it changed — the offer is lessons, not proofreading");
+    "and the lessons are behind More, one press away");
 
   await page.getByRole("button", { name: /Make lessons/ }).click();
   await page.waitForTimeout(3000);
