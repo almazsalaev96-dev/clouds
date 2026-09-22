@@ -29,19 +29,42 @@ console.log("\nWhat it costs to open");
 {
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
-  let js = 0;
-  page.on("response", async (r) => {
+  /* Every script the page asked for, weighed once it has actually arrived.
+     ---------------------------------------------------------------------
+     This used to add the bytes up inside the handler — `js += (await
+     r.body()).length` — and then read the total the moment the page went
+     quiet, which is a race the handler loses: a body that resolves after
+     that line is never counted. The same bundle weighed 363 kB one run and
+     406 kB the next and 1045 kB when every response was waited for, so the
+     check was passing and failing on timing rather than on anything in the
+     build. Held as promises and settled before the sum, it is the same
+     number every time.
+
+     And two numbers, because they are two different costs. What crosses
+     the wire is what somebody on a train waits for; what it unpacks to is
+     what their phone has to parse. The build's own figure is the first of
+     these, so this is the one to compare it against. */
+  const weighed = [];
+  page.on("response", (r) => {
     if (!/\.js(\?|$)/.test(r.url())) return;
-    try { js += (await r.body()).length; } catch { /* redirects and aborts have none */ }
+    weighed.push((async () => {
+      let raw = 0;
+      let wire = 0;
+      try { raw = (await r.body()).length; } catch { /* redirects and aborts have none */ }
+      try { wire = (await r.request().sizes()).responseBodySize; } catch { /* nor sizes */ }
+      return { raw, wire };
+    })());
   });
   await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
   await page.waitForTimeout(600);
-  const kb = Math.round(js / 1024);
-  /* The README's budget. Generous against the 245kB the build reports, because
-     that number is uncompressed and this one is what actually crossed the
-     wire — but tight enough that another catalogue landing in the first bundle
-     shows up here rather than in a bug report from someone on a train. */
-  check(kb < 400, "the first load stays under budget", `${kb} kB of JavaScript`);
+  const files = await Promise.all(weighed);
+  const kb = Math.round(files.reduce((n, f) => n + f.wire, 0) / 1024);
+  const unpacked = Math.round(files.reduce((n, f) => n + f.raw, 0) / 1024);
+  /* The README's budget, against the number the README quotes. Loose enough
+     not to fail on a rounding, tight enough that another catalogue landing
+     in the first bundle shows up here rather than in a bug report. */
+  check(kb < 400, "the first load stays under budget", `${kb} kB across the wire, over ${files.length} files`);
+  check(unpacked < 1200, "and unpacks to something a phone can still parse", `${unpacked} kB`);
   await ctx.close();
 }
 

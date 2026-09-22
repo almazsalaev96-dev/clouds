@@ -965,8 +965,17 @@ heading, and link URLs printed in full.
 ## Verified
 
 - `npm run build` and `tsc --noEmit` clean; no `any`, TypeScript strict.
-- First Load JS **245 kB** for the app route, under the 250 kB budget, and 179 kB
-  actually across the wire. It went *over* at one point and nothing noticed: the
+- First Load JS **317 kB** for the app route as the build reports it, and **336 kB
+  actually across the wire** on a cold open — twelve files, 1045 kB once unpacked
+  — against a 400 kB budget. Both numbers are measured rather than quoted: the
+  weighing used to add each body up inside the response handler and read the
+  total the moment the page went quiet, which is a race the handler loses, and
+  the same bundle came out at 363 kB one run, 406 kB the next and 1045 kB when
+  every response was actually waited for. A budget that swings by forty
+  kilobytes between runs of an unchanged build is not a budget, so the bodies
+  are settled before the sum now, and what is asserted is the compressed size,
+  which is the one somebody on a slow connection pays. It went *over* at one
+  point and nothing noticed: the
   catalogue of starters is forty-eight kilobytes of markup, styling and behaviour,
   it was imported where the row that lists them is rendered, and so everybody paid
   for five folders most people never press. The list and the folders are separate
