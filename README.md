@@ -975,6 +975,22 @@ heading, and link URLs printed in full.
   first load on every run, because that is the only way this stays true.
   The markdown pipeline (micromark, GFM, KaTeX) is a separate chunk, Shiki grammars
   load per language on demand, and Settings is dynamic.
+- **OpenAI is asked on `/v1/responses`, because chat/completions stopped taking
+  what this app sends.** Their reasoning models refuse a request that carries
+  function tools *and* an effort — and this app offers its own rooms as tools on
+  nearly every turn and asks every reasoning model how hard to think, so the two
+  always arrived together. Every OpenAI model in the registry reasons, so the
+  whole provider answered nothing, on every message, and it read to the person
+  using it as the app being broken. The refusal names two remedies; the other one
+  is effort `none`, which buys the tools back by switching the thinking off
+  without saying so, on a model somebody picked for thinking. The endpoint it
+  moved to is also the only one that streams a summary of the reasoning, so the
+  panel under an OpenAI answer — empty since it was built — now has something in
+  it. Moonshot and DeepSeek borrow OpenAI's wire format, which does not make them
+  OpenAI: they have no such endpoint and stay where they are, which is what the
+  registry's `wire` field is for. Covered by `test-wire` (what goes on the wire)
+  and `test-responses` (a whole tool round driven through it, call and result and
+  the answer written from what the result said).
 - All four adapters exercised against their live APIs with a deliberately invalid
   key: each returns a correctly classified `bad_key` through the SSE stream, and a
   provider with no key returns `no_key` before any request is made.

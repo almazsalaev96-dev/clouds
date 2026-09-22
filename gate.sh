@@ -107,6 +107,9 @@ for t in e2e e2e-rest e2e-canvas e2e-web e2e-code e2e-follow e2e-agent e2e-sourc
 done
 run test-context node test-context.mjs
 run test-fit     node test-fit.mjs
+# The adapter driven against the mock rather than against a captured body:
+# needs the mock up, which it is here, and no browser.
+run test-responses npx jiti test-responses.ts
 
 echo
 echo "== measured =="

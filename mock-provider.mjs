@@ -144,6 +144,38 @@ createServer(async (req, res) => {
   for await (const c of req) raw += c;
   const body = JSON.parse(raw || "{}");
 
+  /* OpenAI's other API, folded into the shape the rest of this file reads.
+     ---------------------------------------------------------------------
+     `/v1/responses` is where OpenAI's models went, because it is the only
+     endpoint of theirs that takes function tools and an effort in the same
+     request. Its envelope is different — one `input` list of items instead
+     of `messages`, the instructions in their own field, tools flat — but
+     what a test wants to assert about a request is the same as ever: what
+     it was told, which model, how hard to think, which tools were offered.
+     So it is translated once, here, rather than every reader of it growing
+     a second shape to know about. What goes back out is this endpoint's own
+     envelope, at the bottom. */
+  const isResponses = (req.url ?? "").includes("/responses");
+  if (isResponses) {
+    const msgs = [];
+    if (body.instructions) msgs.push({ role: "system", content: String(body.instructions) });
+    for (const item of body.input ?? []) {
+      if (item.type === "function_call") {
+        msgs.push({ role: "assistant", content: null, tool_calls: [{ id: item.call_id, type: "function", function: { name: item.name, arguments: item.arguments ?? "{}" } }] });
+      } else if (item.type === "function_call_output") {
+        msgs.push({ role: "tool", tool_call_id: item.call_id, content: String(item.output ?? "") });
+      } else if (item.role) {
+        const content = (Array.isArray(item.content) ? item.content : []).map((c) =>
+          c.type === "input_image" ? { type: "image", image_url: c.image_url }
+            : { type: "text", text: c.text ?? "" });
+        msgs.push({ role: item.role, content });
+      }
+    }
+    body.messages = msgs;
+    // Every ceiling test in this file reads `max_tokens`; here it has another name.
+    if (body.max_output_tokens !== undefined) body.max_tokens = body.max_output_tokens;
+  }
+
   // /__last lets a test read what the app actually sent — how many turns
   // survived the context fitter, and whether a cache breakpoint was placed.
   if (req.url === "/__last") {
@@ -275,9 +307,23 @@ createServer(async (req, res) => {
        GPT-4.1 quietly never happened. The adapter always sends
        `stream_options` on that format, which is the cleanest tell. */
     const openaiShape =
+      isResponses ||
       Boolean(body.stream_options) ||
       body.max_completion_tokens !== undefined ||
       (Array.isArray(all) && all[0]?.role === "system");
+    /* The refusals that sent this app to this endpoint in the first place.
+       A mock that takes anything would have let the original fault — an
+       effort sent beside a tool — go out again under a different name. */
+    if (isResponses) {
+      if (body.reasoning_effort !== undefined)
+        return "Unknown parameter: 'reasoning_effort'. Use 'reasoning.effort'.";
+      for (const t of body.tools ?? []) {
+        if (t.type === "function" && !t.name)
+          return "Missing required parameter: 'tools[0].name'.";
+      }
+      if (body.max_completion_tokens !== undefined)
+        return "Unknown parameter: 'max_completion_tokens'. Use 'max_output_tokens'.";
+    }
     if (!openaiShape) {
       if (body.temperature !== undefined && body.top_p !== undefined)
         return "`temperature` and `top_p` cannot both be specified for this model. Please use only one.";
@@ -667,12 +713,14 @@ Nothing here looks like it breaks a caller — the return type is the same array
      from the last thing the person typed, not the whole transcript: after
      the cards are saved, the transcript still says "make me cards". */
   const isOpenAI = (req.url ?? "").includes("/chat/completions");
-  const offered = new Set((body.tools ?? []).map((t) => (isOpenAI ? t.function?.name : t.name)).filter(Boolean));
+  /* Nested under `function` on chat/completions, flat on responses, and a
+     name of its own on Anthropic's — one read that takes all three. */
+  const offered = new Set((body.tools ?? []).map((t) => t.function?.name ?? t.name).filter(Boolean));
   const lastMsg = (body.messages ?? []).at(-1);
   const lastText = (m) => (Array.isArray(m?.content) ? m.content.filter((c) => c.type === "text").map((c) => c.text).join("\n") : typeof m?.content === "string" ? m.content : "");
   const lastAsk = [...(body.messages ?? [])].reverse().find((m) => m.role === "user" && lastText(m).trim());
   const ask = lastText(lastAsk);
-  const resultText = isOpenAI
+  const resultText = isOpenAI || isResponses
     ? lastMsg?.role === "tool" ? String(lastMsg.content ?? "") : ""
     : Array.isArray(lastMsg?.content)
       ? lastMsg.content.filter((c) => c.type === "tool_result").map((c) => (typeof c.content === "string" ? c.content : JSON.stringify(c.content))).join("\n")
@@ -719,6 +767,58 @@ Nothing here looks like it breaks a caller — the return type is the same array
      another provider left the harness entirely and died against a real
      endpoint, which looks exactly like the feature being broken.
      Same content, same pacing, different envelope. */
+  /* And out again in this endpoint's own envelope.
+     ---------------------------------------------------------------------
+     Not a chat completion with different names on it: the answer arrives as
+     a list of output *items*, each announced when it opens and handed back
+     whole when it closes, with the text and the tool arguments streaming
+     between the two as deltas tagged with the item's id. The adapter keeps
+     every item in order so it can give the round back untouched, so the
+     mock produces them in order too — a reasoning item before the one that
+     speaks, exactly where a real one puts it. */
+  if (isResponses) {
+    res.writeHead(200, {
+      "content-type": "text/event-stream",
+      "cache-control": "no-cache",
+      connection: "keep-alive",
+    });
+    const frame = (o) => res.write(`data: ${JSON.stringify(o)}\n\n`);
+    frame({ type: "response.created", response: { id: "resp_mock", status: "in_progress" } });
+    /* The summary, and only when it was asked for — this is the endpoint
+       that has one, which is half the reason the app is here. */
+    if (body.reasoning?.summary) {
+      frame({ type: "response.output_item.added", output_index: 0, item: { id: "rs_mock", type: "reasoning", summary: [] } });
+      for (const part of ["Working out what is being asked, ", "then answering it."]) {
+        frame({ type: "response.reasoning_summary_text.delta", item_id: "rs_mock", delta: part });
+        await new Promise((r) => setTimeout(r, gap));
+      }
+      frame({ type: "response.output_item.done", output_index: 0, item: { id: "rs_mock", type: "reasoning", summary: [{ type: "summary_text", text: "Working out what is being asked, then answering it." }] } });
+    }
+    if (wantsTool) {
+      const args = JSON.stringify(wantsTool.input);
+      const item = { id: "fc_mock", type: "function_call", call_id: "call_mock1", name: wantsTool.name, arguments: "" };
+      frame({ type: "response.output_item.added", output_index: 1, item });
+      const cut = Math.floor(args.length / 2);
+      for (const part of [args.slice(0, cut), args.slice(cut)]) {
+        frame({ type: "response.function_call_arguments.delta", item_id: "fc_mock", delta: part });
+        await new Promise((r) => setTimeout(r, gap));
+      }
+      frame({ type: "response.output_item.done", output_index: 1, item: { ...item, arguments: args } });
+      frame({ type: "response.completed", response: { id: "resp_mock", status: "completed", usage: { input_tokens: 412, output_tokens: 40 } } });
+      res.end();
+      return;
+    }
+    frame({ type: "response.output_item.added", output_index: 1, item: { id: "msg_mock", type: "message", role: "assistant", content: [] } });
+    for (const chunk of chunks) {
+      frame({ type: "response.output_text.delta", item_id: "msg_mock", delta: chunk });
+      await new Promise((r) => setTimeout(r, gap));
+    }
+    frame({ type: "response.output_item.done", output_index: 1, item: { id: "msg_mock", type: "message", role: "assistant", content: [{ type: "output_text", text }] } });
+    frame({ type: "response.completed", response: { id: "resp_mock", status: "completed", usage: { input_tokens: 412, output_tokens: 386 } } });
+    res.end();
+    return;
+  }
+
   if ((req.url ?? "").includes("/chat/completions")) {
     res.writeHead(200, {
       "content-type": "text/event-stream",

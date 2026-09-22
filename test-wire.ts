@@ -21,7 +21,7 @@ const check = (p: boolean, l: string, d = "") => { if (!p) failed++; console.log
 const FRAME = 'data: {"type":"message_stop"}\n\ndata: [DONE]\n\n';
 
 /** Run one turn through an adapter and hand back what it sent. */
-async function sent(modelId: string, params: Partial<ChatRequest["params"]> = {}) {
+async function sent(modelId: string, params: Partial<ChatRequest["params"]> = {}, extra: Partial<ChatRequest> = {}) {
   let url = "";
   let body: Record<string, unknown> = {};
   const real = globalThis.fetch;
@@ -37,6 +37,7 @@ async function sent(modelId: string, params: Partial<ChatRequest["params"]> = {}
       modelId,
       messages: [{ id: "m1", conversationId: "c", parentId: null, role: "user", content: [{ type: "text", text: "hello" }], createdAt: 0 }],
       params: { maxTokens: 4096, temperature: 0.7, topP: 1, reasoningEffort: "high", ...params },
+      ...extra,
     } as ChatRequest;
     for await (const _ of adapterFor(modelId)(req, "sk-test", new AbortController().signal)) { /* drain */ }
   } finally {
@@ -61,12 +62,16 @@ console.log("\nEach one is addressed to its own API, under its own name");
 
 console.log("\nThe output limit is spelled the way each provider spells it");
 {
-  /* `max_completion_tokens` is OpenAI's and OpenAI's alone. Every other
-     provider on this wire format takes `max_tokens`, and sending the wrong
-     one is either a hard 400 or — worse — a silently unlimited answer. */
+  /* Every provider on this wire format takes `max_tokens`, and sending the
+     wrong one is either a hard 400 or — worse — a silently unlimited answer.
+     OpenAI's spelling was `max_completion_tokens` for as long as this app
+     spoke to it on chat/completions; on the endpoint it speaks to now the
+     name is `max_output_tokens`, and the point the check is making is the
+     one it always made: nobody gets somebody else's name for it. */
   const openai = await sent("gpt-5.6-terra");
-  check(openai.body.max_completion_tokens !== undefined && openai.body.max_tokens === undefined,
-    "OpenAI's reasoning models take max_completion_tokens", Object.keys(openai.body).filter((k) => /tokens/.test(k)).join(", "));
+  check(openai.body.max_output_tokens !== undefined
+    && openai.body.max_tokens === undefined && openai.body.max_completion_tokens === undefined,
+    "OpenAI takes max_output_tokens, and one name only", Object.keys(openai.body).filter((k) => /tokens/.test(k)).join(", "));
 
   const kimi = await sent("kimi-k3");
   check(kimi.body.max_tokens !== undefined && kimi.body.max_completion_tokens === undefined,
@@ -83,7 +88,8 @@ console.log("\nThe output limit is spelled the way each provider spells it");
   /* And the one thing OpenAI's reasoning models actually refuse. */
   check(openai.body.temperature === undefined && openai.body.top_p === undefined,
     "a reasoning model is sent no sampling parameters");
-  check(openai.body.reasoning_effort === "high", "but is told how hard to think", String(openai.body.reasoning_effort));
+  check((openai.body.reasoning as { effort?: string } | undefined)?.effort === "high",
+    "but is told how hard to think", JSON.stringify(openai.body.reasoning));
 }
 
 console.log("\nAnthropic is its own shape, and one sampling parameter at a time");
@@ -132,6 +138,53 @@ console.log("\nAnd thinking is asked for in the shape the model on the other end
   const { body } = await sent("claude-opus-5");
   check(body.temperature === undefined && body.top_p === undefined,
     "and an effort model is sent no sampling parameters at all");
+}
+
+console.log("\nA turn that offers this app's rooms is a turn OpenAI will take");
+{
+  /* Reported from the live app, on every single message: "Function tools
+     with reasoning_effort are not supported for gpt-5.6-luna in
+     /v1/chat/completions. To use function tools, use /v1/responses or set
+     reasoning_effort to 'none'."
+
+     This app offers its own rooms as tools on nearly every turn and asks
+     every reasoning model how hard to think, so the two always arrived
+     together and OpenAI refused the pair outright. Every model that
+     provider has in this registry reasons, which made the whole of the
+     OpenAI side unusable — and it read to a person as the app being
+     broken, because it was.
+
+     The remedy is the one the refusal names. The other one it names —
+     effort "none" — is buying tools back by turning the thinking off
+     without saying so, on a model chosen for thinking. */
+  const ACT = [{ name: "save_card", description: "Save a card", schema: { type: "object", properties: {} } }];
+  const withTools = await sent("gpt-5.6-luna", {}, { actions: ACT });
+  check(withTools.url.endsWith("/responses"), "OpenAI is asked on the endpoint that takes both", withTools.url);
+  check(withTools.body.reasoning_effort === undefined,
+    "so the field that cannot sit beside a tool is not sent", String(withTools.body.reasoning_effort));
+  check((withTools.body.reasoning as { effort?: string } | undefined)?.effort === "high",
+    "and the effort rides in the shape this endpoint takes",
+    JSON.stringify(withTools.body.reasoning));
+  const tools = withTools.body.tools as Record<string, unknown>[] | undefined;
+  check(Array.isArray(tools) && tools.length === 1 && tools[0].name === "save_card" && tools[0].function === undefined,
+    "with the tool flat, which is this endpoint's shape and not the other's", JSON.stringify(tools?.[0]));
+  check(withTools.body.max_output_tokens !== undefined && withTools.body.max_completion_tokens === undefined,
+    "and the output limit under the name it uses here",
+    Object.keys(withTools.body).filter((k) => /tokens/.test(k)).join(", "));
+
+  /* Nothing about tools changed the endpoint: a turn with none goes to the
+     same place, or half the app would be on one API and half on another. */
+  const plain = await sent("gpt-5.6-luna");
+  check(plain.url.endsWith("/responses"), "a turn with no tools goes to the same place", plain.url);
+
+  /* And the two providers that borrow this wire format are not OpenAI and
+     do not have this endpoint. Sending them there is a 404 on every turn. */
+  for (const id of ["kimi-k3", "deepseek-v4-pro"]) {
+    const { url, body } = await sent(id, {}, { actions: ACT });
+    check(url.endsWith("/chat/completions"), `${id} still speaks chat/completions`, url);
+    check(Array.isArray(body.tools) && (body.tools as Record<string, any>[])[0].function?.name === "save_card",
+      "with the nested tool shape that format wants", JSON.stringify((body.tools as unknown[])?.[0]));
+  }
 }
 
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");

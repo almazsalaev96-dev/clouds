@@ -368,6 +368,19 @@ export interface ModelSpec {
    * is what the interface and the router read. This says how to ask.
    */
   thinks?: "effort" | "budget";
+  /**
+   * Which of a provider's APIs this model is asked on, where it has more
+   * than one — a wire fact like `thinks`, and kept here for the same reason:
+   * the alternative is a list of model names inside an adapter, drifting.
+   *
+   * `responses` is OpenAI's /v1/responses, the only endpoint of theirs that
+   * accepts function tools and an effort in the same request and the only
+   * one that streams a summary of the thinking. Absent means the provider's
+   * chat/completions, which is where Moonshot and DeepSeek live: they borrow
+   * OpenAI's wire format, which does not make them OpenAI, and sending them
+   * to an endpoint they do not have is a 404 on every turn.
+   */
+  wire?: "responses";
   legacy?: boolean;
 }
 

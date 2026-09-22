@@ -286,6 +286,7 @@ export const MODELS: ModelSpec[] = [
     vision: true,
     reasoning: true,
     tools: true,
+    wire: "responses",
   },
   {
     id: "gpt-5.6-sol",
@@ -301,6 +302,7 @@ export const MODELS: ModelSpec[] = [
     vision: true,
     reasoning: true,
     tools: true,
+    wire: "responses",
   },
   {
     id: "gpt-5.6-terra",
@@ -316,6 +318,7 @@ export const MODELS: ModelSpec[] = [
     vision: true,
     reasoning: true,
     tools: true,
+    wire: "responses",
   },
   {
     id: "gpt-5.6-luna",
@@ -331,6 +334,7 @@ export const MODELS: ModelSpec[] = [
     vision: true,
     reasoning: true,
     tools: true,
+    wire: "responses",
   },
   {
     id: "gpt-5.5",
@@ -346,6 +350,7 @@ export const MODELS: ModelSpec[] = [
     vision: true,
     reasoning: true,
     tools: true,
+    wire: "responses",
     legacy: true,
   },
   {
@@ -362,6 +367,7 @@ export const MODELS: ModelSpec[] = [
     vision: true,
     reasoning: true,
     tools: true,
+    wire: "responses",
     legacy: true,
   },
   {
@@ -378,6 +384,7 @@ export const MODELS: ModelSpec[] = [
     vision: true,
     reasoning: true,
     tools: true,
+    wire: "responses",
     legacy: true,
   },
 
