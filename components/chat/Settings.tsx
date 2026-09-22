@@ -88,7 +88,7 @@ export function Settings({
                 onClick={() => setTab(t.id)}
                 className={cn(
                   "shrink-0 whitespace-nowrap rounded-md px-2 py-1.5 text-left text-sm transition-colors duration-[var(--dur-fast)] max-sm:min-h-9",
-                  tab === t.id ? "bg-canvas font-medium text-primary" : "text-secondary hover:text-primary",
+                  tab === t.id ? "bg-field font-medium text-primary" : "text-secondary hover:text-primary",
                 )}
               >
                 {t.label}
@@ -180,7 +180,7 @@ function RulesPanel() {
           rows={4}
           aria-label="Your own rules"
           placeholder={"Always show the units.\nCall the exam board AQA, not the board."}
-          className="w-full resize-y rounded-md border border-line-strong bg-canvas px-2.5 py-2 text-sm text-primary outline-none focus:border-accent"
+          className="w-full resize-y rounded-md border border-line-strong bg-field px-2.5 py-2 text-sm text-primary outline-none focus:border-accent"
         />
       </Field>
     </Panel>
@@ -347,7 +347,7 @@ function KeyRow({ provider, serverConfigured }: { provider: ProviderId; serverCo
            pasted forty characters out of a dashboard needs to see that all
            forty arrived. */
         <div className="flex items-center gap-1.5">
-          <div className="flex h-8 flex-1 items-center gap-1.5 rounded-md border border-line-strong bg-canvas px-2 focus-within:border-accent">
+          <div className="flex h-8 flex-1 items-center gap-1.5 rounded-md border border-line-strong bg-field px-2 focus-within:border-accent">
             <input
               autoFocus
               type={reveal ? "text" : "password"}
@@ -447,7 +447,7 @@ function AppearancePanel() {
           onChange={(e) => s.set({ name: e.target.value, nameAsked: true })}
           placeholder="What should Armi call you?"
           aria-label="Your name"
-          className="focus-inset h-9 w-full max-w-xs rounded-md border border-line bg-canvas px-3 text-sm text-primary outline-none placeholder:text-tertiary"
+          className="focus-inset h-9 w-full max-w-xs rounded-md border border-line bg-field px-3 text-sm text-primary outline-none placeholder:text-tertiary"
         />
       </Field>
       <Field label="Theme">
@@ -666,7 +666,7 @@ function Spend() {
   if (!rows?.any) return null;
   return (
     <Field label="What it has cost" hint="Chat answers, added up at the providers' published prices as they came in. The quieter calls — briefs, checks, cards, summaries — are not counted, and your bill is the provider's.">
-      <div className="rounded-md border border-line bg-canvas px-3 py-2.5 text-sm">
+      <div className="rounded-md border border-line bg-field px-3 py-2.5 text-sm">
         <p className="flex items-baseline justify-between">
           <span className="text-primary">This month</span>
           <span className="tnum font-medium text-primary">{formatCost(rows.month)}</span>
@@ -854,7 +854,7 @@ function ArmiTable({ configured }: { configured: Record<string, boolean> }) {
         const cast = resolveCast(p.id, where)!;
         const profile = profileOf(cast);
         return (
-          <li key={p.id} className="rounded-lg border border-line bg-canvas px-3 py-2.5">
+          <li key={p.id} className="rounded-lg border border-line bg-field px-3 py-2.5">
             <p className="text-sm font-medium text-primary">
               {p.name} <span className="font-normal text-tertiary">— {p.tagline}</span>
             </p>
@@ -903,7 +903,7 @@ function Segmented({
   onChange: (v: string) => void;
 }) {
   return (
-    <div role="radiogroup" className="inline-flex rounded-md border border-line-strong bg-canvas p-0.5">
+    <div role="radiogroup" className="inline-flex rounded-md border border-line-strong bg-field p-0.5">
       {options.map((o) => (
         <button
           key={o.value}
@@ -1018,7 +1018,7 @@ function MemoryPanel() {
             }}
             placeholder="I teach year 9 maths"
             aria-label="Something to remember"
-            className="focus-inset h-9 min-w-0 flex-1 rounded-md border border-line bg-canvas px-3 text-sm text-primary outline-none placeholder:text-tertiary"
+            className="focus-inset h-9 min-w-0 flex-1 rounded-md border border-line bg-field px-3 text-sm text-primary outline-none placeholder:text-tertiary"
           />
           <Button size="sm" variant="secondary" disabled={!draft.trim()} onClick={() => void add()}>
             <Plus size={14} />
@@ -1276,7 +1276,7 @@ function StylesPanel() {
                     }
                     placeholder="One line, for the picker"
                     aria-label="Style description"
-                    className="focus-inset mt-2 w-full rounded-md border border-line bg-canvas px-2 py-1.5 text-xs text-primary outline-none placeholder:text-tertiary"
+                    className="focus-inset mt-2 w-full rounded-md border border-line bg-field px-2 py-1.5 text-xs text-primary outline-none placeholder:text-tertiary"
                   />
                   <textarea
                     value={st.instructions}
@@ -1289,7 +1289,7 @@ function StylesPanel() {
                     rows={6}
                     placeholder="Write it as instructions to the model: “Answer in as few words as the question takes. No preamble.”"
                     aria-label="Style instructions"
-                    className="focus-inset mt-1.5 w-full resize-y rounded-md border border-line bg-canvas px-2 py-1.5 text-xs leading-relaxed text-primary outline-none placeholder:text-tertiary"
+                    className="focus-inset mt-1.5 w-full resize-y rounded-md border border-line bg-field px-2 py-1.5 text-xs leading-relaxed text-primary outline-none placeholder:text-tertiary"
                   />
                 </>
               ) : (

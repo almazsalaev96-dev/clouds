@@ -179,7 +179,7 @@ export function Sidebar({
                    is the floor here too, and a rule that bends for the
                    thing its author happens to be drawing is not a rule. */
                 "tap flex size-11 shrink-0 items-center justify-center rounded-full transition-colors duration-[var(--dur-fast)]",
-                searching ? "bg-accent-subtle text-accent" : "bg-canvas text-secondary hover:text-primary",
+                searching ? "bg-subtle text-accent" : "bg-surface text-secondary hover:text-primary",
               )}
             >
               <Search size={17} />
@@ -189,7 +189,7 @@ export function Sidebar({
           <div className="space-y-1 px-2 pb-2">
             <button
               onClick={onNewChat}
-              className="tap group flex h-11 w-full items-center gap-3 rounded-md border border-line bg-canvas px-3 text-[0.9375rem] font-medium text-primary transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
+              className="tap group flex h-11 w-full items-center gap-3 rounded-md border border-line bg-surface px-3 text-[0.9375rem] font-medium text-primary transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
             >
               <Plus size={17} className="text-tertiary transition-colors duration-[var(--dur-fast)] group-hover:text-accent" />
               New chat
@@ -205,7 +205,7 @@ export function Sidebar({
                 a history under it, all of which are further down for its
                 sake. */}
             {searching && (
-            <div className="tap flex h-10 items-center gap-1.5 rounded-md border border-line-strong bg-canvas px-2 transition-colors duration-[var(--dur-fast)]">
+            <div className="tap flex h-10 items-center gap-1.5 rounded-md border border-line-strong bg-surface px-2 transition-colors duration-[var(--dur-fast)]">
               <Search size={13} className="shrink-0 text-tertiary" />
               <input
                 value={query}
@@ -250,7 +250,7 @@ export function Sidebar({
               /* A fill, not a floating object: it sits behind the row it
                  marks, so it takes no shadow at all rather than one turned
                  off. */
-              indicatorClassName="rounded-sm bg-accent-subtle"
+              indicatorClassName="rounded-sm bg-subtle"
               /* `gap`, not `space-y`. The indicator is the first child of this
                  box, so `space-y-*` — which margins every sibling after the
                  first — would push the whole list down by one step the moment
@@ -283,7 +283,7 @@ export function Sidebar({
                       "tap flex h-11 w-full items-center gap-3 rounded-md px-3 text-[0.9375rem] transition-colors duration-[var(--dur-fast)]",
                       // The row only changes the colour of its ink; the fill
                       // underneath it is the one element that moves.
-                      on ? "font-medium text-primary" : "text-secondary hover:bg-canvas hover:text-primary",
+                      on ? "font-medium text-primary" : "text-secondary hover:bg-subtle/60 hover:text-primary",
                     )}
                   >
                     <span className={cn("shrink-0", on ? "text-accent" : "text-tertiary")}>
@@ -317,7 +317,7 @@ export function Sidebar({
             <button
               onClick={onOpenSettings}
               aria-label="Settings"
-              className="tap group flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 text-left transition-colors duration-[var(--dur-fast)] hover:bg-canvas"
+              className="tap group flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle/60"
             >
               <span
                 aria-hidden
@@ -383,7 +383,7 @@ function Rail({
       </div>
 
       <nav aria-label="Sections">
-        <Segmented value={section} indicatorClassName="rounded-sm bg-accent-subtle" className="flex flex-col items-center gap-1">
+        <Segmented value={section} indicatorClassName="rounded-sm bg-subtle" className="flex flex-col items-center gap-1">
           {SECTIONS.map((s) => {
             const on = section === s.id;
             return (
@@ -605,7 +605,7 @@ function Row({
     <div
       className={cn(
         "tap group relative flex h-8 items-center rounded-md pl-2 pr-1 transition-colors duration-[var(--dur-fast)]",
-        active ? "bg-accent-subtle" : "hover:bg-canvas",
+        active ? "bg-subtle" : "hover:bg-subtle/60",
       )}
     >
       {/* `h-full`, because a row is a target and a line of text is not. The
@@ -622,22 +622,10 @@ function Row({
         title={title}
       >
         <span className="flex min-w-0 flex-1 items-baseline gap-2">
-          {/* A hollow bullet, at the weight of a hairline. The rows had nothing
-              down their left edge, so a long title and a short one started in
-              the same place but did not look like they did.
-
-              It is also the only mark the active row needs beside its fill.
-              There used to be a third: a vertical bar pinned to `left-0`,
-              which sat *outside* the pill's rounded corner and read as a
-              line poking out of it rather than as a marker. Three signals
-              for one state, and the third was the one that looked broken. */}
-          <span
-            aria-hidden
-            className={cn(
-              "size-1.5 shrink-0 translate-y-[-1px] rounded-full border",
-              active ? "border-accent bg-accent" : "border-[var(--border-strong)]",
-            )}
-          />
+          {/* No mark down the left edge any more. There was a hollow bullet,
+              then a filled one on the active row, and the fill was already
+              saying which row was open; the reference says it with the fill
+              alone and its list is the calmer for it. */}
           <span className="truncate">{title}</span>
           {meta && <span className="shrink-0 text-xs text-tertiary">{meta}</span>}
         </span>

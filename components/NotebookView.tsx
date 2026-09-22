@@ -909,7 +909,7 @@ export function NotebookView({
                     <button
                       key={f.id}
                       onClick={() => onSelect(f.id)}
-                      className="tap focus-inset rounded-full border border-line bg-canvas px-2.5 py-1 text-xs text-secondary hover:border-line-strong hover:text-primary"
+                      className="tap focus-inset rounded-full border border-line bg-field px-2.5 py-1 text-xs text-secondary hover:border-line-strong hover:text-primary"
                     >
                       {f.title}
                     </button>

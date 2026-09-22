@@ -170,7 +170,7 @@ export function DeckPanel({
               rows={5}
               aria-label="Cards to paste"
               placeholder={"One card a line:\nWhat is a debounce :: Waiting for silence\nThe {{mitochondria}} is the powerhouse of the cell\nquestion<tab>answer, or question,answer"}
-              className="focus-inset w-full resize-y rounded-md border border-line bg-canvas px-2.5 py-1.5 font-mono text-xs text-primary outline-none"
+              className="focus-inset w-full resize-y rounded-md border border-line bg-field px-2.5 py-1.5 font-mono text-xs text-primary outline-none"
             />
             <div className="mt-2 flex items-center justify-end gap-2">
               <Button size="sm" variant="ghost" onClick={() => { setPasting(false); setPasted(""); }}>Cancel</Button>
@@ -222,14 +222,14 @@ function CardRow({ card, now }: { card: Card; now: number }) {
             onChange={(e) => setFront(e.target.value)}
             aria-label="Question"
             rows={2}
-            className="focus-inset w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-1.5 text-sm text-primary outline-none"
+            className="focus-inset w-full resize-none rounded-md border border-line bg-field px-2.5 py-1.5 text-sm text-primary outline-none"
           />
           <textarea
             value={back}
             onChange={(e) => setBack(e.target.value)}
             aria-label="Answer"
             rows={2}
-            className="focus-inset w-full resize-none rounded-md border border-line bg-canvas px-2.5 py-1.5 text-sm text-secondary outline-none"
+            className="focus-inset w-full resize-none rounded-md border border-line bg-field px-2.5 py-1.5 text-sm text-secondary outline-none"
           />
           <div className="flex justify-end gap-2">
             <Button size="sm" variant="ghost" onClick={() => { setFront(card.front); setBack(card.back); setEditing(false); }}>

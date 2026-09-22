@@ -99,6 +99,11 @@
      because in a light theme "darker" moves the panel *toward* the ink rather
      than away from it. Code blocks and quiet panels sit on this. */
   --bg-inset: #edeef1;
+  /* What you type into, and a chip: a step down from the panel in light
+     (the canvas colour, as it always was) and a step *up* in dark — on black
+     a well cannot be dug any deeper, so every reference lifts its fields
+     instead, and so does this. */
+  --bg-field: #f5f6f8;
   --bg-overlay: rgba(11, 16, 27, 0.46);
 
   --border-subtle: #e1e3e7;
@@ -545,22 +550,32 @@
        cyan is the action and the signal, the blue is structure, and the
        yellow is a highlighter and nothing else.
 
+       Then the ground went the rest of the way. Held next to the reference
+       on the same tablet, a 0.004-chroma charcoal at L 0.17 still read as
+       "a dark grey app" beside "a black one", and the black one is the one
+       that was asked for. So: true black for the page, the sidebar and
+       every panel a step up at #171717, the hover a step above that — the
+       reference's own three steps — and no chroma anywhere in the ground.
+       The mesh that was kept at half strength goes to a trace: on black
+       a coloured blob is not a presence at the corner, it is a stain.
+
        Every pair below is computed against WCAG (`node contrast.mjs`).
        --------------------------------------------------------------------- */
-    --bg-canvas: #0f1012;
-    --bg-surface: #191a1d;
-    --bg-subtle: #242528;
-    --bg-section: #141517;
-    --bg-inset: #0a0a0c;
-    --bg-overlay: rgba(10, 10, 12, 0.78);
+    --bg-canvas: #000000;
+    --bg-surface: #171717;
+    --bg-subtle: #212121;
+    --bg-section: #0d0d0d;
+    --bg-inset: #0f0f0f;
+    --bg-field: #262626;
+    --bg-overlay: rgba(0, 0, 0, 0.72);
 
-    --border-subtle: #2d2e31;
-    --border-strong: #7f8083;
+    --border-subtle: #2a2a2a;
+    --border-strong: #7d7d7d;
 
-    --text-primary: #e7e8e9;
-    --text-secondary: #cbccce;
-    --text-tertiary: #b0b1b3;
-    --text-faint: #8e8f91;
+    --text-primary: #e8e8e8;
+    --text-secondary: #cccccc;
+    --text-tertiary: #b1b1b1;
+    --text-faint: #8f8f8f;
 
     --accent: #a3bae7;
     --accent-hover: #c1d0ef;
@@ -607,7 +622,7 @@
     --marker: #ffd23f;
     --marker-rgb: 255 210 63;
     --mark: #004049;
-    --mark-fg: #e7e8e9;
+    --mark-fg: #e8e8e8;
 
     --live: #6fdcdc;
     --go: #6fd2a4;
@@ -620,11 +635,11 @@
     --danger: var(--stop);
     --danger-subtle: #3c161a;
 
-    --mesh-a: rgba(111, 220, 220, 0.055);
-    --mesh-b: rgba(146, 180, 248, 0.045);
-    --mesh-c: rgba(231, 232, 233, 0.02);
+    --mesh-a: rgba(111, 220, 220, 0.018);
+    --mesh-b: rgba(146, 180, 248, 0.014);
+    --mesh-c: rgba(232, 232, 232, 0.008);
     --grain-opacity: 0.045;
-    --glass: rgba(15, 16, 18, 0.78);
+    --glass: rgba(23, 23, 23, 0.84);
     --glow: 0 0 24px -6px var(--accent-2);
 
     /* Darker and deeper, and still tinted rather than pure black: this ground
@@ -701,7 +716,7 @@
        ground. It is the lifted surface now, like every other raised thing —
        which means it follows `--bg-subtle`, and followed it again when the
        ground lost its blue. */
-    --composer-bg: rgba(36, 37, 40, 0.78);
+    --composer-bg: rgba(38, 38, 38, 0.86);
     --composer-line: rgba(231, 232, 233, 0.10);
     --composer-line-focus: rgba(111, 220, 220, 0.38);
     --composer-lift: inset 0 1px 0 rgb(231 232 233 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
@@ -732,6 +747,7 @@
   --color-surface: var(--bg-surface);
   --color-subtle: var(--bg-subtle);
   --color-inset: var(--bg-inset);
+  --color-field: var(--bg-field);
   --color-line: var(--border-subtle);
   --color-line-strong: var(--border-strong);
   --color-primary: var(--text-primary);

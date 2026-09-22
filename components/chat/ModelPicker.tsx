@@ -416,7 +416,7 @@ function EffortRow({ modelId, fallback }: { modelId: string; fallback?: "low" | 
   return (
     <div className="flex items-center gap-2 border-t border-line px-2.5 py-1.5">
       <span className="text-tiny text-tertiary">Thinks</span>
-      <div role="radiogroup" aria-label="How hard it thinks" className="ml-auto inline-flex rounded-md border border-line-strong bg-canvas p-0.5">
+      <div role="radiogroup" aria-label="How hard it thinks" className="ml-auto inline-flex rounded-md border border-line-strong bg-field p-0.5">
         {options.map((o) => (
           <button
             key={o.id}

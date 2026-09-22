@@ -291,7 +291,7 @@ export function Composer({
             {attachments.map((a) => (
               <div
                 key={a.id}
-                className="group/chip flex items-center gap-2 rounded-md border border-line bg-canvas py-1 pl-1 pr-2 anim-pop"
+                className="group/chip flex items-center gap-2 rounded-md border border-line bg-field py-1 pl-1 pr-2 anim-pop"
               >
                 {a.kind === "image" && a.preview ? (
                   // eslint-disable-next-line @next/next/no-img-element
