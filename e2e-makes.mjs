@@ -41,7 +41,7 @@ await page.waitForTimeout(900);
    is gone — the app reads the request — and rather than leave two copies with
    nothing to turn one of them on, there is one, in the room named after it. */
 console.log("\nThe offer");
-await page.locator("aside nav").getByRole("button", { name: "Creative" }).first().click();
+await page.locator("aside nav").getByRole("button", { name: "Studio" }).first().click();
 await page.waitForTimeout(700);
 const row = page.getByRole("button", { name: /Flashcards/ });
 check(await row.isVisible().catch(() => false), "the Creative room offers things you can make, not only things to ask");
@@ -51,10 +51,10 @@ await page.locator("aside nav").getByRole("button", { name: "Conversations" }).f
 await page.waitForTimeout(600);
 check(!(await row.isVisible().catch(() => false)), "and a blank chat page does not — it is a different question");
 await page.screenshot({ path: `${OUT}/makes-chat.png` });
-await page.locator("aside nav").getByRole("button", { name: "Library" }).first().click();
+await page.locator("aside nav").getByRole("button", { name: "Creations" }).first().click();
 await page.waitForTimeout(600);
 check(!(await row.isVisible().catch(() => false)), "and neither does the Code index — one copy, not three");
-await page.locator("aside nav").getByRole("button", { name: "Creative" }).first().click();
+await page.locator("aside nav").getByRole("button", { name: "Studio" }).first().click();
 await page.waitForTimeout(700);
 
 /** Press a make, land in Code with it running, and hand back its frame. */
@@ -69,7 +69,7 @@ async function open(name) {
    Code with it running, so the way back is a room change rather than the Code
    index — that index is three empty starters now, not these five. */
 async function back() {
-  await page.locator("aside nav").getByRole("button", { name: "Creative" }).first().click();
+  await page.locator("aside nav").getByRole("button", { name: "Studio" }).first().click();
   await page.waitForTimeout(700);
 }
 const consoleErrors = async () => {

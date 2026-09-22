@@ -44,7 +44,7 @@ console.log("\nUsing it");
 {
   /* The starters live in the Creative room now, as cards with their blurb
      under the name, so neither the place nor the exact name holds. */
-  await page.locator("aside nav").getByRole("button", { name: "Creative" }).first().click();
+  await page.locator("aside nav").getByRole("button", { name: "Studio" }).first().click();
   await page.waitForTimeout(700);
   await page.getByRole("button", { name: /^Flashcards/ }).first().click();
   await page.waitForTimeout(1500);
@@ -98,7 +98,7 @@ console.log("\nAnything else");
 {
   /* The room has a composer of its own now, tuned for making: whatever is
      said here starts a conversation in which every answer is a page. */
-  await page.locator("aside nav").getByRole("button", { name: "Creative" }).first().click();
+  await page.locator("aside nav").getByRole("button", { name: "Studio" }).first().click();
   await page.waitForTimeout(700);
   check(await page.getByRole("textbox", { name: "What to make" }).isVisible(),
     "the five starters are not the offer — the room asks what to make");

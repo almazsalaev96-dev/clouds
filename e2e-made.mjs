@@ -127,7 +127,7 @@ console.log("\nA question is still a question");
 
 console.log("\nFrom the Creative room");
 {
-  await p.locator("aside nav").getByRole("button", { name: "Creative" }).first().click();
+  await p.locator("aside nav").getByRole("button", { name: "Studio" }).first().click();
   await p.waitForTimeout(700);
   check(await p.getByRole("textbox", { name: "What to make" }).isVisible(), "the room asks what to make");
   check(await p.getByRole("group", { name: "Ideas" }).getByRole("button").count() >= 4, "and offers ideas, sent as they are");

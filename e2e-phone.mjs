@@ -106,7 +106,7 @@ console.log("\nThe study session's hint names what a finger can do");
 
 console.log("\nA made thing's header fits a phone");
 {
-  await drawer("Library");
+  await drawer("Creations");
   await p.locator("main").getByText("Flashcards").first().click();
   await p.waitForTimeout(1200);
   const back = await p.getByRole("button", { name: "All canvases" }).boundingBox();
@@ -130,12 +130,12 @@ console.log("\nA made thing's header fits a phone");
 
 console.log("\nThe last dashed boxes are gone, and the starters share rows");
 {
-  await drawer("Library");
+  await drawer("Creations");
   const dashed = await p.locator("main").evaluate((m) => [...m.querySelectorAll("*")].filter((el) => getComputedStyle(el).borderTopStyle === "dashed").length);
   check(dashed === 0, "nothing on the Artifacts room is drawn with a dashed border", `${dashed} dashed`);
   const tops = await p.locator("main").getByRole("button", { name: /Web app|Code file|Document|Open files/ }).evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
   check(new Set(tops).size <= 2 && tops.length === 4, "the four starters sit two to a row on a phone, not one under another", tops.join(", "));
-  await drawer("Creative");
+  await drawer("Studio");
   const dashed2 = await p.locator("main").evaluate((m) => [...m.querySelectorAll("*")].filter((el) => getComputedStyle(el).borderTopStyle === "dashed").length);
   check(dashed2 === 0, "nor on Creative", `${dashed2} dashed`);
 }

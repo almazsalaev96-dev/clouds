@@ -54,7 +54,7 @@ console.log("\nSomething worth keeping");
   /* The starters live in the Creative room now — one copy, in the room named
      after making things — and each is a card with its blurb under the name, so
      the accessible name is no longer just the word. */
-  await page.locator("aside nav").getByRole("button", { name: "Creative" }).first().click();
+  await page.locator("aside nav").getByRole("button", { name: "Studio" }).first().click();
   await page.waitForTimeout(700);
   await page.getByRole("button", { name: /^Flashcards/ }).first().click();
   await page.waitForTimeout(1800);

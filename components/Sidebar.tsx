@@ -45,7 +45,7 @@ import { Segmented } from "@/components/ui/Segmented";
    So: Conversations first, because it is where nearly every session starts
    and primacy is wasted on anything else. Study second, where it is still
    above the fold of attention. The three supporting rooms in the middle,
-   which is what the middle is for. Library last, because "where is the
+   which is what the middle is for. Creations last, because "where is the
    thing I made" is the other question people arrive with, and recency is
    the seat for the destination you go looking for rather than the one you
    land on. */
@@ -57,16 +57,19 @@ const SECTIONS: { id: Section; label: string; icon: React.ReactNode }[] = [
   { id: "study", label: "Study", icon: <GraduationCap size={20} /> },
   { id: "notebook", label: "Notebook", icon: <NotebookPen size={20} /> },
   { id: "projects", label: "Projects", icon: <FolderOpen size={20} /> },
-  { id: "creative", label: "Creative", icon: <Sparkles size={20} /> },
-  /* "Library", not "Artifacts", and not "Code" before it. The room holds web
+  { id: "creative", label: "Studio", icon: <Sparkles size={20} /> },
+  /* "Creations", after "Library", after "Artifacts", after "Code". The room holds web
      apps, documents and code files, and since a request in the chat lands
      here as a running thing it mostly holds things that are not code at all
      — a deck of cards, a timetable, a tracker. "Code" sent everyone who was
      not a programmer straight past it; "Artifacts" is a word this industry
      uses and nobody else does. "Library" is what a person calls the place
-     their own things are kept, and it is the word the tools they already use
-     put in the same slot. */
-  { id: "code", label: "Library", icon: <Library size={20} /> },
+     their own things are kept — and then, read against "Studio" one row
+     up, it said a place things are borrowed from rather than the place your
+     own things go. "Creations" says whose they are. And "Studio" for the
+     room above it, because five rooms had nouns for names and one had an
+     adjective: a studio is where you make things, which is what it is. */
+  { id: "code", label: "Creations", icon: <Library size={20} /> },
 ];
 
 export function Sidebar({

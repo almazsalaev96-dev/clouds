@@ -76,7 +76,7 @@ console.log("\nRetry, on the one that failed");
 
 console.log("\nA blank canvas is written on, not revised");
 {
-  await p.locator("aside nav").getByRole("button", { name: "Library" }).first().click();
+  await p.locator("aside nav").getByRole("button", { name: "Creations" }).first().click();
   await p.waitForTimeout(600);
   await p.getByRole("button", { name: /Code file/ }).click();
   await p.waitForTimeout(800);

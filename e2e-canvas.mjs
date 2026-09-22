@@ -34,7 +34,7 @@ await page.waitForTimeout(900);
 
 /* --------------------------------------------------------------- create -- */
 
-await page.locator("aside nav").getByRole("button", { name: "Library" }).first().click();
+await page.locator("aside nav").getByRole("button", { name: "Creations" }).first().click();
 /* Waited for rather than glanced at: the Library is its own chunk now, like
    the other rooms, and arrives after a round trip plus three queries. A
    400ms glance was a race the claim did not need to run. */
@@ -204,11 +204,11 @@ console.log("\nA page you already have, opened here");
 {
   /* The other direction from "download as one file": a folder of your own
      arrives, is read as text, and runs. */
-  await page.locator("aside nav").getByRole("button", { name: "Library" }).first().click();
+  await page.locator("aside nav").getByRole("button", { name: "Creations" }).first().click();
   await page.waitForTimeout(500);
   await page.getByRole("button", { name: /^All canvases/ }).click().catch(() => {});
   await page.waitForTimeout(400);
-  const before = await page.getByRole("list", { name: "Library" }).locator("li").count().catch(() => 0);
+  const before = await page.getByRole("list", { name: "Creations" }).locator("li").count().catch(() => 0);
   await page.getByLabel("Files to open").setInputFiles([
     { name: "index.html", mimeType: "text/html", buffer: Buffer.from("<!doctype html><html><head><title>Brought in</title><link rel=\"stylesheet\" href=\"style.css\"></head><body><h1 id=\"h\">Hello</h1><script src=\"app.js\"></script></body></html>") },
     { name: "style.css", mimeType: "text/css", buffer: Buffer.from("h1 { color: rgb(200, 30, 30); }") },
@@ -222,7 +222,7 @@ console.log("\nA page you already have, opened here");
   check((await frame.locator("h1").evaluate((n) => getComputedStyle(n).color).catch(() => "")) === "rgb(200, 30, 30)", "with its stylesheet");
   await page.getByRole("button", { name: /^All canvases/ }).click();
   await page.waitForTimeout(500);
-  check((await page.getByRole("list", { name: "Library" }).locator("li").count()) === before + 1, "as one more thing made");
+  check((await page.getByRole("list", { name: "Creations" }).locator("li").count()) === before + 1, "as one more thing made");
 }
 
 /* ------------------------------------------------------------ self-heal -- */

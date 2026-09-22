@@ -94,7 +94,7 @@ check(chat?.mic === true, "with a microphone in it");
 await page.screenshot({ path: `${OUT}/bar-chat.png` });
 
 console.log("\nA canvas");
-await page.locator("aside nav").getByRole("button", { name: "Library" }).click();
+await page.locator("aside nav").getByRole("button", { name: "Creations" }).click();
 await page.waitForTimeout(400);
 await page.getByRole("button", { name: /Web app/ }).click();
 await page.waitForTimeout(1400);
@@ -141,7 +141,7 @@ if (chat && canvas && note) {
 console.log("\nWhat the row says");
 {
   // Back to a canvas, where both halves of the row have something in them.
-  await page.locator("aside nav").getByRole("button", { name: "Library" }).click();
+  await page.locator("aside nav").getByRole("button", { name: "Creations" }).click();
   await page.waitForTimeout(500);
   /* The Library lists pages beside canvases now, newest first, and the newest
      thing here is the notebook page made a moment ago. Narrow to the kind

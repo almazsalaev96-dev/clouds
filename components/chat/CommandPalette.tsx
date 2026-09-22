@@ -68,7 +68,7 @@ function bodyScore(query: string, body?: string): number {
    name did not find it, and a hit inside a thread should never push the
    thread itself down the list. */
 const GROUP_ORDER = [
-  "Actions", "Go to", "View", "Models", "Chats", "Projects", "Library", "Notebook", "Study",
+  "Actions", "Go to", "View", "Models", "Chats", "Projects", "Creations", "Notebook", "Study",
   "In conversations", "In cards",
 ];
 /** No single kind of thing may fill the list and bury the rest. */
@@ -267,8 +267,8 @@ export function CommandPalette({
     const nav: Command[] = (
       [
         ["chat", "Chats", <MessageSquare key="c" size={15} />],
-        ["code", "Library", <Library key="k" size={15} />],
-        ["creative", "Creative", <Sparkles key="v" size={15} />],
+        ["code", "Creations", <Library key="k" size={15} />],
+        ["creative", "Studio", <Sparkles key="v" size={15} />],
         ["projects", "Projects", <FolderOpen key="j" size={15} />],
         ["notebook", "Notebook", <NotebookPen key="n" size={15} />],
       ] as const
@@ -309,7 +309,7 @@ export function CommandPalette({
       hint: c.content.split("\n").find((l) => l.trim()) ?? "Empty",
       body: c.content,
       icon: <Code2 size={15} />,
-      group: "Library",
+      group: "Creations",
       run: () => actions.open("code", c.id),
     }));
 

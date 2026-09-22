@@ -454,7 +454,7 @@ export function doingOf(name: string): string {
 }
 
 /** The rooms this can reach, for the settings line and the docs. */
-export const ACTION_AREAS = ["Study", "Notebook", "Memory", "Projects", "Library", "Conversations", "Calculator", "Clock"] as const;
+export const ACTION_AREAS = ["Study", "Notebook", "Memory", "Projects", "Creations", "Conversations", "Calculator", "Clock"] as const;
 
 /**
  * Run one call. Never throws: a tool that fails answers the model with why,

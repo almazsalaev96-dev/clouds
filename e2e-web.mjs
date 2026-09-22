@@ -38,7 +38,7 @@ await page.waitForTimeout(900);
 
 /* --------------------------------------------------------------- create -- */
 
-await page.locator("aside nav").getByRole("button", { name: "Library" }).first().click();
+await page.locator("aside nav").getByRole("button", { name: "Creations" }).first().click();
 /* The Library is loaded on first visit, not shipped with the shell, so a
    fixed 400ms glance saw it once in three runs. Wait for the starter. */
 await page.getByRole("button", { name: /Web app/ }).waitFor({ timeout: 8000 }).catch(() => {});

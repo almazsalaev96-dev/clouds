@@ -115,7 +115,7 @@ const StudyView = dynamic(
    lists: a first question does not need the code that lists decks. */
 const LibraryView = dynamic(
   () => import("@/components/LibraryView").then((m) => m.LibraryView),
-  { ssr: false, loading: () => <SectionSkeleton title="Library" newLabel="New document" /> },
+  { ssr: false, loading: () => <SectionSkeleton title="Creations" newLabel="New document" /> },
 );
 
 const ShortcutsOverlay = dynamic(
@@ -722,6 +722,7 @@ export default function Page() {
       /* The register the plan chose, or the one the person chose. */
       const style = findStyle(plan.register ? plan.register.id : chosenStyle, customStyles);
       const composed = composeSystemPrompt({
+        who: preset?.name,
         base: [rulesText(settings.rules ?? [], settings.systemPrompt), conv?.systemPrompt ?? ""].filter(Boolean).join("\n\n"),
         project,
         files,

@@ -62,7 +62,7 @@ console.log("\nThe selection slides");
      block was measuring. Pressing a file tab changes which file you are
      editing rather than which page you are on, so the indicator stays put
      while the rest of the page does not, which is what makes it watchable. */
-  await page.locator("aside nav").getByRole("button", { name: "Creative" }).first().click();
+  await page.locator("aside nav").getByRole("button", { name: "Studio" }).first().click();
   await page.waitForTimeout(700);
   await page.getByRole("button", { name: /^Flashcards/ }).first().click();
   await page.waitForTimeout(2600);
@@ -136,13 +136,13 @@ console.log("\nAnd so does the room you are in");
     };
     requestAnimationFrame(tick);
   });
-  await nav.getByRole("button", { name: "Creative" }).click();
+  await nav.getByRole("button", { name: "Studio" }).click();
   await page.waitForTimeout(1300);
   const track = await page.evaluate(() => window.__track);
   const after = await where();
   check(after !== before, "pressing another room moves it down the list", `${before} → ${after}`);
 
-  const row = await nav.getByRole("button", { name: "Creative" }).boundingBox();
+  const row = await nav.getByRole("button", { name: "Studio" }).boundingBox();
   check(after !== null && Math.abs(after - Math.round(row.y)) <= 1,
     "and it arrives on that row rather than near it", `indicator ${after}, row ${Math.round(row.y)}`);
 

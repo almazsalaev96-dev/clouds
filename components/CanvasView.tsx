@@ -127,7 +127,7 @@ export function CanvasView({
   if (!canvas) {
     return (
       <SectionIndex
-        title="Library"
+        title="Creations"
         newLabel="New canvas"
         emptyTitle="Nothing made yet."
         emptyHint="Everything you make lands here, and a change you ask for comes back revised in place, with a diff."

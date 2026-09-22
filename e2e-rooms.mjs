@@ -90,7 +90,7 @@ console.log("\nNotebook and Library: previews are prose");
   check(!/\|\s*-{2,}/.test(t) && !/\[\[/.test(t),
     "and no table rule or wiki bracket survives into a row",
     (t.match(/[^\n]*(\|\s*-{2,}|\[\[)[^\n]*/) ?? ["none"])[0]);
-  await go("Library");
+  await go("Creations");
   const a = await main();
   check(!/# Essay plan/.test(a) && /Essay plan/.test(a), "a document's row shows its text, not its heading mark", (a.match(/Essay plan[^\n]*\n[^\n]*/) ?? [""])[0].replace(/\n/g, " · "));
   check(!/\|\s*-{2,}/.test(a), "and a document built round a table previews as words, not as pipes",
@@ -102,8 +102,8 @@ console.log("\nLibrary: one room for everything made");
   /* It listed canvases and only canvases, under a name that promised more.
      The page written in the Notebook a moment ago is in the same list now,
      and opens into the room that edits it. */
-  await go("Library");
-  const lib = p.getByRole("list", { name: "Library" });
+  await go("Creations");
+  const lib = p.getByRole("list", { name: "Creations" });
   check(/Hypotonic/.test(await lib.innerText()), "a page from the Notebook is listed beside the documents",
     (await lib.innerText()).split("\n").find((l) => /Hypotonic/.test(l)) ?? "not there");
   const chips = p.getByRole("group", { name: "Kinds" });

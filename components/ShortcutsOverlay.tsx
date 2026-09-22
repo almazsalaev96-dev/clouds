@@ -27,7 +27,7 @@ export const SHORTCUT_GROUPS: { group: string; items: [string, string[]][] }[] =
     group: "Sections",
     items: [
       ["Chats", ["mod", "1"]],
-      ["Library", ["mod", "2"]],
+      ["Creations", ["mod", "2"]],
       ["Projects", ["mod", "3"]],
       ["Notebook", ["mod", "4"]],
       ["Back out of what's open", ["Esc"]],

@@ -60,6 +60,7 @@ run test-web   npx jiti test-web.ts
 run test-task  npx jiti test-task.ts
 run test-error npx jiti test-error.ts
 run test-refuse npx jiti test-refuse.ts
+run test-identity npx jiti test-identity.ts
 run test-lint  npx jiti test-lint.ts
 run test-predict npx jiti test-predict.ts
 run test-rows  npx jiti test-rows.ts

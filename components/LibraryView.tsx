@@ -158,7 +158,7 @@ export function LibraryView({
 
   return (
     <SectionIndex
-      title="Library"
+      title="Creations"
       newLabel="New document"
       emptyTitle="Nothing made yet."
       emptyHint="Every page, deck, document and app you make lands here, whichever room you made it in."

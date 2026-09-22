@@ -67,7 +67,7 @@ console.log("\nAnd it opens when you write past a line");
 
 console.log("\nA canvas is stacked from the start");
 {
-  await p.locator("aside nav").getByRole("button", { name: "Library" }).click();
+  await p.locator("aside nav").getByRole("button", { name: "Creations" }).click();
   await p.waitForTimeout(400);
   await p.getByRole("button", { name: /Web app/ }).click();
   await p.waitForTimeout(1400);

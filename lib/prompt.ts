@@ -3,6 +3,7 @@ import { actionsSection } from "./actions.text";
 import { memorySection } from "./memory";
 import { select } from "./retrieve";
 import { HOUSE } from "./answer";
+import { identitySection } from "./identity";
 import { NO_LOOKAHEAD } from "./shape";
 import type { Project, ProjectFile, Style, Memory } from "./types";
 import type { ModeSpec } from "./modes";
@@ -32,6 +33,8 @@ export const KNOWLEDGE_BUDGET_TOKENS = 60_000;
 export interface PromptParts {
   /** Off for the app's own internal calls — a titler wants no house style. */
   house?: false;
+  /** The ARMI model's name, for the identity block. Goes with `house`. */
+  who?: string;
   base?: string;
   project?: Project;
   files?: ProjectFile[];
@@ -73,7 +76,8 @@ export function composeSystemPrompt(parts: PromptParts): ComposedPrompt {
      instructions. That is the right precedence for an app having opinions
      about answers — a floor rather than a ceiling. Somebody who wants bullet
      points asks for bullet points and gets them. */
-  if (parts.house !== false) sections.push(HOUSE);
+  /* Identity first, above even the house: nothing below may rename it. */
+  if (parts.house !== false) sections.push(identitySection(parts.who), HOUSE);
 
   const base = parts.base?.trim();
   if (base) sections.push(base);
