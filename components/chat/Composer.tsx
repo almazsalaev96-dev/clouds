@@ -331,10 +331,10 @@ export function Composer({
           <>
           {/* Everything you can add to a message, behind one control. */}
           <Popover.Root open={plusOpen} onOpenChange={setPlusOpen}>
-            <Tooltip label="Add photos and files">
+            <Tooltip label="Add files and tools">
               <Popover.Trigger asChild>
                 <button
-                  aria-label="Add photos and files"
+                  aria-label="Add files and tools"
                   className="ctl focus-inset flex [--ctl:2.25rem] shrink-0 items-center justify-center rounded-full text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
                 >
                   <Plus size={18} />
@@ -368,10 +368,11 @@ export function Composer({
                     className="focus-inset flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
                   >
                     <GraduationCap size={16} className="mt-0.5 shrink-0 text-tertiary" />
-                    <span className="min-w-0">
+                    <span className="min-w-0 flex-1">
                       <span className="block">{learn ? "Stop learning mode" : "Learn"}</span>
                       <span className="block text-xs text-tertiary">A plan, one step at a time, a check after each.</span>
                     </span>
+                    {learn && <Check size={14} className="mt-0.5 shrink-0 text-accent" />}
                   </button>
                 )}
                 {onToggleResearch && (
@@ -381,10 +382,11 @@ export function Composer({
                     className="focus-inset flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
                   >
                     <Globe size={16} className="mt-0.5 shrink-0 text-tertiary" />
-                    <span className="min-w-0">
+                    <span className="min-w-0 flex-1">
                       <span className="block">{research ? "Stop searching the web" : "Research"}</span>
                       <span className="block text-xs text-tertiary">Let it search the web and say what it read.</span>
                     </span>
+                    {research && <Check size={14} className="mt-0.5 shrink-0 text-accent" />}
                   </button>
                 )}
               </Popover.Content>
@@ -402,51 +404,42 @@ export function Composer({
               and it has to be visible while you type rather than found
               first. Named as well as drawn, because a globe alone is a
               guess about what kind of globe it is. */}
-          {onToggleResearch && (
-            <Tooltip label={research ? "Stop searching the web" : "Research: let it search the web"}>
+          {onToggleResearch && research && (
+            <Tooltip label="Research is on — press to stop">
               <button
                 type="button"
-                aria-label={research ? "Stop searching the web" : "Research: let it search the web"}
-                aria-pressed={Boolean(research)}
+                aria-label="Stop searching the web"
+                aria-pressed
                 onClick={onToggleResearch}
-                className={cn(
-                  /* `btn-touch` only lifts this to 44pt under a coarse
-                     pointer; with a mouse it was the height of its own text,
-                     19px, which is under the 24 the width sweep holds every
-                     control to. A height that does not depend on the input
-                     device. */
-                  "btn-touch press focus-inset flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs transition-colors duration-[var(--dur-fast)]",
-                  research
-                    ? "border-[color-mix(in_oklab,var(--accent)_40%,transparent)] bg-accent-subtle font-medium text-accent"
-                    : "border-line text-secondary hover:border-line-strong hover:text-primary",
-                )}
+                className="btn-touch press focus-inset flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--accent)_40%,transparent)] bg-accent-subtle px-2.5 text-xs font-medium text-accent transition-colors duration-[var(--dur-fast)]"
               >
                 <Globe size={14} />
                 Research
+                <X size={12} className="opacity-70" />
               </button>
             </Tooltip>
           )}
 
-          {/* Learn, beside Research: the other decision about the sentence
-              being written. ChatGPT's study tool and Gemini's Guided Learning
-              are both a press in the composer; here it is named, and it says
-              on the box what it does. */}
-          {onToggleLearn && (
-            <Tooltip label={learn ? "Stop learning mode" : "Learn: a plan, one step at a time, a check after each"}>
+{          /* Tools are *chosen* in the menu and *shown* here only while they
+             are on. They used to sit in the bar permanently, off, which is
+             two switches staring at you before you have typed anything —
+             and the composer is where a sentence is written, not a control
+             panel. So the + menu lists them with a line each and a tick on
+             the one that is on, exactly as the model picker marks the model
+             that is chosen; the bar carries a dismissible chip while a tool
+             is running, which is the same pattern as an applied filter. */}
+          {onToggleLearn && learn && (
+            <Tooltip label="Learn is on — press to stop">
               <button
                 type="button"
-                aria-label={learn ? "Stop learning mode" : "Learn: a plan, one step at a time, a check after each"}
-                aria-pressed={Boolean(learn)}
+                aria-label="Stop learning mode"
+                aria-pressed
                 onClick={onToggleLearn}
-                className={cn(
-                  "btn-touch press focus-inset flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs transition-colors duration-[var(--dur-fast)]",
-                  learn
-                    ? "border-[color-mix(in_oklab,var(--accent)_40%,transparent)] bg-accent-subtle font-medium text-accent"
-                    : "border-line text-secondary hover:border-line-strong hover:text-primary",
-                )}
+                className="btn-touch press focus-inset flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--accent)_40%,transparent)] bg-accent-subtle px-2.5 text-xs font-medium text-accent transition-colors duration-[var(--dur-fast)]"
               >
                 <GraduationCap size={14} />
                 Learn
+                <X size={12} className="opacity-70" />
               </button>
             </Tooltip>
           )}

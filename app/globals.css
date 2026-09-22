@@ -523,15 +523,15 @@
     --text-tertiary: #acb1bd;
     --text-faint: #898f9d;
 
-    --accent: #92b4f8;
-    --accent-hover: #b1cbff;
+    --accent: #a3bae7;
+    --accent-hover: #c1d0ef;
     --accent-fill: #3b63be;
     --accent-subtle: #1b2740;
     --accent-fg: #ffffff;
-    --accent-rgb: 146 180 248;
+    --accent-rgb: 163 186 231;
     /* The one coloured element in the wordmark. */
 
-    --accent-2: #6fdcdc;
+    --accent-2: #7ecdcd;
     /* The signal at text strength — see the light block. Solved against the
        dark bar to the same 7.0, so the wordmark weighs the same in both. */
     --accent-2-ink: #4babac;
@@ -542,7 +542,7 @@
     --chart-2: #ce7c22;
     --chart-3: #007d54;
     --chart-4: #b774c7;
-    --accent-2-rgb: 111 220 220;
+    --accent-2-rgb: 126 205 205;
 
     /* Green at its true value, carrying the ink rather than white: at this
        brightness it is a lit surface, and white on it is unreadable. */
@@ -550,13 +550,13 @@
        its light-theme counterpart already had: 11.04 against the ink on it,
        where it was 8.89 and the light theme's deep-ink button was 11.67. Same
        hue, same nib; a little more of it. */
-    --cta: #74e1e1;
-    --cta-hover: #98f0f0;
+    --cta: #84d1d1;
+    --cta-hover: #a9dfdf;
     --cta-fg: #031515;
-    --cta-rgb: 116 225 225;
+    --cta-rgb: 132 209 209;
 
     /* On the deep teal it carries its own edge, so the outline is the colour. */
-    --highlight: #6fdcdc;
+    --highlight: #7ecdcd;
     --highlight-fg: #031515;
     --highlight-edge: #6fdcdc;
     --mark: #004049;
@@ -894,6 +894,19 @@ textarea:focus-visible {
 .focus-inset:focus-visible {
   outline-offset: -2px;
 }
+
+/* Saturation, in the dark.
+   ---------------------------------------------------------------------------
+   Measured rather than felt: the dark theme's accent sat at 88% saturation
+   against light's 72% — *more* saturated on the dark field, which is exactly
+   backwards. A saturated hue on a near-black surface optically vibrates, and
+   Material's own rule of thumb is roughly twenty points *less* saturation in
+   the dark than in the light. So the dark accents come down — accent 88 → 58,
+   the signal cyan 61 → 44, the call to action 64 → 46 — each holding its
+   lightness exactly, which is what carries contrast, so every measured ratio
+   in `contrast.mjs` and every step in `theme-parity.mjs` is unchanged. The
+   hues are untouched: this is the same palette, turned down.
+   --------------------------------------------------------------------- */
 
 /* ===========================================================================
    TONE — a warm paper for the neutrals

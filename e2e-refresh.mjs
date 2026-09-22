@@ -81,13 +81,17 @@ console.log("\nThinking opens by itself when asked to");
 
 console.log("\nLearn: a mode of the thread, a press away");
 {
-  const learn = p.locator(".composer-shell").getByRole("button", { name: /Learn: a plan/ });
-  check(await learn.isVisible(), "the composer offers Learn beside Research");
-  check((await learn.getAttribute("aria-pressed")) === "false", "off to begin with");
-  await learn.click();
-  await p.waitForTimeout(300);
-  const on = p.locator(".composer-shell").getByRole("button", { name: /Stop learning mode/ });
-  check(await on.isVisible() && (await on.getAttribute("aria-pressed")) === "true", "and on when pressed");
+  check((await p.locator(".composer-shell").getByRole("button", { name: /earning mode|Learn/ }).count()) === 0,
+    "with Learn off, the composer carries nothing about it");
+  await p.getByRole("button", { name: "Add files and tools" }).click();
+  await p.waitForTimeout(400);
+  const entry = p.locator("[data-radix-popper-content-wrapper]").last().getByRole("button", { name: /Learn/ });
+  check(await entry.isVisible(), "the tools menu offers Learn");
+  check((await entry.getAttribute("aria-pressed")) === "false", "off to begin with");
+  await entry.click();
+  await p.waitForTimeout(400);
+  const on = p.locator(".composer-shell").getByRole("button", { name: "Stop learning mode" });
+  check(await on.isVisible() && (await on.getAttribute("aria-pressed")) === "true", "and choosing it puts a chip in the composer that says so");
   await fetch(`${MOCK}/__reset`);
   await p.getByRole("textbox", { name: "Message" }).fill("Help me understand osmosis");
   await p.keyboard.press("Meta+Enter");
@@ -105,7 +109,7 @@ console.log("\nLearn: a mode of the thread, a press away");
 
 console.log("\nThe + menu says what each tool does");
 {
-  await p.getByRole("button", { name: "Add photos and files" }).click();
+  await p.getByRole("button", { name: "Add files and tools" }).click();
   await p.waitForTimeout(400);
   const menu = await p.locator("[data-radix-popper-content-wrapper]").last().innerText();
   check(/Add photos and files/.test(menu), "attach is first");

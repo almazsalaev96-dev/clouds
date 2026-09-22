@@ -34,20 +34,34 @@ console.log("\nOff by default, and then on");
   check(!(sent.tools ?? []).some((t) => /^web_/.test(t)), "with research off, no web tool rides in the request", JSON.stringify((sent.tools ?? []).filter((t) => /^web_/.test(t))));
   check((await p.locator(".msg section[aria-label='Sources']").count()) === 0, "and no sources are claimed");
 
-  /* In the composer, beside the box — not an icon in the bar. A tool is a
-     decision about the sentence being typed, so it lives where it is typed,
-     and it is named rather than drawn as a bare globe. */
-  const toggle = p.getByRole("button", { name: /Research: let it search the web/ });
-  check(await toggle.isVisible(), "the toggle is there to find");
-  const inBox = p.locator(".composer-shell").getByRole("button", { name: /Research: let it search the web/ });
-  check(await inBox.count() === 1, "and it is inside the composer, where the question is written");
-  check(/Research/.test(await inBox.innerText()), "with its name on it, not a bare globe", (await inBox.innerText()).trim());
-  check((await toggle.getAttribute("aria-pressed")) === "false", "off, and it says so");
-  await toggle.click();
+  /* Chosen from the menu, not from a switch that sits in the bar whether or
+     not anyone wants it. The composer is where a sentence is written; a tool
+     that is off has nothing to say there. */
+  check((await p.locator(".composer-shell").getByRole("button", { name: /searching the web/ }).count()) === 0,
+    "with research off, the composer carries nothing about it");
+  await p.getByRole("button", { name: "Add files and tools" }).click();
+  await p.waitForTimeout(400);
+  const menu = p.locator("[data-radix-popper-content-wrapper]").last();
+  const entry = menu.getByRole("button", { name: /Research/ });
+  check(await entry.isVisible(), "the tools menu offers it, by name");
+  check(/search the web/.test(await menu.innerText()), "with a line saying what it does");
+  check((await entry.getAttribute("aria-pressed")) === "false", "and says it is off");
+  await entry.click();
+  await p.waitForTimeout(400);
+  const on = p.locator(".composer-shell").getByRole("button", { name: "Stop searching the web" });
+  check(await on.isVisible(), "choosing it puts a chip in the composer");
+  check((await on.getAttribute("aria-pressed")) === "true", "which says it is on, to a screen reader as well as an eye");
+  check(/Research/.test(await on.innerText()), "with its name on it, not a bare globe", (await on.innerText()).trim());
+  /* And the chip is how you take it off again — the same press that an
+     applied filter offers anywhere else. */
+  await on.click();
   await p.waitForTimeout(300);
-  const on = p.locator(".composer-shell").getByRole("button", { name: /Stop searching the web/ });
-  check(await on.isVisible(), "and pressing it says it is on");
-  check((await on.getAttribute("aria-pressed")) === "true", "to a screen reader as well as to an eye");
+  check((await p.locator(".composer-shell").getByRole("button", { name: /searching the web/ }).count()) === 0,
+    "and pressing the chip takes it off");
+  await p.getByRole("button", { name: "Add files and tools" }).click();
+  await p.waitForTimeout(300);
+  await p.locator("[data-radix-popper-content-wrapper]").last().getByRole("button", { name: /Research/ }).click();
+  await p.waitForTimeout(300);
 }
 
 console.log("\nWith it on, the model searches and the answer says what it read");
