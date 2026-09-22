@@ -34,9 +34,18 @@ console.log("\nA blank page is a greeting and a box, and nothing to get past");
      the other rooms, and a slash lists the commands in the box, while you
      are already typing. */
   check((await p.getByRole("group", { name: "Ways to start" }).count()) === 0, "no chips to get past before you may type");
+  /* What is there instead is the reference's three rows, directly above the
+     box: icon, words, no border, one press each. And the box is in the dock
+     from the first frame — it used to be centred and jump down on send. */
+  const rows = p.getByRole("navigation", { name: "Ways to start" }).getByRole("button");
+  check((await rows.count()) === 3, "three plain rows above the box say what to start with", (await rows.allInnerTexts()).join(" · "));
+  check((await p.locator(".composer-dock .composer-shell").count()) === 1, "and the box is already in its dock, where it stays");
   const box = p.locator(".composer-shell textarea").first();
   check(await box.evaluate((el) => el === document.activeElement), "the caret is already in the box");
-  check(/Type \/ to see what it can be asked to do/.test(await p.locator("main").innerText()), "and one line says what a slash is for");
+  await rows.nth(1).click();
+  await p.waitForTimeout(200);
+  check((await box.inputValue()).startsWith("Write"), "pressing a row puts its words in the box", await box.inputValue());
+  await box.fill("");
   await box.fill("/stu");
   await p.waitForTimeout(300);
   const list = p.getByRole("listbox", { name: "Commands" });

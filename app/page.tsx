@@ -55,7 +55,7 @@ import { SectionSkeleton } from "@/components/ui/SectionSkeleton";
 import { StorageNotice } from "@/components/ui/StorageNotice";
 import { MessageList } from "@/components/chat/MessageList";
 import { Composer } from "@/components/chat/Composer";
-import { EmptyState } from "@/components/chat/EmptyState";
+import { EmptyState, type Start } from "@/components/chat/EmptyState";
 import { withTransition } from "@/lib/transition";
 import { ENTRY } from "@/lib/web";
 import dynamic from "next/dynamic";
@@ -2045,9 +2045,31 @@ export default function Page() {
 
   const showEmpty = path.length === 0 && !live && !comparing;
 
-  /* Built once and placed in one of two homes: centred inside the empty state,
-     or docked under the transcript. Same element either way, so the draft and
-     everything else in it survives the move. */
+  /* One of the three rows on the blank page. Two of them put words in the
+     box and hand you the caret; the third opens the picker the box's own
+     plus button opens, because "learn from a document" begins with the
+     document. */
+  const start = React.useCallback(
+    (what: Start) => {
+      if (what === "read") {
+        document.querySelector<HTMLInputElement>('input[aria-label="Choose photos and files to attach"]')?.click();
+        return;
+      }
+      useDrafts.getState().setDraft(activeId ?? "new", what === "make" ? "Make me a " : "Write ");
+      requestAnimationFrame(() => {
+        const el = document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]');
+        if (!el) return;
+        el.focus();
+        el.setSelectionRange(el.value.length, el.value.length);
+      });
+    },
+    [activeId],
+  );
+
+  /* Built once, docked under the transcript whether or not there is one yet.
+     It used to move — centred on a blank page, docked on the first send — and
+     the move read as the box jumping. A box that lives in one place is a box
+     you never have to find. */
   const composer = mounted ? (
     <Composer
       conversationId={activeId ?? "new"}
@@ -2271,9 +2293,8 @@ export default function Page() {
               hasAnyKey={hasAnyKey}
               onAddKey={openKeys}
               onGo={(section) => withTransition(() => settings.setSection(section), "forward")}
-            >
-              {composer}
-            </EmptyState>
+              onStart={start}
+            />
           ) : (
             <div className="flex min-h-0 flex-1 flex-col">
               {notice && (
@@ -2369,13 +2390,10 @@ export default function Page() {
             </div>
           )}
 
-          {/* Only once there is a transcript for it to sit under. On an empty
-              thread the composer lives inside the centred block above. */}
-          {!showEmpty && (
-            <div className="composer-dock no-print relative shrink-0 px-4 pt-2">
-              <div className="mx-auto w-full max-w-[var(--measure)]">{composer}</div>
-            </div>
-          )}
+          {/* The one place the box lives, blank page or not. */}
+          <div className="composer-dock no-print relative shrink-0 px-4 pt-2">
+            <div className="mx-auto w-full max-w-[var(--measure)]">{composer}</div>
+          </div>
           </>
           )}
         </main>

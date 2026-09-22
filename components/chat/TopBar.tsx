@@ -81,10 +81,14 @@ export function TopBar({
   return (
     <header
       className={cn(
-        "glass safe-top no-print sticky top-0 z-20 flex h-[calc(var(--topbar-h)+env(safe-area-inset-top))] shrink-0 items-center gap-1 px-2 transition-[border-color] duration-[var(--dur-fast)]",
+        "safe-top no-print sticky top-0 z-20 flex h-[calc(var(--topbar-h)+env(safe-area-inset-top))] shrink-0 items-center gap-1 px-2 transition-[border-color,background-color] duration-[var(--dur-fast)]",
         "border-b",
-        // The hairline only exists once there is content above it to separate.
-        scrolled ? "border-line" : "border-transparent",
+        /* Not a bar until there is something to be a bar over. At rest the
+           page shows through and the two controls sit on it as pills, the
+           way the reference's do; once the transcript scrolls under, the
+           strip takes the glass and the hairline so the words stay legible
+           behind the controls. */
+        scrolled ? "glass border-line" : "border-transparent bg-transparent",
       )}
     >
       {/* The panel's own switch, and it lives out here rather than inside
@@ -102,6 +106,7 @@ export function TopBar({
         label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
         keys={["mod", "\\"]}
         onClick={toggleSidebar}
+        className="rounded-lg bg-subtle/70 hover:bg-subtle"
       >
         <PanelLeft size={16} />
       </IconButton>
@@ -129,7 +134,7 @@ export function TopBar({
                 ? `Model: ${preset.name}`
                 : "Model: Armi"
           }
-          className="btn-touch focus-inset flex h-8 min-w-0 shrink items-center gap-1 rounded-md px-1.5 text-[0.8125rem] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+          className="btn-touch focus-inset flex h-8 min-w-0 shrink items-center gap-1 rounded-full bg-subtle/70 px-3 text-[0.8125rem] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
         >
           {modelId === AUTO ? (
             <>

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BookOpen, GraduationCap, KeyRound, LayoutTemplate, X } from "lucide-react";
+import { BookOpen, GraduationCap, KeyRound, LayoutTemplate, PenLine, Sparkles, X } from "lucide-react";
 import { db } from "@/lib/db";
 import { dueNow, type Card } from "@/lib/study";
 import { useSettings, type Section } from "@/lib/store";
@@ -97,31 +97,37 @@ const useIsoLayoutEffect = typeof window === "undefined" ? React.useEffect : Rea
 /**
  * A thread with nothing in it yet.
  *
- * The composer is rendered *inside* this block rather than docked at the
- * bottom of the window, because an empty thread has no transcript to sit under
- * — leaving the box at the bottom puts half a screen of nothing between the
- * greeting and the only thing you can do, and asks you to travel that distance
- * to start. Centred, the greeting and the box are one object, and the first
- * thing you read is directly above the first thing you type.
- *
- * On the first send the composer moves to the dock. That transition is the
- * app telling you the room changed: there is a conversation now, and the
- * conversation is the thing on screen.
+ * The composer is not in here. It was — centred under the greeting, on the
+ * argument that an empty thread has nothing for a box at the bottom to sit
+ * under — and on the first send it moved to the dock, which was meant to
+ * say "the room changed". Held against the reference on the same tablet,
+ * the move read as the box jumping, and a box that lives in one place is a
+ * box you never have to find. It is in the dock from the first frame now,
+ * and the blank page has what the reference has above its bar: three plain
+ * rows saying what to start with, no boxes, one press each.
  */
+
+/** What to start with: the reference's three rows, in this app's words. */
+export type Start = "make" | "write" | "read";
+const STARTS: { id: Start; label: string; icon: React.ReactNode }[] = [
+  { id: "make", label: "Make something that runs", icon: <Sparkles size={18} /> },
+  { id: "write", label: "Write or edit", icon: <PenLine size={18} /> },
+  { id: "read", label: "Learn from a document", icon: <BookOpen size={18} /> },
+];
 
 export function EmptyState({
   hasAnyKey,
   onAddKey,
   onGo,
-  children,
+  onStart,
 }: {
   hasAnyKey: boolean;
   /** No key yet: the one button that fixes that. */
   onAddKey: () => void;
   /** Into another room, from the line that says what is waiting there. */
   onGo?: (section: Section) => void;
-  /** The composer. */
-  children: React.ReactNode;
+  /** One of the three rows above the box was pressed. */
+  onStart?: (what: Start) => void;
 }) {
   const settings = useSettings();
   const { name, nameAsked } = settings;
@@ -130,8 +136,8 @@ export function EmptyState({
   const waiting = useWaiting();
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
-      <div className="w-full max-w-[var(--measure)] pb-[6vh]">
+    <div className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-4">
+      <div className="my-auto w-full max-w-[var(--measure)] py-8">
         {/* The signature, then a greeting that knows what time it is and — once
             you have said so — what you are called. The two are the whole of
             the "brand moment" on a blank page: a name in a hand, and a page
@@ -170,26 +176,6 @@ export function EmptyState({
             </p>
           )}
         </div>
-
-        <div className="anim-rise" style={{ animationDelay: "70ms" }}>
-          {children}
-        </div>
-
-        {/* With nothing waiting elsewhere, the space under the box says the
-            one thing a blank page can usefully teach: that the box does more
-            than take a sentence. A line of text rather than a row of chips —
-            the four chips this replaced were the reason the page looked like
-            a form. Never shown alongside the waiting line: two quiet rows
-            under the box are one row too many, and what is actually due
-            beats what is merely possible. */}
-        {waiting.length === 0 && hasAnyKey && (
-          <p
-            className="anim-rise mt-4 text-center text-xs text-tertiary"
-            style={{ animationDelay: "100ms" }}
-          >
-            Type <span className="font-medium text-secondary">/</span> to see what it can be asked to do
-          </p>
-        )}
 
         {/* What the other rooms are holding, on the one screen everybody
             starts on. The front door used to know nothing about the house:
@@ -278,6 +264,30 @@ export function EmptyState({
           </form>
         )}
       </div>
+
+      {/* Three rows, directly above the box, the way the reference does it:
+          an icon and a few words each, no borders, no boxes, left-aligned
+          to the column the box sits in. They replace the line that said
+          "type / to see what it can be asked to do" — a row you can press
+          beats a sentence about a key. */}
+      {hasAnyKey && onStart && (
+        <nav
+          aria-label="Ways to start"
+          className="mx-auto w-full max-w-[var(--measure)] pb-1 anim-rise"
+          style={{ animationDelay: "90ms" }}
+        >
+          {STARTS.map((st) => (
+            <button
+              key={st.id}
+              onClick={() => onStart(st.id)}
+              className="tap focus-inset flex h-11 w-full items-center gap-3 rounded-md px-3 text-left text-[0.9375rem] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+            >
+              <span className="shrink-0 text-tertiary">{st.icon}</span>
+              {st.label}
+            </button>
+          ))}
+        </nav>
+      )}
     </div>
   );
 }
