@@ -1386,13 +1386,24 @@ aside.glass .glass {
   }
 }
 
-/* And for rows: navigation entries, list items, the search field. Height only —
-   these already run the full width of the drawer, and adding side padding
-   would push their text off the alignment everything else in the column
-   shares. */
+/* And for rows: navigation entries, list items, the search field. Height was
+   the only floor here — these already run the full width of the drawer, and
+   adding side padding would push their text off the alignment everything else
+   in the column shares.
+
+   A width floor turned out to be needed all the same, and the reason is a
+   trap worth naming: Tailwind's spacing scale is multiplied by `--density`,
+   so a control written `size-11` is 44 at comfortable and 33 at compact,
+   while this rule pinned its height in fixed rems. A row never noticed —
+   it is wider than 44 whatever the density — but a *square* control is
+   exactly the case where width has no other floor, and the round search
+   button came out 33 wide and 44 tall on a compact phone. The floor is a
+   floor: a control cannot be under 44 in either direction, and a row that is
+   already wider than that is unaffected. */
 @media (pointer: coarse) {
   .tap {
     min-height: 2.75rem;
+    min-width: 2.75rem;
   }
 }
 

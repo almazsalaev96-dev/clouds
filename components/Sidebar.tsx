@@ -90,6 +90,10 @@ export function Sidebar({
   const plugged = useSettings((st) => (st.connectors ?? []).filter((c) => c.enabled).length);
   const { sidebarOpen, toggleSidebar, section, name } = useSettings();
   const [query, setQuery] = React.useState("");
+  /* Closed to begin with, and closing it clears what was typed: a filter
+     left running behind a shut box is a list that is missing rows for a
+     reason nobody can see. */
+  const [searching, setSearching] = React.useState(false);
   /* A desk gets a rail when this is closed; a phone gets nothing, off-screen.
      The breakpoint is the same `md` the classes below switch on, so the two
      can never disagree about which one you are looking at. */
@@ -147,22 +151,42 @@ export function Sidebar({
             onGoToSection={onGoToSection}
             onNewChat={onNewChat}
             onOpenSettings={onOpenSettings}
-            onExpand={toggleSidebar}
           />
         ) : (
         <div className="flex w-[var(--sidebar-w)] flex-1 flex-col">
-          <div className="flex h-[var(--topbar-h)] items-center gap-1 px-2">
-            <IconButton label="Hide sidebar" keys={["mod", "\\"]} onClick={toggleSidebar}>
-              <PanelLeft size={16} />
-            </IconButton>
+          {/* The name, and one round control. The switch that hides this
+              panel is not here any more — it was a button drawn on the thing
+              it hides, which had to be duplicated elsewhere the moment it
+              worked; it lives in the bar beside the model now, where it is
+              one control that never moves. What is left is what the header
+              is for: whose app this is, and the way into finding things. */}
+          <div className="flex h-[var(--topbar-h)] items-center gap-2 px-3">
             {/* The drawn word, not the name set in the interface font. A
                 product's own name is the one string it should never render in
                 whatever the operating system happened to load. */}
-            <span className="ml-1.5">
+            <span className="min-w-0 flex-1">
               <Lockup />
             </span>
-
-
+            <button
+              onClick={() => setSearching((v) => !v)}
+              /* Not the same name as the field it opens: two controls with
+                 one accessible name is a screen reader saying the same
+                 words for a button and a box, and a test that cannot tell
+                 them apart either. */
+              aria-label="Find a conversation"
+              aria-expanded={searching}
+              className={cn(
+                /* 44, not the 36 it was drawn at. The round control in the
+                   reference measures smaller and it does not matter: the
+                   floor argued for in the rows two inches below this one
+                   is the floor here too, and a rule that bends for the
+                   thing its author happens to be drawing is not a rule. */
+                "tap flex size-11 shrink-0 items-center justify-center rounded-full transition-colors duration-[var(--dur-fast)]",
+                searching ? "bg-accent-subtle text-accent" : "bg-canvas text-secondary hover:text-primary",
+              )}
+            >
+              <Search size={17} />
+            </button>
           </div>
 
           <div className="space-y-1 px-2 pb-2">
@@ -177,12 +201,20 @@ export function Sidebar({
               </span>
             </button>
 
-            <div className="tap flex h-10 items-center gap-1.5 rounded-md border border-transparent px-2 transition-colors duration-[var(--dur-fast)] focus-within:border-line-strong focus-within:bg-canvas">
+            {/* Shown when it is asked for, which is the same rule the tools
+                in the composer follow. A search box that sits there on every
+                screen of every session is a row of furniture for the one
+                visit in ten that needs it — and the panel has six rooms and
+                a history under it, all of which are further down for its
+                sake. */}
+            {searching && (
+            <div className="tap flex h-10 items-center gap-1.5 rounded-md border border-line-strong bg-canvas px-2 transition-colors duration-[var(--dur-fast)]">
               <Search size={13} className="shrink-0 text-tertiary" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Escape" && setQuery("")}
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Escape") { setQuery(""); setSearching(false); } }}
                 /* "Conversations", to match the section this box sits in and
                    the two beside it — Search projects, Search notebook. The
                    list above it is headed Conversations for a reason the
@@ -194,12 +226,15 @@ export function Sidebar({
                 aria-label="Search conversations"
                 className="tap h-full min-w-0 flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-tertiary"
               />
-              {query && (
-                <button onClick={() => setQuery("")} aria-label="Clear search" className="text-tertiary hover:text-primary">
-                  <X size={13} />
-                </button>
-              )}
+              <button
+                onClick={() => { setQuery(""); setSearching(false); }}
+                aria-label="Close search"
+                className="text-tertiary hover:text-primary"
+              >
+                <X size={13} />
+              </button>
             </div>
+            )}
           </div>
 
           {/* Destinations, above the history that fills the rest of the panel.
@@ -355,22 +390,20 @@ function Rail({
   onGoToSection,
   onNewChat,
   onOpenSettings,
-  onExpand,
 }: {
   section: Section;
   name: string;
   onGoToSection: (section: Section) => void;
   onNewChat: () => void;
   onOpenSettings: () => void;
-  onExpand: () => void;
 }) {
   return (
     <div className="flex w-[var(--rail-w)] flex-1 flex-col items-center">
-      <div className="flex h-[var(--topbar-h)] items-center">
-        <IconButton label="Show sidebar" keys={["mod", "\\"]} onClick={onExpand}>
-          <PanelLeft size={16} />
-        </IconButton>
-      </div>
+      {/* No copy of the switch here any more. It is in the bar beside the
+          model, where it stays whether this is a rail or a panel — and two
+          controls with one job is how a person learns that neither is the
+          real one. The rail keeps the rooms, which is what it is for. */}
+      <div className="h-[var(--topbar-h)]" aria-hidden />
 
       <div className="pb-2">
         <IconButton label="New chat" keys={["mod", "N"]} onClick={onNewChat} className="border border-line bg-canvas">
