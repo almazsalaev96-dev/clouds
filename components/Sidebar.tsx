@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  ChevronRight, FolderOpen, GraduationCap, Keyboard, Library, MessagesSquare, NotebookPen,
+  ChevronRight, FolderOpen, GraduationCap, Keyboard, Library, MessagesSquare, NotebookPen, Plug,
   PanelLeft, Pin, PinOff, Plus, Search, Settings2, Sparkles, Trash2, X,
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
@@ -76,6 +76,7 @@ export function Sidebar({
   onNewChat,
   onGoToSection,
   onOpenSettings,
+  onOpenPlugins,
   onOpenShortcuts,
 }: {
   activeChatId: string | null;
@@ -83,8 +84,10 @@ export function Sidebar({
   onNewChat: () => void;
   onGoToSection: (section: Section) => void;
   onOpenSettings: () => void;
+  onOpenPlugins: () => void;
   onOpenShortcuts: () => void;
 }) {
+  const plugged = useSettings((st) => (st.connectors ?? []).filter((c) => c.enabled).length);
   const { sidebarOpen, toggleSidebar, section, name } = useSettings();
   const [query, setQuery] = React.useState("");
   /* A desk gets a rail when this is closed; a phone gets nothing, off-screen.
@@ -260,6 +263,32 @@ export function Sidebar({
               })}
             </Segmented>
           </nav>
+
+          {/* Plugins sits under the rooms and above the hairline, which is
+              where it belongs and nowhere else.
+
+              Not in the list of rooms: those are six places you go, the
+              order of them is a decision taken on the evidence about lists,
+              and a seventh entry that is a setup task rather than a
+              destination would spend one of two good seats on something you
+              touch once. Not buried in Settings either, which is where it
+              was and is the reason it could not be found. So: the last
+              thing under the rooms, named the word everybody uses, opening
+              the panel that explains what it costs. */}
+          <div className="px-2 pb-1">
+            <button
+              onClick={onOpenPlugins}
+              className="tap flex h-11 w-full items-center gap-3 rounded-md px-3 text-[0.9375rem] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-canvas hover:text-primary"
+            >
+              <span className="shrink-0 text-tertiary"><Plug size={20} /></span>
+              Plugins
+              {plugged > 0 && (
+                <span className="ml-auto rounded-full bg-accent-subtle px-1.5 text-tiny font-medium text-accent tnum">
+                  {plugged}
+                </span>
+              )}
+            </button>
+          </div>
 
           {/* A hairline and a label, so the destinations above and the history
               below read as two different kinds of thing. */}
