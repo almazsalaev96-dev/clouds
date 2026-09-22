@@ -276,7 +276,9 @@ createServer(async (req, res) => {
       .join("\n"),
     /* Which web tools the app offered, by type. `e2e-research` reads this to
        prove the request carried the tool and not only that an answer came. */
-    tools: (body.tools ?? []).map((t) => t.function?.name ?? t.type ?? t.name),
+    /* Name before type: a Responses-shaped tool is flat, {type:"function", name},
+       and reading its type first reported every tool as "function". */
+    tools: (body.tools ?? []).map((t) => t.function?.name ?? t.name ?? t.type),
     images: (body.messages ?? [])
       .flatMap((m) => (Array.isArray(m.content) ? m.content : []))
       .filter((c) => c.type === "image").length,

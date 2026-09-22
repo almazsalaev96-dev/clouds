@@ -553,6 +553,9 @@
        that was asked for. So: true black for the page, the sidebar and
        every panel a step up at #171717, the hover a step above that — the
        reference's own three steps — and no chroma anywhere in the ground.
+       Text gives up one step of lightness (#e4, #ca) so that its ladder
+       against black climbs by the same rungs as light's does against
+       its canvas — measured by type-scale, which caps the drift at 1.2.
        The mesh that was kept at half strength goes to a trace: on black
        a coloured blob is not a presence at the corner, it is a stain.
 
@@ -569,8 +572,8 @@
     --border-subtle: #2a2a2a;
     --border-strong: #7d7d7d;
 
-    --text-primary: #e8e8e8;
-    --text-secondary: #cccccc;
+    --text-primary: #e4e4e4;
+    --text-secondary: #cacaca;
     --text-tertiary: #b1b1b1;
     --text-faint: #8f8f8f;
 
@@ -619,7 +622,7 @@
     --marker: #ffd23f;
     --marker-rgb: 255 210 63;
     --mark: #004049;
-    --mark-fg: #e8e8e8;
+    --mark-fg: #e4e4e4;
 
     --live: #6fdcdc;
     --go: #6fd2a4;
@@ -713,7 +716,7 @@
        ground. It is the lifted surface now, like every other raised thing —
        which means it follows `--bg-subtle`, and followed it again when the
        ground lost its blue. */
-    --composer-bg: rgba(38, 38, 38, 0.86);
+    --composer-bg: rgba(23, 23, 23, 0.9);
     --composer-line: rgba(231, 232, 233, 0.10);
     --composer-line-focus: rgba(111, 220, 220, 0.38);
     --composer-lift: inset 0 1px 0 rgb(231 232 233 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
@@ -1075,12 +1078,6 @@ textarea:focus-visible {
   -webkit-backdrop-filter: none;
   background: color-mix(in oklab, var(--bg-surface) 92%, transparent);
   box-shadow: none;
-}
-/* The sidebar is canvas-tinted glass, so a sticky date header inside it
-   takes the canvas tint too: on the surface colour it was a white bar
-   across a grey column — three of them, one per day group. */
-aside.glass .glass {
-  background: color-mix(in oklab, var(--bg-canvas) 94%, transparent);
 }
 
 /* The unprefixed property, restated where the build cannot take it away.
