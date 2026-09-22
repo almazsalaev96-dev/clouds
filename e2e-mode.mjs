@@ -53,7 +53,12 @@ console.log("\nThere is nothing to switch");
 {
   check(await page.getByRole("radio", { name: "Chat", exact: true }).count() === 0,
     "the composer no longer asks which of two ways you meant");
-  check(await page.getByRole("button", { name: "Tools" }).count() === 0,
+  /* Exact: the claim is that no control is *called* Tools — the effort
+     picker that used to sit here and ask how hard to think before a
+     question existed. Playwright matches accessible names by substring, so
+     the composer's "Add files and tools" was answering a question about a
+     control it is not. */
+  check(await page.getByRole("button", { name: "Tools", exact: true }).count() === 0,
     "and it no longer asks how hard to think before you have typed the question");
 }
 
