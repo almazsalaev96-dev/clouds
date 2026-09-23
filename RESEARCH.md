@@ -501,6 +501,70 @@ fifth accent anywhere. Where it goes is not "where it was in the old
 screenshot"; it is where the signal colour already went, because those are
 the places the eye is meant to land.
 
+### §4j — How the models work together, and where it broke
+
+Asked to find out "how the models work together and whether everything
+works", the useful answer is a map of what actually happens to a question,
+followed by the places the map was wrong.
+
+**The path of one question.**
+
+1. **Route** (`lib/route.ts`). Pure arithmetic never reaches a model — it
+   is computed here, exactly. Otherwise the request is sized in tokens, and
+   models that cannot hold it, see an image in it, or search when it needs
+   searching are removed before cost is weighed.
+2. **Cast** (`lib/presets.ts`). An ARMI model is a *tactic*, not an engine:
+   a set of jobs given to models from different companies. Eleven of them —
+
+   | ARMI model | who does what |
+   |---|---|
+   | Polaris | one company lists what the answer must get right; another writes it |
+   | Pulsar | the fastest answers; a second company checks while you read |
+   | Parallax | one names where it will go wrong; the strongest works; a third checks; revises on an objection |
+   | Constellation | three companies each take a half — strategy, reasoning, what is known — a fourth writes, a fifth checks and can send it round again |
+   | Aperture | long documents; checked by another company |
+   | Nova | builds; a plan first, a check after |
+   | Orrery | teaches; briefed on the likely misconceptions first |
+   | Lens, Binary | two companies side by side |
+   | Rosetta, Voyager | translation, and writing for an audience |
+
+   The rule that makes it work is the one `checker` enforces: a check never
+   comes from the same company as the answer, because a model agreeing with
+   its own weights is not a second opinion.
+3. **Compose** (`lib/prompt.ts`). Identity first, then the house rules,
+   then your own standing rules, memory, the project and its files chosen
+   by relevance, and the style last, because form is what a long prompt
+   forgets first.
+4. **Stream** (`/api/chat`, `useStream`). A byte at once and a ping every
+   ten seconds, so a slow model is not mistaken for a dead connection. A
+   provider that refuses — out of credit, rate-limited, a bad key, down —
+   hands the turn to another company, up to three hops, and the page says
+   which and why.
+5. **After** — `compute` blocks run the model's arithmetic for real; the
+   app's own tools (cards, notes, projects, memory) run on request and can
+   be undone; a check reads the answer back.
+
+**Where it broke — measured, then fixed in this round.**
+
+| what | before | now |
+|---|---|---|
+| A long book as a *source* (Notebook, Tutor) | cut to its first 90k characters (Tutor: 40k) — a 988-page textbook became its first ~40 pages, silently | read whole in ~60k-character parts by the cheapest long-window model into notes with exact quotations, then written from all of it (`lib/digest.ts`, `e2e-book`) |
+| A long book *in a conversation* | sent whole to the biggest window; the provider refused it — "prompt is too long" | read in parts before the turn goes out; the thread keeps the notes (`fitFiles`, `e2e-bigfile`) |
+| A silent reasoning model on a big source | the connection was dropped as dead | heartbeat (`e2e-stall`) |
+| "Which AI are you?" | named the lab underneath, and a different one after a failover | Armi, and the ARMI model's name; made by Almaz (`test-identity`) |
+
+The first row is the one that mattered most for a study app, because it
+was invisible: the revision pack looked finished, cited correctly, and was
+about chapter one. Citations stay honest across the new path because the
+reader is told to copy its quotations exactly and `lib/cite.ts` checks
+every one against the original file, not against the notes.
+
+**What is left, honestly.** A scan with no text layer still needs OCR the
+app does not do; the reader keeps quotations but not page numbers, so a
+citation says which file and what sentence, not which page; and past 48
+parts (~2.9M characters) a book is read in an even spread rather than
+every part — the page says so when it happens.
+
 ### §4g — Where a room belongs in a list
 
 The ask was for the shell of the reference app: the panel, the colour, the

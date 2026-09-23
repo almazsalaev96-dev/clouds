@@ -88,12 +88,23 @@ export function SectionIndex({
   // enough that scanning it stops being the faster way to find something.
   const searchable = !loading && items.length >= 5;
 
+  /* The same rule as the chat's bar: not a band until something scrolls
+     under it. At rest the title sits on the page; a solid strip across the
+     top of every room was the one frame that changed as you moved between
+     the conversation and the rest. */
+  const [scrolled, setScrolled] = React.useState(false);
+
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
+    <div className="min-h-0 flex-1 overflow-y-auto" onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}>
       {/* Sticky, because a title that scrolls away takes the primary action
           with it, and on a long list that means scrolling back to the top to
           make the next one. */}
-      <header className="glass safe-top sticky top-0 z-10 border-b border-line">
+      <header
+        className={cn(
+          "safe-top sticky top-0 z-10 border-b transition-[border-color,background-color] duration-[var(--dur-fast)]",
+          scrolled ? "glass border-line" : "border-transparent bg-transparent",
+        )}
+      >
         <div className="mx-auto flex w-full max-w-[var(--measure)] items-center gap-3 px-4 py-3">
           <h1 className="text-lg font-semibold tracking-[-0.02em] text-primary">{title}</h1>
           {!loading && items.length > 0 && (
