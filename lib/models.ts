@@ -1,4 +1,4 @@
-import type { ModelSpec, ProviderId } from "./types";
+import type { ModelRole, ModelSpec, ProviderId } from "./types";
 
 export const PROVIDERS: Record<
   ProviderId,
@@ -96,12 +96,29 @@ export const MODELS: ModelSpec[] = [
     tools: true,
   },
   {
+    id: "claude-opus-5-5",
+    provider: "anthropic",
+    apiName: "claude-opus-5-5",
+    name: "Claude Opus 5.5",
+    short: "Opus 5.5",
+    blurb: "Complex work and long code. The one to start from for most hard things.",
+    contextWindow: 1_000_000,
+    maxOutput: 128_000,
+    priceIn: 5,
+    priceOut: 25,
+    vision: true,
+    reasoning: true,
+    thinks: "effort",
+    tools: true,
+  },
+  {
     id: "claude-opus-5",
     provider: "anthropic",
     apiName: "claude-opus-5",
     name: "Claude Opus 5",
     short: "Opus 5",
-    blurb: "Complex work and long code. The one to start from for most hard things.",
+    blurb: "The previous Opus. Still strong, and still sold.",
+    legacy: true,
     contextWindow: 1_000_000,
     maxOutput: 128_000,
     priceIn: 5,
@@ -271,23 +288,11 @@ export const MODELS: ModelSpec[] = [
   },
 
   /* ------------------------------------------------------------- OpenAI -- */
+  /* The GPT-5.6 family — Sol, Terra, Luna — is what their API answers to
+     today. Nothing above it is written here until it has an id on the wire:
+     a flagship this app has heard of but cannot call is a failed request
+     wearing a name. */
 
-  {
-    id: "gpt-6-astra",
-    provider: "openai",
-    apiName: "gpt-6-astra",
-    name: "GPT-6 Astra",
-    short: "GPT-6 Astra",
-    blurb: "Their flagship. Reasoning and coding, at flagship prices.",
-    contextWindow: 1_050_000,
-    maxOutput: 128_000,
-    priceIn: 10,
-    priceOut: 50,
-    vision: true,
-    reasoning: true,
-    tools: true,
-    wire: "responses",
-  },
   {
     id: "gpt-5.6-sol",
     provider: "openai",
@@ -397,6 +402,7 @@ export const MODELS: ModelSpec[] = [
     name: "Kimi K3",
     short: "K3",
     blurb: "Their flagship: a very large open model with a million-token window and eyes.",
+    role: "specialist",
     contextWindow: 1_000_000,
     maxOutput: 64_000,
     priceIn: 3,
@@ -471,6 +477,7 @@ export const MODELS: ModelSpec[] = [
     name: "DeepSeek Flash",
     short: "Flash",
     blurb: "Quick, very cheap, a million-token window, and it reads images.",
+    role: "verifier",
     contextWindow: 1_000_000,
     maxOutput: 64_000,
     priceIn: 0.3,
@@ -502,6 +509,24 @@ const byId = new Map(MODELS.map((m) => [m.id, m]));
 
 export function getModel(id: string): ModelSpec {
   return byId.get(id) ?? byId.get(DEFAULT_MODEL_ID)!;
+}
+
+/**
+ * The job a model has on the bench, the two implied ones included.
+ *
+ * `roleOf` rather than reading `role` directly, so the callers that decide
+ * "may this be chosen blind" and "may this be called at all" ask one
+ * question and get one answer: `shadow` is never chosen blind, `deprecated`
+ * is never called, and everything else is ordinary — current or fallback.
+ */
+export function roleOf(m: ModelSpec): ModelRole {
+  return m.role ?? (m.legacy ? "fallback" : "active");
+}
+
+/** Whether a blind choice — the router's, or a tactic's fallback — may land here. */
+export function blindPick(m: ModelSpec): boolean {
+  const r = roleOf(m);
+  return r !== "shadow" && r !== "deprecated";
 }
 
 export function modelsByProvider(): [ProviderId, ModelSpec[]][] {

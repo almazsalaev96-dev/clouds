@@ -11,10 +11,10 @@ const check = (c: boolean, l: string, d = "") => { if (!c) failed++; console.log
 
 console.log("\nWith a model chosen");
 {
-  const t = composeSystemPrompt({ who: "ARMI Polaris" }).text;
+  const t = composeSystemPrompt({ who: "ARMI Mira 4.1" }).text;
   check(t.startsWith("## Who you are"), "identity is the first thing the model reads");
   check(/You are Armi/.test(t), "it is Armi");
-  check(/ARMI Polaris/.test(t) && /say Armi, and Polaris/.test(t), "and it knows the model's name, short and long");
+  check(/ARMI Mira 4.1/.test(t) && /say Armi, and Mira 4.1/.test(t), "and it knows the model's name, short and long");
   check(new RegExp(`made by ${MAKER}`).test(t) && new RegExp(`${MAKER} is the person who made Armi`).test(t), `and who made it — ${MAKER}`);
   check(/Never name the company or the model underneath/.test(t), "and is told never to name what runs beneath it");
   check(!/Anthropic|OpenAI|Claude|GPT|Moonshot|DeepSeek|Kimi/i.test(t), "the prompt itself names no vendor");
@@ -30,7 +30,7 @@ console.log("\nOn Auto, with no model chosen yet");
 
 console.log("\nFor the app's own calls");
 {
-  const t = composeSystemPrompt({ house: false, who: "ARMI Polaris", base: "Title this." }).text;
+  const t = composeSystemPrompt({ house: false, who: "ARMI Mira 4.1", base: "Title this." }).text;
   check(!/Who you are/.test(t), "a titler is not told who it is");
 }
 

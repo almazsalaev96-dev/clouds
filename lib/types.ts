@@ -391,7 +391,23 @@ export interface ModelSpec {
    */
   wire?: "responses";
   legacy?: boolean;
+  /**
+   * What this model is kept on the bench *for*, beyond current or previous.
+   *
+   * A bench of thirty is not a list of equals. `specialist` is kept for one
+   * thing a tactic names it for (a million-token window); `verifier` is the
+   * cheap independent reader a cast wants for its check; `shadow` is on the
+   * bench and never chosen blind — a tactic that names it gets it, the
+   * router never does — which is how a new model is watched before it is
+   * trusted; `deprecated` is never called at all, and stays only so a stored
+   * setting still resolves to a name. Absent means an ordinary current
+   * model, or with `legacy`, an ordinary fallback.
+   */
+  role?: "specialist" | "verifier" | "shadow" | "deprecated";
 }
+
+/** A model's job on the bench, with the two implied ones spelled out. */
+export type ModelRole = "active" | "fallback" | "specialist" | "verifier" | "shadow" | "deprecated";
 
 /** What a provider adapter emits. Every provider is reduced to this. */
 /** The web tools a conversation may ask for. */

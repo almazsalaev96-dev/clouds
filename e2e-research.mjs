@@ -128,7 +128,7 @@ console.log("\nThe claims, looked up");
   check(/Doubtful/.test(conf) && /1 of 2 claims contradicted/.test(conf), "so the confidence line says doubtful, and why", conf);
   const further = p.getByRole("group", { name: "Go further" }).last();
   const rungs = await further.getByRole("button").allInnerTexts().catch(() => []);
-  check(rungs.length === 3 && /more effort/.test(rungs[0]) && /Parallax/.test(rungs[1]) && /Constellation/.test(rungs[2]), "and offers the next rungs of the ladder rather than climbing them unasked", rungs.join(" · "));
+  check(rungs.length === 3 && /more effort/.test(rungs[0]) && /Parallax/.test(rungs[1]) && /Astro/.test(rungs[2]), "and offers the next rungs of the ladder rather than climbing them unasked", rungs.join(" · "));
 }
 
 console.log("\n“/deep” is research taken further");

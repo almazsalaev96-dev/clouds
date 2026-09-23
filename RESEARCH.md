@@ -757,3 +757,29 @@ A third pasted document: the "maximum architecture" as a strategy router — che
 | Disagreement as the signal | Binary and *Compare*: once every column is in, the cheapest model reads them side by side and says where they stand — agree / mostly / disagree — and names the point of difference, so the choice is made about that. |
 
 **Not built, and why.** Five caches: prompt caching is on where the provider offers it, the reader's notes are cached per source, and tool results are kept on the turn; an exact- or semantic-answer cache serves a service with many users asking the same thing, not one person. Tournaments and shadow routing spend the person's own key on answers they never see. Agent spawning and a general planner: the named tactics are the agents, and they are explainable on the row because they are fixed. A quality predictor that guesses success before verifying: a model's estimate of its own success is the number the document itself says not to trust; the app measures instead — the record, the second company, the evidence.
+
+### §4o — "ARMIS MAX", held against what is here
+
+The second architecture document names four product tiers over the providers' current production families and asks that the router choose a *level* rather than a model, that reasoning be adaptive, that every meaningful answer pass a gate and climb when it fails, and that the bench carry roles. What was built, and what was not:
+
+| Asked for | Built | Where |
+|---|---|---|
+| Four tiers: Astro 5, Mira 4.1, Lumos 4, Nova 4, each over the named stacks | Yes — the everyday group is exactly these four; engine lists follow the document's allocation (Sol / Fable 5.1 / Flash / Kimi for Astro; Terra / Opus 5.5 / Sonnet 5 with Flash checking for Mira; Terra / Sonnet 5 / Flash for Lumos; Luna / Flash / Haiku 4.5 for Nova), resolved dynamically from the keys in the browser | `lib/presets.ts` |
+| Built on API ids, no fictional flagship | Yes — `gpt-6-astra` is gone; the OpenAI bench is the GPT-5.6 family; Opus 5.5 added, Opus 5 a fallback | `lib/models.ts` |
+| Level 0 — no LLM | Already — the calculator, exact, for nothing; and `compute` fences for anything more | `lib/arith.ts`, `lib/answer.ts` |
+| Levels 1–4 → tier | Yes — `levelOf` reads the router's shape: quick or short → 1; image → 3; depth plus the whole of something, rigour, a proof, tens of papers, or a book's worth of text → 4; else 2 | `lib/tiers.ts` |
+| Adaptive reasoning | Yes — low / medium / medium / high up the rungs, and each tactic's own effort on top | `LEVEL_EFFORT`, `Preset.effort` |
+| Budget as a router input | Yes — spend caps the level (low → Nova 4, balanced → never Astro 5); a picture is never traded for price | `levelOf` |
+| Historical performance as a router input | Yes — within the tier, `movedByPast` hands the turn to the next writer on its bench; and the record earns the check | `resolveCast` → `alternates`, `withPast` |
+| Quality gate → escalate | Yes, for the case the app can judge — a check that objects sends the second pass to a stronger writer (`escalate`) with the objection in hand, once per question; and the confidence line offers the next rungs | `resolveCast({escalated})`, `Message.tsx` |
+| "One model enough?" before spending the cast | Yes — the brief and the council seats run only past a length that says the question has parts (`worthBriefing`, `worthConvening`); a one-line ask on Astro is one strong model and a check | `lib/presets.ts` |
+| Disagreement detection | Partly — the judge on compared answers names the point of difference; the fact-check settles a claim on the web when asked. Not built: an automatic "which assumption differs" pass | `Compare.tsx`, `lib/factcheck.ts` |
+| Evidence graph | The prompt half — reported vs established, counter-evidence, source quality, in deep research. Not built: a stored graph of claims and sources | `DEEP_RESEARCH` |
+| Model-performance memory | Already — kind × model: answers, needed another go, typical wait; read by the router and shown in Settings | `pastFor`, `RouterMemory` |
+| Roles: active, specialist, verifier, shadow, legacy, deprecated | Yes — `role` on the bench; shadow is never chosen blind, deprecated never called | `roleOf`, `blindPick` |
+| Tournaments and shadow runs | The role only. A browser with one person's keys cannot run a model in shadow against every answer without doubling their bill; a shadow model is watched by being named in a tactic on purpose | — |
+| Dynamic specialist agents | Partly — Astro convenes an independent reasoner and a long-context reader; Constellation three angles. Not built: a planner that names a cast of economist, coder, critic per question | — |
+| Lumos as a perception layer | Partly — a PDF is read into text here before any model sees it, and a picture goes only to a model that can see. Not built: OCR, chart and table extraction, audio and video as separate steps | `lib/pdf.ts`, `resolveCast` |
+
+The principle the document ends on — the cheapest, fastest strategy with a high enough chance of getting this right — is now what Auto does: a level, a tier, a cast sized to the question, and the top of the ladder for the few per cent that earn it.
+

@@ -72,14 +72,19 @@ console.log("\nOne turn, two companies: one says what the answer needs, the othe
     seq.map((r) => `${r.kind}:${r.model}`).join(" → "));
   check(brief && answer > seq.indexOf(brief), "and it is asked first, which is the whole point",
     seq.map((r) => r.kind).join(" → "));
-  check(/sonnet|claude/i.test(w.model ?? ""), "the answer is written by the other company", w.model);
-  check(brief && !/claude/i.test(brief.model ?? ""),
+  /* Mira 4.1 writes on the middle of the GPT-5.6 family and is briefed by
+     a cheap model from another company — with these two keys, Haiku. */
+  check(/gpt|terra/i.test(w.model ?? ""), "the answer is written by the other company", w.model);
+  check(brief && !/gpt/i.test(brief.model ?? ""),
     "by a model from a different company, not a sibling of the writer", brief?.model);
 }
 
 console.log("\nAnd what the first one wrote reaches the second one");
 {
-  const w = await wire();
+  /* The writer's request, not whichever was last on the wire: a title or a
+     check can land after the answer, and the claim is about the answer. */
+  const seq = await calls();
+  const w = { systemText: [...seq].reverse().find((r) => r.kind === "answer")?.system ?? "" };
   check(/the trailing edge is not the default/.test(w.systemText ?? ""),
     "the brief is in the request that carries the question");
   check(/a model from a different company read the question/i.test(w.systemText ?? ""),
@@ -93,8 +98,8 @@ console.log("\nAnd what the first one wrote reaches the second one");
 console.log("\nThe answer says it, rather than leaving you to guess");
 {
   const said = await p.locator(".msg").last().innerText();
-  check(/ARMI Polaris/.test(said), "the answer is credited to the model that was chosen",
-    (said.split("\n").find((l) => /ARMI Polaris/.test(l)) ?? "").slice(0, 60));
+  check(/ARMI Mira 4.1/.test(said), "the answer is credited to the model that was chosen",
+    (said.split("\n").find((l) => /ARMI Mira 4.1/.test(l)) ?? "").slice(0, 60));
   check(/briefed first by another model/i.test(said),
     "and says a second model read the question before it was written",
     (said.split("\n").find((l) => /briefed first/i.test(l)) ?? "").slice(0, 80));
@@ -103,14 +108,14 @@ console.log("\nThe answer says it, rather than leaving you to guess");
 
 console.log("\nThe quick one answers first and is checked after");
 {
-  await pick("ARMI Pulsar");
+  await pick("ARMI Nova 4");
   await ask("what is a debounce", 6000);
   const seq = await calls();
   const i = seq.findIndex((r) => r.kind === "answer");
   const j = seq.findIndex((r) => r.kind === "verify");
-  check(/haiku/i.test(seq[i]?.model ?? ""), "the fast engine writes it", seq[i]?.model);
+  check(/luna|gpt/i.test(seq[i]?.model ?? ""), "the fast engine writes it", seq[i]?.model);
   check(j > i, "and the check comes after the answer, not before it", seq.map((r) => r.kind).join(" → "));
-  check(j >= 0 && !/claude/i.test(seq[j]?.model ?? ""),
+  check(j >= 0 && !/gpt/i.test(seq[j]?.model ?? ""),
     "from a company that did not write it", seq[j]?.model);
   const shown = await p.locator(".msg").last().innerText();
   check(/Second opinion/i.test(shown), "and the verdict lands under the answer it is about");

@@ -35,8 +35,8 @@ console.log("\nFetch is offered only when there is something to fetch");
 console.log("\nOnly one company here searches");
 {
   check(canSearch(getModel("claude-opus-5")), "the one that does");
-  check(!canSearch(getModel("gpt-6-astra")) && !canSearch(getModel("kimi-k3")) && !canSearch(getModel("deepseek-v4-pro")), "and none of the others");
-  check(webTools(getModel("gpt-6-astra"), ["web_search"], { hasUrl: true }).length === 0, "so a request to one of them carries no tools rather than a tool it would reject");
+  check(!canSearch(getModel("gpt-5.6-sol")) && !canSearch(getModel("kimi-k3")) && !canSearch(getModel("deepseek-v4-pro")), "and none of the others");
+  check(webTools(getModel("gpt-5.6-sol"), ["web_search"], { hasUrl: true }).length === 0, "so a request to one of them carries no tools rather than a tool it would reject");
   check(webTools(getModel("claude-opus-5"), [], { hasUrl: true }).length === 0, "and nothing asked for is nothing offered");
 }
 

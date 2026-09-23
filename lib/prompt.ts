@@ -79,6 +79,8 @@ export const DEEP_RESEARCH = [
   "- Search at least three times, from different angles — the plain question, the strongest counter-view, the most recent development — and read what comes back rather than stopping at the first result.",
   "- Then write a report: a two-line answer first, then headings for each part of the question, then what is uncertain or disputed, then a Sources list with the page titles and URLs you actually read.",
   "- Say where sources disagree. Do not smooth a disagreement into one confident sentence.",
+  "- Keep what a source says apart from what you have established. Mark a finding *reported* when one page says it and *established* only when independent sources agree; where there is counter-evidence, say what it is and which side the better source is on.",
+  "- Rate each source in a word — primary, official, reputable, weak — and lean on the strong ones. A claim resting on one weak page is said to rest on one weak page.",
 ].join("\n");
 
 export function composeSystemPrompt(parts: PromptParts): ComposedPrompt {

@@ -94,16 +94,16 @@ console.log("\nThe picker offers not choosing");
 console.log("\nIt reads the request and routes on it");
 {
   await ask("translate this into French: the meeting is on Tuesday");
-  const quick = (await wire()).model;
+  const quick = (await answered()).model;
   check(/haiku/i.test(quick ?? ""), "a one-line rewrite goes somewhere fast and cheap", quick);
 
   await ask("why would you choose an event-sourced architecture over a CRUD one here");
-  const hard = (await wire()).model;
+  const hard = (await answered()).model;
   check(hard !== quick, "a hard question does not go to the same place", `${quick} → ${hard}`);
   check(/opus/i.test(hard ?? ""), "it goes somewhere that thinks", hard);
 
   await ask("refactor this TypeScript function to remove the nested loop");
-  const code = (await wire()).model;
+  const code = (await answered()).model;
   check(/sonnet|opus/i.test(code ?? ""), "and code goes somewhere good at code", code);
 }
 
@@ -141,7 +141,7 @@ console.log("\nSometimes the right model is no model");
 console.log("\nBut a question that merely contains a sum is still a question");
 {
   await ask("what is 2+2 and why is addition commutative");
-  const after = (await wire()).model;
+  const after = (await answered()).model;
   check(Boolean(after), "it goes to a model, as it should", after);
   const shown = await page.locator("main").innerText();
   check(!/does not need a model/i.test(shown), "and is not intercepted by the calculator");
@@ -159,7 +159,7 @@ console.log("\nChoosing a model yourself turns all of it off");
   await page.waitForTimeout(500);
   check((await page.getByText(/^No model matches/).count()) === 0,
     "a name from the news finds the Armi model that runs on it");
-  await page.locator("button").filter({ hasText: /^ARMI Pulsar/ }).first().click();
+  await page.locator("button").filter({ hasText: /^ARMI Nova 4/ }).first().click();
   await page.waitForTimeout(600);
 
   await ask("why would you choose an event-sourced architecture over a CRUD one here");

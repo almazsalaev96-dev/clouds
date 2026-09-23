@@ -56,12 +56,12 @@
 
 | Element | Today | Specification |
 |---|---|---|
-| Name | **Armi** (wordmark "Armı" in Pinyon Script in the corner) ✅ | Keep. "ARMI" in caps only for the model family ("ARMI Polaris"). |
+| Name | **Armi** (wordmark "Armı" in Pinyon Script in the corner) ✅ | Keep. "ARMI" in caps only for the model family ("ARMI Mira 4.1"). |
 | Icon | `icon.svg` (ink ground, signal-cyan letter) + `apple-icon.png` ✅ | ⬜ Regenerate `apple-icon.png` in the new palette; add a maskable 512×512 PNG to the manifest for Android install prompts. |
 | Palette | Ice `#f3f6fc` light, case `#0b101c` dark; electric blue for structure, cyan for signal; semantic danger/success/warning tokens ✅ | Keep. Every new colour is a token in `globals.css`, never a literal. The warm half is gone: only the amber of a warning survives, because that is meaning rather than brand. |
 | Type | Inter (UI), Pinyon Script (signature), tabular numerals via `.tnum` ✅ | ⬜ Add an OpenDyslexic / Atkinson Hyperlegible option under Appearance (Claude.ai ships a dyslexic font toggle `[R]`). |
 | Voice | Plain, short, second person, no exclamation marks; copy explains why, not just what ✅ | Codify in §2.1. |
-| AI personality | Per Armi model (Orrery withholds, Nova builds, Constellation argues) ✅ | Keep personality in the cast's stance, never in a global "friendly" prompt. |
+| AI personality | Per Armi model (Orrery withholds, Forge builds, Astro argues) ✅ | Keep personality in the cast's stance, never in a global "friendly" prompt. |
 | Motion | `--dur-fast/--dur-enter`, `anim-fade/rise/toast`, `lift`, `bloom`, reduced-motion respected ✅ | Keep. New motion must have a reduced-motion branch. |
 | Sound | None | Out of scope by design (a study app in a library). |
 
@@ -227,7 +227,7 @@ The rule from the flagship products: show three controls, hide the rest in one m
 │ text · attachments (thumb, name) · [Edit] [Copy]                │
 └────────────────────────────────────────────────────────────────┘
 ┌ assistant ────────────────────────────────────────────────────┐
-│ Armi Polaris · "chose Parallax: the question is numeric" · 1.8s  │
+│ Armi Mira 4.1 · "chose Parallax: the question is numeric" · 1.8s  │
 │ (thinking, collapsed: "Working it through…")                   │
 │ body — prose, code, math, tables, citations, canvas card       │
 │ [Copy] [Retry ▾] [Check with another] [Rate ▲▼] [Read aloud]   │
@@ -261,7 +261,19 @@ The rule from the flagship products: show three controls, hide the rest in one m
 
 Every Armi model is a cast (`lib/presets.ts`): a **writer** plus one or more **parts** — *brief* (another company writes what a good answer must get right, before the writer starts), *check* (another model grades the answer after), *duel* (two answers, one judge), *council* (three opinions, one synthesis). The row shows the cast that ran as small marks after the name ("One · brief · check"). The check's verdict renders under the answer. A cast part that fails is skipped silently and noted in the routed-why line ("the check did not come back").
 
-Armi models today, named for the sky because each name states the mechanism: **Polaris** (the default you steer by: a strong writer with a brief and a check), **Pulsar** (fast, cheap, no parts), **Parallax** (numbers; the same object sighted from two positions), **Constellation** (separate stars, one figure: three companies, one synthesis), **Aperture** (how much gets in: long context), **Nova** (builds things; canvas mode), **Lens** (pictures, two of them on the same object), **Orrery** (a machine built to teach; withholds the answer; §13.3), **Rosetta** (languages), **Voyager** (a record composed for a reader who is not you: writing), **Binary** (two bodies, neither subsumed: two answers, one judge). Auto chooses among current models by the plan (`lib/decide.ts`).
+Armi models today. Four **tiers** for anything, one per level of the ladder (§7.4): **Nova 4** (level 1: the fastest engine, checked after), **Mira 4.1** (level 2: briefed, written, checked when the record earns it, and a stronger writer when the check objects), **Lumos 4** (level 3: perception first — a PDF is read into text here, a picture goes to a model that can see — then two that can see, side by side), **Astro 5** (level 4: planned by one company, written by the strongest, the logic worked independently by another, verified by a cheap third, and a second pass on an objection). Eight for one thing: **Parallax** (numbers; the same object sighted from two positions), **Constellation** (three companies, one synthesis), **Aperture** (long context), **Forge** (builds things; canvas mode), **Orrery** (a machine built to teach; withholds the answer; §13.3), **Rosetta** (languages), **Voyager** (writing for a reader who is not you), **Binary** (two answers, one judge). Auto chooses a *tier*, not an engine (`lib/tiers.ts`), and within the tier the record may move the writer to the next on its bench (`movedByPast`).
+
+### 7.4 The ladder ✅
+
+| Level | Tier | Read from | Effort | Verification |
+|---|---|---|---|---|
+| 0 | the calculator | a sum, and nothing else in the message | — | exact |
+| 1 | Nova 4 | a small mechanical edit, or a short ask with nothing to weigh | low | a cheap second company reads it back |
+| 2 | Mira 4.1 | everything else: code, a why, a plan | medium | *earned*: the record, `/check`, or a low confidence line |
+| 3 | Lumos 4 | an image in the message | medium | earned; two that can see when picked by hand |
+| 4 | Astro 5 | depth plus the whole of something — "complete architecture", "rigorous synthesis", "prove", tens of papers — or a book's worth of text in the message itself | high | always, and an independent reasoner beside the writer |
+
+Spend caps the level: *low* stays on Nova 4 (a picture still goes to Lumos 4), *balanced* stays off Astro 5; the row says so. `/max` is Astro 5 for the turn, `/fast` Nova 4. Under a doubtful answer the rungs are offered, not climbed: more effort, Parallax, Astro.
 
 ### 7.3 Temporary chat ✅
 Nothing saved, no memory read or written, no title call, marked with a ghost icon in the header; the composer says so. (Claude Incognito / ChatGPT Temporary `[R]`.)
@@ -319,7 +331,7 @@ Twenty-four models across four providers, each with: `id`, `provider`, `name` (n
 | 1 | Explicit Armi model chosen | Use its cast; Auto rules skipped |
 | 2 | Attachments include images | Writer must have `vision` |
 | 3 | Thread + knowledge > 60% of a candidate's window | Prefer a `long` model; excerpt knowledge (§12) |
-| 4 | Task = build (wants a thing) | Nova cast; canvas mode on |
+| 4 | Task = build (wants a thing) | Forge cast; canvas mode on |
 | 5 | Task = numeric / proof | Parallax cast (writer with reasoning, checker re-derives) |
 | 6 | Task = teach / "I don't understand" / study register | Tutor stance (§13.3) |
 | 7 | One-liner, greeting, formatting request | Flash (no parts; cheapest current model) |
@@ -351,8 +363,8 @@ ARMI has no server tools by design. Tools run in the browser or are declared to 
 | `read_made(id \| title)` | local read of one canvas (a web canvas as its files) | ✅ model tool | For "change the timer I built": the model reads what is there before it says what to change. |
 | `remember(fact)` | local write to memory | ✅ model tool | Not offered in a temporary chat or with memory off; Undo forgets it. |
 | `list_made(query?)` | local read of canvases | ✅ model tool | Newest first, eight at most, with ids for `read_made`; the chip opens the first. |
-| `build_canvas(files)` | local canvas store | ✅ (Nova) | Keep, as a fence rather than a tool: a page is a thing to stream, not to ask for. |
-| `build_canvas(files)` | local canvas store | ✅ (Nova) | Keep. |
+| `build_canvas(files)` | local canvas store | ✅ (Forge) | Keep, as a fence rather than a tool: a page is a thing to stream, not to ask for. |
+| `build_canvas(files)` | local canvas store | ✅ (Forge) | Keep. |
 | `run_canvas_tests()` | srcdoc frame reports console errors back | 🟡 | ⬜ Self-heal loop (§15.4). |
 | `web_search(q)` | provider server tool — `web_search_20260209` on the 4.6+ family, `web_search_20250305` older, chosen by `thinks: "effort"` (`lib/providers/tools.ts`) | ✅ | **Research**, a per-conversation toggle **in the composer** (a named globe chip beside `+`), switchable mid-chat unlike Temporary. It was an icon in the top bar; it is a decision about the sentence being typed rather than a property of the room, which is why all three flagships put their tools inside the box `[R]` — and a bare globe in a corner is also a guess about what kind of globe it is, so it is named as well as drawn. On, the chip fills with the accent and reads `aria-pressed`. The search runs on the provider's servers inside the same response; the app offers the tool and translates what comes back: `server_tool_use` → "Searching for “…”" in place of "Writing"; `web_search_tool_result` → numbered sources as they arrive; `citations_delta` → a `[n]` marker into the text at the point it attaches; `pause_turn` → the turn is sent straight back, up to three times, with no added message. Sources persist on the message and render as a strip under the answer with the cited passage on the link. Only one company here searches; with Research on and another company's writer chosen, the turn moves to the strongest keyed model that can and the row says so; with no such key it says it could not search rather than answering from memory and calling it research. The privacy panel says what a search sends. Gate: `e2e-research`, `test-tools`. |
 | `fetch_url(url)` | `web_fetch_20260209` / `web_fetch_20250910`, with citations on | ✅ | Offered only when a URL is already in the conversation — the tool reads nothing else, and a model told it may fetch will sometimes try. Rides with Research. |
@@ -626,11 +638,17 @@ Creative is the front door for making, not a room with its own viewer (§15 owns
 | **No marks on the screen** ✅ | Nothing shows raw Markdown — no `#`, `**`, `- ` or `>` printed as characters. The model's thinking is read, not dumped: the open panel sets headings as headings and list items as bulleted lines, and the one-line live trace while it thinks joins plain sentences with ` · ` (`reasoningLines`, `unmark` in `Message.tsx`). A Notebook page with writing on it opens **as it reads**, with Edit one press away; an empty page opens in the editor. The editor's placeholder is plain words ("Title / Start writing…"), not Markdown syntax. Gate: `e2e-notebook`, `e2e-rooms`, `e2e-phone`, `e2e-sidelists`. | — |
 | **Spend per answer** ✅ | Settings → Model: Low / Balanced / Any. A ceiling on price per million (output weighted three to one; `SPEND_CAP` low 8, balanced 40) the router keeps to among the models that can do the job; requirements (a picture, a window) are never traded for it; where nothing within it can, the row says so and the cheapest that can is used. Gate: `test-route`. | — |
 | **The past moves the choice** ✅ | The router returns the rest of the bench (`alternates`); `movedByPast` hands the turn to the next one when `pastFor` says the first keeps needing another go at this kind of work (`ENOUGH`, `TOO_MANY` — the second-opinion thresholds), and the row says why. Only where the router chose; a tactic named by hand or by a slash stands. Gate: `test-route`. | — |
-| **Go further** ✅ | Under a checked answer whose confidence is Uncertain or Doubtful, on the last answer: *Again, with more effort* · *Ask Parallax* · *Ask Constellation*. Offered, not spent. Gate: `e2e-research`. | — |
+| **Go further** ✅ | Under a checked answer whose confidence is Uncertain or Doubtful, on the last answer: *Again, with more effort* · *Ask Parallax* · *Ask Astro*. Offered, not spent. Gate: `e2e-research`. | — |
 | **Where they stand** ✅ | On a comparison (Binary, or Compare), once every column has finished without error: the cheapest model reads the answers side by side and says whether they agree, mostly agree or disagree, and names the point of difference in one sentence. Gate: `e2e-cast`. | — |
 | **Fact-check on the web** ✅ | On any answer: the claims are pulled out (at most six) and each is searched for by the strongest keyed model that can search (`searcher`), one search per claim; each comes back **found / contradicted / unclear** with a note and the page it rests on. Drawn under the answer beside the second opinion; contradictions in the warning colour. Needs a searching model; otherwise the notice says which key. `lib/factcheck.ts`, `complete({ tools, onSource })`. Gate: `test-factcheck`, `e2e-research`. | — |
 | **Confidence, from what was done** ✅ | Under a checked answer: *High confidence* (every claim found, and a second company agrees) / *Likely right* / *Uncertain* / *Doubtful* (a claim contradicted, or a second company disagrees), with the reason. Put together from the check and the evidence; the model's own confidence is never consulted. `systemConfidence`. | — |
-| **`/max` and `/fast`** ✅ | The ends of the ladder, named: `/max` is Constellation for the turn, `/fast` is Pulsar. | — |
+| **`/max` and `/fast`** ✅ | The ends of the ladder, named: `/max` is Astro 5 for the turn, `/fast` is Nova 4. | — |
+| **Four tiers, on API ids** ✅ | The everyday group is exactly the four tiers of §7.4, each a cast over the production models the providers actually answer to (the GPT-5.6 family, Claude Fable 5.1 / Opus 5.5 / Sonnet 5 / Haiku 4.5, `deepseek-flash`, Kimi's current models); nothing without an id on the wire is on the bench. Gate: `test-tiers`, `test-presets`. | — |
+| **Auto climbs the ladder** ✅ | On Auto a request is read for its level (`lib/tiers.ts`) and handed to the tier, so what Auto chooses is a cast: brief, writer, check, escalation. The row says "Auto chose Mira 4.1: this is about code". Within the tier, `movedByPast` may hand the turn to the next writer on the tier's bench when the record says the first keeps needing another go. Gate: `e2e-auto`. | — |
+| **The check, earned** ✅ | Mira 4.1 and Lumos 4 carry a check seat marked `when: "earned"`: it runs when the record says answers of this kind have been going wrong, when `/check` asks, or when a confidence line is low — never on every answer. Astro 5 and Nova 4 check every answer. | — |
+| **Up a rung after a failed check** ✅ | When a tactic with `escalate` (Mira 4.1) gets a check that objects, the second pass is written by a stronger model — Sol, Opus 5.5, Fable 5.1 — with the objection in hand, and the row says "answered again by a stronger model". The quality gate, closed. | — |
+| **Roles on the bench** ✅ | `ModelSpec.role`: *specialist* (Kimi K3, the million-token window), *verifier* (DeepSeek Flash, the cheap independent reader), *shadow* (on the bench, never chosen blind — a tactic that names it gets it; how a new model is watched before it is trusted), *deprecated* (never called). `blindPick` is what the router and the fallback picks ask. | — |
+| **Reported or established** ✅ | Deep research is told to keep what a source says apart from what it has established — *reported* on one page, *established* across independent sources — to name counter-evidence and which side the better source is on, and to rate each source in a word. The evidence graph, in the prompt. | — |
 | **A picture, changed** ✅ | `/image …` with a picture attached sends the picture and the words to the edits endpoint; the thread says it was changed, not drawn. A picture attached with plain words is a picture to look at, as before. | — |
 | **What the router has learned** ✅ | Settings → Model: kind of work × Armi model — answers, how many needed another go, typical wait — read live from `turns`. The routing memory, on a page. | — |
 | **A picture from words** ✅ | `/image …`, `/draw …`, or a sentence that asks for one ("draw me a picture of the water cycle" — a verb, a noun for a picture, a subject; never a question *about* a picture already here) is answered with a picture in the thread, on the OpenAI key (`/api/image`, gpt-image-1, base64 into an `image` block), with *Save picture* under it and a line that says a change is one ask away. No key: the thread says which key and where. The + menu offers *Make a picture* (puts `/image ` in the box). `lib/image.ts`. Gate: `test-image`, `e2e-picture`. | — |

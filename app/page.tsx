@@ -649,6 +649,10 @@ export default function Page() {
         effort?: "high";
         /** Have a second model read this answer back, whatever the tactic would have done. */
         check?: boolean;
+        /** Auto chose the tactic, so the record may move the writer within it. */
+        auto?: boolean;
+        /** The second pass after a failed check goes to a stronger writer. */
+        escalated?: boolean;
       },
     ) => {
       /* An Armi model is a tactic, and this is where it becomes a request:
@@ -658,14 +662,35 @@ export default function Page() {
          of them — regenerate, retry, tighten, edit — and one that forgot
          would send "nova" to a provider as a model name. */
       const preset = getPreset(picked);
-      const cast = preset
+      let cast = preset
         ? resolveCast(picked, {
             configured,
             keys: settings.keys,
             hasImage: history.some((m) => m.content.some((b) => b.type === "image")),
             size: history.reduce((n, m) => n + costOf(m), 0),
-          })
+          }, { escalated: Boolean(opts?.escalated) })
         : null;
+      /* Cost per success, within the tier: where Auto chose the tactic, the
+         record of past answers may move the turn off the tactic's first
+         writer to the next on its bench. A tactic named by hand is honoured
+         as it is — the person chose the arrangement, and the arrangement
+         names its writer. */
+      if (cast && opts?.auto && cast.alternates.length) {
+        const first = cast;
+        const wantsNow = [...history].reverse().find((m) => m.role === "user");
+        const askedNow = wantsNow ? blockText(wantsNow.content) : "";
+        const moved = await import("@/lib/route")
+          .then(async ({ movedByPast }) =>
+            movedByPast(
+              { modelId: first.answer.modelId, why: first.answer.why, alternates: first.alternates },
+              await pastFor(taskOf(askedNow).kind, first.answer.modelId),
+              { enough: ENOUGH, tooMany: TOO_MANY },
+            ))
+          .catch(() => null);
+        if (moved && moved.modelId !== first.answer.modelId) {
+          cast = { ...first, answer: { ...first.answer, modelId: moved.modelId, why: moved.why, substituted: true }, alternates: moved.alternates ?? [] };
+        }
+      }
       const modelId = cast?.answer.modelId ?? picked;
 
       const conv = await db.conversations.get(conversationId);
@@ -867,15 +892,15 @@ export default function Page() {
          the header already says the name — so it carries the name for the
          places that read the whole string, and nothing shows at all when
          there is nothing to add beyond having been answered. */
-      const presetWhy = preset && extras.length ? `${preset.name} — ${extras.join(", ")}` : "";
+      const presetWhy = preset && (routedWhy || extras.length) ? `${preset.name} — ${[routedWhy, ...extras].filter(Boolean).join(", ")}` : "";
       /* And where this is a second pass, the line says so without losing who
          answered: "ARMI Constellation, 3 models consulted · answered again after an
          objection" is the whole account of how the words on screen came to be
          there, and the first half of it is not less true for the second. */
       const why = [
-        routedWhy || presetWhy,
+        presetWhy || routedWhy,
         registerWhy,
-        opts?.revised ? "answered again after a second model objected" : "",
+        opts?.revised ? (opts?.escalated ? "answered again by a stronger model after a second model objected" : "answered again after a second model objected") : "",
         opts?.effort ? "asked to think harder" : "",
         /* Asked for, not done: with one company's key there is nobody to
            read it back, and the notice says so — the row must not claim
@@ -1215,10 +1240,31 @@ export default function Page() {
         return;
       }
 
+      /* The ladder. Auto's reading of the request becomes a *level*, and the
+         level becomes one of the four tiers — the quick one, the everyday
+         one, the one that sees, the one for the hardest few per cent — so
+         what Auto chooses is a cast and not a single engine. The router's
+         engine choice above is kept for the sum it may have found and as
+         the fallback if this chunk will not load. */
+      const tier =
+        decision && !decision.sum && !slashPick
+          ? await import("@/lib/tiers")
+              .then(({ tierFor }) =>
+                tierFor(asked, {
+                  hasImage: content.some((b) => b.type === "image"),
+                  extra: path.map((m) => blockText(m.content)).join("\n").slice(-40_000),
+                  attached: content.map((b) => (b.type === "file" ? b.text : "")).join("\n"),
+                  size: history.reduce((n, m) => n + costOf(m), 0),
+                  spend: settings.spend,
+                  kind: taskOf(asked).kind,
+                }))
+              .catch(() => null)
+          : null;
+
       /* A tactic named by a slash beats the router's reading: the person
          said which room this belongs in, and Auto's whole premise is that
          they usually have not. */
-      const answering = slashPick ?? routed?.modelId ?? threadModelId;
+      const answering = slashPick ?? tier?.presetId ?? routed?.modelId ?? threadModelId;
 
       /* "Remember that I'm vegetarian" is two things: a message, sent as
          written, and a memory, saved before the answer comes back so the
@@ -1287,7 +1333,15 @@ export default function Page() {
           turnPrompt: shared ? briefNote(shared) : undefined,
         });
       } else {
-        void runTurn(convId, userMessage.id, history, answering, routed?.why, note, slash?.check ? { check: true } : undefined);
+        void runTurn(
+          convId,
+          userMessage.id,
+          history,
+          answering,
+          tier?.why ?? routed?.why,
+          note,
+          slash?.check || tier ? { check: slash?.check || undefined, auto: Boolean(tier) } : undefined,
+        );
       }
 
       if (isFirst) void generateTitle(convId, blockText(content));
@@ -1470,7 +1524,10 @@ export default function Page() {
            Once per question, and never told to agree — where the objection
            is wrong the writer keeps its ground and says why, and where
            neither can settle it the reader is told that instead. */
-        const preset = getPreset(threadModelId);
+        /* The tactic that answered, which on Auto is the tier the ladder
+           chose and not the thread's setting. */
+        const answeredAs = message.presetId && message.presetId !== AUTO ? message.presetId : threadModelId;
+        const preset = getPreset(answeredAs);
         const parent = message.parentId ?? "";
         if (
           verdict &&
@@ -1485,12 +1542,15 @@ export default function Page() {
             message.conversationId,
             message.parentId,
             history,
-            threadModelId,
+            answeredAs,
             /* No routed reason: this turn builds its own, and it is the same
                tactic that answered the first time. */
             undefined,
             objectionNote(verdict),
-            { revised: true },
+            /* Up a rung where the tactic has one: the gate that failed is
+               not passed back to the same model for a more confident
+               version of the same mistake. */
+            { revised: true, escalated: Boolean(preset.escalate?.length) },
           );
         }
       } catch {

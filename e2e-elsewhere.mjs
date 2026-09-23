@@ -68,7 +68,7 @@ console.log("\nAnd the next question does not walk into the same wall");
   await fetch(`${MOCK}/__reset`);
   await p.getByRole("button", { name: /^Model:/ }).first().click();
   await p.waitForTimeout(500);
-  await p.getByRole("button", { name: /^ARMI Polaris —/ }).first().click();
+  await p.getByRole("button", { name: /^ARMI Mira 4.1 —/ }).first().click();
   await p.waitForTimeout(500);
   await p.getByRole("button", { name: "New chat" }).first().click();
   await p.waitForTimeout(400);

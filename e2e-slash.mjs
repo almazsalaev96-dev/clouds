@@ -80,8 +80,12 @@ console.log("\n“/check” asks for a second reading; “/compare” is Binary 
   await box().fill("/check is a debounce the same as a throttle");
   await p.keyboard.press("Meta+Enter");
   await p.waitForTimeout(4500);
+  /* On Mira 4.1 the reading that was asked for is a check, and a check that
+     objects sends the answer up a rung: the row a reader ends on is the
+     second pass, by a stronger model, which is the whole point of asking. */
   const row = await p.locator(".msg").last().innerText();
-  check(/second reading asked for/.test(row), "the row says a second reading was asked for", (row.split("\n").find((l) => /second reading/.test(l)) ?? "").slice(0, 70));
+  check(/second reading asked for|answered again by a stronger model/.test(row), "the row says a second reading was asked for", (row.split("\n").find((l) => /second reading|answered again/.test(l)) ?? "").slice(0, 90));
+  check(/answered again by a stronger model after a second model objected/.test(row), "and when the reading objected, a stronger model answered again", (row.split("\n").find((l) => /answered again/.test(l)) ?? "").slice(0, 90));
   await box().fill("/compare which of these two names is better, Nova or Lens");
   await p.keyboard.press("Meta+Enter");
   await p.waitForTimeout(4500);

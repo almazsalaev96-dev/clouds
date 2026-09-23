@@ -38,8 +38,8 @@ console.log("\nEvery tactic names engines that exist");
      `getPreset` disagree about what the picker is holding. */
   check(!ids.some((id) => known.has(id)), "and none of them is also a model id");
   check(isPreset(DEFAULT_PRESET_ID), "and a fresh install opens on one that is there", DEFAULT_PRESET_ID);
-  check(PRESETS.filter((x) => x.group === "everyday").length === 5 && PRESETS.length === 11,
-    "five for anything and six for one thing", `${PRESETS.length} in all`);
+  check(PRESETS.filter((x) => x.group === "everyday").length === 4 && PRESETS.length === 12,
+    "four tiers for anything and eight for one thing", `${PRESETS.length} in all`);
   check(PRESETS.every((x) => x.name.startsWith("ARMI ") && !x.short.includes(" ")),
     "and all of them say the product once and the job once", PRESETS.map((x) => x.short).join(", "));
   check(PRESETS.every((x) => x.examples.length >= 2),
@@ -355,7 +355,7 @@ console.log("\nAnd the check is real, or it is not claimed");
 {
   const code = planTurn("write a function that debounces calls");
   const both = shapePlan(code, getPreset("forge"), { cast: resolveCast("forge", { configured: all }) });
-  check(both.check === "second" && /Nova/.test(both.why), "with two companies, one checks the other", both.why);
+  check(both.check === "second" && /Forge/.test(both.why), "with two companies, one checks the other", both.why);
   /* With one company there is still a check — the rule is two models, always
      — but it is a sibling, and everything that draws it says so rather than
      selling it as an independent opinion. */

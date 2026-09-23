@@ -56,6 +56,7 @@ mock() { # mock <file> [extra env]
 
 echo "== unit =="
 run test-route npx jiti test-route.ts
+run test-tiers npx jiti test-tiers.ts
 run test-web   npx jiti test-web.ts
 run test-task  npx jiti test-task.ts
 run test-error npx jiti test-error.ts

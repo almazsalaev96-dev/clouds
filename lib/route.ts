@@ -1,7 +1,7 @@
 import { REPLY, SAFETY } from "./context";
 import { wellOnly } from "./health";
 import { canSearch } from "./providers/tools";
-import { MODELS } from "./models";
+import { MODELS, blindPick, roleOf } from "./models";
 import type { ModelSpec, ProviderId } from "./types";
 import { solve, type Sum } from "./arith";
 
@@ -83,6 +83,7 @@ interface Traits {
 const TRAITS: Record<string, Traits> = {
   // Anthropic
   "claude-fable-5-1": { speed: 1, depth: 3, coding: 3 },
+  "claude-opus-5-5": { speed: 2, depth: 3, coding: 3 },
   "claude-opus-5": { speed: 2, depth: 3, coding: 3 },
   "claude-sonnet-5": { speed: 3, depth: 2, coding: 3 },
   "claude-haiku-4-5": { speed: 3, depth: 1, coding: 2 },
@@ -94,7 +95,6 @@ const TRAITS: Record<string, Traits> = {
   "claude-sonnet-4-6": { speed: 2, depth: 2, coding: 3 },
   "claude-sonnet-4-5": { speed: 2, depth: 2, coding: 3 },
   // OpenAI
-  "gpt-6-astra": { speed: 1, depth: 3, coding: 3 },
   "gpt-5.6-sol": { speed: 1, depth: 3, coding: 3 },
   "gpt-5.6-terra": { speed: 2, depth: 2, coding: 3 },
   "gpt-5.6-luna": { speed: 3, depth: 1, coding: 2 },
@@ -219,7 +219,17 @@ export const SPEND_CAP: Record<"low" | "balanced", number> = { low: 8, balanced:
 
 /** The models this browser can actually call. */
 function usable(configured: Record<string, boolean>, keys: Record<string, string>): ModelSpec[] {
-  return MODELS.filter((m) => configured[m.provider as ProviderId] || keys[m.provider]);
+  /* Every choice in this file is a blind one — nobody named a model — so a
+     model on the bench as a shadow is not here, and a deprecated one is
+     nowhere. A tactic that names a shadow by id still gets it; see
+     `lib/presets.ts`. */
+  return MODELS.filter((m) => (configured[m.provider as ProviderId] || keys[m.provider]) && blindPick(m));
+}
+
+/** Whether the bench allows this id to be called at all, by anyone. */
+export function callable(id: string): boolean {
+  const m = MODELS.find((x) => x.id === id);
+  return Boolean(m) && roleOf(m!) !== "deprecated";
 }
 
 /**

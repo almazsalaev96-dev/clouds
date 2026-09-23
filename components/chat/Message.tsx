@@ -1155,7 +1155,7 @@ function ConfidenceLine({
   verdict?: Msg["verdict"];
   facts?: Msg["facts"];
   /** The next rung of the ladder, offered where the confidence is not enough. */
-  onEscalate?: (how: "effort" | "quant" | "council") => void;
+  onEscalate?: (how: "effort" | "quant" | "astro") => void;
 }) {
   const c = systemConfidence(verdict, facts);
   if (!c) return null;
@@ -1178,7 +1178,7 @@ function ConfidenceLine({
         <span className="ml-1 flex flex-wrap gap-1" role="group" aria-label="Go further">
           <button onClick={() => onEscalate("effort")} className="btn-touch press rounded-full border border-line bg-surface px-2 text-xs text-secondary hover:text-primary">Again, with more effort</button>
           <button onClick={() => onEscalate("quant")} className="btn-touch press rounded-full border border-line bg-surface px-2 text-xs text-secondary hover:text-primary">Ask Parallax</button>
-          <button onClick={() => onEscalate("council")} className="btn-touch press rounded-full border border-line bg-surface px-2 text-xs text-secondary hover:text-primary">Ask Constellation</button>
+          <button onClick={() => onEscalate("astro")} className="btn-touch press rounded-full border border-line bg-surface px-2 text-xs text-secondary hover:text-primary">Ask Astro</button>
         </span>
       )}
     </div>
