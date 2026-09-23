@@ -84,6 +84,10 @@ export function LibraryView({
     }
     const out: (IndexItem & { kind: Kind; at: number })[] = [];
     for (const n of notes!) {
+      /* A page with nothing on it was not made; it is a blank sheet in the
+         Notebook, and the Notebook is where it belongs until it says
+         something. */
+      if (!n.content.trim() && !n.title.trim()) continue;
       out.push({
         id: `page:${n.id}`,
         kind: "page",

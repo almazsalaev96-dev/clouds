@@ -170,6 +170,15 @@ console.log("\nAnd a card you got wrong can be explained");
   await p.waitForTimeout(700);
   await p.keyboard.press(" ");
   await p.waitForTimeout(400);
+  /* Why, briefly, where you are — before the chat. */
+  const why = p.getByRole("button", { name: "Why?" });
+  check(await why.count() === 1, "the session offers three sentences on why, where you are");
+  await why.click();
+  await p.waitForTimeout(2500);
+  const said = await p.getByRole("status", { name: "Why" }).innerText().catch(() => "");
+  check(/waits for the input to go quiet/.test(said), "and they arrive under the answer", said.replace(/\s+/g, " ").slice(0, 60));
+  check(!/^>/m.test(said) && /Silence — it fires once/.test(said), "with the page's own line quoted, set apart, no > mark", said.split("\n").find((l) => /Silence/.test(l))?.slice(0, 50));
+  check(await why.count() === 0, "asked once per card");
   const explain = p.getByRole("button", { name: "Explain this" });
   check(await explain.count() === 1, "the session offers to explain the card you are looking at");
   await explain.click();

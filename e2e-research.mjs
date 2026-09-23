@@ -76,7 +76,7 @@ console.log("\nWith it on, the model searches and the answer says what it read")
   check(searching, "while it searches, the wait says what is being searched for");
   await p.waitForTimeout(4000);
   const sent = await fetch(`${MOCK}/__last`).then((r) => r.json());
-  check((sent.tools ?? []).some((t) => /^web_search_/.test(t)), "the request carried the search tool", JSON.stringify(sent.tools));
+  check((sent.tools ?? []).some((t) => /^web_search(_\d+)?$/.test(t)), "the request carried the search tool", JSON.stringify(sent.tools));
   check(!(sent.tools ?? []).some((t) => /^web_fetch_/.test(t)), "but not fetch, because nothing in the conversation is a URL to fetch");
 
   const msg = p.locator(".msg").last();
@@ -116,7 +116,7 @@ console.log("\nA URL in the question offers fetch as well");
   await p.keyboard.press("Meta+Enter");
   await p.waitForTimeout(4000);
   const sent = await fetch(`${MOCK}/__last`).then((r) => r.json());
-  check((sent.tools ?? []).some((t) => /^web_fetch_/.test(t)), "fetch rides along once there is something to fetch", JSON.stringify(sent.tools));
+  check((sent.tools ?? []).some((t) => /^web_fetch(_\d+)?$/.test(t)), "fetch rides along once there is something to fetch", JSON.stringify(sent.tools));
 }
 
 console.log("\nA paused turn is sent straight back and finishes");

@@ -85,6 +85,7 @@ run test-slash npx jiti test-slash.ts
 run test-actions npx jiti test-actions.ts
 run test-recap npx jiti test-recap.ts
 run test-plain npx jiti test-plain.ts
+run test-explain npx jiti test-explain.ts
 run test-revision npx jiti test-revision.ts
 run test-grade npx jiti test-grade.ts
 run test-retrieve npx jiti test-retrieve.ts

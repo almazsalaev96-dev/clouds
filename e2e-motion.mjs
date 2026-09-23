@@ -236,7 +236,11 @@ console.log("\nThe bar travels with you");
 
   await page.waitForTimeout(2600);
   const after = await page.locator(".vt-bar").boundingBox();
-  check(after.y - before.y > 100, "and on the first send it has a long way to go", `${Math.round(before.y)} → ${Math.round(after.y)}`);
+  /* It used to sit mid-page on the blank screen and travel to the bottom on
+     the first send. It lives at the bottom from the first word now, the way
+     every chat people already know puts it, so the first send is not the
+     one moment the bar throws itself across the screen. */
+  check(Math.abs(after.y - before.y) < 24, "and on the first send it stays where your thumb already is", `${Math.round(before.y)} → ${Math.round(after.y)}`);
   await page.screenshot({ path: `${OUT}/motion-docked.png` });
 }
 

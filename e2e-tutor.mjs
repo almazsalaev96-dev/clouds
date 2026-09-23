@@ -97,6 +97,28 @@ console.log("\nPointing at part of the page is the question");
   check(chat.length > 40 && /page 1/.test(chat), "the answer lands beside the page", chat.replace(/\s+/g, " ").slice(0, 60));
 }
 
+console.log("\nThree to try before reading the page");
+{
+  await p.getByRole("button", { name: "Forget the region" }).click().catch(() => {});
+  await p.waitForTimeout(300);
+  const tryBtn = p.getByRole("group", { name: "Ask about this" }).getByRole("button", { name: "Try 3 first" });
+  check(await tryBtn.count() === 1, "a page offers three questions to try before reading it");
+  await tryBtn.click();
+  await p.waitForTimeout(3000);
+  const tries = p.getByRole("region", { name: "Try first" }).or(p.locator('section[aria-label="Try first"]'));
+  const t = await tries.first().innerText().catch(() => "");
+  check(/1\. Where does this process happen/.test(t) && /3\. /.test(t), "three questions, numbered", t.replace(/\s+/g, " ").slice(0, 70));
+  check(!/organelle the page names/.test(t), "with the answers hidden until asked for");
+  await tries.first().getByRole("button", { name: "Show the answer" }).first().click();
+  await p.waitForTimeout(300);
+  const t2 = await tries.first().innerText();
+  check(/organelle the page names/.test(t2), "one press shows an answer");
+  await tries.first().getByRole("button", { name: /show on the page/ }).first().click();
+  await p.waitForTimeout(600);
+  check(!/does not say that in those words/.test(await p.locator("main").innerText()), "and the line it rests on is found on the page");
+  check(await tryBtn.count() === 0, "the offer is made once per page");
+}
+
 console.log("\nThe next page is a different page");
 {
   await p.getByRole("button", { name: "Next page" }).click();

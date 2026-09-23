@@ -438,6 +438,19 @@ createServer(async (req, res) => {
      parses, so a mock that answered with prose would leave the parsing,
      the de-duplication and the whole scheduler untested. */
   const carding = /^Write \d+ question-and-answer cards/.test(asked);
+  /* Why, briefly — three sentences and the page's own line under them. The
+     quote is copied from the source the app sent, so the check that it is
+     really there can be exercised. */
+  const whying = /^Somebody studying got this card wrong\./.test(asked);
+  const WHY = "A debounce waits for the input to go quiet, and only then fires once. People confuse it with a throttle, which fires on a fixed floor even while the burst continues.\n\n> Silence — it fires once the input has stopped changing for a set interval.";
+  /* Try first: three questions from the page, as JSON with the page's line. */
+  const trying = /write three questions for them to try first/.test(asked);
+  const pageLine = (asked.match(/--- the page ---\n([^\n]+)/) ?? [, "Photosynthesis happens in the chloroplast."])[1].trim();
+  const TRIES = JSON.stringify([
+    { q: "Where does this process happen inside the cell?", a: `In the organelle the page names: ${pageLine.split(" ").at(-1)}`, quote: pageLine },
+    { q: "What goes in and what comes out?", a: "Light, water and carbon dioxide in; glucose and oxygen out.", quote: pageLine },
+    { q: "Why does the leaf need it?", a: "It is how the plant makes its own food.", quote: pageLine },
+  ]);
   const CARDS = JSON.stringify([
     { front: "What does a debounce wait for?", back: "Silence — it fires once the input has stopped changing for a set interval.", topic: "debounce" },
     { front: "How does a throttle differ from a debounce?", back: "A throttle enforces a floor between calls; a debounce waits for a gap.", topic: "throttle" },
@@ -667,6 +680,10 @@ Nothing here looks like it breaks a caller — the return type is the same array
     ? SEAT
     : verifying
     ? VERDICT
+    : whying
+    ? WHY
+    : trying
+    ? TRIES
     : carding
     ? CARDS
     : afterCompute

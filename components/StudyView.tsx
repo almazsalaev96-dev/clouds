@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  ArrowLeftRight, ChevronLeft, FileText, Flame, Gauge, Keyboard, MessageSquare, Pencil, Trash2, BookMarked } from "lucide-react";
+  ArrowLeftRight, ChevronLeft, FileText, Flame, Gauge, Keyboard, Lightbulb, MessageSquare, Pencil, Trash2, BookMarked } from "lucide-react";
 import { mark, type Mark } from "@/lib/grade";
 import { recallRate, weakestDeck, weeksOf } from "@/lib/plan";
 import { Tutor } from "@/components/study/Tutor";
@@ -29,6 +29,7 @@ import { SectionIndex } from "@/components/SectionIndex";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/store";
+import { explainCard, splitQuote } from "@/lib/explain";
 
 /**
  * The room where you are asked again.
@@ -629,6 +630,10 @@ function Session({
   const [sure, setSure] = React.useState<boolean | null>(null);
   /** One line of feedback for a mid-session move, cleared by the next card. */
   const [note, setNote] = React.useState<string | null>(null);
+  /* Three sentences on why, where you are, with the page it came from
+     quoted — the press before "Explain this" takes it to the chat. */
+  const [why, setWhy] = React.useState<{ text: string; source?: string } | null>(null);
+  const [whyBusy, setWhyBusy] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const now = useNow(1_000);
   /* The topic of the card just answered, which has left the queue by the
@@ -659,6 +664,7 @@ function Session({
       setVerdict(null);
       setSure(null);
       setNote(null);
+      setWhy(null);
       setDone((n) => n + 1);
       setLastKey(topicKey(card));
       setTally((t) => ({ ...t, [rating]: t[rating] + 1 }));
@@ -690,6 +696,38 @@ function Session({
     },
     [card, mode, typed, sure, retention],
   );
+
+  /* Why, briefly — from the page the card was made from, where that page
+     can be found: a Notebook page by the deck's name, or the document the
+     Tutor was reading. Otherwise from what the model knows, said as such. */
+  const explain = async () => {
+    if (!card || whyBusy) return;
+    setWhyBusy(true);
+    setWhy({ text: "" });
+    try {
+      const deck = await db.decks.get(card.deckId);
+      let sourceName: string | undefined;
+      let sourceText: string | undefined;
+      if (deck?.source === "note") {
+        const page = (await db.notes.toArray()).find((n) => n.title === deck.name);
+        if (page?.content.trim()) { sourceName = page.title; sourceText = page.content; }
+      } else if (deck?.source?.startsWith("lesson:")) {
+        const lesson = await db.lessons.get(deck.source.slice("lesson:".length));
+        if (lesson?.text) { sourceName = lesson.name; sourceText = lesson.text; }
+      }
+      const out = await explainCard(
+        { front: isCloze(card.front) ? clozeQuestion(card.front) : card.front, back: card.back, sourceName, sourceText },
+        { onText: (t) => setWhy({ text: t, source: sourceName }) },
+      );
+      if (out) setWhy({ text: out, source: sourceName });
+      else { setWhy(null); setNote("Nothing usable came back."); }
+    } catch (err) {
+      setWhy(null);
+      setNote(whyItFailed(err, "That request failed."));
+    } finally {
+      setWhyBusy(false);
+    }
+  };
 
   /* The way back from the last press. Only the last: a stack of undos over a
      scheduler is a way to lose track of what the schedule now says, and one
@@ -972,8 +1010,22 @@ function Session({
                 answer given away in the question, a fact off by one — and
                 the moment you notice is now, mid-session, not later in a
                 list you have to find it in. */}
+            {shown && !editing && why && (
+              <Why why={why} busy={whyBusy} />
+            )}
+
             {shown && !editing && (
               <div className="mt-3 flex flex-wrap justify-center gap-1">
+                {!why && (
+                  <button
+                    onClick={() => void explain()}
+                    disabled={whyBusy}
+                    className="focus-inset flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary disabled:opacity-50"
+                  >
+                    <Lightbulb size={12} />
+                    Why?
+                  </button>
+                )}
                 {onAsk && (
                   <button
                     onClick={() =>
@@ -1287,6 +1339,31 @@ function Aim({ cards }: { cards: Card[] }) {
       <span className="tnum max-sm:basis-full">
         <span className="max-sm:hidden">· </span>about {load(aim)} review{load(aim) === 1 ? "" : "s"} a day for what you know now
       </span>
+    </div>
+  );
+}
+
+/**
+ * Why that is the answer, in three sentences, with the page's own words
+ * under it when the card came from a page. Streamed, so the first sentence
+ * is there before the third is written.
+ */
+function Why({ why, busy }: { why: { text: string; source?: string }; busy: boolean }) {
+  const { body, quote } = splitQuote(why.text);
+  return (
+    <div role="status" aria-live="polite" aria-label="Why" className="mx-auto mt-3 max-w-md rounded-lg border border-line bg-surface px-3 py-2.5 text-left anim-fade">
+      <p className="text-sm leading-relaxed text-secondary">
+        {body || (busy ? <span className="sheen">Working it out</span> : "")}
+      </p>
+      {quote && (
+        <blockquote className="mt-2 border-l-2 border-accent pl-2.5 text-xs text-tertiary">
+          “{quote}”
+          {why.source && <span className="mt-0.5 block text-faint">— {why.source}</span>}
+        </blockquote>
+      )}
+      {!busy && !quote && why.source && (
+        <p className="mt-1.5 text-tiny text-faint">Nothing in “{why.source}” says this in so many words.</p>
+      )}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { addLessonTurn, addCards, createDeck, createNote, db, deckForSource, ink
 import { renderPage, pageText, pageLayout, findQuote, type TextRun } from "@/lib/pdf";
 import { boundsOf, composite, marksMarkdown, parseMarks, quotesIn, type Stroke, type Tool } from "@/lib/ink";
 import { complete, whyItFailed } from "@/lib/complete";
+import { tryFirst, type TryFirst } from "@/lib/explain";
 import { draftCards } from "@/lib/generate";
 import { resolveCast, shortName } from "@/lib/presets";
 import { useSettings } from "@/lib/store";
@@ -82,6 +83,12 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
   const pageRef = React.useRef<HTMLDivElement>(null);
   const [pinned, setPinned] = React.useState(true);
   const inkLoadedFor = React.useRef<string>("");
+  /* Three questions to try before reading the page — the pretesting effect:
+     a guess before the material, right or wrong, makes the material stick.
+     Answers are hidden until asked for, and each can light its line. */
+  const [tries, setTries] = React.useState<(TryFirst & { open: boolean })[] | null>(null);
+  const [trying, setTrying] = React.useState(false);
+  React.useEffect(() => { setTries(null); }, [page, lesson.id]);
 
   const turns = useLiveQuery(
     () => db.lessonTurns.where("lessonId").equals(lesson.id).sortBy("at"),
@@ -227,6 +234,30 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
     setHighlights(boxes);
     pageRef.current?.scrollIntoView({ block: "nearest" });
     window.setTimeout(() => setHighlights((h) => (h === boxes ? [] : h)), 9000);
+  };
+
+  const tryFirstNow = async () => {
+    if (trying || asking) return;
+    if (!cast) { setNotice("No key configured yet — add one in Settings."); return; }
+    if (!words) { setNotice("This page has no words to ask from."); return; }
+    setTrying(true);
+    setNotice(null);
+    try {
+      const rows = await tryFirst(words, `page ${page} of “${lesson.name}”`);
+      if (!rows) { setNotice("No questions came back in a shape that could be used."); return; }
+      setTries(rows.map((r) => ({ ...r, open: false })));
+      await addLessonTurn({
+        lessonId: lesson.id,
+        role: "assistant",
+        text: `Three to try before reading page ${page}:\n\n${rows.map((r, i) => `${i + 1}. ${r.q}`).join("\n")}`,
+        page,
+        presetId: "tutor",
+      });
+    } catch (err) {
+      setNotice(whyItFailed(err, "That request failed."));
+    } finally {
+      setTrying(false);
+    }
   };
 
   /* -------------------------------------------------------------- asking -- */
@@ -595,11 +626,54 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
           </div>
         </div>
 
+        {tries && (
+          <section aria-label="Try first" className="mx-3 mb-1.5 rounded-lg border border-line bg-surface px-3 py-2">
+            <p className="text-tiny uppercase tracking-wide text-faint">Try first, then read</p>
+            <ol className="mt-1 space-y-1.5">
+              {tries.map((t, i) => (
+                <li key={i} className="text-sm">
+                  <p className="text-primary">{i + 1}. {t.q}</p>
+                  {t.open ? (
+                    <p className="mt-0.5 text-secondary anim-fade">
+                      {t.a}
+                      {t.quote && (
+                        <button
+                          onClick={() => void showQuote(t.quote!)}
+                          className="focus-inset ms-1.5 rounded-sm text-xs text-tertiary underline-offset-2 hover:text-primary hover:underline"
+                          title="Show these words on the page"
+                        >
+                          ↗ show on the page
+                        </button>
+                      )}
+                    </p>
+                  ) : (
+                    <button
+                      onClick={() => setTries((ts) => ts && ts.map((x, j) => (j === i ? { ...x, open: true } : x)))}
+                      className="focus-inset mt-0.5 rounded-sm text-xs text-tertiary underline-offset-2 hover:text-primary hover:underline"
+                    >
+                      Show the answer
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+
         {notice && <p className="px-3 pb-1 text-xs text-warning" role="status">{notice}</p>}
 
         {/* What a tutor is asked, as presses. Each one sends the page, the ink
             on it, and the region when there is one. A hint comes first. */}
         <div className="flex flex-wrap gap-1 px-3 pb-1.5" role="group" aria-label="Ask about this">
+          {!box && !inkBounds && !tries && (
+            <button
+              disabled={asking || trying}
+              onClick={() => void tryFirstNow()}
+              className="btn-touch press focus-inset rounded-full border border-line bg-surface px-2.5 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary disabled:opacity-50"
+            >
+              {trying ? "Writing three…" : "Try 3 first"}
+            </button>
+          )}
           {(box ? CROP_ASKS : inkBounds ? INK_ASKS : PAGE_ASKS).map((a) => (
             <button
               key={a.label}
