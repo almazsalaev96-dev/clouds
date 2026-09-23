@@ -620,6 +620,10 @@ It also reports a figure of nine hundred percent [[cite: ${name} | the result wa
      the confidence line has to say "doubtful" about an answer a second model
      would have passed. */
   const factchecking = /Your job is to fact-check the answer against the web/.test(asked);
+  /* Two answers, read side by side: they differ, on purpose, so the line
+     that names the difference is what the screen has to show. */
+  const judging = /^Two answers to the same question, from different models/.test(asked);
+  const STAND = JSON.stringify({ agree: "partly", on: "They differ on the default edge: the first says trailing, the second leading." });
   const FACTS = JSON.stringify({ claims: [
     { claim: "A debounce fires once the input has stopped changing for a set interval", verdict: "supported", note: "“A debounce waits for silence” — Debounce and throttle, explained" },
     { claim: "The trailing edge is the default", verdict: "unsupported", note: "The page says the leading edge is the default." },
@@ -707,6 +711,8 @@ Nothing here looks like it breaks a caller — the return type is the same array
     ? BRIEF
     : seated
     ? SEAT
+    : judging
+    ? STAND
     : factchecking
     ? FACTS
     : verifying

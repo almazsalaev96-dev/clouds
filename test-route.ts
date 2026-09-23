@@ -9,7 +9,7 @@
    changing the app to fit itself. */
 import { solve } from "./lib/arith";
 import { MODELS } from "./lib/models";
-import { checker, elsewhere, route, shapeOf } from "./lib/route";
+import { checker, elsewhere, route, shapeOf, movedByPast, SPEND_CAP } from "./lib/route";
 import { forgetHealth, noteFailure } from "./lib/health";
 
 let failed = 0;
@@ -302,6 +302,33 @@ console.log("\nWhen a company will not answer, the turn walks down the bench");
   const none = elsewhere(["anthropic", "openai", "moonshot", "deepseek"], ctx);
   check(none === null, "with everybody asked, it says so rather than going round again", none ? (none as { id: string }).id : "nobody");
   forgetHealth();
+}
+
+console.log("\nThe spend setting is a ceiling the router keeps to");
+{
+  const dear = (id: string) => { const m = MODELS.find((x) => x.id === id)!; return m.priceIn + m.priceOut * 3; };
+  const any = route("Explain, in depth, why the Krebs cycle is a cycle and what would happen if it were not", ctx() as never);
+  const low = route("Explain, in depth, why the Krebs cycle is a cycle and what would happen if it were not", ctx({ spend: "low" }) as never);
+  check(dear(low.modelId) <= SPEND_CAP.low, "on Low, the answer stays under the low ceiling", `${low.modelId} at $${dear(low.modelId).toFixed(1)}`);
+  check(low.modelId !== any.modelId || dear(any.modelId) <= SPEND_CAP.low, "which is a different model from the one the request alone would pick, unless that was already cheap", `${any.modelId} → ${low.modelId}`);
+  check(/spend setting/.test(low.why), "and the row says so", low.why);
+  const pic = route("what is in this picture", ctx({ spend: "low", hasImage: true, configured: { anthropic: true } }) as never);
+  check(MODELS.find((m) => m.id === pic.modelId)!.vision, "a picture is never traded for price", pic.modelId);
+  check(!/spend setting/.test(route("hello", ctx({ spend: "any" }) as never).why), "on Any the ceiling is not mentioned, because there is none");
+}
+
+console.log("\nCost per success: the past moves the choice");
+{
+  const first = route("Explain how a debounce works", ctx() as never);
+  check(Array.isArray(first.alternates) && first.alternates.length > 0 && !first.alternates.includes(first.modelId), "a choice carries the rest of the bench, best first, without itself", `${first.alternates?.length} alternates`);
+  const kept = movedByPast(first, { n: 3, bad: 3 }, { enough: 4, tooMany: 0.5 });
+  check(kept.modelId === first.modelId, "three answers are not enough to move on");
+  const fine = movedByPast(first, { n: 8, bad: 2 }, { enough: 4, tooMany: 0.5 });
+  check(fine.modelId === first.modelId, "a quarter needing another go is not too many");
+  const moved = movedByPast(first, { n: 6, bad: 4 }, { enough: 4, tooMany: 0.5 });
+  check(moved.modelId === first.alternates![0] && !moved.alternates!.includes(moved.modelId), "four of six is: the next on the bench takes it", `${first.modelId} → ${moved.modelId}`);
+  check(/moved off the first choice — 4 of the last 6/.test(moved.why), "and the row says why", moved.why);
+  check(movedByPast({ modelId: "x", why: "" }, { n: 9, bad: 9 }, { enough: 4, tooMany: 0.5 }).modelId === "x", "with nobody else on the bench, the first choice stands");
 }
 
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");

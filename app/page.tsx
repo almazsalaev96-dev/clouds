@@ -12,7 +12,7 @@ import { RoomToggle } from "@/components/ui/RoomToggle";
 import type { ContentBlock, Message, Rating, RatingReason } from "@/lib/types";
 import { rememberRequest } from "@/lib/memory";
 import { asNote, type Outcome } from "@/lib/compute";
-import { planTurn, withPast, worthRecording, type Plan } from "@/lib/decide";
+import { planTurn, withPast, worthRecording, ENOUGH, TOO_MANY, type Plan } from "@/lib/decide";
 import { AUTO_STYLE } from "@/lib/register";
 import { useVoiceMode } from "@/lib/hooks/useVoiceMode";
 import {
@@ -1181,8 +1181,17 @@ export default function Page() {
               attached: content.map((b) => (b.type === "file" ? b.text : "")).join("\n"),
               size: history.reduce((n, m) => n + costOf(m), 0),
               current: settings.modelId === AUTO ? DEFAULT_MODEL_ID : settings.modelId,
+              spend: settings.spend,
             })
           : null;
+      /* The past, applied to the choice rather than only to the check: an
+         engine that keeps needing another go at this kind of work gives the
+         turn to the next on the bench. Only where the router chose — a
+         tactic named by hand or by a slash is honoured as it is. */
+      const routed =
+        decision && !decision.sum && !slashPick
+          ? await import("@/lib/route").then(async ({ movedByPast }) => movedByPast(decision, await pastFor(taskOf(asked).kind, decision.modelId), { enough: ENOUGH, tooMany: TOO_MANY })).catch(() => decision)
+          : decision;
 
       /* A sum is answered here, exactly, for nothing. A model would predict
          what the answer looks like, which is usually the answer and is not the
@@ -1209,7 +1218,7 @@ export default function Page() {
       /* A tactic named by a slash beats the router's reading: the person
          said which room this belongs in, and Auto's whole premise is that
          they usually have not. */
-      const answering = slashPick ?? decision?.modelId ?? threadModelId;
+      const answering = slashPick ?? routed?.modelId ?? threadModelId;
 
       /* "Remember that I'm vegetarian" is two things: a message, sent as
          written, and a memory, saved before the answer comes back so the
@@ -1278,7 +1287,7 @@ export default function Page() {
           turnPrompt: shared ? briefNote(shared) : undefined,
         });
       } else {
-        void runTurn(convId, userMessage.id, history, answering, decision?.why, note, slash?.check ? { check: true } : undefined);
+        void runTurn(convId, userMessage.id, history, answering, routed?.why, note, slash?.check ? { check: true } : undefined);
       }
 
       if (isFirst) void generateTitle(convId, blockText(content));

@@ -754,6 +754,18 @@ function ModelPanel({ configured }: { configured: Record<string, boolean> }) {
         />
       </Field>
 
+      <Field label="Spend per answer" hint="A ceiling the router keeps to when it chooses. Low stays on the fast models; Balanced allows everything but the dearest; Any lets the request decide. A picture or a long document is never traded for price, and if nothing within the ceiling can do the job the row says so and the cheapest that can is used.">
+        <Segmented
+          value={s.spend ?? "any"}
+          options={[
+            { value: "low", label: "Low" },
+            { value: "balanced", label: "Balanced" },
+            { value: "any", label: "Any" },
+          ]}
+          onChange={(v) => s.set({ spend: v as typeof s.spend })}
+        />
+      </Field>
+
       {model.reasoning && (
         <Field label="Reasoning effort" hint="More thinking costs more and takes longer.">
           <Segmented

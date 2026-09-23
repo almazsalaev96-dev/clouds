@@ -159,6 +159,8 @@ interface Settings {
   retention: number;
   /** The size of every letter in the app, as a step. */
   textSize: "small" | "normal" | "large" | "larger";
+  /** A ceiling on what one answer may cost, as a tier the router keeps to. */
+  spend: "low" | "balanced" | "any";
   /**
    * Whether the model may use this app's rooms as tools — save cards, write
    * a page, look in the notebook. Off, it can only answer.
@@ -234,6 +236,7 @@ export const DEFAULT_SETTINGS = {
   memoryOn: true,
   retention: 0.9,
   textSize: "normal",
+  spend: "any",
   actionsOn: true,
   showLineNumbers: false,
   wrapCode: false,

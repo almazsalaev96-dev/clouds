@@ -613,7 +613,13 @@ function AssistantMessageImpl({
         <SecondOpinion verdict={message.verdict} authorProvider={model?.provider} />
       )}
       {message.facts && <Facts facts={message.facts} />}
-      {(message.verdict || message.facts) && <ConfidenceLine verdict={message.verdict} facts={message.facts} />}
+      {(message.verdict || message.facts) && (
+        <ConfidenceLine
+          verdict={message.verdict}
+          facts={message.facts}
+          onEscalate={isLast ? (how) => (how === "effort" ? onRegenerate(message, undefined, { effort: "high" }) : onRegenerate(message, how)) : undefined}
+        />
+      )}
 
       {/* Why not good — the one question a thumbs-down earns. Each answer is
           a reason the next attempt can act on, and picking one regenerates
@@ -1141,11 +1147,21 @@ function Facts({ facts }: { facts: NonNullable<Msg["facts"]> }) {
  * second company's reading and the evidence, together. The model's own
  * confidence is not consulted; it is a number it makes up.
  */
-function ConfidenceLine({ verdict, facts }: { verdict?: Msg["verdict"]; facts?: Msg["facts"] }) {
+function ConfidenceLine({
+  verdict,
+  facts,
+  onEscalate,
+}: {
+  verdict?: Msg["verdict"];
+  facts?: Msg["facts"];
+  /** The next rung of the ladder, offered where the confidence is not enough. */
+  onEscalate?: (how: "effort" | "quant" | "council") => void;
+}) {
   const c = systemConfidence(verdict, facts);
   if (!c) return null;
+  const weak = c.level === "low" || c.level === "uncertain";
   return (
-    <p className="mt-1.5 flex items-center gap-1.5 text-xs text-tertiary" aria-label="Confidence">
+    <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-tertiary" aria-label="Confidence">
       <span
         className={cn(
           "inline-block size-2 rounded-full",
@@ -1155,7 +1171,17 @@ function ConfidenceLine({ verdict, facts }: { verdict?: Msg["verdict"]; facts?: 
       />
       <span className="text-secondary">{CONFIDENCE_WORD[c.level]}</span>
       <span>— {c.why}</span>
-    </p>
+      {/* Escalation, offered rather than spent: the next rung costs money,
+          and a person who can see the doubt is the one to say whether it
+          is worth climbing. */}
+      {weak && onEscalate && (
+        <span className="ml-1 flex flex-wrap gap-1" role="group" aria-label="Go further">
+          <button onClick={() => onEscalate("effort")} className="btn-touch press rounded-full border border-line bg-surface px-2 text-xs text-secondary hover:text-primary">Again, with more effort</button>
+          <button onClick={() => onEscalate("quant")} className="btn-touch press rounded-full border border-line bg-surface px-2 text-xs text-secondary hover:text-primary">Ask Parallax</button>
+          <button onClick={() => onEscalate("council")} className="btn-touch press rounded-full border border-line bg-surface px-2 text-xs text-secondary hover:text-primary">Ask Constellation</button>
+        </span>
+      )}
+    </div>
   );
 }
 

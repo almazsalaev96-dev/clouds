@@ -135,6 +135,11 @@ console.log("\nAnd where judgement decides, two answers beat one verdict");
   const models = new Set((await calls()).filter((r) => r.kind === "answer").map((r) => r.model));
   check(models.size >= 2, "and both of them are really called", [...models].join(" vs "));
   check(/Keep this one|keep the one/i.test(shown), "with the choice left to the person reading them");
+  /* And, once both are in, where they stand: the disagreement named, so the
+     choice is made about that rather than about which reads better. */
+  const stand = p.getByLabel("Where they stand");
+  const said = await stand.waitFor({ timeout: 6000 }).then(() => stand.innerText()).catch(() => "");
+  check(/They mostly agree/.test(said) && /differ on the default edge/.test(said), "and a third, cheap reading names where the two differ", said.replace(/\s+/g, " ").slice(0, 90));
   await p.screenshot({ path: `${OUT}/cast-duel.png` });
 }
 

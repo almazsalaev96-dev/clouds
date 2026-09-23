@@ -200,7 +200,22 @@ export interface Choice {
   why: string;
   /** Answered without a model at all. */
   sum?: Sum;
+  /**
+   * The rest of the bench that could do this, best first — so the caller
+   * can move off the first choice when the record says it keeps needing
+   * another go at this kind of work, without routing again.
+   */
+  alternates?: string[];
 }
+
+/**
+ * The spend tiers, as a ceiling on price per million tokens, output weighted
+ * three to one as `cheapness` weighs it. "Low" keeps to the fast models;
+ * "balanced" allows everything but the flagships' top prices. A tier that
+ * nothing able can meet is ignored, and the row says so — a cap that leaves
+ * a person with no model is worse than a bill.
+ */
+export const SPEND_CAP: Record<"low" | "balanced", number> = { low: 8, balanced: 40 };
 
 /** The models this browser can actually call. */
 function usable(configured: Record<string, boolean>, keys: Record<string, string>): ModelSpec[] {
@@ -237,6 +252,8 @@ export function route(
     size?: number;
     /** What the user is on now, to fall back to and to leave alone. */
     current: string;
+    /** A ceiling on what one answer may cost; see `SPEND_CAP`. */
+    spend?: "low" | "balanced" | "any";
   },
 ): Choice {
   /* No model at all, where none is needed. Checked before anything else
@@ -327,6 +344,21 @@ export function route(
     if (current.length) able = current;
   }
 
+  /* The budget governor: the cheapest sufficient strategy is also the
+     dearest the person allowed. A requirement above (a picture, a window)
+     is never traded for price; among what can do the job, the cap holds. */
+  if (ctx.spend && ctx.spend !== "any") {
+    const cap = SPEND_CAP[ctx.spend];
+    const within = able.filter((m) => m.priceIn + m.priceOut * 3 <= cap);
+    if (within.length && within.length < able.length) {
+      able = within;
+      reasons.push(`kept within your ${ctx.spend} spend setting`);
+    } else if (!within.length) {
+      reasons.push(`nothing within your ${ctx.spend} spend setting can do this, so the cheapest that can`);
+      able = [...able].sort((a, b) => a.priceIn + a.priceOut - (b.priceIn + b.priceOut)).slice(0, 1);
+    }
+  }
+
   const score = (m: ModelSpec): number => {
     const t = traitsOf(m.id);
     const cheap = cheapness(m);
@@ -367,7 +399,7 @@ export function route(
      it is worse, and price alone would keep choosing it. It is only a tie
      break — an older model that actually scores higher for this request still
      wins, which is how the million-token windows go on being useful. */
-  const best = [...able].sort((a, b) => {
+  const ranked = [...able].sort((a, b) => {
     const d = score(b) - score(a);
     if (d) return d;
     const g = Number(Boolean(a.legacy)) - Number(Boolean(b.legacy));
@@ -375,7 +407,8 @@ export function route(
     const p = a.priceIn + a.priceOut - (b.priceIn + b.priceOut);
     if (p) return p;
     return a.id.localeCompare(b.id);
-  })[0];
+  });
+  const best = ranked[0];
 
   if (ctx.effort !== "auto") {
     const label = EFFORTS.find((e) => e.id === ctx.effort)?.name ?? ctx.effort;
@@ -394,6 +427,31 @@ export function route(
   return {
     modelId: best.id,
     why: reasons.length ? `${reasons.join(", and ")}.` : "",
+    alternates: ranked.slice(1).map((m) => m.id),
+  };
+}
+
+/**
+ * Cost per success, applied: the first choice stands unless the record
+ * says answers of this kind from it keep needing another go — then the
+ * next on the bench takes the turn, and the row says why. `ENOUGH` and
+ * `TOO_MANY` are the same thresholds the second-opinion rule uses, so the
+ * two readings of the past cannot disagree with each other.
+ */
+export function movedByPast(
+  choice: Choice,
+  past: { n: number; bad: number },
+  thresholds: { enough: number; tooMany: number },
+): Choice {
+  if (!choice.alternates?.length || past.n < thresholds.enough || past.bad / past.n < thresholds.tooMany) return choice;
+  return {
+    ...choice,
+    modelId: choice.alternates[0],
+    alternates: choice.alternates.slice(1),
+    why: [
+      `moved off the first choice — ${past.bad} of the last ${past.n} answers like this from it needed another go`,
+      choice.why.replace(/\.$/, ""),
+    ].filter(Boolean).join("; ") + ".",
   };
 }
 

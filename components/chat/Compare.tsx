@@ -15,6 +15,8 @@ import { cn, describeTiming, formatDuration, formatElapsed } from "@/lib/utils";
 import { Markdown, useThrottled } from "./Markdown";
 import { Button, IconButton } from "@/components/ui/primitives";
 import { InlineError } from "./Message";
+import { cheapestAvailable, complete } from "@/lib/complete";
+import { getConfigured } from "@/lib/configured";
 
 /**
  * Two or three models answering the same prompt, side by side, each streaming
@@ -59,6 +61,36 @@ export function CompareGrid({
   onKeep: (messageId: string, modelId: string) => void;
   onCancel: () => void;
 }) {
+  /* Disagreement as the signal. Two answers that agree are cheap evidence
+     that both are right; two that differ name the one place worth looking.
+     So when every column has finished, the cheapest model reads them side by
+     side and says where they stand — and what they differ on, if they do —
+     so the choice is made about that rather than about which reads better. */
+  const [done, setDone] = React.useState<Record<string, Message>>({});
+  const [stand, setStand] = React.useState<{ agree: "yes" | "partly" | "no"; on: string } | null>(null);
+  const judged = React.useRef(false);
+  const onFinished = React.useCallback((id: string, m: Message) => setDone((d) => ({ ...d, [id]: m })), []);
+  React.useEffect(() => {
+    const all = modelIds.map((id) => done[id]).filter(Boolean);
+    if (judged.current || all.length < modelIds.length || all.some((m) => m.error)) return;
+    judged.current = true;
+    const asked = [...history].reverse().find((m) => m.role === "user");
+    const q = asked ? asked.content.map((b) => (b.type === "text" ? b.text : "")).join("") : "";
+    const answers = all.map((m, i) => `--- Answer ${i + 1} ---\n${m.content.map((b) => (b.type === "text" ? b.text : "")).join("").slice(0, 6_000)}`).join("\n\n");
+    void complete(
+      `Two answers to the same question, from different models. Do they agree on the substance?\n\nReturn JSON only: {"agree":"yes"|"partly"|"no","on":"one sentence — what they differ on, quoting the point of difference, or what both say if they agree"}\n\n--- The question ---\n${q}\n\n${answers}`,
+      { modelId: cheapestAvailable(getConfigured()) ?? undefined, maxTokens: 200, temperature: 0.1 },
+    )
+      .then((out) => {
+        const s = out?.indexOf("{") ?? -1, e = out?.lastIndexOf("}") ?? -1;
+        if (!out || s < 0 || e <= s) return;
+        const j = JSON.parse(out.slice(s, e + 1)) as { agree?: string; on?: string };
+        const agree = j.agree === "yes" || j.agree === "no" ? j.agree : "partly";
+        if (j.on) setStand({ agree, on: String(j.on) });
+      })
+      .catch(() => {});
+  }, [done, modelIds, history]);
+
   return (
     <section className="py-3" aria-label="Model comparison">
       <div className="mb-2 flex items-center gap-2 text-xs text-tertiary">
@@ -67,6 +99,15 @@ export function CompareGrid({
           Cancel
         </button>
       </div>
+      {stand && (
+        <p
+          aria-label="Where they stand"
+          className={cn("mb-2 rounded-lg border px-3 py-2 text-xs", stand.agree === "no" ? "border-[var(--warning)] text-secondary" : "border-line text-tertiary")}
+        >
+          <span className="text-secondary">{stand.agree === "yes" ? "They agree on the substance" : stand.agree === "no" ? "They disagree" : "They mostly agree"}</span>
+          {" — "}{stand.on}
+        </p>
+      )}
 
       <div
         className={cn(
@@ -84,6 +125,7 @@ export function CompareGrid({
             modelId={id}
             turnPrompt={turnPrompt}
             onKeep={onKeep}
+            onFinished={onFinished}
           />
         ))}
       </div>
@@ -99,6 +141,7 @@ function CompareColumn({
   label,
   turnPrompt,
   onKeep,
+  onFinished,
 }: {
   conversationId: string;
   parentId: string | null;
@@ -107,6 +150,7 @@ function CompareColumn({
   label?: string;
   turnPrompt?: string;
   onKeep: (messageId: string, modelId: string) => void;
+  onFinished?: (modelId: string, m: Message) => void;
 }) {
   /* Named for what the person picked, not for the engine the column runs on.
      `getModel` answers with the app default for an id it does not know, so
@@ -116,6 +160,7 @@ function CompareColumn({
   const settings = useSettings();
   const [finished, setFinished] = React.useState<Message | null>(null);
   const stream = useStream(setFinished);
+  React.useEffect(() => { if (finished) onFinished?.(modelId, finished); }, [finished, modelId, onFinished]);
   const started = React.useRef(false);
 
   React.useEffect(() => {
