@@ -77,7 +77,7 @@
      desk, not of a traffic light. Every pair below is computed against WCAG
      (`node contrast.mjs`), not judged by eye.
      --------------------------------------------------------------------- */
-  --bg-canvas: #f3f6fc;
+  --bg-canvas: #ecf0f8;
   /* Not pure white: a lit edge on a raised surface is painted in white, and
      a surface already at the top of the range leaves it nothing to be lighter
      than — the rim disappears and the card goes flat. This keeps a step. */
@@ -89,10 +89,10 @@
      what has to match between two themes is the size of the step, not the
      colour. Text on it still clears every threshold — secondary 8.68,
      faint 4.88. */
-  --bg-subtle: #dfe5f3;
+  --bg-subtle: #dbe2f0;
   /* A section's ground: one step off the canvas, under a card. Four
      planes read as depth; three read as a card on a page. */
-  --bg-section: #eef2f9;
+  --bg-section: #e7ecf5;
   /* The same step from the page as the dark theme's inset takes from its own:
      1.06 against 1.07. It was 1.17 — a deeper tint, which reads as more
      recessed and costs every character sitting on it a point of contrast,
@@ -103,10 +103,10 @@
      (the canvas colour, as it always was) and a step *up* in dark — on black
      a well cannot be dug any deeper, so every reference lifts its fields
      instead, and so does this. */
-  --bg-field: #f3f6fc;
+  --bg-field: #ecf0f8;
   --bg-overlay: rgba(11, 16, 27, 0.46);
 
-  --border-subtle: #dde3f0;
+  --border-subtle: #d3dbea;
   /* Control boundaries clear 3:1 against the page. Hairlines do not have to,
      which is why there are two of these. */
   --border-strong: #798294;
@@ -127,10 +127,10 @@
      against its own canvas. Measured, the widest drift between the two ladders
      is 0.06; deriving light on its own put secondary 1.3 apart, which is a
      reader re-learning what "secondary" looks like every time they switch. */
-  --text-primary: #171d2c;
-  --text-secondary: #2a3245;
-  --text-tertiary: #3e4557;
-  --text-faint: #586070;
+  --text-primary: #0c1220;
+  --text-secondary: #222a3d;
+  --text-tertiary: #373e4f;
+  --text-faint: #515868;
 
   /* Structure, deepened for daylight. */
   --accent: #2253cf;
@@ -233,7 +233,7 @@
   --mesh-b: rgba(34, 83, 207, 0.07);
   --mesh-c: rgba(0, 125, 149, 0.05);
   --grain-opacity: 0.035;
-  --glass: rgba(243, 246, 252, 0.78);
+  --glass: rgba(236, 240, 248, 0.8);
   --glow: none;
 
   /* --- Elevation. --- */
@@ -565,15 +565,15 @@
 
        Every pair below is computed against WCAG (`node contrast.mjs`).
        --------------------------------------------------------------------- */
-    --bg-canvas: #0b101b;
-    --bg-surface: #141a28;
-    --bg-subtle: #1e2535;
-    --bg-section: #0f1521;
-    --bg-inset: #070a13;
-    --bg-field: #0b101b;
-    --bg-overlay: rgba(7, 10, 19, 0.78);
+    --bg-canvas: #04070f;
+    --bg-surface: #0e1321;
+    --bg-subtle: #181e2d;
+    --bg-section: #080c17;
+    --bg-inset: #020409;
+    --bg-field: #04070f;
+    --bg-overlay: rgba(2, 4, 9, 0.8);
 
-    --border-subtle: #262e3f;
+    --border-subtle: #222a3a;
     --border-strong: #788093;
 
     --text-primary: #e5e8ed;
@@ -594,7 +594,9 @@
        a little of the structure blue in it, soft blue for structure and the
        selected row, cyan for the signal and the one button a screen asks
        you to press. Every value here is the one it had before the ground
-       was made neutral (commit 54b92da^). */
+       was made neutral (commit 54b92da^) — then taken deeper at Almaz's
+       word: the same hue, the ground near L 0.13 instead of 0.17, and the
+       card and raised steps kept far enough above it to read as layers. */
     --accent-2: #7ecdcd;
     /* The signal at text strength — see the light block. Solved against the
        dark bar to the same 7.0, so the wordmark weighs the same in both. */
@@ -648,11 +650,11 @@
     --danger: var(--stop);
     --danger-subtle: #3c161a;
 
-    --mesh-a: rgba(111, 220, 220, 0.11);
-    --mesh-b: rgba(146, 180, 248, 0.09);
+    --mesh-a: rgba(111, 220, 220, 0.07);
+    --mesh-b: rgba(146, 180, 248, 0.06);
     --mesh-c: rgba(229, 232, 237, 0.03);
     --grain-opacity: 0.045;
-    --glass: rgba(11, 16, 27, 0.78);
+    --glass: rgba(6, 9, 18, 0.8);
     --glow: 0 0 24px -6px var(--accent-2);
 
     /* Darker and deeper, and still tinted rather than pure black: this ground
@@ -729,7 +731,7 @@
        ground. It is the lifted surface now, like every other raised thing —
        which means it follows `--bg-subtle`, and followed it again when the
        ground lost its blue. */
-    --composer-bg: rgba(30, 37, 53, 0.78);
+    --composer-bg: rgba(14, 19, 33, 0.86);
     --composer-line: rgba(229, 232, 237, 0.10);
     --composer-line-focus: rgba(111, 220, 220, 0.38);
     --composer-lift: inset 0 1px 0 rgb(231 232 233 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
