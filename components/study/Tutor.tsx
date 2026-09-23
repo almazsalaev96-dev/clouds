@@ -1,5 +1,6 @@
 "use client";
 
+import { readWhole } from "@/lib/digest";
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft, ChevronRight, Eraser, Highlighter, Loader2, MousePointer2, PenLine, Trash2, Undo2, X } from "lucide-react";
@@ -320,12 +321,21 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
   /** A page in the Notebook made from this document: a guide, questions, a summary. */
   const makePage = async (kind: "guide" | "questions" | "summary") => {
     if (!cast) { setNotice("No key configured yet — add one in Settings."); return; }
-    const whole = lesson.text.slice(0, 40_000);
-    const source = kind === "summary" ? words || whole : whole || words;
-    if (!source) { setNotice("There are no words in this document to make that from."); return; }
+    if (!lesson.text && !words) { setNotice("There are no words in this document to make that from."); return; }
     setAsking(true);
     setNotice(null);
     try {
+      /* The whole document, not its first forty thousand characters. A long
+         one is read in parts into notes first (lib/digest.ts); a summary of
+         the page on screen stays a summary of that page. */
+      let whole = lesson.text;
+      if (whole.length > 40_000) {
+        const read = await readWhole([{ name: lesson.name, text: whole }], {
+          onPart: (done, total) => setNotice(done < total ? `Reading the whole document — part ${done + 1} of ${total}…` : "Read it all. Writing…"),
+        });
+        whole = read.parts ? read.material[0].text : whole.slice(0, 40_000);
+      }
+      const source = kind === "summary" ? words || whole : whole || words;
       const spec = STUDIO[kind];
       const out = await complete(`${spec.prompt}\n\n${source}`, {
         modelId: cast.answer.modelId,

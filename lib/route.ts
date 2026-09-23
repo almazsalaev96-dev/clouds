@@ -510,6 +510,26 @@ export function checker(
 }
 
 /**
+ * The model that reads a long source in parts, before anything is written
+ * from it.
+ *
+ * The opposite choice from `checker`, deliberately: this is a clerk, not a
+ * judge. Its job is to read forty parts of a textbook into notes that keep
+ * the exact sentences worth quoting, and the part a strong model is for —
+ * choosing what matters and writing it up — happens after, on the writer.
+ * So: the cheapest current model with a key whose window holds a part with
+ * room to spare, and the strongest window among equals.
+ */
+export function reader(ctx: { configured: Record<string, boolean>; keys: Record<string, string> }, partChars: number): string | null {
+  const need = Math.ceil(partChars / 3.2) + 8_000;
+  const pool = usable(ctx.configured, ctx.keys).filter((m) => m.contextWindow >= need);
+  if (!pool.length) return null;
+  const current = pool.filter((m) => !m.legacy);
+  const from = current.length ? current : pool;
+  return [...from].sort((a, b) => a.priceIn + a.priceOut - (b.priceIn + b.priceOut) || b.contextWindow - a.contextWindow || a.id.localeCompare(b.id))[0].id;
+}
+
+/**
  * The strongest model with a key that can run a web search.
  *
  * Only one company here searches on the model's behalf, so "can search" is

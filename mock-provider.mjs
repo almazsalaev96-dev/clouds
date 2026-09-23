@@ -645,6 +645,9 @@ Nothing here looks like it breaks a caller — the return type is the same array
        `thinking` would report "this model was not told to think" about every
        current model — which is how the shape got out of date unnoticed. */
     effort: body.output_config?.effort ?? null,
+    /* The start of what was asked, so a probe can tell a reader's part from
+       the writer's page without the whole book riding along. */
+    head: JSON.stringify(body.messages ?? body.input ?? "").slice(0, 400),
   });
   if (recent.length > 16) recent.shift();
 

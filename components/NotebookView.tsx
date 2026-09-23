@@ -399,7 +399,18 @@ export function NotebookView({
           sources.map((x) => ({ name: x.name, text: x.text })),
           modelId,
           undefined,
-          { signal: ctrl.signal, onText: setLive, onMoved: (why: string) => setNotice(`${why} — asked another model instead.`) },
+          {
+            signal: ctrl.signal,
+            onText: setLive,
+            onMoved: (why: string) => setNotice(`${why} — asked another model instead.`),
+            /* A book too long for one call is read in parts first, and that
+               takes a while: say so, with a count, rather than sit silent. */
+            onPart: (done: number, total: number) =>
+              setNotice(done < total ? `Reading the whole of it — part ${done + 1} of ${total}…` : "Read it all. Writing…"),
+            onRead: ({ sampled }: { parts: number; sampled: string[] }) => {
+              if (sampled.length) setNotice(`${sampled.join(", ")} is very long — read in an even spread of parts across it. Writing…`);
+            },
+          },
         );
         if (stopped()) {
           setNotice(made.length ? `Stopped after ${made.length} page${made.length === 1 ? "" : "s"}.` : "Stopped. Nothing was made.");
@@ -498,7 +509,18 @@ export function NotebookView({
           sources.map((s) => ({ name: s.name, text: s.text })),
           modelId,
           undefined,
-          { signal: ctrl.signal, onText: setLive, onMoved: (why: string) => setNotice(`${why} — asked another model instead.`) },
+          {
+            signal: ctrl.signal,
+            onText: setLive,
+            onMoved: (why: string) => setNotice(`${why} — asked another model instead.`),
+            /* A book too long for one call is read in parts first, and that
+               takes a while: say so, with a count, rather than sit silent. */
+            onPart: (done: number, total: number) =>
+              setNotice(done < total ? `Reading the whole of it — part ${done + 1} of ${total}…` : "Read it all. Writing…"),
+            onRead: ({ sampled }: { parts: number; sampled: string[] }) => {
+              if (sampled.length) setNotice(`${sampled.join(", ")} is very long — read in an even spread of parts across it. Writing…`);
+            },
+          },
         );
         /* A page cut off mid-sentence is not a page, and its citations are
            whatever happened to have arrived. Stop means nothing happened. */

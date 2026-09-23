@@ -1,3 +1,4 @@
+import { readWhole } from "./digest";
 import { complete, extractJson, type Progress } from "./complete";
 import { BASE_BRIEF } from "./base";
 import { modeFor } from "./modes";
@@ -742,10 +743,26 @@ export async function makeFromSources(
   sources: { name: string; text: string }[],
   modelId?: string,
   perSource = 90_000,
-  progress?: Progress,
+  progress?: Progress & {
+    /** A long source is being read in parts: how far along. */
+    onPart?: (done: number, total: number) => void;
+    /** What reading it came to, once it has. */
+    onRead?: (read: { parts: number; sampled: string[] }) => void;
+  },
 ): Promise<string | null> {
-  const material = sources
-    .map((s) => `--- ${s.name} ---\n${s.text.slice(0, perSource)}`)
+  /* Past what one call holds, the whole of it is read in parts first (see
+     lib/digest.ts) — it used to be cut to the first ninety thousand
+     characters of each source, which for a textbook is its first forty
+     pages. A caller that has already chosen the excerpts it wants, and says
+     so by asking for a large slice, keeps its own choice. */
+  let read = { material: sources, parts: 0, sampled: [] as string[] };
+  if (perSource < 200_000) {
+    read = await readWhole(sources, { signal: progress?.signal, onMoved: progress?.onMoved, onPart: progress?.onPart });
+    if (progress?.signal?.aborted) return null;
+    if (read.parts) progress?.onRead?.({ parts: read.parts, sampled: read.sampled });
+  }
+  const material = read.material
+    .map((s) => `--- ${s.name} ---\n${read.parts ? s.text : s.text.slice(0, perSource)}`)
     .join("\n\n");
 
   return complete(
@@ -768,7 +785,8 @@ Every claim that comes from the material must carry a citation, written exactly 
 
 Also:
 - Markdown. No preamble about what you are about to do.
-- Where the material is unclear or contradicts itself, say so rather than resolving it silently.
+- Where the material is unclear or contradicts itself, say so rather than resolving it silently.${read.parts ? `
+- A long file below is given as notes on each of its parts, in order, because it is too long to send whole. Cover the whole of it, not just the first parts. Only the lines under "Quotable" (starting "> ") are the file's exact words — quote from those, and never cite a note line as if it were the book.` : ""}
 
 THE MATERIAL
 ${material}`,
