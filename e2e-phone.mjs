@@ -49,8 +49,10 @@ console.log("\nOpening a page to read it does not raise the keyboard");
 {
   await p.locator("main").getByText("Osmosis").first().click();
   await p.waitForTimeout(900);
-  check(await p.getByLabel("Page content").isVisible(), "the page is open");
+  check(await p.getByRole("button", { name: "Edit", exact: true }).isVisible(), "the page is open, as it reads — Edit is one press away");
   check(await p.evaluate(() => document.activeElement?.tagName !== "TEXTAREA"), "and the caret is not in it — a keyboard over a page you came to read");
+  await p.getByRole("button", { name: "Edit", exact: true }).click();
+  await p.waitForTimeout(300);
   const halo = await p.getByLabel("Page content").evaluate((el) => { el.focus(); return getComputedStyle(el).boxShadow; });
   check(halo === "none", "and when you do tap into it there is no box drawn around the page", halo);
 }

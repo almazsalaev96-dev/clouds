@@ -123,11 +123,14 @@ console.log("\nLibrary: one room for everything made");
   /* Waited for, not glanced at: the Notebook is its own chunk. And read off
      the editor's value rather than the pane's text — a textarea's content is
      not in `innerText`, which is where the first draft of this looked. */
-  const inEditor = await p.getByRole("button", { name: "Preview" }).waitFor({ timeout: 4000 }).then(() => true).catch(() => false);
-  const body = inEditor ? await p.locator("main textarea").first().inputValue().catch(() => "") : "";
-  check(inEditor && /Hypotonic/.test(body),
-    "and opening it goes to the Notebook's editor, the room that edits a page",
-    inEditor ? `editor holds ${body.length} chars` : "no editor");
+  /* A page with writing opens as it reads now, with Edit one press away,
+     so what is checked is the Notebook's page view and its words. */
+  const inNotebook = await p.getByRole("button", { name: /^(Edit|Preview)$/ }).waitFor({ timeout: 4000 }).then(() => true).catch(() => false);
+  if (inNotebook) await p.locator("main").getByText("Hypotonic").first().waitFor({ timeout: 4000 }).catch(() => {});
+  const shown = inNotebook ? await p.locator("main").innerText() : "";
+  check(inNotebook && /Hypotonic/.test(shown) && !/^# /m.test(shown),
+    "and opening it goes to the Notebook, which shows the page as it reads — no # or - marks",
+    inNotebook ? "page open" : "no page");
 }
 
 console.log("\nStudy: no NaN, and cards in the order they matter");

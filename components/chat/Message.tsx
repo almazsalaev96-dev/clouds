@@ -869,6 +869,31 @@ export const AssistantMessage = React.memo(AssistantMessageImpl);
  * and a half there was no pause worth naming, and the label goes back to the
  * noun rather than claiming precision it has not got.
  */
+/** Inline marks off: **bold**, __bold__, *em*, `code`, [text](link). */
+export function unmark(s: string): string {
+  return s
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/(\*\*|__)(.+?)\1/g, "$2")
+    .replace(/(^|\s)[*_]([^*_\n]+)[*_](?=\s|[.,;:!?]|$)/g, "$1$2")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^\s{0,3}#{1,6}\s+/, "")
+    .replace(/^\s*>\s?/, "")
+    .trim();
+}
+
+/** Reasoning text as lines a person reads: headings, bullets, sentences. */
+export function reasoningLines(text: string): { kind: "head" | "item" | "text"; text: string }[] {
+  const out: { kind: "head" | "item" | "text"; text: string }[] = [];
+  for (const raw of text.split(/\n+/)) {
+    const line = raw.trim();
+    if (!line || /^[-*_]{3,}$/.test(line)) continue;
+    if (/^#{1,6}\s+/.test(line) || /^(\*\*|__)[^*_]+(\*\*|__):?$/.test(line)) out.push({ kind: "head", text: unmark(line).replace(/:$/, "") });
+    else if (/^([-*+]|\d+[.)])\s+/.test(line)) out.push({ kind: "item", text: unmark(line.replace(/^([-*+]|\d+[.)])\s+/, "")) });
+    else out.push({ kind: "text", text: unmark(line) });
+  }
+  return out;
+}
+
 function Reasoning({ text, ms }: { text: string; ms?: number }) {
   /* Collapsed by default, as every flagship does it; open by default for
      the person who reads the reasoning every time and was pressing it every
@@ -887,8 +912,20 @@ function Reasoning({ text, ms }: { text: string; ms?: number }) {
         {thought}
       </button>
       {open && (
-        <div className="mt-2 whitespace-pre-wrap border-l-2 border-line pl-3 text-sm text-secondary anim-fade">
-          {text}
+        <div className="mt-2 space-y-1.5 border-l-2 border-line pl-3 text-sm text-secondary anim-fade">
+          {/* Read, not printed. Summaries arrive as markdown — "**Weighing
+              the options**", "- first", "# Step" — and shown as they came,
+              every star and hash was on the screen. A heading line reads as
+              a heading, a bullet as a bullet, and the marks go. */}
+          {reasoningLines(text).map((l, i) =>
+            l.kind === "head" ? (
+              <p key={i} className="pt-1 font-medium text-primary">{l.text}</p>
+            ) : l.kind === "item" ? (
+              <p key={i} className="flex gap-2"><span aria-hidden className="text-tertiary">•</span><span>{l.text}</span></p>
+            ) : (
+              <p key={i}>{l.text}</p>
+            ),
+          )}
         </div>
       )}
     </div>

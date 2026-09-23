@@ -258,7 +258,11 @@ export function NotebookView({
     if (note && loadedFor.current !== note.id) {
       loadedFor.current = note.id;
       setDraft(note.content);
-      setPreview(false);
+      /* A page with writing on it opens as it reads — headings, lists,
+         tables — not as the marks that make them. The "# " and "- " at the
+         start of every line were the first thing a page showed. Edit is
+         one press, top right; an empty page opens ready to type. */
+      setPreview(Boolean(note.content.trim()));
       setProposal(null);
       setNotice(null);
       setInstruction("");
@@ -1167,7 +1171,7 @@ export function NotebookView({
                     ref={textareaRef}
                     value={draft}
                     onChange={(e) => onChange(e.target.value)}
-                    placeholder={"# Title\n\nStart writing. Markdown works — headings, lists, tables, code, $math$. Link another page with [[its title]]."}
+                    placeholder={"Title\n\nStart writing…"}
                     spellCheck
                     aria-label="Page content"
                     className="bare min-h-[50vh] w-full resize-none overflow-hidden bg-transparent font-sans text-base leading-[1.65] text-primary outline-none placeholder:text-tertiary"
@@ -1178,7 +1182,7 @@ export function NotebookView({
                   ref={textareaRef}
                   value={draft}
                   onChange={(e) => onChange(e.target.value)}
-                  placeholder={"# Title\n\nStart writing. Markdown works — headings, lists, tables, code, $math$."}
+                  placeholder={"Title\n\nStart writing…"}
                   spellCheck
                   aria-label="Page content"
                   // Field-sizing keeps the box exactly as tall as the text, so the

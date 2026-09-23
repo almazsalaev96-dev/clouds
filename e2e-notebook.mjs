@@ -39,7 +39,13 @@ const room = async () => {
   await p.locator("aside nav").getByRole("button", { name: "Notebook", exact: true }).first().click();
   await p.waitForTimeout(600);
 };
+/* A page with words on it opens as it reads; Edit puts it back in the box. */
+const editing = async () => {
+  const e = p.getByRole("button", { name: /^Edit$/ });
+  if (await e.isVisible().catch(() => false)) { await e.click(); await p.waitForTimeout(300); }
+};
 const write = async (text) => {
+  await editing();
   const box = p.getByRole("textbox", { name: "Page content" });
   await box.fill(text);
   await p.waitForTimeout(900);   // autosave
@@ -75,6 +81,7 @@ console.log("\nPages that name each other");
   check(await link.isVisible(), "a title in double brackets is drawn as a link to that page", await link.innerText());
   await link.click();
   await p.waitForTimeout(700);
+  await editing();
   check((await p.getByRole("textbox", { name: "Page content" }).inputValue()).startsWith("# Krebs cycle"), "and pressing it opens the page it names");
   await p.getByRole("button", { name: "Preview" }).click();
   await p.waitForTimeout(500);
@@ -95,6 +102,7 @@ console.log("\nA page that does not exist yet");
   check(notes.length === before + 1 && notes.some((n) => n.title === "Glycolysis"),
     "and pressing it makes the page, named as the link named it — a link is never broken, it is a page or the start of one",
     `${notes.length} pages`);
+  await editing();
   check((await p.getByRole("textbox", { name: "Page content" }).inputValue()).startsWith("# Glycolysis"), "and opens it");
 }
 

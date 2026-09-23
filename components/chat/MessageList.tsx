@@ -1,5 +1,6 @@
 "use client";
 
+import { reasoningLines } from "@/components/chat/Message";
 import * as React from "react";
 import { ArrowDown, Zap } from "lucide-react";
 import { lintAnswer } from "@/lib/lint";
@@ -455,7 +456,7 @@ function StreamingMessage({
       </div>
 
       {reasoning && !text && (
-        <p className="mb-2 line-clamp-2 text-sm text-tertiary">{reasoning.slice(-240)}</p>
+        <p className="mb-2 line-clamp-2 text-sm text-tertiary">{reasoningLines(reasoning.slice(-400)).map((l) => l.text).join(" · ").slice(-240)}</p>
       )}
 
       {build ? (

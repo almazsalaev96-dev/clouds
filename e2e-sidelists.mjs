@@ -71,8 +71,8 @@ const pages = await rows("Pages").allInnerTexts();
 check(/Osmosis, properly/.test(pages[0] ?? ""), "the pinned page leads", pages[0]);
 await rows("Pages").filter({ hasText: "Krebs cycle" }).click();
 await p.waitForTimeout(900);
-const body = await p.locator("main textarea").first().inputValue().catch(() => "");
-check(/Krebs cycle turns acetyl-CoA/.test(body), "and tapping one opens it in the editor", body.slice(0, 40));
+const body = await p.locator("main").innerText();
+check(/Krebs cycle turns acetyl-CoA/.test(body), "and tapping one opens it", body.split("\n").find((l) => /Krebs/.test(l))?.slice(0, 40));
 
 console.log("\nProjects and Creations");
 await go("Projects");
