@@ -83,6 +83,7 @@ interface Traits {
 const TRAITS: Record<string, Traits> = {
   // Anthropic
   "claude-fable-5-1": { speed: 1, depth: 3, coding: 3 },
+  "claude-opus-5-5": { speed: 2, depth: 3, coding: 3 },
   "claude-opus-5": { speed: 2, depth: 3, coding: 3 },
   "claude-sonnet-5": { speed: 3, depth: 2, coding: 3 },
   "claude-haiku-4-5": { speed: 3, depth: 1, coding: 2 },

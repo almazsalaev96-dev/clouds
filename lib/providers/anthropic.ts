@@ -140,10 +140,11 @@ export async function* streamAnthropic(
     /* Effort only, and no sampling parameters at all. These models think
        adaptively — they decide for themselves whether this question is worth
        thinking about — so there is no request where temperature is reliably
-       safe to send alongside. Omitting effort is not a gap: the API's own
-       default is `high`, and the docs say omitting it behaves exactly as
-       passing it. */
-    if (req.params.reasoningEffort) body.output_config = { effort: req.params.reasoningEffort };
+       safe to send alongside. Always sent, never left to the API: the
+       default was `high` everywhere until Opus 5.5, which quietly defaults
+       to `medium`, so an unset effort would have made the newest model
+       think less than the one it replaced. */
+    body.output_config = { effort: req.params.reasoningEffort ?? "high" };
     /* Thinking is on regardless — these models decide for themselves — but
        what comes back of it is not: the default leaves the thinking blocks
        empty, and the person sees a long pause and then an answer. Asked for
