@@ -13,6 +13,8 @@ import { useDebounced } from "@/lib/hooks/useDebounced";
 import { Lockup } from "@/components/brand/Logo";
 import { offerUndo } from "@/lib/undo";
 import { useSettings, type Section } from "@/lib/store";
+import { billingState, getBillingConfig, onBillingChange } from "@/lib/billing";
+import { formatCost } from "@/lib/models";
 import { cn } from "@/lib/utils";
 import { IconButton, Kbd, Tooltip } from "@/components/ui/primitives";
 import { Segmented } from "@/components/ui/Segmented";
@@ -90,6 +92,7 @@ export function Sidebar({
   onNewChat,
   onGoToSection,
   onOpenSettings,
+  onOpenPlan,
   onOpenShortcuts,
   onOpenItem,
   openItems,
@@ -99,6 +102,8 @@ export function Sidebar({
   onNewChat: () => void;
   onGoToSection: (section: Section) => void;
   onOpenSettings: () => void;
+  /** The subscription page. Shown only where billing is on. */
+  onOpenPlan?: () => void;
   onOpenShortcuts: () => void;
   /** Open one thing in the room you are in: a deck, a page, a project, a creation. */
   onOpenItem?: (section: Section, id: string) => void;
@@ -106,6 +111,9 @@ export function Sidebar({
   openItems?: Partial<Record<Section, string | null>>;
 }) {
   const { sidebarOpen, toggleSidebar, section, name } = useSettings();
+  const [, bump] = React.useReducer((n: number) => n + 1, 0);
+  React.useEffect(() => onBillingChange(bump), []);
+  const billing = { ...getBillingConfig(), ...billingState() };
   const [query, setQuery] = React.useState("");
   /* Closed to begin with, and closing it clears what was typed: a filter
      left running behind a shut box is a list that is missing rows for a
@@ -335,6 +343,22 @@ export function Sidebar({
               its own footer "Settings" has forgotten it again; this is the one
               place the answer is worth showing back. It is still the settings
               button — the name is the label, not a second control. */}
+          {billing.enabled && onOpenPlan && (
+            <div className="border-t border-line px-2 pt-2">
+              <button
+                onClick={onOpenPlan}
+                className="tap flex h-9 w-full items-center gap-2 rounded-md px-1.5 text-left text-sm transition-colors duration-[var(--dur-fast)] hover:bg-subtle/60"
+              >
+                <Sparkles size={15} className="shrink-0 text-accent" />
+                <span className="min-w-0 flex-1 truncate text-primary">
+                  {billing.subscribed ? "Plus" : `Upgrade · ${billing.price}`}
+                </span>
+                <span className="shrink-0 text-tiny tabular-nums text-tertiary">
+                  {formatCost(billing.spentUsd)} / {formatCost(billing.capUsd)}
+                </span>
+              </button>
+            </div>
+          )}
           <div className="flex items-center gap-1 border-t border-line p-2">
             <button
               onClick={onOpenSettings}

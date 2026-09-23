@@ -252,7 +252,7 @@ export default function Page() {
   const [modelPickerOpen, setModelPickerOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   if (settingsOpen) everOpened.current.settings = true;
-  const [settingsTab, setSettingsTab] = React.useState<"keys" | "appearance" | "model" | "rules" | "styles" | "data" | "shortcuts">("keys");
+  const [settingsTab, setSettingsTab] = React.useState<"plan" | "keys" | "appearance" | "model" | "rules" | "styles" | "data" | "shortcuts">("keys");
   const [scrolled, setScrolled] = React.useState(false);
   const [artifact, setArtifact] = React.useState<Artifact | null>(null);
   /** Where j/k currently sit in the transcript. */
@@ -1981,6 +1981,10 @@ export default function Page() {
     setSettingsTab("keys");
     setSettingsOpen(true);
   }, []);
+  const openPlan = React.useCallback(() => {
+    setSettingsTab("plan");
+    setSettingsOpen(true);
+  }, []);
   const openRules = React.useCallback(() => {
     setSettingsTab("rules");
     setSettingsOpen(true);
@@ -2146,6 +2150,7 @@ export default function Page() {
           onNewChat={() => void createInSection("chat")}
           onGoToSection={goToSection}
           onOpenSettings={openKeys}
+          onOpenPlan={openPlan}
           onOpenShortcuts={() => setShortcutsOpen(true)}
           onOpenItem={selectInSection}
           openItems={{ study: deckId, notebook: noteId, projects: projectId, code: canvasId }}
