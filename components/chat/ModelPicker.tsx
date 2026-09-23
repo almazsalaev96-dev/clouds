@@ -199,7 +199,7 @@ export function ModelPicker({
                   }}
                   className={cn(
                     "tap focus-inset flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle",
-                    auto && "bg-subtle",
+                    auto && "bg-accent-subtle",
                   )}
                 >
                   <Wand2 size={13} className="shrink-0 text-[var(--accent-2)]" />
@@ -292,7 +292,7 @@ function PresetRow({
     <div
       className={cn(
         "tap group flex w-full items-center gap-2 rounded-sm px-2 py-1.5 transition-colors duration-[var(--dur-fast)]",
-        selected ? "bg-subtle" : "hover:bg-subtle/60",
+        selected ? "bg-accent-subtle" : "hover:bg-subtle/60",
         !available && "opacity-45",
       )}
     >

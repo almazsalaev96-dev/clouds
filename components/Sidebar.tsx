@@ -168,7 +168,7 @@ export function Sidebar({
                    is the floor here too, and a rule that bends for the
                    thing its author happens to be drawing is not a rule. */
                 "tap flex size-11 shrink-0 items-center justify-center rounded-full transition-colors duration-[var(--dur-fast)]",
-                searching ? "bg-subtle text-accent" : "bg-surface text-secondary hover:text-primary",
+                searching ? "bg-accent-subtle text-accent" : "bg-surface text-secondary hover:text-primary",
               )}
             >
               <Search size={17} />
@@ -239,7 +239,7 @@ export function Sidebar({
               /* A fill, not a floating object: it sits behind the row it
                  marks, so it takes no shadow at all rather than one turned
                  off. */
-              indicatorClassName="rounded-sm bg-subtle"
+              indicatorClassName="rounded-sm bg-accent-subtle"
               /* `gap`, not `space-y`. The indicator is the first child of this
                  box, so `space-y-*` — which margins every sibling after the
                  first — would push the whole list down by one step the moment
@@ -526,7 +526,7 @@ function Row({
     <div
       className={cn(
         "tap group relative flex h-8 items-center rounded-md pl-2 pr-1 transition-colors duration-[var(--dur-fast)]",
-        active ? "bg-subtle" : "hover:bg-subtle/60",
+        active ? "bg-accent-subtle" : "hover:bg-subtle/60",
       )}
     >
       {/* `h-full`, because a row is a target and a line of text is not. The

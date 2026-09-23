@@ -77,11 +77,11 @@
      desk, not of a traffic light. Every pair below is computed against WCAG
      (`node contrast.mjs`), not judged by eye.
      --------------------------------------------------------------------- */
-  --bg-canvas: #f5f6f8;
+  --bg-canvas: #f3f6fc;
   /* Not pure white: a lit edge on a raised surface is painted in white, and
      a surface already at the top of the range leaves it nothing to be lighter
      than — the rim disappears and the card goes flat. This keeps a step. */
-  --bg-surface: #fdfdfe;
+  --bg-surface: #fdfdff;
   /* Enough of a step from the page to be a shape on it.
      At #efe9db this sat 1.09 from the canvas while dark's sits 1.23 from its
      own — so a user's message bubble was a clear pill in dark and very nearly
@@ -89,27 +89,27 @@
      what has to match between two themes is the size of the step, not the
      colour. Text on it still clears every threshold — secondary 8.68,
      faint 4.88. */
-  --bg-subtle: #e3e5ea;
+  --bg-subtle: #dfe5f3;
   /* A section's ground: one step off the canvas, under a card. Four
      planes read as depth; three read as a card on a page. */
-  --bg-section: #f0f2f4;
+  --bg-section: #eef2f9;
   /* The same step from the page as the dark theme's inset takes from its own:
      1.06 against 1.07. It was 1.17 — a deeper tint, which reads as more
      recessed and costs every character sitting on it a point of contrast,
      because in a light theme "darker" moves the panel *toward* the ink rather
      than away from it. Code blocks and quiet panels sit on this. */
-  --bg-inset: #edeef1;
+  --bg-inset: #eaeef8;
   /* What you type into, and a chip: a step down from the panel in light
      (the canvas colour, as it always was) and a step *up* in dark — on black
      a well cannot be dug any deeper, so every reference lifts its fields
      instead, and so does this. */
-  --bg-field: #f5f6f8;
+  --bg-field: #f3f6fc;
   --bg-overlay: rgba(11, 16, 27, 0.46);
 
-  --border-subtle: #e1e3e7;
+  --border-subtle: #dde3f0;
   /* Control boundaries clear 3:1 against the page. Hairlines do not have to,
      which is why there are two of these. */
-  --border-strong: #7f8288;
+  --border-strong: #798294;
 
   /* Inked to match the dark theme's strength, role for role.
      ---------------------------------------------------------------------
@@ -127,10 +127,10 @@
      against its own canvas. Measured, the widest drift between the two ladders
      is 0.06; deriving light on its own put secondary 1.3 apart, which is a
      reader re-learning what "secondary" looks like every time they switch. */
-  --text-primary: #0b0e14;
-  --text-secondary: #4a5261;
-  --text-tertiary: #525a69;
-  --text-faint: #5c6067;
+  --text-primary: #171d2c;
+  --text-secondary: #2a3245;
+  --text-tertiary: #3e4557;
+  --text-faint: #586070;
 
   /* Structure, deepened for daylight. */
   --accent: #2253cf;
@@ -229,9 +229,9 @@
      not barely there enough. Halved, for the reason the dark one was: four
      washes across the whole page are not depth, they are a tint over every
      word, and none of the three grounds this is measured against has one. */
-  --mesh-a: rgba(76, 219, 227, 0.05);
-  --mesh-b: rgba(34, 83, 207, 0.035);
-  --mesh-c: rgba(0, 125, 149, 0.025);
+  --mesh-a: rgba(76, 219, 227, 0.10);
+  --mesh-b: rgba(34, 83, 207, 0.07);
+  --mesh-c: rgba(0, 125, 149, 0.05);
   --grain-opacity: 0.035;
   --glass: rgba(243, 246, 252, 0.78);
   --glow: none;
@@ -565,21 +565,21 @@
 
        Every pair below is computed against WCAG (`node contrast.mjs`).
        --------------------------------------------------------------------- */
-    --bg-canvas: #080B12;
-    --bg-surface: #121A27;
-    --bg-subtle: #182231;
-    --bg-section: #0E1420;
-    --bg-inset: #05070C;
-    --bg-field: #182231;
-    --bg-overlay: rgba(5, 7, 12, 0.72);
+    --bg-canvas: #0b101b;
+    --bg-surface: #141a28;
+    --bg-subtle: #1e2535;
+    --bg-section: #0f1521;
+    --bg-inset: #070a13;
+    --bg-field: #0b101b;
+    --bg-overlay: rgba(7, 10, 19, 0.78);
 
-    --border-subtle: #253244;
-    --border-strong: #5f7089;
+    --border-subtle: #262e3f;
+    --border-strong: #788093;
 
-    --text-primary: #F5F7FA;
-    --text-secondary: #9AA6B5;
-    --text-tertiary: #8893a2;
-    --text-faint: #828d9c;
+    --text-primary: #e5e8ed;
+    --text-secondary: #c8ccd6;
+    --text-tertiary: #acb1bd;
+    --text-faint: #898f9d;
 
     --accent: #a3bae7;
     --accent-hover: #c1d0ef;
@@ -589,12 +589,12 @@
     --accent-rgb: 163 186 231;
     /* The one coloured element in the wordmark. */
 
-    /* Almaz's navy ground (#080B12 page, #0E1420 panels, #121A27 cards,
-       #182231 raised, #253244 borders, #F5F7FA / #9AA6B5 text) with the
-       accents the app had before: soft blue for structure — links, focus,
-       the active row's icon — and cyan for the signal and the one button a
-       screen asks you to press, with deep ink on it. Electric blue, violet
-       and neon were tried on this ground and set aside at Almaz's word. */
+    /* The blue-black this app began with, restored at Almaz's word after
+       black, gold, and a navy palette were each tried: a ground that carries
+       a little of the structure blue in it, soft blue for structure and the
+       selected row, cyan for the signal and the one button a screen asks
+       you to press. Every value here is the one it had before the ground
+       was made neutral (commit 54b92da^). */
     --accent-2: #7ecdcd;
     /* The signal at text strength — see the light block. Solved against the
        dark bar to the same 7.0, so the wordmark weighs the same in both. */
@@ -635,7 +635,7 @@
     --marker: #ffd23f;
     --marker-rgb: 255 210 63;
     --mark: #004049;
-    --mark-fg: #F5F7FA;
+    --mark-fg: #e5e8ed;
 
     --live: #6fdcdc;
     --go: #6fd2a4;
@@ -648,11 +648,11 @@
     --danger: var(--stop);
     --danger-subtle: #3c161a;
 
-    --mesh-a: rgba(111, 220, 220, 0.03);
-    --mesh-b: rgba(146, 180, 248, 0.03);
-    --mesh-c: rgba(245, 247, 250, 0.008);
+    --mesh-a: rgba(111, 220, 220, 0.11);
+    --mesh-b: rgba(146, 180, 248, 0.09);
+    --mesh-c: rgba(229, 232, 237, 0.03);
     --grain-opacity: 0.045;
-    --glass: rgba(14, 20, 32, 0.84);
+    --glass: rgba(11, 16, 27, 0.78);
     --glow: 0 0 24px -6px var(--accent-2);
 
     /* Darker and deeper, and still tinted rather than pure black: this ground
@@ -729,8 +729,8 @@
        ground. It is the lifted surface now, like every other raised thing —
        which means it follows `--bg-subtle`, and followed it again when the
        ground lost its blue. */
-    --composer-bg: rgba(18, 26, 39, 0.9);
-    --composer-line: rgba(245, 247, 250, 0.10);
+    --composer-bg: rgba(30, 37, 53, 0.78);
+    --composer-line: rgba(229, 232, 237, 0.10);
     --composer-line-focus: rgba(111, 220, 220, 0.38);
     --composer-lift: inset 0 1px 0 rgb(231 232 233 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
     /* The ring around the box you type in, only while the caret is in it, and
@@ -1095,6 +1095,13 @@ textarea:focus-visible {
 }
 :root[data-theme="dark"] aside.glass .glass {
   background: var(--bg-section);
+}
+
+/* Light: the sidebar is canvas-tinted glass, so a sticky date header inside
+   it takes the canvas tint too — on the surface colour it was a white bar
+   across the column, one per day group. */
+:root:not([data-theme="dark"]) aside.glass .glass {
+  background: color-mix(in oklab, var(--bg-canvas) 94%, transparent);
 }
 
 /* Never on itself.
