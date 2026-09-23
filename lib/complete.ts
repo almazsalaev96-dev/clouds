@@ -5,6 +5,7 @@ import { engineOf } from "./presets";
 import { elsewhere } from "./route";
 import { noteFailure, noteSuccess, whyAvoided, worthMoving } from "./health";
 import { getConfigured } from "./configured";
+import { limitFor, recordSpend } from "./billing";
 import { PROVIDERS } from "./models";
 import { useSettings } from "./store";
 import type { ChatError, ContentBlock, ProviderId } from "./types";
@@ -128,6 +129,8 @@ async function askOnce(
   let finished = false;
 
   try {
+    const limit = limitFor(provider as ProviderId);
+    if (limit) throw new Refused(limit);
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -168,6 +171,7 @@ async function askOnce(
             opts.onText?.(out);
           }
           if (ev.type === "done") finished = true;
+          if (ev.type === "usage") recordSpend(provider as ProviderId, ev.usage.costUsd);
           /* Kept, not dropped. This one line was the whole of why a spent key
              read as "try saying it differently" in every room but chat. */
           if (ev.type === "error") {

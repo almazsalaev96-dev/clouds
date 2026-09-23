@@ -131,6 +131,7 @@ export function classifyError(
     provider_down: `${name} is having trouble on their end.`,
     network: `Couldn't reach ${name}. Check the connection — this did not look like a key problem.`,
     timeout: `${name} took too long to respond.`,
+    limit: "This month's allowance is used up.",
     unknown: detail
       ? `${name} refused the request: ${detail}`
       : `Something went wrong talking to ${name}.`,
@@ -147,6 +148,7 @@ export function classifyError(
     provider_down: "switch_model",
     network: "retry",
     timeout: "retry",
+    limit: "subscribe",
     unknown: "retry",
   };
 

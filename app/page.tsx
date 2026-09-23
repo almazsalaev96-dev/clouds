@@ -38,6 +38,7 @@ import { costOf, fitToContext } from "@/lib/context";
 import { elsewhere, searcher } from "@/lib/route";
 import { fitFiles } from "@/lib/digest";
 import { setConfigured as setConfiguredGlobal } from "@/lib/configured";
+import { resumeBilling, setBillingConfig } from "@/lib/billing";
 import { whyAvoided } from "@/lib/health";
 import { cheapestAvailable, complete } from "@/lib/complete";
 import { useSettings, useDrafts, paramsFor, paramsSet, type Section } from "@/lib/store";
@@ -362,6 +363,16 @@ export default function Page() {
         setConfigured({});
         setConfiguredGlobal({});
       });
+    /* The monthly allowance and the subscription that raises it. Off unless
+       the server holds a Dodo key, in which case nothing below does anything;
+       on, it also picks up a return from checkout. */
+    fetch("/api/billing")
+      .then((r) => r.json())
+      .then((d) => {
+        setBillingConfig(d);
+        return resumeBilling();
+      })
+      .catch(() => setBillingConfig(null));
   }, []);
 
   /* --- Data ------------------------------------------------------------- */

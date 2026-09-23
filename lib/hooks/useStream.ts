@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Action, ChatError, ContentBlock, Message, ProviderId, StreamEvent, ToolCall, ToolSpec, Usage, WebSource, WebTool } from "../types";
 import type { ActionDone } from "../actions";
 import { noteFailure, noteSuccess, worthMoving } from "../health";
+import { limitFor, recordSpend } from "../billing";
 import { getModel, estimateTokens } from "../models";
 import { db, addMessage, uid } from "../db";
 import { useSettings, paramsFor } from "../store";
@@ -287,6 +288,14 @@ export function useStream(onFinish?: (m: Message) => void) {
         let calls: ToolCall[] = [];
         let raw: { provider: ProviderId; content: unknown } | null = null;
         stopReason = "stop";
+        /* The allowance is checked before each round leaves, not only the
+           first: a tool round is a request like any other. */
+        const limit = limitFor(model.provider as ProviderId);
+        if (limit) {
+          refusedRef.current = true;
+          error = limit;
+          break;
+        }
         const res = await fetch("/api/chat", {
           method: "POST",
           signal: ac.signal,
@@ -409,6 +418,7 @@ export function useStream(onFinish?: (m: Message) => void) {
                 }
                 case "usage":
                   usageRef.current = ev.usage;
+                  recordSpend(model.provider as ProviderId, ev.usage.costUsd);
                   break;
                 case "done":
                   stopReason = ev.stopReason;

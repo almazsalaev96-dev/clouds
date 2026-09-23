@@ -18,14 +18,16 @@ import { useSettings, paramsFor, DEFAULT_PARAMS, forgetLocalStorage } from "@/li
 import { PRESETS, engineOf, getPreset, profileOf, resolveCast, shortName } from "@/lib/presets";
 import { does } from "./ModelPicker";
 import { useReturnFocus } from "@/lib/hooks/useReturnFocus";
+import { billingState, checkoutHref, forgetSubscription, getBillingConfig, onBillingChange, verifySubscription } from "@/lib/billing";
 import { cn } from "@/lib/utils";
 import { GROUPS, RULES, rulesCount } from "@/lib/rules";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
 import { SHORTCUT_GROUPS } from "@/components/ShortcutsOverlay";
 
-type Tab = "keys" | "appearance" | "model" | "styles" | "memory" | "data" | "shortcuts" | "privacy" | "rules";
+type Tab = "plan" | "keys" | "appearance" | "model" | "styles" | "memory" | "data" | "shortcuts" | "privacy" | "rules";
 
 const TABS: { id: Tab; label: string }[] = [
+  { id: "plan", label: "Plan" },
   { id: "keys", label: "API keys" },
   { id: "appearance", label: "Appearance" },
   { id: "model", label: "Model" },
@@ -53,6 +55,7 @@ export function Settings({
     if (open) setTab(initialTab);
   }, [open, initialTab]);
   const returnFocus = useReturnFocus(open);
+  const billing = useBilling();
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -82,7 +85,7 @@ export function Settings({
             )}
           >
             <Dialog.Title className="px-2 py-2 text-sm font-medium text-primary max-sm:sr-only">Settings</Dialog.Title>
-            {TABS.map((t) => (
+            {TABS.filter((t) => t.id !== "plan" || billing.enabled).map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
@@ -97,6 +100,7 @@ export function Settings({
           </nav>
 
           <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+            {tab === "plan" && <PlanPanel />}
             {tab === "keys" && <KeysPanel configured={configured} />}
             {tab === "appearance" && <AppearancePanel />}
             {tab === "model" && <ModelPanel configured={configured} />}
@@ -221,6 +225,12 @@ function PrivacyPanel() {
           same company as part of the turn: the passages a search found, the count
           of cards saved. Nothing is sent that the turn did not already involve.
         </Line>
+        <Line title="If you subscribe">
+          Payment happens on Dodo Payments&rsquo; own checkout; card details never touch this
+          app. Afterwards this browser keeps the subscription id and what this month has cost
+          on the app&rsquo;s keys, and sends only the id to this app&rsquo;s server, which asks
+          Dodo whether it is active.
+        </Line>
         <Line title="Your keys">
           A key you paste is kept in this browser and sent only to its own provider. It is
           never written into a backup file, never logged, and never shown in full again
@@ -246,6 +256,125 @@ function Line({ title, children }: { title: string; children: React.ReactNode })
       <p className="mb-1 text-sm font-medium text-primary">{title}</p>
       <p className="text-xs leading-relaxed text-secondary">{children}</p>
     </div>
+  );
+}
+
+/* ---------------------------------------------------------------- plan ---- */
+
+/** The billing config and this browser's meter, redrawn when either moves. */
+function useBilling() {
+  const [, bump] = React.useReducer((n: number) => n + 1, 0);
+  React.useEffect(() => onBillingChange(bump), []);
+  return { ...getBillingConfig(), ...billingState() };
+}
+
+function PlanPanel() {
+  const b = useBilling();
+  const [restoreId, setRestoreId] = React.useState("");
+  const [checking, setChecking] = React.useState(false);
+  const [note, setNote] = React.useState("");
+  const href = checkoutHref();
+  const pct = b.capUsd > 0 ? Math.min(100, (b.spentUsd / b.capUsd) * 100) : 100;
+  const times = b.freeCapUsd > 0 ? Math.round(b.proCapUsd / b.freeCapUsd) : 0;
+
+  const check = async (ids: { subscriptionId?: string }) => {
+    setChecking(true);
+    setNote("");
+    const v = await verifySubscription(ids);
+    setChecking(false);
+    setNote(
+      !v
+        ? "Couldn't reach Dodo Payments. Try again in a minute."
+        : v.active
+          ? "Subscription confirmed."
+          : v.status === "pending"
+            ? "Dodo is still activating this subscription. Check again in a minute."
+            : `Not active (${v.status.replace(/_/g, " ")}).`,
+    );
+  };
+
+  return (
+    <Panel
+      title="Plan"
+      description="Answers on this app's own keys come out of a monthly allowance. Your own API key is never limited — it's your account paying."
+    >
+      <div className="rounded-lg border border-line p-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-sm font-medium text-primary">{b.subscribed ? "Plus" : "Free"} · this month</p>
+          <p className="text-xs tabular-nums text-secondary">
+            {formatCost(b.spentUsd)} of {formatCost(b.capUsd)}
+          </p>
+        </div>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-subtle" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100} aria-label="Allowance used">
+          <div className="h-full rounded-full bg-[var(--cta)]" style={{ width: `${pct}%` }} />
+        </div>
+        <p className="mt-2 text-xs text-tertiary">Resets on the 1st of every month.</p>
+      </div>
+
+      {!b.subscribed ? (
+        <div className="rounded-lg border border-line p-3">
+          <p className="text-sm font-medium text-primary">Plus — {b.price}</p>
+          <ul className="mt-2 list-disc space-y-1 pl-4 text-xs leading-relaxed text-secondary">
+            <li>
+              A {formatCost(b.proCapUsd)} monthly allowance instead of {formatCost(b.freeCapUsd)}
+              {times > 1 ? ` — ${times}× the free plan` : ""}.
+            </li>
+            <li>Every model and every ARMI preset, on this app&rsquo;s keys. No key of your own needed.</li>
+            <li>Renews monthly. Cancel any time from the receipt Dodo Payments emails you.</li>
+          </ul>
+          <p className="mt-2 text-xs text-tertiary">
+            After paying you&rsquo;re sent back here and the new allowance switches on by itself.
+          </p>
+          {href && (
+            <Button className="mt-3" variant="primary" onClick={() => window.open(href, "_blank", "noopener")}>
+              Subscribe <ExternalLink size={13} />
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-line p-3 text-xs text-secondary">
+          <p className="text-sm font-medium text-primary">Plus is active</p>
+          {b.nextBillingDate && <p className="mt-1">Renews {new Date(b.nextBillingDate).toLocaleDateString()}.</p>}
+          <p className="mt-1">Subscription {b.subscriptionId}</p>
+          <div className="mt-3 flex gap-2">
+            <Button size="sm" variant="secondary" disabled={checking} onClick={() => check({ subscriptionId: b.subscriptionId })}>
+              {checking ? "Checking…" : "Check again"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={forgetSubscription}>
+              Forget on this browser
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {!b.subscribed && (
+        <div className="rounded-lg border border-line p-3">
+          <p className="text-sm font-medium text-primary">Already subscribed?</p>
+          <p className="mt-1 text-xs text-secondary">
+            The allowance is kept per browser. On a new device, paste the subscription id from your Dodo receipt (it starts with sub_).
+          </p>
+          <form
+            className="mt-2 flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (restoreId.trim()) check({ subscriptionId: restoreId.trim() });
+            }}
+          >
+            <input
+              value={restoreId}
+              onChange={(e) => setRestoreId(e.target.value)}
+              placeholder="sub_…"
+              aria-label="Subscription id"
+              className="min-w-0 flex-1 rounded-md border border-line bg-field px-2 py-1.5 text-sm text-primary"
+            />
+            <Button size="sm" variant="secondary" type="submit" disabled={checking || !restoreId.trim()}>
+              {checking ? "Checking…" : "Restore"}
+            </Button>
+          </form>
+        </div>
+      )}
+      {note && <p className="text-xs text-secondary" role="status">{note}</p>}
+    </Panel>
   );
 }
 

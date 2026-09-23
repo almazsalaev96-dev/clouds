@@ -437,6 +437,8 @@ export type ErrorKind =
   | "provider_down"
   | "network"
   | "timeout"
+  /** This installation's monthly allowance on its own keys is used up. */
+  | "limit"
   | "unknown";
 
 export interface ChatError {
@@ -444,7 +446,7 @@ export interface ChatError {
   /** One sentence, plain language, addressed to the user. */
   message: string;
   /** What to do about it. Rendered as the action button's label. */
-  action?: "retry" | "add_key" | "switch_model" | "shorten";
+  action?: "retry" | "add_key" | "switch_model" | "shorten" | "subscribe";
   retryAfterMs?: number;
   /** Kept for the console and the report-a-bug path. Never rendered raw. */
   detail?: string;

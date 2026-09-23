@@ -73,6 +73,7 @@ run test-compute npx jiti test-compute.ts
 run test-register npx jiti test-register.ts
 run test-presets npx jiti test-presets.ts
 run test-wire  npx jiti test-wire.ts
+run test-billing npx jiti test-billing.ts
 run test-callout npx jiti test-callout.ts
 run test-study npx jiti test-study.ts
 run test-topics npx jiti test-topics.ts

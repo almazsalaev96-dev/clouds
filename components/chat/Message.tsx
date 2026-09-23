@@ -17,6 +17,7 @@ import { canUndo } from "@/lib/actions";
 import { CALCULATOR, getModel, formatTokens } from "@/lib/models";
 import { authorName, getPreset, plainly, PRESETS } from "@/lib/presets";
 import { blockText } from "@/lib/db";
+import { checkoutHref } from "@/lib/billing";
 import { cn, describeTiming, formatDuration } from "@/lib/utils";
 import { guessLang } from "@/lib/lang";
 import { Markdown } from "./Markdown";
@@ -1090,6 +1091,11 @@ export function InlineError({
             Add key
           </Button>
         )}
+        {action === "subscribe" && checkoutHref() && (
+          <Button size="sm" variant="primary" onClick={() => window.open(checkoutHref(), "_blank", "noopener")}>
+            Subscribe
+          </Button>
+        )}
         {(action === "switch_model" || action === "shorten") && onSwitchModel && (
           <Button size="sm" variant="secondary" onClick={onSwitchModel}>
             Switch model
@@ -1098,7 +1104,7 @@ export function InlineError({
         {/* Retry only where a retry can help. A missing or rejected key fails
             the same way every time, and offering Retry beside "Add key" is
             offering the wrong one of the two first. */}
-        {onRetry && action !== "add_key" && (
+        {onRetry && action !== "add_key" && action !== "subscribe" && (
           <Button size="sm" variant="secondary" onClick={onRetry}>
             Retry
           </Button>
