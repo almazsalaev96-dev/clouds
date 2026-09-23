@@ -124,6 +124,13 @@ export interface Message {
    * verdict, and a check that quietly re-ran against new words would be worth
    * less than none.
    */
+  /** The claims in this answer looked up on the web, one by one (lib/factcheck.ts). */
+  facts?: {
+    claims: { text: string; verdict: "supported" | "unsupported" | "uncertain"; note: string; n?: number }[];
+    sources: WebSource[];
+    modelId: string;
+    at: number;
+  };
   verdict?: {
     agrees: "agrees" | "partly" | "disagrees";
     text: string;

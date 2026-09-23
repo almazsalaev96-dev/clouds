@@ -640,6 +640,59 @@ function RoutinesPanel() {
   );
 }
 
+/**
+ * The routing memory, on a page.
+ *
+ * The pasted architectures call this "the learning system", and it is the
+ * part that is easiest to claim and hardest to see: a table nobody can open
+ * is a rumour. So here it is, by kind of work and Armi model, with the
+ * count and how many of the last dozen needed something done.
+ */
+function RouterMemory() {
+  const rows = useLiveQuery(() => db.turns.toArray(), [], []);
+  const grouped = React.useMemo(() => {
+    const m = new Map<string, { kind: string; who: string; n: number; bad: number; ms: number[] }>();
+    for (const t of rows) {
+      const who = t.presetId ? (getPreset(t.presetId)?.name ?? t.presetId) : "chosen by hand";
+      const key = `${t.kind}\u0000${who}`;
+      const g = m.get(key) ?? { kind: t.kind, who, n: 0, bad: 0, ms: [] };
+      g.n += 1;
+      if (t.outcome && t.outcome !== "good") g.bad += 1;
+      if (t.ms) g.ms.push(t.ms);
+      m.set(key, g);
+    }
+    return [...m.values()].sort((a, b) => b.n - a.n).slice(0, 12);
+  }, [rows]);
+  if (!grouped.length) return <p className="text-sm text-tertiary">Nothing yet. It starts learning from the first answer.</p>;
+  return (
+    <table className="w-full text-sm" aria-label="What the router has learned">
+      <thead>
+        <tr className="text-left text-xs text-tertiary">
+          <th className="py-1 pr-3 font-medium">Kind of work</th>
+          <th className="py-1 pr-3 font-medium">Armi model</th>
+          <th className="py-1 pr-3 text-right font-medium tnum">Answers</th>
+          <th className="py-1 pr-3 text-right font-medium tnum">Needed another go</th>
+          <th className="py-1 text-right font-medium tnum">Typical wait</th>
+        </tr>
+      </thead>
+      <tbody>
+        {grouped.map((g) => {
+          const med = g.ms.length ? [...g.ms].sort((a, b) => a - b)[Math.floor(g.ms.length / 2)] : null;
+          return (
+            <tr key={`${g.kind}-${g.who}`} className="border-t border-line">
+              <td className="py-1.5 pr-3 text-primary">{g.kind}</td>
+              <td className="py-1.5 pr-3 text-secondary">{g.who}</td>
+              <td className="py-1.5 pr-3 text-right text-secondary tnum">{g.n}</td>
+              <td className={cn("py-1.5 pr-3 text-right tnum", g.bad ? "text-warning" : "text-tertiary")}>{g.bad}</td>
+              <td className="py-1.5 text-right text-tertiary tnum">{med ? `${(med / 1000).toFixed(1)}s` : "—"}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
 /* --------------------------------------------------------------- model ---- */
 
 function ModelPanel({ configured }: { configured: Record<string, boolean> }) {
@@ -668,6 +721,13 @@ function ModelPanel({ configured }: { configured: Record<string, boolean> }) {
         hint="Each one is a cast: two or three models, from different companies wherever your keys allow it, with a different job each. Armi trains no models of its own — it decides which to call, what to ask each of them, and what to do when they disagree. Which companies those are is set by the keys on the Keys tab. Prices are for a turn of ordinary size, summed over every model it calls."
       >
         <ArmiTable configured={configured} />
+      </Field>
+
+      <Field
+        label="What the router has learned"
+        hint="Every answer is recorded as what kind of work it was, which Armi model did it, and whether you had to do something about it — a retry, an edit, a thumbs down. The router reads these before it chooses: a model that keeps needing another go at one kind of work stops being picked for it. Nothing here leaves this browser."
+      >
+        <Learned />
       </Field>
 
       <Field label={`Temperature — ${params.temperature.toFixed(2)}`} hint="Lower is more predictable.">

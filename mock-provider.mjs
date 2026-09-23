@@ -142,6 +142,16 @@ const send = (res, type, data) =>
 createServer(async (req, res) => {
   let raw = "";
   for await (const c of req) raw += c;
+  /* An edit of a picture arrives as a form, not JSON: the picture as a file
+     and the words beside it. Read the words out of the form and answer as
+     for a picture made from nothing. */
+  if ((req.url ?? "").includes("/images/edits")) {
+    const prompt = (raw.match(/name="prompt"\r?\n\r?\n([\s\S]*?)\r?\n--/) ?? [, ""])[1].trim();
+    lastSeen = { kind: "image-edit", prompt, hadImage: /name="image"/.test(raw) };
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ created: Date.now(), data: [{ b64_json: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" }] }));
+    return;
+  }
   const body = JSON.parse(raw || "{}");
 
   /* OpenAI's other API, folded into the shape the rest of this file reads.
@@ -605,7 +615,16 @@ It also reports a figure of nine hundred percent [[cite: ${name} | the result wa
      *disagreement* on purpose: a mock that always agrees would leave the only
      interesting half of the feature — what a real disagreement looks like on
      screen — completely untested. */
-  const verifying = /^Someone asked a question and got the answer below/.test(asked);
+  /* A fact-check: the claims of an answer, each looked up. Two claims, one
+     found and one contradicted, so the screen has to show both states and
+     the confidence line has to say "doubtful" about an answer a second model
+     would have passed. */
+  const factchecking = /Your job is to fact-check the answer against the web/.test(asked);
+  const FACTS = JSON.stringify({ claims: [
+    { claim: "A debounce fires once the input has stopped changing for a set interval", verdict: "supported", note: "“A debounce waits for silence” — Debounce and throttle, explained" },
+    { claim: "The trailing edge is the default", verdict: "unsupported", note: "The page says the leading edge is the default." },
+  ] });
+  const verifying = !factchecking && /^Someone asked a question and got the answer below/.test(asked);
   const VERDICT = JSON.stringify({
     agrees: "partly",
     text: "The description of debouncing is right.\n\nBut the second paragraph calls the trailing edge the default; it is not, and the code above it does not do that either.",
@@ -648,7 +667,7 @@ Nothing here looks like it breaks a caller — the return type is the same array
      alone can only ever show whichever was most recent. */
   recent.push({
     model: body.model,
-    kind: isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : verifying ? "verify" : "answer",
+    kind: isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : "answer",
     /* What that call was told, bounded. `__last` is only ever the most
        recent request, and a turn that goes out three times — brief, answer,
        and the answer again after an objection — cannot be read from it: the
@@ -688,6 +707,8 @@ Nothing here looks like it breaks a caller — the return type is the same array
     ? BRIEF
     : seated
     ? SEAT
+    : factchecking
+    ? FACTS
     : verifying
     ? VERDICT
     : whying

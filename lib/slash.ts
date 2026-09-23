@@ -50,6 +50,9 @@ const VERBS: Record<string, Partial<Slash>> = {
   temp: { temporary: true },
   temporary: { temporary: true },
   deep: { research: true, deep: true },
+  max: { presetId: "council" },
+  maximum: { presetId: "council" },
+  fast: { presetId: "flash" },
   image: { picture: true },
   draw: { picture: true },
   picture: { picture: true },
@@ -86,12 +89,14 @@ export function slashCommands(): { command: string; does: string }[] {
   return [
     { command: "study", does: "teach it rather than tell it — the Orrery" },
     { command: "build", does: "make the thing and run it beside the chat — Nova" },
+    { command: "image", does: "make a picture from what you describe; with one attached, change it" },
     { command: "research", does: "let the model search the web in this chat" },
     { command: "deep", does: "search from several angles, then write a report with sources" },
+    { command: "max", does: "the most that can be done: three companies plan, one writes, one checks — Constellation" },
+    { command: "fast", does: "the quickest answer, checked while you read — Pulsar" },
     { command: "compare", does: "two companies answer, side by side" },
     { command: "check", does: "a second model reads the answer back" },
     { command: "temp", does: "do not keep this chat" },
-    { command: "image", does: "make a picture from what you describe" },
     ...PRESETS.map((p) => ({ command: nameOf(p.short), does: p.tagline.toLowerCase() })),
   ];
 }

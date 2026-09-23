@@ -88,6 +88,7 @@ run test-plain npx jiti test-plain.ts
 run test-explain npx jiti test-explain.ts
 run test-image npx jiti test-image.ts
 run test-routines npx jiti test-routines.ts
+run test-factcheck npx jiti test-factcheck.ts
 run test-revision npx jiti test-revision.ts
 run test-grade npx jiti test-grade.ts
 run test-retrieve npx jiti test-retrieve.ts

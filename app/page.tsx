@@ -1107,11 +1107,18 @@ export default function Page() {
          verb, a noun, a subject — and "/image" says it outright. Only with
          the OpenAI key; otherwise the thread says which key and where. */
       const askedText = blockText(content);
-      if (slash?.picture || (content.every((c) => c.type === "text") && wantsPicture(askedText))) {
+      /* A picture attached with "/image …" is a picture to change, not a
+         subject to draw; a picture attached with plain words is a picture
+         to look at, and goes to the model as before. */
+      const attachedPicture = content.find((c): c is Extract<ContentBlock, { type: "image" }> => c.type === "image");
+      if (slash?.picture || (!attachedPicture && content.every((c) => c.type === "text") && wantsPicture(askedText))) {
         const subject = slash?.picture ? slash.text.trim() : pictureSubject(askedText);
-        setReading(`Painting ${subject.length > 48 ? "it" : subject}…`);
+        setReading(`${attachedPicture ? "Changing" : "Painting"} ${subject.length > 48 ? "it" : subject}…`);
         try {
-          const made = await makePicture(subject, { clientKey: settings.keys.openai || undefined });
+          const made = await makePicture(subject, {
+            clientKey: settings.keys.openai || undefined,
+            image: attachedPicture ? { mime: attachedPicture.mimeType, data: attachedPicture.data } : undefined,
+          });
           await addMessage({
             conversationId: convId,
             parentId: userMessage.id,
@@ -1120,7 +1127,7 @@ export default function Page() {
               "picture" in made
                 ? [
                     { type: "image", mimeType: made.picture.mime, data: made.picture.data, name: `${subject.slice(0, 48).replace(/[^\w ]+/g, "").trim() || "picture"}.png` },
-                    { type: "text", text: `Here it is — ${subject}. Ask for a change and it is drawn again.` },
+                    { type: "text", text: attachedPicture ? `Here it is, changed — ${subject}. Attach it again with another ask to go further.` : `Here it is — ${subject}. Ask for a change and it is drawn again.` },
                   ]
                 : [{ type: "text", text: "" }],
             ...("picture" in made ? {} : { error: made.error.message }),
@@ -1357,6 +1364,39 @@ export default function Page() {
    * goes to a different provider, and where there is not one it says so
    * instead of quietly asking a sibling model and calling it independent.
    */
+  /* The claims, looked up. The strongest keyed model that can search does
+     the looking, whichever company wrote the answer; with none, it says
+     which key would let it. One at a time, like the second opinion. */
+  const [factCheckingId, setFactCheckingId] = React.useState<string | null>(null);
+  const factCheckMessage = React.useCallback(
+    async (message: Message) => {
+      if (factCheckingId) {
+        if (factCheckingId !== message.id) setNotice("One fact-check at a time — the last one is still running.");
+        return;
+      }
+      const asked = pathTo(allMessages ?? [], message.parentId).filter((m) => m.role === "user").slice(-1)[0];
+      if (!asked) return;
+      const { searcher } = await import("@/lib/route");
+      const who = searcher({ configured, keys: settings.keys });
+      if (!who) {
+        setNotice("Fact-checking looks things up on the web, and that needs a key for a model that can search. Add one in Settings.");
+        return;
+      }
+      setFactCheckingId(message.id);
+      try {
+        const { factCheck } = await import("@/lib/factcheck");
+        const facts = await factCheck(blockText(asked.content), blockText(message.content), who.id);
+        if (facts) await db.messages.update(message.id, { facts });
+        else setNotice("Nothing checkable came back. Try again.");
+      } catch {
+        setNotice("That fact-check failed. Check the key and the connection.");
+      } finally {
+        setFactCheckingId(null);
+      }
+    },
+    [factCheckingId, allMessages, configured, settings.keys],
+  );
+
   const verify = React.useCallback(
     async (message: Message, pinned?: string) => {
       if (verifyingId) {
@@ -2454,6 +2494,8 @@ export default function Page() {
                 onRate={rate}
                 onVerify={verify}
                 verifyingId={verifyingId}
+                onFactCheck={factCheckMessage}
+                factCheckingId={factCheckingId}
                 onOpenMade={showMade}
                 onComputed={computed}
                 onMakeCards={makeCards}

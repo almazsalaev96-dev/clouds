@@ -18,7 +18,7 @@ export const maxDuration = 120;
  * everything else and it needs no bucket, no URL and no expiry.
  */
 export async function POST(req: NextRequest) {
-  let body: { prompt?: string; clientKey?: string; size?: string };
+  let body: { prompt?: string; clientKey?: string; size?: string; image?: { mime: string; data: string } };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -36,13 +36,29 @@ export async function POST(req: NextRequest) {
   }
 
   const size = ["1024x1024", "1536x1024", "1024x1536"].includes(body.size ?? "") ? body.size : "1024x1024";
+  const base = baseUrlFor("openai", "https://api.openai.com/v1");
   try {
-    const res = await fetch(`${baseUrlFor("openai", "https://api.openai.com/v1")}/images/generations`, {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model: "gpt-image-1", prompt, n: 1, size, quality: "medium", output_format: "png" }),
-      signal: req.signal,
-    });
+    /* With a picture attached the words are a change to it, not a new one:
+       the same model, on its edits endpoint, which takes the picture as a
+       file beside the prompt. */
+    let res: Response;
+    if (body.image?.data) {
+      const bytes = Uint8Array.from(atob(body.image.data), (c) => c.charCodeAt(0));
+      const form = new FormData();
+      form.set("model", "gpt-image-1");
+      form.set("prompt", prompt);
+      form.set("n", "1");
+      form.set("size", size!);
+      form.set("image", new Blob([bytes], { type: body.image.mime || "image/png" }), "picture.png");
+      res = await fetch(`${base}/images/edits`, { method: "POST", headers: { authorization: `Bearer ${key}` }, body: form, signal: req.signal });
+    } else {
+      res = await fetch(`${base}/images/generations`, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+        body: JSON.stringify({ model: "gpt-image-1", prompt, n: 1, size, quality: "medium", output_format: "png" }),
+        signal: req.signal,
+      });
+    }
     if (!res.ok) {
       return Response.json({ error: classifyError("openai", res.status, await res.text()) });
     }

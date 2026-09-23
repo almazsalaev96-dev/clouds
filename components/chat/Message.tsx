@@ -5,7 +5,7 @@ import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   AlertCircle, Brain, Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Clock, Code2, Copy,
-  Download, FolderPlus, GraduationCap, LayoutTemplate, MoreHorizontal, NotebookPen, PanelRight, Pencil, Play, RefreshCw, Scissors, Search, ShieldQuestion,
+  Download, FolderPlus, GraduationCap, LayoutTemplate, MoreHorizontal, NotebookPen, PanelRight, Pencil, Play, RefreshCw, Scissors, Search, SearchCheck, ShieldQuestion,
   SquarePen, ThumbsDown, ThumbsUp, Volume2, X,
 } from "lucide-react";
 import { builtDocument, titleOf, withoutBuild } from "@/lib/built";
@@ -13,6 +13,7 @@ import { computeBlock, type Outcome } from "@/lib/compute";
 import { ComputeScope } from "./ComputeBlock";
 import type { Finding } from "@/lib/lint";
 import type { Action, ChatError, ContentBlock, Message as Msg, Rating, RatingReason, WebSource } from "@/lib/types";
+import { systemConfidence, CONFIDENCE_WORD } from "@/lib/factcheck";
 import { canUndo } from "@/lib/actions";
 import { CALCULATOR, getModel, formatTokens } from "@/lib/models";
 import { authorName, getPreset, plainly, PRESETS } from "@/lib/presets";
@@ -305,6 +306,8 @@ function AssistantMessageImpl({
   onSwitchModel,
   onVerify,
   verifying,
+  onFactCheck,
+  factChecking,
   entering,
   settled,
   isLast,
@@ -346,6 +349,9 @@ function AssistantMessageImpl({
   /** Ask a model from another provider whether this answer is right. */
   onVerify?: (message: Msg) => void;
   verifying?: boolean;
+  /** Look the answer's claims up on the web, one by one. */
+  onFactCheck?: (message: Msg) => void;
+  factChecking?: boolean;
   entering?: boolean;
   /** True for about a second after this answer finished generating. */
   settled?: boolean;
@@ -606,6 +612,8 @@ function AssistantMessageImpl({
       {message.verdict && (
         <SecondOpinion verdict={message.verdict} authorProvider={model?.provider} />
       )}
+      {message.facts && <Facts facts={message.facts} />}
+      {(message.verdict || message.facts) && <ConfidenceLine verdict={message.verdict} facts={message.facts} />}
 
       {/* Why not good — the one question a thumbs-down earns. Each answer is
           a reason the next attempt can act on, and picking one regenerates
@@ -724,6 +732,18 @@ function AssistantMessageImpl({
             disabled={verifying}
           >
             <ShieldQuestion size={14} />
+          </IconButton>
+        )}
+        {/* The other half of a check: not "does another model agree" but
+            "is it on a page". Each claim looked up, one by one. */}
+        {onFactCheck && !message.facts && (
+          <IconButton
+            label={factChecking ? "Looking it up…" : "Fact-check on the web"}
+            size={28}
+            onClick={() => onFactCheck(message)}
+            disabled={factChecking}
+          >
+            <SearchCheck size={14} />
           </IconButton>
         )}
         {/* The loop the linter closes. It reads the finished answer back
@@ -1066,6 +1086,79 @@ export function BranchNav({
  * Every failure gets one plain sentence and one specific action. The raw
  * provider payload stays in the console where it belongs.
  */
+/**
+ * The claims, each with what was found.
+ */
+function Facts({ facts }: { facts: NonNullable<Msg["facts"]> }) {
+  const ok = facts.claims.filter((c) => c.verdict === "supported").length;
+  const bad = facts.claims.filter((c) => c.verdict === "unsupported").length;
+  const src = (n?: number) => facts.sources.find((s) => s.n === n);
+  return (
+    <div className={cn("mt-2 rounded-xl border bg-surface p-3", bad ? "border-[var(--warning)]" : "border-line")} aria-label="Fact-check">
+      <div className="mb-1.5 flex items-center gap-2">
+        <SearchCheck size={13} className={cn("shrink-0", bad ? "text-warning" : "text-tertiary")} />
+        <span className="eyebrow text-faint">Sentinel · looked up</span>
+        <span className="min-w-0 flex-1 truncate text-xs text-tertiary tnum">
+          {ok} of {facts.claims.length} {facts.claims.length === 1 ? "claim" : "claims"} found on a page{bad ? ` · ${bad} contradicted` : ""}
+        </span>
+      </div>
+      <ul className="space-y-1.5">
+        {facts.claims.map((c, i) => {
+          const s = src(c.n);
+          return (
+            <li key={i} className="flex items-start gap-2 text-sm">
+              <span
+                aria-label={c.verdict}
+                className={cn(
+                  "mt-0.5 shrink-0 rounded-full bg-[var(--bg-subtle)] px-1.5 text-tiny",
+                  c.verdict === "supported" ? "text-[var(--success)]" : c.verdict === "unsupported" ? "text-warning" : "text-tertiary",
+                )}
+              >
+                {c.verdict === "supported" ? "found" : c.verdict === "unsupported" ? "contradicted" : "unclear"}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="text-primary">{c.text}</span>
+                {c.note && <span className="text-tertiary"> — {c.note}</span>}
+                {s && (
+                  <>
+                    {" "}
+                    <a href={s.url} target="_blank" rel="noreferrer" className="text-xs text-accent underline-offset-2 hover:underline">
+                      {s.title || s.url}
+                    </a>
+                  </>
+                )}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * What the app can say about the answer from what has been done to it — a
+ * second company's reading and the evidence, together. The model's own
+ * confidence is not consulted; it is a number it makes up.
+ */
+function ConfidenceLine({ verdict, facts }: { verdict?: Msg["verdict"]; facts?: Msg["facts"] }) {
+  const c = systemConfidence(verdict, facts);
+  if (!c) return null;
+  return (
+    <p className="mt-1.5 flex items-center gap-1.5 text-xs text-tertiary" aria-label="Confidence">
+      <span
+        className={cn(
+          "inline-block size-2 rounded-full",
+          c.level === "high" ? "bg-[var(--success)]" : c.level === "likely" ? "bg-[var(--accent-fill)]" : c.level === "low" ? "bg-[var(--warning)]" : "bg-[var(--border-strong)]",
+        )}
+        aria-hidden
+      />
+      <span className="text-secondary">{CONFIDENCE_WORD[c.level]}</span>
+      <span>— {c.why}</span>
+    </p>
+  );
+}
+
 /**
  * What a different model said about this answer.
  *

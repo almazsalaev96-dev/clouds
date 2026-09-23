@@ -109,6 +109,25 @@ console.log("\nThe sources are kept, not only shown");
   check(off, "and the conversation remembers that research is on");
 }
 
+console.log("\nThe claims, looked up");
+{
+  await fetch(`${MOCK}/__reset`);
+  const btn = p.getByRole("button", { name: "Fact-check on the web" }).last();
+  check(await btn.count() === 1, "an answer offers to have its claims looked up");
+  await btn.click();
+  await p.waitForTimeout(5000);
+  const sent = await fetch(`${MOCK}/__last`).then((r) => r.json());
+  check(/fact-check the answer against the web/.test(sent.text ?? JSON.stringify(sent)) || sent.kind === "facts" || (sent.tools ?? []).some((t) => /^web_search/.test(t)), "the looking is done with the search tool in hand", JSON.stringify(sent.tools));
+  const panel = p.locator('[aria-label="Fact-check"]').last();
+  check(await panel.isVisible(), "and the claims come back on the answer");
+  const t = await panel.innerText();
+  check(/1 of 2 claims found on a page · 1 contradicted/.test(t), "counted: found and contradicted", t.split("\n")[0]);
+  check(/contradicted/.test(t) && /The page says the leading edge is the default/.test(t), "with what the page said instead");
+  check(await panel.getByRole("link").count() >= 1 && /example\.org/.test(await panel.getByRole("link").first().getAttribute("href")), "and a link to the page it rests on");
+  const conf = await p.locator('[aria-label="Confidence"]').last().innerText();
+  check(/Doubtful/.test(conf) && /1 of 2 claims contradicted/.test(conf), "so the confidence line says doubtful, and why", conf);
+}
+
 console.log("\n“/deep” is research taken further");
 {
   await p.getByRole("button", { name: "New chat" }).first().click();

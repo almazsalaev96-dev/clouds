@@ -61,6 +61,22 @@ console.log("\nA command, and a menu entry");
   check(await p.locator(".msg img[alt]").count() === 2, "a second picture, in the same thread");
 }
 
+console.log("\nA picture attached with the command is a picture to change");
+{
+  await fetch(`${MOCK}/__reset`);
+  const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+  await p.getByLabel("Choose photos and files to attach").setInputFiles({ name: "cell.png", mimeType: "image/png", buffer: Buffer.from(png, "base64") });
+  await p.waitForTimeout(500);
+  await box().fill("/image label the nucleus");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(3000);
+  const sent = await fetch(`${MOCK}/__last`).then((r) => r.json());
+  check(sent.kind === "image-edit" && sent.hadImage === true, "it goes out as an edit, with the picture", JSON.stringify(sent));
+  check(sent.prompt === "label the nucleus", "and the words are the change asked for", JSON.stringify(sent.prompt));
+  const msgs = await p.locator(".msg").allInnerTexts();
+  check(/Here it is, changed/.test(msgs.at(-1) ?? ""), "the thread says it was changed, not drawn from nothing", (msgs.at(-1) ?? "").slice(0, 40));
+}
+
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors");
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 await b.close();

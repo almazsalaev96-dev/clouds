@@ -56,6 +56,8 @@ function MessageListImpl({
   onRate,
   onVerify,
   verifyingId,
+  onFactCheck,
+  factCheckingId,
   onRetry,
   onAddKey,
   onSwitchModel,
@@ -109,6 +111,8 @@ function MessageListImpl({
   /** Ask a model from another provider whether an answer is right. */
   onVerify: (message: Msg) => void;
   verifyingId?: string | null;
+  onFactCheck?: (message: Msg) => void;
+  factCheckingId?: string | null;
   onRetry: () => void;
   onAddKey: () => void;
   onSwitchModel: () => void;
@@ -298,6 +302,8 @@ function MessageListImpl({
                 onRate={onRate}
                 onSwitchModel={onSwitchModel}
                 onVerify={onVerify}
+                onFactCheck={onFactCheck}
+                factChecking={factCheckingId === m.id}
                 onOpenAction={onOpenAction}
                 onUndoAction={onUndoAction}
                 verifying={verifyingId === m.id}

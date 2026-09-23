@@ -7,7 +7,7 @@ import { noteFailure, noteSuccess, whyAvoided, worthMoving } from "./health";
 import { getConfigured } from "./configured";
 import { PROVIDERS } from "./models";
 import { useSettings } from "./store";
-import type { ChatError, ContentBlock, ProviderId } from "./types";
+import type { ChatError, ContentBlock, ProviderId , WebSource, WebTool } from "./types";
 
 /**
  * The call, and nothing about what is in it.
@@ -111,6 +111,10 @@ async function askOnce(
      * changes for them.
      */
     turns?: { role: "user" | "assistant"; content: ContentBlock[] }[];
+    /** Let this one call search the web, where the model can. */
+    tools?: WebTool[];
+    /** A page the model read, as it arrives — for a caller that keeps them. */
+    onSource?: (s: WebSource) => void;
   } & Progress = {},
 ): Promise<string | null> {
   const settings = useSettings.getState();
@@ -144,6 +148,7 @@ async function askOnce(
           reasoningEffort: undefined,
         },
         clientKey: settings.keys[provider] || undefined,
+        tools: opts.tools,
       }),
       signal: opts.signal,
     });
@@ -168,6 +173,7 @@ async function askOnce(
             opts.onText?.(out);
           }
           if (ev.type === "done") finished = true;
+          if (ev.type === "source" && opts.onSource) opts.onSource(ev.source as WebSource);
           /* Kept, not dropped. This one line was the whole of why a spent key
              read as "try saying it differently" in every room but chat. */
           if (ev.type === "error") {
