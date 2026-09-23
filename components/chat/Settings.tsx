@@ -55,7 +55,6 @@ export function Settings({
     if (open) setTab(initialTab);
   }, [open, initialTab]);
   const returnFocus = useReturnFocus(open);
-  const billing = useBilling();
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -85,7 +84,7 @@ export function Settings({
             )}
           >
             <Dialog.Title className="px-2 py-2 text-sm font-medium text-primary max-sm:sr-only">Settings</Dialog.Title>
-            {TABS.filter((t) => t.id !== "plan" || billing.enabled).map((t) => (
+            {TABS.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
@@ -270,6 +269,16 @@ function useBilling() {
 
 function PlanPanel() {
   const b = useBilling();
+  if (!b.enabled) {
+    return (
+      <Panel title="Plan" description="Subscriptions aren't switched on for this app yet.">
+        <p className="text-sm text-secondary">
+          They switch on when the server has DODO_PAYMENTS_API_KEY set. Once it does, this page shows
+          this month&rsquo;s usage, the Plus subscription and a Subscribe button.
+        </p>
+      </Panel>
+    );
+  }
   const [restoreId, setRestoreId] = React.useState("");
   const [checking, setChecking] = React.useState(false);
   const [note, setNote] = React.useState("");
