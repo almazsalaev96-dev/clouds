@@ -2136,6 +2136,8 @@ export default function Page() {
           onGoToSection={goToSection}
           onOpenSettings={openKeys}
           onOpenShortcuts={() => setShortcutsOpen(true)}
+          onOpenItem={selectInSection}
+          openItems={{ study: deckId, notebook: noteId, projects: projectId, code: canvasId }}
         />
         )}
 

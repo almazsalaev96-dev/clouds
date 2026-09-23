@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { db, deleteConversation, groupConversations } from "@/lib/db";
+import { dueNow } from "@/lib/study";
 import { useDebounced } from "@/lib/hooks/useDebounced";
 import { Lockup } from "@/components/brand/Logo";
 import { offerUndo } from "@/lib/undo";
@@ -72,6 +73,17 @@ const SECTIONS: { id: Section; label: string; icon: React.ReactNode }[] = [
   { id: "code", label: "Creations", icon: <Library size={20} /> },
 ];
 
+/* What the search box finds, in the room you are in: the list under the
+   rooms is that room's, so the box searches that. */
+const FIND: Record<Section, { one: string; many: string }> = {
+  chat: { one: "a conversation", many: "conversations" },
+  creative: { one: "a conversation", many: "conversations" },
+  study: { one: "a deck", many: "decks" },
+  notebook: { one: "a page", many: "pages" },
+  projects: { one: "a project", many: "projects" },
+  code: { one: "a creation", many: "creations" },
+};
+
 export function Sidebar({
   activeChatId,
   onSelectChat,
@@ -79,6 +91,8 @@ export function Sidebar({
   onGoToSection,
   onOpenSettings,
   onOpenShortcuts,
+  onOpenItem,
+  openItems,
 }: {
   activeChatId: string | null;
   onSelectChat: (id: string) => void;
@@ -86,6 +100,10 @@ export function Sidebar({
   onGoToSection: (section: Section) => void;
   onOpenSettings: () => void;
   onOpenShortcuts: () => void;
+  /** Open one thing in the room you are in: a deck, a page, a project, a creation. */
+  onOpenItem?: (section: Section, id: string) => void;
+  /** What is open in each room, so its row can say so. */
+  openItems?: Partial<Record<Section, string | null>>;
 }) {
   const { sidebarOpen, toggleSidebar, section, name } = useSettings();
   const [query, setQuery] = React.useState("");
@@ -159,7 +177,7 @@ export function Sidebar({
                  one accessible name is a screen reader saying the same
                  words for a button and a box, and a test that cannot tell
                  them apart either. */
-              aria-label="Find a conversation"
+              aria-label={`Find ${FIND[section].one}`}
               aria-expanded={searching}
               className={cn(
                 /* 44, not the 36 it was drawn at. The round control in the
@@ -208,8 +226,8 @@ export function Sidebar({
                    and two controls a syllable apart is a screen reader saying
                    the same word for different things. This box was still
                    saying the other one. */
-                placeholder="Search conversations"
-                aria-label="Search conversations"
+                placeholder={`Search ${FIND[section].many}`}
+                aria-label={`Search ${FIND[section].many}`}
                 className="tap h-full min-w-0 flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-tertiary"
               />
               <button
@@ -290,12 +308,27 @@ export function Sidebar({
           <div className="mx-2 mb-1 mt-1 border-t border-line" aria-hidden />
 
           <div className="flex-1 overflow-y-auto px-2 pb-2">
-            <ChatList
-              query={query}
-              activeId={section === "chat" ? activeChatId : null}
-              onSelect={(id) => onSelectChat(id)}
-              onNew={onNewChat}
-            />
+            {/* The list under the rooms is the room's own. Conversations in
+                Conversations and in Studio, where making happens in a
+                conversation; decks in Study, pages in the Notebook, projects
+                in Projects, what you made in Creations — each a tap away
+                from any of them, the way the reference keeps a room's things
+                in its sidebar rather than only in the room. */}
+            {section === "chat" || section === "creative" || !onOpenItem ? (
+              <ChatList
+                query={query}
+                activeId={section === "chat" ? activeChatId : null}
+                onSelect={(id) => onSelectChat(id)}
+                onNew={onNewChat}
+              />
+            ) : (
+              <RoomList
+                section={section}
+                query={query}
+                activeId={openItems?.[section] ?? null}
+                onOpen={(id) => onOpenItem(section, id)}
+              />
+            )}
           </div>
 
           {/* The account row. An app that has asked your name and then signs
@@ -380,6 +413,94 @@ function Empty({ query, noun, onNew }: { query: string; noun: string; onNew?: ()
         </button>
       )}
     </div>
+  );
+}
+
+/* ------------------------------------------------------------ room lists -- */
+
+type RoomRow = { id: string; title: string; meta?: string; badge?: string; pinned?: boolean };
+
+/**
+ * One room's things, as sidebar rows: newest first, pinned above, filtered
+ * by the same search box as the conversations. Read live from the same
+ * tables the rooms read, so a deck studied or a page written moves up
+ * without anything telling it to.
+ */
+function RoomList({
+  section,
+  query,
+  activeId,
+  onOpen,
+}: {
+  section: Section;
+  query: string;
+  activeId: string | null;
+  onOpen: (id: string) => void;
+}) {
+  const rows = useLiveQuery(async (): Promise<RoomRow[]> => {
+    if (section === "study") {
+      const [decks, cards] = await Promise.all([db.decks.orderBy("updatedAt").reverse().toArray(), db.cards.toArray()]);
+      const now = Date.now();
+      return decks.map((d) => {
+        const mine = cards.filter((c) => c.deckId === d.id);
+        const due = dueNow(mine, now).length;
+        /* Due, when anything is: that is the number that asks for something.
+           The size only when nothing is due — two bare numbers side by side
+           ("8 8") read as one number printed twice. */
+        return { id: d.id, title: d.name || "Untitled deck", meta: due ? undefined : `${mine.length} cards`, badge: due ? `${due}` : undefined };
+      });
+    }
+    if (section === "notebook") {
+      const notes = await db.notes.orderBy("updatedAt").reverse().toArray();
+      return notes.map((n) => ({ id: n.id, title: n.title?.trim() || "Untitled", pinned: Boolean(n.pinned) }));
+    }
+    if (section === "projects") {
+      const projects = await db.projects.orderBy("updatedAt").reverse().toArray();
+      return projects.map((p) => ({ id: p.id, title: p.name || "Untitled project" }));
+    }
+    if (section === "code") {
+      const canvases = await db.canvases.orderBy("updatedAt").reverse().toArray();
+      return canvases.map((c) => ({ id: c.id, title: c.title || "Untitled", meta: c.kind === "web" ? "app" : c.kind === "doc" ? "doc" : c.lang || "code" }));
+    }
+    return [];
+  }, [section]);
+
+  const q = query.trim().toLowerCase();
+  const list = (rows ?? []).filter((r) => !q || r.title.toLowerCase().includes(q));
+  const ordered = [...list.filter((r) => r.pinned), ...list.filter((r) => !r.pinned)];
+  const heading = { study: "Decks", notebook: "Pages", projects: "Projects", code: "Made here" }[section as "study"] ?? "";
+  const noun = { study: "decks", notebook: "pages", projects: "projects", code: "creations" }[section as "study"] ?? "things";
+
+  if (rows === undefined) return null;
+  if (!ordered.length) return <Empty query={query} noun={noun} />;
+  return (
+    <section aria-label={heading}>
+      <GroupLabel>{heading}</GroupLabel>
+      <ul className="flex flex-col gap-px">
+        {ordered.map((r) => {
+          const on = r.id === activeId;
+          return (
+            <li key={r.id}>
+              <button
+                onClick={() => onOpen(r.id)}
+                aria-current={on || undefined}
+                className={cn(
+                  "tap focus-inset flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-sm transition-colors duration-[var(--dur-fast)]",
+                  on ? "bg-accent-subtle text-primary" : "text-secondary hover:bg-subtle/60 hover:text-primary",
+                )}
+                title={r.title}
+              >
+                <span className="min-w-0 flex-1 truncate">{r.title}</span>
+                {/* At the end, so every title starts on the same line. */}
+                {r.pinned && <Pin size={11} className="shrink-0 text-tertiary" aria-label="Pinned" />}
+                {r.meta && <span className="shrink-0 text-xs text-tertiary tnum">{r.meta}</span>}
+                {r.badge && <span className="badge-count shrink-0" aria-label={`${r.badge} due`}>{r.badge}</span>}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 
