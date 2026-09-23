@@ -128,7 +128,7 @@ console.log("\nEvery row says what it is for, not which company it rents");
   const duet = await p.getByRole("button", { name: /^ARMI Binary —/ }).first().innerText();
   check(/one company/i.test(duet), "and with one key it says both models come from one company", duet.replace(/\n/g, " · "));
   const panel = await p.locator("[data-radix-popper-content-wrapper]").first().innerText();
-  check(/one writes/.test(panel), "the menu says what the cast does", (panel.split("\n").find((l) => /one writes/.test(l)) ?? "").slice(0, 90));
+  check(/One model writes/.test(panel), "the menu says what the cast does", (panel.split("\n").find((l) => /One model writes/.test(l)) ?? "").slice(0, 90));
   check(/sibling/i.test(panel) && /second key/i.test(panel),
     "and that the second model here is a sibling, with what would fix it",
     (panel.split("\n").find((l) => /sibling/i.test(l)) ?? "").slice(0, 90));

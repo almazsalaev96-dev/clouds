@@ -199,7 +199,7 @@ export function ModelPicker({
                   }}
                   className={cn(
                     "tap focus-inset flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle",
-                    auto && "bg-accent-subtle",
+                    auto && "bg-subtle",
                   )}
                 >
                   <Wand2 size={13} className="shrink-0 text-[var(--accent-2)]" />
@@ -292,7 +292,7 @@ function PresetRow({
     <div
       className={cn(
         "tap group flex w-full items-center gap-2 rounded-sm px-2 py-1.5 transition-colors duration-[var(--dur-fast)]",
-        selected ? "bg-accent-subtle" : "hover:bg-subtle",
+        selected ? "bg-subtle" : "hover:bg-subtle/60",
         !available && "opacity-45",
       )}
     >
@@ -369,11 +369,15 @@ function CastRow({ cast }: { cast: Cast }) {
           full, in Settings, where every tactic is listed against its engines.
           Nothing here claims to have built a model. */}
       <p className="text-tiny leading-5 text-tertiary">
-        <span className="text-secondary">one writes</span>
+        {/* Said as a sentence. "one writes · one checks" read, on a model
+            with no second part, as a stray id — "one writes" and nothing
+            else — and the repeated "one" never said these were different
+            models, which is the whole point of the row. */}
+        <span className="text-secondary">One model writes</span>
         {cast.parts.map((x, i) => (
           <React.Fragment key={`${x.role}${i}`}>
             {" · "}
-            <span className="text-secondary">one</span> {does(x)}
+            <span className="text-secondary">{["another", "a third", "a fourth", "a fifth", "a sixth"][i] ?? "another"}</span> {does(x)}
             {/* Which kind of second opinion this is. A sibling is still a
                 second reading and is still worth having; it is not the
                 independent one, and the row that says "checks it after"

@@ -1079,6 +1079,25 @@ textarea:focus-visible {
   }
 }
 
+/* The sidebar is a solid panel, not glass.
+   ---------------------------------------------------------------------------
+   In dark, over a black page, a translucent panel shows nothing through it — there is
+   nothing behind it to see — and its sticky date headers, which cannot be
+   glass inside glass, had to guess at the blended colour and missed: on a
+   phone every "Today" and "Yesterday" sat on its own visible band. Solid,
+   the panel and its headers are one colour, the reference's. */
+/* Dark only. In light the page behind is not black, the glass does show
+   it, and a solid white panel lifted every sidebar label a step above its
+   dark twin (theme-parity counts them). */
+:root[data-theme="dark"] aside.glass {
+  background: var(--bg-surface);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-theme="dark"] aside.glass .glass {
+  background: var(--bg-surface);
+}
+
 /* Never on itself.
    ---------------------------------------------------------------------------
    This is the one hard rule the material has. Two translucent panels stacked
