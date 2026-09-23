@@ -85,6 +85,13 @@ const BURIED = () => {
     if (cs.visibility === "hidden" || cs.opacity === "0" || el.hasAttribute("disabled")) continue;
     // A closed drawer is parked off the left edge on purpose, and says so.
     if (el.closest('[aria-hidden="true"]')) continue;
+    /* A row made to be swiped sideways parks its last pills past the edge on
+       purpose; they are one swipe away. The row itself must still fit. */
+    const row = el.parentElement;
+    if (row && ["auto", "scroll"].includes(getComputedStyle(row).overflowX)) {
+      const rr = row.getBoundingClientRect();
+      if (rr.left >= -1 && rr.right <= innerWidth + 1) continue;
+    }
     const name = (el.getAttribute("aria-label") || el.textContent || "").trim().replace(/\s+/g, " ").slice(0, 28);
     if (r.right > innerWidth + 1 || r.left < -1) out.push(`"${name}" off the side (${Math.round(r.left)}..${Math.round(r.right)})`);
     else if (

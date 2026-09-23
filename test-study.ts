@@ -12,7 +12,7 @@ import {
   newCard, schedule, dueNow, progressOf, whenDue, previewGaps, answeredToday, DAY, MINUTE, MIN_EASE,
   retrievability, intervalFor, adopt, DESIRED_RETENTION, W,
   isCloze, clozeQuestion, clozeAnswer, clozeHidden, makeCloze, NEW_PER_DAY, cramOrder, streakOf, dayKey,
-  parseCards, exportCards, type Card,
+  parseCards, exportCards, interleave, topicKey, dailyLoad, clampRetention, type Card,
 } from "./lib/study";
 
 let failed = 0;
@@ -228,6 +228,37 @@ console.log("\nCards from text, and back");
   check(got.cards[3].front === "Who wrote Hamlet" && got.cards[3].back === "Shakespeare", "and a CSV line with quotes");
   const out = exportCards(got.cards);
   check(parseCards(out).cards.length === 4, "and what is written out reads back in whole");
+}
+
+console.log("\nMixed, not blocked");
+{
+  const rev = (id: string, topic: string, due: number) => card({ id, topic, state: "review", due, stability: 5, interval: 5 });
+  const blocked = [rev("a1", "osmosis", 1), rev("a2", "osmosis", 2), rev("a3", "osmosis", 3), rev("b1", "enzymes", 4), rev("b2", "enzymes", 5), rev("b3", "enzymes", 6)];
+  const order = dueNow(blocked, T0).map((c) => c.id).join(" ");
+  check(order === "a1 b1 a2 b2 a3 b3", "cards on two topics that fell due in two blocks come mixed", order);
+  const again = dueNow(blocked, T0, { after: "osmosis" })[0].id;
+  check(again === "b1", "and the card after an osmosis answer is not osmosis, though osmosis is older", again);
+  const one = interleave([rev("x1", "t", 1), rev("x2", "t", 2)]).map((c) => c.id).join(" ");
+  check(one === "x1 x2", "one topic left comes in its own order", one);
+  const far = interleave([...Array.from({ length: 12 }, (_, i) => rev(`o${i}`, "o", i)), rev("z", "z", 99)]);
+  check(far[1].id === "o1", "the most overdue stay near the front — the mix looks a few cards ahead, not the whole pile", far.slice(0, 3).map((c) => c.id).join(" "));
+  const withNew = dueNow([card({ id: "n1", topic: "a", due: 0 }), rev("r1", "a", 1), rev("r2", "b", 2)], T0).map((c) => c.id).join(" ");
+  check(withNew.endsWith("n1"), "new cards still come after what is due", withNew);
+  check(topicKey(card({ topic: " Osmosis " })) === "osmosis" && topicKey(card({})) === "deck:d1", "no topic is the deck's", topicKey(card({})));
+}
+
+console.log("\nHow much to remember, and what it costs");
+{
+  const known = Array.from({ length: 40 }, (_, i) => card({ id: `k${i}`, state: "review", stability: 10, interval: 10, due: T0 }));
+  const at80 = dailyLoad(known, 0.8), at90 = dailyLoad(known, 0.9), at95 = dailyLoad(known, 0.95);
+  check(at80 < at90 && at90 < at95, "aiming higher asks more reviews a day", `${at80.toFixed(1)} < ${at90.toFixed(1)} < ${at95.toFixed(1)}`);
+  check(Math.abs(at90 - 40 / intervalFor(10)) < 1e-9, "each known card costs one over its gap", at90.toFixed(2));
+  check(dailyLoad([card({})], 0.9) === 0, "a new card is not a review yet");
+  const c = card({ state: "review", stability: 10, interval: 10, due: T0, lastAnswered: T0 - 10 * DAY });
+  const g90 = schedule(c, "good", T0).interval, g80 = schedule(c, "good", T0, 0.8).interval, g95 = schedule(c, "good", T0, 0.95).interval;
+  check(g80 > g90 && g90 > g95, "the aim moves the next gap: lower aims wait longer", `${g80} > ${g90} > ${g95} days`);
+  check(schedule(c, "good", T0, DESIRED_RETENTION).interval === g90, "and ninety is the same as not choosing");
+  check(clampRetention("x") === DESIRED_RETENTION && clampRetention(0.2) === 0.7 && clampRetention(1) === 0.97, "a stored aim out of range is pulled back in");
 }
 
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");

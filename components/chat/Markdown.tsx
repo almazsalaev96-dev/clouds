@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import dynamic from "next/dynamic";
 
 /**
  * The markdown pipeline — micromark, GFM, KaTeX — is the heaviest thing in the
@@ -9,10 +8,11 @@ import dynamic from "next/dynamic";
  * It loads in its own chunk, with the raw text shown meanwhile, so the first
  * message is never a blank space.
  */
-const Renderer = dynamic(() => import("./MarkdownRenderer"), {
-  ssr: false,
-  loading: () => null,
-});
+const Renderer = React.lazy(() => import("./MarkdownRenderer"));
+
+/** The text for the moment before it is typeset: no `#`, `**` or `- ` on show. */
+const bare = (s: string) =>
+  s.replace(/^\s{0,3}#{1,6}\s+/gm, "").replace(/^(\s*)[-*+]\s+/gm, "$1• ").replace(/(\*\*|__)(.+?)\1/g, "$2");
 
 export const Markdown = React.memo(function Markdown({
   content,
@@ -29,6 +29,17 @@ export const Markdown = React.memo(function Markdown({
     import("./MarkdownRenderer").then(() => setReady(true));
   }, []);
 
+  /* The words as they are, while the renderer is not there yet. This used
+     to be two waits with one fallback: `ready` covered the first, and the
+     second — the lazy component resolving after `ready` flipped — rendered
+     nothing. A Notebook page opened in that gap came up as its toolbar over
+     an empty sheet, "18 words" and no words, and stayed that way on one run
+     in five of the rooms probe. Both waits now show the text. */
+  const plain = (
+    <div className="prose" dir="auto">
+      <p className="whitespace-pre-wrap">{bare(content)}</p>
+    </div>
+  );
   if (!ready) {
     /* `dir="auto"` and not an app-wide direction. Four providers, all fluent in
        Arabic, Hebrew, Persian and Urdu; without this an answer in any of them
@@ -43,7 +54,11 @@ export const Markdown = React.memo(function Markdown({
       </div>
     );
   }
-  return <Renderer content={content} streaming={streaming} />;
+  return (
+    <React.Suspense fallback={plain}>
+      <Renderer content={content} streaming={streaming} />
+    </React.Suspense>
+  );
 });
 
 /**

@@ -43,6 +43,10 @@ console.log("\nThe month, from the log");
   const r = recallRate(log, now);
   check(r.answered === 30 && r.right === 24 && Math.abs((r.rate ?? 0) - 0.8) < 1e-9, "answers inside the window are counted and the old day is not", `${r.right}/${r.answered}`);
   check(recallRate([], now).rate === null, "and no rate is claimed from nothing");
+  const old = recallRate([...log, { day: dayKey(now - DAY), answered: 93 } as never], now);
+  check(old.answered === 30 && Math.abs((old.rate ?? 0) - 0.8) < 1e-9,
+    "a day logged before right answers were kept is left out — not read as all wrong", `${old.right}/${old.answered}`);
+  check(recallRate([{ day: dayKey(now), answered: 93 } as never], now).rate === null, "and a month of such days claims no rate at all");
   const grid = weeksOf(log, now);
   check(grid.length === 84 && grid[83].day === dayKey(now) && grid[83].answered === 10 && grid[78].answered === 20, "twelve weeks end today, one cell a day", `${grid.length} cells`);
 }

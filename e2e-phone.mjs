@@ -161,6 +161,25 @@ console.log("\nThe blank page's waiting line wraps without a dangling dot");
   } else check(true, "(nothing waiting — the line is not shown)");
 }
 
+console.log("\nOne header on a phone: the sidebar button sits in the room's title row");
+{
+  for (const room of ["Notebook", "Study"]) {
+    await drawer(room);
+    /* The drawer closes on a pick; the button is back once it has. */
+    const btns = p.getByRole("button", { name: "Show sidebar" });
+    await btns.first().waitFor({ timeout: 3000 }).catch(() => {});
+    const shown = [];
+    for (const h of await btns.all()) if (await h.isVisible()) shown.push(await h.boundingBox());
+    /* A list's partner is its title; an open page's is its back button. */
+    const back = p.getByRole("button", { name: /^All (pages|decks)$/ }).first();
+    const title = (await back.isVisible().catch(() => false)) ? await back.boundingBox() : await p.locator("main h1").first().boundingBox();
+    check(shown.length === 1, `${room}: one sidebar button, not a bar of its own plus the room's`, `${shown.length} visible`);
+    check(shown[0] && title && Math.abs((shown[0].y + shown[0].height / 2) - (title.y + title.height / 2)) < 8,
+      `${room}: and it shares the first row with the title or the way back`, shown[0] && title ? `button ${Math.round(shown[0].y)} title ${Math.round(title.y)}` : "missing");
+    check(title && title.y < 70, `${room}: so the title starts at the top of the screen`, title ? `${Math.round(title.y)}px` : "missing");
+  }
+}
+
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors");
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 await b.close();

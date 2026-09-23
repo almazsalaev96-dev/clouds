@@ -18,7 +18,7 @@ import { draftCards } from "@/lib/generate";
 import { cheapestAvailable, whyItFailed } from "@/lib/complete";
 import {
   answeredToday, calibration, calibrationLine, clozeAnswer, clozeHidden, clozeQuestion, cramOrder,
-  dueNow, isCloze, isLeech, mistakeQueue, progressOf, previewGaps, streakOf, topicStats, weakestTopic, whenDue,
+  clampRetention, dailyLoad, dueNow, isCloze, isLeech, RETENTION_CHOICES, topicKey, mistakeQueue, progressOf, previewGaps, streakOf, topicStats, weakestTopic, whenDue,
   type Attempt, type Calibration, type Card, type Rating, type StudyDay, type TopicStat,
 } from "@/lib/study";
 import { offerUndo } from "@/lib/undo";
@@ -28,6 +28,7 @@ import { DeckPanel } from "@/components/study/DeckPanel";
 import { SectionIndex } from "@/components/SectionIndex";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
+import { useSettings } from "@/lib/store";
 
 /**
  * The room where you are asked again.
@@ -311,6 +312,31 @@ export function StudyView({
       }}
       lead={
         <div className="mb-4">
+          {/* First, when there is anything waiting: somebody who opens this
+              room on a Tuesday evening has come to do what is due, and on a
+              phone the line that does it sat below the fold, under a box for
+              starting a new subject. */}
+          {/* What is waiting, and the one press that clears it. Everything
+              due across every deck, because "study for ten minutes" is the
+              thing somebody actually sits down to do. */}
+          {due > 0 && (
+            <div className="mb-3 flex items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2.5">
+              <span className="min-w-0 flex-1 text-sm text-primary">
+                <span className="tnum font-medium text-accent">{due}</span> waiting now
+                {today > 0 && (
+                  <span className="text-tertiary"> · {today} answered today</span>
+                )}
+              </span>
+              <Button size="sm" variant="primary" className="bloom" onClick={() => setSession({ deckId: null, mode: "due" })}>
+                Start
+              </Button>
+            </div>
+          )}
+          {due === 0 && today > 0 && (
+            <p className="mb-3 text-sm text-tertiary tnum">
+              {today} answered today · nothing else waiting.
+            </p>
+          )}
           {/* The way in. A subject, and a deck a few seconds later — this is
               the part every assistant is already good at, so it is one line
               rather than a form. */}
@@ -450,27 +476,6 @@ export function StudyView({
           {busy && !pasting && <p className="sheen mt-2 text-sm font-medium">Reading it</p>}
           {notice && <p className="mt-2 text-sm text-warning">{notice}</p>}
 
-          {/* What is waiting, and the one press that clears it. Everything
-              due across every deck, because "study for ten minutes" is the
-              thing somebody actually sits down to do. */}
-          {due > 0 && (
-            <div className="mt-3 flex items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2.5">
-              <span className="min-w-0 flex-1 text-sm text-primary">
-                <span className="tnum font-medium text-accent">{due}</span> waiting now
-                {today > 0 && (
-                  <span className="text-tertiary"> · {today} answered today</span>
-                )}
-              </span>
-              <Button size="sm" variant="primary" className="bloom" onClick={() => setSession({ deckId: null, mode: "due" })}>
-                Start
-              </Button>
-            </div>
-          )}
-          {due === 0 && today > 0 && (
-            <p className="mt-3 text-sm text-tertiary tnum">
-              {today} answered today · nothing else waiting.
-            </p>
-          )}
           {/* Days in a row. The one number that is about the person rather
               than the cards, and the reason somebody opens this room on a
               day nothing is due. Counted from the log, not from the cards:
@@ -532,7 +537,7 @@ export function StudyView({
             </p>
           )}
 
-          <Record days={days} now={now} />
+          <Record days={days} now={now} cards={cards} />
           {surenessLine && <Sureness c={sureness} line={surenessLine} />}
           {topics.length > 1 && <Topics topics={topics} onPractise={(t) => {
             const ids = cards.filter((c) => c.topic === t).map((c) => c.id);
@@ -626,6 +631,10 @@ function Session({
   const [note, setNote] = React.useState<string | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const now = useNow(1_000);
+  /* The topic of the card just answered, which has left the queue by the
+     time the next one is chosen — so the mix can still avoid it. */
+  const [lastKey, setLastKey] = React.useState<string | undefined>();
+  const retention = clampRetention(useSettings((st) => st.retention));
   /* In practice the order is fixed at the start and walked once, since
      nothing answered changes when anything comes back. The schedule's queue
      re-reads the clock every second, because a card answered "again" is
@@ -635,8 +644,8 @@ function Session({
   );
   const queue = React.useMemo(() => {
     if (mode === "cram") return walk.map((id) => cards.find((c) => c.id === id)).filter((c): c is Card => Boolean(c));
-    return dueNow(cards, now);
-  }, [cards, now, mode, walk]);
+    return dueNow(cards, now, { after: lastKey });
+  }, [cards, now, mode, walk, lastKey]);
   const card = queue[0];
 
   const answer = React.useCallback(
@@ -651,6 +660,7 @@ function Session({
       setSure(null);
       setNote(null);
       setDone((n) => n + 1);
+      setLastKey(topicKey(card));
       setTally((t) => ({ ...t, [rating]: t[rating] + 1 }));
       /* Written down before the schedule moves, and written for every
          answer rather than only the wrong ones: a log of failures alone
@@ -675,10 +685,10 @@ function Session({
         await noteStudied(rating);
       } else {
         setUndoable(card);
-        await answerCard(card, rating);
+        await answerCard(card, rating, retention);
       }
     },
-    [card, mode, typed, sure],
+    [card, mode, typed, sure, retention],
   );
 
   /* The way back from the last press. Only the last: a stack of undos over a
@@ -1185,7 +1195,9 @@ function useNow(everyMs: number): number {
  * ninety per cent it plans for. Numbers about the person, not the cards,
  * and only once there is a month to read.
  */
-function Record({ days, now }: { days: StudyDay[]; now: number }) {
+function Record({ days, now, cards }: { days: StudyDay[]; now: number; cards: Card[] }) {
+  const aim = clampRetention(useSettings((st) => st.retention));
+  const aimPct = Math.round(aim * 100);
   const cells = weeksOf(days, now);
   const active = cells.filter((c) => c.answered > 0).length;
   if (active === 0) return null;
@@ -1226,9 +1238,55 @@ function Record({ days, now }: { days: StudyDay[]; now: number }) {
       {month.answered >= 20 && month.rate !== null && (
         <p className="mt-1.5 text-xs text-tertiary tnum">
           Known when asked, last 30 days: <span className="text-secondary">{Math.round(month.rate * 100)}%</span> of {month.answered}
-          {month.rate < 0.85 ? " — below the 90% the schedule aims for; shorter gaps would help, so would fewer new cards" : month.rate > 0.96 ? " — above the 90% aimed for; the gaps could be longer" : " — close to the 90% the schedule aims for"}
+          {month.rate < aim - 0.05 ? ` — below the ${aimPct}% you are aiming for; shorter gaps would help, so would fewer new cards` : month.rate > aim + 0.06 ? ` — above the ${aimPct}% aimed for; the gaps could be longer` : ` — close to the ${aimPct}% you are aiming for`}
         </p>
       )}
+      <Aim cards={cards} />
+    </div>
+  );
+}
+
+/**
+ * How much to remember, chosen, with what it costs said beside it.
+ *
+ * The schedule asks again at the point a card is about to slip below this
+ * chance of being known. Ninety is the default and the right one for most
+ * people, but in a season of six subjects eighty-five can be the difference
+ * between keeping up and abandoning the deck — and a student about to sit
+ * the paper may want ninety-five for a week. The choice changes the gaps
+ * from the next answer on; nothing already scheduled moves.
+ */
+function Aim({ cards }: { cards: Card[] }) {
+  const aim = clampRetention(useSettings((st) => st.retention));
+  const set = useSettings((st) => st.set);
+  const known = cards.filter((c) => c.state === "review").length;
+  if (known < 5) return null;
+  const load = (r: number) => Math.max(1, Math.round(dailyLoad(cards, r)));
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-tertiary" role="group" aria-label="How much to remember">
+      <span>Aim to remember</span>
+      <div className="flex gap-1">
+        {RETENTION_CHOICES.map((r) => (
+          <button
+            key={r}
+            onClick={() => set({ retention: r })}
+            aria-pressed={Math.abs(aim - r) < 0.001}
+            className={cn(
+              "btn-touch press tnum rounded-full border px-2.5 text-xs transition-colors duration-[var(--dur-fast)]",
+              Math.abs(aim - r) < 0.001
+                ? "border-transparent bg-accent-subtle text-primary"
+                : "border-line bg-surface text-secondary hover:bg-subtle hover:text-primary",
+            )}
+          >
+            {Math.round(r * 100)}%
+          </button>
+        ))}
+      </div>
+      {/* Its own line on a phone rather than a clause that wraps there and
+          starts the next line with a stray dot. */}
+      <span className="tnum max-sm:basis-full">
+        <span className="max-sm:hidden">· </span>about {load(aim)} review{load(aim) === 1 ? "" : "s"} a day for what you know now
+      </span>
     </div>
   );
 }

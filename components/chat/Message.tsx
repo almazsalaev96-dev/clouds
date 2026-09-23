@@ -619,12 +619,17 @@ function AssistantMessageImpl({
           was asked and nothing is done behind their back. Last answer only —
           on an earlier one they would be asking about the wrong thing. */}
       {isLast && onFollowUp && !message.error && !computed && text && (
-        <div className="no-print mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Follow up">
+        /* One row on a phone, swiped sideways, rather than six pills
+           wrapping into two tall rows between the answer and its actions —
+           which on a 390-pixel screen was a third of the view. The row runs
+           to the screen's edge so a pill cut off at the right says there is
+           more; wider screens wrap as before. */
+        <div className="swipe-row no-print -mx-4 mt-2.5 flex gap-1.5 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:overflow-visible md:px-0" role="group" aria-label="Follow up">
           {(made ? MAKE_FOLLOW_UPS : teaching ? TEACH_FOLLOW_UPS : FOLLOW_UPS).map((f) => (
             <button
               key={f.label}
               onClick={() => onFollowUp(f.text)}
-              className="btn-touch press h-8 rounded-full border border-line bg-surface px-3 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+              className="btn-touch press h-8 shrink-0 whitespace-nowrap rounded-full border border-line bg-surface px-3 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
             >
               {f.label}
             </button>

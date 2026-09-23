@@ -661,3 +661,21 @@ that can make everything is a room that explains itself for a paragraph
 before it lets you do anything, and every reference product keeps creation
 close to the surface that edits the result.
 
+
+
+### §4k — Design and functions, September 2026: what the flagships and the evidence say, and what was built
+
+Asked for "better design and functions, from research". A sweep of what ChatGPT, Claude, Gemini (NotebookLM is now Gemini Notebook), Perplexity, Le Chat and Grok ship, what study apps keep and drop, and the learning-science behind them; then a screenshot audit of every room at phone and tablet size.
+
+**What lasts and what gets dropped.** Loose "chat tutor" and push features were retired this year (Quizlet's Q-Chat, ChatGPT Pulse, Grok Companions); grounded, source-cited study outputs stay (Gemini Notebook's flashcards with an "Explain" on a miss, study mode, guided learning). Users want to know which model answered (the GPT-5 router backlash) and answers that are not merely agreeable (the April 2025 sycophancy rollback).
+
+**Evidence used this round.**
+- Interleaving — Rohrer, Dedrick, Hartwig & Cheung (2020), preregistered, 787 students: mixed practice 61% vs blocked 38% a month later (d = 0.83). ARMI's due queue was ordered by due time, and cards made together fall due together — blocked by construction. Now mixed (`interleave`).
+- Desired retention as a choice — FSRS benchmark (500M+ reviews); Anki exposes it. ARMI fixed it at 90%. Now 80–95% with the daily cost said beside it.
+- Hints before answers (Bastani et al., PNAS 2025: plain GPT-4 help raised practice scores and lowered them once removed; a hint-giving tutor did not) — ARMI already has the hint ladder and Learning style. Confidence before the reveal (hypercorrection) — already asked (`Sureness`). Relearning in-session — already (an "again" card returns in a minute).
+
+**Audit findings built.** Phone rooms spent ~100px on a bar holding only the sidebar button above the room's own header; the button now sits in that header. Study put the due line under the new-subject box, below the fold on a phone; due is first. Six follow-up pills wrapped to two tall rows on a phone; one swipe row. The recall line read "0% of 93" from days logged before right answers were kept; those days are left out. A Notebook page could open blank while the renderer loaded; the fallback is now the text.
+
+**Not built this round, worth doing next.** A "Why did I miss this?" sheet with a citation into the source (Gemini Notebook's Explain); try-first questions when a document opens (pretesting effect); an exam-date plan that sets the aim and spreads the load; a context meter with "summarise and continue".
+
+Sources: Rohrer et al. 2020 (gwern.net/doc/psychology/spaced-repetition/2019-rohrer.pdf); Bastani et al. PNAS 2025 (pnas.org/doi/10.1073/pnas.2422633122); Kestin et al., Sci Rep 2025 (nature.com/articles/s41598-025-97652-6); FSRS benchmark (expertium.github.io/Benchmark.html); Anki 26.05 release notes; Gemini Notebook rename (workspaceupdates.googleblog.com, July 2026); NotebookLM flashcards (support.google.com/notebooklm/answer/16958963); ChatGPT study mode (openai.com/index/chatgpt-study-mode); sycophancy post-mortem (openai.com/index/sycophancy-in-gpt-4o); Quizlet Q-Chat notice; WCAG 2.2.

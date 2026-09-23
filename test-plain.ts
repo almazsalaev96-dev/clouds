@@ -31,7 +31,7 @@ console.log("\nThe month's recall rate");
   const r = recallRate([{ day: day(1), answered: 10, right: 9 }, { day: day(2), answered: 10, right: 7 }], now);
   check(r.answered === 20 && r.rate === 0.8, "adds up", `${r.answered} answered, rate ${r.rate}`);
   const old = recallRate([{ day: day(1), answered: 10 } as never, { day: day(2), answered: 10, right: 5 }], now);
-  check(old.rate === 0.25 && Number.isFinite(old.rate), "a row from before `right` existed counts as zero right, never as NaN", `${old.rate}`);
+  check(old.rate === 0.5 && old.answered === 10, "a row from before `right` existed is left out — never NaN, never read as all wrong", `${old.rate} of ${old.answered}`);
   check(recallRate([], now).rate === null, "and no answers is no rate rather than a division");
 }
 

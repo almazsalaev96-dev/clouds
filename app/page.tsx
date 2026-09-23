@@ -7,6 +7,7 @@ import type { Action } from "@/lib/types";
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { PanelLeft } from "lucide-react";
+import { RoomToggle } from "@/components/ui/RoomToggle";
 import type { ContentBlock, Message, Rating, RatingReason } from "@/lib/types";
 import { rememberRequest } from "@/lib/memory";
 import { asNote, type Outcome } from "@/lib/compute";
@@ -2154,12 +2155,21 @@ export default function Page() {
                   of them blank. Below `md` the toggle still needs somewhere to
                   be; everywhere else the room starts at the top. */}
               {!settings.sidebarOpen && !inUse && (
-                <header className="no-print flex h-[var(--topbar-h)] shrink-0 items-center gap-1 border-b border-transparent px-2 md:hidden">
+                <header className="room-toggle-row no-print flex h-[var(--topbar-h)] shrink-0 items-center gap-1 border-b border-transparent px-2 md:hidden">
                   <IconButton label="Show sidebar" keys={["mod", "\\"]} onClick={settings.toggleSidebar}>
                     <PanelLeft size={16} />
                   </IconButton>
                 </header>
               )}
+              <RoomToggle.Provider
+                value={
+                  !settings.sidebarOpen && !inUse ? (
+                    <IconButton label="Show sidebar" keys={["mod", "\\"]} onClick={settings.toggleSidebar}>
+                      <PanelLeft size={16} />
+                    </IconButton>
+                  ) : null
+                }
+              >
               {settings.section === "projects" && (
                 <ProjectsView
                   projectId={projectId}
@@ -2265,6 +2275,7 @@ export default function Page() {
                   }}
                 />
               )}
+              </RoomToggle.Provider>
             </>
           ) : (
           <>

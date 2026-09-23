@@ -483,9 +483,9 @@ export function cardsOf(deckId: string): Promise<Card[]> {
 }
 
 /** An answer, scheduled. The arithmetic is in `lib/study.ts` and is pure. */
-export async function answerCard(card: Card, rating: Rating): Promise<Card> {
+export async function answerCard(card: Card, rating: Rating, retention?: number): Promise<Card> {
   const now = Date.now();
-  const next = schedule(card, rating, now);
+  const next = schedule(card, rating, now, retention);
   await db.cards.put(next);
   await db.decks.update(card.deckId, { updatedAt: now });
   await noteStudied(rating, now);

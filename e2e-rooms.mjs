@@ -49,7 +49,7 @@ await p.evaluate(async () => {
     put("messages", { id: `${id}-m1`, conversationId: id, parentId: null, role: "user", content: [{ type: "text", text: "A question" }], createdAt: now - DAY });
     put("messages", { id: `${id}-m2`, conversationId: id, parentId: `${id}-m1`, role: "assistant", content: [{ type: "text", text: "An answer." }], modelId: "claude-sonnet-5", createdAt: now - DAY + 1000 });
   }
-  for (let i = 1; i <= 6; i++) { const d = new Date(now - i * DAY); put("studyDays", { day: d.toISOString().slice(0, 10), answered: 12 + i, again: 2 }); }
+  for (let i = 1; i <= 6; i++) { const d = new Date(now - i * DAY); put("studyDays", { day: d.toISOString().slice(0, 10), answered: 12 + i, again: 2, ...(i > 2 ? { right: 10 + i } : {}) }); }
   await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
 }).catch((e) => console.log("SEED:", e.message));
 await p.reload({ waitUntil: "networkidle" });
@@ -126,11 +126,15 @@ console.log("\nLibrary: one room for everything made");
   /* A page with writing opens as it reads now, with Edit one press away,
      so what is checked is the Notebook's page view and its words. */
   const inNotebook = await p.getByRole("button", { name: /^(Edit|Preview)$/ }).waitFor({ timeout: 4000 }).then(() => true).catch(() => false);
-  if (inNotebook) await p.locator("main").getByText("Hypotonic").first().waitFor({ timeout: 4000 }).catch(() => {});
+  if (inNotebook) await p.locator("main").getByText("Hypotonic").first().waitFor({ timeout: 10000 }).catch(() => {});
   const shown = inNotebook ? await p.locator("main").innerText() : "";
+  if (!/Hypotonic/.test(shown)) {
+    await p.screenshot({ path: "/tmp/claude-0/rooms-fail.png" });
+    console.log("  [debug] html:", (await p.locator("main").innerHTML()).replace(/<svg.*?<\/svg>/g, "").replace(/ class="[^"]*"/g, "").replace(/\s+/g, " ").slice(0, 3000));
+  }
   check(inNotebook && /Hypotonic/.test(shown) && !/^# /m.test(shown),
     "and opening it goes to the Notebook, which shows the page as it reads — no # or - marks",
-    inNotebook ? "page open" : "no page");
+    inNotebook ? JSON.stringify(shown.slice(0, 200)) : "no page");
 }
 
 console.log("\nStudy: no NaN, and cards in the order they matter");
@@ -138,7 +142,28 @@ console.log("\nStudy: no NaN, and cards in the order they matter");
   await go("Study");
   const t = await main();
   check(!/NaN/.test(t), "a study day without a `right` count does not put NaN on the screen");
-  check(/Known when asked, last 30 days: \d+%/.test(t), "the recall line still shows with the rest counted", (t.match(/Known when asked[^\n]*/) ?? [""])[0].slice(0, 60));
+  /* Days 3–6 kept their right answers (58 of 66); days 1–2 were logged before
+     that existed. They were counted as all wrong once — "0% of 93" — and the
+     advice under it told a student who knew most cards to shorten the gaps. */
+  check(/Known when asked, last 30 days: 88% of 66/.test(t), "the recall line counts only days that kept what was right — not 0% from old days", (t.match(/Known when asked[^\n]*/) ?? [""])[0].slice(0, 60));
+  /* What is due comes first: the reason to open the room on most days sat
+     under a box for starting a new subject. */
+  const waiting = await p.getByText(/waiting now/).first().boundingBox();
+  const field = await p.getByLabel("What to study").boundingBox();
+  check(waiting && field && waiting.y < field.y, "what is due is above the box for a new subject", waiting && field ? `due ${Math.round(waiting.y)} · field ${Math.round(field.y)}` : "missing");
+  /* The aim, chosen, with its cost said beside it. */
+  const aim = p.getByRole("group", { name: "How much to remember" });
+  check(await aim.isVisible(), "the aim is offered once there are cards you know");
+  check((await aim.getByRole("button", { name: "90%" }).getAttribute("aria-pressed")) === "true", "ninety per cent until somebody chooses");
+  const load90 = Number(((await aim.innerText()).match(/about (\d+) review/) ?? [])[1]);
+  await aim.getByRole("button", { name: "80%" }).click();
+  await p.waitForTimeout(300);
+  const load80 = Number(((await aim.innerText()).match(/about (\d+) review/) ?? [])[1]);
+  check(load80 < load90, "and aiming lower says it means fewer reviews a day", `${load90} at 90% → ${load80} at 80%`);
+  check(/below the 80%|close to the 80%|above the 80%/.test(await main()), "the recall line holds the month against the chosen aim", ((await main()).match(/Known when asked[^\n]*/) ?? [""])[0].slice(40, 110));
+  const stored = await p.evaluate(() => JSON.parse(localStorage.getItem("store.settings.v1") ?? "{}").state?.retention);
+  check(stored === 0.8, "and the choice is kept", `${stored}`);
+  await aim.getByRole("button", { name: "90%" }).click();
   await p.getByText("Cell biology").first().click();
   await p.waitForTimeout(900);
   const fronts = await p.locator("main").getByRole("button", { name: /^Edit “/ }).allInnerTexts();

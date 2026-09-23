@@ -155,6 +155,8 @@ interface Settings {
   sendOnEnter: boolean;
   /** Whether what was remembered goes into the prompt. Off keeps the list, unused. */
   memoryOn: boolean;
+  /** How much of what comes up the schedule aims for you to know (0.8–0.95). */
+  retention: number;
   /**
    * Whether the model may use this app's rooms as tools — save cards, write
    * a page, look in the notebook. Off, it can only answer.
@@ -228,6 +230,7 @@ export const DEFAULT_SETTINGS = {
   sidebarOpen: true,
   sendOnEnter: true,
   memoryOn: true,
+  retention: 0.9,
   actionsOn: true,
   showLineNumbers: false,
   wrapCode: false,

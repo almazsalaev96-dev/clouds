@@ -79,10 +79,14 @@ export function recallRate(days: StudyDay[], now: number, span = 30): { answered
   let answered = 0, right = 0;
   for (const d of days) {
     if (d.day < from) continue;
-    /* A row written before `right` existed has no `right`, and one NaN in
-       the sum put "NaN% of 93" on the screen. A missing count is zero. */
+    /* A row written before `right` existed has no `right`. Summing it as
+       NaN put "NaN% of 93" on the screen; counting it as zero put "0% of
+       93" there instead, and told a student who knew nine cards in ten to
+       shorten their gaps. A day that never recorded what was right is left
+       out of the rate altogether. */
+    if (typeof d.right !== "number" || !Number.isFinite(d.right)) continue;
     answered += d.answered || 0;
-    right += d.right || 0;
+    right += d.right;
   }
   const rate = answered ? right / answered : null;
   return { answered, right, rate: rate !== null && Number.isFinite(rate) ? rate : null };

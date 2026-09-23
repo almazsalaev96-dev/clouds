@@ -199,6 +199,40 @@ export function retrievability(days: number, stability: number): number {
   return Math.pow(1 + (FACTOR * Math.max(0, days)) / Math.max(0.01, stability), DECAY);
 }
 
+/**
+ * How much of what comes up you mean to know, as a choice.
+ *
+ * Ninety per cent is FSRS's default and the right one for most people, but
+ * it is a trade and the student is the one paying: aiming for ninety-five
+ * roughly doubles the reviews for five points of recall, and eighty halves
+ * them for a revision season that has more subjects than evenings. Anki
+ * exposes the same dial as "desired retention". Outside this range the
+ * arithmetic still works and the advice stops being sensible.
+ */
+export const RETENTION_CHOICES = [0.8, 0.85, 0.9, 0.95] as const;
+export const clampRetention = (r: unknown): number =>
+  typeof r === "number" && Number.isFinite(r) ? Math.min(0.97, Math.max(0.7, r)) : DESIRED_RETENTION;
+
+/**
+ * Roughly how many reviews a day the cards you already know will ask for,
+ * once they settle, at a given aim.
+ *
+ * Each review card comes back about once every `intervalFor(stability)`
+ * days, so it costs one over that a day; the sum is the steady load. It is
+ * a forecast from what the cards are now — it cannot know about the cards
+ * you have not made yet, or the ones you are about to get wrong — so it is
+ * said as "about", and it is what makes the dial above an informed choice
+ * rather than a percentage somebody picks because it sounds diligent.
+ */
+export function dailyLoad(cards: Card[], retention = DESIRED_RETENTION): number {
+  let load = 0;
+  for (const c of cards) {
+    if (c.state !== "review") continue;
+    load += 1 / intervalFor(adopt(c).stability, retention);
+  }
+  return load;
+}
+
 /** The gap that brings a card back at the desired retention, in whole days. */
 export function intervalFor(stability: number, retention = DESIRED_RETENTION): number {
   const days = (stability / FACTOR) * (Math.pow(retention, 1 / DECAY) - 1);
@@ -260,7 +294,7 @@ export function adopt(card: Card): { stability: number; difficulty: number } {
  * Returns a new card rather than mutating, so the caller can write it and
  * the test can compare. Nothing here reads the clock.
  */
-export function schedule(card: Card, rating: Rating, now: number): Card {
+export function schedule(card: Card, rating: Rating, now: number, retention = DESIRED_RETENTION): Card {
   const next: Card = { ...card, reps: card.reps + 1, lastAnswered: now };
   /* The day a card was first met, for the daily cap on new ones. Stamped
      once and never moved: a lapse sends a card back to the start of its
@@ -307,7 +341,7 @@ export function schedule(card: Card, rating: Rating, now: number): Card {
     const graduate = (grade: 3 | 4) => {
       const stability = known ? stabilityAfterSuccess(known.difficulty, known.stability, 1, grade) : initialStability(grade);
       const difficulty = known ? nextDifficulty(known.difficulty, grade) : initialDifficulty(grade);
-      const days = intervalFor(stability);
+      const days = intervalFor(stability, retention);
       next.state = "review";
       next.stability = stability;
       next.difficulty = difficulty;
@@ -335,7 +369,7 @@ export function schedule(card: Card, rating: Rating, now: number): Card {
   const elapsed = daysSince(card, now);
   const r = retrievability(elapsed, stability);
   const s2 = elapsed < 1 ? stabilitySameDay(stability, g) : stabilityAfterSuccess(difficulty, stability, r, g as 2 | 3 | 4);
-  const days = intervalFor(s2);
+  const days = intervalFor(s2, retention);
   next.step = 0;
   next.state = "review";
   next.stability = s2;
@@ -398,14 +432,14 @@ export function newCard(init: {
 export const NEW_PER_DAY = 20;
 
 /** What is waiting, in the order it should be asked. */
-export function dueNow(cards: Card[], now: number, opts: { newLimit?: number } = {}): Card[] {
+export function dueNow(cards: Card[], now: number, opts: { newLimit?: number; after?: string } = {}): Card[] {
   /* How many new ones have already been started today, so the cap is on the
      day and not on the session — a person who studies twice before lunch has
      not earned forty. */
   const limit = opts.newLimit ?? NEW_PER_DAY;
   const started = cards.filter((c) => c.introducedAt && c.introducedAt >= midnightOf(now)).length;
   let room = Math.max(0, limit - started);
-  return cards
+  const due = cards
     .filter((c) => c.due <= now)
     /* New cards last. Somebody who opens a deck with forty overdue reviews
        and twenty new cards should clear the backlog first — adding new
@@ -413,6 +447,47 @@ export function dueNow(cards: Card[], now: number, opts: { newLimit?: number } =
        abandon this. */
     .sort((a, b) => rank(a) - rank(b) || a.due - b.due)
     .filter((c) => (c.state !== "new" ? true : room-- > 0));
+  /* Mixed, within each kind: cards made together fall due together, so an
+     order by due time alone asked ten osmosis cards in a row and then ten
+     on respiration. */
+  const seen = due.filter((c) => c.state !== "new");
+  const fresh = due.filter((c) => c.state === "new");
+  const mixed = interleave(seen, opts.after);
+  return [...mixed, ...interleave(fresh, mixed.length ? topicKey(mixed[mixed.length - 1]) : opts.after)];
+}
+
+/** What counts as "the same thing" for mixing: the topic, else the deck. */
+export const topicKey = (c: Card): string => c.topic?.trim().toLowerCase() || `deck:${c.deckId}`;
+
+/**
+ * The same cards, with neighbours on different topics wherever the queue
+ * allows it.
+ *
+ * Interleaving — mixing kinds of problem instead of practising one kind in a
+ * block — is one of the few study habits with large, replicated effects: in
+ * a preregistered classroom trial (Rohrer et al., 2020, 787 students) a
+ * mixed schedule scored 61% to the blocked schedule's 38% a month later. It
+ * works because a block tells you which method the next question needs
+ * before you have read it; a mix makes you notice.
+ *
+ * Greedy and close to the original order: each place takes the earliest
+ * card, within a short look-ahead, whose topic differs from the one before.
+ * The look-ahead keeps the most overdue cards near the front; where every
+ * card left is on one topic, they come in their own order. `after` is the
+ * topic of the card just answered, which has already left the list.
+ */
+export function interleave(cards: Card[], after?: string, ahead = 8): Card[] {
+  const left = [...cards];
+  const out: Card[] = [];
+  let last = after;
+  while (left.length) {
+    let i = left.slice(0, ahead).findIndex((c) => topicKey(c) !== last);
+    if (i < 0) i = 0;
+    const [c] = left.splice(i, 1);
+    out.push(c);
+    last = topicKey(c);
+  }
+  return out;
 }
 
 /**

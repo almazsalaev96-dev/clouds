@@ -2795,3 +2795,12 @@ textarea.bare:focus-visible,
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
 }
+
+/* One header on a phone, not two: when a room's own header carries it — a
+   list's title row, a page's toolbar — its title row carries the sidebar button (components/ui/RoomToggle.tsx) and the lone
+   row that held it above the room is not drawn. */
+main:has(.has-room-toggle) > .room-toggle-row { display: none; }
+
+/* A row you swipe, not scroll: no bar under a line of pills on a phone. */
+.swipe-row { scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.swipe-row::-webkit-scrollbar { display: none; }
