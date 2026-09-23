@@ -157,6 +157,8 @@ interface Settings {
   memoryOn: boolean;
   /** How much of what comes up the schedule aims for you to know (0.8–0.95). */
   retention: number;
+  /** The size of every letter in the app, as a step. */
+  textSize: "small" | "normal" | "large" | "larger";
   /**
    * Whether the model may use this app's rooms as tools — save cards, write
    * a page, look in the notebook. Off, it can only answer.
@@ -231,6 +233,7 @@ export const DEFAULT_SETTINGS = {
   sendOnEnter: true,
   memoryOn: true,
   retention: 0.9,
+  textSize: "normal",
   actionsOn: true,
   showLineNumbers: false,
   wrapCode: false,

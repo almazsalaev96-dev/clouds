@@ -200,6 +200,8 @@ export interface Conversation {
    * not, and both happen in one afternoon.
    */
   research?: boolean;
+  /** Research, taken further: several searches from different angles, then a report. */
+  deep?: boolean;
   /**
    * The thing this conversation is building, if it is building one. The
    * second answer that is a page updates this canvas rather than making a
@@ -743,6 +745,21 @@ export interface PageInk {
 }
 
 /** One turn of the conversation beside a lesson. */
+/** A prompt on a schedule, run when the app is next open after its time. */
+export interface Routine {
+  id: string;
+  /** What is sent, as a new conversation, when it runs. */
+  prompt: string;
+  hour: number;
+  minute: number;
+  /** Days of the week it runs on, 0 = Sunday; empty means every day. */
+  days: number[];
+  enabled: boolean;
+  createdAt: number;
+  /** When it last ran, so a time is honoured once. */
+  lastRan?: number;
+}
+
 export interface LessonTurn {
   id: string;
   lessonId: string;

@@ -12,7 +12,7 @@ import { builtDocument, titleOf, withoutBuild } from "@/lib/built";
 import { computeBlock, type Outcome } from "@/lib/compute";
 import { ComputeScope } from "./ComputeBlock";
 import type { Finding } from "@/lib/lint";
-import type { Action, ChatError, Message as Msg, Rating, RatingReason, WebSource } from "@/lib/types";
+import type { Action, ChatError, ContentBlock, Message as Msg, Rating, RatingReason, WebSource } from "@/lib/types";
 import { canUndo } from "@/lib/actions";
 import { CALCULATOR, getModel, formatTokens } from "@/lib/models";
 import { authorName, getPreset, plainly, PRESETS } from "@/lib/presets";
@@ -357,6 +357,8 @@ function AssistantMessageImpl({
   /* Thumbs-down asks why, once, right here. */
   const [asking, setAsking] = React.useState(false);
   const text = blockText(message.content);
+  /* A picture the answer is — drawn from the words, not attached to them. */
+  const pictures = message.content.filter((b): b is Extract<ContentBlock, { type: "image" }> => b.type === "image");
   /* An answer that is a thing: the thing runs beside the thread and the
      transcript shows a card for it, not nine hundred lines of markup. */
   const made = React.useMemo(() => {
@@ -559,6 +561,30 @@ function AssistantMessageImpl({
               : undefined
           }
         >
+          {pictures.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Pictures">
+              {pictures.map((img, i) => (
+                <figure key={i} className="m-0 max-w-full">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`data:${img.mimeType};base64,${img.data}`}
+                    alt={img.name?.replace(/\.png$/, "") ?? "A picture"}
+                    className="max-h-[28rem] max-w-full rounded-xl border border-line"
+                  />
+                  <figcaption className="mt-1">
+                    <a
+                      href={`data:${img.mimeType};base64,${img.data}`}
+                      download={img.name ?? "picture.png"}
+                      className="focus-inset inline-flex items-center gap-1 rounded-sm text-xs text-tertiary underline-offset-2 hover:text-primary hover:underline"
+                    >
+                      <Download size={12} />
+                      Save picture
+                    </a>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
           <Markdown content={text} />
         </ComputeScope>
       ) : message.error ? null : (

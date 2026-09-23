@@ -46,5 +46,16 @@ console.log("\nThe hint knows what is being typed");
   check(new Set(cmds.map((c) => c.command)).size === cmds.length, "with no two the same");
 }
 
+console.log("\nThe newer verbs");
+{
+  const deep = parseSlash("/deep what changed in the FSRS benchmark this year");
+  check(Boolean(deep?.research && deep?.deep && deep?.text.startsWith("what changed")), "“/deep” is research, taken further", JSON.stringify(deep));
+  const pic = parseSlash("/image a labelled plant cell");
+  check(Boolean(pic?.picture) && pic?.text === "a labelled plant cell", "“/image” asks for a picture", JSON.stringify(pic));
+  check(Boolean(parseSlash("/draw a cat")?.picture), "so does “/draw”");
+  const names = slashCommands().map((c) => c.command);
+  check(names.includes("deep") && names.includes("image"), "and both are in the list a slash shows", names.join(" "));
+}
+
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 process.exit(failed ? 1 : 0);

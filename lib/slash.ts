@@ -28,6 +28,10 @@ export interface Slash {
   compare?: boolean;
   /** A second model reads the answer back. */
   check?: boolean;
+  /** A picture from the words, not words about one. */
+  picture?: boolean;
+  /** Research, taken further: several searches, then a report with sources. */
+  deep?: boolean;
   /** How the command was written, for the hint and the byline. */
   command: string;
 }
@@ -45,6 +49,10 @@ const VERBS: Record<string, Partial<Slash>> = {
   search: { research: true },
   temp: { temporary: true },
   temporary: { temporary: true },
+  deep: { research: true, deep: true },
+  image: { picture: true },
+  draw: { picture: true },
+  picture: { picture: true },
 };
 
 /** A command's spelling, as the person would type it. */
@@ -79,9 +87,11 @@ export function slashCommands(): { command: string; does: string }[] {
     { command: "study", does: "teach it rather than tell it — the Orrery" },
     { command: "build", does: "make the thing and run it beside the chat — Nova" },
     { command: "research", does: "let the model search the web in this chat" },
+    { command: "deep", does: "search from several angles, then write a report with sources" },
     { command: "compare", does: "two companies answer, side by side" },
     { command: "check", does: "a second model reads the answer back" },
     { command: "temp", does: "do not keep this chat" },
+    { command: "image", does: "make a picture from what you describe" },
     ...PRESETS.map((p) => ({ command: nameOf(p.short), does: p.tagline.toLowerCase() })),
   ];
 }

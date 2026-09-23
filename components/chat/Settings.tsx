@@ -6,7 +6,8 @@ import { Check, Download, ExternalLink, Eye, EyeOff, Plus, Trash2, Upload, X } f
 import { useLiveQuery } from "dexie-react-hooks";
 import type { ProviderId } from "@/lib/types";
 import { PROVIDERS, formatCost, getModel } from "@/lib/models";
-import { addMemory, allMemories, createStyle, db, deleteAllData, deleteMemory, deleteStyle, forgetAll, forgetTurns } from "@/lib/db";
+import { addMemory, addRoutine, allMemories, createStyle, db, deleteAllData, deleteMemory, deleteRoutine, deleteStyle, forgetAll, forgetTurns } from "@/lib/db";
+import { nextDueAt, scheduleLine } from "@/lib/routines";
 import { ENOUGH, TOO_MANY } from "@/lib/decide";
 import { AUTO_STYLE } from "@/lib/register";
 import { BUILT_IN_STYLES } from "@/lib/styles";
@@ -23,7 +24,7 @@ import { GROUPS, RULES, rulesCount } from "@/lib/rules";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
 import { SHORTCUT_GROUPS } from "@/components/ShortcutsOverlay";
 
-type Tab = "keys" | "appearance" | "model" | "styles" | "memory" | "data" | "shortcuts" | "privacy" | "rules";
+type Tab = "keys" | "appearance" | "model" | "styles" | "memory" | "routines" | "data" | "shortcuts" | "privacy" | "rules";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "keys", label: "API keys" },
@@ -32,6 +33,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "rules", label: "Rules" },
   { id: "styles", label: "Styles" },
   { id: "memory", label: "Memory" },
+  { id: "routines", label: "Routines" },
   { id: "shortcuts", label: "Shortcuts" },
   { id: "data", label: "Data" },
   { id: "privacy", label: "Privacy" },
@@ -103,6 +105,7 @@ export function Settings({
             {tab === "rules" && <RulesPanel />}
             {tab === "styles" && <StylesPanel />}
             {tab === "memory" && <MemoryPanel />}
+            {tab === "routines" && <RoutinesPanel />}
             {tab === "shortcuts" && <ShortcutsPanel />}
             {tab === "data" && <DataPanel />}
             {tab === "privacy" && <PrivacyPanel />}
@@ -483,6 +486,18 @@ function AppearancePanel() {
         />
       </Field>
 
+      <Field label="Text size" hint="Every letter in the app, in steps. The layout keeps its proportions.">
+        <Segmented
+          value={s.textSize ?? "normal"}
+          options={[
+            { value: "small", label: "Small" },
+            { value: "normal", label: "Normal" },
+            { value: "large", label: "Large" },
+            { value: "larger", label: "Larger" },
+          ]}
+          onChange={(v) => s.set({ textSize: v as typeof s.textSize })}
+        />
+      </Field>
       <Field label="Density" hint="Scales every spacing value in the app.">
         <Segmented
           value={s.density}
@@ -512,6 +527,114 @@ function AppearancePanel() {
           label="Enter sends the message"
           hint="When off, Enter adds a newline and ⌘↵ sends."
         />
+      </Field>
+    </Panel>
+  );
+}
+
+/**
+ * A prompt on a schedule.
+ *
+ * The three flagships run theirs on a server; this app has none that knows
+ * anybody, so a routine runs the next time Armi is open after its time —
+ * said on the panel rather than hidden. For "every weekday morning, ask me
+ * what is due" that is the moment it was wanted.
+ */
+const DAY_PICKS: { label: string; days: number[] }[] = [
+  { label: "Every day", days: [] },
+  { label: "Weekdays", days: [1, 2, 3, 4, 5] },
+  { label: "Weekends", days: [0, 6] },
+];
+
+function RoutinesPanel() {
+  const routines = useLiveQuery(() => db.routines.orderBy("createdAt").toArray(), [], []);
+  const [prompt, setPrompt] = React.useState("");
+  const [time, setTime] = React.useState("07:30");
+  const [days, setDays] = React.useState<number[]>([1, 2, 3, 4, 5]);
+  const now = Date.now();
+
+  const add = async () => {
+    const text = prompt.trim();
+    const [h, m] = time.split(":").map(Number);
+    if (!text || !Number.isFinite(h) || !Number.isFinite(m)) return;
+    await addRoutine({ prompt: text, hour: h, minute: m, days });
+    setPrompt("");
+  };
+
+  return (
+    <Panel
+      title="Routines"
+      description="A prompt that runs on a schedule, as a new conversation. Nothing runs on a server: a routine runs the next time Armi is open after its time, and once for each time it was due."
+    >
+      <Field label="New routine">
+        <div className="space-y-2">
+          <input
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") void add(); }}
+            placeholder="Quiz me on what is due today, one question at a time"
+            aria-label="What to send"
+            className="focus-inset h-9 w-full rounded-md border border-line bg-field px-3 text-sm text-primary outline-none placeholder:text-tertiary"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              aria-label="At what time"
+              className="focus-inset h-9 rounded-md border border-line bg-field px-2.5 text-sm text-primary outline-none tnum"
+            />
+            <Segmented
+              value={DAY_PICKS.find((d) => d.days.join(",") === days.join(","))?.label ?? "Every day"}
+              options={DAY_PICKS.map((d) => ({ value: d.label, label: d.label }))}
+              onChange={(v) => setDays(DAY_PICKS.find((d) => d.label === v)?.days ?? [])}
+            />
+            <Button size="sm" variant="secondary" disabled={!prompt.trim()} onClick={() => void add()}>
+              <Plus size={14} />
+              Add
+            </Button>
+          </div>
+        </div>
+      </Field>
+
+      <Field label={routines.length ? `Routines · ${routines.length}` : "Routines"}>
+        {routines.length === 0 ? (
+          <p className="text-sm text-tertiary">None yet. A routine is a message you would otherwise type at the same time every day.</p>
+        ) : (
+          <ul className="divide-y divide-[var(--border-subtle)] rounded-md border border-line" aria-label="Routines">
+            {routines.map((r) => (
+              <li key={r.id} className="flex items-start gap-2 px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-primary [overflow-wrap:anywhere]">{r.prompt}</p>
+                  <p className="mt-0.5 text-xs text-tertiary tnum">
+                    {scheduleLine(r)}
+                    {r.enabled ? ` · next ${new Date(nextDueAt(r, now)).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" })}` : " · paused"}
+                    {r.lastRan ? ` · last ran ${new Date(r.lastRan).toLocaleDateString()}` : ""}
+                  </p>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={r.enabled}
+                  aria-label={`${r.enabled ? "Pause" : "Resume"} "${r.prompt.slice(0, 40)}"`}
+                  onClick={() => void db.routines.update(r.id, { enabled: !r.enabled })}
+                  className={cn(
+                    "mt-1 flex h-[18px] w-8 shrink-0 items-center rounded-full p-0.5 transition-colors duration-[var(--dur-fast)]",
+                    r.enabled ? "bg-[var(--accent-fill)]" : "bg-[var(--border-strong)]",
+                  )}
+                >
+                  <span className={cn("block size-3.5 rounded-full bg-white shadow transition-transform duration-[var(--dur-fast)]", r.enabled && "translate-x-3.5")} />
+                </button>
+                <button
+                  aria-label={`Delete "${r.prompt.slice(0, 40)}"`}
+                  onClick={async () => offerUndo(r.prompt, await deleteRoutine(r.id))}
+                  className="ctl flex [--ctl:1.75rem] shrink-0 items-center justify-center rounded-sm text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-[var(--danger)]"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </Field>
     </Panel>
   );

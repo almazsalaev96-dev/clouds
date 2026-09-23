@@ -2804,3 +2804,9 @@ main:has(.has-room-toggle) > .room-toggle-row { display: none; }
 /* A row you swipe, not scroll: no bar under a line of pills on a phone. */
 .swipe-row { scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
 .swipe-row::-webkit-scrollbar { display: none; }
+
+/* Text size, as a step on the root: every rem in the app follows, and the
+   layout keeps its proportions because it is written in rems. */
+:root[data-text="small"] { font-size: 15px; }
+:root[data-text="large"] { font-size: 17.5px; }
+:root[data-text="larger"] { font-size: 19px; }

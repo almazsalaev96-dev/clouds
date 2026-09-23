@@ -4,7 +4,7 @@ import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Archive, ArchiveRestore, Check, ChevronDown, Download, FolderOpen, MessageSquareDashed,
-  MoreHorizontal, NotebookPen, PanelLeft, Pin, PinOff, Trash2, Wand2,
+  MoreHorizontal, NotebookPen, PanelLeft, Pin, PinOff, Share2, Trash2, Wand2,
 } from "lucide-react";
 import type { Conversation, Project } from "@/lib/types";
 import { useSettings } from "@/lib/store";
@@ -21,6 +21,7 @@ export function TopBar({
   scrolled,
   onRename,
   onExport,
+  onShare,
   onDelete,
   onTogglePin,
   onToggleArchive,
@@ -43,6 +44,8 @@ export function TopBar({
   scrolled: boolean;
   onRename: (title: string) => void;
   onExport: () => void;
+  /** The device's share sheet with the thread as text, or a copy of it. */
+  onShare?: () => void;
   onDelete: () => void;
   onTogglePin: () => void;
   onToggleArchive: () => void;
@@ -318,6 +321,11 @@ export function TopBar({
                 >
                   {conversation.archived ? "Unarchive" : "Archive"}
                 </Item>
+                {onShare && (
+                  <Item onSelect={onShare} icon={<Share2 size={14} />}>
+                    Share
+                  </Item>
+                )}
                 <Item onSelect={onExport} icon={<Download size={14} />}>
                   Export as Markdown
                 </Item>

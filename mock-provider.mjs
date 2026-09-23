@@ -221,6 +221,16 @@ createServer(async (req, res) => {
     res.end(JSON.stringify(lastTitle ?? {}));
     return;
   }
+  /* A picture, when one is asked for. A one-pixel PNG is a picture as far
+     as the thread is concerned; what the test wants to know is that the
+     words went out and a picture came back into the transcript. */
+  if ((req.url ?? "").includes("/images/generations")) {
+    lastSeen = { kind: "image", prompt: body.prompt, size: body.size, model: body.model };
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ created: Date.now(), data: [{ b64_json: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" }] }));
+    return;
+  }
+
   /* The title request is not the work.
      Every first message is followed by a small call that names the
      conversation, and it arrives *after* the answer — so `/__last` used to

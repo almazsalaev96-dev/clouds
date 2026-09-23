@@ -679,3 +679,32 @@ Asked for "better design and functions, from research". A sweep of what ChatGPT,
 **Built in the second pass.** "Why?" on a missed card, three sentences with the source's own line quoted (Gemini Notebook's Explain, `lib/explain.ts`); "Try 3 first" on a Tutor page (pretesting effect). A recap of dropped turns already existed (`recapPrompt` in `app/page.tsx`), which is the "summarise and continue" the flagships added this year. **Still worth doing:** an exam-date plan that sets the aim and spreads the load.
 
 Sources: Rohrer et al. 2020 (gwern.net/doc/psychology/spaced-repetition/2019-rohrer.pdf); Bastani et al. PNAS 2025 (pnas.org/doi/10.1073/pnas.2422633122); Kestin et al., Sci Rep 2025 (nature.com/articles/s41598-025-97652-6); FSRS benchmark (expertium.github.io/Benchmark.html); Anki 26.05 release notes; Gemini Notebook rename (workspaceupdates.googleblog.com, July 2026); NotebookLM flashcards (support.google.com/notebooklm/answer/16958963); ChatGPT study mode (openai.com/index/chatgpt-study-mode); sycophancy post-mortem (openai.com/index/sycophancy-in-gpt-4o); Quizlet Q-Chat notice; WCAG 2.2.
+
+### §4l — Everything ChatGPT, Claude and Gemini do (September 2026), held against ARMI
+
+Three catalogues, one per product, from each company's help centre and release notes where reachable and from search snippets and press where not (`[unverified]` where only the latter). Roughly 90 rows each; what follows is the reading of them, not the rows.
+
+**Where the three have gone this year.** All three merged their modes into one box that decides for itself: ChatGPT retired Canvas for in-thread writing and code blocks (May), folded agent mode into "Work" (July) and is retiring custom GPTs into plugins (September); Claude merged chat, Cowork and artifacts into "one Claude" with `/deep-research` replacing the Research toggle (16 Sep); Gemini put Deep Research, Canvas, Guided Learning and study notebooks behind one composer. The pattern ARMI already follows — Auto reads the ask, the rooms are places not modes — is the one they converged on.
+
+**What all three have that ARMI did not, and what was done.**
+
+| Capability | ChatGPT | Claude | Gemini | ARMI now |
+|---|---|---|---|---|
+| A picture from words | Images 2.5, sketch, templates | none (SVG/Design instead) | Nano Banana 2 / Pro | **Built**: `/image …` or "draw me a …" → a picture in the thread, on the OpenAI key; `Save picture`; the + menu offers it. |
+| Camera in the composer | mobile | mobile | mobile | **Built**: *Take a photo* in the + menu (`capture="environment"`). |
+| Text size / dyslexia font | — | font: default / system / dyslexic | — | **Built**: Appearance → Text size, four steps on the root. Dyslexia font: not yet. |
+| Scheduled tasks | 3–15 active, push/email, webhooks | cloud, hourly–weekly | up to 10, Spark agent | **Built (local)**: Routines — a prompt on a schedule that runs when Armi is open, said honestly on the panel. |
+| Deep research (multi-step report) | yes, with MCP sources | `/deep-research`, 1–3 min | plan → browse → cited report → audio | **Built (light)**: `/deep …` — research on, and the model told to search from several angles before writing a report with headings and a Sources list. |
+| Share a conversation | public snapshot links | public link + invite | public links | **Built (local-first)**: Share → the device's share sheet (Web Share) with the thread as text, else a Markdown file; no server, so no link that outlives the browser. |
+| Memory you can read and edit | saved memories + "dreaming" summary | topics, import from other assistants | saved info + personal context | Already had (Settings → Memory, offer-then-save). |
+| Projects with files and instructions | 5–40 files | unlimited, RAG past the window | Gems + Notebooks | Already had (Projects, BM25 retrieval, 60k-token budget). |
+| Custom assistants | GPTs → plugins | skills | Gems | Partly: Armi models (casts) + Rules + a project's instructions. A named "Gem" that bundles a project, rules and a model: not yet. |
+| Study mode / guided learning | Study mode, flashcards, QuizGPT | Learning style | Guided Learning, study notebooks, quizzes | Already had, and deeper: FSRS, Tutor beside the page, mixed review, Why?, Try 3 first. |
+| Audio overview / read aloud | read aloud | voice mode only | Audio Overview, Video Overview | Read aloud per answer already; a two-voice overview of a page: not yet (needs a TTS provider; the browser's voices are not good enough). |
+| Files out (docx / xlsx / pptx / pdf) | via Python sandbox | file creation | file generation | Print to PDF and Markdown/HTML downloads only. Office formats: not yet. |
+| Voice conversation (two-way) | GPT-Live | voice mode | Gemini Live | Recognition in, read aloud out; hands-free mode exists (`useVoiceMode`); no full-duplex model. |
+| Computer / browser agent | Work, Chrome extension | Claude in Chrome, computer use | Auto browse | Out of scope for a local-first study app. |
+| Data analysis (Python) | sandbox | sandbox | cloud computer | `compute` blocks run exact arithmetic and charts render from a fence; no Python. |
+| Connectors | apps (Drive, Gmail, Slack…) | MCP connectors, plugins | Connected Apps | Remote MCP plugins already. |
+
+**Sources (primary where reachable):** help.openai.com release notes and FAQ pages (study mode, memory, projects, scheduled tasks, shared links, custom GPT retirement, Word add-in); openai.com/index (GPT-Live, Images 2.5, Work, memory dreaming, parental controls); support.claude.com articles 8241126, 9487310, 9547008, 11817273, 11647753, 11088861, 10166901, 13854387, 16761823, 16762437, 8887527; support.google.com/gemini answers 14903178, 15274899, 16047321, 15719111, 16275879, 15146780, 16598469, 13695044; support.google.com/gemininotebook answers 16215270, 16212820, 16958963; blog.google and workspaceupdates.googleblog.com posts named in the catalogues. The three catalogues in full are in the session record, not in this file.

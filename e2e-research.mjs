@@ -109,6 +109,21 @@ console.log("\nThe sources are kept, not only shown");
   check(off, "and the conversation remembers that research is on");
 }
 
+console.log("\n“/deep” is research taken further");
+{
+  await p.getByRole("button", { name: "New chat" }).first().click();
+  await p.waitForTimeout(500);
+  await fetch(`${MOCK}/__reset`);
+  await p.getByRole("textbox", { name: "Message" }).fill("/deep how has spaced repetition research changed since 2020");
+  await p.keyboard.press("Meta+Enter");
+  await p.waitForTimeout(4000);
+  const sent = await fetch(`${MOCK}/__last`).then((r) => r.json());
+  check((sent.tools ?? []).some((t) => /^web_search/.test(t)), "the request carried the search tool");
+  check(/deep research/i.test(sent.systemText ?? "") && /Sources list/.test(sent.systemText ?? ""), "and the model is told to search from several angles and write a report with sources", (sent.systemText ?? "").match(/[^\n]*deep research[^\n]*/i)?.[0]?.slice(0, 80));
+  const first = await p.locator(".msg").first().innerText();
+  check(!/^\/deep/.test(first.trim()), "the command is not part of the message kept", first.slice(0, 40));
+}
+
 console.log("\nA URL in the question offers fetch as well");
 {
   await fetch(`${MOCK}/__reset`);

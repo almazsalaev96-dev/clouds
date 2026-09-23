@@ -66,6 +66,21 @@ export interface ComposedPrompt {
   droppedFiles: ProjectFile[];
 }
 
+/**
+ * Deep research, as an instruction rather than a separate machine.
+ *
+ * The three flagships run several searches and write a report; the model
+ * here can search up to five times a turn already, so the difference is
+ * being told to use them and what to make of them. Said once, in the
+ * thread's own prompt, for every turn of a thread that asked for it.
+ */
+export const DEEP_RESEARCH = [
+  "This conversation asked for deep research. Before answering a question that the web can inform:",
+  "- Search at least three times, from different angles — the plain question, the strongest counter-view, the most recent development — and read what comes back rather than stopping at the first result.",
+  "- Then write a report: a two-line answer first, then headings for each part of the question, then what is uncertain or disputed, then a Sources list with the page titles and URLs you actually read.",
+  "- Say where sources disagree. Do not smooth a disagreement into one confident sentence.",
+].join("\n");
+
 export function composeSystemPrompt(parts: PromptParts): ComposedPrompt {
   const sections: string[] = [];
   const droppedFiles: ProjectFile[] = [];

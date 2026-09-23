@@ -3,6 +3,7 @@ import type {
   Canvas, CanvasFile, CanvasVersion, ContentBlock, Conversation, Message, Note,
   Deck, Lesson, LessonTurn,
   PageInk, Memory, Project, ProjectFile, RatingReason, Source, Style, Turn, TurnOutcome,
+  Routine,
 } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 import {
@@ -35,6 +36,7 @@ class ChatDB extends Dexie {
   lessonTurns!: Table<LessonTurn, string>;
   ink!: Table<PageInk, string>;
   attempts!: Table<Attempt, string>;
+  routines!: Table<Routine, string>;
 
   constructor() {
     super("clouds");
@@ -217,6 +219,10 @@ class ChatDB extends Dexie {
        pair, so turning a page is one indexed get. */
     this.version(16).stores({
       ink: "id, lessonId, [lessonId+page]",
+    });
+    /* Routines: prompts on a schedule, run when the app is next open. */
+    this.version(17).stores({
+      routines: "id, createdAt",
     });
   }
 }
@@ -841,6 +847,20 @@ export async function deleteAllData() {
 
 export function blockText(content: ContentBlock[]): string {
   return content.map((b) => (b.type === "text" ? b.text : "")).join("");
+}
+
+/* ------------------------------------------------------------- routines -- */
+
+export async function addRoutine(r: Omit<Routine, "id" | "createdAt" | "enabled"> & Partial<Pick<Routine, "enabled">>): Promise<Routine> {
+  const row: Routine = { id: uid(), createdAt: Date.now(), enabled: true, ...r };
+  await db.routines.add(row);
+  return row;
+}
+
+export async function deleteRoutine(id: string): Promise<() => Promise<void>> {
+  const row = await db.routines.get(id);
+  await db.routines.delete(id);
+  return async () => { if (row) await db.routines.put(row); };
 }
 
 export function exportMarkdown(c: Conversation, messages: Message[]): string {

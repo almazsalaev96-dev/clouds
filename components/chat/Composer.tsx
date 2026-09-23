@@ -4,7 +4,7 @@ import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
   Check, ChevronDown, FileText, MessageSquare, Paperclip, Plus,
-  SlidersHorizontal, Sparkles, Wand2, X, Globe, ListChecks, GraduationCap } from "lucide-react";
+  SlidersHorizontal, Sparkles, Wand2, X, Globe, ListChecks, GraduationCap, Camera, ImagePlus } from "lucide-react";
 import { slashCommands, typingSlash } from "@/lib/slash";
 import type { ContentBlock, Style } from "@/lib/types";
 import { getModel, estimateTokens, formatTokens } from "@/lib/models";
@@ -45,6 +45,7 @@ export function Composer({
   placeholder = "How can I help you today?",
   learn,
   onToggleLearn,
+  onPicture,
   rulesCount = 0,
   onOpenRules,
   voice,
@@ -70,6 +71,8 @@ export function Composer({
   /** Learn: a plan, one step at a time, a check after each. A mode of the thread. */
   learn?: boolean;
   onToggleLearn?: () => void;
+  /** Put "/image " in the box: a picture from a description. */
+  onPicture?: () => void;
   /** How many standing rules are in force, and the way to the panel that sets them. */
   rulesCount?: number;
   onOpenRules?: () => void;
@@ -89,6 +92,7 @@ export function Composer({
   const [dragging, setDragging] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
+  const cameraRef = React.useRef<HTMLInputElement>(null);
   const [plusOpen, setPlusOpen] = React.useState(false);
   const reasoning = paramsFor(modelId).reasoningEffort;
   /* The same three words the picker uses. "Medium" on the bar and "Normal"
@@ -358,6 +362,29 @@ export function Composer({
                   <Paperclip size={16} className="text-tertiary" />
                   Add photos and files
                 </button>
+                {/* The camera, on a phone the way the other apps have it: a
+                    photograph of the page, the working, the board — taken
+                    now, not chosen from a roll. A desk browser opens its
+                    picker instead. */}
+                <button
+                  onClick={() => { setPlusOpen(false); cameraRef.current?.click(); }}
+                  className="focus-inset flex h-9 w-full items-center gap-2.5 rounded-xl px-2.5 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                >
+                  <Camera size={16} className="text-tertiary" />
+                  Take a photo
+                </button>
+                {onPicture && (
+                  <button
+                    onClick={() => { setPlusOpen(false); onPicture(); }}
+                    className="focus-inset flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                  >
+                    <ImagePlus size={16} className="mt-0.5 shrink-0 text-tertiary" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block">Make a picture</span>
+                      <span className="block text-xs text-tertiary">Describe it and it is drawn in the thread.</span>
+                    </span>
+                  </button>
+                )}
                 {/* The tools, each with a line saying what it does — the +
                     menu as Gemini and ChatGPT have it, for the person who
                     would rather read a menu than learn the chips. */}
@@ -463,6 +490,19 @@ export function Composer({
             </Tooltip>
           )}
 
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            aria-label="Take a photo to attach"
+            tabIndex={-1}
+            className="sr-only"
+            onChange={async (e) => {
+              await addFiles(Array.from(e.target.files ?? []));
+              e.target.value = "";
+            }}
+          />
           <input
             ref={fileRef}
             type="file"

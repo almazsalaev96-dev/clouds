@@ -1,6 +1,7 @@
 "use client";
 
 import { parseSlash } from "@/lib/slash";
+import { wantsPicture, pictureSubject, makePicture } from "@/lib/image";
 import { actionSpecs, doingOf, keepUndo, runAction, undoAction, type ActionContext } from "@/lib/actions";
 import { cleanRecap, covers, recapPrompt, recapSection, RECAP_TOKENS } from "@/lib/recap";
 import type { Action } from "@/lib/types";
@@ -20,7 +21,7 @@ import {
   exportMarkdown, pathTo, addMessage, blockText, createCanvas, createWebCanvas, createProject,
   filesOf,
 } from "@/lib/db";
-import { composeSystemPrompt, composeTurnPrompt } from "@/lib/prompt";
+import { composeSystemPrompt, composeTurnPrompt, DEEP_RESEARCH } from "@/lib/prompt";
 import { rulesCount, rulesText } from "@/lib/rules";
 import { examNote } from "@/lib/exam";
 import { effortFor, taskOf } from "@/lib/task";
@@ -160,6 +161,7 @@ export default function Page() {
   /* The next chat may search. Held the same way until a first message makes
      the conversation; after that it lives on the conversation itself. */
   const [pendingResearch, setPendingResearch] = React.useState(false);
+  const [pendingDeep, setPendingDeep] = React.useState(false);
   /* Learn, pressed before there is a thread to stamp it on. */
   const [pendingLearn, setPendingLearn] = React.useState(false);
 
@@ -332,6 +334,12 @@ export default function Page() {
     if (settings.density === "comfortable") delete root.dataset.density;
     else root.dataset.density = settings.density;
   }, [settings.density]);
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    if (!settings.textSize || settings.textSize === "normal") delete root.dataset.text;
+    else root.dataset.text = settings.textSize;
+  }, [settings.textSize]);
 
   React.useEffect(() => {
     const root = document.documentElement;
@@ -579,6 +587,26 @@ export default function Page() {
     [settings],
   );
 
+  /* Routines: on open and once a minute after, the first routine owed a run
+     runs as a new conversation — one per look, so a morning with two due
+     does not open two threads at once. Marked ran before it is sent, so a
+     failed send does not send it again every minute. */
+  React.useEffect(() => {
+    let alive = true;
+    const look = async () => {
+      const { isDue } = await import("@/lib/routines");
+      const rows = await db.routines.toArray();
+      const now = Date.now();
+      const due = rows.find((r) => isDue(r, now));
+      if (!due || !alive) return;
+      await db.routines.update(due.id, { lastRan: now });
+      void askInChat(due.prompt);
+    };
+    void look();
+    const t = window.setInterval(() => void look(), 60_000);
+    return () => { alive = false; window.clearInterval(t); };
+  }, [askInChat]);
+
   /** The card in the transcript, pressed. */
   const showMade = React.useCallback(
     async (m: Message) => {
@@ -725,7 +753,7 @@ export default function Page() {
       const style = findStyle(plan.register ? plan.register.id : chosenStyle, customStyles);
       const composed = composeSystemPrompt({
         who: preset?.name,
-        base: [rulesText(settings.rules ?? [], settings.systemPrompt), conv?.systemPrompt ?? ""].filter(Boolean).join("\n\n"),
+        base: [rulesText(settings.rules ?? [], settings.systemPrompt), conv?.systemPrompt ?? "", conv?.deep ? DEEP_RESEARCH : ""].filter(Boolean).join("\n\n"),
         project,
         files,
         /* What was asked, so a project holding more than fits sends the
@@ -862,7 +890,11 @@ export default function Page() {
          strongest keyed model that can search, and the row says so — the
          same rule as a company that will not answer at all, applied before
          the send rather than after a failure. */
-      const research = conversation?.research ?? pendingResearch;
+      /* From the row, not the hook: "/research what is…" in one line makes
+         the conversation and sends in the same breath, and the hook's copy
+         of it is a render behind — so the first turn went out without the
+         tool the command had just asked for. */
+      const research = conv?.research ?? conversation?.research ?? pendingResearch;
       let writer = modelId;
       let searchWhy = "";
       if (research) {
@@ -1007,8 +1039,8 @@ export default function Page() {
            asking for the same thing. */
         if (slash.compare) slashPick = "duet";
         if (slash.research) {
-          if (convId) void db.conversations.update(convId, { research: true });
-          else setPendingResearch(true);
+          if (convId) void db.conversations.update(convId, { research: true, ...(slash.deep ? { deep: true } : {}) });
+          else { setPendingResearch(true); if (slash.deep) setPendingDeep(true); }
         }
         if (slash.temporary && !convId) setPendingTemporary(true);
         /* A bare command is a setting, not a question: "/research" alone turns
@@ -1051,10 +1083,12 @@ export default function Page() {
           /* Set by the toggle in the header before there is a conversation
              for it to be a property of, like the project above. */
           temporary: wantsTemporary, research: wantsResearch || undefined,
+          deep: (pendingDeep || Boolean(slash?.deep)) || undefined,
         });
         setPendingProject(null);
         setPendingTemporary(false);
         setPendingLearn(false);
+        setPendingDeep(false);
         convId = created.id;
         leaf = null;
         setActiveId(created.id);
@@ -1066,6 +1100,36 @@ export default function Page() {
         role: "user",
         content,
       });
+
+      /* A picture, asked for in words. Made and put in the thread as a
+         picture; no language model is asked to describe one instead. The
+         request is read the way a request to build a thing is read — a
+         verb, a noun, a subject — and "/image" says it outright. Only with
+         the OpenAI key; otherwise the thread says which key and where. */
+      const askedText = blockText(content);
+      if (slash?.picture || (content.every((c) => c.type === "text") && wantsPicture(askedText))) {
+        const subject = slash?.picture ? slash.text.trim() : pictureSubject(askedText);
+        setReading(`Painting ${subject.length > 48 ? "it" : subject}…`);
+        try {
+          const made = await makePicture(subject, { clientKey: settings.keys.openai || undefined });
+          await addMessage({
+            conversationId: convId,
+            parentId: userMessage.id,
+            role: "assistant",
+            content:
+              "picture" in made
+                ? [
+                    { type: "image", mimeType: made.picture.mime, data: made.picture.data, name: `${subject.slice(0, 48).replace(/[^\w ]+/g, "").trim() || "picture"}.png` },
+                    { type: "text", text: `Here it is — ${subject}. Ask for a change and it is drawn again.` },
+                  ]
+                : [{ type: "text", text: "" }],
+            ...("picture" in made ? {} : { error: made.error.message }),
+          });
+        } finally {
+          setReading(null);
+        }
+        return;
+      }
 
       const history = [...path, userMessage];
       const isFirst = path.length === 0;
@@ -1846,6 +1910,32 @@ export default function Page() {
     URL.revokeObjectURL(url);
   }, [conversation, path]);
 
+  /* Share: the device's own sheet where there is one — Messages, Mail,
+     AirDrop, whatever the phone offers — with the thread as text; a copy to
+     the clipboard where there is not. No server holds a copy, so there is
+     no link that outlives this browser; the text is the thing shared. */
+  const shareConversation = React.useCallback(async () => {
+    if (!conversation) return;
+    const md = exportMarkdown(conversation, path);
+    const title = conversation.title || "A conversation with Armi";
+    const nav = navigator as Navigator & { share?: (d: { title?: string; text?: string }) => Promise<void> };
+    if (typeof nav.share === "function") {
+      try {
+        await nav.share({ title, text: md });
+        return;
+      } catch (e) {
+        if ((e as Error)?.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(md);
+      setReading("Copied the conversation as text — paste it anywhere.");
+    } catch {
+      setReading("Could not copy here. Export as Markdown instead.");
+    }
+    window.setTimeout(() => setReading(null), 2_800);
+  }, [conversation, path]);
+
   const removeConversation = React.useCallback(async () => {
     if (!activeId) return;
     const title = conversation?.title || "this conversation";
@@ -2110,6 +2200,7 @@ export default function Page() {
         if (activeId && conversation) void db.conversations.update(activeId, { mode: conversation.mode === "learn" ? undefined : "learn" });
         else setPendingLearn((v) => !v);
       }}
+      onPicture={() => useDrafts.getState().setDraft(activeId ?? "new", "/image ")}
       voice={voice}
     />
   ) : null;
@@ -2284,6 +2375,7 @@ export default function Page() {
             scrolled={scrolled}
             onRename={(title) => activeId && db.conversations.update(activeId, { title })}
             onExport={exportConversation}
+            onShare={shareConversation}
             onDelete={removeConversation}
             onTogglePin={() =>
               activeId && conversation && db.conversations.update(activeId, { pinned: !conversation.pinned })
