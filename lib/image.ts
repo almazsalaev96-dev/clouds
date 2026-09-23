@@ -12,7 +12,11 @@ import type { ChatError } from "./types";
 
 /** The verbs and nouns that mean "I want a picture", not words about one. */
 const VERB = /\b(draw|paint|sketch|illustrate|generate|make|create|render|design|produce|give)\b/i;
-const NOUN = /\b(image|picture|photo|photograph|illustration|drawing|painting|sketch|logo|poster|icon|diagram|infographic|wallpaper|artwork|portrait|cartoon|comic)s?\b/i;
+/* Not "diagram": a diagram of how something works is a thing the model can
+   draw as vector, labelled and exact, in the answer itself (`figure.diagram`),
+   and an image model's rendering of one is a picture of a diagram with the
+   words wrong. "/image … as a diagram" still asks for one by name. */
+const NOUN = /\b(image|picture|photo|photograph|illustration|drawing|painting|sketch|logo|poster|icon|infographic|wallpaper|artwork|portrait|cartoon|comic)s?\b/i;
 /** Asking *about* a picture that is already here is not asking for one. */
 const ABOUT = /\b(this|the attached|that|above|my|these|uploaded)\s+(image|picture|photo|drawing|diagram)s?\b/i;
 

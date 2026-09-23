@@ -602,8 +602,12 @@ export default function Page() {
       await db.routines.update(due.id, { lastRan: now });
       void askInChat(due.prompt);
     };
-    void look();
-    const t = window.setInterval(() => void look(), 60_000);
+    /* A browser that refuses the database rejects this look every minute;
+       the banner already says so, and a routine that cannot be read cannot
+       be owed. Swallowed, not surfaced twice. */
+    const quietly = () => look().catch(() => undefined);
+    void quietly();
+    const t = window.setInterval(() => void quietly(), 60_000);
     return () => { alive = false; window.clearInterval(t); };
   }, [askInChat]);
 

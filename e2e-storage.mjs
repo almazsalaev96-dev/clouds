@@ -34,6 +34,8 @@ console.log("\nWith the database refused, the app says so instead of pretending"
     const deny = () => {
       throw new DOMException("The operation is insecure.", "SecurityError");
     };
+    window.addEventListener("error", (ev) => console.log("ERRX", ev.message, ev.filename, ev.lineno, ev.error && (ev.error.stack || ev.error.name)));
+    window.addEventListener("unhandledrejection", (ev) => { const r = ev.reason; console.log("REJ", typeof r, r && (r.stack || r.name || r.message || JSON.stringify(r)) || String(r)); });
     try {
       indexedDB.open = deny;
       indexedDB.deleteDatabase = deny;
@@ -43,7 +45,8 @@ console.log("\nWith the database refused, the app says so instead of pretending"
   });
   const page = await ctx.newPage();
   const errs = [];
-  page.on("pageerror", (e) => errs.push(e.message));
+  page.on("pageerror", (e) => { errs.push(e.message); console.log("PAGEERR", e.stack ?? e.message); });
+  page.on("console", (m) => { if (/^(REJ|ERRX)/.test(m.text())) console.log(m.text().slice(0, 600)); });
 
   await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
   await page.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), SETTINGS);
