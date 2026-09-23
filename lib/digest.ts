@@ -28,7 +28,8 @@
  * the cost and the wait for nothing.
  */
 import { complete, type Progress } from "./complete";
-import { reader } from "./route";
+import { reader, biggestWindow } from "./route";
+import type { ContentBlock } from "./types";
 import { getConfigured } from "./configured";
 import { useSettings } from "./store";
 
@@ -169,4 +170,36 @@ export async function readWhole(
     return { name: s.name, text: `(Read in ${mine.length} parts; notes on each follow, with exact quotations under "Quotable".)\n\n${body}` };
   });
   return { material, parts: jobs.length, sampled };
+}
+
+/**
+ * A file in a conversation too big for any window the keys can reach.
+ *
+ * The router used to pick the biggest window and send it anyway, and the
+ * provider refused with "prompt is too long" — a 988-page PDF dropped into a
+ * chat was an error, every time. Such a file is now read in parts before the
+ * turn goes out, and the thread keeps the notes in its place, so the next
+ * question about it fits too. Files that fit are left exactly as they are:
+ * a model that can hold the whole book should read the whole book.
+ */
+export async function fitFiles(
+  content: ContentBlock[],
+  onPart?: (name: string, done: number, total: number) => void,
+): Promise<ContentBlock[]> {
+  const window = biggestWindow({ configured: getConfigured(), keys: useSettings.getState().keys });
+  if (!window) return content;
+  /* Six tenths of the window for the file, leaving the rest for the thread,
+     the instructions and the reply; ~3.2 characters to a token, as the
+     fitter counts. */
+  const fits = Math.floor(window * 0.6 * 3.2);
+  const out: ContentBlock[] = [];
+  for (const c of content) {
+    if (c.type !== "file" || c.text.length <= fits) {
+      out.push(c);
+      continue;
+    }
+    const read = await readWhole([{ name: c.name, text: c.text }], { onPart: (d, t) => onPart?.(c.name, d, t) });
+    out.push(read.parts ? { ...c, text: read.material[0].text } : { ...c, text: c.text.slice(0, fits) });
+  }
+  return out;
 }

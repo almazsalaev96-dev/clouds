@@ -36,6 +36,7 @@ import {
 } from "@/lib/presets";
 import { costOf, fitToContext } from "@/lib/context";
 import { elsewhere, searcher } from "@/lib/route";
+import { fitFiles } from "@/lib/digest";
 import { setConfigured as setConfiguredGlobal } from "@/lib/configured";
 import { whyAvoided } from "@/lib/health";
 import { cheapestAvailable, complete } from "@/lib/complete";
@@ -1013,6 +1014,14 @@ export default function Page() {
            research on and stops there, with nothing sent and the box cleared
            by the composer as for any send. */
         if (!slash.text.trim() && !content.some((c) => c.type !== "text")) return;
+      }
+      /* A file bigger than any window the keys reach is read in parts first
+         (lib/digest.ts) — sent whole, the provider refused it outright. */
+      if (content.some((c) => c.type === "file")) {
+        content = await fitFiles(content, (name, done, total) =>
+          setReading(done < total ? `Reading ${name} — part ${done + 1} of ${total}…` : null),
+        );
+        setReading(null);
       }
       const wantsTemporary = pendingTemporary || Boolean(slash?.temporary);
       const wantsResearch = pendingResearch || Boolean(slash?.research);
@@ -2044,6 +2053,8 @@ export default function Page() {
   );
 
   const showEmpty = path.length === 0 && !live && !comparing;
+  /* A long file being read before the turn goes out: said above the bar. */
+  const [reading, setReading] = React.useState<string | null>(null);
 
   /* One of the three rows on the blank page. Two of them put words in the
      box and hand you the caret; the third opens the picker the box's own
@@ -2392,7 +2403,15 @@ export default function Page() {
 
           {/* The one place the box lives, blank page or not. */}
           <div className="composer-dock no-print relative shrink-0 px-4 pt-2">
-            <div className="mx-auto w-full max-w-[var(--measure)]">{composer}</div>
+            <div className="mx-auto w-full max-w-[var(--measure)]">
+              {reading && (
+                <p role="status" className="mb-2 flex items-center gap-2 px-3 text-xs text-tertiary">
+                  <span className="think-orb" aria-hidden />
+                  {reading}
+                </p>
+              )}
+              {composer}
+            </div>
           </div>
           </>
           )}

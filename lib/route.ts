@@ -509,6 +509,11 @@ export function checker(
   })[0].id;
 }
 
+/** The largest window any model with a key has: what a single turn can hold at most. */
+export function biggestWindow(ctx: { configured: Record<string, boolean>; keys: Record<string, string> }): number {
+  return Math.max(0, ...usable(ctx.configured, ctx.keys).map((m) => m.contextWindow));
+}
+
 /**
  * The model that reads a long source in parts, before anything is written
  * from it.
