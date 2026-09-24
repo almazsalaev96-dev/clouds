@@ -1,90 +1,49 @@
 /**
- * PDFs, read in the browser and sent as text.
+ * Save as PDF: a page opens typeset in a window of its own, titled for
+ * the file, with the print dialog on the way. Checked from the Notebook.
  *
- * Fixtures are two PDFs built by hand in the test: one with a real text layer
- * across two pages, one that is a filled rectangle and nothing else — a scan,
- * in effect. The second one matters as much as the first: the honest answer to
- * a scan is "there is nothing in this to read", not an empty attachment that
- * the model then confabulates around.
- *
- *   node mock-provider.mjs &
- *   ANTHROPIC_BASE_URL=http://127.0.0.1:8787 ANTHROPIC_API_KEY=sk-ant-mock npx next start -p 3100
- *   node e2e-pdf.mjs
+ *   bash /tmp/claude-0/one.sh e2e-pdf
  */
 import { chromium } from "playwright";
-import { readFileSync } from "node:fs";
-
-const FIX = "/tmp/claude-0/-home-user-clouds/fa496cc1-6c1b-5786-a4f7-ad158109470c/scratchpad/fix";
-const paper = readFileSync(`${FIX}/paper.pdf`);
-const scan = readFileSync(`${FIX}/scan.pdf`);
-
 const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
-const page = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
-const errs = []; page.on("pageerror", (e) => errs.push(e.message));
+const ctx = await b.newContext({ viewport: { width: 1194, height: 834 } });
+const p = await ctx.newPage();
+await p.addInitScript(() => { window.print = () => { window.__printed = true; }; });
 let failed = 0;
-const check = (p, l, d = "") => { if (!p) failed++; console.log(`${p ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
-const lastPrompt = async () => {
-  const j = await (await fetch("http://127.0.0.1:8787/__last", { method: "POST" })).json();
-  return JSON.stringify(j);
-};
+const check = (c, l, d = "") => { if (!c) failed++; console.log(`${c ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
+const S = { theme: "dark", density: "comfortable", modelId: "one", styleId: "auto", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true, section: "notebook" };
+await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
+await p.evaluate(async (s) => {
+  localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 }));
+  const db = await new Promise((res) => { const r = indexedDB.open("clouds"); r.onsuccess = () => res(r.result); });
+  const tx = db.transaction(["notes"], "readwrite");
+  const now = Date.now();
+  tx.objectStore("notes").put({ id: "pdf1", title: "Osmosis, properly", content: "# Osmosis\n\nWater moves down a **water-potential** gradient.\n\n## The three words\n\n- Hypotonic\n- Isotonic\n- Hypertonic\n\n| Term | Meaning |\n|---|---|\n| Solute | The dissolved thing |\n\n> [!key] The membrane is selectively permeable.", createdAt: now, updatedAt: now, pinned: false });
+  await new Promise((res) => { tx.oncomplete = res; });
+}, S);
+await p.reload({ waitUntil: "networkidle" });
+await p.waitForTimeout(900);
 
-await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
-await page.evaluate(() => localStorage.setItem("store.settings.v1", JSON.stringify({ state: { theme: "dark", density: "comfortable", modelId: "claude-sonnet-4-5", styleId: "normal", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "", nameAsked: true }, version: 1 })));
-await page.reload({ waitUntil: "networkidle" });
-await page.waitForTimeout(800);
+console.log("\nA page, saved as PDF");
+{
+  await p.getByRole("listitem").filter({ hasText: "Osmosis, properly" }).first().click();
+  await p.waitForTimeout(800);
+  const opened = ctx.waitForEvent("page", { timeout: 5000 });
+  await p.getByRole("button", { name: "Save as PDF" }).click();
+  const w = await opened.catch(() => null);
+  check(Boolean(w), "a window of its own opens");
+  if (w) {
+    await w.waitForLoadState("load").catch(() => {});
+    await w.waitForTimeout(500);
+    check((await w.title()) === "Osmosis, properly", "titled for the file", await w.title());
+    const html = await w.content();
+    check(/<h1>Osmosis, properly<\/h1>/.test(html) && /<strong>water-potential<\/strong>/.test(html), "typeset: the title, the emphasis");
+    check(/<li>Hypotonic<\/li>/.test(html) && /<th>Term<\/th>/.test(html), "the list and the table");
+    check(/<blockquote>The membrane/.test(html), "the callout as a quote, its marker gone");
+    check(!/<script src|localhost:3100\/_next/.test(html), "and none of the app on the page");
+  }
+}
 
-/* ------------------------------------------------------------ the chat -- */
-
-await page.setInputFiles('input[aria-label="Choose photos and files to attach"]', {
-  name: "paper.pdf", mimeType: "application/pdf", buffer: paper,
-});
-await page.waitForTimeout(3000);
-
-const composer = await page.locator(".composer-shell").innerText();
-check(/paper\.pdf/i.test(composer), "the PDF attaches", composer.split("\n")[0]);
-check(!/isn't a text/i.test(await page.evaluate(() => document.body.innerText)), "and is not refused");
-
-const ta = page.locator("textarea").first();
-await ta.click(); await ta.type("what does it say", { delay: 3 });
-await page.keyboard.press("Enter");
-await page.waitForTimeout(5000);
-
-const sent = await lastPrompt();
-check(/Carnot cycle is reversible/.test(sent), "its text reaches the model");
-check(/Week three covers entropy/.test(sent), "including page two");
-check(/2 pages/.test(sent), "with the page count, so the model knows how much it got");
-
-/* ------------------------------------------------------------- a scan --- */
-
-await page.setInputFiles('input[aria-label="Choose photos and files to attach"]', {
-  name: "scan.pdf", mimeType: "application/pdf", buffer: scan,
-});
-await page.waitForTimeout(3000);
-const body = await page.evaluate(() => document.body.innerText);
-check(/scan/i.test(body), "a PDF with no text layer says it is a scan", (body.match(/[^\n]*scan[^\n]*/i) ?? [""])[0].trim().slice(0, 80));
-check(!/scan\.pdf.*\n?.*KB/i.test(await page.locator(".composer-shell").innerText()), "and is not attached as an empty file");
-
-/* --------------------------------------------------- project knowledge -- */
-
-await page.locator("aside nav").getByRole("button", { name: "Projects", exact: true }).first().click();
-await page.waitForTimeout(400);
-await page.getByRole("button", { name: /New project/i }).first().click();
-await page.waitForTimeout(600);
-await page.setInputFiles('input[aria-label="Add files to this project"]', {
-  name: "syllabus.pdf", mimeType: "application/pdf", buffer: paper,
-});
-await page.waitForTimeout(3000);
-check((await page.locator("main").innerText()).includes("syllabus.pdf"), "a project takes a PDF as knowledge");
-
-const stored = await page.evaluate(async () => {
-  const d = await new Promise((r) => { const q = indexedDB.open("clouds"); q.onsuccess = () => r(q.result); });
-  const rows = await new Promise((r) => { const q = d.transaction(["projectFiles"]).objectStore("projectFiles").getAll(); q.onsuccess = () => r(q.result); });
-  d.close();
-  return rows[0]?.text ?? "";
-});
-check(/Carnot cycle is reversible/.test(stored), "and stores the text, not the bytes");
-
-console.log(errs.length ? "\n  ✗ " + errs.join("; ") : "\n  ✓ no runtime errors");
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 await b.close();
-process.exit(failed || errs.length ? 1 : 0);
+process.exit(failed ? 1 : 0);

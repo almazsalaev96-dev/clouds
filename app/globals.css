@@ -2809,3 +2809,22 @@ main:has(.has-room-toggle) > .room-toggle-row { display: none; }
 :root[data-text="small"] { font-size: 15px; }
 :root[data-text="large"] { font-size: 17.5px; }
 :root[data-text="larger"] { font-size: 19px; }
+
+
+/* The panel away: the reading measure widens and a picture may grow. Only
+   from tablet width, where the panel took room; on a phone it was a drawer
+   over the page and the page never changed size. */
+@media (min-width: 768px) {
+  :root[data-sidebar="shut"] {
+    --measure: 56rem;
+    --measure-text: 48rem;
+    --measure-wide: 66rem;
+  }
+  /* The chat column sets its own measure, so it is widened by name. */
+  :root[data-sidebar="shut"] [data-read="chat"] {
+    --measure: 56rem;
+  }
+  :root[data-sidebar="shut"] main figure img {
+    max-height: min(70vh, 40rem);
+  }
+}

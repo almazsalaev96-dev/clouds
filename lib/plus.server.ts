@@ -90,10 +90,27 @@ export async function activateKey(key: string, name: string): Promise<{ customer
   return { customerId: out.customer?.customer_id, productId: out.product?.product_id, instanceId: out.id };
 }
 
+/**
+ * Dodo's own payment link for the product — a URL that needs no merchant
+ * key at all, which is how Plus can be switched on with nothing but the
+ * product id. `redirect_url` brings the person back to the app.
+ */
+export function staticCheckout(returnTo: string): string | null {
+  const product = env("DODO_PLUS_PRODUCT_ID");
+  if (!product) return null;
+  const host = env("DODO_ENVIRONMENT") === "live_mode" ? "https://checkout.dodopayments.com" : "https://test.checkout.dodopayments.com";
+  return `${host}/buy/${encodeURIComponent(product)}?quantity=1&redirect_url=${encodeURIComponent(returnTo)}`;
+}
+
 /** A hosted checkout for the subscription; the person is sent there. */
 export async function createCheckout(returnTo: string, email?: string): Promise<{ url: string; sessionId: string } | null> {
   const product = env("DODO_PLUS_PRODUCT_ID");
   if (!product) return null;
+  /* No merchant key: the static link does the same job. */
+  if (!env("DODO_PAYMENTS_API_KEY")) {
+    const url = staticCheckout(returnTo);
+    return url ? { url, sessionId: "" } : null;
+  }
   const out = await call<{ session_id?: string; checkout_url?: string | null }>("/checkouts", {
     method: "POST",
     body: {
@@ -113,11 +130,16 @@ export async function createCheckout(returnTo: string, email?: string): Promise<
  * customer → the customer's active key for this product. Anything missing
  * along the way returns nothing, and the panel asks for the key instead.
  */
-export async function claimKey(sessionId: string): Promise<string | null> {
+export async function claimKey(from: { sessionId?: string; paymentId?: string }): Promise<string | null> {
   const product = env("DODO_PLUS_PRODUCT_ID");
-  const session = await call<{ payment_id?: string | null }>(`/checkouts/${encodeURIComponent(sessionId)}`);
-  if (!session?.payment_id) return null;
-  const payment = await call<{ customer?: { customer_id?: string } }>(`/payments/${encodeURIComponent(session.payment_id)}`);
+  if (!env("DODO_PAYMENTS_API_KEY")) return null;
+  let paymentId = from.paymentId?.trim() || "";
+  if (!paymentId && from.sessionId) {
+    const session = await call<{ payment_id?: string | null }>(`/checkouts/${encodeURIComponent(from.sessionId)}`);
+    paymentId = session?.payment_id ?? "";
+  }
+  if (!paymentId) return null;
+  const payment = await call<{ customer?: { customer_id?: string } }>(`/payments/${encodeURIComponent(paymentId)}`);
   const customer = payment?.customer?.customer_id;
   if (!customer) return null;
   const q = new URLSearchParams({ customer_id: customer, status: "active" });

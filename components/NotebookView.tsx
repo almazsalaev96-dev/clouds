@@ -1,11 +1,12 @@
 "use client";
 
+import { printMarkdown } from "@/lib/print";
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { whyItFailed } from "@/lib/complete";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  BookOpen, Download, Eye, GraduationCap, HelpCircle, Highlighter, Layers, Link2, ListTree,
+  BookOpen, Download, Eye, Printer, GraduationCap, HelpCircle, Highlighter, Layers, Link2, ListTree,
   MessageSquare, Paperclip, Pencil, Scissors, SpellCheck2, Tags, X, Plus, BookMarked, ChevronDown } from "lucide-react";
 import type { Note, Source } from "@/lib/types";
 import { addCards, addSource, createDeck, createNote, db, deleteNote, deriveTitle, removeSource, sourcesOf } from "@/lib/db";
@@ -26,7 +27,7 @@ import { DiffView } from "@/components/DiffView";
 import { Button, SaveBadge } from "@/components/ui/primitives";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
 import { plainLine } from "@/lib/plain";
-import { PACK, packMarkdown, packOf, packTitle, sourceName } from "@/lib/revision";
+import { PACK, packMarkdown, packOf, packSourceOf, packTitle, sourceName } from "@/lib/revision";
 import { cn } from "@/lib/utils";
 
 /**
@@ -1013,8 +1014,12 @@ export function NotebookView({
           {preview ? <Pencil size={13} /> : <Eye size={13} />}
           {preview ? "Edit" : "Preview"}
         </Button>
-        <Button size="sm" variant="ghost" onClick={exportMarkdown}>
+        <Button size="sm" variant="ghost" onClick={exportMarkdown} aria-label="Download as Markdown">
           <Download size={13} />
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => { if (!printMarkdown(note.title || "Untitled", draft)) setNotice("The browser blocked the print window. Allow pop-ups for this page and try again."); }} aria-label="Save as PDF">
+          <Printer size={13} />
+          PDF
         </Button>
       </DetailBar>
 
@@ -1244,9 +1249,14 @@ export function NotebookView({
                         empty seat in front of the material — so the offer is
                         lessons, not proofreading. */}
                     {pack.length > 0 && (
+                      <>
                       <NoteChip busy={false} icon={<Download size={12} />} onClick={downloadPack}>
                         Download the pack
                       </NoteChip>
+                      <NoteChip busy={false} icon={<Printer size={12} />} onClick={() => { const source = packSourceOf(note.title) ?? note.title; const pages = packOf(note, notes ?? []); printMarkdown(`${source} — revision pack`, packMarkdown(source, pages.length ? pages : [note])); }}>
+                        Save the pack as PDF
+                      </NoteChip>
+                      </>
                     )}
                     {sources.length ? (
                       <>

@@ -828,3 +828,23 @@ Armi Plus (§5.1) · the picker as a ladder · a model choice in every room · T
 - OpenAI, "Pricing | OpenAI API" (developers.openai.com/api/docs/pricing); OpenRouter, "GPT-5.6 Terra"; CometAPI, "GPT-5.6 Pricing 2026: Sol, Terra & Luna" — the GPT-5.6 family and its prices, which the registry matches.
 - Dodo Payments skills bundled with the `dodopayments` Claude plugin (dodo-best-practices, checkout-integration, license-keys, credit-based-billing, webhook-integration) and the `dodopayments` SDK's own resource paths, read from the package.
 
+## 6. The four assistants by room, and the second round built from it
+
+A shorter sweep than §5, asked the other way round: for each of ChatGPT, Claude, Gemini and Kimi, what would a person in each ARMI room miss. Read 24 September 2026.
+
+| Room | What the field has | Here, after this round |
+|---|---|---|
+| Conversations | ChatGPT's picker became *Instant / Medium / High* with a line of meaning each; Instant switches itself up when a request wants thought `[R]`. Kimi's OK Computer builds sites and slides from a prompt and reads a million rows `[R]`. All four export an answer to PDF or share it `[K]`. | Thinking time is that list. Auto has climbed the ladder since §4o. An answer saves as PDF from its menu. Slides are not built. |
+| Study | Every study app sells a plan and a mock; the lesson-plan tools converge on objectives, activities, checks for understanding and an exit ticket `[R]`. | Today, Test me (§5.2), and now **Make a lesson** — that shape for one learner, on a page. |
+| Notebook | NotebookLM makes guides, quizzes, mind maps and audio from sources `[R]`; every document tool prints to PDF. | Packs and lessons, saved as PDF with the browser's own engine, every language intact. Audio is out of scope. |
+| Projects | Claude Projects hold files and instructions for many chats; Gemini Gems are a saved expert with standing instructions and live Drive files `[R]`. | Projects hold files and instructions; the rules panel is the standing instructions. Live cloud files are not built — nothing here has an account. |
+| Studio and Creations | Claude publishes an artifact to a link; Lovable and Bolt keep versions and deploy `[R]`. | Versions and a diff, one-file download, previews at three widths. Publishing needs a server that knows the person. |
+| The key | Every product is a subscription; none is a key. | Armi Plus is live on Dodo's product `pdt_0NoDp6xhLdHILChollXEj`, and works from the product id alone. |
+
+### Sources for §6
+
+- OpenAI, "ChatGPT Business release notes" (help.openai.com/en/articles/11391654) — the June 2026 picker; reconnAI, "ChatGPT's Simplified Model Picker"; Tony Reviews Things, "ChatGPT Model Picker Simplified".
+- IntuitionLabs, "Kimi K3 vs Claude, GPT-5 & Gemini: Pricing & Benchmarks 2026"; NxCode, "Kimi AI: Complete Guide to Features"; Wikipedia, "Kimi (chatbot)" — OK Computer.
+- LumiChats, "Claude Projects vs ChatGPT Projects vs Gemini Gems (2026)"; OpenClaw, "Claude Skills vs ChatGPT GPTs vs Gemini Gems"; Bootstrap Creative, "ChatGPT vs Claude vs Gemini: Feature & Terminology Map (2026)".
+- Forasoft, "AI Lesson Plan Generator in 2026: A District Buyer's Guide"; Edcafe AI, "10 Best AI Lesson Planners for Teachers in 2026"; Kuraplan, "9 Best AI Lesson Plan Generators (2026)".
+

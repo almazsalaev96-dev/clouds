@@ -358,6 +358,12 @@ export default function Page() {
 
   /* Asked again whenever the Plus key changes: with Plus on, which of the
      server's keys this browser may use is a fact about the membership. */
+  /* The page knows when the panel is away: the reading measure widens
+     and pictures grow into the room, the way the reference's column does. */
+  React.useEffect(() => {
+    document.documentElement.dataset.sidebar = settings.sidebarOpen ? "open" : "shut";
+  }, [settings.sidebarOpen]);
+
   const plusKey = settings.plus?.key;
   React.useEffect(() => {
     /* The settings hydrate a beat after the first render, so this runs
@@ -2201,11 +2207,14 @@ export default function Page() {
     const q = new URLSearchParams(window.location.search);
     if (q.get("plus") !== "done") return;
     const sessionId = q.get("session_id") ?? "";
+    /* A static payment link comes back with the payment rather than a
+       session; either finds the key. */
+    const paymentId = q.get("payment_id") ?? "";
     window.history.replaceState(null, "", window.location.pathname);
     (async () => {
       let key: string | null = null;
-      if (sessionId) {
-        key = await fetch("/api/plus/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sessionId }) })
+      if (sessionId || paymentId) {
+        key = await fetch("/api/plus/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sessionId, paymentId }) })
           .then((r) => r.json()).then((d) => (d as { key?: string | null }).key ?? null).catch(() => null);
       }
       if (key) {
@@ -2418,7 +2427,7 @@ export default function Page() {
                     label={settings.sidebarOpen ? "Hide sidebar" : "Show sidebar"}
                     keys={["mod", "\\"]}
                     onClick={settings.toggleSidebar}
-                    className="rounded-lg bg-subtle/70 hover:bg-subtle"
+                    className="rounded-lg hover:bg-subtle"
                   >
                     <PanelLeft size={16} />
                   </IconButton>
@@ -2431,7 +2440,7 @@ export default function Page() {
                       label={settings.sidebarOpen ? "Hide sidebar" : "Show sidebar"}
                       keys={["mod", "\\"]}
                       onClick={settings.toggleSidebar}
-                      className="rounded-lg bg-subtle/70 hover:bg-subtle"
+                      className="rounded-lg hover:bg-subtle"
                     >
                       <PanelLeft size={16} />
                     </IconButton>

@@ -107,6 +107,35 @@ export const EXAM: Recipe = {
 };
 
 /** The pack, in the order it is made and read. */
+/**
+ * A lesson: the shape a good teacher's hour has, on a page.
+ *
+ * Objectives first, so the reader knows what they are meant to be able to
+ * do by the end; the explanation in the order the ideas depend on each
+ * other; a worked example with every step said; practice with answers
+ * hidden below a rule; the mistakes people make; a summary a student
+ * could write from memory. The lesson-plan tools sold to teachers in 2026
+ * all converge on this shape — objectives, hook, activities, checks for
+ * understanding, exit ticket — and this is that shape for one learner.
+ */
+export const LESSON: Recipe = {
+  title: "Lesson",
+  label: "Make a lesson",
+  instruction: [
+    "Write a complete lesson on the topic for one learner working alone, at the level the topic implies (school exam level unless the topic says otherwise).",
+    "In this order, with these headings:",
+    "## By the end you can — three to five objectives, each beginning with a verb a person can be tested on (explain, calculate, compare, derive), never 'understand'.",
+    "## Before we start — the two or three things the lesson assumes, one line each, with a one-line check for each (a question whose answer shows the reader has it).",
+    "## The idea — the explanation, in the order the ideas depend on each other, in prose with short paragraphs. Define every term the first time it appears. Use one analogy at most, and say where it breaks.",
+    "## Worked example — one fully worked problem or case: the question, then every step with the reason for the step, then the answer with units or a conclusion.",
+    "## Try it — four practice questions rising in difficulty, the last one the kind an examiner sets. Number them.",
+    "## Answers — the answers to Try it, each with the working or reasoning in two to four lines.",
+    "## Where people go wrong — three mistakes learners make on this topic, each with what to do instead. Use the callout `> [!mistake]` for the worst one.",
+    "## In one breath — the whole lesson in four lines, the way a student would say it back.",
+    "No preamble, no filler. Where the topic is contested or the level ambiguous, say so in a line rather than guessing silently.",
+  ].join("\n"),
+};
+
 export const PACK: Recipe[] = [ORGANISER, CORNELL, EXAM];
 
 /** The title a pack page gets. */

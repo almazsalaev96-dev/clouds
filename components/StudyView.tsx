@@ -1,22 +1,23 @@
 "use client";
 
+import { LESSON } from "@/lib/revision";
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  ArrowLeftRight, ChevronLeft, FileText, Flame, Gauge, Keyboard, Lightbulb, MessageSquare, Pencil, Trash2, BookMarked } from "lucide-react";
+  ArrowLeftRight, BookOpen, ChevronLeft, FileText, Flame, Gauge, Keyboard, Lightbulb, MessageSquare, Pencil, Trash2, BookMarked } from "lucide-react";
 import { mark, type Mark } from "@/lib/grade";
 import { recallRate, todaysPlan, weakestDeck, weeksOf } from "@/lib/plan";
 import { Today } from "@/components/study/Today";
 import { Tutor } from "@/components/study/Tutor";
 import { extractPdf, isPdf } from "@/lib/pdf";
-import { createLesson, deleteLesson } from "@/lib/db";
+import { createLesson, createNote, deleteLesson } from "@/lib/db";
 import type { Deck, Lesson, Note } from "@/lib/types";
 import {
   addCards, addReverse, allCards, answerCard, attemptsSince, createDeck, db, deleteCard, deleteDeck,
   importCards, noteAttempt, noteStudied, parkCard, unanswerCard, updateCard,
 } from "@/lib/db";
 import { draftCards } from "@/lib/generate";
-import { cheapestAvailable, whyItFailed } from "@/lib/complete";
+import { cheapestAvailable, complete, whyItFailed } from "@/lib/complete";
 import {
   answeredToday, calibration, calibrationLine, clozeAnswer, clozeHidden, clozeQuestion, cramOrder,
   clampRetention, dailyLoad, dueNow, isCloze, isLeech, RETENTION_CHOICES, topicKey, mistakeQueue, progressOf, previewGaps, streakOf, topicStats, weakestTopic, whenDue,
@@ -180,6 +181,37 @@ export function StudyView({
     onFocus?.(Boolean(session));
     return () => onFocus?.(false);
   }, [session, onFocus]);
+
+  /* A lesson on what is in the box: the page a good teacher's hour would
+     leave behind, written into the Notebook and opened there. */
+  const makeLesson = async () => {
+    const about = subject.trim();
+    if (busy) return;
+    if (!about) {
+      setNotice("Name the topic in the box first — “photosynthesis”, “the chain rule”, “supply and demand”.");
+      setFocusKey(String(Date.now()));
+      return;
+    }
+    const modelId = roomModel ?? cheapestAvailable(configured);
+    if (!modelId) {
+      setNotice("No key configured yet — add one in Settings.");
+      return;
+    }
+    setBusy(true);
+    setNotice(null);
+    try {
+      const text = await complete(`${LESSON.instruction}\n\nTopic: ${about}`, { modelId, maxTokens: 6_000, temperature: 0.4 });
+      if (!text?.trim()) throw new Error("Nothing came back.");
+      const note = await createNote({ title: `Lesson — ${about}`, content: text.trim() });
+      setSubject("");
+      if (onOpenPage) onOpenPage(note.id);
+      else setNotice("The lesson is in the Notebook.");
+    } catch (err) {
+      setNotice(whyItFailed(err, "The lesson could not be written."));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const make = async () => {
     const about = subject.trim();
@@ -452,6 +484,14 @@ export function StudyView({
             >
               <FileText size={13} />
               {overDrop ? "Drop it here" : "Work through a document"}
+            </button>
+            <button
+              onClick={() => void makeLesson()}
+              disabled={busy}
+              className="btn-touch press focus-inset flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:text-primary disabled:opacity-50"
+            >
+              <BookOpen size={13} />
+              Make a lesson
             </button>
             {onPack && (
               <button

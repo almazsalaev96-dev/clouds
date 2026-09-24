@@ -109,7 +109,7 @@ export function TopBar({
         label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
         keys={["mod", "\\"]}
         onClick={toggleSidebar}
-        className="rounded-lg bg-subtle/70 hover:bg-subtle"
+        className="rounded-lg hover:bg-subtle"
       >
         <PanelLeft size={16} />
       </IconButton>

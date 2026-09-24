@@ -1,11 +1,12 @@
 "use client";
 
+import { printMarkdown } from "@/lib/print";
 import { useSettings } from "@/lib/store";
 import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   AlertCircle, Brain, Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Clock, Code2, Copy,
-  Download, FolderPlus, GraduationCap, LayoutTemplate, MoreHorizontal, NotebookPen, PanelRight, Pencil, Play, RefreshCw, Scissors, Search, SearchCheck, ShieldQuestion,
+  Download, Printer, FolderPlus, GraduationCap, LayoutTemplate, MoreHorizontal, NotebookPen, PanelRight, Pencil, Play, RefreshCw, Scissors, Search, SearchCheck, ShieldQuestion,
   SquarePen, ThumbsDown, ThumbsUp, Volume2, X,
 } from "lucide-react";
 import { builtDocument, titleOf, withoutBuild } from "@/lib/built";
@@ -891,6 +892,13 @@ function AssistantMessageImpl({
               >
                 <Download size={15} className="text-tertiary" />
                 Download as Markdown
+              </DropdownMenu.Item>
+              <DropdownMenu.Item
+                onSelect={() => printMarkdown((text.match(/^#{1,3}\s+(.+)$/m)?.[1] ?? "Answer from Armi").slice(0, 80), text)}
+                className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-secondary outline-none transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary data-[highlighted]:bg-subtle data-[highlighted]:text-primary"
+              >
+                <Printer size={15} className="text-tertiary" />
+                Save as PDF
               </DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu.Portal>

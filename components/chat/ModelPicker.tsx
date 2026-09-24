@@ -433,30 +433,36 @@ function EffortRow({ modelId, fallback }: { modelId: string; fallback?: "low" | 
   /* An Armi model arrives with an effort already chosen — it is half of what
      the name means — and the row shows that until somebody overrules it. */
   const current = paramsFor(modelId).reasoningEffort ?? fallback ?? "medium";
-  const options: { id: "low" | "medium" | "high"; label: string }[] = [
-    { id: "low", label: "Quick" },
-    { id: "medium", label: "Normal" },
-    { id: "high", label: "Hard" },
+  /* Three rungs, named for the wait and not for the model: the reference
+     went from a segmented switch to a short list with one line of meaning
+     under each name, and it reads better because the line says what you
+     are trading. */
+  const options: { id: "low" | "medium" | "high"; label: string; means: string }[] = [
+    { id: "low", label: "Instant", means: "Answers right away. Good for quick questions and rewrites." },
+    { id: "medium", label: "Medium", means: "A little thought first. The right default for most things." },
+    { id: "high", label: "High", means: "Thinks longer before answering. For the hard ones." },
   ];
   return (
-    <div className="flex items-center gap-2 border-t border-line px-2.5 py-1.5">
-      <span className="text-tiny text-tertiary">Thinks</span>
-      <div role="radiogroup" aria-label="How hard it thinks" className="ml-auto inline-flex rounded-md border border-line-strong bg-field p-0.5">
-        {options.map((o) => (
-          <button
-            key={o.id}
-            role="radio"
-            aria-checked={current === o.id}
-            onClick={() => setParams(modelId, { reasoningEffort: o.id })}
-            className={cn(
-              "tap inline-flex items-center rounded-xs px-1.5 py-0.5 text-tiny transition-colors duration-[var(--dur-fast)]",
-              current === o.id ? "bg-surface font-medium text-primary shadow-sm" : "text-secondary hover:text-primary",
-            )}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
+    <div className="border-t border-line px-1 py-1" role="radiogroup" aria-label="Thinking time">
+      <p className="px-1.5 pb-0.5 pt-1 text-tiny font-medium text-tertiary">Thinking time</p>
+      {options.map((o) => (
+        <button
+          key={o.id}
+          role="radio"
+          aria-checked={current === o.id}
+          onClick={() => setParams(modelId, { reasoningEffort: o.id })}
+          className={cn(
+            "tap focus-inset flex w-full items-center gap-2 rounded-sm px-1.5 py-1 text-left transition-colors duration-[var(--dur-fast)]",
+            current === o.id ? "bg-accent-subtle" : "hover:bg-subtle/60",
+          )}
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block text-[0.8125rem] font-medium leading-tight text-primary">{o.label}</span>
+            <span className="block truncate text-tiny text-tertiary">{o.means}</span>
+          </span>
+          {current === o.id && <Check size={13} className="shrink-0 text-accent" />}
+        </button>
+      ))}
     </div>
   );
 }
