@@ -2525,6 +2525,7 @@ export default function Page() {
                   configured={configured}
                   openId={deckId}
                   onFocus={setInUse}
+                  onOpenPage={(id) => selectInSection("notebook", id)}
                   /* A card you got wrong, taken to the chat. The deck is
                      inside an assistant rather than beside one, and this
                      is the whole of what that is worth. */

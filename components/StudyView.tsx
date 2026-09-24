@@ -5,11 +5,12 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   ArrowLeftRight, ChevronLeft, FileText, Flame, Gauge, Keyboard, Lightbulb, MessageSquare, Pencil, Trash2, BookMarked } from "lucide-react";
 import { mark, type Mark } from "@/lib/grade";
-import { recallRate, weakestDeck, weeksOf } from "@/lib/plan";
+import { recallRate, todaysPlan, weakestDeck, weeksOf } from "@/lib/plan";
+import { Today } from "@/components/study/Today";
 import { Tutor } from "@/components/study/Tutor";
 import { extractPdf, isPdf } from "@/lib/pdf";
 import { createLesson, deleteLesson } from "@/lib/db";
-import type { Deck, Lesson } from "@/lib/types";
+import type { Deck, Lesson, Note } from "@/lib/types";
 import {
   addCards, addReverse, allCards, answerCard, attemptsSince, createDeck, db, deleteCard, deleteDeck,
   importCards, noteAttempt, noteStudied, parkCard, unanswerCard, updateCard,
@@ -53,6 +54,7 @@ export function StudyView({
   openId,
   onFocus,
   onAsk,
+  onOpenPage,
   onPack,
 }: {
   configured: Record<string, boolean>;
@@ -68,6 +70,8 @@ export function StudyView({
    * separate search in a separate place.
    */
   onAsk?: (question: string) => void;
+  /** A page from today's plan, opened in the Notebook. */
+  onOpenPage?: (id: string) => void;
   /**
    * A chapter in, a revision pack out: the organiser, the Cornell notes,
    * the exam questions, and the cards. Made in the Notebook, where pages
@@ -78,6 +82,12 @@ export function StudyView({
   const decks = useLiveQuery(() => db.decks.orderBy("updatedAt").reverse().toArray(), [], [] as Deck[]);
   const cards = useLiveQuery(() => db.cards.toArray(), [], [] as Card[]);
   const days = useLiveQuery(() => db.studyDays.toArray(), [], [] as StudyDay[]);
+  /* For today's plan: the page least recently read. Queried up here with
+     the rest, above the early returns, for the reason the comment below
+     them gives about hook counts. */
+  const notes = useLiveQuery(() => db.notes.toArray(), [], [] as Note[]);
+  const exam = useSettings((st) => st.exam);
+  const setExam = useSettings((st) => st.setExam);
   /* Two months of answers. Bounded because nothing here reads further back
      than a month and an unbounded read of a year of studying is a stall on
      opening the room. */
@@ -256,6 +266,7 @@ export function StudyView({
         onBack={() => setOpenDeck(null)}
         onStudy={() => { setOpenDeck(null); setSession({ deckId: deck.id, mode: "due" }); }}
         onCram={() => { setOpenDeck(null); setSession({ deckId: deck.id, mode: "cram" }); }}
+        onReview={(ids) => { setOpenDeck(null); setSession({ deckId: deck.id, mode: "cram", only: ids }); }}
       />
     );
   }
@@ -278,6 +289,19 @@ export function StudyView({
   const missed = mistakeQueue(attempts ?? [], cards, now);
   const sureness = calibration(attempts ?? []);
   const surenessLine = calibrationLine(sureness);
+  /* Today, from the same readings: no model, no network. */
+  const plan = todaysPlan({
+    due,
+    weakTopic: weakTopic ? { topic: weakTopic.topic, rate: weakTopic.mean } : null,
+    notes,
+    days,
+    now,
+    exam,
+  });
+  const practise = (t: string) => {
+    const ids = cards.filter((c) => c.topic === t).map((c) => c.id);
+    setSession({ deckId: null, mode: "cram", only: ids, title: t });
+  };
 
   /* The same chrome as the Notebook, the Artifacts and the Projects.
      This room was written last and grew its own header — a different title
@@ -319,6 +343,7 @@ export function StudyView({
       }}
       lead={
         <div className="mb-4">
+          <Today plan={plan} onPractise={practise} onOpenPage={onOpenPage} exam={exam} onSetExam={setExam} />
           {/* First, when there is anything waiting: somebody who opens this
               room on a Tuesday evening has come to do what is due, and on a
               phone the line that does it sat below the fold, under a box for
@@ -546,10 +571,7 @@ export function StudyView({
 
           <Record days={days} now={now} cards={cards} />
           {surenessLine && <Sureness c={sureness} line={surenessLine} />}
-          {topics.length > 1 && <Topics topics={topics} onPractise={(t) => {
-            const ids = cards.filter((c) => c.topic === t).map((c) => c.id);
-            setSession({ deckId: null, mode: "cram", only: ids, title: t });
-          }} />}
+          {topics.length > 1 && <Topics topics={topics} onPractise={practise} />}
           {streak > 1 && (
             <p className="mt-2 flex items-center gap-1.5 text-xs text-tertiary tnum" aria-label={`${streak} days in a row`}>
               <Flame size={12} className="text-[var(--accent-2)]" />

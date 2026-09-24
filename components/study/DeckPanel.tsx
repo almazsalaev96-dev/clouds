@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/primitives";
 import { cn } from "@/lib/utils";
 import { RoomToggle } from "@/components/ui/RoomToggle";
 import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
+import { TestMode } from "@/components/study/TestMode";
 
 /**
  * What is actually in a deck, and the chance to fix it.
@@ -34,6 +35,7 @@ export function DeckPanel({
   onBack,
   onStudy,
   onCram,
+  onReview,
 }: {
   deck: Deck;
   configured: Record<string, boolean>;
@@ -41,7 +43,10 @@ export function DeckPanel({
   onStudy: () => void;
   /** Every card, regardless of the schedule, and the schedule untouched. */
   onCram: () => void;
+  /** Study exactly these, in this order — the ones a test got wrong. */
+  onReview?: (cardIds: string[]) => void;
 }) {
+  const [testing, setTesting] = React.useState(false);
   const stored = useLiveQuery(() => cardsOf(deck.id), [deck.id], [] as Card[]);
   /* In the order they matter, not the order the database keeps them. The
      index is by id, and ids sort as text — a deck of numbered cards came out
@@ -158,6 +163,13 @@ export function DeckPanel({
               Practise
             </Button>
           )}
+          {/* Recall, written down: ten questions answered in a box and
+              marked, the exam's own shape rather than a card's. */}
+          {cards.length >= 3 && (
+            <Button size="sm" variant="ghost" onClick={() => setTesting(true)} aria-label="Test me on this deck">
+              Test me
+            </Button>
+          )}
           {p.due > 0 && (
             <Button size="sm" variant="primary" onClick={onStudy}>
               Study {p.due}
@@ -166,6 +178,14 @@ export function DeckPanel({
         </div>
       </header>
 
+      {testing ? (
+        <TestMode
+          cards={cards}
+          now={now}
+          onDone={() => setTesting(false)}
+          onReview={(ids) => { setTesting(false); onReview?.(ids); }}
+        />
+      ) : (
       <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-4">
         {pasting && (
           <div className="mb-3 rounded-lg border border-line bg-surface p-2.5">
@@ -196,6 +216,7 @@ export function DeckPanel({
           </p>
         )}
       </div>
+      )}
     </div>
   );
 }

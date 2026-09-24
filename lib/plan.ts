@@ -106,3 +106,68 @@ export function weeksOf(days: StudyDay[], now: number, weeks = 12): { day: strin
   }
   return out;
 }
+
+
+/* ------------------------------------------------------------ the day -- */
+
+/**
+ * Today's plan, worked out here from what is already known. No model call.
+ *
+ * What is due, where the trouble is, one page worth reading again, and how
+ * far off the exam is — each a press that opens the thing. The reading list
+ * picks the page least recently touched among those with something on
+ * them: the one most likely to have slipped, by the same reasoning the
+ * scheduler uses for cards.
+ */
+export interface DayPlan {
+  /** Cards due now, across every deck. */
+  due: number;
+  weakTopic: { topic: string; rate: number } | null;
+  reread: { id: string; title: string } | null;
+  /** Whole days until the exam, negative once it has passed; null with none set. */
+  examDays: number | null;
+  examName: string | null;
+  /** Minutes sat in timed sessions today. */
+  minutesToday: number;
+  /** Cards answered today. */
+  answeredToday: number;
+}
+
+export function todaysPlan(args: {
+  due: number;
+  weakTopic: { topic: string; rate: number } | null;
+  notes: { id: string; title: string; content: string; updatedAt: number }[];
+  days: StudyDay[];
+  now: number;
+  exam?: { name: string; date: string } | null;
+}): DayPlan {
+  const today = args.days.find((d) => d.day === dayKey(args.now));
+  const worth = args.notes.filter((n) => n.title.trim() && n.content.trim().length >= 80);
+  const reread = worth.length ? [...worth].sort((a, b) => a.updatedAt - b.updatedAt)[0] : null;
+  /* Calendar days, not hours: an exam the day after tomorrow is "in 2
+     days" at breakfast and at bedtime alike. */
+  let examDays: number | null = null;
+  if (args.exam?.date) {
+    const at = new Date(`${args.exam.date}T00:00:00`);
+    const today = new Date(args.now);
+    today.setHours(0, 0, 0, 0);
+    if (Number.isFinite(at.getTime())) examDays = Math.round((at.getTime() - today.getTime()) / A_DAY);
+  }
+  return {
+    due: args.due,
+    weakTopic: args.weakTopic,
+    reread: reread ? { id: reread.id, title: reread.title } : null,
+    examDays,
+    examName: args.exam?.name?.trim() || null,
+    minutesToday: today?.minutes ?? 0,
+    answeredToday: today?.answered ?? 0,
+  };
+}
+
+/** "in 12 days", "tomorrow", "today", "3 days ago". */
+export function examLine(days: number): string {
+  if (days === 0) return "today";
+  if (days === 1) return "tomorrow";
+  if (days > 1) return `in ${days} days`;
+  return days === -1 ? "yesterday" : `${-days} days ago`;
+}

@@ -164,6 +164,8 @@ interface Settings {
   spend: "low" | "balanced" | "any";
   /** Armi Plus, once verified: the license key and who it belongs to. */
   plus: PlusMembership | null;
+  /** The exam being worked towards: a name and a day, for the countdown and the plan. */
+  exam: { name: string; date: string } | null;
   /**
    * Whether the model may use this app's rooms as tools — save cards, write
    * a page, look in the notebook. Off, it can only answer.
@@ -193,6 +195,7 @@ interface Settings {
   setKey: (p: ProviderId, key: string) => void;
   setReviseModel: (id: string | null) => void;
   setPlus: (p: PlusMembership | null) => void;
+  setExam: (e: { name: string; date: string } | null) => void;
   setParams: (modelId: string, p: Partial<ModelParams>) => void;
   toggleFavorite: (id: string) => void;
   set: (partial: Partial<Settings>) => void;
@@ -242,6 +245,7 @@ export const DEFAULT_SETTINGS = {
   textSize: "normal",
   spend: "any",
   plus: null,
+  exam: null,
   actionsOn: true,
   showLineNumbers: false,
   wrapCode: false,
@@ -275,6 +279,7 @@ export const useSettings = create<Settings>()(
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
       setSidebar: (sidebarOpen) => set({ sidebarOpen }),
       setPlus: (plus) => set({ plus }),
+      setExam: (exam) => set({ exam }),
       setKey: (p, key) => set((s) => ({ keys: { ...s.keys, [p]: key } })),
       setParams: (modelId, p) =>
         set((s) => ({

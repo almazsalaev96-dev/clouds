@@ -675,6 +675,14 @@ export async function noteStudied(rating: Rating, now = Date.now()): Promise<voi
   });
 }
 
+/** Minutes from a timed session, added to the day. */
+export async function logStudyMinutes(day: string, minutes: number): Promise<void> {
+  await db.transaction("rw", db.studyDays, async () => {
+    const row = await db.studyDays.get(day);
+    await db.studyDays.put(row ? { ...row, minutes: (row.minutes ?? 0) + minutes } : { day, answered: 0, right: 0, minutes });
+  });
+}
+
 /** Every day studied, oldest first. */
 export function studyDays(): Promise<StudyDay[]> {
   return db.studyDays.orderBy("day").toArray();

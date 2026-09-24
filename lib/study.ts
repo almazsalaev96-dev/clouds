@@ -573,6 +573,8 @@ export interface StudyDay {
   answered: number;
   /** Of which were got right the first time (good or easy). */
   right: number;
+  /** Minutes sat in a timed session that day, where any were. */
+  minutes?: number;
 }
 
 export function dayKey(now: number): string {
