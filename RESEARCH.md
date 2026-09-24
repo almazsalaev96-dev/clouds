@@ -783,3 +783,48 @@ The second architecture document names four product tiers over the providers' cu
 
 The principle the document ends on — the cheapest, fastest strategy with a high enough chance of getting this right — is now what Auto does: a level, a tier, a cast sized to the question, and the top of the ladder for the few per cent that earn it.
 
+## 5. Every room against the field, September 2026 — and what was built from it
+
+A second sweep, this time by room, with the question "what does the field ship that a person in this room would miss here". Sources are the ones read on 24 September 2026; the claims about other products carry `[R]` where a page said it and `[K]` where it is common knowledge in the field.
+
+### 5.1 The model menu and the key
+
+The flagships hide the model behind a switch and a tier of subscription; the reference's menu is a short list with a check mark, and "Auto" is the default everywhere `[K]`. What ARMI had that they do not is the cast — a model is two or three engines with jobs — and what it lacked was two things: the menu did not read as a *scale*, and only Conversations had a menu at all. Both built: the picker draws the four tiers as a ladder in the order Auto climbs them, each rung marked and priced per answer; and every room's header carries the room's model, honoured by Study's card drafting and by the Tutor.
+
+The key was the other wall. Every product in the field is a subscription first and a key never; ARMI was a key first and nothing else. Quizlet wraps its best features in a $35.99-a-year Plus plan `[R]`; the AI study apps compared this year sell mock exams and study plans on the same model `[R]`. **Armi Plus** is the answer that keeps the app's rule: a dollar a month, sold by a merchant of record (Dodo Payments) that issues a license key, the key kept like an API key, the server's own provider keys unlocked by it on the everyday engines only, and a monthly allowance in the merchant's own credit ledger. Nothing about the person is stored anywhere but the merchant's books; the app still has no accounts. The top of the ladder still needs a key of one's own, said on the panel in words.
+
+### 5.2 Study
+
+ChatGPT's study mode asks questions one at a time, checks understanding, references uploaded notes and images, and makes flashcard-style review `[R]` — all of which the Orrery and the Tutor already do beside a page. Anki's FSRS-6 scheduler is the benchmark for retention `[R]`, and ARMI runs the same family of model. Quizlet's Learn mode is "basic spacing", not a memory model `[R]`. Where the field was ahead:
+
+- **A plan for the day.** The exam-prep apps sell "personalised practice sessions" and "daily quizzes" as a plan `[R]`; most of them are a model's guess. Built as the scheduler's own arithmetic instead: **Today**, at the top of Study — the topic slipping most with its recall rate, the page least recently read, the exam and how far off it is. No model call.
+- **A test, not a review.** Studocu's mock exam and StudyGlen's practice tests build a paper from your own notes `[R]`; Quizlet's Test mode types the answer `[K]`. Built: **Test me** on any deck — ten questions, typed, marked locally, a score, the wrong ones with what was expected, and one press to study exactly those. The schedule is untouched.
+- **Time, as well as count.** The calendar knew how many cards a day and never how long. Built: a 25/5 session in the Today card that logs minutes to the day.
+- **The exam.** The countdown starter existed as a canvas; it is now a setting the plan reads.
+
+Not built, and still worth it: adaptive difficulty bands in the Tutor (AD-1), past-paper practice with a hidden mark scheme (EX-2), highlights that persist on a page (WD-8).
+
+### 5.3 Studio and Creations
+
+Claude's artifacts publish to a link and can be remixed; Gemini's Canvas edits a document beside the chat; neither ChatGPT's nor Gemini's canvas has a publish button `[R]`. Lovable and Bolt keep version history with rollback; v0 does not `[R]`. ARMI already keeps versions with a diff, runs the thing beside the conversation, downloads a canvas as one file, and previews at phone, tablet and full width. What was missing in this round was the room's model: Studio's composer and Creations' header now carry it. Publishing to a link is deliberately not built — it needs a server that knows the person, which the app does not have.
+
+### 5.4 Notebook and Projects
+
+NotebookLM's Studio makes audio and video overviews, mind maps, study guides, flashcards, quizzes and reports from a bounded set of sources `[R]`; Perplexity's Spaces group sources and chats for a project `[R]`. ARMI's Notebook makes revision packs, study guides, questions and cards from a page or a document, and Projects hold instructions and files every chat can see. The gap the sweep found is audio and video overviews, which are out of scope without a speech model; the mind map is a starter in Studio.
+
+### 5.5 What this round built, in one list
+
+Armi Plus (§5.1) · the picker as a ladder · a model choice in every room · Today's plan · the session timer · the exam countdown · Test me · the sidebar switch in every room (§4o's follow-up).
+
+### Sources for §5
+
+- OpenAI, "Using study mode in ChatGPT" (help.openai.com/en/articles/11780217) and "Introducing study mode" (openai.com/index/chatgpt-study-mode).
+- Coursebox, "Anki vs Quizlet: I Built the Same Deck on Both (2026)"; Quizgecko, "Quizlet vs Anki in 2026"; learnclash, "Anki vs Quizlet: Free Flashcards vs Paywall [2026]".
+- Wikipedia, "Anki (software)" — FSRS integration.
+- UniAcco, "Studocu AI Mock Exam Tool — Student Review 2026"; StudyGlen, "Best AI Practice Test & Exam Generator 2026"; Laxu AI, "Best AI Study Tools in 2026".
+- Drafty, "What is Gemini Canvas?"; CanvasLink, "Claude Artifacts vs ChatGPT Canvas vs Gemini Canvas (2026)"; Guvi, "How to Use Claude Artifacts".
+- Lovable, "Lovable vs Bolt vs V0"; UI Bakery, "Bolt vs Lovable vs V0: Which One to Choose in 2026?"; Emergent, "v0 vs Lovable vs Bolt".
+- DigitalOcean, "What Is NotebookLM? Features and How to Use It in 2026"; Google, "What's new in NotebookLM: Video Overviews and an upgraded Studio"; Elephas, "NotebookLM vs Perplexity (2026)".
+- OpenAI, "Pricing | OpenAI API" (developers.openai.com/api/docs/pricing); OpenRouter, "GPT-5.6 Terra"; CometAPI, "GPT-5.6 Pricing 2026: Sol, Terra & Luna" — the GPT-5.6 family and its prices, which the registry matches.
+- Dodo Payments skills bundled with the `dodopayments` Claude plugin (dodo-best-practices, checkout-integration, license-keys, credit-based-billing, webhook-integration) and the `dodopayments` SDK's own resource paths, read from the package.
+

@@ -156,7 +156,7 @@ console.log("\nWhat the row says");
      "Rewrites with ARMI Pulsar" — which is the same fact in the words the
      rest of the app uses. What matters here is that there is one, and that
      the canvas is not picking silently the way it used to. */
-  const picker = await page.getByRole("button", { name: /^(Rewrites with |Choose what rewrites)/ }).count();
+  const picker = await page.getByRole("button", { name: /^(Model for this room: |Choose the model for this room)/ }).count();
   check(picker === 1, "the canvas says which model is about to rewrite the file — it used to pick one silently");
   const target = await page.locator(".composer-shell .font-mono").first().textContent().catch(() => null);
   check(Boolean(target), "and which file it is about to rewrite", target ?? "");
