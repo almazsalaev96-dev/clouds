@@ -11,6 +11,7 @@ import { clozeQuestion, exportCards, isCloze, progressOf, whenDue, type Card } f
 import { offerUndo } from "@/lib/undo";
 import { Button } from "@/components/ui/primitives";
 import { cn } from "@/lib/utils";
+import { RoomToggle } from "@/components/ui/RoomToggle";
 
 /**
  * What is actually in a deck, and the chance to fix it.
@@ -114,10 +115,12 @@ export function DeckPanel({
     }
   };
 
+  const toggle = React.useContext(RoomToggle);
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <header className="glass safe-top sticky top-0 z-10 border-b border-line">
         <div className="mx-auto flex w-full max-w-[var(--measure)] items-center gap-2 px-3 py-3">
+          {toggle && <div className="has-room-toggle -ml-1">{toggle}</div>}
           <button
             onClick={onBack}
             aria-label="Back to Study"

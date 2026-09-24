@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/primitives";
 import { MessageBar } from "@/components/chat/MessageBar";
 import { DeckPanel } from "@/components/study/DeckPanel";
 import { SectionIndex } from "@/components/SectionIndex";
+import { RoomToggle } from "@/components/ui/RoomToggle";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/store";
@@ -800,10 +801,15 @@ function Session({
 
   const gaps = card ? previewGaps(card, now) : null;
   const cloze = card ? isCloze(card.front) : false;
+  const toggle = React.useContext(RoomToggle);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="safe-top sticky top-0 z-10 flex h-[var(--topbar-h)] shrink-0 items-center gap-2 px-3 relative">
+        {/* The sidebar's switch, in this header's first row rather than in
+            a row of its own above it: two stacked headers over a card is
+            the frame the session is meant to lose. */}
+        {toggle && <div className="has-room-toggle -ml-1">{toggle}</div>}
         <button
           onClick={onLeave}
           aria-label="Leave the session"

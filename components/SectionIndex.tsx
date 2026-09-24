@@ -108,7 +108,7 @@ export function SectionIndex({
         )}
       >
         <div className="mx-auto flex w-full max-w-[var(--measure)] items-center gap-3 px-4 py-3">
-          {toggle && <div className="has-room-toggle -ml-2 -mr-1 md:hidden">{toggle}</div>}
+          {toggle && <div className="has-room-toggle -ml-2 -mr-1">{toggle}</div>}
           <h1 className="text-lg font-semibold tracking-[-0.02em] text-primary">{title}</h1>
           {!loading && items.length > 0 && (
             <span className="tnum text-sm text-faint">{items.length}</span>
@@ -305,7 +305,7 @@ export function DetailBar({
         wide ? "max-w-[var(--measure-wide)]" : "max-w-[var(--measure)]",
       )}
     >
-      {toggle && <div className={cn("has-room-toggle -ml-2 md:hidden", wraps && "max-sm:self-start")}>{toggle}</div>}
+      {toggle && <div className={cn("has-room-toggle -ml-2", wraps && "max-sm:self-start")}>{toggle}</div>}
       <IconButton label={backLabel} keys={["Esc"]} onClick={onBack} className={wraps ? "max-sm:self-start" : undefined}>
         <ChevronLeft size={16} />
       </IconButton>

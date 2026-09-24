@@ -2351,24 +2351,40 @@ export default function Page() {
         <main className="vt-room relative flex min-w-0 flex-1 flex-col">
           {settings.section !== "chat" ? (
             <>
-              {/* A bar only when there is something to put in it. This was a
-                  topbar-height strip in every room whose one occupant — the
-                  sidebar toggle — appears below `md` with the sidebar closed,
-                  so on a tablet with the sidebar open it was fifty-six pixels
-                  of nothing above every room's own header: two headers, one
-                  of them blank. Below `md` the toggle still needs somewhere to
-                  be; everywhere else the room starts at the top. */}
-              {!settings.sidebarOpen && !inUse && (
-                <header className="room-toggle-row no-print flex h-[var(--topbar-h)] shrink-0 items-center gap-1 border-b border-transparent px-2 md:hidden">
-                  <IconButton label="Show sidebar" keys={["mod", "\\"]} onClick={settings.toggleSidebar}>
+              {/* The sidebar's switch, in every room, in both states.
+
+                  It used to appear only below tablet width and only once the
+                  sidebar was already hidden — so on an iPad in Study there
+                  was no way to hide the panel at all, and nothing on screen
+                  said the keyboard could. The reference puts one button at
+                  the top left of the page, outside the panel it controls,
+                  that reads "hide" when the panel is there and "show" when
+                  it is away, in the same square either way. That is what
+                  this is. A room whose header can hold it (`.has-room-toggle`)
+                  takes it into its first row, and `main:has(.has-room-toggle)`
+                  hides this lone row; a room with no such header keeps the
+                  row, which is one button and not a blank strip. */}
+              {!inUse && (
+                <header className="room-toggle-row no-print flex h-[var(--topbar-h)] shrink-0 items-center gap-1 px-2">
+                  <IconButton
+                    label={settings.sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+                    keys={["mod", "\\"]}
+                    onClick={settings.toggleSidebar}
+                    className="rounded-lg bg-subtle/70 hover:bg-subtle"
+                  >
                     <PanelLeft size={16} />
                   </IconButton>
                 </header>
               )}
               <RoomToggle.Provider
                 value={
-                  !settings.sidebarOpen && !inUse ? (
-                    <IconButton label="Show sidebar" keys={["mod", "\\"]} onClick={settings.toggleSidebar}>
+                  !inUse ? (
+                    <IconButton
+                      label={settings.sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+                      keys={["mod", "\\"]}
+                      onClick={settings.toggleSidebar}
+                      className="rounded-lg bg-subtle/70 hover:bg-subtle"
+                    >
                       <PanelLeft size={16} />
                     </IconButton>
                   ) : null
