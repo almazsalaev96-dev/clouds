@@ -56,11 +56,55 @@ async function call<T>(path: string, init: { method?: string; body?: unknown; au
       headers: headers(init.auth ?? true),
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.warn(`dodo ${init.method ?? "GET"} ${path.split("?")[0]} → ${res.status} ${text.slice(0, 200)}`);
+      return null;
+    }
     return (await res.json()) as T;
-  } catch {
+  } catch (e) {
+    console.warn(`dodo ${init.method ?? "GET"} ${path.split("?")[0]} → ${(e as Error).message}`);
     return null;
   }
+}
+
+/**
+ * A look at the arrangement, for whoever hosts it — on only while
+ * `DODO_PLUS_DEBUG` is set. Which mode the key is, which mode the app is
+ * in, whether the product answers, and what Dodo says to a checkout.
+ * Nothing secret: no key, no email, no amounts.
+ */
+export async function diagnose(): Promise<Record<string, unknown>> {
+  const key = env("DODO_PAYMENTS_API_KEY") ?? "";
+  const product = env("DODO_PLUS_PRODUCT_ID");
+  const probe = async (path: string, init: { method?: string; body?: unknown } = {}) => {
+    try {
+      const res = await fetch(`${dodoBase()}${path}`, { method: init.method ?? "GET", headers: headers(true), body: init.body === undefined ? undefined : JSON.stringify(init.body) });
+      const text = await res.text().catch(() => "");
+      return { status: res.status, body: text.slice(0, 300) };
+    } catch (e) {
+      return { status: 0, body: (e as Error).message };
+    }
+  };
+  const prod = product ? await probe(`/products/${encodeURIComponent(product)}`) : { status: 0, body: "no product id" };
+  const checkout = product
+    ? await probe("/checkouts", { method: "POST", body: { product_cart: [{ product_id: product, quantity: 1 }], return_url: "https://example.com/?plus=done" } })
+    : { status: 0, body: "no product id" };
+  const payments = await probe("/payments?page_size=5");
+  let recent: unknown = payments.body;
+  try {
+    const items = (JSON.parse(payments.body) as { items?: { payment_id?: string; status?: string; created_at?: string; subscription_id?: string }[] }).items ?? [];
+    recent = items.map((p) => ({ id: p.payment_id, status: p.status, at: p.created_at, subscription: p.subscription_id }));
+  } catch { /* left as text */ }
+  return {
+    keyMode: key.startsWith("dodo_test") ? "test" : key.startsWith("dodo_live") ? "live" : key ? "unrecognised prefix" : "no key",
+    appMode: env("DODO_ENVIRONMENT") ?? "test_mode (default)",
+    base: dodoBase(),
+    product: product ?? null,
+    productLookup: prod,
+    checkoutSession: { status: checkout.status, body: checkout.body.replace(/https?:\/\/\S+/g, "<url>") },
+    recentPayments: { status: payments.status, items: recent },
+  };
 }
 
 /* ------------------------------------------------------------- the pass -- */

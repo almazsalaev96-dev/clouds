@@ -4,14 +4,12 @@ import { getModel, PROVIDERS } from "@/lib/models";
 import type { ChatRequest, ChatError, StreamEvent } from "@/lib/types";
 import { PLUS_PRICE, plusAllowed } from "@/lib/plus";
 import { USED_UP, balance, debit, passCustomer, plusGating, validatePass } from "@/lib/plus.server";
+import { serverKeyFor } from "@/lib/serverKeys";
 
 export const runtime = "edge";
 export const maxDuration = 300;
 
-function serverKey(provider: string): string | undefined {
-  const v = process.env[PROVIDERS[provider as keyof typeof PROVIDERS].keyName];
-  return v && v.trim() ? v.trim() : undefined;
-}
+const serverKey = serverKeyFor;
 
 function sse(event: StreamEvent): Uint8Array {
   return new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`);

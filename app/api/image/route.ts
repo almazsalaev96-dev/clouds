@@ -1,5 +1,6 @@
 import { PLUS_PRICE } from "@/lib/plus";
 import { USED_UP, balance, debit, passCustomer, plusGating, validatePass } from "@/lib/plus.server";
+import { serverKeyFor } from "@/lib/serverKeys";
 import type { NextRequest } from "next/server";
 import { classifyError } from "@/lib/providers";
 import { baseUrlFor } from "@/lib/providers/shared";
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
   const prompt = (body.prompt ?? "").trim().slice(0, 4000);
   if (!prompt) return Response.json({ error: { kind: "unknown", message: "Say what to draw.", action: "none" } }, { status: 400 });
 
-  const env = process.env[PROVIDERS.openai.keyName];
+  const env = serverKeyFor("openai");
   /* The same rule as the chat route: with Armi Plus on, the server's key is
      for members. A picture is a fixed few cents off the allowance. */
   const plusKey = body.plusKey?.trim();

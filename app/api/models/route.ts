@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { PROVIDERS } from "@/lib/models";
 import type { ProviderId } from "@/lib/types";
 import { plusGating, plusOffer, validatePass } from "@/lib/plus.server";
+import { serverKeyFor } from "@/lib/serverKeys";
 
 export const runtime = "edge";
 
@@ -19,7 +20,7 @@ export async function GET(req: NextRequest) {
   const valid = plusKey ? await validatePass(plusKey) : undefined;
   const open = !plusGating() || valid === true;
   for (const id of Object.keys(PROVIDERS) as ProviderId[]) {
-    const v = process.env[PROVIDERS[id].keyName];
+    const v = serverKeyFor(id);
     configured[id] = open && Boolean(v && v.trim());
   }
   return Response.json({ configured, plus: plusOffer(valid) });
