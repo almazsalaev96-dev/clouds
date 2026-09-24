@@ -132,8 +132,9 @@ for t in e2e-verify e2e-learn e2e-point e2e-whole e2e-cast e2e-elsewhere e2e-act
 
 echo
 echo "== Armi Plus =="
-serve DODO_BASE_URL=http://127.0.0.1:8787 DODO_PAYMENTS_API_KEY=dodo_test_mock DODO_PLUS_PRODUCT_ID=pdt_mock DODO_PLUS_CREDIT_ID=cre_mock
+serve DODO_BASE_URL=http://127.0.0.1:8787 DODO_PAYMENTS_API_KEY=dodo_test_mock DODO_PLUS_PRODUCT_ID=pdt_mock DODO_PLUS_CREDIT_ID=cre_mock OPENAI_BASE_URL=http://127.0.0.1:8787 OPENAI_API_KEY=sk-mock
 run e2e-plus node e2e-plus.mjs
+run e2e-member node e2e-member.mjs
 
 echo
 echo "== the slow mock =="

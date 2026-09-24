@@ -85,7 +85,7 @@ console.log("\nA member is answered on the server's key, on an engine the plan c
   const calls = await recent();
   const answer = calls.find((r) => r.kind === "answer");
   check(Boolean(answer), "the question is answered", calls.map((r) => `${r.kind}:${r.model}`).join(" → ") || (await p.locator("main").innerText()).replace(/\n/g, " · ").slice(-400));
-  check(Boolean(answer) && /haiku|sonnet-5$/.test(answer.model ?? ""), "on an engine a dollar covers, not the dearest in the house", answer?.model);
+  check(Boolean(answer) && /haiku|sonnet-5$|luna|terra|deepseek|k2\.6/.test(answer.model ?? ""), "on an engine a dollar covers, not the dearest in the house", answer?.model);
   check(!calls.some((r) => /opus|fable/.test(r.model ?? "")), "and nothing above the plan was called", calls.map((r) => r.model).join(", "));
   const shown = await p.locator("main").innerText();
   check(/debounce|event|CRUD|architecture/i.test(shown) && !/No .* key yet/.test(shown), "and the answer is on the screen");

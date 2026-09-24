@@ -11,5 +11,7 @@ export async function POST(req: NextRequest) {
   const origin = req.headers.get("origin") ?? new URL(req.url).origin;
   const out = await createCheckout(`${origin}/?plus=done`, body.email?.trim() || undefined);
   if (!out) return Response.json({ error: "Couldn't start the checkout. Try again in a moment." }, { status: 502 });
+  /* One line, no secrets: which door the person went through. */
+  console.log(`plus checkout: ${out.sessionId ? `session ${out.sessionId}` : "static payment link"}`);
   return Response.json({ url: out.url, sessionId: out.sessionId });
 }

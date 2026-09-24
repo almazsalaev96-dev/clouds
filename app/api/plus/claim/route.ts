@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
   const subscriptionId = (body.subscriptionId ?? "").trim();
   if (!sessionId && !paymentId) return Response.json({ pass: null, error: "Paste the payment id first." }, { status: 400 });
   const out = await claimPass({ sessionId, paymentId, subscriptionId });
+  console.log(`plus claim: ${paymentId || sessionId} → ${out ? `pass for ${out.customerId}` : "no pass"}`);
   if (!out) return Response.json({ pass: null, error: "No successful payment for Armi Plus was found under that id. Check it against the receipt from Dodo Payments." });
   return Response.json(out);
 }
