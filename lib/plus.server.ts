@@ -236,43 +236,82 @@ export async function createCheckout(returnTo: string, email?: string): Promise<
 /** A month and a few days' grace: what a pass stands on its own for. */
 const A_MONTH = 35 * 24 * 60 * 60_000;
 
+type Sub = { subscription_id?: string; status?: string; next_billing_date?: string; product_id?: string; customer?: { customer_id?: string } };
+type Pay = { payment_id?: string; status?: string; created_at?: string; customer?: { customer_id?: string }; subscription_id?: string | null; product_cart?: { product_id?: string }[] | null };
+
+const grace = (iso?: string) => {
+  const t = iso ? Date.parse(iso) : NaN;
+  return Number.isFinite(t) ? t + 5 * 24 * 60 * 60_000 : Date.now() + A_MONTH;
+};
+
 /**
- * The pass, made from the payment the person just came back from — or
- * from a payment id off their receipt. The payment is looked up at Dodo
- * (never trusted from the address bar), must have succeeded, and must be
- * for this product where Dodo says which. Nothing along the way returns
- * nothing.
+ * The pass, made from what the person can point at: the payment they just
+ * came back from, a payment or subscription id off the receipt, or simply
+ * the email they paid with — since a dashboard in the wrong mode hides the
+ * ids, and an email is what everyone has. Everything is looked up at Dodo
+ * (never trusted from the address bar): the payment must have succeeded,
+ * the subscription must stand, and both must be for this product where
+ * Dodo says which. Nothing along the way returns nothing.
  */
-export async function claimPass(from: { sessionId?: string; paymentId?: string; subscriptionId?: string }): Promise<{ pass: string; customerId: string; until: number } | null> {
+export async function claimPass(from: { sessionId?: string; paymentId?: string; subscriptionId?: string; email?: string }): Promise<{ pass: string; customerId: string; until: number } | null> {
   const product = env("DODO_PLUS_PRODUCT_ID");
   if (!env("DODO_PAYMENTS_API_KEY")) return null;
+  const forThis = (id?: string | null) => !product || !id || id === product;
+  const issue = async (customerId: string, subscriptionId: string | undefined, paymentId: string | undefined, until: number) => ({
+    pass: await signPass({ customerId, subscriptionId, paymentId, until }),
+    customerId,
+    until,
+  });
+
+  /* A subscription id: its own record says everything. */
+  const bySubscription = async (id: string) => {
+    const sub = await call<Sub>(`/subscriptions/${encodeURIComponent(id)}`);
+    const customerId = sub?.customer?.customer_id;
+    if (!customerId || !sub?.status || !(LIVE.has(sub.status) || sub.status === "pending") || !forThis(sub.product_id)) return null;
+    return issue(customerId, id, undefined, grace(sub.next_billing_date));
+  };
+
   let paymentId = from.paymentId?.trim() || "";
   if (!paymentId && from.sessionId) {
     const session = await call<{ payment_id?: string | null }>(`/checkouts/${encodeURIComponent(from.sessionId)}`);
     paymentId = session?.payment_id ?? "";
   }
-  if (!paymentId) return null;
-  const payment = await call<{
-    status?: string;
-    customer?: { customer_id?: string };
-    subscription_id?: string | null;
-    product_cart?: { product_id?: string }[] | null;
-  }>(`/payments/${encodeURIComponent(paymentId)}`);
-  const customerId = payment?.customer?.customer_id;
-  if (!customerId || (payment?.status && payment.status !== "succeeded")) return null;
-  const bought = (payment?.product_cart ?? []).map((p) => p.product_id).filter(Boolean);
-  if (product && bought.length && !bought.includes(product)) return null;
-  const subscriptionId = payment?.subscription_id ?? from.subscriptionId?.trim() ?? undefined;
-  let until = Date.now() + A_MONTH;
-  if (subscriptionId) {
-    const sub = await call<{ status?: string; next_billing_date?: string; product_id?: string }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`);
-    if (sub?.status && !LIVE.has(sub.status) && sub.status !== "pending") return null;
-    if (product && sub?.product_id && sub.product_id !== product) return null;
-    const next = sub?.next_billing_date ? Date.parse(sub.next_billing_date) : NaN;
-    if (Number.isFinite(next)) until = next + 5 * 24 * 60 * 60_000;
+  if (paymentId) {
+    const payment = await call<Pay>(`/payments/${encodeURIComponent(paymentId)}`);
+    const customerId = payment?.customer?.customer_id;
+    if (!customerId || (payment?.status && payment.status !== "succeeded")) return null;
+    const bought = (payment?.product_cart ?? []).map((p) => p.product_id).filter(Boolean);
+    if (product && bought.length && !bought.includes(product)) return null;
+    const subscriptionId = payment?.subscription_id ?? from.subscriptionId?.trim() ?? undefined;
+    if (subscriptionId) {
+      const sub = await call<Sub>(`/subscriptions/${encodeURIComponent(subscriptionId)}`);
+      if (sub?.status && !LIVE.has(sub.status) && sub.status !== "pending") return null;
+      if (!forThis(sub?.product_id)) return null;
+      return issue(customerId, subscriptionId, paymentId, grace(sub?.next_billing_date));
+    }
+    return issue(customerId, undefined, paymentId, Date.now() + A_MONTH);
   }
-  const pass = await signPass({ customerId, subscriptionId: subscriptionId || undefined, paymentId, until });
-  return { pass, customerId, until };
+
+  const subscriptionId = from.subscriptionId?.trim();
+  if (subscriptionId) return bySubscription(subscriptionId);
+
+  /* The email: the customer, then their standing subscription for this
+     product, else their last successful payment for it. */
+  const email = from.email?.trim().toLowerCase();
+  if (email && email.includes("@")) {
+    const customers = await call<{ items?: { customer_id?: string; email?: string }[] }>(`/customers?${new URLSearchParams({ email })}`);
+    const ids = (customers?.items ?? []).filter((c) => c.customer_id && (!c.email || c.email.toLowerCase() === email)).map((c) => c.customer_id as string);
+    for (const customerId of ids) {
+      const subs = await call<{ items?: Sub[] }>(`/subscriptions?${new URLSearchParams({ customer_id: customerId })}`);
+      const sub = (subs?.items ?? []).find((x) => x.subscription_id && x.status && LIVE.has(x.status) && forThis(x.product_id));
+      if (sub) return issue(customerId, sub.subscription_id, undefined, grace(sub.next_billing_date));
+      const pays = await call<{ items?: Pay[] }>(`/payments?${new URLSearchParams({ customer_id: customerId })}`);
+      const pay = (pays?.items ?? []).find((x) => x.payment_id && x.status === "succeeded" && ((x.product_cart ?? []).length === 0 || (x.product_cart ?? []).some((c) => forThis(c.product_id))));
+      if (pay) return issue(customerId, pay.subscription_id ?? undefined, pay.payment_id, grace(pay.created_at ? new Date(Date.parse(pay.created_at) + 30 * 24 * 60 * 60_000).toISOString() : undefined));
+    }
+    return null;
+  }
+  return null;
 }
 
 /* ------------------------------------------------------------ allowance -- */

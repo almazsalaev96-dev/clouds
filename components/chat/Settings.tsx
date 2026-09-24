@@ -1537,15 +1537,16 @@ function PlusPanel() {
       setBusy(null);
     }
   };
-  /* Already paid, and the return trip did not land: the payment id off the
-     receipt is enough — the server looks it up at Dodo and signs the pass. */
+  /* Already paid, and the return trip did not land: the email they paid
+     with is enough — or a payment or subscription id off the receipt. The
+     server looks it up at Dodo and signs the pass. */
   const claim = async () => {
     const id = paymentId.trim();
     if (!id) return;
     setBusy("claim");
     setNote(null);
     try {
-      const res = await fetch("/api/plus/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ paymentId: id }) });
+      const res = await fetch("/api/plus/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ any: id }) });
       const out = (await res.json()) as { pass?: string | null; error?: string; customerId?: string; until?: number };
       if (out.pass) {
         setPlus({ key: out.pass, customerId: out.customerId, until: out.until, checkedAt: Date.now() });
@@ -1589,9 +1590,9 @@ function PlusPanel() {
           </Button>
         </div>
         {offer.valid === false && (
-          <Field label="Renewed?" hint="Paste the payment id from the new receipt.">
+          <Field label="Renewed?" hint="The email you paid with, or the payment id from the new receipt.">
             <div className="flex gap-2">
-              <input value={paymentId} onChange={(e) => setPaymentId(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void claim(); }} aria-label="Payment id" placeholder="pay_…" spellCheck={false}
+              <input value={paymentId} onChange={(e) => setPaymentId(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void claim(); }} aria-label="Email or payment id" placeholder="you@example.com or pay_…" spellCheck={false}
                 className="tap h-9 min-w-0 flex-1 rounded-md border border-line bg-field px-2.5 font-mono text-sm text-primary outline-none placeholder:text-tertiary focus:border-accent" />
               <Button size="sm" variant="ghost" disabled={busy !== null || !paymentId.trim()} onClick={() => void claim()}>{busy === "claim" ? "Checking…" : "Switch on"}</Button>
             </div>
@@ -1613,14 +1614,14 @@ function PlusPanel() {
         </Button>
         <span className="text-xs text-tertiary">Pay, and you are brought straight back with Plus on. Dodo Payments is the merchant of record; cancel any time.</span>
       </div>
-      <Field label="Already paid?" hint="If the return trip did not land, the payment id from the Dodo Payments receipt switches it on.">
+      <Field label="Already paid?" hint="If you paid and were not brought back, the email you paid with switches it on. A payment id (pay_…) or subscription id (sub_…) from the receipt works too.">
         <div className="flex gap-2">
           <input
             value={paymentId}
             onChange={(e) => setPaymentId(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") void claim(); }}
-            aria-label="Payment id"
-            placeholder="pay_…"
+            aria-label="Email or payment id"
+            placeholder="you@example.com or pay_…"
             spellCheck={false}
             className="tap h-9 min-w-0 flex-1 rounded-md border border-line bg-field px-2.5 font-mono text-sm text-primary outline-none placeholder:text-tertiary focus:border-accent"
           />
