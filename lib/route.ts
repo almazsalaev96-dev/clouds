@@ -545,6 +545,40 @@ export function elsewhere(
   })[0];
 }
 
+/**
+ * Somewhere with more room, when the conversation has outgrown the window.
+ *
+ * Not a different company — the same one is fine, and often best, since
+ * the thread was going well there — but the widest window that can be
+ * called, and only when it is actually wider than the one that refused.
+ * Current generation first; the older million-token windows if that is
+ * where the room is. Null when nothing holds more, and then the honest
+ * answer is the old one: shorten it.
+ */
+export function roomier(
+  currentId: string,
+  ctx: { configured: Record<string, boolean>; keys: Record<string, string> },
+  need: { vision?: boolean } = {},
+): ModelSpec | null {
+  const here = MODELS.find((m) => m.id === currentId)?.contextWindow ?? 0;
+  let pool = wellOnly(usable(ctx.configured, ctx.keys)).filter((m) => m.contextWindow > here);
+  if (need.vision) pool = pool.filter((m) => m.vision);
+  if (!pool.length) return null;
+  const widest = Math.max(...pool.map((m) => m.contextWindow));
+  const top = pool.filter((m) => m.contextWindow === widest);
+  const current = top.filter((m) => !m.legacy);
+  const from = current.length ? current : top;
+  /* Among equals, the one nearest in kind to what was answering: the same
+     company, then the least expensive that is at least as deep — a long
+     thread on a cheap model should not quietly become a long thread on the
+     dearest one. */
+  const home = MODELS.find((m) => m.id === currentId)?.provider;
+  const depth = traitsOf(currentId).depth;
+  const deep = from.filter((m) => traitsOf(m.id).depth >= depth);
+  return [...(deep.length ? deep : from)].sort((a, b) =>
+    Number(b.provider === home) - Number(a.provider === home) || a.priceIn + a.priceOut - (b.priceIn + b.priceOut) || a.id.localeCompare(b.id))[0];
+}
+
 export function checker(
   answeredBy: string,
   ctx: { configured: Record<string, boolean>; keys: Record<string, string> },

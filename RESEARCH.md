@@ -830,6 +830,9 @@ Armi Plus (§5.1) · the picker as a ladder · a model choice in every room · T
 
 ## 6. The four assistants by room, and the second round built from it
 
+**6.0 A long thread is the app's problem, not the person's.** ChatGPT, Claude and Gemini never show a "switch model" button when a conversation outgrows a window: ChatGPT trims and summarises silently, Claude tells you the thread is full and offers a new one, Gemini's window is large enough that it seldom arises. ARMI already summarised the part that would not fit (T-3) and read whole books in parts; what remained was the raw refusal itself — a 200k model saying "too long" produced a red bar and a button. Built: the turn moves itself to the widest window the keys open, the same company preferred and the cheapest model at least as deep, and the row says so; the bar and the button stay only for the case where nothing holds more. The Subscribe button likewise never dead-ends: a checkout the API will not create falls back to the product's own payment link.
+
+
 A shorter sweep than §5, asked the other way round: for each of ChatGPT, Claude, Gemini and Kimi, what would a person in each ARMI room miss. Read 24 September 2026.
 
 | Room | What the field has | Here, after this round |

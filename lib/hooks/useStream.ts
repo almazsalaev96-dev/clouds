@@ -232,7 +232,7 @@ export function useStream(onFinish?: (m: Message) => void) {
         /** Keep what a done action can take back, by the action's id. */
         keep?: (actionId: string, done: ActionDone) => void;
       };
-      elsewhere?: (tried: ProviderId[], kind: ChatError["kind"]) => { modelId: string; why: string } | null;
+      elsewhere?: (tried: ProviderId[], kind: ChatError["kind"], from: string) => { modelId: string; why: string } | null;
     }) => {
       const model = getModel(opts.modelId);
       const settings = useSettings.getState();
@@ -577,21 +577,29 @@ export function useStream(onFinish?: (m: Message) => void) {
           : blank && !refusedRef.current
             ? BRIEF[err.kind]
             : undefined;
-      if (!wait) return first;
-      setState({ ...EMPTY, phase: "waiting", error: err, retryingInMs: wait, conversationId: opts.conversationId, modelId: opts.modelId, presetId: opts.presetId ?? null });
-      const cancelled = await new Promise<boolean>((resolve) => {
-        retryTimerRef.current = setTimeout(() => resolve(false), wait);
-        retryCancelRef.current = () => resolve(true);
-      });
-      if (cancelled) {
-        /* Stopped during the wait: the run is over, and the screen has to
-           know it. Left as it was, "Retrying · 2s" stayed up and the
-           composer stayed locked until a reload. */
-        setState({ ...EMPTY, error: err, conversationId: opts.conversationId });
+      let result = first;
+      if (wait) {
+        setState({ ...EMPTY, phase: "waiting", error: err, retryingInMs: wait, conversationId: opts.conversationId, modelId: opts.modelId, presetId: opts.presetId ?? null });
+        const cancelled = await new Promise<boolean>((resolve) => {
+          retryTimerRef.current = setTimeout(() => resolve(false), wait);
+          retryCancelRef.current = () => resolve(true);
+        });
+        if (cancelled) {
+          /* Stopped during the wait: the run is over, and the screen has to
+             know it. Left as it was, "Retrying · 2s" stayed up and the
+             composer stayed locked until a reload. */
+          setState({ ...EMPTY, error: err, conversationId: opts.conversationId });
+          return first;
+        }
+        result = await runOnce(opts);
+      } else if (!blank || refusedRef.current || !worthMoving(err.kind)) {
+        /* Nothing to wait for and nowhere worth going: a refusal that would
+           land the same way anywhere, or an answer that had already begun.
+           The ones that are worth carrying — a spent key, a company down, a
+           conversation this window cannot hold — go straight on below;
+           waiting first would only have been a second refusal. */
         return first;
       }
-
-      let result = await runOnce(opts);
 
       /* Still refused, and by the provider rather than by the request. The
          app holds several companies' keys precisely so that this is not the
@@ -608,13 +616,15 @@ export function useStream(onFinish?: (m: Message) => void) {
          and the row ends up carrying the whole story. */
       const tried: ProviderId[] = [getModel(opts.modelId).provider as ProviderId];
       let why = opts.routedWhy;
+      let from = opts.modelId;
       while (tried.length <= HOPS) {
         const after = errorRef.current;
         if (!after || !worthMoving(after.kind)) return result;
-        const other = opts.elsewhere?.(tried, after.kind);
-        if (!other) return result;
+        const other = opts.elsewhere?.(tried, after.kind, from);
+        if (!other || other.modelId === from) return result;
         why = [why, other.why].filter(Boolean).join(" · ");
         tried.push(getModel(other.modelId).provider as ProviderId);
+        from = other.modelId;
         result = await runOnce({ ...opts, modelId: other.modelId, routedWhy: why });
       }
       return result;

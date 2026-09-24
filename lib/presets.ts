@@ -205,6 +205,8 @@ export const PRESETS: Preset[] = [
     ],
     escalate: ["gpt-5.6-sol", "claude-opus-5-5", "claude-fable-5-1", "kimi-k3", "deepseek-v4-pro"],
     revise: true,
+    stance:
+      "Answer the question that was asked, at the length it needs and no more. Where the person is choosing, recommend and say what would change your mind. Where a fact is uncertain, say so in a clause rather than a paragraph, and where a sum is involved, work it rather than guess it.",
     icon: "compass",
   },
   {
@@ -362,6 +364,8 @@ export const PRESETS: Preset[] = [
       { role: "duel", engines: ["kimi-k3", "gpt-5.6-terra", "deepseek-flash", "claude-sonnet-5", "gpt-5.6-sol", "kimi-k2.6"], want: "balanced" },
       { role: "check", engines: ["deepseek-flash", "gpt-5.6-luna", "kimi-k2.6", "claude-haiku-4-5", "gpt-5.2", "claude-sonnet-4-5"], want: "cheap", when: "earned" },
     ],
+    stance:
+      "Look before you reason: in the first lines, say what is actually in the picture — every label, number, axis and word you can read — then answer. Where a part of the picture is unclear or cut off, say which part rather than guessing at it.",
     icon: "eye",
   },
   {

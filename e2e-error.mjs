@@ -158,10 +158,13 @@ console.log("\nA rate limit is waited out rather than shown");
   await disarm();
 }
 
-console.log("\nA conversation too long to send says which problem it is");
+console.log("\nA conversation too long for every window says which problem it is");
 {
+  /* Too long for one window moves the turn to a larger one first (see
+     e2e-longer); this arms the refusal for every hop, so what is on screen
+     is the honest end of that road, not the first refusal. */
   await newChat();
-  await arm(400, '{"error":{"message":"prompt is too long: 250000 tokens > 200000 maximum context"}}');
+  await arm(400, '{"error":{"message":"prompt is too long: 250000 tokens > 200000 maximum context"}}', 4);
   await ask("what is a debounce");
   const e = await shown();
   check(/too long for the model/i.test(e?.text ?? ""), "it names the length rather than blaming the key", e?.text);

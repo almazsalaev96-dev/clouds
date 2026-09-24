@@ -50,16 +50,17 @@ console.log("\nAnd the work moves rather than stopping");
   check(whyAvoided(spent.kind, "Anthropic") === "Anthropic is out of credit",
     "with a line the room can pass on", whyAvoided(spent.kind, "Anthropic"));
 
-  /* The ones that would fail the same way anywhere stay put: carrying a
-     conversation that is too long to a second company spends a second key
-     to be told the same thing. */
-  for (const [status, body, kind] of [
-    [400, '{"error":{"message":"prompt is too long: 250000 tokens > 200000"}}', "context_length"],
-    [400, '{"error":{"message":"blocked by the safety filter"}}', "content_filter"],
-  ] as const) {
-    const e = classifyError("anthropic", status, body);
-    check(e.kind === kind, `${kind} is read as itself`, e.kind);
+  /* The one that would fail the same way anywhere stays put: a safety
+     filter at a second company is the same filter with a second key spent.
+     A conversation too long for the window is carried — but to a larger
+     window (`roomier`), which is not this decision. */
+  {
+    const e = classifyError("anthropic", 400, '{"error":{"message":"blocked by the safety filter"}}');
+    check(e.kind === "content_filter", "content_filter is read as itself", e.kind);
     check(!worthMoving(e.kind), "and is not carried anywhere, because it would fail there too");
+    const l = classifyError("anthropic", 400, '{"error":{"message":"prompt is too long: 250000 tokens > 200000"}}');
+    check(l.kind === "context_length", "context_length is read as itself", l.kind);
+    check(worthMoving(l.kind), "and is worth carrying — to a model with more room");
   }
 
   /* And the company that refused is stepped around for the next one. */

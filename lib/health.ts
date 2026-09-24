@@ -82,9 +82,12 @@ export function wellOnly<T extends { provider: ProviderId }>(models: T[], now = 
 /**
  * Whether a failure is worth carrying to another company.
  *
- * The ones that are about the company rather than about the question. A
- * context-length error or a content filter would land the same way at the
- * next company, and moving the turn there would only spend a second key.
+ * The ones that are about the company rather than about the question — and
+ * one that is about the window: a conversation too long for this model is
+ * carried to a model with a larger one (`roomier`, the same company allowed)
+ * rather than to another company at random. A content filter stays put: it
+ * would land the same way anywhere, and moving it would only spend a
+ * second key.
  *
  * Lived inside the chat hook until every other room needed it too: a spent
  * key stopped the Notebook, the Study room and the tutor outright while
@@ -92,7 +95,7 @@ export function wellOnly<T extends { provider: ProviderId }>(models: T[], now = 
  * make never went near the hook that knew this.
  */
 export function worthMoving(kind: ErrorKind): boolean {
-  return kind === "provider_down" || kind === "rate_limit" || kind === "quota" || kind === "bad_key";
+  return kind === "provider_down" || kind === "rate_limit" || kind === "quota" || kind === "bad_key" || kind === "context_length";
 }
 
 /** In words, for the line under an answer. */

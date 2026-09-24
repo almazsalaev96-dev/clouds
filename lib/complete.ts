@@ -2,7 +2,7 @@
 
 import { getModel } from "./models";
 import { engineOf } from "./presets";
-import { elsewhere } from "./route";
+import { elsewhere, roomier } from "./route";
 import { noteFailure, noteSuccess, whyAvoided, worthMoving } from "./health";
 import { getConfigured, canCall } from "./configured";
 import { PROVIDERS } from "./models";
@@ -255,11 +255,15 @@ export async function complete(
     } catch (err) {
       const kind = err instanceof Refused ? err.error.kind : null;
       if (!kind || !worthMoving(kind) || tried.length > HOPS) throw err;
-      const other = elsewhere(tried, { configured, keys: settings.keys });
-      if (!other) throw err;
+      /* Too long for the window is not the company's fault: the widest
+         window that can be called takes the page, whoever runs it. */
+      const other = kind === "context_length"
+        ? roomier(modelId, { configured, keys: settings.keys })
+        : elsewhere(tried, { configured, keys: settings.keys });
+      if (!other || other.id === modelId) throw err;
       /* Said out loud where the caller can pass it on, rather than the room
          quietly producing a page from a model nobody chose. */
-      opts.onMoved?.(whyAvoided(kind, PROVIDERS[provider].name), other.id);
+      opts.onMoved?.(kind === "context_length" ? "moved to a model with a larger window, since the page had outgrown the last one" : whyAvoided(kind, PROVIDERS[provider].name), other.id);
       modelId = other.id;
     }
   }

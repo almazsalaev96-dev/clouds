@@ -37,7 +37,7 @@ import {
   playerFor, playersFor, resolveCast, shapePlan, shortName, worthBriefing, worthConvening,
 } from "@/lib/presets";
 import { costOf, fitToContext } from "@/lib/context";
-import { elsewhere, searcher } from "@/lib/route";
+import { elsewhere, searcher, roomier } from "@/lib/route";
 import { fitFiles } from "@/lib/digest";
 import { setConfigured as setConfiguredGlobal, setPlusOffer } from "@/lib/configured";
 import { whyAvoided } from "@/lib/health";
@@ -1027,7 +1027,18 @@ export default function Page() {
            turn walks down the bench — each company once, whoever has already
            refused travelling with the ask — and the row says so rather than
            leaving a coloured bar and a Switch model button. */
-        elsewhere: (tried, kind) => {
+        elsewhere: (tried, kind, from) => {
+          /* Too long for this window is not a company refusing: the turn
+             goes to the widest window that can be called — the same
+             company is fine — and the row says so. Only when nothing holds
+             more does the old answer stand: shorten it. */
+          if (kind === "context_length") {
+            const bigger = roomier(from, { configured, keys: settings.keys }, {
+              vision: history.some((m) => m.content.some((c) => c.type === "image")),
+            });
+            if (!bigger) return null;
+            return { modelId: bigger.id, why: "moved to a model with a larger window, since this conversation had outgrown the last one" };
+          }
           const other = elsewhere(tried, { configured, keys: settings.keys }, {
             vision: history.some((m) => m.content.some((c) => c.type === "image")),
             size: history.reduce((n, m) => n + costOf(m), 0),

@@ -120,7 +120,13 @@ export async function createCheckout(returnTo: string, email?: string): Promise<
       metadata: { app: "armi", plan: "plus" },
     },
   });
-  if (!out?.checkout_url || !out.session_id) return null;
+  if (!out?.checkout_url || !out.session_id) {
+    /* The merchant call failed — a test key against live, a network
+       blip — and the person is still owed a way to pay. Dodo's own link
+       does the same job without the call. */
+    const url = staticCheckout(returnTo);
+    return url ? { url, sessionId: "" } : null;
+  }
   return { url: out.checkout_url, sessionId: out.session_id };
 }
 
