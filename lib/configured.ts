@@ -19,10 +19,33 @@
  */
 import type { ProviderId } from "./types";
 
+import { plusAllowed, type PlusOffer } from "./plus";
+
 let held: Record<string, boolean> = {};
+let offer: PlusOffer = { on: false, price: "" };
 
 export function setConfigured(next: Record<string, boolean>): void {
   held = next ?? {};
+}
+
+/** What the server said about Armi Plus, and whether our key checked out. */
+export function setPlusOffer(next: PlusOffer | undefined): void {
+  offer = next ?? { on: false, price: "" };
+}
+export function getPlusOffer(): PlusOffer {
+  return offer;
+}
+/** The server's keys are ours through Plus — so only the engines a dollar covers. */
+export const viaPlus = (): boolean => offer.on && offer.valid === true;
+
+/**
+ * Whether this browser can call this engine: its own key for the company,
+ * or the server's — which, through Plus, covers the everyday engines only.
+ */
+export function canCall(modelId: string, provider: string, configured: Record<string, boolean>, keys?: Record<string, string | undefined>): boolean {
+  if (keys?.[provider]) return true;
+  if (!configured[provider]) return false;
+  return !viaPlus() || plusAllowed(modelId);
 }
 
 export function getConfigured(): Record<string, boolean> {

@@ -12,6 +12,9 @@
  *   ANTHROPIC_BASE_URL=http://127.0.0.1:8787 npx next start -p 3100
  */
 import { createServer } from "node:http";
+let plusBalance = 60000;
+const plusDebits = [];
+let plusValidations = 0;
 
 /** A whole page, the way Creative answers a request to make something. */
 const MADE = `Here it is.
@@ -140,6 +143,41 @@ const send = (res, type, data) =>
   res.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`);
 
 createServer(async (req, res) => {
+  /* Dodo Payments, mocked: the four calls Armi Plus makes. A key that
+     begins ARMI-PLUS is valid; one customer, one product, one allowance
+     that the ledger draws down. `/__plus` reads the state back. */
+  {
+    const u = req.url ?? "";
+    const json = (code, obj) => { res.writeHead(code, { "content-type": "application/json" }); res.end(JSON.stringify(obj)); };
+    const readBody = async () => { let raw = ""; for await (const c of req) raw += c; try { return JSON.parse(raw || "{}"); } catch { return {}; } };
+    if (u === "/__plus") { json(200, { balance: plusBalance, debits: plusDebits, validations: plusValidations }); return; }
+    if (u === "/__plus/reset") { plusBalance = 60000; plusDebits.length = 0; plusValidations = 0; json(200, { ok: true }); return; }
+    if (u.startsWith("/__checkout")) { res.writeHead(200, { "content-type": "text/html" }); res.end("<h1>Mock checkout</h1>"); return; }
+    if (u.startsWith("/licenses/validate")) { const b = await readBody(); plusValidations += 1; json(200, { valid: String(b.license_key ?? "").startsWith("ARMI-PLUS") }); return; }
+    if (u.startsWith("/licenses/activate")) {
+      const b = await readBody();
+      if (!String(b.license_key ?? "").startsWith("ARMI-PLUS")) { json(404, { error: "not found" }); return; }
+      json(200, { id: "lki_mock", business_id: "bus_mock", created_at: new Date().toISOString(), license_key_id: "lk_mock", name: b.name ?? "Armi",
+        customer: { customer_id: "cus_mock", email: "almaz@example.com", name: "Almaz" }, product: { product_id: "pdt_mock", name: "Armi Plus" } });
+      return;
+    }
+    if (u.startsWith("/checkouts/cks_mock")) { json(200, { id: "cks_mock", created_at: new Date().toISOString(), payment_id: "pay_mock", payment_status: "succeeded", customer_email: "almaz@example.com" }); return; }
+    if (u.startsWith("/checkouts")) { await readBody(); json(200, { session_id: "cks_mock", checkout_url: "http://127.0.0.1:8787/__checkout" }); return; }
+    if (u.startsWith("/payments/pay_mock")) { json(200, { payment_id: "pay_mock", customer: { customer_id: "cus_mock", email: "almaz@example.com" } }); return; }
+    if (u.startsWith("/license_keys")) { json(200, { items: [{ id: "lk_mock", key: "ARMI-PLUS-MOCK-KEY", status: "active", product_id: "pdt_mock", customer_id: "cus_mock", instances_count: 1 }] }); return; }
+    if (u.startsWith("/credit-entitlements/")) {
+      if (u.endsWith("/ledger-entries")) {
+        const b = await readBody();
+        const n = Number(b.amount ?? 0);
+        if (b.entry_type === "debit") plusBalance -= n; else plusBalance += n;
+        plusDebits.push({ amount: n, what: b.metadata?.what ?? null });
+        json(200, { id: `led_${plusDebits.length}`, amount: String(n), balance_after: String(plusBalance), entry_type: b.entry_type });
+        return;
+      }
+      json(200, { id: "bal_mock", balance: String(plusBalance), overage: "0", credit_entitlement_id: "cre_mock", customer_id: "cus_mock" });
+      return;
+    }
+  }
   let raw = "";
   for await (const c of req) raw += c;
   /* An edit of a picture arrives as a form, not JSON: the picture as a file

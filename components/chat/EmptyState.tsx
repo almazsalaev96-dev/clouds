@@ -1,5 +1,6 @@
 "use client";
 
+import { getPlusOffer } from "@/lib/configured";
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { BookOpen, GraduationCap, KeyRound, LayoutTemplate, PenLine, Sparkles, X } from "lucide-react";
@@ -118,12 +119,15 @@ const STARTS: { id: Start; label: string; icon: React.ReactNode }[] = [
 export function EmptyState({
   hasAnyKey,
   onAddKey,
+  onPlus,
   onGo,
   onStart,
 }: {
   hasAnyKey: boolean;
   /** No key yet: the one button that fixes that. */
   onAddKey: () => void;
+  /** Or the other door: Armi Plus, where the server offers it. */
+  onPlus?: () => void;
   /** Into another room, from the line that says what is waiting there. */
   onGo?: (section: Section) => void;
   /** One of the three rows above the box was pressed. */
@@ -218,6 +222,17 @@ export function EmptyState({
               Add your API keys
             </button>
           </div>
+        )}
+        {/* The other door, where this installation has one: a dollar a
+            month and no keys at all. Said under the key button, quietly,
+            because the key is still the arrangement most people here want. */}
+        {!hasAnyKey && onPlus && getPlusOffer().on && (
+          <p className="anim-rise mt-2 text-center text-xs text-tertiary" style={{ animationDelay: "200ms" }}>
+            or{" "}
+            <button onClick={onPlus} className="focus-inset rounded underline decoration-[var(--border-strong)] underline-offset-2 hover:text-primary">
+              Armi Plus, {getPlusOffer().price} — no keys needed
+            </button>
+          </p>
         )}
 
         {/* The row of things you can make used to live here too, shown only

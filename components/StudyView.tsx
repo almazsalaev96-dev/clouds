@@ -26,6 +26,8 @@ import { Button } from "@/components/ui/primitives";
 import { MessageBar } from "@/components/chat/MessageBar";
 import { DeckPanel } from "@/components/study/DeckPanel";
 import { SectionIndex } from "@/components/SectionIndex";
+import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
+import { getConfigured } from "@/lib/configured";
 import { RoomToggle } from "@/components/ui/RoomToggle";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
@@ -152,6 +154,7 @@ export function StudyView({
      how the shared index asks for that, since there is no such thing as an
      empty deck worth creating. */
   const [focusKey, setFocusKey] = React.useState("");
+  const roomModel = useReviseModel(configured);
   const [busy, setBusy] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
   /* A clock that ticks, so "3 due" becomes "4 due" while the page is open
@@ -171,7 +174,8 @@ export function StudyView({
   const make = async () => {
     const about = subject.trim();
     if (!about || busy) return;
-    const modelId = cheapestAvailable(configured);
+    /* The room's model where one was chosen, the cheapest otherwise. */
+    const modelId = roomModel ?? cheapestAvailable(configured);
     if (!modelId) {
       setNotice("No key configured yet — add one in Settings.");
       return;
@@ -285,6 +289,7 @@ export function StudyView({
     <SectionIndex
       title="Study"
       newLabel="New deck"
+      right={<RevisePicker configured={configured} />}
       loading={decks === undefined}
       emptyTitle="Nothing to study yet."
       emptyHint="Name a subject above, or ask for cards in any chat. They come back on a schedule — sooner whenever you get one wrong."
@@ -821,6 +826,7 @@ function Session({
           {title}
           {mode === "cram" && <span className="text-tertiary"> · practice</span>}
         </span>
+        <RevisePicker configured={getConfigured()} />
         <span className="tnum shrink-0 text-xs text-tertiary">
           {queue.length} left{done > 0 ? ` · ${done} done` : ""}
         </span>

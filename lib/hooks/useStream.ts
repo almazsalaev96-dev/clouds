@@ -300,6 +300,8 @@ export function useStream(onFinish?: (m: Message) => void) {
             turnPrompt: opts.turnPrompt || undefined,
             params,
             clientKey: settings.keys[model.provider] || undefined,
+            plusKey: settings.plus?.key || undefined,
+            plusCustomer: settings.plus?.customerId || undefined,
           }),
         });
 

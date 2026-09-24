@@ -4,7 +4,7 @@ import { getModel } from "./models";
 import { engineOf } from "./presets";
 import { elsewhere } from "./route";
 import { noteFailure, noteSuccess, whyAvoided, worthMoving } from "./health";
-import { getConfigured } from "./configured";
+import { getConfigured, canCall } from "./configured";
 import { PROVIDERS } from "./models";
 import { useSettings } from "./store";
 import type { ChatError, ContentBlock, ProviderId , WebSource, WebTool } from "./types";
@@ -148,6 +148,8 @@ async function askOnce(
           reasoningEffort: undefined,
         },
         clientKey: settings.keys[provider] || undefined,
+        plusKey: settings.plus?.key || undefined,
+        plusCustomer: settings.plus?.customerId || undefined,
         tools: opts.tools,
       }),
       signal: opts.signal,
@@ -283,7 +285,7 @@ export function cheapestAvailable(configured: Record<string, boolean>): string |
   const preference = ["claude-haiku-4-5", "gpt-5.6-luna", "deepseek-flash", "kimi-k2.6"];
   const usable = (id: string) => {
     const p = getModel(id).provider as ProviderId;
-    return Boolean(configured[p] || settings.keys[p]);
+    return canCall(id, p, configured, settings.keys);
   };
   // The chosen chat model is the fallback only when it is one that can answer.
   return preference.find(usable) ?? (usable(settings.modelId) ? settings.modelId : null);

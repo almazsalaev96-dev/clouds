@@ -39,7 +39,7 @@ import {
 import { costOf, fitToContext } from "@/lib/context";
 import { elsewhere, searcher } from "@/lib/route";
 import { fitFiles } from "@/lib/digest";
-import { setConfigured as setConfiguredGlobal } from "@/lib/configured";
+import { setConfigured as setConfiguredGlobal, setPlusOffer } from "@/lib/configured";
 import { whyAvoided } from "@/lib/health";
 import { cheapestAvailable, complete } from "@/lib/complete";
 import { useSettings, useDrafts, paramsFor, paramsSet, type Section } from "@/lib/store";
@@ -254,7 +254,7 @@ export default function Page() {
   const [modelPickerOpen, setModelPickerOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   if (settingsOpen) everOpened.current.settings = true;
-  const [settingsTab, setSettingsTab] = React.useState<"keys" | "appearance" | "model" | "rules" | "styles" | "data" | "shortcuts">("keys");
+  const [settingsTab, setSettingsTab] = React.useState<"keys" | "plus" | "appearance" | "model" | "rules" | "styles" | "data" | "shortcuts">("keys");
   const [scrolled, setScrolled] = React.useState(false);
   const [artifact, setArtifact] = React.useState<Artifact | null>(null);
   /** Where j/k currently sit in the transcript. */
@@ -356,10 +356,19 @@ export default function Page() {
     return () => mq.removeEventListener("change", apply);
   }, [settings.theme]);
 
+  /* Asked again whenever the Plus key changes: with Plus on, which of the
+     server's keys this browser may use is a fact about the membership. */
+  const plusKey = settings.plus?.key;
   React.useEffect(() => {
-    fetch("/api/models")
+    /* The settings hydrate a beat after the first render, so this runs
+       twice on a browser with a Plus key — once without it, once with —
+       and the two answers race. The earlier one is dropped when it loses. */
+    let live = true;
+    fetch(`/api/models${plusKey ? `?plus=${encodeURIComponent(plusKey)}` : ""}`)
       .then((r) => r.json())
       .then((d) => {
+        if (!live) return;
+        setPlusOffer(d.plus);
         setConfigured(d.configured ?? {});
         /* And where the one-shot calls can read it. They run outside React
            and decide which engine to use and where to go when one refuses;
@@ -368,10 +377,12 @@ export default function Page() {
         setConfiguredGlobal(d.configured ?? {});
       })
       .catch(() => {
+        if (!live) return;
         setConfigured({});
         setConfiguredGlobal({});
       });
-  }, []);
+    return () => { live = false; };
+  }, [plusKey]);
 
   /* --- Data ------------------------------------------------------------- */
 
@@ -1146,6 +1157,8 @@ export default function Page() {
         try {
           const made = await makePicture(subject, {
             clientKey: settings.keys.openai || undefined,
+            plusKey: settings.plus?.key || undefined,
+            plusCustomer: settings.plus?.customerId || undefined,
             image: attachedPicture ? { mime: attachedPicture.mimeType, data: attachedPicture.data } : undefined,
           });
           await addMessage({
@@ -2174,6 +2187,41 @@ export default function Page() {
     setSettingsTab("keys");
     setSettingsOpen(true);
   }, []);
+  const openPlus = React.useCallback(() => {
+    setSettingsTab("plus");
+    setSettingsOpen(true);
+  }, []);
+
+  /* Back from checkout. Dodo sends the person to `/?plus=done&session_id=…`;
+     the key is fetched from the session where Dodo allows it, checked, and
+     kept — and where it cannot be, the Plus panel opens to ask for the key
+     from the email. The address is cleaned either way, so a reload does
+     not do it twice. */
+  React.useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("plus") !== "done") return;
+    const sessionId = q.get("session_id") ?? "";
+    window.history.replaceState(null, "", window.location.pathname);
+    (async () => {
+      let key: string | null = null;
+      if (sessionId) {
+        key = await fetch("/api/plus/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sessionId }) })
+          .then((r) => r.json()).then((d) => (d as { key?: string | null }).key ?? null).catch(() => null);
+      }
+      if (key) {
+        const out = await fetch("/api/plus/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key, device: navigator.userAgent.slice(0, 60) }) })
+          .then((r) => r.json()).catch(() => null) as { valid?: boolean; customerId?: string; productId?: string; instanceId?: string } | null;
+        if (out?.valid) {
+          useSettings.getState().setPlus({ key, customerId: out.customerId, productId: out.productId, instanceId: out.instanceId, checkedAt: Date.now() });
+          setNotice("Armi Plus is on. Ask anything — no keys needed.");
+          return;
+        }
+      }
+      setSettingsTab("plus");
+      setSettingsOpen(true);
+      setNotice("Payment received. Paste the key from the email Dodo Payments sent to switch Plus on.");
+    })();
+  }, []);
   const openRules = React.useCallback(() => {
     setSettingsTab("rules");
     setSettingsOpen(true);
@@ -2537,6 +2585,7 @@ export default function Page() {
             <EmptyState
               hasAnyKey={hasAnyKey}
               onAddKey={openKeys}
+              onPlus={openPlus}
               onGo={(section) => withTransition(() => settings.setSection(section), "forward")}
               onStart={start}
             />

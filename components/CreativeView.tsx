@@ -1,5 +1,7 @@
 "use client";
 
+import { RevisePicker } from "@/components/chat/RevisePicker";
+import { getConfigured } from "@/lib/configured";
 import * as React from "react";
 import { Wand2 } from "lucide-react";
 import { MAKES } from "@/lib/makes";
@@ -77,6 +79,7 @@ export function CreativeView({
           canSend={Boolean(text.trim())}
           autoFocus
           className="glass"
+          right={<RevisePicker configured={getConfigured()} />}
         />
       </div>
 

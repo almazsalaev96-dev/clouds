@@ -87,7 +87,7 @@ const pick = async (name) => {
 console.log("\nThe menu offers Armi's own models, and nobody else's");
 {
   await openPicker();
-  const armi = p.getByText("Armi models", { exact: true }).first();
+  const armi = p.getByText("The ladder", { exact: true }).first();
   const job = p.getByText("For a particular job", { exact: true }).first();
   const a = await armi.boundingBox();
   const j = await job.boundingBox();

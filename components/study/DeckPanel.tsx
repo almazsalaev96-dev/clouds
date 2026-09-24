@@ -12,6 +12,7 @@ import { offerUndo } from "@/lib/undo";
 import { Button } from "@/components/ui/primitives";
 import { cn } from "@/lib/utils";
 import { RoomToggle } from "@/components/ui/RoomToggle";
+import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
 
 /**
  * What is actually in a deck, and the chance to fix it.
@@ -85,9 +86,10 @@ export function DeckPanel({
   };
   const now = Date.now();
   const p = progressOf(cards, now);
+  const roomModel = useReviseModel(configured);
 
   const more = async () => {
-    const modelId = cheapestAvailable(configured);
+    const modelId = roomModel ?? cheapestAvailable(configured);
     if (!modelId) {
       setNotice("No key configured yet — add one in Settings.");
       return;
@@ -135,6 +137,7 @@ export function DeckPanel({
               {p.due > 0 ? ` · ${p.due} due now` : p.nextDue ? ` · next ${whenDue(p.nextDue, now)}` : ""}
             </span>
           </span>
+          <RevisePicker configured={configured} />
           <Button size="sm" variant="ghost" disabled={busy} onClick={() => void more()}>
             <Plus size={13} />
             {busy ? "Writing…" : "More cards"}

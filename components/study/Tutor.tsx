@@ -11,7 +11,7 @@ import { boundsOf, composite, marksMarkdown, parseMarks, quotesIn, type Stroke, 
 import { complete, whyItFailed } from "@/lib/complete";
 import { tryFirst, type TryFirst } from "@/lib/explain";
 import { draftCards } from "@/lib/generate";
-import { resolveCast, shortName } from "@/lib/presets";
+import { getPreset, resolveCast, shortName } from "@/lib/presets";
 import { useSettings } from "@/lib/store";
 import { rulesText } from "@/lib/rules";
 import { cn } from "@/lib/utils";
@@ -100,9 +100,13 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
      told there is a picture in this, so it lands on something that can see.
      Where the browser holds one company's key that is the model it picks;
      where it holds none it says so rather than failing at the send. */
+  /* The room's own choice wins where one was made — a person who picked
+     Astro for Study gets Astro at the page too — and the Orrery otherwise,
+     which is the tactic built for teaching. */
+  const tutorPreset = settings.reviseModelId && getPreset(settings.reviseModelId) ? settings.reviseModelId : "tutor";
   const cast = React.useMemo(
-    () => resolveCast("tutor", { configured, keys: settings.keys, hasImage: true }),
-    [configured, settings.keys],
+    () => resolveCast(tutorPreset, { configured, keys: settings.keys, hasImage: true }),
+    [configured, settings.keys, tutorPreset],
   );
 
   /* Drawn on arrival and on every page change — and only then. Keyed on the
@@ -251,7 +255,7 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
         role: "assistant",
         text: `Three to try before reading page ${page}:\n\n${rows.map((r, i) => `${i + 1}. ${r.q}`).join("\n")}`,
         page,
-        presetId: "tutor",
+        presetId: tutorPreset,
       });
     } catch (err) {
       setNotice(whyItFailed(err, "That request failed."));
@@ -332,7 +336,7 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
           role: "assistant",
           text,
           page,
-          presetId: "tutor",
+          presetId: tutorPreset,
           why: cast.answer.why || undefined,
         });
       } else {

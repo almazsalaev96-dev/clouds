@@ -1,5 +1,7 @@
 "use client";
 
+import { RevisePicker } from "@/components/chat/RevisePicker";
+import { getConfigured } from "@/lib/configured";
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Code2, FileText, GraduationCap, LayoutTemplate, NotebookPen } from "lucide-react";
@@ -164,6 +166,7 @@ export function LibraryView({
     <SectionIndex
       title="Creations"
       newLabel="New document"
+      right={<RevisePicker configured={getConfigured()} />}
       emptyTitle="Nothing made yet."
       emptyHint="Every page, deck, document and app you make lands here, whichever room you made it in."
       loading={loading}

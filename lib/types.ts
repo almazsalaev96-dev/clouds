@@ -477,6 +477,9 @@ export interface ChatError {
 
 export interface ChatRequest {
   modelId: string;
+  /** Armi Plus: the license key, and the customer it belongs to, for the allowance. */
+  plusKey?: string;
+  plusCustomer?: string;
   messages: Message[];
   systemPrompt?: string;
   /**

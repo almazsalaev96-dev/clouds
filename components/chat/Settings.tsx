@@ -17,6 +17,8 @@ import {
 } from "@/lib/backup";
 import { useSettings, paramsFor, DEFAULT_PARAMS, forgetLocalStorage } from "@/lib/store";
 import { PRESETS, engineOf, getPreset, profileOf, resolveCast, shortName } from "@/lib/presets";
+import { PLUS_NAME, PLUS_PRICE, PLUS_ALLOWED } from "@/lib/plus";
+import { getPlusOffer } from "@/lib/configured";
 import { does } from "./ModelPicker";
 import { useReturnFocus } from "@/lib/hooks/useReturnFocus";
 import { cn } from "@/lib/utils";
@@ -24,10 +26,11 @@ import { GROUPS, RULES, rulesCount } from "@/lib/rules";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
 import { SHORTCUT_GROUPS } from "@/components/ShortcutsOverlay";
 
-type Tab = "keys" | "appearance" | "model" | "styles" | "memory" | "routines" | "data" | "shortcuts" | "privacy" | "rules";
+type Tab = "keys" | "plus" | "appearance" | "model" | "styles" | "memory" | "routines" | "data" | "shortcuts" | "privacy" | "rules";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "keys", label: "API keys" },
+  { id: "plus", label: "Armi Plus" },
   { id: "appearance", label: "Appearance" },
   { id: "model", label: "Model" },
   { id: "rules", label: "Rules" },
@@ -100,6 +103,7 @@ export function Settings({
 
           <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
             {tab === "keys" && <KeysPanel configured={configured} />}
+            {tab === "plus" && <PlusPanel />}
             {tab === "appearance" && <AppearancePanel />}
             {tab === "model" && <ModelPanel configured={configured} />}
             {tab === "rules" && <RulesPanel />}
@@ -1497,5 +1501,122 @@ function StylesPanel() {
         )}
       </section>
     </div>
+  );
+}
+
+
+/**
+ * Armi Plus: a dollar a month, no keys to add.
+ *
+ * Three states, said plainly. Not switched on for this installation (a
+ * self-hosted copy with no Dodo product behind it); on and not yet a
+ * member — the pitch, the price, the button, and a box for a key that
+ * arrived by email; a member — what it covers, and how to stop. Nothing
+ * here is a paywall: every room works exactly as before on a person's own
+ * keys, and the top of the ladder always needs one.
+ */
+function PlusPanel() {
+  const plus = useSettings((s) => s.plus);
+  const setPlus = useSettings((s) => s.setPlus);
+  const offer = getPlusOffer();
+  const [key, setKey] = React.useState("");
+  const [busy, setBusy] = React.useState<"pay" | "verify" | null>(null);
+  const [note, setNote] = React.useState<string | null>(null);
+  const covered = PLUS_ALLOWED.map((id) => getPreset(id)?.short ?? null).filter(Boolean);
+  void covered;
+
+  const subscribe = async () => {
+    setBusy("pay");
+    setNote(null);
+    try {
+      const res = await fetch("/api/plus/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+      const out = (await res.json()) as { url?: string; error?: string };
+      if (out.url) window.location.href = out.url;
+      else setNote(out.error ?? "Couldn't start the checkout.");
+    } catch {
+      setNote("Couldn't reach the server.");
+    } finally {
+      setBusy(null);
+    }
+  };
+  const verify = async () => {
+    const k = key.trim();
+    if (!k) return;
+    setBusy("verify");
+    setNote(null);
+    try {
+      const res = await fetch("/api/plus/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key: k, device: navigator.userAgent.slice(0, 60) }) });
+      const out = (await res.json()) as { valid?: boolean; error?: string; customerId?: string; productId?: string; instanceId?: string };
+      if (out.valid) {
+        setPlus({ key: k, customerId: out.customerId, productId: out.productId, instanceId: out.instanceId, checkedAt: Date.now() });
+        setKey("");
+        setNote(null);
+      } else setNote(out.error ?? "That key did not check out.");
+    } catch {
+      setNote("Couldn't reach the server.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  if (!offer.on) {
+    return (
+      <Panel title={PLUS_NAME} description="Use Armi without adding any API keys, on Armi's own.">
+        <p className="text-sm text-secondary">
+          Not switched on for this installation. Whoever hosts it sets <code className="text-xs">DODO_PAYMENTS_API_KEY</code> and{" "}
+          <code className="text-xs">DODO_PLUS_PRODUCT_ID</code> on the server, with the provider keys beside them, and this page becomes the place to subscribe.
+        </p>
+      </Panel>
+    );
+  }
+
+  if (plus) {
+    return (
+      <Panel title={PLUS_NAME} description={`On — ${offer.price}.`}>
+        <p className="text-sm text-secondary" role="status">
+          {offer.valid === false
+            ? "Your key no longer checks out — the subscription may have ended. Renew from the email Dodo Payments sent, or paste a new key below."
+            : "Armi Plus is on. The everyday tiers — Nova 4, Mira 4.1 and Lumos 4 — answer on Armi's keys, within a monthly allowance. The top of the ladder still needs a key of your own."}
+        </p>
+        <p className="mt-2 text-xs text-tertiary">Key {plus.key.slice(0, 6)}…{plus.key.slice(-4)} · billing is handled by Dodo Payments; cancel from the email they sent you.</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button size="sm" variant="ghost" onClick={() => { setPlus(null); setNote("Removed from this browser. The subscription itself is cancelled from Dodo's email."); }}>
+            Remove from this browser
+          </Button>
+        </div>
+        {note && <p className="mt-2 text-xs text-secondary">{note}</p>}
+      </Panel>
+    );
+  }
+
+  return (
+    <Panel title={PLUS_NAME} description={`${offer.price}. No keys to add.`}>
+      <p className="text-sm text-secondary">
+        Everything the everyday tiers do — Nova 4, Mira 4.1, Lumos 4, and the study, notebook and studio work that runs on them — on Armi's own keys, with a monthly allowance that covers ordinary use. Astro 5 and the dearest engines under the specialists still need a key of your own.
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <Button size="sm" variant="primary" disabled={busy !== null} onClick={() => void subscribe()}>
+          {busy === "pay" ? "Opening checkout…" : `Subscribe — ${PLUS_PRICE}`}
+        </Button>
+        <span className="text-xs text-tertiary">Paid through Dodo Payments, the merchant of record. Cancel any time.</span>
+      </div>
+      <Field label="Already subscribed?" hint="Paste the license key from the email Dodo Payments sent.">
+        <div className="flex gap-2">
+          <input
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") void verify(); }}
+            aria-label="Armi Plus key"
+            placeholder="ARMI-…"
+            spellCheck={false}
+            className="tap h-9 min-w-0 flex-1 rounded-md border border-line bg-field px-2.5 font-mono text-sm text-primary outline-none placeholder:text-tertiary focus:border-accent"
+          />
+          <Button size="sm" variant="ghost" disabled={busy !== null || !key.trim()} onClick={() => void verify()}>
+            {busy === "verify" ? "Checking…" : "Use this key"}
+          </Button>
+        </div>
+      </Field>
+      {note && <p className="mt-2 text-xs text-warning" role="alert">{note}</p>}
+    </Panel>
   );
 }

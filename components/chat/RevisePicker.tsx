@@ -66,13 +66,13 @@ export function RevisePicker({ configured }: { configured: Record<string, boolea
            here — and an engine's name is the one thing this control does not
            need on screen, since choosing the engine is what opening it is
            for. The Armi model is in the menu and in this label. */
-        aria-label={chosen ? `Rewrites with ${chosen.name}` : "Choose what rewrites this"}
+        aria-label={chosen ? `Model for this room: ${chosen.name}` : "Choose the model for this room"}
         className="btn-touch ctl-h focus-inset flex min-w-0 shrink items-center gap-1.5 rounded-full px-2 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
       >
         {model ? (
           <>
             <Wand2 size={13} className="shrink-0 text-[var(--accent-2)]" />
-            <span className="truncate">{chosen?.short ?? "Rewrites"}</span>
+            <span className="truncate">{chosen?.short ?? "Auto"}</span>
           </>
         ) : (
           <span className="truncate text-tertiary">No key</span>

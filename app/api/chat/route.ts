@@ -2,6 +2,8 @@ import type { NextRequest } from "next/server";
 import { adapterFor } from "@/lib/providers";
 import { getModel, PROVIDERS } from "@/lib/models";
 import type { ChatRequest, ChatError, StreamEvent } from "@/lib/types";
+import { PLUS_PRICE, plusAllowed } from "@/lib/plus";
+import { USED_UP, balance, debit, plusGating, validateKey } from "@/lib/plus.server";
 
 export const runtime = "edge";
 export const maxDuration = 300;
@@ -24,9 +26,15 @@ export async function POST(req: NextRequest) {
   }
 
   const model = getModel(body.modelId);
-  // A server-side key always wins: it never reaches the browser at all. The
-  // client-supplied key is the fallback for people who don't run the server.
-  const key = serverKey(model.provider) ?? body.clientKey;
+  /* Whose key answers. The server's, where it holds one — it never reaches
+     the browser — unless Armi Plus is switched on, in which case the
+     server's keys are for members: a valid Plus key on an engine the plan
+     covers unlocks them, and anyone else uses the key their browser sent.
+     Without Plus configured nothing changes: the server answers for all. */
+  const plusKey = body.plusKey?.trim();
+  const viaPlus = Boolean(plusKey && plusGating() && plusAllowed(model.id) && (await validateKey(plusKey)));
+  const key = viaPlus || !plusGating() ? (serverKey(model.provider) ?? body.clientKey) : body.clientKey;
+  const member = viaPlus ? body.plusCustomer?.trim() : undefined;
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -67,7 +75,11 @@ export async function POST(req: NextRequest) {
       if (!key) {
         const error: ChatError = {
           kind: "no_key",
-          message: `No ${PROVIDERS[model.provider].name} key yet. Add one to use ${model.name}.`,
+          message: plusGating()
+            ? plusKey && !plusAllowed(model.id)
+              ? `${model.name} is not part of Armi Plus. Add a ${PROVIDERS[model.provider].name} key of your own to use it.`
+              : `No ${PROVIDERS[model.provider].name} key yet. Add one in Settings, or Armi Plus for ${PLUS_PRICE}.`
+            : `No ${PROVIDERS[model.provider].name} key yet. Add one to use ${model.name}.`,
           action: "add_key",
         };
         emit({ type: "error", error });
@@ -76,14 +88,28 @@ export async function POST(req: NextRequest) {
         return;
       }
 
+      /* The allowance, where one is configured: a member whose month is
+         spent is told so before a token is bought on their behalf. */
+      if (member) {
+        const left = await balance(member);
+        if (left !== null && left <= 0) {
+          emit({ type: "error", error: { kind: "quota", message: USED_UP, action: "add_key" } });
+          clearInterval(heartbeat);
+          controller.close();
+          return;
+        }
+      }
+
       const ac = new AbortController();
       // The user pressing stop must actually stop the upstream request, not
       // just stop rendering it — otherwise they keep paying for the tokens.
       req.signal.addEventListener("abort", () => ac.abort());
 
+      let spent = 0;
       try {
         for await (const event of adapterFor(body.modelId)(body, key, ac.signal)) {
           if (req.signal.aborted) break;
+          if (event.type === "usage") spent = event.usage.costUsd ?? spent;
           emit(event);
         }
       } catch (err) {
@@ -104,6 +130,8 @@ export async function POST(req: NextRequest) {
       } finally {
         clearInterval(heartbeat);
         controller.close();
+        /* Paid for after the fact, from what the provider said it cost. */
+        if (member && spent > 0) await debit(member, spent, model.id).catch(() => undefined);
       }
     },
   });

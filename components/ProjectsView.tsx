@@ -17,7 +17,7 @@ import { useAutosave } from "@/lib/hooks/useAutosave";
 import { Button, IconButton, SaveBadge } from "@/components/ui/primitives";
 import { Markdown } from "@/components/chat/Markdown";
 import { askProject, type Source } from "@/lib/generate";
-import { useReviseModel } from "@/components/chat/RevisePicker";
+import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
 
 /**
@@ -82,6 +82,7 @@ export function ProjectsView({
       <SectionIndex
         title="Projects"
         newLabel="New project"
+        right={<RevisePicker configured={configured} />}
         emptyTitle="No projects yet."
         emptyHint="A project holds instructions and material every chat inside it can see — a course, a codebase, a piece of writing."
         waysIn={[{ label: "New project", icon: <Plus size={12} />, onPick: onNew }]}

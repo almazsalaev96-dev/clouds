@@ -12,6 +12,7 @@ import {
   PRESETS, SEAT_NAMES, canRun, getPreset, profileOf, resolveCast, type Cast, type Player, type Preset,
 } from "@/lib/presets";
 import { useSettings, paramsFor } from "@/lib/store";
+import { TIER_OF } from "@/lib/tiers";
 import { cn, fuzzyScore } from "@/lib/utils";
 
 /**
@@ -124,10 +125,11 @@ export function ModelPicker({
       .map((r) => r.x);
   }, [query, runnable]);
 
-  const armiRow = (p: Preset) => (
+  const armiRow = (p: Preset, level?: 1 | 2 | 3 | 4) => (
     <PresetRow
       key={p.id}
       preset={p}
+      level={level}
       cast={resolveCast(p.id, where)!}
       available={anyKey}
       selected={p.id === value}
@@ -143,7 +145,8 @@ export function ModelPicker({
     <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger asChild>
         {children ?? (
-          <button className="tap flex h-8 items-center gap-1 rounded-md px-2 text-sm font-medium text-primary transition-colors duration-[var(--dur-fast)] hover:bg-subtle">
+          <button className="tap flex h-8 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-primary transition-colors duration-[var(--dur-fast)] hover:bg-subtle">
+            {auto ? <Wand2 size={13} className="text-[var(--accent-2)]" /> : preset ? <PresetIcon id={preset.id} size={13} className="text-[var(--accent-2)]" /> : null}
             {auto ? "Auto" : (preset?.short ?? model.name)}
             <ChevronDown size={13} className="text-tertiary" />
           </button>
@@ -181,7 +184,7 @@ export function ModelPicker({
           <div className="max-h-[19rem] overflow-y-auto p-1">
             {results ? (
               results.length ? (
-                results.map(armiRow)
+                results.map((x) => armiRow(x))
               ) : (
                 <p className="px-3 py-6 text-center text-xs text-tertiary">No model matches that.</p>
               )
@@ -218,14 +221,20 @@ export function ModelPicker({
                     is not a thing to choose from a menu: it depends on the
                     keys in this browser, it changes when one is added, and it
                     is answered in Settings for anybody who wants to know. */}
-                <Section label="Armi models">
-                  {PRESETS.filter((x) => x.group === "everyday" && runnable(x)).map(armiRow)}
+                {/* The ladder: the four tiers in the order Auto climbs them,
+                    each with its rung marked, so the menu reads as one
+                    scale from quick to maximum rather than four names. */}
+                <Section label="The ladder">
+                  {([1, 2, 3, 4] as const)
+                    .map((level) => ({ level, x: getPreset(TIER_OF[level])! }))
+                    .filter(({ x }) => runnable(x))
+                    .map(({ level, x }) => armiRow(x, level))}
                 </Section>
                 {/* The specialists, under their own heading. Eleven rows in
                     one list is a catalogue; five for anything and six for one
                     thing is a menu. */}
                 <Section label="For a particular job">
-                  {PRESETS.filter((x) => x.group === "job" && runnable(x)).map(armiRow)}
+                  {PRESETS.filter((x) => x.group === "job" && runnable(x)).map((x) => armiRow(x))}
                 </Section>
                 {hidden > 0 && (
                   <p className="px-2 pb-1 pt-0.5 text-tiny text-faint">
@@ -277,17 +286,21 @@ function Section({ label, children }: { label: string; children: React.ReactNode
  */
 function PresetRow({
   preset,
+  level,
   cast,
   available,
   selected,
   onSelect,
 }: {
   preset: Preset;
+  /** Its rung on the ladder, for the four tiers. */
+  level?: 1 | 2 | 3 | 4;
   cast: Cast;
   available: boolean;
   selected: boolean;
   onSelect: () => void;
 }) {
+  const usd = profileOf(cast).usd;
   return (
     <div
       className={cn(
@@ -302,8 +315,15 @@ function PresetRow({
         className="focus-inset min-w-0 flex-1 rounded-md text-left"
         aria-label={`${preset.name} — ${preset.tagline}, ${cast.parts.length + 1} models a turn`}
       >
-        <span className="block truncate text-[0.8125rem] font-medium leading-tight text-primary">
-          {preset.name}
+        <span className="flex items-center gap-1.5 text-[0.8125rem] font-medium leading-tight text-primary">
+          <span className="truncate">{preset.name}</span>
+          {level && (
+            <span className="flex shrink-0 items-center gap-px" aria-hidden>
+              {[1, 2, 3, 4].map((n) => (
+                <span key={n} className={cn("h-1.5 w-1 rounded-sm", n <= level ? "bg-[var(--accent-2)]" : "bg-[var(--border-strong)]")} />
+              ))}
+            </span>
+          )}
         </span>
         <span className="block truncate text-tiny text-tertiary">
           {!available ? (
@@ -311,6 +331,7 @@ function PresetRow({
           ) : (
             <>
               {preset.tagline}
+              {level && <span className="text-faint"> · {formatCost(usd)}</span>}
               {/* Three words for what the line under the menu says in full.
                   This used to be a two-way choice — "one company" or "needs a
                   second key" — which had no way to say the third thing that

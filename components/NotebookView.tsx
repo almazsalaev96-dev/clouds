@@ -890,6 +890,7 @@ export function NotebookView({
       <SectionIndex
         title="Notebook"
         newLabel="New page"
+        right={<RevisePicker configured={configured} />}
         emptyTitle="Nothing written down yet."
         emptyHint="Pages are markdown: text you can send back to a model, export, and still read in a year."
         loading={notes === undefined}

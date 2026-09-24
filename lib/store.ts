@@ -1,5 +1,6 @@
 "use client";
 
+import type { PlusMembership } from "./plus";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ModelParams, ProviderId } from "./types";
@@ -161,6 +162,8 @@ interface Settings {
   textSize: "small" | "normal" | "large" | "larger";
   /** A ceiling on what one answer may cost, as a tier the router keeps to. */
   spend: "low" | "balanced" | "any";
+  /** Armi Plus, once verified: the license key and who it belongs to. */
+  plus: PlusMembership | null;
   /**
    * Whether the model may use this app's rooms as tools — save cards, write
    * a page, look in the notebook. Off, it can only answer.
@@ -189,6 +192,7 @@ interface Settings {
   setSidebar: (open: boolean) => void;
   setKey: (p: ProviderId, key: string) => void;
   setReviseModel: (id: string | null) => void;
+  setPlus: (p: PlusMembership | null) => void;
   setParams: (modelId: string, p: Partial<ModelParams>) => void;
   toggleFavorite: (id: string) => void;
   set: (partial: Partial<Settings>) => void;
@@ -237,6 +241,7 @@ export const DEFAULT_SETTINGS = {
   retention: 0.9,
   textSize: "normal",
   spend: "any",
+  plus: null,
   actionsOn: true,
   showLineNumbers: false,
   wrapCode: false,
@@ -269,6 +274,7 @@ export const useSettings = create<Settings>()(
       setMode: (mode) => set({ mode }),
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
       setSidebar: (sidebarOpen) => set({ sidebarOpen }),
+      setPlus: (plus) => set({ plus }),
       setKey: (p, key) => set((s) => ({ keys: { ...s.keys, [p]: key } })),
       setParams: (modelId, p) =>
         set((s) => ({

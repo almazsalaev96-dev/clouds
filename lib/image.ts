@@ -45,13 +45,13 @@ export interface Picture {
 
 export async function makePicture(
   prompt: string,
-  opts: { clientKey?: string; signal?: AbortSignal; size?: "1024x1024" | "1536x1024" | "1024x1536"; image?: Picture } = {},
+  opts: { clientKey?: string; plusKey?: string; plusCustomer?: string; signal?: AbortSignal; size?: "1024x1024" | "1536x1024" | "1024x1536"; image?: Picture } = {},
 ): Promise<{ picture: Picture } | { error: ChatError }> {
   try {
     const res = await fetch("/api/image", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ prompt, clientKey: opts.clientKey, size: opts.size, image: opts.image }),
+      body: JSON.stringify({ prompt, clientKey: opts.clientKey, size: opts.size, image: opts.image, plusKey: opts.plusKey, plusCustomer: opts.plusCustomer }),
       signal: opts.signal,
     });
     const out = (await res.json()) as { b64?: string; mime?: string; error?: ChatError };

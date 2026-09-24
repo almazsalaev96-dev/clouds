@@ -129,6 +129,7 @@ export function CanvasView({
       <SectionIndex
         title="Creations"
         newLabel="New canvas"
+        right={<RevisePicker configured={configured} />}
         emptyTitle="Nothing made yet."
         emptyHint="Everything you make lands here, and a change you ask for comes back revised in place, with a diff."
         loading={canvases === undefined}

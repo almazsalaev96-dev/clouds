@@ -73,7 +73,7 @@ console.log("\nThe picker offers not choosing");
      group it has to be above used to be "Anthropic", because the menu below
      it was a shelf of other companies' products; it is "Armi models" now. */
   const autoRow = page.locator("button").filter({ hasText: /reads the request and picks/i }).first();
-  const firstGroup = page.getByText("Armi models", { exact: true }).first();
+  const firstGroup = page.getByText("The ladder", { exact: true }).first();
   const a = await autoRow.boundingBox();
   const g = await firstGroup.boundingBox();
   check(Boolean(a) && Boolean(g) && a.y < g.y,

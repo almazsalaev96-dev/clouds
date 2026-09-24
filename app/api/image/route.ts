@@ -1,3 +1,5 @@
+import { PLUS_PRICE } from "@/lib/plus";
+import { USED_UP, balance, debit, plusGating, validateKey } from "@/lib/plus.server";
 import type { NextRequest } from "next/server";
 import { classifyError } from "@/lib/providers";
 import { baseUrlFor } from "@/lib/providers/shared";
@@ -18,7 +20,7 @@ export const maxDuration = 120;
  * everything else and it needs no bucket, no URL and no expiry.
  */
 export async function POST(req: NextRequest) {
-  let body: { prompt?: string; clientKey?: string; size?: string; image?: { mime: string; data: string } };
+  let body: { prompt?: string; clientKey?: string; plusKey?: string; plusCustomer?: string; size?: string; image?: { mime: string; data: string } };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -28,11 +30,21 @@ export async function POST(req: NextRequest) {
   if (!prompt) return Response.json({ error: { kind: "unknown", message: "Say what to draw.", action: "none" } }, { status: 400 });
 
   const env = process.env[PROVIDERS.openai.keyName];
-  const key = (env && env.trim()) || body.clientKey;
+  /* The same rule as the chat route: with Armi Plus on, the server's key is
+     for members. A picture is a fixed few cents off the allowance. */
+  const plusKey = body.plusKey?.trim();
+  const viaPlus = Boolean(plusKey && plusGating() && (await validateKey(plusKey)));
+  const key = viaPlus || !plusGating() ? (env && env.trim()) || body.clientKey : body.clientKey;
   if (!key) {
     return Response.json({
-      error: { kind: "no_key", message: "Making pictures needs an OpenAI key. Add one in Settings.", action: "add_key" },
+      error: { kind: "no_key", message: plusGating() ? `Making pictures needs an OpenAI key. Add one in Settings, or Armi Plus for ${PLUS_PRICE}.` : "Making pictures needs an OpenAI key. Add one in Settings.", action: "add_key" },
     });
+  }
+  const member = viaPlus ? body.plusCustomer?.trim() : undefined;
+  if (member) {
+    const left = await balance(member);
+    if (left !== null && left <= 0) return Response.json({ error: { kind: "quota", message: USED_UP, action: "add_key" } });
+    void debit(member, 0.04, "image").catch(() => undefined);
   }
 
   const size = ["1024x1024", "1536x1024", "1024x1536"].includes(body.size ?? "") ? body.size : "1024x1024";

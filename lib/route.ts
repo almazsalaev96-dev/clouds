@@ -2,6 +2,7 @@ import { REPLY, SAFETY } from "./context";
 import { wellOnly } from "./health";
 import { canSearch } from "./providers/tools";
 import { MODELS, blindPick, roleOf } from "./models";
+import { canCall } from "./configured";
 import type { ModelSpec, ProviderId } from "./types";
 import { solve, type Sum } from "./arith";
 
@@ -223,7 +224,7 @@ function usable(configured: Record<string, boolean>, keys: Record<string, string
      model on the bench as a shadow is not here, and a deprecated one is
      nowhere. A tactic that names a shadow by id still gets it; see
      `lib/presets.ts`. */
-  return MODELS.filter((m) => (configured[m.provider as ProviderId] || keys[m.provider]) && blindPick(m));
+  return MODELS.filter((m) => canCall(m.id, m.provider, configured, keys) && blindPick(m));
 }
 
 /** Whether the bench allows this id to be called at all, by anyone. */

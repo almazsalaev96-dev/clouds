@@ -46,6 +46,7 @@ export function SectionIndex({
   onTogglePin,
   lead,
   waysIn,
+  right,
 }: {
   title: string;
   items: IndexItem[];
@@ -71,6 +72,8 @@ export function SectionIndex({
    * answer from a chat", "Attach a PDF" — not a description of one.
    */
   waysIn?: { label: string; icon?: React.ReactNode; onPick: () => void }[];
+  /** Beside the primary action: the room's model, where the room has one. */
+  right?: React.ReactNode;
 }) {
   const [query, setQuery] = React.useState("");
   const toggle = React.useContext(RoomToggle);
@@ -113,10 +116,13 @@ export function SectionIndex({
           {!loading && items.length > 0 && (
             <span className="tnum text-sm text-faint">{items.length}</span>
           )}
-          <Button size="sm" variant="primary" className="bloom ml-auto" onClick={onNew}>
-            <Plus size={14} />
-            {newLabel}
-          </Button>
+          <span className="ml-auto flex items-center gap-1.5">
+            {right}
+            <Button size="sm" variant="primary" className="bloom" onClick={onNew}>
+              <Plus size={14} />
+              {newLabel}
+            </Button>
+          </span>
         </div>
       </header>
 

@@ -36,6 +36,7 @@
  */
 import { wellOnly } from "./health";
 import { MODELS, estimateCost, getModel, blindPick, roleOf } from "./models";
+import { canCall } from "./configured";
 import { REPLY, SAFETY } from "./context";
 import { checkable, type Plan } from "./decide";
 import type { ModelSpec, ProviderId } from "./types";
@@ -526,7 +527,7 @@ const RANK: Record<Want, (a: ModelSpec, b: ModelSpec) => number> = {
 };
 
 const usable = (w: Where): ModelSpec[] =>
-  MODELS.filter((m) => (w.configured[m.provider as ProviderId] || w.keys?.[m.provider]) && roleOf(m) !== "deprecated");
+  MODELS.filter((m) => canCall(m.id, m.provider, w.configured, w.keys) && roleOf(m) !== "deprecated");
 
 /** Room for the answer as well as the question — the fitter's own arithmetic. */
 const holds = (m: ModelSpec, size: number) =>

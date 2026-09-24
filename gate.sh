@@ -131,6 +131,11 @@ serve OPENAI_BASE_URL=http://127.0.0.1:8787 OPENAI_API_KEY=sk-mock
 for t in e2e-verify e2e-learn e2e-point e2e-whole e2e-cast e2e-elsewhere e2e-actions2 e2e-picture; do run "$t" node "$t.mjs"; done
 
 echo
+echo "== Armi Plus =="
+serve DODO_BASE_URL=http://127.0.0.1:8787 DODO_PAYMENTS_API_KEY=dodo_test_mock DODO_PLUS_PRODUCT_ID=pdt_mock DODO_PLUS_CREDIT_ID=cre_mock
+run e2e-plus node e2e-plus.mjs
+
+echo
 echo "== the slow mock =="
 mock mock-slow.mjs
 serve
