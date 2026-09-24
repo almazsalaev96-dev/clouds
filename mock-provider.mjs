@@ -143,9 +143,10 @@ const send = (res, type, data) =>
   res.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`);
 
 createServer(async (req, res) => {
-  /* Dodo Payments, mocked: the four calls Armi Plus makes. A key that
-     begins ARMI-PLUS is valid; one customer, one product, one allowance
-     that the ledger draws down. `/__plus` reads the state back. */
+  /* Dodo Payments, mocked: the calls Armi Plus makes. One payment
+     (pay_mock) on one active subscription (sub_mock) for one customer and
+     one product, and one allowance the ledger draws down. `/__plus` reads
+     the state back. */
   {
     const u = req.url ?? "";
     const json = (code, obj) => { res.writeHead(code, { "content-type": "application/json" }); res.end(JSON.stringify(obj)); };
@@ -153,18 +154,12 @@ createServer(async (req, res) => {
     if (u === "/__plus") { json(200, { balance: plusBalance, debits: plusDebits, validations: plusValidations }); return; }
     if (u === "/__plus/reset") { plusBalance = 60000; plusDebits.length = 0; plusValidations = 0; json(200, { ok: true }); return; }
     if (u.startsWith("/__checkout")) { res.writeHead(200, { "content-type": "text/html" }); res.end("<h1>Mock checkout</h1>"); return; }
-    if (u.startsWith("/licenses/validate")) { const b = await readBody(); plusValidations += 1; json(200, { valid: String(b.license_key ?? "").startsWith("ARMI-PLUS") }); return; }
-    if (u.startsWith("/licenses/activate")) {
-      const b = await readBody();
-      if (!String(b.license_key ?? "").startsWith("ARMI-PLUS")) { json(404, { error: "not found" }); return; }
-      json(200, { id: "lki_mock", business_id: "bus_mock", created_at: new Date().toISOString(), license_key_id: "lk_mock", name: b.name ?? "Armi",
-        customer: { customer_id: "cus_mock", email: "almaz@example.com", name: "Almaz" }, product: { product_id: "pdt_mock", name: "Armi Plus" } });
-      return;
-    }
+    if (u.startsWith("/subscriptions/sub_mock")) { plusValidations += 1; json(200, { subscription_id: "sub_mock", status: "active", product_id: "pdt_mock", customer: { customer_id: "cus_mock" }, next_billing_date: new Date(Date.now() + 30 * 86400000).toISOString() }); return; }
+    if (u.startsWith("/subscriptions/")) { json(404, { message: "no such subscription" }); return; }
     if (u.startsWith("/checkouts/cks_mock")) { json(200, { id: "cks_mock", created_at: new Date().toISOString(), payment_id: "pay_mock", payment_status: "succeeded", customer_email: "almaz@example.com" }); return; }
     if (u.startsWith("/checkouts")) { await readBody(); json(200, { session_id: "cks_mock", checkout_url: "http://127.0.0.1:8787/__checkout" }); return; }
-    if (u.startsWith("/payments/pay_mock")) { json(200, { payment_id: "pay_mock", customer: { customer_id: "cus_mock", email: "almaz@example.com" } }); return; }
-    if (u.startsWith("/license_keys")) { json(200, { items: [{ id: "lk_mock", key: "ARMI-PLUS-MOCK-KEY", status: "active", product_id: "pdt_mock", customer_id: "cus_mock", instances_count: 1 }] }); return; }
+    if (u.startsWith("/payments/pay_mock")) { json(200, { payment_id: "pay_mock", status: "succeeded", customer: { customer_id: "cus_mock", email: "almaz@example.com" }, subscription_id: "sub_mock", product_cart: [{ product_id: "pdt_mock", quantity: 1 }] }); return; }
+    if (u.startsWith("/payments/")) { json(404, { message: "no such payment" }); return; }
     if (u.startsWith("/credit-entitlements/")) {
       if (u.endsWith("/ledger-entries")) {
         const b = await readBody();

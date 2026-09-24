@@ -1519,11 +1519,9 @@ function PlusPanel() {
   const plus = useSettings((s) => s.plus);
   const setPlus = useSettings((s) => s.setPlus);
   const offer = getPlusOffer();
-  const [key, setKey] = React.useState("");
-  const [busy, setBusy] = React.useState<"pay" | "verify" | null>(null);
+  const [paymentId, setPaymentId] = React.useState("");
+  const [busy, setBusy] = React.useState<"pay" | "claim" | null>(null);
   const [note, setNote] = React.useState<string | null>(null);
-  const covered = PLUS_ALLOWED.map((id) => getPreset(id)?.short ?? null).filter(Boolean);
-  void covered;
 
   const subscribe = async () => {
     setBusy("pay");
@@ -1539,19 +1537,21 @@ function PlusPanel() {
       setBusy(null);
     }
   };
-  const verify = async () => {
-    const k = key.trim();
-    if (!k) return;
-    setBusy("verify");
+  /* Already paid, and the return trip did not land: the payment id off the
+     receipt is enough — the server looks it up at Dodo and signs the pass. */
+  const claim = async () => {
+    const id = paymentId.trim();
+    if (!id) return;
+    setBusy("claim");
     setNote(null);
     try {
-      const res = await fetch("/api/plus/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key: k, device: navigator.userAgent.slice(0, 60) }) });
-      const out = (await res.json()) as { valid?: boolean; error?: string; customerId?: string; productId?: string; instanceId?: string };
-      if (out.valid) {
-        setPlus({ key: k, customerId: out.customerId, productId: out.productId, instanceId: out.instanceId, checkedAt: Date.now() });
-        setKey("");
+      const res = await fetch("/api/plus/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ paymentId: id }) });
+      const out = (await res.json()) as { pass?: string | null; error?: string; customerId?: string; until?: number };
+      if (out.pass) {
+        setPlus({ key: out.pass, customerId: out.customerId, until: out.until, checkedAt: Date.now() });
+        setPaymentId("");
         setNote(null);
-      } else setNote(out.error ?? "That key did not check out.");
+      } else setNote(out.error ?? "That payment did not check out.");
     } catch {
       setNote("Couldn't reach the server.");
     } finally {
@@ -1571,19 +1571,32 @@ function PlusPanel() {
   }
 
   if (plus) {
+    const until = plus.until ? new Date(plus.until) : null;
     return (
       <Panel title={PLUS_NAME} description={`On — ${offer.price}.`}>
         <p className="text-sm text-secondary" role="status">
           {offer.valid === false
-            ? "Your key no longer checks out — the subscription may have ended. Renew from the email Dodo Payments sent, or paste a new key below."
+            ? "Your subscription no longer checks out — it may have ended or a payment failed. Renew from the email Dodo Payments sent, then paste the new payment id below."
             : "Armi Plus is on. The everyday tiers — Nova 4, Mira 4.1 and Lumos 4 — answer on Armi's keys, within a monthly allowance. The top of the ladder still needs a key of your own."}
         </p>
-        <p className="mt-2 text-xs text-tertiary">Key {plus.key.slice(0, 6)}…{plus.key.slice(-4)} · billing is handled by Dodo Payments; cancel from the email they sent you.</p>
+        <p className="mt-2 text-xs text-tertiary">
+          {until && offer.valid !== false ? `Paid up to ${until.toLocaleDateString(undefined, { day: "numeric", month: "long" })} · ` : ""}
+          billing is handled by Dodo Payments; cancel from the email they sent you.
+        </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Button size="sm" variant="ghost" onClick={() => { setPlus(null); setNote("Removed from this browser. The subscription itself is cancelled from Dodo's email."); }}>
             Remove from this browser
           </Button>
         </div>
+        {offer.valid === false && (
+          <Field label="Renewed?" hint="Paste the payment id from the new receipt.">
+            <div className="flex gap-2">
+              <input value={paymentId} onChange={(e) => setPaymentId(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void claim(); }} aria-label="Payment id" placeholder="pay_…" spellCheck={false}
+                className="tap h-9 min-w-0 flex-1 rounded-md border border-line bg-field px-2.5 font-mono text-sm text-primary outline-none placeholder:text-tertiary focus:border-accent" />
+              <Button size="sm" variant="ghost" disabled={busy !== null || !paymentId.trim()} onClick={() => void claim()}>{busy === "claim" ? "Checking…" : "Switch on"}</Button>
+            </div>
+          </Field>
+        )}
         {note && <p className="mt-2 text-xs text-secondary">{note}</p>}
       </Panel>
     );
@@ -1598,21 +1611,21 @@ function PlusPanel() {
         <Button size="sm" variant="primary" disabled={busy !== null} onClick={() => void subscribe()}>
           {busy === "pay" ? "Opening checkout…" : `Subscribe — ${PLUS_PRICE}`}
         </Button>
-        <span className="text-xs text-tertiary">Paid through Dodo Payments, the merchant of record. Cancel any time.</span>
+        <span className="text-xs text-tertiary">Pay, and you are brought straight back with Plus on. Dodo Payments is the merchant of record; cancel any time.</span>
       </div>
-      <Field label="Already subscribed?" hint="Paste the license key from the email Dodo Payments sent.">
+      <Field label="Already paid?" hint="If the return trip did not land, the payment id from the Dodo Payments receipt switches it on.">
         <div className="flex gap-2">
           <input
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") void verify(); }}
-            aria-label="Armi Plus key"
-            placeholder="ARMI-…"
+            value={paymentId}
+            onChange={(e) => setPaymentId(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") void claim(); }}
+            aria-label="Payment id"
+            placeholder="pay_…"
             spellCheck={false}
             className="tap h-9 min-w-0 flex-1 rounded-md border border-line bg-field px-2.5 font-mono text-sm text-primary outline-none placeholder:text-tertiary focus:border-accent"
           />
-          <Button size="sm" variant="ghost" disabled={busy !== null || !key.trim()} onClick={() => void verify()}>
-            {busy === "verify" ? "Checking…" : "Use this key"}
+          <Button size="sm" variant="ghost" disabled={busy !== null || !paymentId.trim()} onClick={() => void claim()}>
+            {busy === "claim" ? "Checking…" : "Switch on"}
           </Button>
         </div>
       </Field>

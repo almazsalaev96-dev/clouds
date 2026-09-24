@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { PROVIDERS } from "@/lib/models";
 import type { ProviderId } from "@/lib/types";
-import { plusGating, plusOffer, validateKey } from "@/lib/plus.server";
+import { plusGating, plusOffer, validatePass } from "@/lib/plus.server";
 
 export const runtime = "edge";
 
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
      reported as held only to a browser whose Plus key checks out, and the
      answer carries what Plus is and costs for everyone else. */
   const plusKey = new URL(req.url).searchParams.get("plus")?.trim() || undefined;
-  const valid = plusKey ? await validateKey(plusKey) : undefined;
+  const valid = plusKey ? await validatePass(plusKey) : undefined;
   const open = !plusGating() || valid === true;
   for (const id of Object.keys(PROVIDERS) as ProviderId[]) {
     const v = process.env[PROVIDERS[id].keyName];

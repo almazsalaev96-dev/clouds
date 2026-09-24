@@ -2209,37 +2209,35 @@ export default function Page() {
     setSettingsOpen(true);
   }, []);
 
-  /* Back from checkout. Dodo sends the person to `/?plus=done&session_id=…`;
-     the key is fetched from the session where Dodo allows it, checked, and
-     kept — and where it cannot be, the Plus panel opens to ask for the key
-     from the email. The address is cleaned either way, so a reload does
-     not do it twice. */
+  /* Back from checkout. Dodo sends the person to `/?plus=done&payment_id=…`
+     (a hosted session adds `session_id`); the payment is checked with Dodo
+     and a signed pass comes back and is kept. Nothing to paste. Where the
+     claim fails, the Plus panel opens and says so. The address is cleaned
+     either way, so a reload does not do it twice. */
   React.useEffect(() => {
     const q = new URLSearchParams(window.location.search);
     if (q.get("plus") !== "done") return;
     const sessionId = q.get("session_id") ?? "";
-    /* A static payment link comes back with the payment rather than a
-       session; either finds the key. */
     const paymentId = q.get("payment_id") ?? "";
+    const subscriptionId = q.get("subscription_id") ?? "";
     window.history.replaceState(null, "", window.location.pathname);
     (async () => {
-      let key: string | null = null;
+      type Claimed = { pass?: string | null; customerId?: string; until?: number };
+      let out: Claimed | null = null;
       if (sessionId || paymentId) {
-        key = await fetch("/api/plus/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sessionId, paymentId }) })
-          .then((r) => r.json()).then((d) => (d as { key?: string | null }).key ?? null).catch(() => null);
+        out = (await fetch("/api/plus/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sessionId, paymentId, subscriptionId }) })
+          .then((r) => r.json()).catch(() => null)) as Claimed | null;
       }
-      if (key) {
-        const out = await fetch("/api/plus/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key, device: navigator.userAgent.slice(0, 60) }) })
-          .then((r) => r.json()).catch(() => null) as { valid?: boolean; customerId?: string; productId?: string; instanceId?: string } | null;
-        if (out?.valid) {
-          useSettings.getState().setPlus({ key, customerId: out.customerId, productId: out.productId, instanceId: out.instanceId, checkedAt: Date.now() });
-          setNotice("Armi Plus is on. Ask anything — no keys needed.");
-          return;
-        }
+      if (out?.pass) {
+        useSettings.getState().setPlus({ key: out.pass, customerId: out.customerId, until: out.until, checkedAt: Date.now() });
+        setNotice("Armi Plus is on. Ask anything — no keys needed.");
+        return;
       }
       setSettingsTab("plus");
       setSettingsOpen(true);
-      setNotice("Payment received. Paste the key from the email Dodo Payments sent to switch Plus on.");
+      setNotice(paymentId || sessionId
+        ? "Back from Dodo, but the payment could not be confirmed yet. Give it a moment, then paste the payment id from your receipt."
+        : "Back from Dodo without a payment. If you did pay, paste the payment id from your receipt.");
     })();
   }, []);
   const openRules = React.useCallback(() => {

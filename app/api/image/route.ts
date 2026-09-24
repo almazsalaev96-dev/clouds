@@ -1,5 +1,5 @@
 import { PLUS_PRICE } from "@/lib/plus";
-import { USED_UP, balance, debit, plusGating, validateKey } from "@/lib/plus.server";
+import { USED_UP, balance, debit, passCustomer, plusGating, validatePass } from "@/lib/plus.server";
 import type { NextRequest } from "next/server";
 import { classifyError } from "@/lib/providers";
 import { baseUrlFor } from "@/lib/providers/shared";
@@ -33,14 +33,15 @@ export async function POST(req: NextRequest) {
   /* The same rule as the chat route: with Armi Plus on, the server's key is
      for members. A picture is a fixed few cents off the allowance. */
   const plusKey = body.plusKey?.trim();
-  const viaPlus = Boolean(plusKey && plusGating() && (await validateKey(plusKey)));
+  const viaPlus = Boolean(plusKey && plusGating() && (await validatePass(plusKey)));
   const key = viaPlus || !plusGating() ? (env && env.trim()) || body.clientKey : body.clientKey;
   if (!key) {
     return Response.json({
       error: { kind: "no_key", message: plusGating() ? `Making pictures needs an OpenAI key. Add one in Settings, or Armi Plus for ${PLUS_PRICE}.` : "Making pictures needs an OpenAI key. Add one in Settings.", action: "add_key" },
     });
   }
-  const member = viaPlus ? body.plusCustomer?.trim() : undefined;
+  /* Who to bill comes off the signed pass, never off the request body. */
+  const member = viaPlus && plusKey ? await passCustomer(plusKey) : undefined;
   if (member) {
     const left = await balance(member);
     if (left !== null && left <= 0) return Response.json({ error: { kind: "quota", message: USED_UP, action: "add_key" } });

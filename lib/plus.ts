@@ -4,9 +4,10 @@
  * The app is bring-your-own-key, and the one thing that stops most people
  * at the door is the key. Plus is the other door: Armi's own keys, on the
  * server, unlocked by a subscription bought from Dodo Payments, which is the
- * merchant of record — it takes the card, the tax and the disputes, and
- * hands the subscriber a license key. That key is what the browser keeps,
- * and what every request to the server carries.
+ * merchant of record — it takes the card, the tax and the disputes. Once
+ * it confirms the payment the server signs a pass, and that pass is what
+ * the browser keeps and what every request to the server carries. No
+ * license keys, nothing to paste from an email.
  *
  * What a dollar buys is said plainly, because a dollar is not much: the
  * everyday tiers — the engines under Nova 4, Mira 4.1 and Lumos 4 — with a
@@ -62,11 +63,12 @@ export function creditsAsDollars(credits: number): string {
 
 /** What the browser keeps once a subscription is verified. */
 export interface PlusMembership {
+  /** The signed pass. */
   key: string;
   customerId?: string;
-  productId?: string;
-  instanceId?: string;
-  /** When the server last said this key was valid. */
+  /** The pass stands on its own until then, whatever Dodo says meanwhile. */
+  until?: number;
+  /** When the server last said this pass was valid. */
   checkedAt: number;
 }
 
@@ -75,6 +77,6 @@ export interface PlusOffer {
   /** Plus is configured on the server at all. */
   on: boolean;
   price: string;
-  /** The key the browser sent was valid, when it sent one. */
+  /** The pass the browser sent was valid, when it sent one. */
   valid?: boolean;
 }

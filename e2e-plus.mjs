@@ -3,10 +3,10 @@
  *
  * The server holds a provider key and Plus is switched on, so that key is
  * for members. A browser with no keys of its own is told it needs a key or
- * Plus; a key pasted in Settings is checked with Dodo and kept; the next
- * question is answered on the server's key, on an engine the plan covers,
- * and its cost comes off the allowance. Coming back from checkout finds
- * the key without the email.
+ * Plus; a payment id off the receipt is looked up at Dodo and a signed
+ * pass kept; the next question is answered on the server's key, on an
+ * engine the plan covers, and its cost comes off the allowance. Coming
+ * back from checkout does all of that with nothing to paste.
  *
  *   bash /tmp/claude-0/plus.sh e2e-plus
  */
@@ -48,7 +48,7 @@ console.log("\nWithout a key of its own, the browser is told about the other doo
   check((await recent()).length === 0, "and nothing was sent on the server's key");
 }
 
-console.log("\nA key pasted in Settings is checked with Dodo and kept");
+console.log("\nA payment id from the receipt is checked with Dodo and a pass kept — no license key");
 {
   await p.keyboard.press("Control+,");
   await p.waitForTimeout(600);
@@ -57,17 +57,19 @@ console.log("\nA key pasted in Settings is checked with Dodo and kept");
   const panel = await p.locator("[role=dialog]").first().innerText();
   check(/\$1 a month/.test(panel) && /Subscribe/.test(panel), "the panel says the price and offers to subscribe", (panel.split("\n").find((l) => /\$1/.test(l)) ?? "").slice(0, 80));
   check(/Astro 5 .* still need/.test(panel.replace(/\n/g, " ")), "and says plainly what a dollar does not cover");
-  await p.getByLabel("Armi Plus key").fill("WRONG-KEY-0000");
-  await p.getByRole("button", { name: "Use this key" }).click();
+  check(!/license key/i.test(panel), "and never mentions a license key");
+  await p.getByLabel("Payment id").fill("pay_nope");
+  await p.getByRole("button", { name: "Switch on" }).click();
   await p.waitForTimeout(800);
-  check(/not active/i.test(await p.locator("[role=dialog]").first().innerText()), "a wrong key is refused, in words");
-  await p.getByLabel("Armi Plus key").fill("ARMI-PLUS-MOCK-KEY");
-  await p.getByRole("button", { name: "Use this key" }).click();
+  check(/no successful payment/i.test(await p.locator("[role=dialog]").first().innerText()), "a payment Dodo does not know is refused, in words");
+  await p.getByLabel("Payment id").fill("pay_mock");
+  await p.getByRole("button", { name: "Switch on" }).click();
   await p.waitForTimeout(1200);
   const after = await p.locator("[role=dialog]").first().innerText();
-  check(/Armi Plus is on/.test(after), "the right one turns Plus on", (after.split("\n").find((l) => /is on/.test(l)) ?? "").slice(0, 80));
+  check(/Armi Plus is on/.test(after), "the real one turns Plus on", (after.split("\n").find((l) => /is on/.test(l)) ?? "").slice(0, 80));
+  check(/Paid up to/.test(after), "and says until when", (after.split("\n").find((l) => /Paid up/.test(l)) ?? "").slice(0, 80));
   const kept = await p.evaluate(() => JSON.parse(localStorage.getItem("store.settings.v1")).state.plus);
-  check(kept?.key === "ARMI-PLUS-MOCK-KEY" && kept?.customerId === "cus_mock", "and the browser keeps the key and who it belongs to", JSON.stringify(kept));
+  check(/^v1\.[\w-]+\.[\w-]+$/.test(kept?.key ?? "") && kept?.customerId === "cus_mock", "and the browser keeps a signed pass and who it belongs to", JSON.stringify(kept)?.slice(0, 120));
   await p.keyboard.press("Escape");
   await p.waitForTimeout(500);
 }
@@ -76,7 +78,7 @@ console.log("\nA member is answered on the server's key, on an engine the plan c
 {
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(1200);
-  const models = await p.evaluate(() => fetch("/api/models?plus=ARMI-PLUS-MOCK-KEY").then((r) => r.json()));
+  const models = await p.evaluate(() => fetch(`/api/models?plus=${encodeURIComponent(JSON.parse(localStorage.getItem("store.settings.v1")).state.plus.key)}`).then((r) => r.json()));
   check(models.configured?.anthropic === true && models.plus?.valid === true, "the server now reports its key as held, for this browser", JSON.stringify(models.configured));
   const before = await plusState();
   await ask("why would you choose an event-sourced architecture over a CRUD one here", 6000);
@@ -92,13 +94,26 @@ console.log("\nA member is answered on the server's key, on an engine the plan c
   check(after.debits.length >= 1 && after.balance < before.balance, "and its cost came off the allowance", `${before.balance} → ${after.balance} (${after.debits.length} debit${after.debits.length === 1 ? "" : "s"})`);
 }
 
-console.log("\nComing back from checkout finds the key without the email");
+console.log("\nA forged pass buys nothing");
+{
+  const forged = await p.evaluate(() => { const k = JSON.parse(localStorage.getItem("store.settings.v1")).state.plus.key; const [v, body] = k.split("."); return `${v}.${body}.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`; });
+  const models = await p.evaluate((k) => fetch(`/api/models?plus=${encodeURIComponent(k)}`).then((r) => r.json()), forged);
+  check(models.plus?.valid === false && models.configured?.anthropic !== true, "a pass with the wrong signature is not a member", JSON.stringify(models.plus));
+}
+
+console.log("\nComing back from checkout switches Plus on with nothing to paste");
 {
   await p.evaluate(() => { const s = JSON.parse(localStorage.getItem("store.settings.v1")); s.state.plus = null; localStorage.setItem("store.settings.v1", JSON.stringify(s)); });
-  await p.goto("http://localhost:3100/?plus=done&status=success&session_id=cks_mock", { waitUntil: "networkidle" });
+  await p.goto("http://localhost:3100/?plus=done&status=succeeded&payment_id=pay_mock&subscription_id=sub_mock", { waitUntil: "networkidle" });
   await p.waitForTimeout(2000);
   const kept = await p.evaluate(() => JSON.parse(localStorage.getItem("store.settings.v1")).state.plus);
-  check(kept?.key === "ARMI-PLUS-MOCK-KEY", "the key from the session is verified and kept", JSON.stringify(kept));
+  check(/^v1\./.test(kept?.key ?? "") && kept?.customerId === "cus_mock", "the payment on the address is looked up at Dodo and the pass kept", JSON.stringify(kept)?.slice(0, 120));
+  check(/Armi Plus is on/.test(await p.locator("body").innerText()), "and the page says so");
+  await p.evaluate(() => { const s = JSON.parse(localStorage.getItem("store.settings.v1")); s.state.plus = null; localStorage.setItem("store.settings.v1", JSON.stringify(s)); });
+  await p.goto("http://localhost:3100/?plus=done&status=succeeded&session_id=cks_mock", { waitUntil: "networkidle" });
+  await p.waitForTimeout(2000);
+  const viaSession = await p.evaluate(() => JSON.parse(localStorage.getItem("store.settings.v1")).state.plus);
+  check(/^v1\./.test(viaSession?.key ?? ""), "a hosted session does the same through its payment");
   check(!/plus=done/.test(p.url()), "and the address is cleaned up", p.url());
 }
 

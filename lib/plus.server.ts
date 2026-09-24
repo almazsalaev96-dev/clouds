@@ -2,21 +2,24 @@
  * The server's half of Armi Plus: Dodo Payments, and the keys.
  *
  * Talks to Dodo over its REST API with the same paths the official SDK
- * uses (`/checkouts`, `/licenses/validate`, `/license_keys`,
+ * uses (`/checkouts`, `/payments`, `/subscriptions`,
  * `/credit-entitlements/…/ledger-entries`), with plain `fetch` so it runs
- * on the edge runtime the chat route lives on. Everything here reads the
+ * on the edge runtime the chat route lives on. No license keys: the
+ * payment is checked with Dodo once, and what the browser keeps is a pass
+ * this server signed (`DODO_PLUS_SECRET`, or the merchant key when that is
+ * not set). Everything here reads the
  * environment:
  *
  *   DODO_PAYMENTS_API_KEY   the merchant key (`dodo_test_…` / `dodo_live_…`)
  *   DODO_ENVIRONMENT        `test_mode` (default) or `live_mode`
  *   DODO_BASE_URL           an override, for the mock in tests
- *   DODO_PLUS_PRODUCT_ID    the $1-a-month subscription product, which must
- *                           issue a license key on purchase
+ *   DODO_PLUS_PRODUCT_ID    the $1-a-month subscription product
+ *   DODO_PLUS_SECRET        optional: what the passes are signed with
  *   DODO_PLUS_CREDIT_ID     optional: the credit entitlement attached to that
  *                           product, for the monthly allowance
  *
  * With `DODO_PLUS_PRODUCT_ID` set, the server's provider keys are for Plus
- * members: a request without a valid Plus key uses the key the browser sent
+ * members: a request without a valid pass uses the key the browser sent
  * or gets "no key". Without it, nothing changes from before — the server's
  * keys, where it has any, answer for everyone, which is the arrangement a
  * person hosting the app for themselves wants.
@@ -60,40 +63,96 @@ async function call<T>(path: string, init: { method?: string; body?: unknown; au
   }
 }
 
-/* A key's validity, remembered for ten minutes on this isolate. Every turn
-   would otherwise be a round trip to Dodo before the first token. */
+/* ------------------------------------------------------------- the pass -- */
+
+/**
+ * No license keys. What the browser keeps is a pass the server signed
+ * itself once Dodo confirmed the payment: who paid (the customer), which
+ * subscription it is, and until when it stands on its own. Every request
+ * carries it; the signature is checked here, and the subscription is asked
+ * about at Dodo every ten minutes — so a cancelled one stops working
+ * within the quarter-hour, and a Dodo that cannot be reached does not stop
+ * a paid-up member until the pass's own date runs out.
+ */
+export interface Pass {
+  customerId: string;
+  subscriptionId?: string;
+  paymentId?: string;
+  /** Milliseconds since the epoch: stands on its own until then. */
+  until: number;
+}
+
+const secret = () => env("DODO_PLUS_SECRET") ?? env("DODO_PAYMENTS_API_KEY") ?? "";
+
+const b64u = (bytes: ArrayBuffer | Uint8Array): string => {
+  const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  let bin = "";
+  for (const b of arr) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+};
+const unb64u = (s: string): string => {
+  const padded = s.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (s.length % 4)) % 4);
+  return atob(padded);
+};
+
+async function hmac(text: string): Promise<string> {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", enc.encode(secret()), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return b64u(await crypto.subtle.sign("HMAC", key, enc.encode(text)));
+}
+
+export async function signPass(pass: Pass): Promise<string> {
+  const body = b64u(new TextEncoder().encode(JSON.stringify(pass)));
+  return `v1.${body}.${await hmac(body)}`;
+}
+
+/** The pass, if the signature is ours; nothing otherwise. */
+export async function readPass(token: string): Promise<Pass | null> {
+  const [v, body, sig] = token.trim().split(".");
+  if (v !== "v1" || !body || !sig || !secret()) return null;
+  if ((await hmac(body)) !== sig) return null;
+  try {
+    const p = JSON.parse(unb64u(body)) as Pass;
+    return p && typeof p.customerId === "string" && typeof p.until === "number" ? p : null;
+  } catch {
+    return null;
+  }
+}
+
+/* Remembered for ten minutes on this isolate, so a turn is not a round
+   trip to Dodo before its first token. */
 const seen = new Map<string, { valid: boolean; at: number }>();
 const REMEMBER = 10 * 60_000;
+const LIVE = new Set(["active", "on_hold"]);
 
-export async function validateKey(key: string): Promise<boolean> {
-  const k = key.trim();
-  if (!k || !plusConfigured()) return false;
-  const had = seen.get(k);
+export async function validatePass(token: string): Promise<boolean> {
+  const t = token.trim();
+  if (!t || !plusConfigured()) return false;
+  const had = seen.get(t);
   if (had && Date.now() - had.at < REMEMBER) return had.valid;
-  const out = await call<{ valid?: boolean }>("/licenses/validate", { method: "POST", body: { license_key: k }, auth: false });
-  const valid = Boolean(out?.valid);
-  seen.set(k, { valid, at: Date.now() });
+  const pass = await readPass(t);
+  let valid = false;
+  if (pass) {
+    const own = pass.until > Date.now();
+    if (pass.subscriptionId && env("DODO_PAYMENTS_API_KEY")) {
+      const sub = await call<{ status?: string }>(`/subscriptions/${encodeURIComponent(pass.subscriptionId)}`);
+      /* Dodo answered: its word. Dodo did not: the pass's own date. */
+      valid = sub?.status ? LIVE.has(sub.status) : own;
+    } else valid = own;
+  }
+  seen.set(t, { valid, at: Date.now() });
   return valid;
 }
 
-/**
- * Bind the key to this browser once, which is also how the customer and
- * product behind it are learned — `validate` says only yes or no.
- */
-export async function activateKey(key: string, name: string): Promise<{ customerId?: string; productId?: string; instanceId?: string } | null> {
-  const out = await call<{ id?: string; customer?: { customer_id?: string }; product?: { product_id?: string } }>("/licenses/activate", {
-    method: "POST",
-    body: { license_key: key.trim(), name },
-    auth: false,
-  });
-  if (!out) return null;
-  return { customerId: out.customer?.customer_id, productId: out.product?.product_id, instanceId: out.id };
+/** Who a pass belongs to, for the ledger. */
+export async function passCustomer(token: string): Promise<string | undefined> {
+  return (await readPass(token))?.customerId;
 }
 
 /**
  * Dodo's own payment link for the product — a URL that needs no merchant
- * key at all, which is how Plus can be switched on with nothing but the
- * product id. `redirect_url` brings the person back to the app.
+ * key at all. `redirect_url` brings the person back to the app, and Dodo
+ * appends the payment id to it, which is all the claim below needs.
  */
 export function staticCheckout(returnTo: string): string | null {
   const product = env("DODO_PLUS_PRODUCT_ID");
@@ -130,13 +189,17 @@ export async function createCheckout(returnTo: string, email?: string): Promise<
   return { url: out.checkout_url, sessionId: out.session_id };
 }
 
+/** A month and a few days' grace: what a pass stands on its own for. */
+const A_MONTH = 35 * 24 * 60 * 60_000;
+
 /**
- * The key, found from the checkout the person just came back from — so
- * they need not go to their email. Best effort: session → payment →
- * customer → the customer's active key for this product. Anything missing
- * along the way returns nothing, and the panel asks for the key instead.
+ * The pass, made from the payment the person just came back from — or
+ * from a payment id off their receipt. The payment is looked up at Dodo
+ * (never trusted from the address bar), must have succeeded, and must be
+ * for this product where Dodo says which. Nothing along the way returns
+ * nothing.
  */
-export async function claimKey(from: { sessionId?: string; paymentId?: string }): Promise<string | null> {
+export async function claimPass(from: { sessionId?: string; paymentId?: string; subscriptionId?: string }): Promise<{ pass: string; customerId: string; until: number } | null> {
   const product = env("DODO_PLUS_PRODUCT_ID");
   if (!env("DODO_PAYMENTS_API_KEY")) return null;
   let paymentId = from.paymentId?.trim() || "";
@@ -145,14 +208,27 @@ export async function claimKey(from: { sessionId?: string; paymentId?: string })
     paymentId = session?.payment_id ?? "";
   }
   if (!paymentId) return null;
-  const payment = await call<{ customer?: { customer_id?: string } }>(`/payments/${encodeURIComponent(paymentId)}`);
-  const customer = payment?.customer?.customer_id;
-  if (!customer) return null;
-  const q = new URLSearchParams({ customer_id: customer, status: "active" });
-  if (product) q.set("product_id", product);
-  const keys = await call<{ items?: { key?: string; product_id?: string; status?: string }[] }>(`/license_keys?${q}`);
-  const hit = (keys?.items ?? []).find((k) => k.key && (!product || k.product_id === product));
-  return hit?.key ?? null;
+  const payment = await call<{
+    status?: string;
+    customer?: { customer_id?: string };
+    subscription_id?: string | null;
+    product_cart?: { product_id?: string }[] | null;
+  }>(`/payments/${encodeURIComponent(paymentId)}`);
+  const customerId = payment?.customer?.customer_id;
+  if (!customerId || (payment?.status && payment.status !== "succeeded")) return null;
+  const bought = (payment?.product_cart ?? []).map((p) => p.product_id).filter(Boolean);
+  if (product && bought.length && !bought.includes(product)) return null;
+  const subscriptionId = payment?.subscription_id ?? from.subscriptionId?.trim() ?? undefined;
+  let until = Date.now() + A_MONTH;
+  if (subscriptionId) {
+    const sub = await call<{ status?: string; next_billing_date?: string; product_id?: string }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`);
+    if (sub?.status && !LIVE.has(sub.status) && sub.status !== "pending") return null;
+    if (product && sub?.product_id && sub.product_id !== product) return null;
+    const next = sub?.next_billing_date ? Date.parse(sub.next_billing_date) : NaN;
+    if (Number.isFinite(next)) until = next + 5 * 24 * 60 * 60_000;
+  }
+  const pass = await signPass({ customerId, subscriptionId: subscriptionId || undefined, paymentId, until });
+  return { pass, customerId, until };
 }
 
 /* ------------------------------------------------------------ allowance -- */

@@ -3,7 +3,7 @@ import { adapterFor } from "@/lib/providers";
 import { getModel, PROVIDERS } from "@/lib/models";
 import type { ChatRequest, ChatError, StreamEvent } from "@/lib/types";
 import { PLUS_PRICE, plusAllowed } from "@/lib/plus";
-import { USED_UP, balance, debit, plusGating, validateKey } from "@/lib/plus.server";
+import { USED_UP, balance, debit, passCustomer, plusGating, validatePass } from "@/lib/plus.server";
 
 export const runtime = "edge";
 export const maxDuration = 300;
@@ -32,9 +32,10 @@ export async function POST(req: NextRequest) {
      covers unlocks them, and anyone else uses the key their browser sent.
      Without Plus configured nothing changes: the server answers for all. */
   const plusKey = body.plusKey?.trim();
-  const viaPlus = Boolean(plusKey && plusGating() && plusAllowed(model.id) && (await validateKey(plusKey)));
+  const viaPlus = Boolean(plusKey && plusGating() && plusAllowed(model.id) && (await validatePass(plusKey)));
   const key = viaPlus || !plusGating() ? (serverKey(model.provider) ?? body.clientKey) : body.clientKey;
-  const member = viaPlus ? body.plusCustomer?.trim() : undefined;
+  /* Who to bill comes off the signed pass, never off the request body. */
+  const member = viaPlus && plusKey ? await passCustomer(plusKey) : undefined;
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
