@@ -343,6 +343,11 @@ export default function Page() {
     if (!settings.textSize || settings.textSize === "normal") delete root.dataset.text;
     else root.dataset.text = settings.textSize;
   }, [settings.textSize]);
+  React.useEffect(() => {
+    const root = document.documentElement;
+    if (settings.easyRead) root.dataset.ease = "on";
+    else delete root.dataset.ease;
+  }, [settings.easyRead]);
 
   React.useEffect(() => {
     const root = document.documentElement;
@@ -1112,6 +1117,9 @@ export default function Page() {
       if (slash) {
         content = content.map((c) => (c.type === "text" ? { ...c, text: slash.text } : c));
         if (slash.presetId) slashPick = slash.presetId;
+        /* "/slides the water cycle" is a request for a thing that runs; said
+           so in the words the build mode reads. */
+        if (slash.slides && slash.text.trim()) content = content.map((c) => (c.type === "text" ? { ...c, text: `Make a slide deck on: ${slash.text.trim()}` } : c));
         /* "/compare" is Binary's whole tactic — two companies, side by side —
            so it is that Armi model for this turn rather than a second way of
            asking for the same thing. */

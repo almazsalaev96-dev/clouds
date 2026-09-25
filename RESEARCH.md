@@ -853,3 +853,31 @@ A shorter sweep than §5, asked the other way round: for each of ChatGPT, Claude
 - LumiChats, "Claude Projects vs ChatGPT Projects vs Gemini Gems (2026)"; OpenClaw, "Claude Skills vs ChatGPT GPTs vs Gemini Gems"; Bootstrap Creative, "ChatGPT vs Claude vs Gemini: Feature & Terminology Map (2026)".
 - Forasoft, "AI Lesson Plan Generator in 2026: A District Buyer's Guide"; Edcafe AI, "10 Best AI Lesson Planners for Teachers in 2026"; Kuraplan, "9 Best AI Lesson Plan Generators (2026)".
 
+## 7. Sixty-five capabilities against ChatGPT, Claude, Gemini, Kimi and Grok — 25 September 2026
+
+Scored 2 / 1 / 0 (full / partial / none) per capability from each company's release notes and help pages and from SPEC.md; the page with the whole matrix is published as the artifact *ARMI Against the Field*. Parity is Σ min(ARMI, product) over the product's rows ÷ the product's own sum; "at least as capable" counts rows where ARMI's mark is not lower.
+
+| Product | Of what it does, ARMI does | ARMI at least as capable on | ARMI leads on |
+|---|---|---|---|
+| ChatGPT | 86% | 80% of its rows | 27 rows |
+| Claude | 85% | 78% | 27 |
+| Gemini | 84% | 79% | 25 |
+| Kimi | 83% | 78% | 36 |
+| Grok | 86% | 80% | 35 |
+
+**Only here (21 rows, none of the five has them):** a cast from a second company (brief, check, council); two answers side by side; the answer says why the model was chosen; a claim-by-claim fact-check with the contradicting page; built apps that heal their own console errors; preview at three widths; flashcards with FSRS; a tutor beside the page with a pencil; revision packs with mark schemes; lessons; today's plan and the session timer; mastery by topic; a notebook with wiki-links; local-first with no account; bring your own keys; cost of every answer shown; failover to another company; the model using the rooms as tools; sums that never reach a model; search-everything palette; a $1 subscription.
+
+**Where all five are ahead (6 rows):** a computer or browser agent; a full sandbox for code and data; two-way voice; video; Word/Excel/PowerPoint out; a public share link. Two are out of scope for a local-first app (the agent, publishing); the others are provider features a key would buy (a voice model, a video model) and are on the list.
+
+**Built from this round:** `/slides` and "make me ten slides on…" build a deck that runs beside the chat (one section a slide, arrow keys, a counter, print to PDF one slide a page), closing a row all five had; and the *Easier reading* switch in Appearance (a plain face, wider letter, word and line spacing) closes the dyslexia row Claude led on.
+
+**Names.** Astro, Mira, Lumos and Nova stay. A model name has to be one word, ownable, and mean nothing wrong in the languages of the people using it; a borrowed name (a rival's) would be a claim about who trained it, and this app trains nothing.
+
+### Sources for §7
+
+- OpenAI, ChatGPT release notes (help.openai.com/en/articles/6825453); Releasebot, ChatGPT updates September 2026; Suprmind, ChatGPT features 2026.
+- Anthropic, Claude release notes (support.claude.com/en/articles/12138966); Releasebot, Claude updates September 2026; Suprmind, Claude features 2026.
+- Google, Gemini release updates (gemini.google.com/updates); Suprmind, How Gemini works; MacRumors, Google I/O 2026 roundup.
+- Moonshot AI (moonshot.ai); Wikipedia, Kimi (chatbot); mysummit.school, Kimi in 2026.
+- xAI: Suprmind, Grok features 2026; AIToolsRecap, How to use Grok in 2026; gstory, Grok limits.
+

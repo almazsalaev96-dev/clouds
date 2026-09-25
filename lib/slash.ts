@@ -31,6 +31,8 @@ export interface Slash {
   check?: boolean;
   /** A picture from the words, not words about one. */
   picture?: boolean;
+  /** A slide deck, built and run beside the chat. */
+  slides?: boolean;
   /** Research, taken further: several searches, then a report with sources. */
   deep?: boolean;
   /** The kind of work named by the verb, which shapes the tier's cast. */
@@ -62,6 +64,8 @@ const VERBS: Record<string, Partial<Slash>> = {
   maximum: { presetId: "astro" },
   fast: { presetId: "flash" },
   image: { picture: true },
+  slides: { slides: true },
+  deck: { slides: true },
   draw: { picture: true },
   picture: { picture: true },
 };
@@ -101,6 +105,7 @@ export function slashCommands(): { command: string; does: string }[] {
     { command: "write", does: "write it for its reader, worked out first" },
     { command: "maths", does: "show the working, risks first, checked twice" },
     { command: "image", does: "make a picture from what you describe; with one attached, change it" },
+    { command: "slides", does: "make a slide deck on it — arrow keys to move, print to PDF" },
     { command: "research", does: "let the model search the web in this chat" },
     { command: "deep", does: "search from several angles, then write a report with sources" },
     { command: "max", does: "the most that can be done: planned, reasoned independently, checked — Astro 5" },

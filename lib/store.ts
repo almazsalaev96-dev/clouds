@@ -160,6 +160,8 @@ interface Settings {
   retention: number;
   /** The size of every letter in the app, as a step. */
   textSize: "small" | "normal" | "large" | "larger";
+  /** Wider letter and line spacing, in a plain face: easier for many readers with dyslexia. */
+  easyRead?: boolean;
   /** A ceiling on what one answer may cost, as a tier the router keeps to. */
   spend: "low" | "balanced" | "any";
   /** Armi Plus, once verified: the license key and who it belongs to. */

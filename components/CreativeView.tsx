@@ -40,6 +40,7 @@ const IDEAS = [
   "Make me a quiz on the solar system, scored",
   "Make me a budget calculator with a chart",
   "Make me a word game I can play on my phone",
+  "Make me ten slides on the water cycle, with speaker notes",
 ];
 
 export function CreativeView({

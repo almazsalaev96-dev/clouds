@@ -502,6 +502,16 @@ function AppearancePanel() {
           onChange={(v) => s.set({ textSize: v as typeof s.textSize })}
         />
       </Field>
+      <Field label="Easier reading" hint="Wider spacing between letters, words and lines, in a plain face. Many readers with dyslexia find this easier; it changes nothing else.">
+        <Segmented
+          value={s.easyRead ? "on" : "off"}
+          options={[
+            { value: "off", label: "Off" },
+            { value: "on", label: "On" },
+          ]}
+          onChange={(v) => s.set({ easyRead: v === "on" })}
+        />
+      </Field>
       <Field label="Density" hint="Scales every spacing value in the app.">
         <Segmented
           value={s.density}

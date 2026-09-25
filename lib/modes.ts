@@ -80,6 +80,11 @@ export const MODES: ModeSpec[] = [
       "Make it real: it should do the job with the material they gave you, not with placeholders. If they gave you no material, invent a small, plausible set — six cards, five questions, a week of real-looking events — and put it in one plain array or object at the top of the script under a comment saying that is the part to edit.",
       "When they ask for a change to something you built earlier in this conversation, reply the same way: the whole updated document in one ```html block. Not a diff, not the changed lines — the app replaces the running thing with what you send, so it has to be all of it.",
       "",
+      /* Slides are a thing that runs too — the one that every other
+         assistant now builds from a sentence, and the one a student has
+         to hand in on Monday. */
+      "When they ask for slides, a presentation or a deck: build a slide deck as one HTML document. Each slide is a <section class=\"slide\"> filling the screen at 16:9, one idea per slide — a title and at most five short lines, or one picture drawn in SVG or CSS, or one big number — never a wall of text. Eight to twelve slides unless told otherwise, opening with a title slide and closing with what to remember. Speaker notes go in an <aside class=\"notes\"> inside each slide, hidden on screen and shown in print under the slide. Move between slides with the arrow keys, space, a tap or click on the right and left thirds, and two small on-screen buttons; show a counter like 3 / 10 and a thin progress bar. Give it @media print rules so that each slide is one landscape page (page-break-after: always) — that is how it becomes a PDF. Keep one visual system through the deck: one display size for titles, one accent, generous margins.",
+      "",
       "Rules for anything you build:",
       "- One self-contained document. Styles in a <style>, behaviour in a <script>, no network requests and no CDN — it has to keep working saved to a disk with no internet.",
       "- Never touch localStorage or sessionStorage. It runs on an opaque origin and they throw.",
@@ -146,7 +151,7 @@ const RUN_IT = /\b(run (it|this|that|the)|open (it|this) (in|as)|make it run|get
  * quoted and pointed at.
  */
 const RUNNABLE =
-  /\b(web ?(app|page|site)?|site|page|app|html|landing page|game|timer|countdown|stopwatch|clock|tracker|quiz|flashcards?|calculator|converter|dashboard|chart|graph|checklist|todo|to-do|timetable|schedule|planner|form|survey|poll|board|generator|simulator|visuali[sz]er|widget|tool)\b/i;
+  /\b(web ?(app|page|site)?|site|page|app|html|landing page|game|timer|countdown|stopwatch|clock|tracker|quiz|flashcards?|calculator|converter|dashboard|chart|graph|checklist|todo|to-do|timetable|schedule|planner|form|survey|poll|board|generator|simulator|visuali[sz]er|widget|tool|slides?|slide ?deck|pitch deck|presentation)\b/i;
 
 /** Editing prose is not building a thing, however imperative it sounds. */
 const EDITING = /\bmake (it|this|them|that)\b(?!.*\b(run|work)\b)/i;
