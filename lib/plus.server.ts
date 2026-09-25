@@ -98,6 +98,9 @@ export async function diagnose(): Promise<Record<string, unknown>> {
   } catch { /* left as text */ }
   return {
     keyMode: key.startsWith("dodo_test") ? "test" : key.startsWith("dodo_live") ? "live" : key ? "unrecognised prefix" : "no key",
+    /* Its shape, never its value: enough to tell an empty box from a
+       pasted-in something-else from a key with a quote on the end. */
+    keyShape: { length: key.length, startsWithDodo: key.startsWith("dodo"), hasQuotesOrSpaces: /["'\s]/.test(key) },
     appMode: env("DODO_ENVIRONMENT") ?? "test_mode (default)",
     base: dodoBase(),
     product: product ?? null,
