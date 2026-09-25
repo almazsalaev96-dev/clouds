@@ -390,6 +390,11 @@
   --dur-fast: 140ms;
   --dur-enter: 200ms;
   --dur-layout: 280ms;
+  /* A room change: quicker than a layout change, because it is the most
+     repeated move in the app and a switch that is felt is a switch that
+     is waited for. Measured at 280ms the room arrived in about half a
+     second; at 180 it arrives before the eye has finished moving. */
+  --dur-room: 180ms;
   --dur-spring: 420ms;
   /* Under a tenth of a second is the threshold where a person stops
      experiencing a response and starts experiencing their own action. Press
@@ -1687,7 +1692,7 @@ body::after {
    the eye reads one displacing the other rather than a flicker. */
 ::view-transition-old(room),
 ::view-transition-new(room) {
-  animation-duration: var(--dur-layout);
+  animation-duration: var(--dur-room);
   animation-timing-function: var(--ease-out);
 }
 
@@ -1710,7 +1715,7 @@ body::after {
   height: 100%;
 }
 ::view-transition-group(composer) {
-  animation-duration: var(--dur-layout);
+  animation-duration: var(--dur-room);
   animation-timing-function: var(--ease-out);
 }
 

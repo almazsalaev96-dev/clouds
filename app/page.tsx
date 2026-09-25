@@ -170,9 +170,12 @@ export default function Page() {
      confirming it still exists, because it may have been deleted in another
      tab, and opening a thread that is gone shows an empty transcript with no
      way to tell whether it failed to load or was always empty. */
-  /* The two sections that are not on the path to a first message, fetched the
+  /* Everything that is not on the path to a first message, fetched the
      moment nothing else is happening — off the critical path on the way in,
-     and already in memory by the time anyone presses anything.
+     and already in memory by the time anyone presses anything. Measured:
+     Settings and the palette took 800 ms to open the first time and 40 ms
+     the second, and every room 500–700 ms on its first visit — all of it
+     the chunk arriving. Warmed at idle, the first time is the second time.
      `requestIdleCallback` is not in Safari's older versions, hence the
      timeout behind it. */
   React.useEffect(() => {
@@ -183,6 +186,15 @@ export default function Page() {
     const warm = () => {
       void import("@/components/NotebookView");
       void import("@/components/ProjectsView");
+      void import("@/components/StudyView");
+      void import("@/components/LibraryView");
+      void import("@/components/chat/Settings");
+      void import("@/components/chat/CommandPalette");
+      void import("@/components/chat/MadePanel");
+      void import("@/components/ShortcutsOverlay");
+      /* And the two the first turn reaches for. */
+      void import("@/lib/tiers");
+      void import("@/lib/route");
     };
     if (w.requestIdleCallback) {
       const id = w.requestIdleCallback(warm);

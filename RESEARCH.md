@@ -875,6 +875,8 @@ Scored 2 / 1 / 0 (full / partial / none) per capability from each company's rele
 
 **Built from this round:** `/slides` and "make me ten slides on…" build a deck that runs beside the chat (one section a slide, arrow keys, a counter, print to PDF one slide a page), closing a row all five had; and the *Easier reading* switch in Appearance (a plain face, wider letter, word and line spacing) closes the dyslexia row Claude led on.
 
+**Speed, measured (25 September).** Load to a usable box 251 ms with 339 kB of script; Enter to the first words 246 ms of the app's own overhead; Settings 390 ms then 40 ms; the palette 330 then 30; a room 50–450 ms, most of it the transition, now 180 ms. Every room and dialog chunk is warmed at idle. The whole table is SPEC §21. The catalogue of every shipped function, with what each still lacks, is published as the artifact *Every Function of ARMI*.
+
 **Names.** Astro, Mira, Lumos and Nova stay. A model name has to be one word, ownable, and mean nothing wrong in the languages of the people using it; a borrowed name (a rival's) would be a claim about who trained it, and this app trains nothing.
 
 ### Sources for §7

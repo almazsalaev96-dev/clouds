@@ -821,6 +821,18 @@ House prompt rules: no medical/financial/legal certainty, no self-harm methods, 
 | Crash | Never a white screen: `CrashNet` boundary with "Reload" and "Save a copy first" | ✅ |
 | Data loss | Never: writes are transactional; undo for deletes; backup reminder | ✅ / ⬜ reminder |
 
+**Measured, 25 September 2026** (headless Chromium on the production build against an instant mock model, so every number is the app's own cost; `zz-speed`, `zz-speed2`, `zz-turn2` in the session record):
+
+| What a person feels | Measured | Note |
+|---|---|---|
+| Load to a usable box | 251 ms | 339 kB of script in 11 files; DOMContentLoaded 30 ms, load 102 ms |
+| Enter to the first words of an answer | 246 ms | the status line at 93 ms; a provider's own time comes on top |
+| Settings, first open / later | ≈390 ms / 40 ms | the first mount of the dialog; every room and dialog chunk is now warmed at idle so no open waits on the network |
+| Search-everything palette, first / later | 330 ms / 30 ms | |
+| A room, first visit / later | 50–450 ms | dominated by the room transition, now 180 ms (`--dur-room`, was 280) |
+| Typing in the box | 3.7 ms a character | |
+| Memory after a turn | 56 MB heap | |
+
 ---
 
 ## 22. Observability and cost (local)
