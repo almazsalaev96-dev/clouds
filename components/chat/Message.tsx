@@ -1185,7 +1185,6 @@ function ConfidenceLine({
       {weak && onEscalate && (
         <span className="ml-1 flex flex-wrap gap-1" role="group" aria-label="Go further">
           <button onClick={() => onEscalate("effort")} className="btn-touch press rounded-full border border-line bg-surface px-2 text-xs text-secondary hover:text-primary">Again, with more effort</button>
-          <button onClick={() => onEscalate("quant")} className="btn-touch press rounded-full border border-line bg-surface px-2 text-xs text-secondary hover:text-primary">Ask Parallax</button>
           <button onClick={() => onEscalate("astro")} className="btn-touch press rounded-full border border-line bg-surface px-2 text-xs text-secondary hover:text-primary">Ask Astro</button>
         </span>
       )}

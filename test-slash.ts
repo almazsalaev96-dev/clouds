@@ -9,21 +9,22 @@ const check = (p: boolean, l: string, d = "") => { if (!p) failed++; console.log
 console.log("\nA command is read off the front, and the question is what is left");
 {
   const s = parseSlash("/study explain osmosis to me")!;
-  check(s?.presetId === "tutor" && s.text === "explain osmosis to me", "“/study” picks the tutor and hands on the rest", JSON.stringify(s));
-  check(parseSlash("/build a stopwatch")?.presetId === "forge", "“/build” picks the builder");
+  check(s?.presetId === "one" && s.kind === "learning" && s.text === "explain osmosis to me", "“/study” picks Mira, teaching, and hands on the rest", JSON.stringify(s));
+  check(parseSlash("/build a stopwatch")?.kind === "coding", "“/build” picks Mira as a builder");
   check(parseSlash("/research what changed in the budget")?.research === true, "“/research” turns the web on");
   check(parseSlash("/compare which is better")?.compare === true, "“/compare” asks for two answers");
   check(parseSlash("/check is this right")?.check === true, "“/check” asks for a second reading");
   check(parseSlash("/temp something private")?.temporary === true, "“/temp” does not keep the chat");
-  check(parseSlash("/STUDY shouting")?.presetId === "tutor", "case does not matter");
-  check(parseSlash("   /study with space before")?.presetId === "tutor", "nor does whitespace before it");
+  check(parseSlash("/STUDY shouting")?.kind === "learning", "case does not matter");
+  check(parseSlash("   /study with space before")?.kind === "learning", "nor does whitespace before it");
 }
 
-console.log("\nA model's own name is a command too");
+console.log("\nA tier's own name is a command too — and only a tier's");
 {
-  check(parseSlash("/parallax compound interest over seven years")?.presetId === "quant", "“/parallax” is the reasoning model", parseSlash("/parallax x")?.presetId);
-  check(parseSlash("/constellation plan my startup")?.presetId === "council", "“/constellation” is the council");
-  check(parseSlash("/orrery teach me")?.presetId === "tutor", "and “/orrery” is the tutor by its own name");
+  check(parseSlash("/mira compound interest over seven years")?.presetId === "one", "“/mira” is the everyday tier", parseSlash("/mira x")?.presetId);
+  check(parseSlash("/astro plan my startup")?.presetId === "astro", "“/astro” is the top of the ladder");
+  check(parseSlash("/parallax x") === null && parseSlash("/orrery teach me") === null, "the old specialists' names are not commands: they are what the tiers become");
+  check(parseSlash("/maths compound interest")?.kind === "data" && parseSlash("/translate this")?.kind === "translate", "and the jobs are verbs: /maths, /translate");
 }
 
 console.log("\nWhat is not a command is sent as written");
@@ -42,7 +43,7 @@ console.log("\nThe hint knows what is being typed");
   check(typingSlash("/study now") === null, "once there is a space the command is complete and the hint goes");
   check(typingSlash("not /a command") === null, "a slash mid-line is not one");
   const cmds = slashCommands();
-  check(cmds.some((c) => c.command === "study") && cmds.some((c) => c.command === "parallax"), "the list carries the verbs and the models", `${cmds.length} commands`);
+  check(cmds.some((c) => c.command === "study") && cmds.some((c) => c.command === "mira"), "the list carries the verbs and the models", `${cmds.length} commands`);
   check(new Set(cmds.map((c) => c.command)).size === cmds.length, "with no two the same");
 }
 

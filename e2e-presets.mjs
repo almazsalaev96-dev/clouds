@@ -88,11 +88,9 @@ console.log("\nThe menu offers Armi's own models, and nobody else's");
 {
   await openPicker();
   const armi = p.getByText("The ladder", { exact: true }).first();
-  const job = p.getByText("For a particular job", { exact: true }).first();
-  const a = await armi.boundingBox();
-  const j = await job.boundingBox();
-  check(Boolean(a) && Boolean(j) && a.y < j.y, "the five for anything above the six for one thing",
-    a && j ? `${Math.round(a.y)} above ${Math.round(j.y)}` : "not found");
+  check(Boolean(await armi.boundingBox()), "the ladder, and only the ladder");
+  check((await p.getByText("For a particular job", { exact: true }).count()) === 0,
+    "no second menu of specialists — what they did is what the four become for that kind of work");
   check(await p.getByRole("button", { name: /^ARMI Mira 4.1 —/ }).isVisible(), "ARMI Mira 4.1 is the flagship, and it is first");
   /* The heading this replaces was "Or an engine directly", and under it was
      every model this app can call, by its maker's name — which made Armi's
@@ -109,7 +107,7 @@ console.log("\nThe menu offers Armi's own models, and nobody else's");
      the row. Only a hard requirement hides a row, and all four companies
      carry a model that can see. */
   const rows = await p.locator("[data-radix-popper-content-wrapper]").first().getByRole("button", { name: / — / }).count();
-  check(rows === 12, "all twelve are offered on one company's key", `${rows} rows`);
+  check(rows === 4, "all four are offered on one company's key", `${rows} rows`);
   check(!/more appear/.test(menu), "so nothing says any are waiting on a second key");
   await p.screenshot({ path: `${OUT}/presets-menu.png` });
 }
@@ -125,8 +123,8 @@ console.log("\nEvery row says what it is for, not which company it rents");
   /* Every one of these is two models or three, and on one company's key not
      one of them is the independent pair it would otherwise be. Said on the
      row, because that is the part a person is choosing between. */
-  const duet = await p.getByRole("button", { name: /^ARMI Binary —/ }).first().innerText();
-  check(/one company/i.test(duet), "and with one key it says both models come from one company", duet.replace(/\n/g, " · "));
+  const lumos = await p.getByRole("button", { name: /^ARMI Lumos 4 —/ }).first().innerText();
+  check(/one company/i.test(lumos), "and with one key it says both models come from one company", lumos.replace(/\n/g, " · "));
   const panel = await p.locator("[data-radix-popper-content-wrapper]").first().innerText();
   check(/One model writes/.test(panel), "the menu says what the cast does", (panel.split("\n").find((l) => /One model writes/.test(l)) ?? "").slice(0, 90));
   check(/sibling/i.test(panel) && /second key/i.test(panel),
@@ -178,9 +176,12 @@ console.log("\nA name is not a costume: they reach different endpoints");
   check(!quick.thinking && quick.effort !== "high" && quick.effort !== "medium",
     "and does not buy a think for a one-line question", `budget=${quick.thinking} effort=${quick.effort}`);
 
-  await pick("ARMI Parallax");
-  const hard = await ask("what is a debounce");
-  check(/opus/i.test(hard.model ?? ""), "the careful one goes somewhere that thinks", hard.model);
+  /* The same everyday tier, on a question about numbers: it becomes the
+     reasoning cast — the strong writer, risks listed first, checked twice —
+     without anyone choosing a specialist. */
+  await pick("ARMI Mira 4.1");
+  const hard = await ask("what is the standard deviation of this dataset, and does the trend hold");
+  check(/opus/i.test(hard.model ?? ""), "Mira on a numbers question goes somewhere that thinks", hard.model);
   /* A budget at all, on a question the quick one answered without one. The
      number itself is capped at half the reply's room rather than by the
      tactic, so asserting a particular ceiling here would be asserting
@@ -222,22 +223,23 @@ console.log("\nAnd the name over an answer being written is the model writing it
 
 console.log("\nWhat the tactic is for is said to the model, not only to you");
 {
-  await pick("ARMI Forge");
-  const built = await ask("a stopwatch with lap times");
+  await pick("ARMI Mira 4.1");
+  const built = await ask("/build a stopwatch with lap times");
   check(/build the thing rather than describing it/i.test(built.system ?? ""),
-    "the one that builds is told to build");
+    "Mira as a builder is told to build");
+  let shown = await p.locator(".msg").last().innerText();
+  check(/as a builder/.test(shown), "and the row says it was a builder here", (shown.split("\n").find((l) => /builder/.test(l)) ?? "").slice(0, 90));
 
-  await pick("ARMI Orrery");
-  const taught = await ask("what is a debounce");
-  check(/explain/i.test(taught.system ?? ""), "and the teaching one is told to explain");
-  const shown = await p.locator(".msg").last().innerText();
-  check(/Orrery/.test(shown) && /Explanatory/i.test(shown),
-    "with the answer saying which one wrote it and how", (shown.split("\n").find((l) => /Orrery/.test(l)) ?? "").slice(0, 80));
+  const taught = await ask("teach me what a debounce is");
+  check(/explain/i.test(taught.system ?? ""), "and Mira teaching is told to explain");
+  shown = await p.locator(".msg").last().innerText();
+  check(/Mira/.test(shown) && /Explanatory/i.test(shown) && /teaching/.test(shown),
+    "with the answer saying which one wrote it and how", (shown.split("\n").find((l) => /teaching/.test(l)) ?? "").slice(0, 90));
 }
 
 console.log("\nAnd a substitution is never silent");
 {
-  await pick("ARMI Aperture");
+  await pick("ARMI Mira 4.1");
   const long = await ask("summarise the argument for event sourcing");
   /* Asserted as a property, not as a name. This read `/opus/` from when the
      widest Anthropic window belonged to one model; every current one holds a
@@ -248,9 +250,9 @@ console.log("\nAnd a substitution is never silent");
   check(got?.contextWindow === room, "it answers on the biggest window there is a key for",
     `${long.model} holds ${got?.contextWindow}, the widest here is ${room}`);
   const shown = await p.locator(".msg").last().innerText();
-  check(/Aperture/.test(shown) && /no key for/i.test(shown),
-    "and the answer says it could not have the engine it wanted",
-    (shown.split("\n").find((l) => /Aperture/.test(l)) ?? "").slice(0, 90));
+  check(/Mira/.test(shown) && /no key for/i.test(shown) && /whole of it/.test(shown),
+    "and the answer says it read the whole of it, and could not have the engine it wanted",
+    (shown.split("\n").find((l) => /no key for/i.test(l)) ?? "").slice(0, 110));
   await p.screenshot({ path: `${OUT}/presets-answer.png` });
 }
 
@@ -275,7 +277,7 @@ console.log("\nAnd what it is doing is said where a person goes to look");
   check(/trains no models of its own/i.test(panel),
     "it says plainly that it trained none of them",
     (panel.split("\n").find((l) => /trains no models/i.test(l)) ?? "").slice(0, 90));
-  check(/ARMI Mira 4.1/.test(panel) && /ARMI Forge/.test(panel), "and lists every one of them");
+  check(/ARMI Mira 4.1/.test(panel) && /ARMI Astro 5/.test(panel) && !/ARMI Forge/.test(panel), "and lists the four, and no retired specialist");
   check(/different companies/.test(panel) && /Keys tab/.test(panel),
     "saying a cast is several companies and where that is decided",
     (panel.split("\n").find((l) => /Keys tab/.test(l)) ?? "").slice(0, 100));

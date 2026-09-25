@@ -708,6 +708,10 @@ Nothing here looks like it breaks a caller — the return type is the same array
   recent.push({
     model: body.model,
     kind: isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : "answer",
+    /* Which web tools this call offered, as `__last` records them — so a
+       claim about the answer's tools can be made when the answer is not
+       the last request on the wire. */
+    tools: (body.tools ?? []).map((t) => t.function?.name ?? t.name ?? t.type),
     /* What that call was told, bounded. `__last` is only ever the most
        recent request, and a turn that goes out three times — brief, answer,
        and the answer again after an objection — cannot be read from it: the

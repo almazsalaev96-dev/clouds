@@ -830,6 +830,8 @@ Armi Plus (§5.1) · the picker as a ladder · a model choice in every room · T
 
 ## 6. The four assistants by room, and the second round built from it
 
+**6.0a Four models, not twelve.** ChatGPT shows one model and a few modes; Claude shows three models; Gemini two. None asks the person to know that a maths question wants a different product from a letter. ARMI's second menu — eight specialists "for a particular job" — was that ask. Built: the specialists are now what the four tiers become for a kind of work (`SPECIALTY`), read off the question or named by a verb (`/study`, `/build`, `/translate`, `/write`, `/maths`), with the row saying what the tier did ("as a builder", "teaching", "in council"). The menu is the ladder and nothing else.
+
 **6.0 A long thread is the app's problem, not the person's.** ChatGPT, Claude and Gemini never show a "switch model" button when a conversation outgrows a window: ChatGPT trims and summarises silently, Claude tells you the thread is full and offers a new one, Gemini's window is large enough that it seldom arises. ARMI already summarised the part that would not fit (T-3) and read whole books in parts; what remained was the raw refusal itself — a 200k model saying "too long" produced a red bar and a button. Built: the turn moves itself to the widest window the keys open, the same company preferred and the cheapest model at least as deep, and the row says so; the bar and the button stay only for the case where nothing holds more. The Subscribe button likewise never dead-ends: a checkout the API will not create falls back to the product's own payment link.
 
 

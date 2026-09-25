@@ -40,6 +40,7 @@ import { canCall } from "./configured";
 import { REPLY, SAFETY } from "./context";
 import { checkable, type Plan } from "./decide";
 import type { ModelSpec, ProviderId } from "./types";
+import type { TaskKind } from "./task";
 
 /** What to reach for when none of the named engines has a key. */
 export type Want = "cheap" | "balanced" | "strong" | "long";
@@ -129,6 +130,12 @@ export interface Preset {
   /** One line said to the writer about what this tactic is for. */
   stance?: string;
   /**
+   * Set on a tier that has taken on one of its specialties for this turn:
+   * the id of the specialty it is working as. Never on a preset as
+   * declared; only on what `presetFor` hands back.
+   */
+  via?: string;
+  /**
    * When the check objects, answer again with the objection in hand.
    *
    * A verdict on its own is a report: "the second paragraph is wrong", under
@@ -194,7 +201,7 @@ export const PRESETS: Preset[] = [
     short: "Mira",
     tagline: "Everyday intelligence, two models deep",
     blurb:
-      "Your primary assistant: everyday questions, writing, planning, and knowing when something needs a specialist. A model from one company lists what the answer has to get right; a model from another writes it; a cheap third reads it back when the record says this kind of answer has been going wrong, and when it objects a stronger model answers again.",
+      "Your primary assistant, and it changes shape for the job: on code it is planned, built and read back by coders; on maths it lists the risks first, shows its working and is checked twice; teaching, it starts from the usual misconceptions and ends with questions; translating, another company reads the result against the original; on a letter it works out the reader first; on a book it reads the whole on the widest window. On everything else, a model from one company lists what the answer has to get right, a model from another writes it, and a cheap third reads it back when that has been going wrong.",
     examples: ["what is a debounce", "is this contract clause normal", "plan my week around three deadlines"],
     engines: ["gpt-5.6-terra", "claude-opus-5-5", "claude-sonnet-5", "kimi-k3", "deepseek-v4-pro", "claude-sonnet-4-6", "gpt-5.5", "claude-sonnet-4-5"],
     want: "balanced",
@@ -223,7 +230,7 @@ export const PRESETS: Preset[] = [
     short: "Astro",
     tagline: "Maximum intelligence, verified",
     blurb:
-      "For the hardest few per cent: a whole architecture, thirty papers into one reading, a problem that will not come apart in one pass. One company plans it, the strongest writer you have takes it on, a reasoner from another company works the logic independently, a third company's cheap model checks what came of it, and when the check objects the writer goes again with the objection in hand. The dearest thing here, and the only one that earns it.",
+      "For the hardest few per cent: a whole architecture, thirty papers into one reading, a problem that will not come apart in one pass. One company plans it, the strongest writer you have takes it on, a reasoner from another company works the logic independently, a third company's cheap model checks what came of it, and when the check objects the writer goes again with the objection in hand. On a plan or a design a third seat joins the council for the strategy; on code, maths, teaching or translation it writes the way that job demands. The dearest thing here, and the only one that earns it.",
     examples: ["design the complete architecture of my AI SaaS", "read these thirty papers and write a rigorous synthesis", "prove this holds for every input"],
     engines: ["gpt-5.6-sol", "claude-fable-5-1", "claude-opus-5-5", "kimi-k3", "deepseek-v4-pro", "gpt-5.5", "claude-fable-5", "claude-opus-4-8"],
     want: "strong",
@@ -450,6 +457,75 @@ export function getPreset(id: string): Preset | null {
   return byId.get(id) ?? null;
 }
 
+/**
+ * The specialties: what each tier turns into for a kind of work.
+ *
+ * There used to be a second menu — eight named specialists for a particular
+ * job, beside four for anything — and the person was left to know that a
+ * maths question wants Parallax and a letter wants Voyager. That is the
+ * app's job, not theirs. The specialists still exist, as casts, and are
+ * what the four tiers *become*: Mira on a coding question is planned, built
+ * and read back by coders; Mira teaching starts from the misconceptions;
+ * Astro on a plan seats a third council member for the strategy. The name
+ * on the row stays the tier's, and the line under it says what it did.
+ *
+ * Mira takes the whole of a specialty — its engines, its cast, its stance —
+ * because the specialties were built at Mira's weight. Astro keeps its own
+ * bench and its own cast, which are already the most this app can bring,
+ * and borrows only how the specialty writes (and, for a plan, the seat it
+ * would otherwise lack). Nova stays quick; it borrows a stance where one
+ * costs nothing. Lumos is about the picture and takes nothing.
+ */
+export const SPECIALTY: Record<string, Partial<Record<TaskKind, string>>> = {
+  one: { coding: "forge", learning: "tutor", writing: "studio", translate: "lingua", summarize: "orbit", research: "orbit", data: "quant", plan: "quant" },
+  astro: { coding: "forge", data: "quant", plan: "council", design: "council", learning: "tutor", translate: "lingua", writing: "studio" },
+  flash: { translate: "lingua", learning: "tutor", writing: "studio" },
+  vision: {},
+};
+
+/** What the line under an answer says a tier did, when it took on a specialty. */
+export const JOB_LINE: Record<string, string> = {
+  forge: "as a builder: planned first, then read back by a coder",
+  quant: "showing its working, with the risks listed first and the result checked",
+  tutor: "teaching: the usual misconceptions listed first, the explanation checked",
+  lingua: "translating, read back against the original by another company",
+  studio: "writing for its reader, who was worked out first",
+  orbit: "reading the whole of it on the widest window, then read back",
+  council: "in council: strategy, logic and knowledge each taken by a different company",
+};
+
+const KEEP = ["id", "name", "short", "tagline", "blurb", "examples", "group", "icon", "revise", "escalate"] as const;
+
+/**
+ * The preset to run: the tier, become its specialty for this kind of work.
+ * Without a kind, or on a tier with no specialty for it, the tier itself.
+ */
+export function presetFor(id: string, kind?: TaskKind): Preset | null {
+  const tier = getPreset(id);
+  if (!tier || !kind || kind === "general") return tier;
+  const specId = SPECIALTY[id]?.[kind];
+  const spec = specId ? getPreset(specId) : null;
+  if (!spec) return tier;
+  const own = Object.fromEntries(KEEP.map((k) => [k, tier[k]])) as Pick<Preset, (typeof KEEP)[number]>;
+  if (id === "one") {
+    return { ...spec, ...own, escalate: tier.escalate ?? spec.escalate, via: spec.id };
+  }
+  /* The tier's own bench and cast; the specialty's way of writing. A
+     specialty that seats a council the tier lacks lends those seats. */
+  const seats = spec.cast.filter((x) => x.role === "council" && !tier.cast.some((t) => t.role === "council" && t.angle === x.angle));
+  const cast = id === "astro" && seats.length
+    ? [...tier.cast.filter((x) => x.role === "brief"), ...seats, ...tier.cast.filter((x) => x.role !== "brief")]
+    : tier.cast;
+  return {
+    ...tier,
+    cast,
+    stance: spec.stance ?? tier.stance,
+    register: id === "flash" ? tier.register : (spec.register ?? tier.register),
+    effort: tier.effort ?? spec.effort,
+    via: spec.id,
+  };
+}
+
 export function isPreset(id: string): boolean {
   return byId.has(id);
 }
@@ -604,8 +680,8 @@ export function canRun(id: string, where: Where): boolean {
   return true;
 }
 
-export function resolveCast(id: string, where: Where, opts: { escalated?: boolean } = {}): Cast | null {
-  const preset = getPreset(id);
+export function resolveCast(id: string, where: Where, opts: { escalated?: boolean; kind?: TaskKind } = {}): Cast | null {
+  const preset = presetFor(id, opts.kind);
   if (!preset) return null;
   /* The second pass after a failed check goes up a rung where the tactic
      has one: the stronger writers first, then its own. */
@@ -661,7 +737,9 @@ export function resolveCast(id: string, where: Where, opts: { escalated?: boolea
   const writer = pickFrom(engines, want, able)!;
   const substituted = writer.id !== engines[0];
   if (escalated) because.unshift("a stronger model, after the check objected");
-  else if (substituted && !because.length) {
+  /* A substitution is never silent, on the second pass either: the
+     stronger model it went to is still not the one it would have chosen. */
+  if (substituted && !because.some((b) => /no key/.test(b)) && (!because.length || escalated)) {
     because.push(
       engines.includes(writer.id) ? "no key for the one it prefers" : "no key for any engine it prefers",
     );
@@ -900,8 +978,8 @@ export function shortName(id: string | undefined | null): string {
 }
 
 /** Just the writer, for the places that only need to name one model. */
-export function resolvePreset(id: string, where: Where): Engine | null {
-  return resolveCast(id, where)?.answer ?? null;
+export function resolvePreset(id: string, where: Where, kind?: TaskKind): Engine | null {
+  return resolveCast(id, where, { kind })?.answer ?? null;
 }
 
 /**
@@ -913,8 +991,8 @@ export function resolvePreset(id: string, where: Where): Engine | null {
  * answer on Sonnet while the bar said Nova: the one failure this whole file
  * is built to avoid.
  */
-export function engineOf(id: string, where: Where): string {
-  return resolveCast(id, where)?.answer.modelId ?? id;
+export function engineOf(id: string, where: Where, kind?: TaskKind): string {
+  return resolveCast(id, where, { kind })?.answer.modelId ?? id;
 }
 
 /** The one part of the cast with this job, if it could be arranged. */

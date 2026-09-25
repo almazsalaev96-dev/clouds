@@ -24,7 +24,7 @@ import {
 import { composeSystemPrompt, composeTurnPrompt, DEEP_RESEARCH } from "@/lib/prompt";
 import { rulesCount, rulesText } from "@/lib/rules";
 import { examNote } from "@/lib/exam";
-import { effortFor, taskOf } from "@/lib/task";
+import { effortFor, taskOf, type TaskKind } from "@/lib/task";
 import { shapeFor } from "@/lib/shape";
 import { lintAnswer } from "@/lib/lint";
 import { visualFor } from "@/lib/visual";
@@ -34,7 +34,7 @@ import { builtDocument, titleOf } from "@/lib/built";
 import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, PROVIDERS, estimateTokens, getModel } from "@/lib/models";
 import {
   briefNote, briefPrompt, councilNote, councilPrompt, engineOf, getPreset, objectionNote,
-  playerFor, playersFor, resolveCast, shapePlan, shortName, worthBriefing, worthConvening,
+  playerFor, playersFor, resolveCast, shapePlan, shortName, worthBriefing, worthConvening, presetFor, JOB_LINE,
 } from "@/lib/presets";
 import { costOf, fitToContext } from "@/lib/context";
 import { elsewhere, searcher, roomier } from "@/lib/route";
@@ -268,6 +268,9 @@ export default function Page() {
   /* The decision the running turn was sent with, waiting for its outcome.
      A ref rather than state: nothing renders from it, and it has to be
      readable by the finish callback without re-registering it. */
+  /* The kind of work each question was read as, by the id of the question,
+     so every pass at it — the revision, the escalation — is the same kind. */
+  const kindByAsk = React.useRef(new Map<string, TaskKind>());
   const planRef = React.useRef<{
     plan: Plan;
     modelId: string;
@@ -674,6 +677,8 @@ export default function Page() {
         auto?: boolean;
         /** The second pass after a failed check goes to a stronger writer. */
         escalated?: boolean;
+        /** The kind of work, when a command named it; otherwise read off the ask. */
+        kind?: TaskKind;
       },
     ) => {
       /* An Armi model is a tactic, and this is where it becomes a request:
@@ -682,14 +687,26 @@ export default function Page() {
          Resolved here rather than at the call sites because there are eight
          of them — regenerate, retry, tighten, edit — and one that forgot
          would send "nova" to a provider as a model name. */
-      const preset = getPreset(picked);
+      /* What kind of work this is decides what the tier becomes: Mira on a
+         coding question is Mira as a builder, with a coder's bench and a
+         plan first; on a learning question it is Mira teaching. A command
+         (/study, /build) names the kind outright; otherwise it is read off
+         the ask, the same reading the audit and the plan use. */
+      const askedFor = [...history].reverse().find((m) => m.role === "user");
+      /* Remembered by the question it answers, so a second pass — after an
+         objection, or "Ask Astro" — is the same kind of work as the first:
+         "/build" is stripped from the message it sends, and reading the
+         stripped text again would make the revision an ordinary answer. */
+      const kind: TaskKind = opts?.kind ?? kindByAsk.current.get(parentId ?? "") ?? taskOf(askedFor ? blockText(askedFor.content) : "").kind;
+      kindByAsk.current.set(parentId ?? "", kind);
+      const preset = presetFor(picked, kind);
       let cast = preset
         ? resolveCast(picked, {
             configured,
             keys: settings.keys,
             hasImage: history.some((m) => m.content.some((b) => b.type === "image")),
             size: history.reduce((n, m) => n + costOf(m), 0),
-          }, { escalated: Boolean(opts?.escalated) })
+          }, { escalated: Boolean(opts?.escalated), kind })
         : null;
       /* Cost per success, within the tier: where Auto chose the tactic, the
          record of past answers may move the turn off the tactic's first
@@ -905,6 +922,10 @@ export default function Page() {
          not be described as though it had, and a brief skipped for a
          three-word question did not happen either. */
       const extras = [
+        /* What the tier became for this kind of work, before anything else:
+           the name on the row is Mira's, and this is the part that says
+           Mira was a builder here. */
+        preset?.via ? JOB_LINE[preset.via] : "",
         cast?.answer.why,
         brief ? "briefed first by another model" : "",
         council ? `${seats.length} models consulted` : "",
@@ -1115,7 +1136,7 @@ export default function Page() {
       }
       const wantsTemporary = pendingTemporary || Boolean(slash?.temporary);
       const wantsResearch = pendingResearch || Boolean(slash?.research);
-      const wantsLearn = pendingLearn || slash?.presetId === "tutor";
+      const wantsLearn = pendingLearn || slash?.kind === "learning";
 
       // Conversations are created on first send, not on "New chat", so the
       // sidebar never fills with empty rows the user did not mean to make.
@@ -1374,7 +1395,7 @@ export default function Page() {
           answering,
           tier?.why ?? routed?.why,
           note,
-          slash?.check || tier ? { check: slash?.check || undefined, auto: Boolean(tier) } : undefined,
+          slash?.check || tier || slash?.kind ? { check: slash?.check || undefined, auto: Boolean(tier), kind: slash?.kind } : undefined,
         );
       }
 
@@ -1577,9 +1598,11 @@ export default function Page() {
             message.parentId,
             history,
             answeredAs,
-            /* No routed reason: this turn builds its own, and it is the same
-               tactic that answered the first time. */
-            undefined,
+            /* Why Auto chose this tier, carried from the first draft: the
+               second draft is the same choice, and a reader of only the
+               second should still be told it was Auto's and why. Only that
+               clause — the rest of the line is rebuilt by this turn. */
+            message.routedWhy?.match(/Auto chose [^·]*?(?=, [a-z]|·|$)/)?.[0]?.trim() || undefined,
             objectionNote(verdict),
             /* Up a rung where the tactic has one: the gate that failed is
                not passed back to the same model for a more confident

@@ -14,6 +14,7 @@
  */
 
 import { PRESETS } from "./presets";
+import type { TaskKind } from "./task";
 
 export interface Slash {
   /** What was typed after the command, trimmed. May be empty. */
@@ -32,16 +33,23 @@ export interface Slash {
   picture?: boolean;
   /** Research, taken further: several searches, then a report with sources. */
   deep?: boolean;
+  /** The kind of work named by the verb, which shapes the tier's cast. */
+  kind?: TaskKind;
   /** How the command was written, for the hint and the byline. */
   command: string;
 }
 
 /** The commands that are not a model's name. */
 const VERBS: Record<string, Partial<Slash>> = {
-  study: { presetId: "tutor" },
-  tutor: { presetId: "tutor" },
-  build: { presetId: "forge" },
-  code: { presetId: "forge" },
+  study: { presetId: "one", kind: "learning" },
+  tutor: { presetId: "one", kind: "learning" },
+  teach: { presetId: "one", kind: "learning" },
+  build: { presetId: "one", kind: "coding" },
+  code: { presetId: "one", kind: "coding" },
+  translate: { presetId: "one", kind: "translate" },
+  write: { presetId: "one", kind: "writing" },
+  maths: { presetId: "one", kind: "data" },
+  math: { presetId: "one", kind: "data" },
   compare: { compare: true },
   check: { check: true },
   verify: { check: true },
@@ -79,7 +87,7 @@ export function parseSlash(input: string): Slash | null {
   const text = (m[2] ?? "").trim();
   const verb = VERBS[command];
   if (verb) return { ...verb, text, command };
-  const preset = PRESETS.find((p) => nameOf(p.short) === command || nameOf(p.id) === command);
+  const preset = PRESETS.find((p) => p.group === "everyday" && (nameOf(p.short) === command || nameOf(p.id) === command));
   if (preset) return { presetId: preset.id, text, command };
   return null;
 }
@@ -87,8 +95,11 @@ export function parseSlash(input: string): Slash | null {
 /** The commands there are, for the hint under the composer. */
 export function slashCommands(): { command: string; does: string }[] {
   return [
-    { command: "study", does: "teach it rather than tell it — the Orrery" },
-    { command: "build", does: "make the thing and run it beside the chat — Forge" },
+    { command: "study", does: "teach it rather than tell it — Mira's teaching cast" },
+    { command: "build", does: "make the thing and run it beside the chat — Mira as a builder" },
+    { command: "translate", does: "translate it, read back against the original" },
+    { command: "write", does: "write it for its reader, worked out first" },
+    { command: "maths", does: "show the working, risks first, checked twice" },
     { command: "image", does: "make a picture from what you describe; with one attached, change it" },
     { command: "research", does: "let the model search the web in this chat" },
     { command: "deep", does: "search from several angles, then write a report with sources" },
@@ -97,7 +108,7 @@ export function slashCommands(): { command: string; does: string }[] {
     { command: "compare", does: "two companies answer, side by side" },
     { command: "check", does: "a second model reads the answer back" },
     { command: "temp", does: "do not keep this chat" },
-    ...PRESETS.map((p) => ({ command: nameOf(p.short), does: p.tagline.toLowerCase() })),
+    ...PRESETS.filter((p) => p.group === "everyday").map((p) => ({ command: nameOf(p.short), does: p.tagline.toLowerCase() })),
   ];
 }
 

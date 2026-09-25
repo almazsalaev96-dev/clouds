@@ -127,11 +127,13 @@ console.log("\nThe quick one answers first and is checked after");
 
 console.log("\nAnd where judgement decides, two answers beat one verdict");
 {
-  await pick("ARMI Binary");
+  /* Two answers is a thing you ask for on the turn — "/compare" — rather
+     than a model on the menu. */
+  await pick("ARMI Mira 4.1");
   await p.getByRole("button", { name: "New chat" }).first().click();
   await p.waitForTimeout(350);
   await fetch(`${MOCK}/__reset`);
-  await p.locator(".composer-shell textarea").first().fill("what should we call this feature");
+  await p.locator(".composer-shell textarea").first().fill("/compare what should we call this feature");
   await p.keyboard.press("Enter");
   await p.waitForTimeout(4000);
   const shown = await p.locator("main").innerText();
@@ -154,13 +156,15 @@ console.log("\nThe council is three jobs and one answer, not three drafts");
      that four models can do and one cannot: three companies each take a
      different half — the strategy, the reasoning, what is actually known —
      and a fourth writes one answer out of the three. */
-  await pick("ARMI Constellation");
+  /* Astro on a plan: its own two seats, and the strategy seat the plan
+     earns — three companies' halves, one answer. */
+  await pick("ARMI Astro 5");
   await p.getByRole("button", { name: "New chat" }).first().click();
   await p.waitForTimeout(350);
   await fetch(`${MOCK}/__reset`);
-  await p.locator(".composer-shell textarea").first().fill("should we rebuild this service or refactor what is already there");
+  await p.locator(".composer-shell textarea").first().fill("give me a plan: should we rebuild this service or refactor what is already there, and in what order");
   await p.keyboard.press("Enter");
-  await p.waitForTimeout(6000);
+  await p.waitForTimeout(14000);
   const seq = await calls();
   const seats = seq.filter((r) => r.kind === "council");
   check(seats.length === 3, "three seats are filled", seq.map((r) => `${r.kind}:${r.model}`).join(" → "));
@@ -184,16 +188,17 @@ console.log("\nThe council is three jobs and one answer, not three drafts");
     "with the writer told to surface disagreement rather than average it away");
   check(/do not mention that any of this happened/i.test(synth),
     "and to write an answer rather than a report on its own making");
-  /* What is on screen is the second draft, and its line is the truth about
-     *it*: this tactic, answered again. The council is not claimed twice —
-     the revision did not convene one, and the first draft, which did, is
-     still there under ‹1/2›. */
+  /* The row keeps the tier's name and says what the tier did here: sat in
+     council, three seats, with a plan read first. A plan is not a kind a
+     second model can settle, so no check is bought on it and the answer
+     stands as written — the objection-and-revision claim is made on the
+     reasoning cast below, where a check can. */
   const shown = await p.locator("main").innerText();
-  check(/ARMI Constellation/.test(shown) && /answered again/.test(shown),
-    "and the answer says which tactic wrote it and that it went round twice",
-    (shown.split("\n").find((l) => /ARMI Constellation/.test(l)) ?? "").slice(0, 110));
-  check(!/3 models consulted/.test(shown),
-    "without claiming a council the second draft did not hold");
+  check(/ARMI Astro 5/.test(shown) && /in council/.test(shown) && /3 models consulted/.test(shown),
+    "and the answer says which tier wrote it and that it sat in council",
+    (shown.split("\n").find((l) => /in council/.test(l)) ?? "").slice(0, 110));
+  check(!/Constellation|Parallax|Orrery/.test(shown),
+    "under the tier's own name, with no retired specialist named");
   await p.screenshot({ path: `${OUT}/cast-council.png` });
 }
 
@@ -204,11 +209,12 @@ console.log("\nAnd an objection is answered rather than printed under the answer
      that is still wrong, leaving the reader to do the work. On the tactics
      where being wrong costs something the writer is handed the objection and
      answers again, which is what the second model was for. */
-  await pick("ARMI Parallax");
+  /* Mira showing its working: the reasoning cast, named on the turn. */
+  await pick("ARMI Mira 4.1");
   await p.getByRole("button", { name: "New chat" }).first().click();
   await p.waitForTimeout(350);
   await fetch(`${MOCK}/__reset`);
-  await p.locator(".composer-shell textarea").first().fill("how does a debounce actually work, and when is it wrong");
+  await p.locator(".composer-shell textarea").first().fill("/maths how does a debounce actually work, and when is it wrong");
   await p.keyboard.press("Enter");
   await p.waitForTimeout(12000);
 
@@ -245,7 +251,7 @@ console.log("\nAnd two models on the kinds that used to get one");
      check was withheld for kind, and the tactic built for teaching answered
      alone. Read at the wire, because this is exactly the claim that cannot
      be taken from the interface. */
-  await pick("ARMI Orrery");
+  await pick("ARMI Mira 4.1");
   await p.getByRole("button", { name: "New chat" }).first().click();
   await p.waitForTimeout(350);
   await fetch(`${MOCK}/__reset`);
@@ -261,11 +267,11 @@ console.log("\nAnd two models on the kinds that used to get one");
 
 console.log("\nThe menu says who is in the cast, not just who fronts it");
 {
-  await pick("ARMI Constellation");
+  await pick("ARMI Astro 5");
   await bar.click();
   await p.waitForTimeout(450);
   const panel = await p.locator("[data-radix-popper-content-wrapper]").first().innerText();
-  check(/writes/.test(panel) && /on strategy/i.test(panel),
+  check(/writes/.test(panel) && /on the reasoning/i.test(panel),
     "the selected one spells out which half of the question each model took",
     (panel.split("\n").find((l) => /writes/.test(l)) ?? "").slice(0, 110));
   /* The arithmetic nobody can do in their head: three models a turn is the
@@ -274,13 +280,13 @@ console.log("\nThe menu says who is in the cast, not just who fronts it");
   check(/models a turn/.test(panel) && /an answer/.test(panel),
     "and what a turn of it costs, counted in models and in money",
     (panel.split("\n").find((l) => /models a turn/.test(l)) ?? "").slice(0, 80));
-  await p.getByRole("button", { name: /^ARMI Parallax —/ }).first().click();
+  await p.getByRole("button", { name: /^ARMI Mira 4.1 —/ }).first().click();
   await p.waitForTimeout(500);
   await bar.click();
   await p.waitForTimeout(450);
   const orion = await p.locator("[data-radix-popper-content-wrapper]").first().innerText();
-  check(/briefs it first/i.test(orion) && /checks it after/i.test(orion),
-    "and the careful one is three models, each with a different job",
+  check(/briefs it first/i.test(orion) && /checks it/i.test(orion),
+    "and the everyday one is three models, each with a different job",
     (orion.split("\n").find((l) => /writes/.test(l)) ?? "").slice(0, 110));
   await p.screenshot({ path: `${OUT}/cast-menu.png` });
   await p.keyboard.press("Escape");

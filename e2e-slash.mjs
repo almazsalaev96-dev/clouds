@@ -32,10 +32,10 @@ console.log("\nA slash opens the list, and typing narrows it");
   check(await list.isVisible(), "a lone slash shows what a slash can do");
   const all = await list.getByRole("option").allInnerTexts();
   check(all.some((t) => /^\/study/.test(t)) && all.some((t) => /^\/research/.test(t)), "with the verbs in it", all.slice(0, 4).map((t) => t.split("\n")[0]).join(" · "));
-  await box().fill("/pa");
+  await box().fill("/mi");
   await p.waitForTimeout(250);
   const narrowed = await list.getByRole("option").allInnerTexts();
-  check(narrowed.length === 1 && /^\/parallax/.test(narrowed[0]), "and “/pa” leaves only the reasoning model", narrowed.map((t) => t.split("\n")[0]).join(" · "));
+  check(narrowed.length === 1 && /^\/mira/.test(narrowed[0]), "and “/mi” leaves only the everyday tier", narrowed.map((t) => t.split("\n")[0]).join(" · "));
   await box().fill("/zzz");
   await p.waitForTimeout(250);
   check(/No command called/.test(await list.innerText()), "while an unknown one says so rather than guessing");
@@ -60,7 +60,7 @@ console.log("\n“/study” answers as the tutor, and the command is not kept");
   const user = await p.locator(".msg").first().innerText();
   check(/what is a debounce/.test(user) && !/\/study/.test(user), "the message kept is the question without its prefix", user.replace(/\s+/g, " ").slice(0, 40));
   const row = await p.locator(".msg").last().innerText();
-  check(/Orrery/.test(row), "and the answer is credited to the tutor", (row.split("\n").find((l) => /ARMI/.test(l)) ?? "").slice(0, 50));
+  check(/Mira/.test(row) && /teaching/.test(row), "and the answer is credited to Mira, teaching", (row.split("\n").find((l) => /ARMI/.test(l)) ?? "").slice(0, 90));
 }
 
 console.log("\nA bare “/research” is a setting, not a message");

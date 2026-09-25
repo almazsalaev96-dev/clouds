@@ -103,9 +103,11 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
   /* The room's own choice wins where one was made — a person who picked
      Astro for Study gets Astro at the page too — and the Orrery otherwise,
      which is the tactic built for teaching. */
-  const tutorPreset = settings.reviseModelId && getPreset(settings.reviseModelId) ? settings.reviseModelId : "tutor";
+  /* The tier for the room, teaching: the tutor's cast is what Mira becomes on
+     a learning question, and the room is a learning question throughout. */
+  const tutorPreset = settings.reviseModelId && getPreset(settings.reviseModelId) ? settings.reviseModelId : "one";
   const cast = React.useMemo(
-    () => resolveCast(tutorPreset, { configured, keys: settings.keys, hasImage: true }),
+    () => resolveCast(tutorPreset, { configured, keys: settings.keys, hasImage: true }, { kind: "learning" }),
     [configured, settings.keys, tutorPreset],
   );
 
@@ -586,7 +588,7 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
                 ) : (
                   <div>
                     <p className="mb-0.5 text-tiny text-tertiary">
-                      {shortName(t.presetId ?? "tutor")}
+                      {shortName(t.presetId ?? "one")}
                       {t.page ? ` · page ${t.page}` : ""}
                       {t.why ? ` · ${t.why}` : ""}
                     </p>

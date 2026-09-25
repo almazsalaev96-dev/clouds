@@ -1049,7 +1049,7 @@ function ArmiTable({ configured }: { configured: Record<string, boolean> }) {
   const where = { configured, keys };
   return (
     <ul className="space-y-2.5">
-      {PRESETS.map((p) => {
+      {PRESETS.filter((p) => p.group === "everyday").map((p) => {
         const cast = resolveCast(p.id, where)!;
         const profile = profileOf(cast);
         return (

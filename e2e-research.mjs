@@ -128,7 +128,7 @@ console.log("\nThe claims, looked up");
   check(/Doubtful/.test(conf) && /1 of 2 claims contradicted/.test(conf), "so the confidence line says doubtful, and why", conf);
   const further = p.getByRole("group", { name: "Go further" }).last();
   const rungs = await further.getByRole("button").allInnerTexts().catch(() => []);
-  check(rungs.length === 3 && /more effort/.test(rungs[0]) && /Parallax/.test(rungs[1]) && /Astro/.test(rungs[2]), "and offers the next rungs of the ladder rather than climbing them unasked", rungs.join(" · "));
+  check(rungs.length === 2 && /more effort/.test(rungs[0]) && /Astro/.test(rungs[1]), "and offers the next rungs of the ladder rather than climbing them unasked", rungs.join(" · "));
 }
 
 console.log("\n“/deep” is research taken further");
@@ -152,7 +152,10 @@ console.log("\nA URL in the question offers fetch as well");
   await p.getByRole("textbox", { name: "Message" }).fill("Summarise https://example.org/debounce for me");
   await p.keyboard.press("Meta+Enter");
   await p.waitForTimeout(4000);
-  const sent = await fetch(`${MOCK}/__last`).then((r) => r.json());
+  /* The answer's request, not the last on the wire: a summary is read back
+     by a second model, and that call carries no tools by design. */
+  const { recent } = await fetch(`${MOCK}/__recent`).then((r) => r.json());
+  const sent = recent.find((r) => r.kind === "answer") ?? {};
   check((sent.tools ?? []).some((t) => /^web_fetch(_\d+)?$/.test(t)), "fetch rides along once there is something to fetch", JSON.stringify(sent.tools));
 }
 

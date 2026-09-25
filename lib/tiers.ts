@@ -58,6 +58,9 @@ const EXTREME =
 /** A book's worth in this one message: not a hard sentence, but hard work. */
 const HEAVY = 30_000;
 
+/** The kinds the everyday tier changes shape for (`presets.SPECIALTY`). */
+const SPECIAL = new Set<TaskKind>(["learning", "coding", "translate", "data", "writing", "summarize", "research"]);
+
 export interface Tier {
   level: Level;
   /** The preset to run, or null at level 0, where nothing runs. */
@@ -99,6 +102,15 @@ export function levelOf(
     else if (shape.coding) why.push("this is about code");
     else if (shape.depth) why.push("this one needs thinking about");
     else if (opts.kind && opts.kind !== "general") why.push(`read as ${opts.kind}`);
+  }
+
+  /* A kind of work the everyday tier has a specialty for is not "a short
+     ask with nothing to weigh", however short: "teach me eigenvalues" is
+     five words and wants the teaching cast, not the quick engine. A
+     mechanical edit stays quick whatever it is about. */
+  if (level === 1 && !shape.quick && opts.kind && SPECIAL.has(opts.kind)) {
+    level = 2;
+    why.push(`read as ${opts.kind}, which Mira has a cast for`);
   }
 
   /* The budget governor, at the level rather than the engine: a low spend

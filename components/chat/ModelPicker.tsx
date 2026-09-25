@@ -98,7 +98,7 @@ export function ModelPicker({
     (p: Preset) => p.id === value || canRun(p.id, where),
     [value, where],
   );
-  const hidden = PRESETS.filter((p) => !runnable(p)).length;
+  const hidden = PRESETS.filter((p) => p.group === "everyday" && !runnable(p)).length;
 
   const results = React.useMemo(() => {
     if (!query.trim()) return null;
@@ -109,7 +109,7 @@ export function ModelPicker({
        news should land on the Armi model that runs on it rather than on
        "No model matches that", and learn the name we do use. Matching a
        word is not displaying it. */
-    return PRESETS.filter(runnable).map((x) => ({
+    return PRESETS.filter((x) => x.group === "everyday").filter(runnable).map((x) => ({
       x,
       score: Math.max(
         fuzzyScore(query, x.name),
@@ -230,12 +230,11 @@ export function ModelPicker({
                     .filter(({ x }) => runnable(x))
                     .map(({ level, x }) => armiRow(x, level))}
                 </Section>
-                {/* The specialists, under their own heading. Eleven rows in
-                    one list is a catalogue; five for anything and six for one
-                    thing is a menu. */}
-                <Section label="For a particular job">
-                  {PRESETS.filter((x) => x.group === "job" && runnable(x)).map((x) => armiRow(x))}
-                </Section>
+                {/* No second list. The specialists — for code, maths,
+                    teaching, translation, letters, long reads, a council —
+                    are what these four become for that kind of work, and
+                    each row's line says so; a menu of eight more names was
+                    asking the person to do the routing. */}
                 {hidden > 0 && (
                   <p className="px-2 pb-1 pt-0.5 text-tiny text-faint">
                     {hidden} more appear{hidden === 1 ? "s" : ""} when you add another key
