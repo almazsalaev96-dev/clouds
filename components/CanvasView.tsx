@@ -7,7 +7,7 @@ import {
   Braces, Bug, Check, Download, Eye, FileCode2, FilePlus2, FileText, FileType2, History,
   LayoutTemplate, MessageSquareCode, Palette, Pencil, Play, RotateCcw,
   Maximize2, Minimize2, MousePointerClick, ScanSearch, Scroll, Terminal, TextSelect, X,
-  CalendarRange, CheckCheck, ListChecks, Sparkles, Timer, Wand2,
+  CalendarRange, CheckCheck, ListChecks, Sparkles, Timer, Wand2, Printer, Presentation,
 } from "lucide-react";
 import type { Canvas, CanvasFile, CanvasVersion } from "@/lib/types";
 import {
@@ -47,6 +47,8 @@ import { Markdown } from "@/components/chat/Markdown";
 import { Button, IconButton, Kbd, SaveBadge } from "@/components/ui/primitives";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
 import { plainLine } from "@/lib/plain";
+import { printHtml } from "@/lib/print";
+import { deckToPptx, isDeck } from "@/lib/office";
 
 /**
  * The canvas: a document you and the model both write to.
@@ -1009,6 +1011,38 @@ function Editor({
                 {/* And take it away. A folder is three files that only run
                     together; this is the same page the preview runs, as one
                     document, with nothing of this app's left inside it. */}
+                {/* Print it — which for a deck, one slide a page, is how it
+                    becomes a PDF; and for a deck, PowerPoint too, since a
+                    deck is a thing people are asked to hand in as .pptx. */}
+                {runnable && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-label="Print or save as PDF"
+                    onClick={() => {
+                      const merged = files.map((f) => (f.name === activeFile?.name ? { ...f, content: draft } : f));
+                      if (!printHtml(exportWeb(merged))) setNotice("The browser blocked the print window. Allow pop-ups for this page and try again.");
+                    }}
+                  >
+                    <Printer size={13} />
+                  </Button>
+                )}
+                {runnable && isDeck(draft) && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-label="Download as PowerPoint"
+                    onClick={() => {
+                      const merged = files.map((f) => (f.name === activeFile?.name ? { ...f, content: draft } : f));
+                      deckToPptx(exportWeb(merged), canvas.title || "slides")
+                        .then((n) => setNotice(`Saved ${n} slide${n === 1 ? "" : "s"} as PowerPoint.`))
+                        .catch(() => setNotice("Couldn't make the PowerPoint file."));
+                    }}
+                  >
+                    <Presentation size={13} />
+                    PowerPoint
+                  </Button>
+                )}
                 {runnable && (
                   <Button
                     size="sm"

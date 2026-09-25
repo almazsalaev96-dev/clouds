@@ -1,13 +1,14 @@
 "use client";
 
 import { printMarkdown } from "@/lib/print";
+import { markdownToDocx } from "@/lib/office";
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { whyItFailed } from "@/lib/complete";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   BookOpen, Download, Eye, Printer, GraduationCap, HelpCircle, Highlighter, Layers, Link2, ListTree,
-  MessageSquare, Paperclip, Pencil, Scissors, SpellCheck2, Tags, X, Plus, BookMarked, ChevronDown } from "lucide-react";
+  MessageSquare, Paperclip, Pencil, Scissors, SpellCheck2, Tags, X, Plus, BookMarked, ChevronDown, FileText } from "lucide-react";
 import type { Note, Source } from "@/lib/types";
 import { addCards, addSource, createDeck, createNote, db, deleteNote, deriveTitle, removeSource, sourcesOf } from "@/lib/db";
 import { backlinksTo, outlineOf, readLink, readingTime, tagsIn, withLinks } from "@/lib/links";
@@ -1020,6 +1021,10 @@ export function NotebookView({
         <Button size="sm" variant="ghost" onClick={() => { if (!printMarkdown(note.title || "Untitled", draft)) setNotice("The browser blocked the print window. Allow pop-ups for this page and try again."); }} aria-label="Save as PDF">
           <Printer size={13} />
           PDF
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => { markdownToDocx(note.title || "Untitled", draft).catch(() => setNotice("Couldn't make the Word file.")); }} aria-label="Save as Word">
+          <FileText size={13} />
+          Word
         </Button>
       </DetailBar>
 

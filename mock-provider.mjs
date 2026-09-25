@@ -296,6 +296,12 @@ createServer(async (req, res) => {
     /* Who spoke last. A resumed pause_turn ends in the assistant's own tool
        blocks; a "continue" message would end in the user. */
     lastRole: (body.messages ?? []).at(-1)?.role ?? null,
+    /* What the app's own tools answered the model with, so a probe can see
+       the sandbox's output went back rather than only that it ran. */
+    toolResults: [
+      ...(body.messages ?? []).flatMap((m) => (Array.isArray(m.content) ? m.content : [])).filter((c) => c.type === "tool_result").map((c) => (typeof c.content === "string" ? c.content : (c.content ?? []).map((x) => x.text ?? "").join("\n"))),
+      ...(Array.isArray(body.input) ? body.input : []).filter((it) => it.type === "function_call_output").map((it) => String(it.output ?? "")),
+    ],
     cachedBlocks: JSON.stringify(body).split('"cache_control"').length - 1,
     system: typeof body.system,
     temperature: body.temperature,
@@ -665,6 +671,9 @@ It also reports a figure of nine hundred percent [[cite: ${name} | the result wa
     { claim: "The trailing edge is the default", verdict: "unsupported", note: "The page says the leading edge is the default." },
   ] });
   const verifying = !factchecking && /^Someone asked a question and got the answer below/.test(asked);
+  /* Deep research's own searches, one call each, before the writer starts. */
+  const scouting = /^Search the web for:/.test(asked);
+  const deepPlanning = /^Break this into 3 to 5 distinct web searches/.test(asked);
   const VERDICT = JSON.stringify({
     agrees: "partly",
     text: "The description of debouncing is right.\n\nBut the second paragraph calls the trailing edge the default; it is not, and the code above it does not do that either.",
@@ -707,7 +716,8 @@ Nothing here looks like it breaks a caller — the return type is the same array
      alone can only ever show whichever was most recent. */
   recent.push({
     model: body.model,
-    kind: isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : "answer",
+    kind: isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : scouting ? "scout" : deepPlanning ? "plan" : "answer",
+    lastRole: (body.messages ?? []).at(-1)?.role ?? null,
     /* Which web tools this call offered, as `__last` records them — so a
        claim about the answer's tools can be made when the answer is not
        the last request on the wire. */
@@ -840,6 +850,10 @@ Nothing here looks like it breaks a caller — the return type is the same array
     if ((m = /(?:did we talk about|what did we say about) (.+?)[?.]?$/i.exec(ask)) && offered.has("search_conversations")) return { name: "search_conversations", input: { query: m[1] } };
     if (/what time is it|what('s| is) (the )?(date|day) today/i.test(ask) && offered.has("now")) return { name: "now", input: {} };
     if ((m = /(?:calculate|work out) (.+?)[?.]?$/i.exec(ask)) && offered.has("calculate")) return { name: "calculate", input: { expression: m[1] } };
+    /* "run code to …": a small program that prints and returns, so a probe
+       can see both halves of the sandbox's answer come back. */
+    if (/\brun (?:some |this )?code\b/i.test(ask) && offered.has("run_code"))
+      return { name: "run_code", input: { code: "const rows = input.trim().split('\\n').slice(1).map(l => l.split(','));\nconst total = rows.reduce((a, r) => a + Number(r[1]), 0);\nconsole.log('rows', rows.length);\nreturn { total };", input: "name,score\nada,90\nlin,85\nkai,70" } };
     if (/\badd (this|that|it) to the project\b/i.test(ask) && offered.has("save_to_project")) return { name: "save_to_project", input: { name: "decisions.md", text: "We debounce the search box at 300ms." } };
     if (/what have i (made|built)/i.test(ask) && offered.has("list_made")) return { name: "list_made", input: {} };
     if ((m = /read (?:me )?my (.+?) page/i.exec(ask)) && offered.has("read_note")) return { name: "read_note", input: { title: m[1] } };

@@ -111,6 +111,16 @@ const STYLE = `
  * Open the print dialog on a typeset copy. Returns false when the browser
  * blocked the window, so the caller can say so.
  */
+/** A whole page — a built thing, a deck — sent to the print dialog as it is, so a deck with one slide a page becomes a PDF deck. */
+export function printHtml(html: string): boolean {
+  const w = window.open("", "_blank", "noopener=no");
+  if (!w) return false;
+  w.document.open();
+  w.document.write(html.replace(/<\/body>/i, `<script>window.addEventListener("load", () => { setTimeout(() => window.print(), 250); });</script></body>`));
+  w.document.close();
+  return true;
+}
+
 export function printMarkdown(title: string, markdown: string, foot = "Made with Armi"): boolean {
   const w = window.open("", "_blank", "noopener=no");
   if (!w) return false;

@@ -859,15 +859,19 @@ Scored 2 / 1 / 0 (full / partial / none) per capability from each company's rele
 
 | Product | Of what it does, ARMI does | ARMI at least as capable on | ARMI leads on |
 |---|---|---|---|
-| ChatGPT | 86% | 80% of its rows | 27 rows |
-| Claude | 85% | 78% | 27 |
-| Gemini | 84% | 79% | 25 |
-| Kimi | 83% | 78% | 36 |
-| Grok | 86% | 80% | 35 |
+| ChatGPT | 90% | 86% of its rows | 27 rows |
+| Claude | 89% | 85% | 27 |
+| Gemini | 87% | 84% | 25 |
+| Kimi | 87% | 84% | 36 |
+| Grok | 89% | 85% | 36 |
+
+(Before the round below: 86 / 85 / 84 / 83 / 86.)
 
 **Only here (21 rows, none of the five has them):** a cast from a second company (brief, check, council); two answers side by side; the answer says why the model was chosen; a claim-by-claim fact-check with the contradicting page; built apps that heal their own console errors; preview at three widths; flashcards with FSRS; a tutor beside the page with a pencil; revision packs with mark schemes; lessons; today's plan and the session timer; mastery by topic; a notebook with wiki-links; local-first with no account; bring your own keys; cost of every answer shown; failover to another company; the model using the rooms as tools; sums that never reach a model; search-everything palette; a $1 subscription.
 
-**Where all five are ahead (6 rows):** a computer or browser agent; a full sandbox for code and data; two-way voice; video; Word/Excel/PowerPoint out; a public share link. Two are out of scope for a local-first app (the agent, publishing); the others are provider features a key would buy (a voice model, a video model) and are on the list.
+**Where all five are ahead (4 rows, was 6):** a computer or browser agent; two-way voice; a public share link; native phone apps. The agent and the share link need a server that knows who you are, which a local-first app does not have; a voice model is a provider feature a key would buy; the app installs as a web app.
+
+**Closed this round:** deep research is now a planned pass of three to five searches, each its own call, with the findings and their pages handed to the writer (2, was 1); the model can run JavaScript in a sandbox and read what came out — the data work the others send to a Python server, done in the browser (2, was 1); Word out of any page or answer and PowerPoint out of any deck, beside PDF (2, was 1).
 
 **Built from this round:** `/slides` and "make me ten slides on…" build a deck that runs beside the chat (one section a slide, arrow keys, a counter, print to PDF one slide a page), closing a row all five had; and the *Easier reading* switch in Appearance (a plain face, wider letter, word and line spacing) closes the dyslexia row Claude led on.
 

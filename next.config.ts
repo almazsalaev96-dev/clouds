@@ -28,6 +28,24 @@ const HEADERS = [
 const config: NextConfig = {
   reactStrictMode: true,
   experimental: { optimizePackageImports: ["lucide-react", "shiki"] },
+  /* The PowerPoint library is written for Node and the browser both and
+     names Node's modules by their `node:` scheme, which the browser build
+     cannot resolve even where the package's own `browser` field says to
+     leave them out. Told plainly here: in the browser those modules are
+     nothing. */
+  webpack(config, { isServer, webpack }) {
+    if (!isServer) {
+      config.resolve.alias = { ...config.resolve.alias, fs: false, https: false, "image-size": false, os: false, path: false };
+      /* A scheme is not a name an alias can catch: strip it first, and the
+         alias above then leaves the module out. */
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(/^node:/, (resource: { request: string }) => {
+          resource.request = resource.request.replace(/^node:/, "");
+        }),
+      );
+    }
+    return config;
+  },
   async headers() {
     return [
       { source: "/(.*)", headers: HEADERS },

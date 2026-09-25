@@ -142,6 +142,14 @@ console.log("\n“/deep” is research taken further");
   const sent = await fetch(`${MOCK}/__last`).then((r) => r.json());
   check((sent.tools ?? []).some((t) => /^web_search/.test(t)), "the request carried the search tool");
   check(/deep research/i.test(sent.systemText ?? "") && /Sources list/.test(sent.systemText ?? ""), "and the model is told to search from several angles and write a report with sources", (sent.systemText ?? "").match(/[^\n]*deep research[^\n]*/i)?.[0]?.slice(0, 80));
+  /* And it did not only ask: the question was broken into searches, each
+     run as its own call by a model that can search, before the writer
+     started — and the writer was handed what they found. */
+  const { recent: deepCalls } = await fetch(`${MOCK}/__recent`).then((r) => r.json());
+  const scouts = deepCalls.filter((r) => r.kind === "scout");
+  check(scouts.length >= 3 && scouts.every((r) => (r.tools ?? []).some((t) => /^web_search/.test(t))), "three or more searches were run as their own calls, each with the search tool in hand", `${scouts.length} searches`);
+  const writer = [...deepCalls].reverse().find((r) => r.kind === "answer");
+  check(/Research notes, gathered before this answer/.test(writer?.system ?? ""), "and the writer was handed the notes with the pages they rest on");
   const first = await p.locator(".msg").first().innerText();
   check(!/^\/deep/.test(first.trim()), "the command is not part of the message kept", first.slice(0, 40));
 }
@@ -155,17 +163,28 @@ console.log("\nA URL in the question offers fetch as well");
   /* The answer's request, not the last on the wire: a summary is read back
      by a second model, and that call carries no tools by design. */
   const { recent } = await fetch(`${MOCK}/__recent`).then((r) => r.json());
-  const sent = recent.find((r) => r.kind === "answer") ?? {};
+  /* The writer's request: after deep research's own searches, before the
+     check that reads it back. */
+  const sent = [...recent].reverse().find((r) => r.kind === "answer") ?? {};
   check((sent.tools ?? []).some((t) => /^web_fetch(_\d+)?$/.test(t)), "fetch rides along once there is something to fetch", JSON.stringify(sent.tools));
 }
 
 console.log("\nA paused turn is sent straight back and finishes");
 {
+  /* The turn before is still being read back by a second model; a send
+     while it runs is a send into a locked box. */
+  await p.locator('[aria-label="Stop generating"]').waitFor({ state: "hidden", timeout: 30000 }).catch(() => {});
+  await p.waitForTimeout(500);
   await fetch(`${MOCK}/__reset`);
   await p.getByRole("textbox", { name: "Message" }).fill("keep searching until you find what a throttle is");
   await p.keyboard.press("Meta+Enter");
-  await p.waitForTimeout(5000);
-  const sent = await fetch(`${MOCK}/__last`).then((r) => r.json());
+  /* Deep research runs its own searches first; the resumed turn comes after them. */
+  await p.waitForTimeout(10000);
+  /* The writer's resumed request, which a check may follow on the wire. */
+  const { recent: after } = await fetch(`${MOCK}/__recent`).then((r) => r.json());
+  /* The resumed one ends in the assistant's turn; a first request, or a
+     second pass after an objection, ends in the person's. */
+  const sent = [...after].reverse().find((r) => r.kind === "answer" && r.lastRole === "assistant") ?? [...after].reverse().find((r) => r.kind === "answer") ?? await fetch(`${MOCK}/__last`).then((r) => r.json());
   /* The mock ends the first round with pause_turn and answers only a request
      whose last message is the assistant's own tool blocks. If the app had
      added a "continue" message, or not resumed at all, either the count or

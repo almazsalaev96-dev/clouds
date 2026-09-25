@@ -885,6 +885,64 @@ export default function Page() {
         if (heard.length) council = councilNote(heard);
       }
 
+      /* Deep research, done rather than asked for.
+         ---------------------------------------------------------------
+         "/deep" used to be one instruction to the writer: search from
+         several angles before you write. One request, with the tool used
+         however many times the model felt like. This is the agent the
+         others run: the question is broken into three to five searches, each
+         is run as its own call by a model that can search, the findings come
+         back with the pages they rest on, and the writer is handed all of it
+         as notes before it starts. Skipped on a second pass — the notes were
+         gathered once — and never fatal: a search that fails leaves the
+         writer with fewer notes rather than no answer. */
+      let deepNotes = "";
+      const deepOn = Boolean(conv?.deep && (conv?.research ?? conversation?.research ?? pendingResearch)) && !opts?.revised;
+      if (deepOn) {
+        const scout = searcher({ configured, keys: settings.keys });
+        /* The searches go to the cheapest model at the company that
+           searches, not its strongest: reading five pages and listing what
+           they say is a job for the small model, and the strong one writes
+           from the notes. */
+        const cheap = cheapestAvailable(configured);
+        const scoutId = scout && cheap && getModel(cheap).provider === scout.provider ? cheap : scout?.id;
+        if (scout && scoutId) {
+          try {
+            setReading("Researching: planning the searches…");
+            const planned = await complete(
+              `Break this into 3 to 5 distinct web searches that together would answer it well — the plain question, the strongest counter-view, the most recent development, a number or a primary source where one exists. One search a line, no numbering, no commentary.\n\n${asked}`,
+              { modelId: cheap ?? scout.id, maxTokens: 200, temperature: 0.2 },
+            ).catch(() => null);
+            const queries = (planned ?? "").split("\n").map((l) => l.replace(/^[\s\-*\d.)]+/, "").trim()).filter((l) => l.length > 6).slice(0, 5);
+            if (queries.length) {
+              let done = 0;
+              setReading(`Researching: 0 of ${queries.length} searches…`);
+              const found = await Promise.all(
+                queries.map(async (qy) => {
+                  const pages: string[] = [];
+                  const text = await complete(
+                    `Search the web for: ${qy}\n\nRead what comes back, then write 4 to 8 lines of findings. Each line states one thing and ends with the page it came from as (Title — URL). Where pages disagree, say so on its own line. No preamble.`,
+                    { modelId: scoutId, tools: ["web_search"], maxTokens: 700, temperature: 0.2, onSource: (s) => { if (s.url && !pages.some((x) => x.includes(s.url))) pages.push(`${s.title || s.url} — ${s.url}`); } },
+                  ).catch(() => null);
+                  done += 1;
+                  setReading(`Researching: ${done} of ${queries.length} searches…`);
+                  return { qy, text: (text ?? "").trim(), pages };
+                }),
+              );
+              const kept = found.filter((f) => f.text);
+              if (kept.length) {
+                deepNotes =
+                  `## Research notes, gathered before this answer (${kept.length} searches)\n` +
+                  kept.map((f) => `### ${f.qy}\n${f.text}${f.pages.length ? `\nPages read: ${f.pages.slice(0, 6).join("; ")}` : ""}`).join("\n\n") +
+                  `\n\nWrite the report from these notes and anything you search yourself. Cite the pages above by title and URL in the Sources list; keep what a page says apart from what independent pages agree on.`;
+              }
+            }
+          } finally {
+            setReading(null);
+          }
+        }
+      }
+
       const task = plan.task;
       const turn = composeTurnPrompt({
         shape: task ? shapeFor(task.kind) : "",
@@ -905,7 +963,7 @@ export default function Page() {
            the command word's meaning and the marks to account for. Every
            question is one in the Exam stance; elsewhere only one that
            carries marks. */
-        note: [note, preset?.stance, examNote(asked, style?.id === "exam"), brief ? briefNote(brief) : "", council].filter(Boolean).join("\n\n") || undefined,
+        note: [note, preset?.stance, examNote(asked, style?.id === "exam"), brief ? briefNote(brief) : "", council, deepNotes].filter(Boolean).join("\n\n") || undefined,
       });
       /* Said on the answer, like the model's reason: an app that quietly
          changes how it writes to you is an app whose answers you cannot

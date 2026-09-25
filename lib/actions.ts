@@ -43,6 +43,7 @@ import { dueNow, streakOf, topicStats, weakestTopic } from "./study";
 import { chunk, rank } from "./retrieve";
 import { matchLine } from "./find";
 import { solve } from "./arith";
+import { runCode } from "./sandbox";
 
 export interface ActionContext {
   conversationId: string;
@@ -427,6 +428,33 @@ const TOOLS: Tool[] = [
   },
   {
     spec: {
+      name: "run_code",
+      description:
+        "Run JavaScript in a sandbox and get its console output and returned value back. " +
+        "Use it for data work and anything where guessing would be wrong: parse a CSV or JSON the person gave you (pass it as `input`), " +
+        "sum and group columns, statistics, dates and durations, unit conversions, checking a formula on real numbers, transforming lists. " +
+        "Modern JavaScript, async allowed, no DOM, no network, eight seconds. Print with console.log or `return` the value you want.",
+      schema: {
+        type: "object",
+        properties: {
+          code: { type: "string", description: "The JavaScript to run. `input` is in scope as a string." },
+          input: { type: "string", description: "Data for the code to read, such as the CSV text the person attached." },
+        },
+        required: ["code"],
+      },
+    },
+    doing: "Running code",
+    run: async (input) => {
+      const code = str(input.code, 20_000);
+      if (!code) return fail("No code was given.");
+      const ran = await runCode(code, str(input.input, 400_000));
+      const took = `${ran.ms} ms`;
+      if (!ran.ok) return { ok: false, text: `The code failed after ${took}: ${ran.error}${ran.output ? `\n\nOutput before it failed:\n${ran.output}` : ""}`, summary: "The code failed" };
+      return { ok: true, text: ran.output ? `Ran in ${took}. Output:\n${ran.output}` : `Ran in ${took} with no output — print with console.log or return a value.`, summary: `Ran code (${took})` };
+    },
+  },
+  {
+    spec: {
       name: "now",
       description: "The person's current date, time, weekday and time zone. Use whenever the answer depends on today or the time.",
       schema: { type: "object", properties: {} },
@@ -454,7 +482,7 @@ export function doingOf(name: string): string {
 }
 
 /** The rooms this can reach, for the settings line and the docs. */
-export const ACTION_AREAS = ["Study", "Notebook", "Memory", "Projects", "Creations", "Conversations", "Calculator", "Clock"] as const;
+export const ACTION_AREAS = ["Study", "Notebook", "Memory", "Projects", "Creations", "Conversations", "Calculator", "Code", "Clock"] as const;
 
 /**
  * Run one call. Never throws: a tool that fails answers the model with why,

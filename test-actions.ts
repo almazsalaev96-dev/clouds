@@ -48,7 +48,7 @@ console.log("\nWhat an answer did is told to the turns after it");
 console.log("\nWhich tools are offered where");
 {
   const all = actionSpecs({ conversationId: "c", projectId: "p", temporary: false, memoryOn: true }).map((s) => s.name);
-  check(all.length === 13, "a full room offers the lot", `${all.length}: ${all.join(", ")}`);
+  check(all.length === 14, "a full room offers the lot", `${all.length}: ${all.join(", ")}`);
   for (const name of ["read_note", "append_note", "read_made"]) check(all.includes(name), `including ${name}`);
   const temp = actionSpecs({ conversationId: "c", temporary: true, memoryOn: true }).map((s) => s.name);
   check(!temp.includes("remember"), "a temporary chat cannot remember");
@@ -58,7 +58,7 @@ console.log("\nWhich tools are offered where");
   check(new Set(all).size === all.length, "no two tools share a name");
   const bad = actionSpecs({ conversationId: "c", temporary: false, memoryOn: true }).filter((s) => !/^[a-z_]+$/.test(s.name) || !s.description || (s.schema as { type?: string }).type !== "object");
   check(bad.length === 0, "every tool has a plain name, a description and an object schema", bad.map((b) => b.name).join(","));
-  check(ACTION_AREAS.length === 8, "eight areas of the app are reachable", ACTION_AREAS.join(", "));
+  check(ACTION_AREAS.length === 9, "nine areas of the app are reachable", ACTION_AREAS.join(", "));
   const section = actionsSection(actionSpecs({ conversationId: "c", temporary: false, memoryOn: true }));
   check(/save_cards/.test(section) && /Do not use a writing tool unasked/.test(section), "the prompt names the tools and the manners");
   check(actionsSection([]) === "", "and says nothing when there are none");
