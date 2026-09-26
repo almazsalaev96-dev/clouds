@@ -3,7 +3,7 @@ import type {
   Canvas, CanvasFile, CanvasVersion, ContentBlock, Conversation, Message, Note,
   Deck, Lesson, LessonTurn,
   PageInk, Memory, Project, ProjectFile, RatingReason, Source, Style, Turn, TurnOutcome,
-  Routine,
+  Routine, Assistant,
 } from "./types";
 import { DEFAULT_MODEL_ID } from "./models";
 import {
@@ -37,6 +37,7 @@ class ChatDB extends Dexie {
   ink!: Table<PageInk, string>;
   attempts!: Table<Attempt, string>;
   routines!: Table<Routine, string>;
+  assistants!: Table<Assistant, string>;
 
   constructor() {
     super("clouds");
@@ -223,6 +224,11 @@ class ChatDB extends Dexie {
     /* Routines: prompts on a schedule, run when the app is next open. */
     this.version(17).stores({
       routines: "id, createdAt",
+    });
+    /* Assistants: a name, a way of working and a model, kept together. */
+    this.version(18).stores({
+      assistants: "id, updatedAt, short",
+      conversations: "id, updatedAt, pinned, archived, projectId, assistantId",
     });
   }
 }
@@ -855,6 +861,49 @@ export async function deleteAllData() {
 
 export function blockText(content: ContentBlock[]): string {
   return content.map((b) => (b.type === "text" ? b.text : "")).join("");
+}
+
+/* ----------------------------------------------------------- assistants -- */
+
+/**
+ * "Chem coach!" → "chem-coach": the command, made from the name. Letters
+ * and digits of any script stay, so "Химия" is /химия and "3D artist" is
+ * /3d-artist; what is left is a run of them joined by hyphens.
+ */
+export function shortOf(name: string): string {
+  return name.toLowerCase().normalize("NFC").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 24) || "assistant";
+}
+
+/** The command for this name that no other assistant answers to. */
+export async function uniqueShort(name: string, exceptId?: string): Promise<string> {
+  const base = shortOf(name);
+  const taken = new Set((await db.assistants.toArray()).filter((a) => a.id !== exceptId).map((a) => a.short));
+  let short = base;
+  for (let n = 2; taken.has(short); n += 1) short = `${base}-${n}`;
+  return short;
+}
+
+export async function createAssistant(init: Pick<Assistant, "name" | "instructions"> & Partial<Assistant>): Promise<Assistant> {
+  const now = Date.now();
+  const short = init.short ?? (await uniqueShort(init.name));
+  const row: Assistant = { id: uid(), icon: "✦", uses: 0, createdAt: now, updatedAt: now, ...init, short };
+  await db.assistants.add(row);
+  return row;
+}
+
+/** Gone from the list; the conversations it answered in stay, on their own. */
+export async function deleteAssistant(id: string): Promise<() => Promise<void>> {
+  const row = await db.assistants.get(id);
+  const threads = (await db.conversations.where("assistantId").equals(id).primaryKeys()) as string[];
+  await db.transaction("rw", [db.assistants, db.conversations], async () => {
+    await db.assistants.delete(id);
+    for (const cid of threads) await db.conversations.update(cid, { assistantId: undefined });
+  });
+  return async () => {
+    if (!row) return;
+    await db.assistants.put(row);
+    for (const cid of threads) await db.conversations.update(cid, { assistantId: id });
+  };
 }
 
 /* ------------------------------------------------------------- routines -- */

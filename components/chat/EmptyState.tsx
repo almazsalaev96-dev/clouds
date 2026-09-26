@@ -122,8 +122,13 @@ export function EmptyState({
   onPlus,
   onGo,
   onStart,
+  assistants = [],
+  onAssistant,
 }: {
   hasAnyKey: boolean;
+  /** The person's own assistants, each a press from here. */
+  assistants?: { id: string; name: string; icon: string }[];
+  onAssistant?: (id: string) => void;
   /** No key yet: the one button that fixes that. */
   onAddKey: () => void;
   /** Or the other door: Armi Plus, where the server offers it. */
@@ -180,6 +185,28 @@ export function EmptyState({
             </p>
           )}
         </div>
+
+        {/* Your assistants, where you start. Each is a press: the box opens
+            with its opening line and the chat answers as it. */}
+        {onAssistant && assistants.length > 0 && (
+          <ul
+            className="anim-rise mt-5 flex flex-wrap items-center justify-center gap-2"
+            style={{ animationDelay: "80ms" }}
+            aria-label="Your assistants"
+          >
+            {assistants.slice(0, 8).map((a) => (
+              <li key={a.id}>
+                <button
+                  onClick={() => onAssistant(a.id)}
+                  className="tap focus-inset flex h-9 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
+                >
+                  <span aria-hidden>{a.icon}</span>
+                  {a.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
 
         {/* What the other rooms are holding, on the one screen everybody
             starts on. The front door used to know nothing about the house:

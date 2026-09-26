@@ -1,6 +1,7 @@
 "use client";
 
-import { parseSlash } from "@/lib/slash";
+import { parseSlash, type SlashExtra } from "@/lib/slash";
+import { encodeShare, decodeShare, shareUrl, SHARE_LIMIT } from "@/lib/share";
 import { wantsPicture, pictureSubject, makePicture } from "@/lib/image";
 import { actionSpecs, doingOf, keepUndo, runAction, undoAction, type ActionContext } from "@/lib/actions";
 import { cleanRecap, covers, recapPrompt, recapSection, RECAP_TOKENS } from "@/lib/recap";
@@ -34,8 +35,7 @@ import { builtDocument, titleOf } from "@/lib/built";
 import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, PROVIDERS, estimateTokens, getModel } from "@/lib/models";
 import {
   briefNote, briefPrompt, councilNote, councilPrompt, engineOf, getPreset, objectionNote,
-  playerFor, playersFor, resolveCast, shapePlan, shortName, worthBriefing, worthConvening, worthResearching, presetFor, JOB_LINE,
-} from "@/lib/presets";
+  playerFor, playersFor, resolveCast, shapePlan, shortName, worthBriefing, worthConvening, worthResearching, presetFor, JOB_LINE, PRESETS } from "@/lib/presets";
 import { costOf, fitToContext } from "@/lib/context";
 import { elsewhere, searcher, roomier } from "@/lib/route";
 import { fitFiles } from "@/lib/digest";
@@ -265,7 +265,7 @@ export default function Page() {
   const [modelPickerOpen, setModelPickerOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   if (settingsOpen) everOpened.current.settings = true;
-  const [settingsTab, setSettingsTab] = React.useState<"keys" | "plus" | "appearance" | "model" | "rules" | "styles" | "data" | "shortcuts">("keys");
+  const [settingsTab, setSettingsTab] = React.useState<"keys" | "plus" | "appearance" | "model" | "rules" | "assistants" | "styles" | "data" | "shortcuts">("keys");
   const [scrolled, setScrolled] = React.useState(false);
   const [artifact, setArtifact] = React.useState<Artifact | null>(null);
   /** Where j/k currently sit in the transcript. */
@@ -455,6 +455,17 @@ export default function Page() {
   const conversationCount = useLiveQuery(() => db.conversations.count(), [], 0);
   const customStyles = useLiveQuery(() => db.styles.orderBy("updatedAt").toArray(), [], []);
   const projects = useLiveQuery(() => db.projects.orderBy("updatedAt").reverse().toArray(), [], []);
+  /* The person's own assistants, most recently touched first: the front
+     door, the header chip, the palette and the slash menu all read them. */
+  const assistants = useLiveQuery(() => db.assistants.orderBy("updatedAt").reverse().toArray(), [], []);
+  const slashExtras = React.useMemo<SlashExtra[]>(
+    () => assistants.map((a) => ({ command: a.short, assistantId: a.id, does: `${a.icon} ${a.name} — one of your assistants` })),
+    [assistants],
+  );
+  /* The assistant a chat not yet started will answer as, like a pending
+     project: set by the front door, the palette or a Settings row before
+     there is a conversation to be a property of. */
+  const [pendingAssistant, setPendingAssistant] = React.useState<string | null>(null);
 
   /* --- Titles are generated quietly, on the cheapest model with a key, and
          never block anything the user is doing. -------------------------- */
@@ -755,6 +766,7 @@ export default function Page() {
          go out with what the project says now, not what it said when this
          screen mounted. */
       const project = conv?.projectId ? await db.projects.get(conv.projectId) : undefined;
+      const assistant = conv?.assistantId ? await db.assistants.get(conv.assistantId) : undefined;
       const files = project ? await filesOf(project.id) : [];
       /* What the person asked to be remembered — unless they turned it off,
          or this is a temporary chat, which knows nothing and keeps nothing. */
@@ -834,6 +846,7 @@ export default function Page() {
       const style = findStyle(plan.register ? plan.register.id : chosenStyle, customStyles);
       const composed = composeSystemPrompt({
         who: preset?.name,
+        assistant,
         base: [rulesText(settings.rules ?? [], settings.systemPrompt), conv?.systemPrompt ?? "", conv?.deep ? DEEP_RESEARCH : ""].filter(Boolean).join("\n\n"),
         project,
         files,
@@ -1191,11 +1204,24 @@ export default function Page() {
          research — are properties of the conversation it is about to make.
          The command itself is never stored: the message that goes out and
          the message kept in the thread is what came after it. */
-      const slash = parseSlash(blockText(content));
+      const slash = parseSlash(blockText(content), slashExtras);
       let slashPick: string | undefined;
+      /* "/chem-coach what is a mole": the assistant answers, from this turn.
+         In a thread already going, the thread becomes its from here on. */
+      let assistantForNew = pendingAssistant;
       if (slash) {
         content = content.map((c) => (c.type === "text" ? { ...c, text: slash.text } : c));
         if (slash.presetId) slashPick = slash.presetId;
+        if (slash.assistantId) {
+          if (convId) {
+            /* The same as starting with it: its model too, and counted once. */
+            const a = assistants.find((x) => x.id === slash.assistantId);
+            if (a && conversation?.assistantId !== a.id) {
+              await db.conversations.update(convId, { assistantId: a.id, ...(a.modelId ? { modelId: a.modelId } : {}) });
+              void db.assistants.update(a.id, { uses: (a.uses ?? 0) + 1 });
+            }
+          } else assistantForNew = slash.assistantId;
+        }
         /* "/slides the water cycle" is a request for a thing that runs; said
            so in the words the build mode reads. */
         if (slash.slides && slash.text.trim()) content = content.map((c) => (c.type === "text" ? { ...c, text: `Make a slide deck on: ${slash.text.trim()}` } : c));
@@ -1230,9 +1256,13 @@ export default function Page() {
       if (!convId) {
         // The style comes along, so the first answer is already in the style
         // the picker is showing rather than one turn behind it.
+        const chosen = assistantForNew ? assistants.find((a) => a.id === assistantForNew) : undefined;
         const created = await createConversation({
-          modelId: settings.modelId,
+          /* An assistant with a model of its own answers with it; one
+             without answers with whatever is chosen, like any chat. */
+          modelId: chosen?.modelId ?? settings.modelId,
           styleId: settings.styleId,
+          assistantId: chosen?.id,
           /* Learn is the one mode stamped at creation: it was asked for by
              a press, and a thread in it stays in it until the press again. */
           ...(wantsLearn ? { mode: "learn" as const } : {}),
@@ -1251,9 +1281,11 @@ export default function Page() {
           deep: (pendingDeep || Boolean(slash?.deep)) || undefined,
         });
         setPendingProject(null);
+        setPendingAssistant(null);
         setPendingTemporary(false);
         setPendingLearn(false);
         setPendingDeep(false);
+        if (chosen) void db.assistants.update(chosen.id, { uses: (chosen.uses ?? 0) + 1 });
         convId = created.id;
         leaf = null;
         setActiveId(created.id);
@@ -1488,13 +1520,14 @@ export default function Page() {
 
       if (isFirst) void generateTitle(convId, blockText(content));
     },
-    [activeId, conversation?.leafId, conversation?.temporary, pendingTemporary, path, threadModelId, runTurn, generateTitle, compareWith, configured, settings.keys, settings.modelId, settings.memoryOn],
+    [activeId, conversation?.leafId, conversation?.temporary, pendingTemporary, path, threadModelId, runTurn, generateTitle, compareWith, configured, settings.keys, settings.modelId, settings.memoryOn, pendingAssistant, assistants, slashExtras],
   );
 
   /* Anything that lands on a conversation that already exists settles the
-     question of which project this is, so the pending one goes. */
+     question of which project this is, and which assistant, so the pending
+     ones go. */
   React.useEffect(() => {
-    if (activeId) setPendingProject(null);
+    if (activeId) { setPendingProject(null); setPendingAssistant(null); }
   }, [activeId]);
 
   /**
@@ -1919,6 +1952,7 @@ export default function Page() {
     // Deliberately does not stop the stream: an answer belongs to the thread it
     // was asked in, not to whatever is on screen.
     setActiveId(null);
+    setPendingAssistant(null);
     // And it has to bring you back to the chat. "New chat" pressed from Notes
     // or a canvas used to clear the thread behind a screen you were still
     // looking at — a button that reports doing nothing while quietly doing
@@ -2169,25 +2203,62 @@ export default function Page() {
      no link that outlives this browser; the text is the thing shared. */
   const shareConversation = React.useCallback(async () => {
     if (!conversation) return;
-    const md = exportMarkdown(conversation, path);
     const title = conversation.title || "A conversation with Armi";
-    const nav = navigator as Navigator & { share?: (d: { title?: string; text?: string }) => Promise<void> };
+    /* The link *is* the conversation (lib/share.ts): the thread, compressed,
+       after the `#`, which no server ever receives. Whoever opens it reads
+       it as a page and can continue it in their own Armi. Past a length
+       that is still a link, the text goes instead. */
+    const token = await encodeShare(conversation, path);
+    const url = shareUrl(token);
+    const nav = navigator as Navigator & { share?: (d: { title?: string; text?: string; url?: string }) => Promise<void> };
+    if (url.length > SHARE_LIMIT) {
+      const md = exportMarkdown(conversation, path);
+      try { await navigator.clipboard.writeText(md); setReading("Too long for a link, so the conversation is copied as text — paste it anywhere."); }
+      catch { setReading("Too long for a link. Export as Markdown instead."); }
+      window.setTimeout(() => setReading(null), 3_200);
+      return;
+    }
     if (typeof nav.share === "function") {
       try {
-        await nav.share({ title, text: md });
+        await nav.share({ title, url });
         return;
       } catch (e) {
         if ((e as Error)?.name === "AbortError") return;
       }
     }
     try {
-      await navigator.clipboard.writeText(md);
-      setReading("Copied the conversation as text — paste it anywhere.");
+      await navigator.clipboard.writeText(url);
+      setReading("Link copied. Anyone with it can read this conversation — it lives in the link itself, not on a server.");
     } catch {
       setReading("Could not copy here. Export as Markdown instead.");
     }
-    window.setTimeout(() => setReading(null), 2_800);
+    window.setTimeout(() => setReading(null), 3_600);
   }, [conversation, path]);
+
+  /* One of your assistants, from wherever it was pressed: a new chat that
+     answers as it, the box opened with its first line, in the chat room. */
+  const startWithAssistant = React.useCallback(
+    (id: string) => {
+      const a = assistants.find((x) => x.id === id);
+      if (!a) return;
+      setActiveId(null);
+      setPendingAssistant(id);
+      settings.setSection("chat");
+      closeDrawerOnMobile();
+      if (a.starter) useDrafts.getState().setDraft("new", a.starter);
+      requestAnimationFrame(() => {
+        const el = document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]');
+        if (!el) return;
+        el.focus();
+        el.setSelectionRange(el.value.length, el.value.length);
+      });
+    },
+    [assistants, closeDrawerOnMobile, settings],
+  );
+  const openAssistants = React.useCallback(() => {
+    setSettingsTab("assistants");
+    setSettingsOpen(true);
+  }, []);
 
   const removeConversation = React.useCallback(async () => {
     if (!activeId) return;
@@ -2317,6 +2388,35 @@ export default function Page() {
   const openPlus = React.useCallback(() => {
     setSettingsTab("plus");
     setSettingsOpen(true);
+  }, []);
+
+  /* A shared link, continued here. `/#share=…` carries a whole thread
+     (lib/share.ts); it becomes a conversation of this browser's own, with
+     each turn as it was, and the address is cleaned so a reload does not
+     make it twice. Nothing was fetched: the thread was in the link. */
+  React.useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash.startsWith("#share=")) return;
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    (async () => {
+      const shared = await decodeShare(hash.slice(1));
+      if (!shared || !shared.m.length) { setNotice("That link did not carry a conversation, or was cut short."); return; }
+      /* Dated when it was, titled as it was, each answer still under the
+         Armi name that gave it. */
+      const created = await createConversation({ modelId: useSettings.getState().modelId, styleId: useSettings.getState().styleId, title: shared.t.slice(0, 120), createdAt: shared.d });
+      let parent: string | null = null;
+      for (const m of shared.m) {
+        const preset = m.n ? PRESETS.find((p) => p.name === m.n) : undefined;
+        const row = await addMessage({ conversationId: created.id, parentId: parent, role: m.r, content: [{ type: "text", text: m.c }],
+          ...(preset ? { presetId: preset.id } : {}),
+          ...(m.s?.length ? { sources: m.s.map((x, i) => ({ n: i + 1, url: x.u, title: x.t })) } : {}) });
+        parent = row.id;
+      }
+      settings.setSection("chat");
+      setActiveId(created.id);
+      setNotice("Continued from a shared link. It is yours now: ask the next thing.");
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* Back from checkout. Dodo sends the person to `/?plus=done&payment_id=…`
@@ -2474,6 +2574,7 @@ export default function Page() {
       onOpenModels={() => setModelPickerOpen(true)}
       rulesCount={rulesCount(settings.rules ?? [], settings.systemPrompt)}
       onOpenRules={openRules}
+      slashExtras={slashExtras}
       /* The web, switched on beside the box rather than in the bar: it is a
          decision about the question being typed. Same state either way —
          a thread that has one keeps it, and a blank page holds it until
@@ -2696,6 +2797,9 @@ export default function Page() {
             }}
             projects={projects}
             pendingProject={pendingProject}
+            assistants={assistants}
+            pendingAssistant={pendingAssistant}
+            onOpenAssistant={openAssistants}
             temporary={conversation ? !!conversation.temporary : pendingTemporary}
             onToggleTemporary={() => setPendingTemporary((v) => !v)}
             modelId={threadModelId}
@@ -2715,6 +2819,8 @@ export default function Page() {
               hasAnyKey={hasAnyKey}
               onAddKey={openKeys}
               onPlus={openPlus}
+              assistants={assistants}
+              onAssistant={startWithAssistant}
               onGo={(section) => withTransition(() => settings.setSection(section), "forward")}
               onStart={start}
             />
@@ -2871,6 +2977,10 @@ export default function Page() {
               ...allStyles(customStyles).map((st) => ({ id: st.id, name: st.name })),
             ],
             setStyle,
+            assistants,
+            startWithAssistant,
+            openAssistants,
+            copyShareLink: activeId ? shareConversation : undefined,
           }}
         />
         )}
@@ -2885,6 +2995,7 @@ export default function Page() {
             onOpenChange={setSettingsOpen}
             configured={configured}
             initialTab={settingsTab}
+            onStartAssistant={startWithAssistant}
           />
         )}
       </div>

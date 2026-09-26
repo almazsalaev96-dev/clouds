@@ -859,17 +859,17 @@ Scored 2 / 1 / 0 (full / partial / none) per capability from each company's rele
 
 | Product | Of what it does, ARMI does | ARMI at least as capable on | ARMI leads on |
 |---|---|---|---|
-| ChatGPT | 90% | 86% of its rows | 27 rows |
-| Claude | 89% | 85% | 27 |
-| Gemini | 87% | 84% | 25 |
-| Kimi | 87% | 84% | 36 |
-| Grok | 89% | 85% | 36 |
+| ChatGPT | 92% | 92% of its rows | 27 rows |
+| Claude | 91% | 92% | 27 |
+| Gemini | 89% | 89% | 25 |
+| Kimi | 89% | 91% | 36 |
+| Grok | 91% | 92% | 36 |
 
-(Before the round below: 86 / 85 / 84 / 83 / 86.)
+(Before the two rounds below: 86 / 85 / 84 / 83 / 86; after the first, 90 / 89 / 87 / 87 / 89.)
 
 **Only here (21 rows, none of the five has them):** a cast from a second company (brief, check, council); two answers side by side; the answer says why the model was chosen; a claim-by-claim fact-check with the contradicting page; built apps that heal their own console errors; preview at three widths; flashcards with FSRS; a tutor beside the page with a pencil; revision packs with mark schemes; lessons; today's plan and the session timer; mastery by topic; a notebook with wiki-links; local-first with no account; bring your own keys; cost of every answer shown; failover to another company; the model using the rooms as tools; sums that never reach a model; search-everything palette; a $1 subscription.
 
-**Where all five are ahead (4 rows, was 6):** a computer or browser agent; two-way voice; a public share link; native phone apps. The agent and the share link need a server that knows who you are, which a local-first app does not have; a voice model is a provider feature a key would buy; the app installs as a web app.
+**Where all five are ahead (3 rows, was 6):** a computer or browser agent; two-way voice through a voice model; native phone apps. The agent needs a server that knows who you are, which a local-first app does not have; a voice model is a provider feature a key would buy (the app already talks both ways through the browser's own recognition and speech); the app installs as a web app.
 
 **Closed this round:** deep research is now a planned pass of three to five searches, each its own call, with the findings and their pages handed to the writer (2, was 1); the model can run JavaScript in a sandbox and read what came out — the data work the others send to a Python server, done in the browser (2, was 1); Word out of any page or answer and PowerPoint out of any deck, beside PDF (2, was 1).
 
@@ -878,6 +878,8 @@ Scored 2 / 1 / 0 (full / partial / none) per capability from each company's rele
 **Speed, measured (25 September).** Load to a usable box 251 ms with 339 kB of script; Enter to the first words 246 ms of the app's own overhead; Settings 390 ms then 40 ms; the palette 330 then 30; a room 50–450 ms, most of it the transition, now 180 ms. Every room and dialog chunk is warmed at idle. The whole table is SPEC §21. The catalogue of every shipped function, with what each still lacks, is published as the artifact *Every Function of ARMI*.
 
 **Hardened, 26 September.** A review of the round above found two doors the new functions had opened and the probes had not tried. The print window shared the app's origin, so a built or uploaded page's own `<script>` could have read the keys and the notes from storage before the dialog came up; printing now happens from a sandboxed frame in the page (an origin of its own, no pop-up to block). The code sandbox was a worker on the app's origin, so model-written code could reach IndexedDB and, through a dynamic import or EventSource, the network; the worker is now made inside an opaque-origin frame carrying a policy that closes every outbound door, and `e2e-office` runs code that tries each one and counts on the mock that nothing left. Smaller: deep research runs once per question (a regenerate reuses the notes; a follow-up under five words is answered from the thread); a deck is recognised by the exact class token, on the exported page, with notes kept out of the slide body; "write speaker notes for my slides" is prose, not a build. And one row closed: *Save as Excel* on every table in an answer, a workbook written by hand over the zip library Word already uses, figures as numbers, header frozen and filterable, read back by an independent reader in the gate.
+
+**Two more rows closed, 26 September.** *Assistants* — a name, an icon, how it works, which Armi model answers and an opening line, kept together (Settings → Assistants); on the front door as a chip, in the box as `/its-name`, in the palette as "Chat with …"; its instructions go in the system prompt after your rules and before the project's, so a rule still holds inside it. That is the GPTs / Gems / Skills row (2, was 1). And *share by link* without a server: the link carries the whole thread, compressed, after the `#`, which the browser never sends; whoever opens `/share#…` reads it as a page, rendered by the same Markdown renderer as an answer (HTML in a message stays text), and "Continue in Armi" makes it a conversation of their own, dated and titled as it was. That is the share row (2, was 1). Both are in the gate: `e2e-assistants`, `e2e-share`.
 
 **Names.** Astro, Mira, Lumos and Nova stay. A model name has to be one word, ownable, and mean nothing wrong in the languages of the people using it; a borrowed name (a rival's) would be a claim about who trained it, and this app trains nothing.
 

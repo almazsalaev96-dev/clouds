@@ -58,5 +58,20 @@ console.log("\nThe newer verbs");
   check(names.includes("deep") && names.includes("image"), "and both are in the list a slash shows", names.join(" "));
 }
 
+console.log("\nAn assistant's name is a command of the person's own");
+{
+  const extra = [{ command: "chem-coach", assistantId: "a1", does: "⚗️ Chem coach — one of your assistants" }, { command: "study", assistantId: "a2", does: "mine" }];
+  const own = parseSlash("/chem-coach what is a mole", extra);
+  check(own?.assistantId === "a1" && own?.text === "what is a mole", "“/chem-coach …” names it and keeps the question", JSON.stringify(own));
+  check(parseSlash("/study x", extra)?.assistantId === "a2", "and the person's own word wins over a built-in verb");
+  check(parseSlash("/study x")?.kind === "learning", "which is still a verb when no assistant took the name");
+  const cyr = parseSlash("/химия что такое моль", [{ command: "химия", assistantId: "a3", does: "" }]);
+  check(cyr?.assistantId === "a3" && cyr?.text === "что такое моль", "a name in another script is a command too", JSON.stringify(cyr));
+  check(parseSlash("/3d-artist draw a cube", [{ command: "3d-artist", assistantId: "a4", does: "" }])?.assistantId === "a4", "and one that starts with a digit");
+  check(typingSlash("/хи") === "хи", "the hint follows it while it is typed");
+  const names = slashCommands(extra).map((c) => c.command);
+  check(names[0] === "chem-coach" && names.includes("build"), "the list shows theirs first, then the built-in", names.slice(0, 3).join(" "));
+}
+
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 process.exit(failed ? 1 : 0);

@@ -4,8 +4,7 @@ import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  Code2, Download, FileText, FolderOpen, Library, MessageSquare, MessageSquarePlus, Moon,
-  Columns2, GraduationCap, NotebookPen, Palette, PanelLeft, Settings2, Sparkles, Sun, Trash2, Type, Wand2,
+  Code2, Columns2, Download, FileText, FolderOpen, GraduationCap, Library, Link2, MessageSquare, MessageSquarePlus, Moon, NotebookPen, Palette, PanelLeft, Settings2, Sparkles, Sun, Trash2, Type, Wand2,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { bestHit, textOf, type Hit } from "@/lib/find";
@@ -68,7 +67,7 @@ function bodyScore(query: string, body?: string): number {
    name did not find it, and a hit inside a thread should never push the
    thread itself down the list. */
 const GROUP_ORDER = [
-  "Actions", "Go to", "View", "Models", "Chats", "Projects", "Creations", "Notebook", "Study",
+  "Actions", "Assistants", "Go to", "View", "Models", "Chats", "Projects", "Creations", "Notebook", "Study",
   "In conversations", "In cards",
 ];
 /** No single kind of thing may fill the list and bury the rest. */
@@ -143,6 +142,12 @@ export function CommandPalette({
     styleId: string;
     styles: { id: string; name: string }[];
     setStyle: (id: string) => void;
+    /** The person's assistants: a chat with each, and the door to make one. */
+    assistants?: { id: string; name: string; icon: string }[];
+    startWithAssistant?: (id: string) => void;
+    openAssistants?: () => void;
+    /** The conversation as a link that carries it. */
+    copyShareLink?: () => void;
   };
 }) {
   const settings = useSettings();
@@ -199,9 +204,19 @@ export function CommandPalette({
       ...(actions.hasConversation
         ? [
             { id: "export", label: "Export conversation as Markdown", icon: <Download size={15} />, group: "Actions", run: actions.exportMarkdown },
+            ...(actions.copyShareLink ? [{ id: "share", label: "Copy a link to this conversation", hint: "the whole thread rides in the link; no server keeps it", icon: <Link2 size={15} />, group: "Actions", run: actions.copyShareLink }] : []),
             { id: "delete", label: "Delete this conversation", icon: <Trash2 size={15} />, group: "Actions", run: actions.deleteConversation },
           ]
         : []),
+      ...(actions.assistants ?? []).map((a) => ({
+        id: `assistant-${a.id}`,
+        label: `Chat with ${a.name}`,
+        hint: "one of your assistants",
+        icon: <span className="flex w-[15px] justify-center text-sm leading-none" aria-hidden>{a.icon}</span>,
+        group: "Assistants",
+        run: () => actions.startWithAssistant?.(a.id),
+      })),
+      ...(actions.openAssistants ? [{ id: "assistant-new", label: "New assistant", hint: "a name, how it works, which model answers", icon: <Sparkles size={15} />, group: "Assistants", run: actions.openAssistants }] : []),
       ...actions.styles
         .filter((st) => st.id !== actions.styleId)
         .map((st) => ({

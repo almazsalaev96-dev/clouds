@@ -37,8 +37,17 @@ export interface Slash {
   deep?: boolean;
   /** The kind of work named by the verb, which shapes the tier's cast. */
   kind?: TaskKind;
+  /** An assistant of the person's own, summoned by its command. */
+  assistantId?: string;
   /** How the command was written, for the hint and the byline. */
   command: string;
+}
+
+/** The commands that are not built in: one per assistant the person made. */
+export interface SlashExtra {
+  command: string;
+  assistantId: string;
+  does: string;
 }
 
 /** The commands that are not a model's name. */
@@ -84,11 +93,15 @@ function nameOf(s: string): string {
  * become a different room — and the composer's hint is where the person
  * finds out the command does not exist.
  */
-export function parseSlash(input: string): Slash | null {
-  const m = /^\/([a-z][a-z0-9-]*)(?:\s+([\s\S]*))?$/i.exec(input.trim());
+export function parseSlash(input: string, extra: SlashExtra[] = []): Slash | null {
+  const m = /^\/([\p{L}\p{N}][\p{L}\p{N}-]*)(?:\s+([\s\S]*))?$/iu.exec(input.trim());
   if (!m) return null;
   const command = m[1].toLowerCase();
   const text = (m[2] ?? "").trim();
+  /* An assistant's name first: it is the person's own word, and a person
+     who named one "study" meant theirs. */
+  const own = extra.find((e) => e.command === command);
+  if (own) return { assistantId: own.assistantId, text, command };
   const verb = VERBS[command];
   if (verb) return { ...verb, text, command };
   const preset = PRESETS.find((p) => p.group === "everyday" && (nameOf(p.short) === command || nameOf(p.id) === command));
@@ -97,8 +110,9 @@ export function parseSlash(input: string): Slash | null {
 }
 
 /** The commands there are, for the hint under the composer. */
-export function slashCommands(): { command: string; does: string }[] {
+export function slashCommands(extra: SlashExtra[] = []): { command: string; does: string }[] {
   return [
+    ...extra.map((e) => ({ command: e.command, does: e.does })),
     { command: "study", does: "teach it rather than tell it — Mira's teaching cast" },
     { command: "build", does: "make the thing and run it beside the chat — Mira as a builder" },
     { command: "translate", does: "translate it, read back against the original" },
@@ -119,6 +133,6 @@ export function slashCommands(): { command: string; does: string }[] {
 
 /** Whether a half-typed line is on its way to being a command. */
 export function typingSlash(input: string): string | null {
-  const m = /^\/([a-z0-9-]*)$/i.exec(input);
+  const m = /^\/([\p{L}\p{N}-]*)$/iu.exec(input);
   return m ? m[1].toLowerCase() : null;
 }

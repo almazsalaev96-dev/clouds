@@ -2,11 +2,13 @@
 
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Check, Download, ExternalLink, Eye, EyeOff, Plus, Trash2, Upload, X } from "lucide-react";
+import { Check, Download, ExternalLink, Eye, EyeOff, MessageSquarePlus, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import type { ProviderId } from "@/lib/types";
 import { PROVIDERS, formatCost, getModel } from "@/lib/models";
-import { addMemory, addRoutine, allMemories, createStyle, db, deleteAllData, deleteMemory, deleteRoutine, deleteStyle, forgetAll, forgetTurns } from "@/lib/db";
+import { addMemory, addRoutine, allMemories, createAssistant, createStyle, db, deleteAllData, deleteAssistant, deleteMemory, deleteRoutine, deleteStyle, forgetAll, forgetTurns, shortOf, uniqueShort } from "@/lib/db";
+import type { Assistant } from "@/lib/types";
+import { AUTO } from "@/lib/models";
 import { nextDueAt, scheduleLine } from "@/lib/routines";
 import { ENOUGH, TOO_MANY } from "@/lib/decide";
 import { AUTO_STYLE } from "@/lib/register";
@@ -26,7 +28,7 @@ import { GROUPS, RULES, rulesCount } from "@/lib/rules";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
 import { SHORTCUT_GROUPS } from "@/components/ShortcutsOverlay";
 
-type Tab = "keys" | "plus" | "appearance" | "model" | "styles" | "memory" | "routines" | "data" | "shortcuts" | "privacy" | "rules";
+type Tab = "keys" | "plus" | "appearance" | "model" | "styles" | "memory" | "routines" | "data" | "shortcuts" | "privacy" | "rules" | "assistants";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "keys", label: "API keys" },
@@ -34,6 +36,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "appearance", label: "Appearance" },
   { id: "model", label: "Model" },
   { id: "rules", label: "Rules" },
+  { id: "assistants", label: "Assistants" },
   { id: "styles", label: "Styles" },
   { id: "memory", label: "Memory" },
   { id: "routines", label: "Routines" },
@@ -47,11 +50,14 @@ export function Settings({
   onOpenChange,
   configured,
   initialTab = "keys",
+  onStartAssistant,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   configured: Record<string, boolean>;
   initialTab?: Tab;
+  /** A new chat with one of the assistants, from its row. */
+  onStartAssistant?: (id: string) => void;
 }) {
   const [tab, setTab] = React.useState<Tab>(initialTab);
   React.useEffect(() => {
@@ -107,6 +113,7 @@ export function Settings({
             {tab === "appearance" && <AppearancePanel />}
             {tab === "model" && <ModelPanel configured={configured} />}
             {tab === "rules" && <RulesPanel />}
+            {tab === "assistants" && <AssistantsPanel onStart={onStartAssistant ? (id) => { onStartAssistant(id); onOpenChange(false); } : undefined} />}
             {tab === "styles" && <StylesPanel />}
             {tab === "memory" && <MemoryPanel />}
             {tab === "routines" && <RoutinesPanel />}
@@ -559,6 +566,165 @@ const DAY_PICKS: { label: string; days: number[] }[] = [
   { label: "Weekdays", days: [1, 2, 3, 4, 5] },
   { label: "Weekends", days: [0, 6] },
 ];
+
+/**
+ * Assistants of your own.
+ *
+ * A name, a way of working and a model, kept together, so the thing you
+ * would otherwise set up every time — "you are my chemistry coach, start
+ * with a safety note, ask before answering" — is one press from the front
+ * door, one word in the box (`/chem-coach`), one line in the palette. The
+ * instructions go in the system prompt after your rules and before the
+ * project's, so a rule still holds inside an assistant.
+ */
+function AssistantsPanel({ onStart }: { onStart?: (id: string) => void }) {
+  const assistants = useLiveQuery(() => db.assistants.orderBy("updatedAt").reverse().toArray(), [], []);
+  const [editing, setEditing] = React.useState<Partial<Assistant> | null>(null);
+  const [confirming, setConfirming] = React.useState<string | null>(null);
+  const models = [{ id: AUTO, name: "Auto" }, ...PRESETS.filter((p) => p.group === "everyday").map((p) => ({ id: p.id, name: p.name }))];
+
+  const save = async () => {
+    if (!editing?.name?.trim() || !editing.instructions?.trim()) return;
+    const patch = {
+      name: editing.name.trim().slice(0, 40),
+      icon: (editing.icon ?? "✦").trim().slice(0, 2) || "✦",
+      instructions: editing.instructions.trim().slice(0, 6000),
+      modelId: editing.modelId && editing.modelId !== AUTO ? editing.modelId : undefined,
+      starter: editing.starter?.trim().slice(0, 300) || undefined,
+    };
+    if (editing.id) {
+      const was = assistants.find((a) => a.id === editing.id);
+      const short = was && was.name === patch.name ? was.short : await uniqueShort(patch.name, editing.id);
+      await db.assistants.update(editing.id, { ...patch, short, updatedAt: Date.now() });
+    } else {
+      await createAssistant(patch);
+    }
+    setEditing(null);
+  };
+
+  const form = editing && (
+    <div className="space-y-3 rounded-lg border border-line bg-surface p-3 anim-fade" aria-label={editing.id ? "Edit assistant" : "New assistant"}>
+      <div className="flex gap-2">
+        <input
+          value={editing.icon ?? ""}
+          onChange={(e) => setEditing({ ...editing, icon: e.target.value.slice(0, 2) })}
+          placeholder="✦"
+          aria-label="Icon"
+          className="focus-inset h-9 w-12 rounded-md border border-line bg-field text-center text-base outline-none"
+        />
+        <input
+          value={editing.name ?? ""}
+          onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+          placeholder="Chemistry coach"
+          aria-label="Name"
+          autoFocus
+          className="focus-inset h-9 min-w-0 flex-1 rounded-md border border-line bg-field px-3 text-sm text-primary outline-none placeholder:text-tertiary"
+        />
+      </div>
+      {editing.name?.trim() && (
+        <p className="text-xs text-tertiary">
+          In the box: <code className="rounded bg-subtle px-1">/{shortOf(editing.name)}</code> and then the question.
+        </p>
+      )}
+      <textarea
+        value={editing.instructions ?? ""}
+        onChange={(e) => setEditing({ ...editing, instructions: e.target.value })}
+        placeholder="How it works. Who it is for, what it always does first, what it never does, how long its answers are."
+        aria-label="How it works"
+        rows={5}
+        className="focus-inset w-full resize-y rounded-md border border-line bg-field px-3 py-2 text-sm leading-relaxed text-primary outline-none placeholder:text-tertiary"
+      />
+      <input
+        value={editing.starter ?? ""}
+        onChange={(e) => setEditing({ ...editing, starter: e.target.value })}
+        placeholder="What the box opens with, if anything: “Explain a reaction I name”"
+        aria-label="Opening line"
+        className="focus-inset h-9 w-full rounded-md border border-line bg-field px-3 text-sm text-primary outline-none placeholder:text-tertiary"
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-2 text-xs text-secondary">
+          Answers with
+          <select
+            value={editing.modelId ?? AUTO}
+            onChange={(e) => setEditing({ ...editing, modelId: e.target.value })}
+            aria-label="Answers with"
+            className="focus-inset h-8 rounded-md border border-line bg-field px-2 text-sm text-primary outline-none"
+          >
+            {models.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+        </label>
+        <span className="flex-1" />
+        <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
+        <Button size="sm" variant="primary" disabled={!editing.name?.trim() || !editing.instructions?.trim()} onClick={() => void save()}>
+          {editing.id ? "Save" : "Make it"}
+        </Button>
+      </div>
+    </div>
+  );
+
+  return (
+    <Panel
+      title="Assistants"
+      description="One of your own: a name, how it works and which model answers, kept together. Reached from the front door, by its name after a slash in the box, and from the palette. Your rules still hold inside it."
+    >
+      {editing && !editing.id ? form : (
+        <Button size="sm" variant="secondary" onClick={() => setEditing({ icon: "✦", modelId: AUTO })}>
+          <Plus size={14} />
+          New assistant
+        </Button>
+      )}
+      <Field label={assistants.length ? `Yours · ${assistants.length}` : "Yours"}>
+        {assistants.length === 0 ? (
+          <p className="text-sm text-tertiary">None yet. The first one is usually the thing you keep explaining at the start of a chat.</p>
+        ) : (
+          <ul className="divide-y divide-[var(--border-subtle)] rounded-md border border-line" aria-label="Assistants">
+            {assistants.map((a) => (
+              <li key={a.id} className="px-3 py-2">
+                {editing?.id === a.id ? form : (
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 w-6 shrink-0 text-center text-base" aria-hidden>{a.icon}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-primary">
+                        {a.name}
+                        <span className="ml-2 font-normal text-tertiary">/{a.short}</span>
+                      </p>
+                      <p className="mt-0.5 line-clamp-2 text-xs text-secondary [overflow-wrap:anywhere]">{a.instructions}</p>
+                      <p className="mt-0.5 text-xs text-tertiary tnum">
+                        {a.modelId ? (getPreset(a.modelId)?.name ?? "Auto") : "Auto"}
+                        {a.uses ? ` · ${a.uses} conversation${a.uses === 1 ? "" : "s"}` : ""}
+                      </p>
+                    </div>
+                    {confirming === a.id ? (
+                      <ConfirmInline
+                        question="Delete it? Its conversations stay."
+                        onConfirm={async () => { setConfirming(null); offerUndo(a.name, await deleteAssistant(a.id)); }}
+                        onCancel={() => setConfirming(null)}
+                      />
+                    ) : (
+                      <div className="flex shrink-0 items-center gap-0.5">
+                        {onStart && (
+                          <button aria-label={`Chat with ${a.name}`} onClick={() => onStart(a.id)} className="ctl flex [--ctl:1.75rem] items-center justify-center rounded-sm text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary">
+                            <MessageSquarePlus size={13} />
+                          </button>
+                        )}
+                        <button aria-label={`Edit ${a.name}`} onClick={() => setEditing({ ...a, modelId: a.modelId ?? AUTO })} className="ctl flex [--ctl:1.75rem] items-center justify-center rounded-sm text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary">
+                          <Pencil size={13} />
+                        </button>
+                        <button aria-label={`Delete ${a.name}`} onClick={() => setConfirming(a.id)} className="ctl flex [--ctl:1.75rem] items-center justify-center rounded-sm text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-[var(--danger)]">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Field>
+    </Panel>
+  );
+}
 
 function RoutinesPanel() {
   const routines = useLiveQuery(() => db.routines.orderBy("createdAt").toArray(), [], []);

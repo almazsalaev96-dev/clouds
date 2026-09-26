@@ -178,6 +178,8 @@ export interface Conversation {
   systemPrompt?: string;
   /** The project this belongs to, if any. Its instructions and knowledge apply. */
   projectId?: string;
+  /** The assistant answering this thread, if one was chosen: its instructions ride with every turn. */
+  assistantId?: string;
   /**
    * What the turns that no longer fit established, carried forward in their
    * place. Written when the window first overflows and extended when the
@@ -772,6 +774,33 @@ export interface PageInk {
 
 /** One turn of the conversation beside a lesson. */
 /** A prompt on a schedule, run when the app is next open after its time. */
+/**
+ * An assistant of your own: a name, a way of working and a model, kept
+ * together so "my chemistry coach" is one press rather than three settings
+ * and a paragraph typed again. What the others call a Gem, a GPT or a
+ * project persona. Its instructions go in the system prompt after your
+ * rules and before the project's; it is reached from the front door, by
+ * `/its-name` in the box, and from the palette.
+ */
+export interface Assistant {
+  id: string;
+  name: string;
+  /** The command that summons it, made from the name: "chem-coach". */
+  short: string;
+  /** One or two characters shown beside the name — an emoji, usually. */
+  icon: string;
+  /** How it works, in the person's words. Sent with every turn. */
+  instructions: string;
+  /** The Armi model it answers with; unset means whatever is chosen. */
+  modelId?: string;
+  /** What the box opens with when it is chosen, so the first turn is one press. */
+  starter?: string;
+  createdAt: number;
+  updatedAt: number;
+  /** How many conversations it has answered in. */
+  uses: number;
+}
+
 export interface Routine {
   id: string;
   /** What is sent, as a new conversation, when it runs. */

@@ -1,4 +1,4 @@
-import type { ToolSpec } from "./types";
+import type { ToolSpec, Assistant } from "./types";
 import { actionsSection } from "./actions.text";
 import { memorySection } from "./memory";
 import { select } from "./retrieve";
@@ -31,6 +31,8 @@ import { estimateTokens } from "./models";
 export const KNOWLEDGE_BUDGET_TOKENS = 60_000;
 
 export interface PromptParts {
+  /** The assistant answering this thread: its way of working, after the person's rules and before the project's. */
+  assistant?: Assistant;
   /** Off for the app's own internal calls — a titler wants no house style. */
   house?: false;
   /** The ARMI model's name, for the identity block. Goes with `house`. */
@@ -98,6 +100,13 @@ export function composeSystemPrompt(parts: PromptParts): ComposedPrompt {
 
   const base = parts.base?.trim();
   if (base) sections.push(base);
+
+  /* An assistant of the person's own: below their rules, which hold
+     everywhere, and above the project, which is the narrower thing. */
+  const assistant = parts.assistant;
+  if (assistant?.instructions.trim()) {
+    sections.push(`## You are ${assistant.name}\n\nAn assistant the person made, and how they want it to work:\n\n${assistant.instructions.trim()}`);
+  }
 
   /* After the person's own instructions and before the project's: it is
      about them, so it outranks the house, and a project's instructions

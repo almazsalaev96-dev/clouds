@@ -30,6 +30,9 @@ export function TopBar({
   onMoveToProject,
   onOpenProject,
   pendingProject,
+  assistants = [],
+  pendingAssistant,
+  onOpenAssistant,
   temporary,
   research,
   onToggleResearch,
@@ -56,6 +59,11 @@ export function TopBar({
   onOpenProject: (projectId: string) => void;
   /** The project a chat not yet started belongs to. */
   pendingProject?: string | null;
+  /** The person's assistants, to name the one answering this thread. */
+  assistants?: { id: string; name: string; icon: string }[];
+  /** The assistant a chat not yet started will answer as. */
+  pendingAssistant?: string | null;
+  onOpenAssistant?: (id: string) => void;
   /** This chat is not kept — or the next one will not be. */
   temporary?: boolean;
   research?: boolean;
@@ -73,6 +81,7 @@ export function TopBar({
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState("");
   const inProject = conversation?.projectId ?? (conversation ? null : pendingProject) ?? null;
+  const asAssistant = assistants.find((a) => a.id === (conversation?.assistantId ?? (conversation ? null : pendingAssistant))) ?? null;
   /* One of Armi's own, or an engine picked directly. The bar names both: the
      tactic is what was chosen and the engine is who is answering, and an app
      that showed only the first would be claiming a model it did not build. */
@@ -191,6 +200,19 @@ export function TopBar({
           <span className="max-w-[9rem] truncate">
             {projects.find((p) => p.id === inProject)?.name ?? "Project"}
           </span>
+        </button>
+      )}
+
+      {/* Who is answering, when it is one of your own: the instructions it
+          carries are yours, and a chat that follows them should say so. */}
+      {asAssistant && (
+        <button
+          onClick={() => onOpenAssistant?.(asAssistant.id)}
+          aria-label={`Answering as ${asAssistant.name}`}
+          className="focus-inset ml-1 flex h-7 min-w-0 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
+        >
+          <span aria-hidden>{asAssistant.icon}</span>
+          <span className="max-w-[9rem] truncate">{asAssistant.name}</span>
         </button>
       )}
 

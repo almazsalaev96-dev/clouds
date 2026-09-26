@@ -5,7 +5,7 @@ import * as Popover from "@radix-ui/react-popover";
 import {
   Check, ChevronDown, FileText, MessageSquare, Paperclip, Plus,
   SlidersHorizontal, Sparkles, Wand2, X, Globe, ListChecks, GraduationCap, Camera, ImagePlus } from "lucide-react";
-import { slashCommands, typingSlash } from "@/lib/slash";
+import { slashCommands, typingSlash, type SlashExtra } from "@/lib/slash";
 import type { ContentBlock, Style } from "@/lib/types";
 import { getModel, estimateTokens, formatTokens } from "@/lib/models";
 import { engineOf } from "@/lib/presets";
@@ -47,6 +47,7 @@ export function Composer({
   onToggleLearn,
   onPicture,
   rulesCount = 0,
+  slashExtras = [],
   onOpenRules,
   voice,
 }: {
@@ -76,6 +77,8 @@ export function Composer({
   /** How many standing rules are in force, and the way to the panel that sets them. */
   rulesCount?: number;
   onOpenRules?: () => void;
+  /** The person's assistants, each a command of its own in the slash menu. */
+  slashExtras?: SlashExtra[];
   /** Chat or Creative. */
   /** The style this thread answers in. */
   /** Voice mode, where the browser can do it. */
@@ -532,7 +535,7 @@ export function Composer({
           command that has to be remembered is a menu with worse discovery. */}
       {typing !== null && (
         <ul className="mt-1.5 flex flex-wrap gap-1 px-4" role="listbox" aria-label="Commands">
-          {slashCommands()
+          {slashCommands(slashExtras)
             .filter((c) => c.command.startsWith(typing))
             .slice(0, 8)
             .map((c) => (
@@ -549,7 +552,7 @@ export function Composer({
                 </button>
               </li>
             ))}
-          {!slashCommands().some((c) => c.command.startsWith(typing)) && (
+          {!slashCommands(slashExtras).some((c) => c.command.startsWith(typing)) && (
             <li className="px-1 text-xs text-tertiary">No command called “/{typing}” — it will be sent as written.</li>
           )}
         </ul>
