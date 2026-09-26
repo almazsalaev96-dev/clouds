@@ -392,7 +392,7 @@ export const PRESETS: Preset[] = [
     ],
     register: "explanatory",
     stance:
-      "Explain the reasoning, not only the result, and work an example where one would teach more than a paragraph. End with three short questions that test whether it landed, and do not answer them.",
+      "Explain the reasoning, not only the result, and work an example where one would teach more than a paragraph. End with one short question that tests whether it landed, and do not answer it.",
     icon: "graduation-cap",
   },
   {
@@ -1071,7 +1071,7 @@ export function makers(where: Where): ProviderId[] {
  * actually being asked — which is short, cheap, and the part a model writing
  * at speed is most likely to skip.
  */
-export function briefPrompt(ask: string, flavour: Flavour = "cover"): string {
+export function briefPrompt(ask: string, flavour: Flavour = "cover", context = ""): string {
   return [
     "Another model is about to answer the question below. You are not answering it.",
     "",
@@ -1081,6 +1081,10 @@ export function briefPrompt(ask: string, flavour: Flavour = "cover"): string {
     "",
     "The question:",
     ask.slice(0, 4000),
+    /* The same page the writer is on (lib/cast.ts): a brief that lists
+       what a good answer must get right, written without the document
+       the answer will be drawn from, lists the wrong things. */
+    ...(context ? ["", context] : []),
   ].join("\n");
 }
 
@@ -1124,7 +1128,7 @@ const SEATS: Record<Angle, string> = {
     "You are one of three models working on this, and your half is what is actually known: the facts, figures, precedents and definitions that bear on it, and — said plainly — which parts you are not sure of. Do not write the whole answer.",
 };
 
-export function councilPrompt(ask: string, angle: Angle): string {
+export function councilPrompt(ask: string, angle: Angle, context = ""): string {
   return [
     SEATS[angle],
     "",
@@ -1132,6 +1136,7 @@ export function councilPrompt(ask: string, angle: Angle): string {
     "",
     "The question:",
     ask.slice(0, 6000),
+    ...(context ? ["", context] : []),
   ].join("\n");
 }
 
@@ -1158,7 +1163,7 @@ export function councilNote(seats: { angle: Angle; text: string }[]): string {
        companies' model names, under an instruction not to name them, is a
        leak waiting for a long answer — and the seat is the only thing about
        a note the writer is meant to weigh. */
-    ...seats.map((s) => `### On ${SEAT_NAMES[s.angle]}\n\n${s.text.trim()}`),
+    ...seats.map((s) => `### ${SEAT_NAMES[s.angle].charAt(0).toUpperCase()}${SEAT_NAMES[s.angle].slice(1)}\n\n${s.text.trim()}`),
     "",
     "Write one answer out of these. Use what holds and drop what does not — they can be wrong, and you are the one accountable for what goes on the page. Where two of them genuinely disagree about something that matters, say so in a line and say which you are going with and why. Where all three are unsure, say that rather than picking. Do not summarise them one by one, do not name them, and do not mention that any of this happened.",
   ].join("\n");
@@ -1198,6 +1203,8 @@ export const DEEP_WORDS = 5;
 
 export function worthConvening(ask: string, plan?: Plan): boolean {
   if (plan?.strategy === "compute") return false;
+  /* "Shorter", "in French": a reshaping of an answer the council already sat for. */
+  if (!worthChecking(ask)) return false;
   return ask.trim().split(/\s+/).filter(Boolean).length >= COUNCIL_WORDS;
 }
 
@@ -1210,11 +1217,37 @@ export function worthResearching(ask: string): boolean {
   return ask.trim().split(/\s+/).filter(Boolean).length >= DEEP_WORDS;
 }
 
+/**
+ * Whether an answer is worth a second model's check.
+ *
+ * "Thanks", "shorter", "say that again in French" are turns on an answer
+ * that was already checked when it was written; a second model reading the
+ * shortened version is a bill and a wait for a verdict nobody asked for.
+ * A short ask that is a question still earns one: "is that right?" is the
+ * whole point of a check.
+ */
+const REWORK = /\b(shorter|longer|simpler|simplify|rephrase|reword|rewrite|expand|summari[sz]e|translate|bullets?|table|list|one line|tl;?dr|again)\b/i;
+/* "It", "that", "your answer": the thing being reshaped is the last answer.
+   "Translate this" with a document attached is work of its own. */
+const REFERS = /\b(it|that|this answer|your answer|the answer|the last one|what you (just )?(said|wrote))\b/i;
+const BARE = /^(much |a bit |a little |even |way )?(shorter|longer|simpler|briefer|plainer|clearer|less|more)( please| pls)?[.!]?$/i;
+const THANKS = /^(thanks|thank you|ok|okay|cheers|great|perfect|nice|cool|got it|understood)\b/i;
+export function worthChecking(ask: string): boolean {
+  const t = ask.trim();
+  const words = t.split(/\s+/).filter(Boolean).length;
+  if (!words) return false;
+  if (/\?/.test(t)) return true;
+  if (THANKS.test(t)) return false;
+  if (words <= 12 && (BARE.test(t) || (REWORK.test(t) && REFERS.test(t)))) return false;
+  return true;
+}
+
 export function worthBriefing(ask: string, plan?: Plan, size = 0): boolean {
   /* The plan is optional because the duel path has not made one yet: it is
      two answers rather than one and never had a single turn to plan. The
      length rule is the same either way. */
   if (plan?.strategy === "compute") return false;
+  if (!worthChecking(ask)) return false;
   if (size >= BRIEF_TOKENS) return true;
   return ask.trim().split(/\s+/).filter(Boolean).length >= BRIEF_WORDS;
 }

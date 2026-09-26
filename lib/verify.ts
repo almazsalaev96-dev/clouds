@@ -45,6 +45,8 @@ export async function verifyAnswer(
   answer: string,
   checkerId: string,
   progress?: Progress,
+  /** The same page the writer was on (lib/cast.ts): project, documents, attachments, the exchange before. */
+  context = "",
 ): Promise<Verdict | null> {
   /* What checking *this* means.
      A second opinion that asks the same four questions about a proof, a pull
@@ -87,7 +89,7 @@ Rules:
 ${forThisKind}
 THE QUESTION
 ${question.slice(0, 20_000)}
-
+${context ? `\n${context}\n` : ""}
 THE ANSWER
 ${answer.slice(0, 40_000)}`,
     { modelId: checkerId, maxTokens: 1536, temperature: 0.2, ...progress },

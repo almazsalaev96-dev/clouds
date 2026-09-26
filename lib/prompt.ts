@@ -105,7 +105,7 @@ export function composeSystemPrompt(parts: PromptParts): ComposedPrompt {
      everywhere, and above the project, which is the narrower thing. */
   const assistant = parts.assistant;
   if (assistant?.instructions.trim()) {
-    sections.push(`## You are ${assistant.name}\n\nAn assistant the person made, and how they want it to work:\n\n${assistant.instructions.trim()}`);
+    sections.push(`## Working as ${assistant.name}\n\nThe person made an assistant called ${assistant.name} and chose it for this conversation. Work the way they set out below. Their rules above still hold, and asked what you are, you are still Armi.\n\n${assistant.instructions.trim()}`);
   }
 
   /* After the person's own instructions and before the project's: it is

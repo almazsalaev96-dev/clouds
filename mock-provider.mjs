@@ -759,6 +759,12 @@ Nothing here looks like it breaks a caller — the return type is the same array
     /* The start of what was asked, so a probe can tell a reader's part from
        the writer's page without the whole book riding along. */
     head: JSON.stringify(body.messages ?? body.input ?? "").slice(0, 400),
+    /* Whether the call carried the page the writer is on (lib/cast.ts):
+       the project's documents, the attachments, the exchange before. */
+    shared: /What the answering model was also given/.test(asked),
+    /* The named parts of that page, so a probe can say which of them
+       reached which call rather than only that something did. */
+    sharedParts: ["Project documents", "Attached to the question", "Earlier in the conversation", "its instructions"].filter((k) => asked.includes(k)),
   });
   if (recent.length > 16) recent.shift();
 

@@ -35,7 +35,8 @@ import { builtDocument, titleOf } from "@/lib/built";
 import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, PROVIDERS, estimateTokens, getModel } from "@/lib/models";
 import {
   briefNote, briefPrompt, councilNote, councilPrompt, engineOf, getPreset, objectionNote,
-  playerFor, playersFor, resolveCast, shapePlan, shortName, worthBriefing, worthConvening, worthResearching, presetFor, JOB_LINE, PRESETS } from "@/lib/presets";
+  playerFor, playersFor, resolveCast, shapePlan, shortName, worthBriefing, worthChecking, worthConvening, worthResearching, presetFor, JOB_LINE, PRESETS } from "@/lib/presets";
+import { castContext } from "@/lib/cast";
 import { costOf, fitToContext } from "@/lib/context";
 import { elsewhere, searcher, roomier } from "@/lib/route";
 import { fitFiles } from "@/lib/digest";
@@ -290,6 +291,8 @@ export default function Page() {
     at: number;
     /** The cast member that checks this answer, chosen when it was sent. */
     checkWith?: string | null;
+    /** What was asked, so the finish callback can tell an answer from a "thanks". */
+    ask?: string;
   } | null>(null);
   /* `verify` is defined below and the finish callback above needs it. */
   const verifyRef = React.useRef<((m: Message, pinned?: string) => void) | null>(null);
@@ -584,7 +587,9 @@ export default function Page() {
        enough to expect the next one to. It runs on its own rather than
        waiting to be pressed, because an answer you have to remember to
        doubt is one you will trust by accident. */
-    if (sent.plan.check === "second" && !m.error && text) verifyRef.current?.(m, sent.checkWith ?? undefined);
+    /* Not on "thanks" or "shorter": those are turns on an answer already
+       checked when it was written (worthChecking). */
+    if (sent.plan.check === "second" && !m.error && text && worthChecking(sent.ask ?? "")) verifyRef.current?.(m, sent.checkWith ?? undefined);
   });
 
   /* The column follows the conversation: open on one that built something,
@@ -768,6 +773,12 @@ export default function Page() {
       const project = conv?.projectId ? await db.projects.get(conv.projectId) : undefined;
       const assistant = conv?.assistantId ? await db.assistants.get(conv.assistantId) : undefined;
       const files = project ? await filesOf(project.id) : [];
+      /* The rest of the cast reads the same page as the writer (lib/cast.ts):
+         a brief, a council seat or a check written without the project's
+         document or the answer being shortened is working on a different
+         question. Built once here; the check rebuilds it from the thread. */
+      const wantsMsg = [...history].reverse().find((m) => m.role === "user");
+      const shared = castContext({ project, files, content: wantsMsg?.content, earlier: history.filter((m) => m !== wantsMsg) });
       /* What the person asked to be remembered — unless they turned it off,
          or this is a temporary chat, which knows nothing and keeps nothing. */
       const memories = settings.memoryOn && !conv?.temporary ? await allMemories() : [];
@@ -840,7 +851,7 @@ export default function Page() {
          cast is a property of the turn that went out, and a check chosen
          afterwards from whatever keys exist at that moment is a different
          promise from the one the row made. */
-      planRef.current = { plan, modelId, at: Date.now(), checkWith: playerFor(cast, "check")?.modelId ?? null };
+      planRef.current = { plan, modelId, at: Date.now(), checkWith: playerFor(cast, "check")?.modelId ?? null, ask: asked };
       const mode = findMode(plan.mode);
       /* The register the plan chose, or the one the person chose. */
       const style = findStyle(plan.register ? plan.register.id : chosenStyle, customStyles);
@@ -879,7 +890,7 @@ export default function Page() {
       const briefWith = playerFor(cast, "brief");
       let brief = "";
       if (briefWith && !opts?.revised && worthBriefing(asked, plan, history.reduce((n, m) => n + costOf(m), 0))) {
-        brief = (await complete(briefPrompt(asked, briefWith.as), {
+        brief = (await complete(briefPrompt(asked, briefWith.as, shared), {
           modelId: briefWith.modelId,
           maxTokens: 300,
           temperature: 0.2,
@@ -900,7 +911,7 @@ export default function Page() {
           seats.map(async (seat) => ({
             angle: seat.angle!,
             text:
-              (await complete(councilPrompt(asked, seat.angle!), {
+              (await complete(councilPrompt(asked, seat.angle!, shared), {
                 modelId: seat.modelId,
                 maxTokens: 700,
                 temperature: 0.3,
@@ -1685,7 +1696,12 @@ export default function Page() {
       setVerifyingId(message.id);
       try {
         const { verifyAnswer } = await import("@/lib/verify");
-        const verdict = await verifyAnswer(blockText(asked.content), blockText(message.content), who);
+        const convRow = await db.conversations.get(message.conversationId);
+        const projectRow = convRow?.projectId ? await db.projects.get(convRow.projectId) : undefined;
+        const projectFiles = projectRow ? await filesOf(projectRow.id) : [];
+        const before = pathTo(allMessages ?? [], message.parentId).filter((m) => m.id !== asked.id);
+        const shared = castContext({ project: projectRow, files: projectFiles, content: asked.content, earlier: before });
+        const verdict = await verifyAnswer(blockText(asked.content), blockText(message.content), who, undefined, shared);
         if (verdict) await db.messages.update(message.id, { verdict });
         else setNotice("The check didn't come back. Try again.");
 

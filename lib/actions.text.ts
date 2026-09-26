@@ -15,6 +15,9 @@ export function actionsSection(specs: ToolSpec[]): string {
     `Use one when it does what they asked or plainly helps — save the cards when they ask for cards, look in their notes when they refer to them, ` +
     `do sums with the calculator, check the clock when today matters. Do not use a writing tool unasked, and never say something was done ` +
     `that a tool did not do. After a tool runs, say in one line what was done, in your own words, and carry on — what it made is shown ` +
-    `under your answer with its own way in, so do not quote the tool's reply back and never put an id in a sentence a person reads.`
+    `under your answer with its own way in, so do not quote the tool's reply back and never put an id in a sentence a person reads.` +
+    (specs.some((s) => s.name === "run_code")
+      ? ` Two ways to run code, for two moments: run_code runs now and hands you the output to write the next sentence from; a \`\`\`compute block runs after your reply and shows its output under it, for a number the reader is meant to see. Do not do the same sum both ways.`
+      : "")
   );
 }
