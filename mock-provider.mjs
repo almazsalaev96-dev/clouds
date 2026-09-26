@@ -131,6 +131,10 @@ let lastTitle = null;
 const recent = [];
 let rateLimitOnce = process.env.MOCK_RATE_LIMIT === "1";
 let failNext = null;
+/* `/__slow?kind=brief&ms=2500` holds calls of one kind back, so a probe can
+   look at what the screen says while a real brief or council would still
+   be out. Cleared by `/__reset`. */
+let slow = {};
 
 /** The instructions as they arrived, in either wire format. */
 const systemTextOf = (body) => {
@@ -255,8 +259,16 @@ createServer(async (req, res) => {
   }
   /* Cleared so a test can ask "was a model called at all since I last looked"
      — which is the only way to check that a sum reached none. */
+  if ((req.url ?? "").startsWith("/__slow")) {
+    const q = new URL(req.url, "http://x").searchParams;
+    if (q.get("kind")) slow[q.get("kind")] = Number(q.get("ms") ?? 0);
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify(slow));
+    return;
+  }
   if (req.url === "/__reset") {
     lastSeen = null;
+    slow = {};
     probeHits = 0;
     lastTitle = null;
     recent.length = 0;
@@ -729,9 +741,11 @@ Nothing here looks like it breaks a caller — the return type is the same array
   /* Every call, in order, so a test can prove that one turn was two models:
      a brief to one company and the answer to another, in that order. `__last`
      alone can only ever show whichever was most recent. */
+  const callKind = isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : scouting ? "scout" : deepPlanning ? "plan" : "answer";
+  if (slow[callKind]) await new Promise((r) => setTimeout(r, slow[callKind]));
   recent.push({
     model: body.model,
-    kind: isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : scouting ? "scout" : deepPlanning ? "plan" : "answer",
+    kind: callKind,
     lastRole: (body.messages ?? []).at(-1)?.role ?? null,
     /* Which web tools this call offered, as `__last` records them — so a
        claim about the answer's tools can be made when the answer is not

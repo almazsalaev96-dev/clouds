@@ -560,6 +560,13 @@ export default function Page() {
        of it — does not exist until the answer does. */
     const sent = planRef.current;
     planRef.current = null;
+    /* An answer that lands while the tab is hidden says so in the tab's
+       name, the way mail does; the name goes back the moment the tab is
+       looked at. Nothing chimes. */
+    if (typeof document !== "undefined" && document.hidden) {
+      titleRef.current ??= document.title;
+      document.title = "Answer ready — Armi";
+    }
     if (!sent || !worthRecording(sent.plan)) return;
     const text = blockText(m.content);
     await recordTurn({
@@ -888,12 +895,25 @@ export default function Page() {
          of waiting for nothing, and never fatal: a brief that fails leaves an
          ordinary answer rather than no answer. */
       const briefWith = playerFor(cast, "brief");
+      const seatsAhead = playersFor(cast, "council");
+      const willBrief = Boolean(briefWith) && !opts?.revised && worthBriefing(asked, plan, history.reduce((n, m) => n + costOf(m), 0));
+      const willConvene = seatsAhead.length > 0 && !opts?.revised && worthConvening(asked, plan);
+      const willResearch = Boolean(conv?.deep && (conv?.research ?? conversation?.research ?? pendingResearch)) && !opts?.revised && worthResearching(asked);
+      const prepCtl = new AbortController();
+      if (willBrief || willConvene || willResearch) {
+        prepRef.current?.abort();
+        prepRef.current = prepCtl;
+        setPrep({ conversationId });
+      }
+      const stage = (label: string) => { if (!prepCtl.signal.aborted) setReading(label); };
       let brief = "";
-      if (briefWith && !opts?.revised && worthBriefing(asked, plan, history.reduce((n, m) => n + costOf(m), 0))) {
+      if (briefWith && willBrief) {
+        stage(seatsAhead.length && willConvene ? "Another company's model is reading the question first, then a council sits…" : "Another company's model is reading the question first…");
         brief = (await complete(briefPrompt(asked, briefWith.as, shared), {
           modelId: briefWith.modelId,
           maxTokens: 300,
           temperature: 0.2,
+          signal: prepCtl.signal,
         }).catch(() => null)) ?? "";
       }
 
@@ -904,9 +924,10 @@ export default function Page() {
          pay for four. Run in parallel — they do not see each other's work,
          which is the point — and never fatal: a seat that fails leaves the
          council smaller rather than leaving the person with nothing. */
-      const seats = playersFor(cast, "council");
+      const seats = seatsAhead;
       let council = "";
-      if (seats.length && !opts?.revised && worthConvening(asked, plan)) {
+      if (seats.length && willConvene) {
+        stage(`Council: ${seats.length} models from different companies, each on a half of the question…`);
         const notes = await Promise.all(
           seats.map(async (seat) => ({
             angle: seat.angle!,
@@ -915,6 +936,7 @@ export default function Page() {
                 modelId: seat.modelId,
                 maxTokens: 700,
                 temperature: 0.3,
+                signal: prepCtl.signal,
               }).catch(() => null)) ?? "",
           })),
         );
@@ -955,7 +977,7 @@ export default function Page() {
             setReading("Researching: planning the searches…");
             const planned = await complete(
               `Break this into 3 to 5 distinct web searches that together would answer it well — the plain question, the strongest counter-view, the most recent development, a number or a primary source where one exists. One search a line, no numbering, no commentary.\n\n${asked}`,
-              { modelId: cheap ?? scout.id, maxTokens: 200, temperature: 0.2 },
+              { modelId: cheap ?? scout.id, maxTokens: 200, temperature: 0.2, signal: prepCtl.signal },
             ).catch(() => null);
             const queries = (planned ?? "").split("\n").map((l) => l.replace(/^[\s\-*\d.)]+/, "").trim()).filter((l) => l.length > 6).slice(0, 5);
             if (queries.length) {
@@ -966,7 +988,7 @@ export default function Page() {
                   const pages: string[] = [];
                   const text = await complete(
                     `Search the web for: ${qy}\n\nRead what comes back, then write 4 to 8 lines of findings. Each line states one thing and ends with the page it came from as (Title — URL). Where pages disagree, say so on its own line. No preamble.`,
-                    { modelId: scoutId, tools: ["web_search"], maxTokens: 700, temperature: 0.2, onSource: (s) => { if (s.url && !pages.some((x) => x.includes(s.url))) pages.push(`${s.title || s.url} — ${s.url}`); } },
+                    { modelId: scoutId, tools: ["web_search"], maxTokens: 700, temperature: 0.2, signal: prepCtl.signal, onSource: (s) => { if (s.url && !pages.some((x) => x.includes(s.url))) pages.push(`${s.title || s.url} — ${s.url}`); } },
                   ).catch(() => null);
                   done += 1;
                   setReading(`Researching: ${done} of ${queries.length} searches…`);
@@ -987,6 +1009,15 @@ export default function Page() {
           }
         }
       }
+
+      /* Stopped while the cast was working: nothing streams, the question
+         stays in the thread for a retry, and the line is cleared. */
+      if (prepCtl.signal.aborted) {
+        setReading(null);
+        setPrep((p) => (p?.conversationId === conversationId ? null : p));
+        return;
+      }
+      if (prepRef.current === prepCtl) { prepRef.current = null; setPrep(null); setReading(null); }
 
       const task = plan.task;
       const turn = composeTurnPrompt({
@@ -2551,6 +2582,18 @@ export default function Page() {
   const showEmpty = path.length === 0 && !live && !comparing;
   /* A long file being read before the turn goes out: said above the bar. */
   const [reading, setReading] = React.useState<string | null>(null);
+  /* The turn before the answer: a brief, a council, the research, all of
+     which happen before anything streams. Named on the status line, and
+     stoppable — the Stop button aborts these calls the way it aborts a
+     stream, and the box does not take a second question while they run. */
+  const [prep, setPrep] = React.useState<{ conversationId: string } | null>(null);
+  const titleRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    const back = () => { if (!document.hidden && titleRef.current) { document.title = titleRef.current; titleRef.current = null; } };
+    document.addEventListener("visibilitychange", back);
+    return () => document.removeEventListener("visibilitychange", back);
+  }, []);
+  const prepRef = React.useRef<AbortController | null>(null);
 
   /* One of the three rows on the blank page. Two of them put words in the
      box and hand you the caret; the third opens the picker the box's own
@@ -2580,11 +2623,11 @@ export default function Page() {
   const composer = mounted ? (
     <Composer
       conversationId={activeId ?? "new"}
-      streaming={live && stream.phase !== "idle"}
+      streaming={(live && stream.phase !== "idle") || prep?.conversationId === activeId}
       contextTokens={contextTokens}
       modelId={threadModelId}
       onSend={send}
-      onStop={stream.stop}
+      onStop={() => { prepRef.current?.abort(); stream.stop(); }}
       onEditLast={editLast}
       configured={configured}
       onOpenModels={() => setModelPickerOpen(true)}

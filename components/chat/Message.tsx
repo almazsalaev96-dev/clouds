@@ -611,6 +611,15 @@ function AssistantMessageImpl({
         />
       )}
 
+      {/* The check, while it runs: a second company is reading this, and
+          a reader who has just finished it should know one is, rather
+          than see a verdict appear from nowhere or never. */}
+      {verifying && !message.verdict && (
+        <p role="status" className="mt-2 flex items-center gap-2 text-xs text-tertiary anim-fade">
+          <span className="think-orb" aria-hidden />
+          A model from another company is checking this answer…
+        </p>
+      )}
       {message.verdict && (
         <SecondOpinion verdict={message.verdict} authorProvider={model?.provider} />
       )}

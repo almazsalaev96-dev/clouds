@@ -128,7 +128,7 @@ done
 echo
 echo "== two providers =="
 serve OPENAI_BASE_URL=http://127.0.0.1:8787 OPENAI_API_KEY=sk-mock
-for t in e2e-verify e2e-learn e2e-point e2e-whole e2e-cast e2e-elsewhere e2e-actions2 e2e-picture e2e-together; do run "$t" node "$t.mjs"; done
+for t in e2e-verify e2e-learn e2e-point e2e-whole e2e-cast e2e-elsewhere e2e-actions2 e2e-picture e2e-together e2e-waiting; do run "$t" node "$t.mjs"; done
 
 echo
 echo "== Armi Plus =="
