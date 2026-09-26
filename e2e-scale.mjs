@@ -45,8 +45,16 @@ console.log("\nWhat it costs to open");
      what their phone has to parse. The build's own figure is the first of
      these, so this is the one to compare it against. */
   const weighed = [];
+  /* Only what the page asked for before its load event is the first load.
+     The app warms the other rooms once the main thread is idle, and those
+     chunks are a choice made after the page is up, not a cost of getting it
+     there; counted here they would make the budget mean something else. */
+  const asked = new Set();
+  let loaded = false;
+  page.on("load", () => { loaded = true; });
+  page.on("request", (r) => { if (!loaded) asked.add(r.url()); });
   page.on("response", (r) => {
-    if (!/\.js(\?|$)/.test(r.url())) return;
+    if (!/\.js(\?|$)/.test(r.url()) || !asked.has(r.url())) return;
     weighed.push((async () => {
       let raw = 0;
       let wire = 0;

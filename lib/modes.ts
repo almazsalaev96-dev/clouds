@@ -151,7 +151,15 @@ const RUN_IT = /\b(run (it|this|that|the)|open (it|this) (in|as)|make it run|get
  * quoted and pointed at.
  */
 const RUNNABLE =
-  /\b(web ?(app|page|site)?|site|page|app|html|landing page|game|timer|countdown|stopwatch|clock|tracker|quiz|flashcards?|calculator|converter|dashboard|chart|graph|checklist|todo|to-do|timetable|schedule|planner|form|survey|poll|board|generator|simulator|visuali[sz]er|widget|tool|slides?|slide ?deck|pitch deck|presentation)\b/i;
+  /\b(web ?(app|page|site)?|site|page|app|html|landing page|game|timer|countdown|stopwatch|clock|tracker|quiz|flashcards?|calculator|converter|dashboard|chart|graph|checklist|todo|to-do|timetable|schedule|planner|form|survey|poll|board|generator|simulator|visuali[sz]er|widget|tool)\b/i;
+
+/**
+ * A deck is a thing that runs too, but "slides" and "presentation" are also
+ * ordinary nouns — "write speaker notes for my slides", "give me feedback
+ * on my presentation" — so a deck is only built when the verb is one that
+ * makes, not one that writes about.
+ */
+const DECK = /\b(make|build|create|generate|design|put together)\b[^.?!]*\b(slides?|slide ?deck|pitch deck|presentation|deck)\b/i;
 
 /** Editing prose is not building a thing, however imperative it sounds. */
 const EDITING = /\bmake (it|this|them|that)\b(?!.*\b(run|work)\b)/i;
@@ -160,5 +168,6 @@ export function modeFor(text: string): Mode {
   const t = text.slice(0, 600);
   if (RUN_IT.test(t)) return "creative";
   if (EDITING.test(t)) return "chat";
+  if (DECK.test(t)) return "creative";
   return MAKE_VERB.test(t) && RUNNABLE.test(t) ? "creative" : "chat";
 }

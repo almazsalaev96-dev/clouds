@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowDown, ArrowUp, Check, Copy } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Copy, FileSpreadsheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { columnIsNumeric, sortRows, toCsv } from "@/lib/table";
 
@@ -32,6 +32,7 @@ import { columnIsNumeric, sortRows, toCsv } from "@/lib/table";
 export function DataTable({ node, children }: { node?: unknown; children?: React.ReactNode }) {
   const [sort, setSort] = React.useState<{ column: number; direction: "asc" | "desc" } | null>(null);
   const [copied, setCopied] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
 
   /* Walked once per table, not per press: the tree does not change and the
      press only reorders indices into it. */
@@ -76,6 +77,22 @@ export function DataTable({ node, children }: { node?: unknown; children?: React
     } catch {
       /* A clipboard a browser refuses is not an error worth a red box in the
          middle of an answer. The button simply does not confirm. */
+    }
+  };
+
+  /* The same rows, as a workbook: figures as figures, the header bold and
+     frozen, a filter on it. What most people were about to do with the
+     CSV anyway, without the paste. */
+  const excel = async () => {
+    if (!grid || saving) return;
+    setSaving(true);
+    try {
+      const { tableToXlsx } = await import("@/lib/office");
+      await tableToXlsx(grid.header.filter(Boolean).slice(0, 3).join(", ") || "Table", grid.header, order ? order.map((i) => grid.rows[i]) : grid.rows);
+    } catch {
+      /* A download the browser refuses is not worth a red box in an answer. */
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -126,7 +143,15 @@ export function DataTable({ node, children }: { node?: unknown; children?: React
           </tbody>
         </table>
       </div>
-      <div className="mt-1 flex items-center justify-end">
+      <div className="mt-1 flex items-center justify-end gap-1">
+        <button
+          onClick={() => void excel()}
+          aria-label="Save as Excel"
+          className="focus-inset flex items-center gap-1 rounded-full px-2 py-0.5 text-tiny text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+        >
+          <FileSpreadsheet size={11} />
+          {saving ? "Saving…" : "Save as Excel"}
+        </button>
         <button
           onClick={() => void copy()}
           className="focus-inset flex items-center gap-1 rounded-full px-2 py-0.5 text-tiny text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"

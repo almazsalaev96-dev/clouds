@@ -1,6 +1,7 @@
 /**
- * Save as PDF: a page opens typeset in a window of its own, titled for
- * the file, with the print dialog on the way. Checked from the Notebook.
+ * Save as PDF: a page is typeset in a sandboxed frame of its own, titled
+ * for the file, with the print dialog on the way and no pop-up window to
+ * block. Checked from the Notebook.
  *
  *   bash /tmp/claude-0/one.sh e2e-pdf
  */
@@ -28,19 +29,30 @@ console.log("\nA page, saved as PDF");
 {
   await p.getByRole("listitem").filter({ hasText: "Osmosis, properly" }).first().click();
   await p.waitForTimeout(800);
-  const opened = ctx.waitForEvent("page", { timeout: 5000 });
+  const popups = [];
+  ctx.on("page", (w) => popups.push(w));
   await p.getByRole("button", { name: "Save as PDF" }).click();
-  const w = await opened.catch(() => null);
-  check(Boolean(w), "a window of its own opens");
-  if (w) {
-    await w.waitForLoadState("load").catch(() => {});
-    await w.waitForTimeout(500);
-    check((await w.title()) === "Osmosis, properly", "titled for the file", await w.title());
-    const html = await w.content();
+  /* Headless Chromium's print() returns at once and the frame leaves
+     soon after, so look for it rather than wait. */
+  let got = null;
+  for (let i = 0; i < 80 && !got; i += 1) {
+    for (const f of p.frames()) {
+      if (f === p.mainFrame()) continue;
+      const r = await f.evaluate(() => ({ prints: [...document.scripts].some((x) => x.textContent.includes("armiPrint")), title: document.title, html: document.documentElement.outerHTML, origin: String(self.origin) })).catch(() => null);
+      if (r?.prints) { got = r; break; }
+    }
+    if (!got) await p.waitForTimeout(25);
+  }
+  check(Boolean(got), "the page is typeset in a frame of the page");
+  check(popups.length === 0, "and no window opens, so nothing for a pop-up blocker to stop", `${popups.length} opened`);
+  if (got) {
+    check(got.title === "Osmosis, properly", "titled for the file", got.title);
+    const html = got.html;
     check(/<h1>Osmosis, properly<\/h1>/.test(html) && /<strong>water-potential<\/strong>/.test(html), "typeset: the title, the emphasis");
     check(/<li>Hypotonic<\/li>/.test(html) && /<th>Term<\/th>/.test(html), "the list and the table");
     check(/<blockquote>The membrane/.test(html), "the callout as a quote, its marker gone");
     check(!/<script src|localhost:3100\/_next/.test(html), "and none of the app on the page");
+    check(got.origin === "null", "and the frame has an origin of its own, with nothing of the app's in reach", got.origin);
   }
 }
 

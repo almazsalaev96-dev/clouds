@@ -34,7 +34,7 @@ import { builtDocument, titleOf } from "@/lib/built";
 import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, PROVIDERS, estimateTokens, getModel } from "@/lib/models";
 import {
   briefNote, briefPrompt, councilNote, councilPrompt, engineOf, getPreset, objectionNote,
-  playerFor, playersFor, resolveCast, shapePlan, shortName, worthBriefing, worthConvening, presetFor, JOB_LINE,
+  playerFor, playersFor, resolveCast, shapePlan, shortName, worthBriefing, worthConvening, worthResearching, presetFor, JOB_LINE,
 } from "@/lib/presets";
 import { costOf, fitToContext } from "@/lib/context";
 import { elsewhere, searcher, roomier } from "@/lib/route";
@@ -192,9 +192,8 @@ export default function Page() {
       void import("@/components/chat/CommandPalette");
       void import("@/components/chat/MadePanel");
       void import("@/components/ShortcutsOverlay");
-      /* And the two the first turn reaches for. */
+      /* And the one the first turn reaches for that is not in the main chunk. */
       void import("@/lib/tiers");
-      void import("@/lib/route");
     };
     if (w.requestIdleCallback) {
       const id = w.requestIdleCallback(warm);
@@ -283,6 +282,8 @@ export default function Page() {
   /* The kind of work each question was read as, by the id of the question,
      so every pass at it — the revision, the escalation — is the same kind. */
   const kindByAsk = React.useRef(new Map<string, TaskKind>());
+  /** Research notes gathered for a deep question, kept so a regenerate does not search twice. */
+  const deepNotesByAsk = React.useRef(new Map<string, string>());
   const planRef = React.useRef<{
     plan: Plan;
     modelId: string;
@@ -909,8 +910,15 @@ export default function Page() {
          gathered once — and never fatal: a search that fails leaves the
          writer with fewer notes rather than no answer. */
       let deepNotes = "";
-      const deepOn = Boolean(conv?.deep && (conv?.research ?? conversation?.research ?? pendingResearch)) && !opts?.revised;
-      if (deepOn) {
+      /* Once per question: a regenerate reuses the notes the first pass
+         gathered rather than searching again, and a short follow-up in a
+         deep thread — "shorter", "thanks", "and the counter-view?" — is
+         answered from the thread, since five searches on three words find
+         nothing the thread does not already hold. */
+      const deepKey = `${conversationId}:${asked.trim()}`;
+      const deepOn = Boolean(conv?.deep && (conv?.research ?? conversation?.research ?? pendingResearch)) && !opts?.revised && worthResearching(asked);
+      if (deepOn && deepNotesByAsk.current.has(deepKey)) deepNotes = deepNotesByAsk.current.get(deepKey) ?? "";
+      else if (deepOn) {
         const scout = searcher({ configured, keys: settings.keys });
         /* The searches go to the cheapest model at the company that
            searches, not its strongest: reading five pages and listing what
@@ -947,6 +955,7 @@ export default function Page() {
                   `## Research notes, gathered before this answer (${kept.length} searches)\n` +
                   kept.map((f) => `### ${f.qy}\n${f.text}${f.pages.length ? `\nPages read: ${f.pages.slice(0, 6).join("; ")}` : ""}`).join("\n\n") +
                   `\n\nWrite the report from these notes and anything you search yourself. Cite the pages above by title and URL in the Sources list; keep what a page says apart from what independent pages agree on.`;
+                deepNotesByAsk.current.set(deepKey, deepNotes);
               }
             }
           } finally {

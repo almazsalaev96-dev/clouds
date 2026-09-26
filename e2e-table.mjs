@@ -9,7 +9,7 @@
  */
 import { chromium } from "playwright";
 const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
-const ctx = await b.newContext({ viewport: { width: 1440, height: 1000 } });
+const ctx = await b.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
 await ctx.grantPermissions(["clipboard-read", "clipboard-write"]);
 const p = await ctx.newPage();
 const errs = [];
@@ -74,6 +74,26 @@ console.log("\nThe cells are the renderer's own, not a retype of them");
   const after = await table.locator("tbody tr").evaluateAll((rows) => rows.map((r) => r.dataset.mark));
   check(new Set(after).size === 4 && after.every((m) => marks.includes(m)),
     "sorting moved the existing rows rather than rebuilding them", `${after.filter((m) => marks.includes(m)).length} of 4 rows are the same elements`);
+}
+
+console.log("\nAnd the same table saves as an Excel workbook");
+{
+  const dl = p.waitForEvent("download", { timeout: 20000 });
+  await table.locator("..").locator("..").getByRole("button", { name: "Save as Excel" }).click();
+  const file = await dl.catch(() => null);
+  check(Boolean(file) && /\.xlsx$/.test(file.suggestedFilename()), "pressing Save as Excel downloads a .xlsx", file?.suggestedFilename() ?? "no download");
+  if (file) {
+    await file.saveAs("/tmp/claude-0/table.xlsx").catch(() => {});
+    const { default: JSZip } = await import("jszip");
+    const zip = await JSZip.loadAsync(await file.createReadStream().then((st) => new Promise((res) => { const chunks = []; st.on("data", (c) => chunks.push(c)); st.on("end", () => res(Buffer.concat(chunks))); })));
+    const sheet = await zip.file("xl/worksheets/sheet1.xml")?.async("string");
+    const book = await zip.file("xl/workbook.xml")?.async("string");
+    check(Boolean(sheet) && Boolean(book) && Boolean(zip.file("[Content_Types].xml")), "with the parts a workbook is made of", Object.keys(zip.files).join(" "));
+    check(/<t xml:space="preserve">Approach<\/t>/.test(sheet ?? "") && /<row r="5">/.test(sheet ?? "") && !/<row r="6">/.test(sheet ?? ""), "the header and four rows, no more", (sheet ?? "").match(/<row r="\d+">/g)?.join(" "));
+    check(/<c r="B2"><v>\d+<\/v><\/c>/.test(sheet ?? ""), "and the latency column is numbers, not text, so it sums", (sheet ?? "").match(/<c r="B2"[^>]*>.*?<\/c>/)?.[0]);
+    check(/Floor between calls, see Smith, J\./.test(sheet ?? ""), "a cell with a comma is one cell", "");
+    check(/<pane ySplit="1"/.test(sheet ?? "") && /<autoFilter/.test(sheet ?? ""), "the header row is frozen and filterable");
+  }
 }
 
 console.log("\nAnd the CSV is one a spreadsheet reads back correctly");

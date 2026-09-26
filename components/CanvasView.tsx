@@ -538,6 +538,13 @@ function Editor({
   );
 
   const runnable = web || (canvas.kind === "code" && (canvas.lang === "html" || canvas.lang === "css"));
+  /* Whether the thing is a deck is a property of the page as exported, not
+     of whichever file is open: a deck of index.html, style.css and app.js
+     is still a deck while the stylesheet is being edited. */
+  const deck = React.useMemo(
+    () => runnable && isDeck(exportWeb(files.map((f) => (f.name === activeFile?.name ? { ...f, content: draft } : f)))),
+    [runnable, files, activeFile?.name, draft],
+  );
 
   const loadVersions = React.useCallback(async () => {
     setVersions(await versionsOf(canvas.id, doc.fileName));
@@ -1027,7 +1034,7 @@ function Editor({
                     <Printer size={13} />
                   </Button>
                 )}
-                {runnable && isDeck(draft) && (
+                {deck && (
                   <Button
                     size="sm"
                     variant="ghost"

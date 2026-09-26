@@ -1193,10 +1193,21 @@ export const BRIEF_WORDS = 3;
 export const BRIEF_TOKENS = 2_000;
 /** And a council, which is four models, wants a question worth four models. */
 export const COUNCIL_WORDS = 8;
+/** Under this, a deep ask is a follow-up and is not searched again. */
+export const DEEP_WORDS = 5;
 
 export function worthConvening(ask: string, plan?: Plan): boolean {
   if (plan?.strategy === "compute") return false;
   return ask.trim().split(/\s+/).filter(Boolean).length >= COUNCIL_WORDS;
+}
+
+/**
+ * Deep research plans and runs several searches before the answer. A short
+ * ask has nothing to plan: "thanks", "shorter", "and in France?" are turns
+ * in a thread, answered from it.
+ */
+export function worthResearching(ask: string): boolean {
+  return ask.trim().split(/\s+/).filter(Boolean).length >= DEEP_WORDS;
 }
 
 export function worthBriefing(ask: string, plan?: Plan, size = 0): boolean {

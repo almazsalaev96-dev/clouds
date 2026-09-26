@@ -1,8 +1,8 @@
 /**
  * Save as PDF, the way every browser already can.
  *
- * A page, a pack, a lesson or an answer opens in a window of its own —
- * typeset for paper, nothing else on it — and the print dialog comes up,
+ * A page, a pack, a lesson or an answer is typeset for paper, nothing else
+ * on it, in a sandboxed frame of its own, and the print dialog comes up,
  * where every browser and every phone offers "Save as PDF" or the share
  * sheet. No PDF library: the browser's own engine sets every language and
  * every font the page can show, which a two-hundred-kilobyte generator
@@ -108,28 +108,47 @@ const STYLE = `
 `;
 
 /**
- * Open the print dialog on a typeset copy. Returns false when the browser
- * blocked the window, so the caller can say so.
+ * The page goes to the print dialog from a sandboxed frame, not a window of
+ * its own. A window opened from here would share the app's origin, so a
+ * built page or an uploaded one could read the keys in storage from its
+ * own <script>; a frame with `sandbox="allow-scripts allow-modals"` has an
+ * origin of its own and nothing of the app's, and can still print itself,
+ * which is all it is for. No pop-up to block, either: the frame is in the
+ * page, a pixel wide, and leaves when the dialog closes.
  */
-/** A whole page — a built thing, a deck — sent to the print dialog as it is, so a deck with one slide a page becomes a PDF deck. */
-export function printHtml(html: string): boolean {
-  const w = window.open("", "_blank", "noopener=no");
-  if (!w) return false;
-  w.document.open();
-  w.document.write(html.replace(/<\/body>/i, `<script>window.addEventListener("load", () => { setTimeout(() => window.print(), 250); });</script></body>`));
-  w.document.close();
+function printInFrame(html: string, delay: number): boolean {
+  if (typeof document === "undefined") return false;
+  const frame = document.createElement("iframe");
+  frame.setAttribute("sandbox", "allow-scripts allow-modals");
+  frame.setAttribute("aria-hidden", "true");
+  frame.title = "Print";
+  frame.style.cssText = "position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none";
+  const script = `<script>window.addEventListener("load", () => { setTimeout(() => { try { window.print(); } finally { setTimeout(() => parent.postMessage({ armiPrint: "done" }, "*"), 400); } }, ${delay}); });</script>`;
+  frame.srcdoc = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, `${script}</body>`) : `${html}${script}`;
+  let timer = 0;
+  const cleanup = () => { window.removeEventListener("message", onDone); window.clearTimeout(timer); frame.remove(); };
+  const onDone = (e: MessageEvent) => { if (e.source === frame.contentWindow) cleanup(); };
+  window.addEventListener("message", onDone);
+  /* Safari's dialog does not block the script, so the "done" can arrive
+     before it closes; the frame outliving the dialog costs nothing, and a
+     frame that never reports is cleared after ten minutes. */
+  timer = window.setTimeout(cleanup, 10 * 60_000);
+  document.body.appendChild(frame);
   return true;
 }
 
+/**
+ * Open the print dialog on a typeset copy. Returns false only when there
+ * is no document to print from, so the caller can say so.
+ */
 export function printMarkdown(title: string, markdown: string, foot = "Made with Armi"): boolean {
-  const w = window.open("", "_blank", "noopener=no");
-  if (!w) return false;
   const safe = esc(title || "Untitled");
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>${safe}</title><style>${STYLE}</style></head><body>` +
-    `<h1>${safe}</h1>${markdownToPrintHtml(markdown)}<p class="foot">${esc(foot)} · ${esc(new Date().toLocaleDateString())}</p>` +
-    `<script>window.addEventListener("load", () => { setTimeout(() => window.print(), 150); });</script></body></html>`;
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
-  return true;
+    `<h1>${safe}</h1>${markdownToPrintHtml(markdown)}<p class="foot">${esc(foot)} · ${esc(new Date().toLocaleDateString())}</p></body></html>`;
+  return printInFrame(html, 150);
+}
+
+/** A whole page — a built thing, a deck — sent to the print dialog as it is, so a deck with one slide a page becomes a PDF deck. */
+export function printHtml(html: string): boolean {
+  return printInFrame(html, 250);
 }

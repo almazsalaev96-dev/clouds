@@ -31,6 +31,14 @@ console.log("\nAsking for a thing builds the thing");
   ]) check(makes(t), JSON.stringify(t.slice(0, 42)));
 }
 
+console.log("\nA deck is made, but words about a deck are words");
+{
+  for (const t of ["make me ten slides on the water cycle, with speaker notes", "build a pitch deck for a bakery", "create a presentation about volcanoes"])
+    check(makes(t), JSON.stringify(t.slice(0, 42)));
+  for (const t of ["write speaker notes for my slides", "give me feedback on my presentation", "write a summary of the presentation I attached", "what makes a good pitch deck"])
+    check(!makes(t), JSON.stringify(t.slice(0, 42)));
+}
+
 console.log("\nAnd so does saying run");
 {
   for (const t of ["run it", "run this", "run that for me", "can you run the page", "make it run"])

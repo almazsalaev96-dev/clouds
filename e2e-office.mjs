@@ -35,6 +35,20 @@ console.log("\nThe model runs code in a sandbox and reads the result");
   check(/rows 3/.test(back) && /"total":\s*245/.test(back), "and what it printed and returned went back to the model", back.replace(/\s+/g, " ").slice(0, 80));
 }
 
+console.log("\nAnd the box has walls: no network, no storage, no origin of the app's");
+{
+  await fetch(`${MOCK}/__reset`);
+  await p.locator(".composer-shell textarea").first().fill("run code that tries the network and the app's storage");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(8000);
+  const last = await fetch(`${MOCK}/__last`).then((r) => r.json());
+  const back = (last.toolResults ?? []).join("\n");
+  check(/fetch blocked, eventsource blocked, import blocked, storage blocked/.test(back), "fetch, EventSource, a dynamic import and IndexedDB all fail inside the box", back.replace(/\s+/g, " ").slice(0, 120));
+  check(/origin null/.test(back), "and the code runs on an origin of its own, not the app's", back.match(/origin \S+/)?.[0]);
+  const { hits } = await fetch(`${MOCK}/__probe-hits`).then((r) => r.json());
+  check(hits === 0, "no request ever left the box", `${hits} reached the server`);
+}
+
 console.log("\nA page becomes a Word file");
 {
   await p.locator("aside nav").getByRole("button", { name: "Notebook", exact: true }).first().click();
@@ -71,6 +85,25 @@ console.log("\nA deck becomes a PowerPoint file, and can be printed one slide a 
   await p.getByLabel("Files to open").setInputFiles([{ name: "water-cycle.html", mimeType: "text/html", buffer: Buffer.from(deck) }]);
   await p.waitForTimeout(1500);
   check(await p.getByRole("button", { name: "Print or save as PDF" }).isVisible(), "a built page offers Print or save as PDF");
+  const opened = [];
+  p.on("popup", (w) => opened.push(w));
+  await p.getByRole("button", { name: "Print or save as PDF" }).click();
+  /* The preview frame shows the same deck; the print frame is the one
+     carrying the print script. Headless Chromium's print() returns at
+     once, so the frame lives well under a second: look for it, do not wait. */
+  let inFrame = null;
+  for (let i = 0; i < 60 && !inFrame; i += 1) {
+    for (const f of p.frames()) {
+      if (f === p.mainFrame()) continue;
+      const got = await f.evaluate(() => ({ prints: [...document.scripts].some((x) => x.textContent.includes("armiPrint")), slides: document.querySelectorAll(".slide").length, origin: String(self.origin), title: document.title, sandboxed: (() => { try { localStorage.getItem("x"); return false; } catch { return true; } })() })).catch(() => null);
+      if (got?.prints) { inFrame = got; break; }
+    }
+    if (!inFrame) await p.waitForTimeout(30);
+  }
+  await p.waitForTimeout(600);
+  check(Boolean(inFrame) && inFrame.slides === 3 && inFrame.title === "Water cycle", "printing puts the whole deck in a frame of the page, not a pop-up window", JSON.stringify(inFrame));
+  check(Boolean(inFrame) && inFrame.origin === "null" && inFrame.sandboxed, "and that frame has no origin and no storage of the app's, so the page's own scripts can read nothing", JSON.stringify(inFrame));
+  check(opened.length === 0, "and no window was opened", `${opened.length} opened`);
   const ppt = p.getByRole("button", { name: "Download as PowerPoint" });
   check(await ppt.isVisible(), "and a deck offers PowerPoint, which an ordinary page does not");
   const dl = p.waitForEvent("download", { timeout: 20000 });

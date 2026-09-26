@@ -126,6 +126,7 @@ console.log("mean", total / xs.length);
 const AFTER_COMPUTE = `The mean is 39.4, over ten numbers totalling 394.`;
 
 let lastSeen = null;
+let probeHits = 0;
 let lastTitle = null;
 const recent = [];
 let rateLimitOnce = process.env.MOCK_RATE_LIMIT === "1";
@@ -239,10 +240,24 @@ createServer(async (req, res) => {
     res.end(JSON.stringify({ recent }));
     return;
   }
+  /* A door the sandbox must not be able to knock on. Code run in the box
+     tries to reach it; the count says whether the request ever left. */
+  if (req.url === "/__probe-hits") {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ hits: probeHits }));
+    return;
+  }
+  if ((req.url ?? "").startsWith("/__probe")) {
+    probeHits += 1;
+    res.writeHead(200, { "content-type": "text/event-stream", "access-control-allow-origin": "*" });
+    res.end("data: hi\n\n");
+    return;
+  }
   /* Cleared so a test can ask "was a model called at all since I last looked"
      — which is the only way to check that a sum reached none. */
   if (req.url === "/__reset") {
     lastSeen = null;
+    probeHits = 0;
     lastTitle = null;
     recent.length = 0;
     res.writeHead(200, { "content-type": "application/json" });
@@ -852,6 +867,8 @@ Nothing here looks like it breaks a caller — the return type is the same array
     if ((m = /(?:calculate|work out) (.+?)[?.]?$/i.exec(ask)) && offered.has("calculate")) return { name: "calculate", input: { expression: m[1] } };
     /* "run code to …": a small program that prints and returns, so a probe
        can see both halves of the sandbox's answer come back. */
+    if (/\brun code that tries the network\b/i.test(ask) && offered.has("run_code"))
+      return { name: "run_code", input: { code: "const base = 'http://127.0.0.1:8787';\nconst tried = [];\ntry { await fetch(base + '/__probe?fetch'); tried.push('fetch reached'); } catch (e) { tried.push('fetch blocked'); }\ntry { await new Promise((ok, no) => { const es = new EventSource(base + '/__probe?es'); es.onopen = () => { es.close(); ok(); }; es.onerror = () => { es.close(); no(new Error('x')); }; setTimeout(() => no(new Error('t')), 1500); }); tried.push('eventsource reached'); } catch (e) { tried.push('eventsource blocked'); }\ntry { await import(base + '/__probe?import'); tried.push('import reached'); } catch (e) { tried.push('import blocked'); }\ntry { const db = await new Promise((ok, no) => { const q = indexedDB.open('clouds'); q.onsuccess = () => ok(q.result); q.onerror = () => no(q.error); }); tried.push('storage reached ' + db.objectStoreNames.length); } catch (e) { tried.push('storage blocked'); }\nconsole.log(tried.join(', '), 'origin', String(self.origin));\nreturn tried.length;", input: "" } };
     if (/\brun (?:some |this )?code\b/i.test(ask) && offered.has("run_code"))
       return { name: "run_code", input: { code: "const rows = input.trim().split('\\n').slice(1).map(l => l.split(','));\nconst total = rows.reduce((a, r) => a + Number(r[1]), 0);\nconsole.log('rows', rows.length);\nreturn { total };", input: "name,score\nada,90\nlin,85\nkai,70" } };
     if (/\badd (this|that|it) to the project\b/i.test(ask) && offered.has("save_to_project")) return { name: "save_to_project", input: { name: "decisions.md", text: "We debounce the search box at 300ms." } };
