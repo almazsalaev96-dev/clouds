@@ -135,13 +135,7 @@ export function DeckPanel({
           >
             <ChevronLeft size={16} />
           </button>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-medium text-primary">{deck.name}</span>
-            <span className="block text-xs text-tertiary tnum">
-              {p.total} card{p.total === 1 ? "" : "s"} · {p.known} known
-              {p.due > 0 ? ` · ${p.due} due now` : p.nextDue ? ` · next ${whenDue(p.nextDue, now)}` : ""}
-            </span>
-          </span>
+          <span className="min-w-0 flex-1" />
           <RevisePicker configured={configured} />
           <Button size="sm" variant="ghost" disabled={busy} onClick={() => void more()}>
             <Plus size={13} />
@@ -177,6 +171,17 @@ export function DeckPanel({
           )}
         </div>
       </header>
+      {/* The deck's name set large under the toolbar, the way every room's
+          page opens now — a project, a notebook — with what it holds in one
+          line under it. It sat in the toolbar at 14px between the back
+          chevron and six buttons, which is where a label goes, not a name. */}
+      <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-2 pt-5">
+        <h1 className="title-field text-primary">{deck.name}</h1>
+        <p className="mt-1 text-base text-tertiary tnum">
+          {p.total} card{p.total === 1 ? "" : "s"} · {p.known} known
+          {p.due > 0 ? ` · ${p.due} due now` : p.nextDue ? ` · next ${whenDue(p.nextDue, now)}` : ""}
+        </p>
+      </div>
 
       {testing ? (
         <TestMode

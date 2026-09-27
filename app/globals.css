@@ -2395,6 +2395,9 @@ textarea.bare:focus-visible,
   --read-leading: 1.75;
   --read-gap: 1.15em;
 }
+/* A page's own title, set large the way every room's page opens now. Only
+   the first heading; the ones inside the page keep the document's scale. */
+[data-read="doc"] .prose > h1:first-child { font-size: 2rem; line-height: 1.2; letter-spacing: -0.02em; }
 
 /* Information rather than prose: a table, a list of numbers, a panel of
    detail. Here density *is* the point — the value of the thing is seeing a lot
