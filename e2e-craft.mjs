@@ -90,10 +90,12 @@ console.log("\nOne open choice is asked first, with examples, and the reply is m
   check(seq === "study", "the study ran and nothing was written", seq);
   const asked = await p.locator(".msg").last().innerText();
   check(/Which exam board\?/.test(asked) && /AQA/.test(asked) && /Edexcel/.test(asked) && /Reply with a number/.test(asked), "the assistant asks the one thing that changes the plan, with options", asked.replace(/\s+/g, " ").slice(0, 120));
+  const picks = p.locator(".msg").last().getByRole("group", { name: "Pick one" });
+  check((await picks.getByRole("button").count()) === 3, "and the options are presses under it, not only a list to type a number from", `${await picks.getByRole("button").count()} presses`);
   await fetch(`${MOCK}/__reset`);
-  await box().fill("2");
-  await p.keyboard.press("Enter");
+  await picks.getByRole("button", { name: "Edexcel" }).click();
   await settle(7000);
+  check(/Edexcel/.test(await p.locator(".msg").nth(2).innerText().catch(() => "")), "pressing one sends its words as the reply");
   const calls = await recent();
   const seq2 = calls.map((r) => r.kind);
   check(seq2[0] === "answer" && !seq2.includes("study"), "the reply is not studied again", seq2.join(" → "));

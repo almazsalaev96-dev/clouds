@@ -96,7 +96,7 @@
      what has to match between two themes is the size of the step, not the
      colour. Text on it still clears every threshold — secondary 8.68,
      faint 4.88. */
-  --bg-subtle: #ececef;
+  --bg-subtle: #e9eef6;
   /* A section's ground: one step off the canvas, under a card. Four
      planes read as depth; three read as a card on a page. */
   --bg-section: #f0f4f9;
@@ -496,8 +496,10 @@
   /* The composer. On light it lifts with a real drop shadow; on dark a shadow
      under a dark box is invisible, so the lift there comes from a lit top edge
      instead. Both live here so the rule that uses them stays one rule. */
-  --composer-bg: rgba(253, 253, 255, 0.90);
-  --composer-line: rgba(22, 28, 43, 0.10);
+  /* The reference's box in light: a grey pill on the white page, no line
+     and no shadow, lit only by focus. */
+  --composer-bg: #f0f4f9;
+  --composer-line: transparent;
   /* The box is focused on every blank page and at the top of every room —
      the app focuses it for you — so whatever focus looks like here is what
      this app looks like at rest. At 0.55 with a 3px ring that was a lit
@@ -505,17 +507,14 @@
      never turns off, which the comment on `.composer-shell` warns about and
      which the tokens then went and built. The line warms, the shadow
      deepens, and neither of those is a colour you notice first. */
-  --composer-line-focus: rgba(0, 125, 149, 0.34);
+  --composer-line-focus: rgba(11, 87, 208, 0.35);
   /* The one surface you look at in every session, so it sits a clear step
      above the page rather than a suspicion above it: the resting shadow used
      to be pulled back 16px of spread out of 32 of blur, which on paper is no
      shadow. Focus deepens the same shadow and adds the ring — it does not
      swap one for the other, because a box that changes shape when you touch
      it reads as a different box. */
-  --composer-lift:
-    0 1px 2px rgb(22 28 43 / 0.06),
-    1px 6px 16px -6px rgb(22 28 43 / 0.14),
-    2px 16px 36px -14px rgb(22 28 43 / 0.16);
+  --composer-lift: none;
   --composer-lift-focus:
     0 1px 2px rgb(22 28 43 / 0.06),
     1px 8px 20px -6px rgb(22 28 43 / 0.16),
@@ -1669,6 +1668,12 @@ body::before {
     radial-gradient(34rem 28rem at 96% 4%, var(--mesh-b), transparent 62%),
     radial-gradient(42rem 34rem at 78% 106%, var(--mesh-a), transparent 66%),
     radial-gradient(30rem 26rem at 22% 92%, var(--mesh-c), transparent 60%);
+}
+
+/* Light: the reference's page is white with a wash of sky blue rising from
+   its foot, and nothing else — no corner glows. Dark keeps its mesh. */
+:root:not([data-theme="dark"]) body::before {
+  background-image: radial-gradient(90% 55% at 50% 108%, rgba(168, 199, 247, 0.62), rgba(196, 217, 250, 0.28) 45%, transparent 72%);
 }
 
 /* Grain and vignette share a layer so the page only pays for two pseudo

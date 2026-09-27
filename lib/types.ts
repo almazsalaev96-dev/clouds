@@ -137,6 +137,12 @@ export interface Message {
     modelId: string;
   };
   /**
+   * The choices an answer offers when it asks before making something
+   * (lib/craft.ts askFirst): drawn as presses under it, each sending its
+   * words as the person's reply.
+   */
+  asks?: string[];
+  /**
    * Craft (lib/craft.ts): the field studied before this answer was written,
    * the standard it was held to, and how a second model judged it against
    * that standard. Stored with the answer because it is about this text.

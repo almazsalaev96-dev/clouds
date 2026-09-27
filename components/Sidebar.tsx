@@ -171,7 +171,7 @@ export function Sidebar({
                     aria-current={on ? "true" : undefined}
                     onClick={() => onGoToSection(s.id)}
                     size={40}
-                    className={cn("rounded-lg", on ? "bg-accent-subtle text-accent hover:bg-accent-subtle hover:text-accent" : "")}
+                    className={cn("rounded-lg", on ? "bg-subtle text-primary hover:bg-subtle hover:text-primary" : "")}
                   >
                     {s.icon}
                   </IconButton>
@@ -291,7 +291,7 @@ export function Sidebar({
               /* A fill, not a floating object: it sits behind the row it
                  marks, so it takes no shadow at all rather than one turned
                  off. */
-              indicatorClassName="rounded-sm bg-accent-subtle"
+              indicatorClassName="rounded-md bg-subtle"
               /* `gap`, not `space-y`. The indicator is the first child of this
                  box, so `space-y-*` — which margins every sibling after the
                  first — would push the whole list down by one step the moment
@@ -551,7 +551,7 @@ function RoomList({
                 aria-current={on || undefined}
                 className={cn(
                   "tap focus-inset flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-sm transition-colors duration-[var(--dur-fast)]",
-                  on ? "bg-accent-subtle text-primary" : "text-secondary hover:bg-subtle/60 hover:text-primary",
+                  on ? "bg-subtle text-primary" : "text-secondary hover:bg-subtle/60 hover:text-primary",
                 )}
                 title={r.title}
               >
@@ -712,7 +712,7 @@ function Row({
     <div
       className={cn(
         "tap group relative flex h-8 items-center rounded-md pl-2 pr-1 transition-colors duration-[var(--dur-fast)]",
-        active ? "bg-accent-subtle" : "hover:bg-subtle/60",
+        active ? "bg-subtle" : "hover:bg-subtle/60",
       )}
     >
       {/* `h-full`, because a row is a target and a line of text is not. The

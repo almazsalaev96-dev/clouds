@@ -679,7 +679,23 @@ function AssistantMessageImpl({
           real message in the person's own turn, so the transcript shows what
           was asked and nothing is done behind their back. Last answer only —
           on an earlier one they would be asking about the wrong thing. */}
-      {isLast && onFollowUp && !message.error && !computed && text && (
+      {/* An answer that asks before it makes: the choices it offered, each
+          a press that sends it as the reply — a number typed into the box
+          was the fallback, not the way. Last answer only. */}
+      {isLast && onFollowUp && message.asks && message.asks.length > 0 && (
+        <div className="no-print mt-2.5 flex flex-wrap gap-2" role="group" aria-label="Pick one">
+          {message.asks.map((a) => (
+            <button
+              key={a}
+              onClick={() => onFollowUp(a)}
+              className="btn-touch press h-9 shrink-0 rounded-full border border-line bg-surface px-3.5 text-sm text-primary transition-colors duration-[var(--dur-fast)] hover:bg-subtle"
+            >
+              {a}
+            </button>
+          ))}
+        </div>
+      )}
+      {isLast && onFollowUp && !message.error && !computed && text && !message.asks?.length && (
         /* One row on a phone, swiped sideways, rather than six pills
            wrapping into two tall rows between the answer and its actions —
            which on a 390-pixel screen was a third of the view. The row runs
