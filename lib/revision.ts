@@ -40,6 +40,10 @@
 
 import { COMMAND_WORDS } from "./exam";
 
+/* Every recipe, whatever the source: a student who revises in Russian gets
+   the organiser in Russian, with the source's own terms kept. */
+const LANGUAGE = "Write in the language the source is written in — the headings too — keeping names, symbols and quoted terms as the source has them.";
+
 export interface Recipe {
   /** The suffix of the page's title: "<source> — Knowledge organiser". */
   title: string;
@@ -73,6 +77,7 @@ export const ORGANISER: Recipe = {
     "## Links — three sentences on how this topic connects to the ones before and after it in the subject.",
     "Use `> [!key]` on at most three lines in the whole page: the ones a student loses most marks for not knowing exactly.",
     "No preamble, no table of contents, nothing you did not get from the source; where the source is unclear, say so.",
+    LANGUAGE,
   ].join("\n"),
 };
 
@@ -88,6 +93,7 @@ export const CORNELL: Recipe = {
     "Then a line beginning **Summary:** — three sentences, in the student's own voice, that say what the section established and why it matters.",
     "After all sections, one final heading `## The whole thing in ten lines` — ten bullets that are the shortest true account of the source.",
     "Every cue must be answerable from the source. Do not write a cue whose answer is the sentence before it. No preamble. Where the source is unclear, say so rather than inventing a resolution.",
+    LANGUAGE,
   ].join("\n"),
 };
 
@@ -103,6 +109,7 @@ export const EXAM: Recipe = {
     "**Model answer** — a full-mark answer, written the way a strong student writes under time: the command word obeyed, the marks visibly hit, no padding.",
     "**Where marks are lost** — one line: the mistake most students make on this question.",
     "Every question must be answerable from the source, and no question may have the sentence before it as its answer. Vary the wording so recognising a phrase does not earn a mark. No preamble. Where the source is unclear, say so.",
+    LANGUAGE,
   ].join("\n"),
 };
 
@@ -133,6 +140,7 @@ export const LESSON: Recipe = {
     "## Where people go wrong — three mistakes learners make on this topic, each with what to do instead. Use the callout `> [!mistake]` for the worst one.",
     "## In one breath — the whole lesson in four lines, the way a student would say it back.",
     "No preamble, no filler. Where the topic is contested or the level ambiguous, say so in a line rather than guessing silently.",
+    LANGUAGE,
   ].join("\n"),
 };
 

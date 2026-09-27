@@ -797,15 +797,15 @@ const CROP_ASKS: Ask[] = [
 const STUDIO = {
   guide: {
     label: "Study guide",
-    prompt: "Write a study guide for this document: the ten things to know, each in one or two lines, ranked by how likely they are to be examined; the key terms as a table of term and meaning; and the three mistakes people make with this material.",
+    prompt: "Write a study guide for this document: the ten things to know, each in one or two lines, ranked by how likely they are to be examined; the key terms as a table of term and meaning; and the three mistakes people make with this material. Write in the language the document is written in.",
   },
   questions: {
     label: "Questions",
-    prompt: "Write eight exam-style questions on this document, from recall to evaluation, each with the marks it is worth and a mark scheme saying what a full-mark answer must contain. Questions first, then all the mark schemes under a heading of their own.",
+    prompt: "Write eight exam-style questions on this document, from recall to evaluation, each with the marks it is worth and a mark scheme saying what a full-mark answer must contain. Questions first, then all the mark schemes under a heading of their own. Write in the language the document is written in.",
   },
   summary: {
     label: "Summary",
-    prompt: "Summarise this in five lines a student could revise from. Then one line saying what it does not cover.",
+    prompt: "Summarise this in five lines a student could revise from. Then one line saying what it does not cover. Write in the language the document is written in.",
   },
 } as const;
 

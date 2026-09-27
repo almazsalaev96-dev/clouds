@@ -165,6 +165,7 @@ Rules:
 - Never give the answer away inside the question.
 - Where the material has specifics, use them: real names, real numbers, real examples from it.
 - Give each card a "topic": two or three words for the thing it is about, finer than the material as a whole. Cards about the same thing must use the exact same topic string, or they will not group.
+- Write the cards in the language the material is written in, keeping names, symbols and quoted terms as the material has them.
 ${opts.about ? `\nThe subject is: ${opts.about}\n` : ""}
 MATERIAL
 ${source.slice(0, 40_000)}`;

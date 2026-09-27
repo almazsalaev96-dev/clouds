@@ -506,7 +506,7 @@ export default function Page() {
       // arrived, and this is called with `void`, so a rejection here would
       // reach the console as an unhandled one over nothing that matters.
       const title = await complete(
-        `Give this conversation a title of at most six words. Reply with the title alone — no quotes, no punctuation at the end.\n\n${firstUserText.slice(0, 800)}`,
+        `Give this conversation a title of at most six words, in the language the message below is written in. Reply with the title alone — no quotes, no punctuation at the end.\n\n${firstUserText.slice(0, 800)}`,
         { modelId, maxTokens: 64, temperature: 0.3 },
       ).catch(() => null);
       const clean = title?.trim().replace(/^["'#\s]+|["'.\s]+$/g, "").slice(0, 60);
