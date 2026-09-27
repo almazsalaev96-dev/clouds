@@ -1377,6 +1377,13 @@ function MemoryPanel() {
       />
 
       <Toggle
+        checked={settings.craftOn}
+        onChange={(craftOn) => settings.set({ craftOn })}
+        label="Craft bigger tasks"
+        hint="On a task that is more than a question — a site, a plan, notes, a letter, a deck — a model first studies how the best make exactly that and sets the standard; the answer is written to it, and a second model judges the result against what you asked and that standard, and has it done again if it falls short. Not on every message: questions and follow-ups go straight to the writer. Off, everything does."
+      />
+
+      <Toggle
         checked={settings.actionsOn}
         onChange={(actionsOn) => settings.set({ actionsOn })}
         label="Let it use the rooms"

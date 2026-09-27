@@ -56,6 +56,7 @@ function MessageListImpl({
   onRate,
   onVerify,
   verifyingId,
+  judgingId,
   onFactCheck,
   factCheckingId,
   onRetry,
@@ -111,6 +112,8 @@ function MessageListImpl({
   /** Ask a model from another provider whether an answer is right. */
   onVerify: (message: Msg) => void;
   verifyingId?: string | null;
+  /** The answer a model is judging against its standard right now. */
+  judgingId?: string | null;
   onFactCheck?: (message: Msg) => void;
   factCheckingId?: string | null;
   onRetry: () => void;
@@ -307,6 +310,7 @@ function MessageListImpl({
                 onOpenAction={onOpenAction}
                 onUndoAction={onUndoAction}
                 verifying={verifyingId === m.id}
+                judging={judgingId === m.id}
                 entering={entering}
                 settled={m.id === settledId}
                 isLast={i === messages.length - 1}

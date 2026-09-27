@@ -173,6 +173,13 @@ interface Settings {
    * a page, look in the notebook. Off, it can only answer.
    */
   actionsOn: boolean;
+  /**
+   * Craft (lib/craft.ts): on a task that is more than a normal one, a model
+   * studies how the best do it and sets a standard before the answer is
+   * written, and a second model judges the answer against it after. Off,
+   * every task goes straight to the writer.
+   */
+  craftOn: boolean;
   showLineNumbers: boolean;
   wrapCode: boolean;
   /** Browser-held keys, used only when the server has none for that provider. */
@@ -249,6 +256,7 @@ export const DEFAULT_SETTINGS = {
   plus: null,
   exam: null,
   actionsOn: true,
+  craftOn: true,
   showLineNumbers: false,
   wrapCode: false,
   keys: {} as Record<string, string>,

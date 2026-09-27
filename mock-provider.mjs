@@ -126,9 +126,15 @@ console.log("mean", total / xs.length);
 const AFTER_COMPUTE = `The mean is 39.4, over ten numbers totalling 394.`;
 
 let lastSeen = null;
+/* The last call of each kind, so a probe can read the answer's request
+   when the answer was not the last thing on the wire — a crafted turn ends
+   on the judge (lib/craft.ts), a checked one on the check. */
+const lastByKind = {};
 let probeHits = 0;
 let lastTitle = null;
 const recent = [];
+/* Which asks the craft judge has already read once (see CRAFT_JUDGE). Cleared with /__reset. */
+const judgedAsks = new Set();
 let rateLimitOnce = process.env.MOCK_RATE_LIMIT === "1";
 let failNext = null;
 /* `/__slow?kind=brief&ms=2500` holds calls of one kind back, so a probe can
@@ -229,9 +235,10 @@ createServer(async (req, res) => {
 
   // /__last lets a test read what the app actually sent — how many turns
   // survived the context fitter, and whether a cache breakpoint was placed.
-  if (req.url === "/__last") {
+  if (req.url === "/__last" || req.url.startsWith("/__last?")) {
+    const wanted = new URL(req.url, "http://mock").searchParams.get("kind");
     res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify(lastSeen ?? {}));
+    res.end(JSON.stringify((wanted ? lastByKind[wanted] : lastSeen) ?? {}));
     return;
   }
   /* Every call since the last reset, in order, so a test can prove that one
@@ -268,10 +275,12 @@ createServer(async (req, res) => {
   }
   if (req.url === "/__reset") {
     lastSeen = null;
+    for (const k of Object.keys(lastByKind)) delete lastByKind[k];
     slow = {};
     probeHits = 0;
     lastTitle = null;
     recent.length = 0;
+    judgedAsks.clear();
     res.writeHead(200, { "content-type": "application/json" });
     res.end("{}");
     return;
@@ -698,6 +707,27 @@ It also reports a figure of nine hundred percent [[cite: ${name} | the result wa
     { claim: "The trailing edge is the default", verdict: "unsupported", note: "The page says the leading edge is the default." },
   ] });
   const verifying = !factchecking && /^Someone asked a question and got the answer below/.test(asked);
+  /* Craft (lib/craft.ts): the study of the field before the answer, and the
+     judge after it. The study asks the one open question only when the ask
+     is a revision *plan* — the board changes the whole plan — and the judge
+     finds the first answer to any ask short, and the next one to the same
+     ask up to the standard, so the screen has to show both and the second
+     pass has to happen. */
+  const studying = /^Study how the best do this, before anyone writes it\./.test(asked);
+  const craftJudging = /^Judge the answer below against the ask and the standard\./.test(asked);
+  const craftAsk = (asked.match(/\nThe ask:\n\n([^\n]+)/) ?? [, ""])[1].trim();
+  const STUDY = JSON.stringify({
+    field: "GCSE Business revision notes on the marketing mix",
+    makers: ["Save My Exams — notes by exam board, with questions and mark schemes", "Seneca — short notes with recall built in", "BBC Bitesize — plain words, one idea a screen"],
+    standard: ["Organised by the exam board's own topic list", "Each note under 300 words with the key terms in bold", "Practice questions with mark schemes", "A worked example for every formula", "Recall or flashcards on every topic", "Plain words a fifteen-year-old reads once", "Readable on a phone"],
+    imagined: "Notes they can revise from tonight: the topics laid out, each short enough to read on a phone, and something to test themselves with at the end.",
+    unsure: /revision plan/i.test(craftAsk) ? { question: "Which exam board?", options: ["AQA", "Edexcel", "OCR"] } : null,
+  });
+  const judgedBefore = craftJudging && judgedAsks.has(craftAsk);
+  if (craftJudging) judgedAsks.add(craftAsk);
+  const CRAFT_JUDGE = JSON.stringify(judgedBefore
+    ? { verdict: "meets", missing: [], weak: [], fix: "" }
+    : { verdict: "short", missing: ["Practice questions with mark schemes"], weak: ["The notes are three lines each, under the standard's worked example for every formula"], fix: "Add a set of practice questions with mark schemes and write each note out to the standard." });
   /* Deep research's own searches, one call each, before the writer starts. */
   const scouting = /^Search the web for:/.test(asked);
   const deepPlanning = /^Break this into 3 to 5 distinct web searches/.test(asked);
@@ -741,8 +771,9 @@ Nothing here looks like it breaks a caller — the return type is the same array
   /* Every call, in order, so a test can prove that one turn was two models:
      a brief to one company and the answer to another, in that order. `__last`
      alone can only ever show whichever was most recent. */
-  const callKind = isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : scouting ? "scout" : deepPlanning ? "plan" : "answer";
+  const callKind = isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : scouting ? "scout" : deepPlanning ? "plan" : studying ? "study" : craftJudging ? "judge" : "answer";
   if (slow[callKind]) await new Promise((r) => setTimeout(r, slow[callKind]));
+  lastByKind[callKind] = lastSeen;
   recent.push({
     model: body.model,
     kind: callKind,
@@ -802,6 +833,10 @@ Nothing here looks like it breaks a caller — the return type is the same array
     ? FACTS
     : verifying
     ? VERDICT
+    : studying
+    ? STUDY
+    : craftJudging
+    ? CRAFT_JUDGE
     : whying
     ? WHY
     : trying

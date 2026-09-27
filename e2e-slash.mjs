@@ -74,7 +74,7 @@ console.log("\nA bare “/research” is a setting, not a message");
   check((await box().inputValue()) === "", "with the box cleared as for any send");
 }
 
-console.log("\n“/check” asks for a second reading; “/compare” is Binary for the turn");
+console.log("\n“/check” asks for a second reading");
 {
   await fetch(`${MOCK}/__reset`);
   await box().fill("/check is a debounce the same as a throttle");
@@ -86,17 +86,6 @@ console.log("\n“/check” asks for a second reading; “/compare” is Binary 
   const row = await p.locator(".msg").last().innerText();
   check(/second reading asked for|answered again by a stronger model/.test(row), "the row says a second reading was asked for", (row.split("\n").find((l) => /second reading|answered again/.test(l)) ?? "").slice(0, 90));
   check(/answered again by a stronger model after a second model objected/.test(row), "and when the reading objected, a stronger model answered again", (row.split("\n").find((l) => /answered again/.test(l)) ?? "").slice(0, 90));
-  await box().fill("/compare which of these two names is better, Nova or Lens");
-  await p.keyboard.press("Meta+Enter");
-  await p.waitForTimeout(4500);
-  /* Binary's tactic is two columns, not one row: the same side-by-side the
-     Compare button makes, headed by the answers rather than by companies. */
-  const keeps = p.getByRole("button", { name: /^Keep .*answer$/ });
-  check(/Comparing 2 models/.test(await p.locator("main").innerText()) && (await keeps.count()) === 2, "and “/compare” puts two answers side by side — Binary's tactic", `${await keeps.count()} columns to keep from`);
-  check(!/\/compare|\/check/.test(await p.locator("main").innerText()), "with neither command kept in the messages");
-  await keeps.first().click();
-  await p.waitForTimeout(800);
-  check((await keeps.count()) === 0 && /debounce|Nova|Lens/i.test(await p.locator(".msg").last().innerText()), "keeping one leaves it as the answer in the thread");
 }
 
 console.log("\n“With more effort” asks the same model to think harder");

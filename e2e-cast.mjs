@@ -5,7 +5,7 @@
  * a model rather than a label is that two companies work on the answer: one
  * reads the question and writes down what a good answer has to get right, and
  * the other writes it with that in hand. Nova has a second company check it
- * afterwards. Mizar puts two companies on the same question side by side.
+ * afterwards.
  *
  * None of that can be taken on trust from the interface, so it is read at the
  * wire: which models were called, in which order, and whether what the first
@@ -125,30 +125,10 @@ console.log("\nThe quick one answers first and is checked after");
     "and not to one of their products, which is a fact about this browser's keys");
 }
 
-console.log("\nAnd where judgement decides, two answers beat one verdict");
-{
-  /* Two answers is a thing you ask for on the turn — "/compare" — rather
-     than a model on the menu. */
-  await pick("ARMI Mira 4.1");
-  await p.getByRole("button", { name: "New chat" }).first().click();
-  await p.waitForTimeout(350);
-  await fetch(`${MOCK}/__reset`);
-  await p.locator(".composer-shell textarea").first().fill("/compare what should we call this feature");
-  await p.keyboard.press("Enter");
-  await p.waitForTimeout(4000);
-  const shown = await p.locator("main").innerText();
-  check(/Comparing 2 models/i.test(shown), "two companies answer the same question, side by side",
-    (shown.split("\n").find((l) => /Comparing/i.test(l)) ?? "").slice(0, 80));
-  const models = new Set((await calls()).filter((r) => r.kind === "answer").map((r) => r.model));
-  check(models.size >= 2, "and both of them are really called", [...models].join(" vs "));
-  check(/Keep this one|keep the one/i.test(shown), "with the choice left to the person reading them");
-  /* And, once both are in, where they stand: the disagreement named, so the
-     choice is made about that rather than about which reads better. */
-  const stand = p.getByLabel("Where they stand");
-  const said = await stand.waitFor({ timeout: 6000 }).then(() => stand.innerText()).catch(() => "");
-  check(/They mostly agree/.test(said) && /differ on the default edge/.test(said), "and a third, cheap reading names where the two differ", said.replace(/\s+/g, " ").slice(0, 90));
-  await p.screenshot({ path: `${OUT}/cast-duel.png` });
-}
+/* Two answers side by side was "/compare", a row in the box's menu and the
+   Binary tactic. Compare stopped being a mode of the box at the person's
+   asking, and the tactic is a job no tier becomes on its own, so nothing on
+   the menu reaches it; the columns are not claimed here. */
 
 console.log("\nThe council is three jobs and one answer, not three drafts");
 {

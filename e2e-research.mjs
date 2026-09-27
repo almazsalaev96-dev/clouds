@@ -48,8 +48,8 @@ console.log("\nOff by default, and then on");
   check((await entry.getAttribute("aria-pressed")) === "false", "and says it is off");
   await entry.click();
   await p.waitForTimeout(400);
-  const on = p.locator(".composer-shell").getByRole("button", { name: "Stop searching the web" });
-  check(await on.isVisible(), "choosing it puts a chip in the composer");
+  const on = p.locator("header").getByRole("button", { name: "Stop searching the web" });
+  check(await on.isVisible(), "choosing it puts a chip by the model, at the top");
   check((await on.getAttribute("aria-pressed")) === "true", "which says it is on, to a screen reader as well as an eye");
   check(/Research/.test(await on.innerText()), "with its name on it, not a bare globe", (await on.innerText()).trim());
   /* And the chip is how you take it off again — the same press that an

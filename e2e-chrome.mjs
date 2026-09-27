@@ -7,7 +7,7 @@
  * the bar shows no toggle of its own; ⌘\ and ⌘⇧S both toggle; ⌘1–5 go to
  * the rooms in the order the sidebar lists them; on a phone the bar's
  * toggle opens the drawer. The box's plus menu offers, beyond files and a
- * photo: a picture, Learn, Research, Deep research, Slides, Compare, a
+ * photo: a picture, Learn, Research, Deep research, Slides, a
  * project, an assistant and a temporary chat; "New project from this
  * chat" makes one named for the thread and puts the chat in it; "Answer
  * as an assistant" switches the thread to it.
@@ -81,7 +81,7 @@ console.log("\nThe box's plus menu holds the functions");
   await p.getByRole("button", { name: "Add files and tools" }).click();
   await p.waitForTimeout(300);
   const menu = await p.locator("[data-radix-popper-content-wrapper]").last().innerText();
-  for (const item of ["Add photos and files", "Take a photo", "Make a picture", "Learn", "Research", "Deep research", "Slides", "Compare two models", "Add to a project", "Answer as an assistant", "Temporary chat"])
+  for (const item of ["Add photos and files", "Take a photo", "Make a picture", "Learn", "Research", "Deep research", "Slides", "Add to a project", "Answer as an assistant", "Temporary chat"])
     check(menu.includes(item), `offers ${item}`);
   await p.getByRole("button", { name: /^Add to a project/ }).click();
   await p.waitForTimeout(250);

@@ -46,7 +46,7 @@ const ask = async (q, ms = 3000) => {
   await page.getByRole("textbox", { name: "Message" }).fill(q);
   await page.keyboard.press("Enter");
   await page.waitForTimeout(ms);
-  return fetch(`${MOCK}/__last`).then((r) => r.json());
+  return fetch(`${MOCK}/__last?kind=answer`).then((r) => r.json());
 };
 
 console.log("\nThere is nothing to switch");

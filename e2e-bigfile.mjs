@@ -39,7 +39,7 @@ for (let i = 0; i < 120; i++) {
 }
 await p.waitForTimeout(2500);
 
-const last = await (await fetch(`${MOCK}/__last`)).json();
+const last = await (await fetch(`${MOCK}/__last?kind=answer`)).json();
 const sent = JSON.stringify(last ?? {});
 console.log("\nRead before it is sent");
 check(/part \d+ of \d+/.test(saw), "the page says it is reading, part by part, above the bar", saw);

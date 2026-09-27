@@ -25,8 +25,6 @@ export interface Slash {
   research?: boolean;
   /** Do not keep this chat. */
   temporary?: boolean;
-  /** Two answers, side by side. */
-  compare?: boolean;
   /** A second model reads the answer back. */
   check?: boolean;
   /** A picture from the words, not words about one. */
@@ -61,7 +59,6 @@ const VERBS: Record<string, Partial<Slash>> = {
   write: { presetId: "one", kind: "writing" },
   maths: { presetId: "one", kind: "data" },
   math: { presetId: "one", kind: "data" },
-  compare: { compare: true },
   check: { check: true },
   verify: { check: true },
   research: { research: true },
@@ -124,7 +121,6 @@ export function slashCommands(extra: SlashExtra[] = []): { command: string; does
     { command: "deep", does: "search from several angles, then write a report with sources" },
     { command: "max", does: "the most that can be done: planned, reasoned independently, checked — Astro 5" },
     { command: "fast", does: "the quickest answer, checked while you read — Nova 4" },
-    { command: "compare", does: "two companies answer, side by side" },
     { command: "check", does: "a second model reads the answer back" },
     { command: "temp", does: "do not keep this chat" },
     ...PRESETS.filter((p) => p.group === "everyday").map((p) => ({ command: nameOf(p.short), does: p.tagline.toLowerCase() })),

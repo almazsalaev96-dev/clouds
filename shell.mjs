@@ -86,9 +86,10 @@ console.log("\nOn a desktop window");
      the only value that satisfies both and the band is tight around it. */
   band(cap, 200, 240, "the composer stops growing at");
 
-  /* The one heading on a blank page. */
+  /* The one heading on a blank page: 28px at every width, which is the
+     size the reference apps set their greeting at (it was 30–36 here). */
   const title = await p.locator("h1").first().evaluate((n) => Math.round(parseFloat(getComputedStyle(n).fontSize)));
-  band(title, 30, 36, "a page's own title");
+  band(title, 26, 30, "a page's own title");
 
   await ctx.close();
 }

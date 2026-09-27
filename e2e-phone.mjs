@@ -147,9 +147,13 @@ console.log("\nA project's header fits a phone");
   await drawer("Projects");
   await p.locator("main").getByText("A-level Biology").first().click();
   await p.waitForTimeout(900);
-  const name = await p.getByLabel("Project name").boundingBox();
+  /* The title is two lines now — the name and what the project is — and
+     the button sits centred on the pair, on the same row band, with the
+     back chevron beside them rather than floating between two rows. */
+  const block = await p.getByLabel("Project name").locator("..").boundingBox();
   const btn = await p.getByRole("button", { name: "New chat here" }).boundingBox();
-  check(name && btn && Math.abs((name.y + name.height / 2) - (btn.y + btn.height / 2)) < 6, "the name and its button share one row", name && btn ? `name ${Math.round(name.y)} button ${Math.round(btn.y)}` : "missing");
+  const mid = btn ? btn.y + btn.height / 2 : -1;
+  check(block && btn && mid >= block.y && mid <= block.y + block.height, "the name and its button share one row band", block && btn ? `title ${Math.round(block.y)}–${Math.round(block.y + block.height)} button centre ${Math.round(mid)}` : "missing");
 }
 
 console.log("\nThe blank page's waiting line wraps without a dangling dot");

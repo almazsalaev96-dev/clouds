@@ -137,6 +137,19 @@ export interface Message {
     modelId: string;
   };
   /**
+   * Craft (lib/craft.ts): the field studied before this answer was written,
+   * the standard it was held to, and how a second model judged it against
+   * that standard. Stored with the answer because it is about this text.
+   */
+  craft?: {
+    field: string;
+    makers: string[];
+    standard: string[];
+    imagined: string;
+    modelId: string;
+    judged?: { verdict: "meets" | "short"; missing: string[]; weak: string[]; modelId: string };
+  };
+  /**
    * What the reader thought of it. Up is one press and stored as it is; down
    * asks why, because "not good" on its own is a number and a reason is
    * something the next answer can act on — which it does, through the same

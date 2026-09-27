@@ -68,7 +68,7 @@ console.log("\nProjects: a row says what is inside");
   check(/About [\d,]+ tokens — all of it reaches the model/.test(open), "a small knowledge set is not called 0%", (open.match(/About[^\n]*/) ?? [""])[0]);
   /* Eyebrows render uppercase, so innerText carries no case. */
   const up = open.toUpperCase();
-  check(up.indexOf("CHATS IN THIS PROJECT") !== -1 && up.indexOf("CHATS IN THIS PROJECT") < up.indexOf("CODE IN THIS PROJECT"), "chats come before code");
+  check(up.indexOf("CHATS IN THIS PROJECT") !== -1 && up.indexOf("CHATS IN THIS PROJECT") < up.indexOf("MADE IN THIS PROJECT"), "chats come before what was made");
   const rows = await p.getByLabel("Project instructions").getAttribute("rows");
   check(Number(rows) <= 4, "one line of instructions gets a box for a few lines, not a page", `rows=${rows}`);
 }
@@ -126,7 +126,9 @@ console.log("\nLibrary: one room for everything made");
   /* A page with writing opens as it reads now, with Edit one press away,
      so what is checked is the Notebook's page view and its words. */
   const inNotebook = await p.getByRole("button", { name: /^(Edit|Preview)$/ }).waitFor({ timeout: 4000 }).then(() => true).catch(() => false);
-  if (inNotebook) await p.locator("main").getByText("Hypotonic").first().waitFor({ timeout: 10000 }).catch(() => {});
+  /* The rendered page, not the plain words the renderer shows while its
+     chunk loads: those carry the # and - marks this check is about. */
+  if (inNotebook) await p.locator("main").getByRole("heading", { name: "Osmosis" }).first().waitFor({ timeout: 15000 }).catch(() => {});
   const shown = inNotebook ? await p.locator("main").innerText() : "";
   if (!/Hypotonic/.test(shown)) {
     await p.screenshot({ path: "/tmp/claude-0/rooms-fail.png" });

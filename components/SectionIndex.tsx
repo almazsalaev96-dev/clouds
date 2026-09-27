@@ -13,6 +13,8 @@ export interface IndexItem {
   preview?: string;
   meta?: string;
   badge?: string;
+  /** 0–1: how far along, drawn as a thin line under the preview. */
+  progress?: number;
   pinned?: boolean;
   /** The full body, searched but never drawn. */
   searchText?: string;
@@ -229,6 +231,14 @@ export function SectionIndex({
                       </span>
                       {item.preview && (
                         <span className="mt-0.5 block truncate text-xs text-secondary">{item.preview}</span>
+                      )}
+                      {typeof item.progress === "number" && (
+                        <span className="mt-1.5 block h-1 w-full max-w-[14rem] overflow-hidden rounded-full bg-inset" aria-hidden>
+                          <span
+                            className="block h-full rounded-full bg-[var(--accent)] transition-[width] duration-[var(--dur-layout)]"
+                            style={{ width: `${Math.round(Math.min(1, Math.max(0, item.progress)) * 100)}%` }}
+                          />
+                        </span>
                       )}
                       </span>
                     </button>

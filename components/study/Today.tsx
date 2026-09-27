@@ -24,8 +24,11 @@ export function Today({
   onOpenPage,
   exam,
   onSetExam,
+  onStartDue,
 }: {
   plan: DayPlan;
+  /** Start on everything due, across every deck. */
+  onStartDue?: () => void;
   onPractise: (topic: string) => void;
   onOpenPage?: (id: string) => void;
   exam: { name: string; date: string } | null;
@@ -37,7 +40,7 @@ export function Today({
   const nothing = plan.due === 0 && !plan.weakTopic && !plan.reread && plan.examDays === null;
 
   return (
-    <section aria-label="Today" className="mb-3 rounded-lg border border-line bg-surface px-3 py-2.5">
+    <section aria-label="Today" className="mb-3 rounded-xl border border-line bg-surface px-4 py-3">
       <div className="flex items-center gap-2">
         <h2 className="text-tiny font-medium uppercase tracking-wide text-tertiary">Today</h2>
         {plan.answeredToday > 0 && <span className="tnum text-tiny text-faint">{plan.answeredToday} answered</span>}
@@ -46,7 +49,19 @@ export function Today({
           <SessionTimer />
         </span>
       </div>
-      <ul className="mt-1.5 space-y-1">
+      <ul className="mt-2 space-y-1.5">
+        {/* First, what is waiting, and the one press that clears it: on most
+            days it is the reason the room was opened. It used to be a bar of
+            its own under this card — two boxes saying "today" — and on a
+            phone the press sat under the box for starting a new subject. */}
+        {plan.due > 0 && onStartDue && (
+          <Row
+            primary
+            onPress={onStartDue}
+            label={<><span className="tnum text-base font-medium text-accent">{plan.due}</span> waiting now</>}
+            action="Start"
+          />
+        )}
         {plan.weakTopic && (
           <Row
             onPress={() => onPractise(plan.weakTopic!.topic)}

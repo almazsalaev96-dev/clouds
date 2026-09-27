@@ -48,10 +48,10 @@ console.log("\nCode that belongs to something");
   await page.getByLabel("Project instructions").fill("Never use var. Every function needs a JSDoc block.");
   await page.waitForTimeout(1200);
 
-  check((await page.getByRole("button", { name: /New code here/ }).count()) === 1,
+  check((await page.getByRole("button", { name: /Make something here/ }).count()) === 1,
     "a project is somewhere code can live, not only chats");
 
-  await page.getByRole("button", { name: /New code here/ }).click();
+  await page.getByRole("button", { name: /Make something here/ }).click();
   await page.waitForTimeout(1400);
 
   const where = await page.getByLabel("Project this belongs to").inputValue();

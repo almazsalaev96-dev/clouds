@@ -230,7 +230,7 @@ export function Sidebar({
           <div className="space-y-1 px-2 pb-2">
             <button
               onClick={onNewChat}
-              className="tap group flex h-11 w-full items-center gap-3 rounded-md border border-line bg-surface px-3 text-[0.9375rem] font-medium text-primary transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
+              className="tap group flex h-11 w-full items-center gap-3 rounded-md border border-line bg-surface px-3 text-sm font-medium text-primary transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
             >
               <Plus size={17} className="text-tertiary transition-colors duration-[var(--dur-fast)] group-hover:text-accent" />
               New chat
@@ -321,7 +321,7 @@ export function Sidebar({
                        height costs nothing but air, which a list of six
                        rooms has to spare. */
                     className={cn(
-                      "tap flex h-11 w-full items-center gap-3 rounded-md px-3 text-[0.9375rem] transition-colors duration-[var(--dur-fast)]",
+                      "tap flex h-11 w-full items-center gap-3 rounded-md px-3 text-sm transition-colors duration-[var(--dur-fast)]",
                       // The row only changes the colour of its ink; the fill
                       // underneath it is the one element that moves.
                       on ? "font-medium text-primary" : "text-secondary hover:bg-subtle/60 hover:text-primary",

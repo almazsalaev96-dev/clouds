@@ -12,7 +12,7 @@ console.log("\nA command is read off the front, and the question is what is left
   check(s?.presetId === "one" && s.kind === "learning" && s.text === "explain osmosis to me", "“/study” picks Mira, teaching, and hands on the rest", JSON.stringify(s));
   check(parseSlash("/build a stopwatch")?.kind === "coding", "“/build” picks Mira as a builder");
   check(parseSlash("/research what changed in the budget")?.research === true, "“/research” turns the web on");
-  check(parseSlash("/compare which is better")?.compare === true, "“/compare” asks for two answers");
+  check(parseSlash("/compare which is better") === null, "“/compare” is no longer a command: a comparison is an Armi model in the picker, not a mode");
   check(parseSlash("/check is this right")?.check === true, "“/check” asks for a second reading");
   check(parseSlash("/temp something private")?.temporary === true, "“/temp” does not keep the chat");
   check(parseSlash("/STUDY shouting")?.kind === "learning", "case does not matter");

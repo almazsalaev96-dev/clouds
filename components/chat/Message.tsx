@@ -8,7 +8,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   AlertCircle, Brain, Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Clock, Code2, Copy,
   Download, Printer, FolderPlus, GraduationCap, LayoutTemplate, MoreHorizontal, NotebookPen, PanelRight, Pencil, Play, RefreshCw, Scissors, Search, SearchCheck, ShieldQuestion,
-  SquarePen, ThumbsDown, ThumbsUp, Volume2, X, FileText,
+  SquarePen, ThumbsDown, ThumbsUp, Volume2, X, FileText, Ruler,
 } from "lucide-react";
 import { builtDocument, titleOf, withoutBuild } from "@/lib/built";
 import { computeBlock, type Outcome } from "@/lib/compute";
@@ -308,6 +308,7 @@ function AssistantMessageImpl({
   onSwitchModel,
   onVerify,
   verifying,
+  judging,
   onFactCheck,
   factChecking,
   entering,
@@ -351,6 +352,8 @@ function AssistantMessageImpl({
   /** Ask a model from another provider whether this answer is right. */
   onVerify?: (message: Msg) => void;
   verifying?: boolean;
+  /** A model is reading this answer against the standard it was held to. */
+  judging?: boolean;
   /** Look the answer's claims up on the web, one by one. */
   onFactCheck?: (message: Msg) => void;
   factChecking?: boolean;
@@ -620,6 +623,13 @@ function AssistantMessageImpl({
           A model from another company is checking this answer…
         </p>
       )}
+      {judging && !message.craft?.judged && (
+        <p role="status" className="mt-2 flex items-center gap-2 text-xs text-tertiary anim-fade">
+          <span className="think-orb" aria-hidden />
+          A second model is judging this against the standard it was held to…
+        </p>
+      )}
+      {message.craft && <Standard craft={message.craft} authorProvider={model?.provider} />}
       {message.verdict && (
         <SecondOpinion verdict={message.verdict} authorProvider={model?.provider} />
       )}
@@ -1223,6 +1233,72 @@ function ConfidenceLine({
  * evidence, not proof — the two can be wrong together, and are most likely to
  * be wrong together exactly where the question is hardest.
  */
+/**
+ * Craft: the standard this answer was held to, and how it was judged.
+ *
+ * Closed, one line: the field was studied, N points, met or short. Open,
+ * the points themselves and who does this best — the reader's way of
+ * checking the bar rather than taking "high quality" on trust. The judge's
+ * findings show only when it found the answer short, on the answer it
+ * found short; the pass that followed says it met the standard.
+ */
+function Standard({ craft, authorProvider }: { craft: NonNullable<Msg["craft"]>; authorProvider?: string }) {
+  const [open, setOpen] = React.useState(false);
+  const judged = craft.judged;
+  const judgeModel = judged ? getModel(judged.modelId) : null;
+  const independent = judgeModel && authorProvider && judgeModel.provider !== authorProvider;
+  const said = !judged
+    ? `${craft.standard.length} points`
+    : judged.verdict === "meets"
+      ? `${craft.standard.length} points · judged to meet it${independent ? " by another company" : ""}`
+      : `${craft.standard.length} points · judged short${independent ? " by another company" : ""}, answered again`;
+  return (
+    <div role="group" aria-label="The standard this answer was held to" className="mt-2 rounded-xl border border-line bg-surface p-3">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="focus-inset flex w-full items-center gap-2 rounded-md text-left"
+      >
+        <Ruler size={13} className="shrink-0 text-tertiary" />
+        <span className="eyebrow text-faint">Craft · the standard</span>
+        <span className="min-w-0 flex-1 truncate text-xs text-tertiary">{craft.field ? `${craft.field} · ${said}` : said}</span>
+        <ChevronDown size={13} className={cn("shrink-0 text-tertiary transition-transform duration-[var(--dur-fast)]", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div className="mt-2 space-y-2 text-xs leading-relaxed text-secondary anim-fade">
+          {craft.makers.length > 0 && (
+            <div>
+              <p className="font-medium text-primary">Who does this best</p>
+              <ul className="mt-0.5 list-disc space-y-0.5 pl-4">
+                {craft.makers.map((m, i) => <li key={i}>{m}</li>)}
+              </ul>
+            </div>
+          )}
+          <div>
+            <p className="font-medium text-primary">The standard</p>
+            <ul className="mt-0.5 list-disc space-y-0.5 pl-4">
+              {craft.standard.map((s, i) => <li key={i}>{s}</li>)}
+            </ul>
+          </div>
+          {craft.imagined && (
+            <p><span className="font-medium text-primary">What you most likely pictured: </span>{craft.imagined}</p>
+          )}
+          {judged && judged.verdict === "short" && (judged.missing.length > 0 || judged.weak.length > 0) && (
+            <div>
+              <p className="font-medium text-primary">What the judge found short</p>
+              <ul className="mt-0.5 list-disc space-y-0.5 pl-4">
+                {judged.missing.map((m, i) => <li key={`m${i}`}>Missing: {m}</li>)}
+                {judged.weak.map((w, i) => <li key={`w${i}`}>Below the standard: {w}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SecondOpinion({
   verdict,
   authorProvider,

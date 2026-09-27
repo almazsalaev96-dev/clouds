@@ -4,7 +4,7 @@ import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Archive, ArchiveRestore, Check, ChevronDown, Download, FolderOpen, MessageSquareDashed,
-  MoreHorizontal, NotebookPen, PanelLeft, Pin, PinOff, Share2, Trash2, Wand2,
+  MoreHorizontal, NotebookPen, PanelLeft, Pin, PinOff, Share2, Trash2, Wand2, X,
 } from "lucide-react";
 import type { Conversation, Project } from "@/lib/types";
 import { useSettings } from "@/lib/store";
@@ -33,6 +33,7 @@ export function TopBar({
   assistants = [],
   pendingAssistant,
   onOpenAssistant,
+  modes = [],
   temporary,
   research,
   onToggleResearch,
@@ -64,6 +65,9 @@ export function TopBar({
   /** The assistant a chat not yet started will answer as. */
   pendingAssistant?: string | null;
   onOpenAssistant?: (id: string) => void;
+  /** The modes that are on — Learn, Research, Slides, a picture — as chips
+      beside the model, each a press from off. Chosen in the box's menu. */
+  modes?: { id: string; label: string; off: string; icon: React.ReactNode; onOff: () => void }[];
   /** This chat is not kept — or the next one will not be. */
   temporary?: boolean;
   research?: boolean;
@@ -138,7 +142,10 @@ export function TopBar({
                 ? `Model: ${preset.name}`
                 : "Model: Armi"
           }
-          className="btn-touch focus-inset flex h-8 min-w-0 shrink items-center gap-1 rounded-full bg-subtle/70 px-3 text-[0.8125rem] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+          /* On a phone the chips beside it give way (they scroll), not the
+             name of the model: "M…" beside two whole chips said the least
+             important thing whole and the most important one not at all. */
+          className="btn-touch focus-inset flex h-8 min-w-0 shrink items-center gap-1 rounded-full bg-subtle/70 px-3 text-[0.9375rem] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary max-sm:shrink-0"
         >
           {modelId === AUTO ? (
             <>
@@ -218,6 +225,32 @@ export function TopBar({
             Temporary
           </span>
         </Tooltip>
+      )}
+
+      {/* What is switched on for this thread, beside what is answering it:
+          Learn, the web, deep research, the next message as slides or as a
+          picture. Chosen from the box's + menu; shown here, where the model
+          is, because they are facts about the whole conversation the way the
+          model is; and each a press from off. ChatGPT's tool chips do the
+          same, in the same corner. */}
+      {modes.length > 0 && (
+        <div className="swipe-row ml-1 flex min-w-0 shrink items-center gap-1 overflow-x-auto" role="group" aria-label="On for this chat">
+          {modes.map((m) => (
+            <Tooltip key={m.id} label={`${m.label} is on — press to turn off`}>
+              <button
+                type="button"
+                aria-label={m.off}
+                aria-pressed
+                onClick={m.onOff}
+                className="btn-touch press focus-inset flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--accent)_40%,transparent)] bg-accent-subtle px-2.5 text-xs font-medium text-accent transition-colors duration-[var(--dur-fast)] hover:border-accent"
+              >
+                {m.icon}
+                {m.label}
+                <X size={12} className="opacity-70" />
+              </button>
+            </Tooltip>
+          ))}
+        </div>
       )}
 
       {conversation && (

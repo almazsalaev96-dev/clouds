@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
-  Check, ChevronDown, ChevronLeft, ChevronRight, Columns2, FileText, FolderOpen, FolderPlus, MessageSquare, MessageSquareDashed, Paperclip, Plus,
+  Check, ChevronDown, ChevronLeft, ChevronRight, FileText, FolderOpen, FolderPlus, MessageSquare, MessageSquareDashed, Paperclip, Plus,
   Presentation, SlidersHorizontal, Sparkles, Telescope, Wand2, X, Globe, ListChecks, GraduationCap, Camera, ImagePlus } from "lucide-react";
 import { slashCommands, typingSlash, type SlashExtra } from "@/lib/slash";
 import type { ContentBlock, Style } from "@/lib/types";
@@ -50,7 +50,8 @@ export function Composer({
   slashExtras = [],
   onOpenRules,
   onSlides,
-  onCompare,
+  slides,
+  picture,
   deep,
   onToggleDeep,
   temporary,
@@ -85,16 +86,18 @@ export function Composer({
   /** Learn: a plan, one step at a time, a check after each. A mode of the thread. */
   learn?: boolean;
   onToggleLearn?: () => void;
-  /** Put "/image " in the box: a picture from a description. */
+  /** The next message is a picture from a description; pressed again, it is not. */
   onPicture?: () => void;
   /** How many standing rules are in force, and the way to the panel that sets them. */
   rulesCount?: number;
   onOpenRules?: () => void;
   /** The person's assistants, each a command of its own in the slash menu. */
   slashExtras?: SlashExtra[];
-  /** "/slides " and "/compare " in the box, from the menu. */
+  /** Slides and a picture: the next message is one, chosen here and shown
+      as a chip by the model at the top, where a press turns it off. */
   onSlides?: () => void;
-  onCompare?: () => void;
+  slides?: boolean;
+  picture?: boolean;
   /** Deep research: several searches, then a report with sources. A mode of the thread. */
   deep?: boolean;
   onToggleDeep?: () => void;
@@ -399,7 +402,7 @@ export function Composer({
                     picker instead. */}
                 <MenuRow icon={<Camera size={16} />} title="Take a photo" onClick={() => { setPlusOpen(false); cameraRef.current?.click(); }} />
                 {onPicture && (
-                  <MenuRow icon={<ImagePlus size={16} />} title="Make a picture" hint="Describe it and it is drawn in the thread." onClick={() => { setPlusOpen(false); onPicture(); }} />
+                  <MenuRow icon={<ImagePlus size={16} />} on={picture} title={picture ? "Stop making a picture" : "Make a picture"} hint="Describe it and it is drawn in the thread." onClick={() => { setPlusOpen(false); onPicture(); }} />
                 )}
                 {/* The tools, each with a line saying what it does — the +
                     menu as Gemini and ChatGPT have it, for the person who
@@ -414,10 +417,7 @@ export function Composer({
                   <MenuRow icon={<Telescope size={16} />} on={deep} title={deep ? "Stop deep research" : "Deep research"} hint="Several searches from different angles, then a report with sources." onClick={() => { setPlusOpen(false); onToggleDeep(); }} />
                 )}
                 {onSlides && (
-                  <MenuRow icon={<Presentation size={16} />} title="Slides" hint="A deck, built and run beside the chat; prints to PDF, saves as PowerPoint." onClick={() => { setPlusOpen(false); onSlides(); }} />
-                )}
-                {onCompare && (
-                  <MenuRow icon={<Columns2 size={16} />} title="Compare two models" hint="Two companies answer, side by side; keep the better one." onClick={() => { setPlusOpen(false); onCompare(); }} />
+                  <MenuRow icon={<Presentation size={16} />} on={slides} title={slides ? "Stop slides" : "Slides"} hint="A deck, built and run beside the chat; prints to PDF, saves as PowerPoint." onClick={() => { setPlusOpen(false); onSlides(); }} />
                 )}
                 {(onMoveToProject || onNewProjectHere) && (
                   <MenuRow
@@ -476,57 +476,12 @@ export function Composer({
             </Popover.Portal>
           </Popover.Root>
 
-          {/* The web, switched on where the question is typed.
-              ---------------------------------------------------------
-              It was a globe in the top bar, which is where a *setting*
-              goes — and this is not a setting, it is a decision about the
-              sentence being written at that moment. All three of the apps
-              this one is answering to put the tools inside the box for
-              exactly that reason: the thing that changes what the answer
-              is made of belongs next to the thing you are making it from,
-              and it has to be visible while you type rather than found
-              first. Named as well as drawn, because a globe alone is a
-              guess about what kind of globe it is. */}
-          {onToggleResearch && research && (
-            <Tooltip label="Research is on — press to stop">
-              <button
-                type="button"
-                aria-label="Stop searching the web"
-                aria-pressed
-                onClick={onToggleResearch}
-                className="btn-touch press focus-inset flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--accent)_40%,transparent)] bg-accent-subtle px-2.5 text-xs font-medium text-accent transition-colors duration-[var(--dur-fast)]"
-              >
-                <Globe size={14} />
-                Research
-                <X size={12} className="opacity-70" />
-              </button>
-            </Tooltip>
-          )}
-
-{          /* Tools are *chosen* in the menu and *shown* here only while they
-             are on. They used to sit in the bar permanently, off, which is
-             two switches staring at you before you have typed anything —
-             and the composer is where a sentence is written, not a control
-             panel. So the + menu lists them with a line each and a tick on
-             the one that is on, exactly as the model picker marks the model
-             that is chosen; the bar carries a dismissible chip while a tool
-             is running, which is the same pattern as an applied filter. */}
-          {onToggleLearn && learn && (
-            <Tooltip label="Learn is on — press to stop">
-              <button
-                type="button"
-                aria-label="Stop learning mode"
-                aria-pressed
-                onClick={onToggleLearn}
-                className="btn-touch press focus-inset flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--accent)_40%,transparent)] bg-accent-subtle px-2.5 text-xs font-medium text-accent transition-colors duration-[var(--dur-fast)]"
-              >
-                <GraduationCap size={14} />
-                Learn
-                <X size={12} className="opacity-70" />
-              </button>
-            </Tooltip>
-          )}
-
+          {/* The modes that are on — Learn, Research, Slides, a picture — used
+              to be chips here. They are chips by the model at the top now,
+              one row for everything that shapes the thread, which is where
+              the reference apps put them and where the eye already goes to
+              read which model is answering. The menu above is still where
+              they are chosen. */}
           {/* The rules in force, said in one word and a number, a press from
               the panel that sets them. Quiet, because it is a fact about
               every answer rather than a choice about this one — and there

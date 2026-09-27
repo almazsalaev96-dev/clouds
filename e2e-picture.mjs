@@ -51,13 +51,18 @@ console.log("\nA command, and a menu entry");
   check(await p.getByRole("button", { name: "Take a photo", exact: true }).isVisible(), "and to take a photo");
   await entry.click();
   await p.waitForTimeout(300);
-  check((await box().inputValue()) === "/image ", "which puts the command in the box, ready for the description", JSON.stringify(await box().inputValue()));
+  /* No slash typed for it: the choice shows as a chip by the model at the
+     top, and the box asks for the description. */
+  check((await box().inputValue()) === "", "which types nothing into the box", JSON.stringify(await box().inputValue()));
+  check(await p.locator("header").getByRole("button", { name: "Stop making a picture" }).isVisible(), "and puts a Picture chip by the model");
+  check(/Describe the picture/.test((await box().getAttribute("placeholder")) ?? ""), "while the box asks for the description");
   await fetch(`${MOCK}/__reset`);
-  await box().fill("/image the water cycle as a diagram");
+  await box().fill("the water cycle as a diagram");
   await p.keyboard.press("Enter");
   await p.waitForTimeout(2500);
   const sent = await fetch(`${MOCK}/__last`).then((r) => r.json());
-  check(sent.prompt === "the water cycle as a diagram", "and the command is not part of what is drawn", JSON.stringify(sent.prompt));
+  check(sent.prompt === "the water cycle as a diagram", "the description is what is drawn, whole", JSON.stringify(sent.prompt));
+  check((await p.locator("header").getByRole("button", { name: "Stop making a picture" }).count()) === 0, "and the chip goes once the picture is asked for");
   check(await p.locator(".msg img[alt]").count() === 2, "a second picture, in the same thread");
 }
 

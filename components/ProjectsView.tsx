@@ -3,7 +3,7 @@
 import * as React from "react";
 import { whyItFailed } from "@/lib/complete";
 import { useLiveQuery } from "dexie-react-hooks";
-import { FileCode2, FileText, MessageSquare, Paperclip, Search, Trash2, X, Plus } from "lucide-react";
+import { FileCode2, FileText, FolderOpen, MessageSquare, Paperclip, Search, Sparkles, Trash2, X, Plus } from "lucide-react";
 import type { Canvas, Project, ProjectFile } from "@/lib/types";
 import {
   addProjectFile, db, deleteProject, filesOf, removeProjectFile,
@@ -90,6 +90,7 @@ export function ProjectsView({
         items={(projects ?? []).map((p) => ({
           id: p.id,
           title: p.name || "Untitled project",
+          icon: <FolderOpen size={16} />,
           preview: p.description || firstLine(p.instructions) || "No instructions yet",
           meta: (() => {
             const c = counts.get(p.id);
@@ -211,14 +212,11 @@ function AskPanel({
 
   return (
     <section>
-      <h2 className="eyebrow text-faint">
-        Ask about this project
-      </h2>
-      <p className="mt-1 text-xs text-tertiary">
-        Read across every file in it at once. &ldquo;Where is the subscription
-        system?&rdquo; — nothing gets changed.
-      </p>
-      <div className="mt-2 flex items-center gap-1.5">
+      <SectionHead
+        title="Ask about this project"
+        hint="Read across every file in it at once. “Where is the subscription system?” — nothing gets changed."
+      />
+      <div className="mt-2.5 flex items-center gap-1.5">
         <span className="relative flex min-w-0 flex-1 items-center">
           <Search size={14} className="pointer-events-none absolute left-3 text-tertiary" />
           <input
@@ -258,6 +256,24 @@ function AskPanel({
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * A section's head: a title a reader can find, one line on what it is for,
+ * and the action beside them. The page's five sections used to be headed
+ * by tiny capitals with the hint under and the button floating off to the
+ * right, which made a project read like a settings form.
+ */
+function SectionHead({ title, hint, action }: { title: string; hint?: string; action?: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="min-w-0 flex-1">
+        <h2 className="text-sm font-medium text-primary">{title}</h2>
+        {hint && <p className="mt-0.5 text-xs leading-relaxed text-tertiary">{hint}</p>}
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
+    </div>
   );
 }
 
@@ -371,12 +387,27 @@ function ProjectPage({
             the back chevron floating between two rows on a phone; a name
             is an input, so a long one scrolls inside its box instead. */}
         <div className="flex min-w-0 flex-1 items-center gap-x-1">
-          <input
-            value={project.name}
-            onChange={(e) => void db.projects.update(project.id, { name: e.target.value })}
-            aria-label="Project name"
-            className="tap min-w-0 flex-1 bg-transparent text-sm font-medium text-primary outline-none"
-          />
+          {/* The name and what it is, together, where a title goes. The
+              description was a lone line at the top of the page below, which
+              read as a stray sentence rather than as part of the name. */}
+          <div className="flex min-w-0 flex-1 flex-col justify-center">
+            <input
+              value={project.name}
+              onChange={(e) => void db.projects.update(project.id, { name: e.target.value })}
+              aria-label="Project name"
+              className="tap w-full min-w-0 bg-transparent text-sm font-medium text-primary outline-none"
+            />
+            <input
+              value={project.description}
+              onChange={(e) => void db.projects.update(project.id, { description: e.target.value })}
+              placeholder="What this project is, in one line"
+              aria-label="Project description"
+              /* `tap`: a field is a target, and this one came out at 22px on
+                 a phone — under the app's 44pt floor — when it was drawn
+                 without it. */
+              className="tap w-full min-w-0 bg-transparent text-xs text-tertiary outline-none placeholder:text-faint"
+            />
+          </div>
           <div className="flex shrink-0 items-center gap-1">
             <SaveBadge state={autosave.state} />
             {/* Not just "New chat": the sidebar has one of those, three inches
@@ -389,26 +420,13 @@ function ProjectPage({
         </div>
       </DetailBar>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-10 pt-3">
-        <div className="mx-auto w-full max-w-[var(--measure)] space-y-7">
-          <input
-            value={project.description}
-            onChange={(e) => void db.projects.update(project.id, { description: e.target.value })}
-            placeholder="What this project is, in one line"
-            aria-label="Project description"
-            className="tap focus-inset w-full rounded-md bg-transparent text-sm text-secondary outline-none placeholder:text-tertiary"
-          />
-
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-10 pt-4">
+        <div className="mx-auto w-full max-w-[var(--measure)] space-y-8">
           {notice && <p className="text-xs text-warning anim-fade">{notice}</p>}
 
           {/* Instructions */}
           <section>
-            <h2 className="eyebrow text-faint">
-              Instructions
-            </h2>
-            <p className="mt-1 text-xs text-tertiary">
-              Sent with every chat in this project, before anything you type.
-            </p>
+            <SectionHead title="Instructions" hint="Sent with every chat in this project, before anything you type." />
             <textarea
               value={instructions}
               onChange={(e) => {
@@ -421,26 +439,22 @@ function ProjectPage({
               rows={Math.min(12, Math.max(3, instructions.split("\n").length + 1))}
               placeholder="“You are helping with a second-year thermodynamics course. Use SI units. When I give a numeric answer, check it before agreeing.”"
               aria-label="Project instructions"
-              className="focus-inset mt-2 w-full resize-y rounded-lg border border-line bg-surface px-3 py-2.5 text-sm leading-relaxed text-primary outline-none placeholder:text-tertiary"
+              className="focus-inset mt-2.5 w-full resize-y rounded-lg border border-line bg-surface px-3 py-2.5 text-sm leading-relaxed text-primary outline-none placeholder:text-tertiary"
             />
           </section>
 
           {/* Knowledge */}
           <section>
-            <div className="flex items-baseline gap-2">
-              <h2 className="eyebrow text-faint">
-                Knowledge
-              </h2>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="ml-auto"
-                onClick={() => fileRef.current?.click()}
-              >
-                <Paperclip size={13} />
-                Add files
-              </Button>
-            </div>
+            <SectionHead
+              title="Knowledge"
+              hint="Files every chat here can read — notes, code, a spec, a transcript."
+              action={
+                <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()}>
+                  <Paperclip size={13} />
+                  Add files
+                </Button>
+              }
+            />
             <input
               ref={fileRef}
               type="file"
@@ -455,13 +469,11 @@ function ProjectPage({
               }}
             />
 
-            <div className="mt-2 space-y-1.5">
+            <div className="mt-2.5 space-y-1.5">
               {files === undefined ? (
                 <div className="skeleton h-9 rounded-lg" />
               ) : files.length === 0 ? (
-                <p className="text-xs text-tertiary">
-                  Nothing yet. Text files — notes, code, a spec, a transcript.
-                </p>
+                <p className="text-xs text-tertiary">Nothing yet.</p>
               ) : (
                 files.map((f) => {
                   const dropped = overBudget.some((d) => d.id === f.id);
@@ -527,20 +539,16 @@ function ProjectPage({
 
           {/* Chats */}
           <section>
-            <h2 className="eyebrow text-faint">
-              Chats in this project
-            </h2>
-            <div className="mt-2 space-y-1">
+            <SectionHead title="Chats in this project" hint="Each one starts with the instructions and the files above." />
+            <div className="mt-2.5 space-y-1.5">
               {sortedChats.length === 0 ? (
-                <p className="text-xs text-tertiary">
-                  None yet. A chat started here can see everything above.
-                </p>
+                <p className="text-xs text-tertiary">None yet.</p>
               ) : (
                 sortedChats.map((c) => (
                   <button
                     key={c.id}
                     onClick={() => onOpenChat(c.id)}
-                    className="focus-inset lift tap flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle"
+                    className="focus-inset lift tap flex w-full items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-2 text-left transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
                   >
                     <MessageSquare size={14} className="shrink-0 text-tertiary" />
                     <span className="min-w-0 flex-1 truncate text-sm text-primary">{c.title}</span>
@@ -550,34 +558,27 @@ function ProjectPage({
             </div>
           </section>
 
-          {/* Code */}
+          {/* Made here: pages, apps, documents and code, in Studio */}
           <section>
-            <div className="flex items-baseline gap-2">
-              <h2 className="eyebrow text-faint">
-                Code in this project
-              </h2>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="ml-auto"
-                onClick={() => onNewCanvasHere(project.id)}
-              >
-                <FileCode2 size={13} />
-                New code here
-              </Button>
-            </div>
-            <p className="mt-1 text-xs text-tertiary">
-              Every edit made here obeys the instructions above, the same way a chat does.
-            </p>
-            <div className="mt-2 space-y-1">
+            <SectionHead
+              title="Made in this project"
+              hint="Pages, apps, documents and code made from here follow the instructions above, the same way a chat does."
+              action={
+                <Button size="sm" variant="secondary" onClick={() => onNewCanvasHere(project.id)}>
+                  <Sparkles size={13} />
+                  Make something here
+                </Button>
+              }
+            />
+            <div className="mt-2.5 space-y-1.5">
               {sortedCanvases.length === 0 ? (
-                <p className="text-xs text-tertiary">None yet.</p>
+                <p className="text-xs text-tertiary">Nothing made here yet.</p>
               ) : (
                 sortedCanvases.map((c) => (
                   <button
                     key={c.id}
                     onClick={() => onOpenCanvas(c.id)}
-                    className="focus-inset lift tap flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle"
+                    className="focus-inset lift tap flex w-full items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-2 text-left transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
                   >
                     <FileCode2 size={14} className="shrink-0 text-tertiary" />
                     <span className="min-w-0 flex-1 truncate text-sm text-primary">

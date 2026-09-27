@@ -39,8 +39,11 @@ console.log("\nThe stage is named before anything streams, and Stop is there");
   await box.fill(ASK);
   await p.keyboard.press("Enter");
   await p.waitForTimeout(600);
-  const status = p.getByRole("status").filter({ hasText: /reading the question first/ });
-  check(await status.isVisible(), "the line says another company is reading the question first", (await status.innerText().catch(() => "")).slice(0, 80));
+  /* Waited for rather than glanced at: a task this size is studied first
+     (lib/craft.ts), so the brief's line is the second stage, not the first. */
+  const status = p.getByRole("status").filter({ hasText: /reading the question first/ }).first();
+  const seen = await status.waitFor({ timeout: 6000 }).then(() => true).catch(() => false);
+  check(seen, "the line says another company is reading the question first", (await status.innerText().catch(() => "")).slice(0, 80));
   check(await p.getByRole("button", { name: "Stop generating" }).isVisible(), "and Stop is offered from the first moment");
   await box.fill("a second question typed too soon");
   await p.keyboard.press("Enter");

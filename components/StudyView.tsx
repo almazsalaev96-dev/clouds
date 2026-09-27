@@ -361,6 +361,9 @@ export function StudyView({
           /* The number that decides whether you open it, in the one place
              this list puts a number that decides anything. */
           badge: p.due > 0 ? `${p.due} due` : undefined,
+          /* How far along, as a thin line under the words: known over all.
+             A list of subjects that shows no progress is a list of chores. */
+          progress: p.total ? p.known / p.total : 0,
           searchText: mine.map((c) => `${c.front} ${c.back}`).join(" "),
         };
       })}
@@ -375,32 +378,17 @@ export function StudyView({
       }}
       lead={
         <div className="mb-4">
-          <Today plan={plan} onPractise={practise} onOpenPage={onOpenPage} exam={exam} onSetExam={setExam} />
-          {/* First, when there is anything waiting: somebody who opens this
-              room on a Tuesday evening has come to do what is due, and on a
-              phone the line that does it sat below the fold, under a box for
-              starting a new subject. */}
-          {/* What is waiting, and the one press that clears it. Everything
-              due across every deck, because "study for ten minutes" is the
-              thing somebody actually sits down to do. */}
-          {due > 0 && (
-            <div className="mb-3 flex items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2.5">
-              <span className="min-w-0 flex-1 text-sm text-primary">
-                <span className="tnum font-medium text-accent">{due}</span> waiting now
-                {today > 0 && (
-                  <span className="text-tertiary"> · {today} answered today</span>
-                )}
-              </span>
-              <Button size="sm" variant="primary" className="bloom" onClick={() => setSession({ deckId: null, mode: "due" })}>
-                Start
-              </Button>
-            </div>
-          )}
-          {due === 0 && today > 0 && (
-            <p className="mb-3 text-sm text-tertiary tnum">
-              {today} answered today · nothing else waiting.
-            </p>
-          )}
+          <Today
+            plan={plan}
+            onPractise={practise}
+            onOpenPage={onOpenPage}
+            exam={exam}
+            onSetExam={setExam}
+            /* What is waiting, and the one press that clears it. Everything
+               due across every deck, because "study for ten minutes" is the
+               thing somebody actually sits down to do. */
+            onStartDue={() => setSession({ deckId: null, mode: "due" })}
+          />
           {/* The way in. A subject, and a deck a few seconds later — this is
               the part every assistant is already good at, so it is one line
               rather than a form. */}

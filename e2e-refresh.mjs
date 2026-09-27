@@ -90,8 +90,8 @@ console.log("\nLearn: a mode of the thread, a press away");
   check((await entry.getAttribute("aria-pressed")) === "false", "off to begin with");
   await entry.click();
   await p.waitForTimeout(400);
-  const on = p.locator(".composer-shell").getByRole("button", { name: "Stop learning mode" });
-  check(await on.isVisible() && (await on.getAttribute("aria-pressed")) === "true", "and choosing it puts a chip in the composer that says so");
+  const on = p.locator("header").getByRole("button", { name: "Stop learning mode" });
+  check(await on.isVisible() && (await on.getAttribute("aria-pressed")) === "true", "and choosing it puts a chip by the model, at the top, that says so");
   await fetch(`${MOCK}/__reset`);
   await p.getByRole("textbox", { name: "Message" }).fill("Help me understand osmosis");
   await p.keyboard.press("Meta+Enter");
@@ -104,7 +104,7 @@ console.log("\nLearn: a mode of the thread, a press away");
   /* It stays on for the thread. */
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(1200);
-  check(await p.locator(".composer-shell").getByRole("button", { name: /Stop learning mode/ }).isVisible().catch(() => false), "and the thread remembers it after a reload");
+  check(await p.locator("header").getByRole("button", { name: /Stop learning mode/ }).isVisible().catch(() => false), "and the thread remembers it after a reload");
 }
 
 console.log("\nThe + menu says what each tool does");

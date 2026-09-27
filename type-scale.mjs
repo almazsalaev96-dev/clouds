@@ -316,18 +316,15 @@ console.log("\nA column that cannot get wider gets smaller text instead");
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(600);
 
-  /* Two models answering, asked for from the palette. It used to be a
-     checklist inside the composer's Tools popover, which meant deciding
-     whether you wanted two answers before you had seen one; the popover is
-     gone and the decision is a command. */
-  await p.keyboard.press("Control+k");
-  await p.waitForTimeout(400);
-  await p.getByRole("textbox", { name: "Command palette" }).fill("alongside");
-  await p.waitForTimeout(400);
-  await p.getByRole("option", { name: /alongside/i }).first().click();
-  await p.waitForTimeout(400);
-  await p.keyboard.press("Escape");
-  await p.waitForTimeout(300);
+  /* Two answers side by side: the Armi model whose whole tactic that is.
+     Compare stopped being a mode of the box; it is a model in the picker. */
+  await p.evaluate(() => {
+    const j = JSON.parse(localStorage.getItem("store.settings.v1") ?? "{}");
+    j.state = { ...(j.state ?? {}), modelId: "duet" };
+    localStorage.setItem("store.settings.v1", JSON.stringify(j));
+  });
+  await p.reload({ waitUntil: "networkidle" });
+  await p.waitForTimeout(600);
   await p.getByRole("textbox", { name: "Message" }).fill("explain debounce");
   await p.keyboard.press("Enter");
   await p.waitForTimeout(3200);

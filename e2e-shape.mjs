@@ -46,7 +46,7 @@ const sent = async (question) => {
   await page.getByRole("textbox", { name: "Message" }).fill(question);
   await page.keyboard.press("Enter");
   await page.waitForTimeout(2600);
-  return fetch(`${MOCK}/__last`).then((r) => r.json());
+  return fetch(`${MOCK}/__last?kind=answer`).then((r) => r.json());
 };
 
 console.log("\nEach kind of work is asked for in the way that kind needs");
