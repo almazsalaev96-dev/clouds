@@ -77,11 +77,18 @@
      desk, not of a traffic light. Every pair below is computed against WCAG
      (`node contrast.mjs`), not judged by eye.
      --------------------------------------------------------------------- */
-  --bg-canvas: #ecf0f8;
+  /* The light theme, re-grounded on the reference apps' pages: a white
+     page, a grey panel, grey pills, black for the one control you press.
+     The blue-tinted ice that was here read as a tint over every word once
+     it sat beside ChatGPT's and Gemini's light screens, which are white. */
+  --bg-canvas: #ffffff;
   /* Not pure white: a lit edge on a raised surface is painted in white, and
      a surface already at the top of the range leaves it nothing to be lighter
      than — the rim disappears and the card goes flat. This keeps a step. */
-  --bg-surface: #fdfdff;
+  /* Not pure white: a lit edge on a raised surface is painted in white,
+     and a surface already at the top of the range leaves it nothing to be
+     lighter than. The reference's cards are a shade off the page too. */
+  --bg-surface: #f9f9f9;
   /* Enough of a step from the page to be a shape on it.
      At #efe9db this sat 1.09 from the canvas while dark's sits 1.23 from its
      own — so a user's message bubble was a clear pill in dark and very nearly
@@ -89,27 +96,27 @@
      what has to match between two themes is the size of the step, not the
      colour. Text on it still clears every threshold — secondary 8.68,
      faint 4.88. */
-  --bg-subtle: #dbe2f0;
+  --bg-subtle: #ececef;
   /* A section's ground: one step off the canvas, under a card. Four
      planes read as depth; three read as a card on a page. */
-  --bg-section: #e7ecf5;
+  --bg-section: #f0f4f9;
   /* The same step from the page as the dark theme's inset takes from its own:
      1.06 against 1.07. It was 1.17 — a deeper tint, which reads as more
      recessed and costs every character sitting on it a point of contrast,
      because in a light theme "darker" moves the panel *toward* the ink rather
      than away from it. Code blocks and quiet panels sit on this. */
-  --bg-inset: #eaeef8;
+  --bg-inset: #f3f4f6;
   /* What you type into, and a chip: a step down from the panel in light
      (the canvas colour, as it always was) and a step *up* in dark — on black
      a well cannot be dug any deeper, so every reference lifts its fields
      instead, and so does this. */
-  --bg-field: #ecf0f8;
+  --bg-field: #f0f4f9;
   --bg-overlay: rgba(11, 16, 27, 0.46);
 
-  --border-subtle: #d3dbea;
+  --border-subtle: #e3e5e8;
   /* Control boundaries clear 3:1 against the page. Hairlines do not have to,
      which is why there are two of these. */
-  --border-strong: #798294;
+  --border-strong: #8a8e94;
 
   /* Inked to match the dark theme's strength, role for role.
      ---------------------------------------------------------------------
@@ -127,18 +134,22 @@
      against its own canvas. Measured, the widest drift between the two ladders
      is 0.06; deriving light on its own put secondary 1.3 apart, which is a
      reader re-learning what "secondary" looks like every time they switch. */
-  --text-primary: #0c1220;
-  --text-secondary: #222a3d;
-  --text-tertiary: #373e4f;
-  --text-faint: #515868;
+  /* Solved to the dark theme's ladder on its own canvas, rung for rung
+     (16.5 · 13.6 · 9.8 · 6.5), so a reader who switches theme finds the
+     same structure: plain greys, the reference's, at the lightness that
+     lands each rung on the same ratio against white. */
+  --text-primary: #1f1f1f;
+  --text-secondary: #2e2e2e;
+  --text-tertiary: #444444;
+  --text-faint: #5e5e5e;
 
   /* Structure, deepened for daylight. */
-  --accent: #2253cf;
-  --accent-hover: #123eb2;
-  --accent-fill: #2253cf;
-  --accent-subtle: #e6efff;
+  --accent: #0b57d0;
+  --accent-hover: #0842a0;
+  --accent-fill: #0b57d0;
+  --accent-subtle: #e8f0fe;
   --accent-fg: #ffffff;
-  --accent-rgb: 34 83 207;
+  --accent-rgb: 11 87 208;
   /* The one coloured element in the wordmark. */
 
   /* The signal, deepened to carry small text.
@@ -175,10 +186,10 @@
      3:1 edge the app asks of every control on the light page (3.07), with
      5.5 for the ink on it. The bright gold is a fill for things that carry
      their own edge — the highlight chip, the mark. */
-  --cta: #112964;
-  --cta-hover: #091f57;
-  --cta-fg: #f3f6fc;
-  --cta-rgb: 17 41 100;
+  --cta: #0d0d0d;
+  --cta-hover: #2f2f2f;
+  --cta-fg: #ffffff;
+  --cta-rgb: 13 13 13;
 
   /* The loud one. Only ever a badge, only ever with the ink on top.
      Cyan at the value that reads as lit sits near 1.6 against a light page:
@@ -229,11 +240,11 @@
      not barely there enough. Halved, for the reason the dark one was: four
      washes across the whole page are not depth, they are a tint over every
      word, and none of the three grounds this is measured against has one. */
-  --mesh-a: rgba(76, 219, 227, 0.10);
-  --mesh-b: rgba(34, 83, 207, 0.07);
-  --mesh-c: rgba(0, 125, 149, 0.05);
-  --grain-opacity: 0.035;
-  --glass: rgba(236, 240, 248, 0.8);
+  --mesh-a: rgba(0, 0, 0, 0);
+  --mesh-b: rgba(0, 0, 0, 0);
+  --mesh-c: rgba(0, 0, 0, 0);
+  --grain-opacity: 0;
+  --glass: rgba(255, 255, 255, 0.86);
   --glow: none;
 
   /* --- Elevation. --- */
@@ -767,6 +778,7 @@
   --color-canvas: var(--bg-canvas);
   --color-surface: var(--bg-surface);
   --color-subtle: var(--bg-subtle);
+  --color-section: var(--bg-section);
   --color-inset: var(--bg-inset);
   --color-field: var(--bg-field);
   --color-line: var(--border-subtle);
@@ -1105,12 +1117,22 @@ textarea:focus-visible {
   background: var(--bg-section);
 }
 
-/* Light: the sidebar is canvas-tinted glass, so a sticky date header inside
-   it takes the canvas tint too — on the surface colour it was a white bar
-   across the column, one per day group. */
-:root:not([data-theme="dark"]) aside.glass .glass {
-  background: color-mix(in oklab, var(--bg-canvas) 94%, transparent);
+/* Light: the sidebar is the reference's grey panel on a white page, solid,
+   and a sticky date header inside it is the same grey — on any other colour
+   it was a bar across the column, one per day group. */
+:root:not([data-theme="dark"]) aside.glass {
+  background: color-mix(in oklab, var(--bg-section) 92%, transparent);
 }
+:root:not([data-theme="dark"]) aside.glass .glass {
+  background: color-mix(in oklab, var(--bg-section) 96%, transparent);
+}
+
+/* A room's own name, set large the way the reference sets a notebook's.
+   On a coarse pointer every field is held at 1rem so iOS does not zoom
+   (below); this one is bigger than that, and says so at the same weight. */
+.title-field { font-size: 2rem; line-height: 1.15; letter-spacing: -0.015em; field-sizing: content; }
+@media (min-width: 640px) { .title-field { font-size: 2.25rem; } }
+@media (pointer: coarse) { input.title-field, textarea.title-field { font-size: 2rem !important; } }
 
 /* Never on itself.
    ---------------------------------------------------------------------------

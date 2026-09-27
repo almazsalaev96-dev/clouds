@@ -24,7 +24,10 @@ const check = (c, l, d = "") => { if (!c) failed++; console.log(`${c ? "  ✓" :
 const S = { theme: "light", density: "comfortable", modelId: "one", styleId: "auto", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", rules: [], name: "Almaz", nameAsked: true };
 const token = (name) => p.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), name);
 const lum = (hex) => {
-  const c = hex.replace("#", "");
+  /* The built CSS shortens #ffffff to #fff, and a three-digit hex read six
+     digits at a time is NaN. */
+  const raw = hex.replace("#", "");
+  const c = raw.length === 3 ? raw.split("").map((ch) => ch + ch).join("") : raw;
   const [r, g, b] = [0, 2, 4].map((i) => parseInt(c.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };

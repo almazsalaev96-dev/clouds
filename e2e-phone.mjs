@@ -150,10 +150,14 @@ console.log("\nA project's header fits a phone");
   /* The title is two lines now — the name and what the project is — and
      the button sits centred on the pair, on the same row band, with the
      back chevron beside them rather than floating between two rows. */
-  const block = await p.getByLabel("Project name").locator("..").boundingBox();
+  /* The head is the reference's notebook now — the name large under an
+     icon — and the button sits on the back row above it, with the back
+     chevron, on one row. */
+  const back = await p.getByRole("button", { name: "All projects" }).boundingBox();
   const btn = await p.getByRole("button", { name: "New chat here" }).boundingBox();
-  const mid = btn ? btn.y + btn.height / 2 : -1;
-  check(block && btn && mid >= block.y && mid <= block.y + block.height, "the name and its button share one row band", block && btn ? `title ${Math.round(block.y)}–${Math.round(block.y + block.height)} button centre ${Math.round(mid)}` : "missing");
+  check(back && btn && Math.abs((back.y + back.height / 2) - (btn.y + btn.height / 2)) < 8, "the back button and New chat here share one row", back && btn ? `back ${Math.round(back.y)} button ${Math.round(btn.y)}` : "missing");
+  const name = await p.getByLabel("Project name").boundingBox();
+  check(name && name.width > 200 && name.x >= 0, "and the name has the width of the page under them", name ? `${Math.round(name.width)}px` : "missing");
 }
 
 console.log("\nThe blank page's waiting line wraps without a dangling dot");
