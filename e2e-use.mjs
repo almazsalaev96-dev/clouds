@@ -137,7 +137,7 @@ console.log("\nAsking for a thing gets you the thing, running");
   const frame = column.frameLocator("iframe");
   await frame.locator("#t").waitFor({ timeout: 8000 });
   check((await frame.locator("#t").innerText()) === "02:00", "and it opens running", await frame.locator("#t").innerText());
-  await page.getByRole("button", { name: "Open in Code" }).click();
+  await page.getByRole("button", { name: "Open in Studio" }).click();
   await page.waitForTimeout(900);
   check(await page.getByRole("button", { name: /Use it/ }).isVisible(),
     "and can take the window like anything else made here");

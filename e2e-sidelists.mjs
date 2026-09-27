@@ -74,10 +74,10 @@ await p.waitForTimeout(900);
 const body = await p.locator("main").innerText();
 check(/Krebs cycle turns acetyl-CoA/.test(body), "and tapping one opens it", body.split("\n").find((l) => /Krebs/.test(l))?.slice(0, 40));
 
-console.log("\nProjects and Creations");
+console.log("\nProjects and Studio");
 await go("Projects");
 check((await rows("Projects").count()) === 2, "projects are listed", (await rows("Projects").allInnerTexts()).join(" | "));
-await go("Creations");
+await go("Studio");
 const made = await rows("Made here").allInnerTexts();
 check(made.length === 3 && made.some((t) => /Essay plan/.test(t)), "what you made is listed, with its kind", made.map((t) => t.replace(/\s+/g, " ")).join(" | "));
 

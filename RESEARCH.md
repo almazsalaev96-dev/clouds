@@ -804,9 +804,9 @@ ChatGPT's study mode asks questions one at a time, checks understanding, referen
 
 Not built, and still worth it: adaptive difficulty bands in the Tutor (AD-1), past-paper practice with a hidden mark scheme (EX-2), highlights that persist on a page (WD-8).
 
-### 5.3 Studio and Creations
+### 5.3 Studio (and, until it was folded in, Creations)
 
-Claude's artifacts publish to a link and can be remixed; Gemini's Canvas edits a document beside the chat; neither ChatGPT's nor Gemini's canvas has a publish button `[R]`. Lovable and Bolt keep version history with rollback; v0 does not `[R]`. ARMI already keeps versions with a diff, runs the thing beside the conversation, downloads a canvas as one file, and previews at phone, tablet and full width. What was missing in this round was the room's model: Studio's composer and Creations' header now carry it. Publishing to a link is deliberately not built — it needs a server that knows the person, which the app does not have.
+Claude's artifacts publish to a link and can be remixed; Gemini's Canvas edits a document beside the chat; neither ChatGPT's nor Gemini's canvas has a publish button `[R]`. Lovable and Bolt keep version history with rollback; v0 does not `[R]`. ARMI already keeps versions with a diff, runs the thing beside the conversation, downloads a canvas as one file, and previews at phone, tablet and full width. What was missing in this round was the room's model: Studio's composer and Creations' header now carry it. (Creations has since been folded into Studio — one room to ask, to start, and to find what was made — which is also how Claude's artifacts and Gemini's Canvas present: the list of things made sits with the place that makes them, not in a room of its own.) Publishing to a link is deliberately not built — it needs a server that knows the person, which the app does not have.
 
 ### 5.4 Notebook and Projects
 

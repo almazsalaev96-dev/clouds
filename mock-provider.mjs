@@ -893,6 +893,12 @@ Nothing here looks like it breaks a caller — the return type is the same array
       return { name: "run_code", input: { code: "const rows = input.trim().split('\\n').slice(1).map(l => l.split(','));\nconst total = rows.reduce((a, r) => a + Number(r[1]), 0);\nconsole.log('rows', rows.length);\nreturn { total };", input: "name,score\nada,90\nlin,85\nkai,70" } };
     if (/\badd (this|that|it) to the project\b/i.test(ask) && offered.has("save_to_project")) return { name: "save_to_project", input: { name: "decisions.md", text: "We debounce the search box at 300ms." } };
     if (/what have i (made|built)/i.test(ask) && offered.has("list_made")) return { name: "list_made", input: {} };
+    if ((m = /(?:quiz|test) me every (weekday|day|morning)(?: at (\d{1,2})(?::(\d{2}))?)?/i.exec(ask)) && offered.has("schedule_routine"))
+      return { name: "schedule_routine", input: { prompt: "Quiz me on what is due today", hour: m[2] ? Number(m[2]) : 7, minute: m[3] ? Number(m[3]) : 30, days: /weekday/i.test(m[1]) ? "weekdays" : "daily" } };
+    if ((m = /make (?:me )?a project (?:called|named) ["“]?(.+?)["”]?(?: with the rule (.+?))?[.?]?$/i.exec(ask)) && offered.has("create_project"))
+      return { name: "create_project", input: { name: m[1], instructions: m[2] ?? "" } };
+    if ((m = /make (?:me )?an assistant (?:called|named) ["“]?(.+?)["”]? (?:that|who) (.+?)[.?]?$/i.exec(ask)) && offered.has("create_assistant"))
+      return { name: "create_assistant", input: { name: m[1], instructions: m[2] } };
     if ((m = /read (?:me )?my (.+?) page/i.exec(ask)) && offered.has("read_note")) return { name: "read_note", input: { title: m[1] } };
     if ((m = /add (?:this|that|a line) to my (.+?) page/i.exec(ask)) && offered.has("append_note")) return { name: "append_note", input: { title: m[1], content: "Added by the model: a throttle enforces a floor between calls." } };
     if ((m = /show me (?:the )?(.+?) i (?:made|built)/i.exec(ask)) && offered.has("read_made")) return { name: "read_made", input: { title: m[1] } };

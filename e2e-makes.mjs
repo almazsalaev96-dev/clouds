@@ -51,9 +51,9 @@ await page.locator("aside nav").getByRole("button", { name: "Conversations" }).f
 await page.waitForTimeout(600);
 check(!(await row.isVisible().catch(() => false)), "and a blank chat page does not — it is a different question");
 await page.screenshot({ path: `${OUT}/makes-chat.png` });
-await page.locator("aside nav").getByRole("button", { name: "Creations" }).first().click();
+await page.locator("aside nav").getByRole("button", { name: "Studio" }).first().click();
 await page.waitForTimeout(600);
-check(!(await row.isVisible().catch(() => false)), "and neither does the Code index — one copy, not three");
+check(await row.isVisible().catch(() => false), "back in Studio it is there again — the one room that holds it, now that the made things live here too");
 await page.locator("aside nav").getByRole("button", { name: "Studio" }).first().click();
 await page.waitForTimeout(700);
 

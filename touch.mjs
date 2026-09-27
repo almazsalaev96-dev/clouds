@@ -98,12 +98,12 @@ for (density of ["comfortable", "compact", "spacious"]) {
   await page.mouse.click(370, 400);
   await page.waitForTimeout(500);
 
-  for (const [name, open] of [["Creations", true], ["Projects", true], ["Notebook", true]]) {
+  for (const [name, open] of [["Studio", true], ["Projects", true], ["Notebook", true]]) {
     await page.getByRole("button", { name: /Show sidebar/i }).first().click();
     await page.waitForTimeout(450);
     // Code lives in the header switch; the other two are rows in the list.
-    const go = name === "Creations"
-      ? page.locator("aside nav").getByRole("button", { name: "Creations" })
+    const go = name === "Studio"
+      ? page.locator("aside nav").getByRole("button", { name: "Studio" })
       : page.getByRole("button", { name, exact: true });
     await go.first().click();
     await page.waitForTimeout(700);

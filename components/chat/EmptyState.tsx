@@ -71,7 +71,7 @@ function useWaiting(): { section: Section; text: string; icon: React.ReactNode }
     }
     const made = canvases[0];
     if (made && now - made.updatedAt < 2 * 86_400_000) {
-      out.push({ section: "code", text: `“${(made.title || "Untitled").slice(0, 32)}” is running`, icon: <LayoutTemplate size={12} /> });
+      out.push({ section: "creative", text: `“${(made.title || "Untitled").slice(0, 32)}” is running`, icon: <LayoutTemplate size={12} /> });
     }
     return out;
   }, [cards, notes, canvases]);

@@ -264,7 +264,10 @@ export const useSettings = create<Settings>()(
 
       setTheme: (theme) => set({ theme }),
       setDensity: (density) => set({ density }),
-      setSection: (section) => set({ section }),
+      /* "code" was the Creations room; it is folded into Studio ("creative")
+         and kept only as an alias so a stored or linked "code" still lands
+         somewhere. */
+      setSection: (section) => set({ section: section === "code" ? "creative" : section }),
       setLastConversation: (lastConversationId) => set({ lastConversationId }),
       setModel: (modelId) =>
         set((s) => ({

@@ -119,7 +119,7 @@ const StudyView = dynamic(
    lists: a first question does not need the code that lists decks. */
 const LibraryView = dynamic(
   () => import("@/components/LibraryView").then((m) => m.LibraryView),
-  { ssr: false, loading: () => <SectionSkeleton title="Creations" newLabel="New document" /> },
+  { ssr: false, loading: () => <SectionSkeleton title="Studio" newLabel="New document" /> },
 );
 
 const ShortcutsOverlay = dynamic(
@@ -266,7 +266,7 @@ export default function Page() {
   const [modelPickerOpen, setModelPickerOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   if (settingsOpen) everOpened.current.settings = true;
-  const [settingsTab, setSettingsTab] = React.useState<"keys" | "plus" | "appearance" | "model" | "rules" | "assistants" | "styles" | "data" | "shortcuts">("keys");
+  const [settingsTab, setSettingsTab] = React.useState<"keys" | "plus" | "appearance" | "model" | "rules" | "assistants" | "routines" | "styles" | "data" | "shortcuts">("keys");
   const [scrolled, setScrolled] = React.useState(false);
   const [artifact, setArtifact] = React.useState<Artifact | null>(null);
   /** Where j/k currently sit in the transcript. */
@@ -1597,7 +1597,7 @@ export default function Page() {
      filename in a hint would put them on every render of the whole app, for a
      word the room you are standing in has already told you. */
   const focus = React.useMemo(() => {
-    if (settings.section === "code" && canvasId) {
+    if (settings.section === "creative" && canvasId) {
       return { what: "this file", where: "Ask for this change to the open file" };
     }
     if (settings.section === "notebook" && noteId) {
@@ -2041,7 +2041,7 @@ export default function Page() {
      down the list travels forward and moving up it travels back. The direction
      is not decoration: it is the only thing that distinguishes "I went
      somewhere" from "the screen changed". */
-  const ORDER: Section[] = ["chat", "code", "projects", "notebook"];
+  const ORDER: Section[] = ["chat", "study", "notebook", "projects", "creative"];
 
   const goToSection = React.useCallback(
     (target: Section) => {
@@ -2053,7 +2053,7 @@ export default function Page() {
         // menu still on top of it.
         closeDrawerOnMobile();
         if (target === "projects") setProjectId(null);
-        if (target === "code") setCanvasId(null);
+        if (target === "creative" || target === "code") setCanvasId(null);
         if (target === "notebook") setNoteId(null);
       }, forward ? "forward" : "back");
     },
@@ -2066,7 +2066,7 @@ export default function Page() {
       closeDrawerOnMobile();
       if (section === "chat") return newChat();
       if (section === "projects") return setProjectId((await createProject()).id);
-      if (section === "code") return setCanvasId((await createCanvas()).id);
+      if (section === "code" || section === "creative") return setCanvasId((await createCanvas()).id);
       setNoteId((await createNote()).id);
     },
     [closeDrawerOnMobile, newChat],
@@ -2081,7 +2081,7 @@ export default function Page() {
       const canvas = await createCanvas({ projectId: pid });
       setCanvasSeed(undefined);
       setCanvasId(canvas.id);
-      settings.setSection("code");
+      settings.setSection("creative");
       closeDrawerOnMobile();
     },
     [settings, closeDrawerOnMobile],
@@ -2095,8 +2095,13 @@ export default function Page() {
           setActiveId(id);
           settings.setSection("chat");
         } else if (section === "projects") setProjectId(id);
-        else if (section === "code") setCanvasId(id);
-        else if (section === "study") {
+        else if (section === "code" || section === "creative") {
+          /* From a project, from an action chip, from the palette: the
+             canvas opens in Studio wherever you were. */
+          setCanvasSeed(undefined);
+          setCanvasId(id);
+          settings.setSection("creative");
+        } else if (section === "study") {
           settings.setSection("study");
           setDeckId(id);
         } else setNoteId(id);
@@ -2121,6 +2126,7 @@ export default function Page() {
         } else {
           setCanvasSeed(undefined);
           setCanvasId(id);
+          settings.setSection("creative");
         }
       }, "forward");
     },
@@ -2162,7 +2168,7 @@ export default function Page() {
         });
         withTransition(() => {
           setCanvasId(made.id);
-          settings.setSection("code");
+          settings.setSection("creative");
           closeDrawerOnMobile();
         }, "forward");
         return;
@@ -2183,7 +2189,7 @@ export default function Page() {
             sourceConversationId: activeId ?? undefined,
           });
       setCanvasId(canvas.id);
-      settings.setSection("code");
+      settings.setSection("creative");
       closeDrawerOnMobile();
     },
     [activeId, settings, closeDrawerOnMobile],
@@ -2197,12 +2203,15 @@ export default function Page() {
    * half-sentence in the box. A web canvas opens running, so what lands on
    * screen is the working thing rather than its source.
    */
+  /* Something made, opened in Studio to run and be edited. */
   const openMade = React.useCallback(
-    (id: string, seed: string) => {
-      setCanvasSeed(seed);
-      setCanvasId(id);
-      settings.setSection("code");
-      closeDrawerOnMobile();
+    (id: string, seed?: string) => {
+      withTransition(() => {
+        setCanvasSeed(seed);
+        setCanvasId(id);
+        settings.setSection("creative");
+        closeDrawerOnMobile();
+      }, "forward");
     },
     [settings, closeDrawerOnMobile],
   );
@@ -2399,7 +2408,7 @@ export default function Page() {
         // Escape backs out of an item, and backing out travels the other way.
         if (settings.section === "projects" && projectId)
           withTransition(() => setProjectId(null), "back");
-        else if (settings.section === "code" && canvasId)
+        else if (settings.section === "creative" && canvasId)
           withTransition(() => setCanvasId(null), "back");
         else if (settings.section === "notebook" && noteId)
           withTransition(() => setNoteId(null), "back");
@@ -2419,12 +2428,11 @@ export default function Page() {
         case "2":
         case "3":
         case "4":
-        case "5":
-        case "6": {
+        case "5": {
           e.preventDefault();
           // The order the sidebar shows them in, so the number you press is
           // the position you can see rather than one you have to remember.
-          const sections = ["chat", "study", "notebook", "projects", "creative", "code"] as const;
+          const sections = ["chat", "study", "notebook", "projects", "creative"] as const;
           goToSection(sections[Number(e.key) - 1]);
           break;
         }
@@ -2475,6 +2483,13 @@ export default function Page() {
     setSettingsTab("plus");
     setSettingsOpen(true);
   }, []);
+
+  /* The Creations room is folded into Studio; a section saved before that
+     still says "code", and lands in Studio. */
+  React.useEffect(() => {
+    if ((settings.section as string) === "code") settings.setSection("creative");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.section]);
 
   /* A shared link, continued here. `/#share=…` carries a whole thread
      (lib/share.ts); it becomes a conversation of this browser's own, with
@@ -2736,7 +2751,7 @@ export default function Page() {
           onOpenSettings={openKeys}
           onOpenShortcuts={() => setShortcutsOpen(true)}
           onOpenItem={selectInSection}
-          openItems={{ study: deckId, notebook: noteId, projects: projectId, code: canvasId }}
+          openItems={{ study: deckId, notebook: noteId, projects: projectId, creative: canvasId }}
         />
         )}
 
@@ -2792,29 +2807,29 @@ export default function Page() {
                   onBack={() => withTransition(() => setProjectId(null), "back")}
                   onOpenChat={(id) => selectInSection("chat", id)}
                   onNewChatHere={newChatInProject}
-                  onOpenCanvas={(id) => selectInSection("code", id)}
+                  onOpenCanvas={(id) => selectInSection("creative", id)}
                   onNewCanvasHere={(pid) => void newCanvasInProject(pid)}
                   configured={configured}
                 />
               )}
-              {settings.section === "code" && !canvasId && (
+              {/* Studio: the one making room. Nothing open, it is the place
+                  to ask, the things ready this second, and everything made;
+                  a canvas open, it is that canvas, running and editable. */}
+              {settings.section === "creative" && !canvasId && (
                 <LibraryView
                   onOpen={openFromLibrary}
-                  onNewCanvas={(id, seed) =>
-                    withTransition(() => {
-                      setCanvasSeed(seed);
-                      setCanvasId(id);
-                    }, "forward")
-                  }
-                  onNew={() => void createInSection("code")}
+                  onNewCanvas={(id, seed) => openMade(id, seed)}
+                  onNew={() => void createInSection("creative")}
+                  onMade={openMade}
+                  onBuild={(text) => void startBuild(text)}
                 />
               )}
-              {settings.section === "code" && canvasId && (
+              {settings.section === "creative" && canvasId && (
                 <CanvasView
                   canvasId={canvasId}
                   configured={configured}
                   seed={canvasSeed}
-                  ask={settings.section === "code" && handed?.to === "code" ? handed : undefined}
+                  ask={handed?.to === "creative" ? handed : undefined}
                   onAsked={() => setHanded(undefined)}
                   onSelect={(id, seed) =>
                     withTransition(() => {
@@ -2822,7 +2837,7 @@ export default function Page() {
                       setCanvasId(id);
                     }, "forward")
                   }
-                  onNew={() => void createInSection("code")}
+                  onNew={() => void createInSection("creative")}
                   onFocus={setInUse}
                   onBack={() =>
                     withTransition(() => {
@@ -2830,25 +2845,6 @@ export default function Page() {
                       setCanvasId(null);
                     }, "back")
                   }
-                />
-              )}
-              {settings.section === "creative" && (
-                <CreativeView
-                  /* Built, then handed to the room that runs canvases. This
-                     room chooses; Code is where a canvas lives. */
-                  onMade={(id, seed) =>
-                    withTransition(() => {
-                      setCanvasSeed(seed);
-                      setCanvasId(id);
-                      settings.setSection("code");
-                    }, "forward")
-                  }
-                  /* `handed` is for the canvas and the notebook, which take an
-                     instruction as a prop. The chat composer reads its draft
-                     from the store, which is also what the empty page's
-                     examples write to — so this writes the same half-sentence
-                     to the same place. */
-                  onBuild={(text) => void startBuild(text)}
                 />
               )}
               {settings.section === "notebook" && (
@@ -2958,7 +2954,14 @@ export default function Page() {
                 streamSearching={live ? stream.searching : null}
                 streamActing={live ? stream.acting : null}
                 streamActions={live ? stream.actions : undefined}
-                onOpenAction={(open) => selectInSection(open.section as Section, open.id ?? "")}
+                onOpenAction={(open) => {
+                  /* A routine or an assistant the model made lives under
+                     Settings, not in a room. */
+                  if (open.section === "settings") {
+                    setSettingsTab((open.id as "assistants") || "keys");
+                    setSettingsOpen(true);
+                  } else selectInSection(open.section as Section, open.id ?? "");
+                }}
                 onUndoAction={undoDone}
                 dropped={droppedFromContext}
                 recapped={Boolean(conversation?.recap)}
@@ -3062,7 +3065,7 @@ export default function Page() {
             onEdit={() =>
               withTransition(() => {
                 setCanvasId(madeId);
-                settings.setSection("code");
+                settings.setSection("creative");
               }, "forward")
             }
           />

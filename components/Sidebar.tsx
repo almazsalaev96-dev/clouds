@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  ChevronRight, FolderOpen, GraduationCap, Keyboard, Library, MessagesSquare, NotebookPen,
+  ChevronRight, FolderOpen, GraduationCap, Keyboard, MessagesSquare, NotebookPen,
   PanelLeft, Pin, PinOff, Plus, Search, Settings2, Sparkles, SquarePen, Trash2, X,
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
@@ -46,7 +46,7 @@ import { Segmented } from "@/components/ui/Segmented";
    So: Conversations first, because it is where nearly every session starts
    and primacy is wasted on anything else. Study second, where it is still
    above the fold of attention. The three supporting rooms in the middle,
-   which is what the middle is for. Creations last, because "where is the
+   which is what the middle is for. Studio last, because "where is the
    thing I made" is the other question people arrive with, and recency is
    the seat for the destination you go looking for rather than the one you
    land on. */
@@ -58,26 +58,18 @@ const SECTIONS: { id: Section; label: string; icon: React.ReactNode }[] = [
   { id: "study", label: "Study", icon: <GraduationCap size={20} /> },
   { id: "notebook", label: "Notebook", icon: <NotebookPen size={20} /> },
   { id: "projects", label: "Projects", icon: <FolderOpen size={20} /> },
+  /* Studio is the one making room: what you ask for, what is ready this
+     second, and everything made, whichever room made it. It was two rooms —
+     Studio to ask and Creations to keep — and the seam between them was
+     the one thing people had to learn. */
   { id: "creative", label: "Studio", icon: <Sparkles size={20} /> },
-  /* "Creations", after "Library", after "Artifacts", after "Code". The room holds web
-     apps, documents and code files, and since a request in the chat lands
-     here as a running thing it mostly holds things that are not code at all
-     — a deck of cards, a timetable, a tracker. "Code" sent everyone who was
-     not a programmer straight past it; "Artifacts" is a word this industry
-     uses and nobody else does. "Library" is what a person calls the place
-     their own things are kept — and then, read against "Studio" one row
-     up, it said a place things are borrowed from rather than the place your
-     own things go. "Creations" says whose they are. And "Studio" for the
-     room above it, because five rooms had nouns for names and one had an
-     adjective: a studio is where you make things, which is what it is. */
-  { id: "code", label: "Creations", icon: <Library size={20} /> },
 ];
 
 /* What the search box finds, in the room you are in: the list under the
    rooms is that room's, so the box searches that. */
 const FIND: Record<Section, { one: string; many: string }> = {
   chat: { one: "a conversation", many: "conversations" },
-  creative: { one: "a conversation", many: "conversations" },
+  creative: { one: "a creation", many: "creations" },
   study: { one: "a deck", many: "decks" },
   notebook: { one: "a page", many: "pages" },
   projects: { one: "a project", many: "projects" },
@@ -351,12 +343,11 @@ export function Sidebar({
 
           <div className="flex-1 overflow-y-auto px-2 pb-2">
             {/* The list under the rooms is the room's own. Conversations in
-                Conversations and in Studio, where making happens in a
-                conversation; decks in Study, pages in the Notebook, projects
-                in Projects, what you made in Creations — each a tap away
+                Conversations; decks in Study, pages in the Notebook, projects
+                in Projects, what you made in Studio — each a tap away
                 from any of them, the way the reference keeps a room's things
                 in its sidebar rather than only in the room. */}
-            {section === "chat" || section === "creative" || !onOpenItem ? (
+            {section === "chat" || !onOpenItem ? (
               <ChatList
                 query={query}
                 activeId={section === "chat" ? activeChatId : null}
@@ -532,7 +523,7 @@ function RoomList({
       const projects = await db.projects.orderBy("updatedAt").reverse().toArray();
       return projects.map((p) => ({ id: p.id, title: p.name || "Untitled project" }));
     }
-    if (section === "code") {
+    if (section === "code" || section === "creative") {
       const canvases = await db.canvases.orderBy("updatedAt").reverse().toArray();
       return canvases.map((c) => ({ id: c.id, title: c.title || "Untitled", meta: c.kind === "web" ? "app" : c.kind === "doc" ? "doc" : c.lang || "code" }));
     }
@@ -542,8 +533,8 @@ function RoomList({
   const q = query.trim().toLowerCase();
   const list = (rows ?? []).filter((r) => !q || r.title.toLowerCase().includes(q));
   const ordered = [...list.filter((r) => r.pinned), ...list.filter((r) => !r.pinned)];
-  const heading = { study: "Decks", notebook: "Pages", projects: "Projects", code: "Made here" }[section as "study"] ?? "";
-  const noun = { study: "decks", notebook: "pages", projects: "projects", code: "creations" }[section as "study"] ?? "things";
+  const heading = { study: "Decks", notebook: "Pages", projects: "Projects", code: "Made here", creative: "Made here" }[section as "study"] ?? "";
+  const noun = { study: "decks", notebook: "pages", projects: "projects", code: "creations", creative: "creations" }[section as "study"] ?? "things";
 
   if (rows === undefined) return null;
   if (!ordered.length) return <Empty query={query} noun={noun} />;

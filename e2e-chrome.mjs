@@ -3,8 +3,8 @@
  *
  * The claims: on a desk the sidebar's own header holds the close control;
  * closed, a rail stays — the mark at the top that becomes the open icon
- * under the pointer, New chat, Search, the six rooms, the account — and
- * the bar shows no toggle of its own; ⌘\ and ⌘⇧S both toggle; ⌘1–6 go to
+ * under the pointer, New chat, Search, the five rooms, the account — and
+ * the bar shows no toggle of its own; ⌘\ and ⌘⇧S both toggle; ⌘1–5 go to
  * the rooms in the order the sidebar lists them; on a phone the bar's
  * toggle opens the drawer. The box's plus menu offers, beyond files and a
  * photo: a picture, Learn, Research, Deep research, Slides, Compare, a
@@ -55,7 +55,7 @@ console.log("\nThe sidebar carries its own control, and leaves a rail when close
   await p.waitForTimeout(350);
   const after = await open.locator("span").first().evaluate((el) => getComputedStyle(el).opacity);
   check(before === "1" && after === "0", "the mark gives way to the open icon under the pointer", `mark opacity ${before} → ${after}`);
-  for (const name of ["New chat", "Search", "Conversations", "Study", "Notebook", "Projects", "Studio", "Creations", "Settings"])
+  for (const name of ["New chat", "Search", "Conversations", "Study", "Notebook", "Projects", "Studio", "Settings"])
     check(await aside.getByRole("button", { name, exact: true }).isVisible(), `the rail has ${name}`);
   check((await aside.locator("[inert]").count()) === 1, "the full panel is inert behind the rail, so nothing hidden takes focus");
   await aside.getByRole("button", { name: "Study", exact: true }).click();

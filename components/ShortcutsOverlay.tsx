@@ -26,10 +26,12 @@ export const SHORTCUT_GROUPS: { group: string; items: [string, string[]][] }[] =
   {
     group: "Sections",
     items: [
-      ["Chats", ["mod", "1"]],
-      ["Creations", ["mod", "2"]],
-      ["Projects", ["mod", "3"]],
-      ["Notebook", ["mod", "4"]],
+      ["Conversations", ["mod", "1"]],
+      ["Study", ["mod", "2"]],
+      ["Notebook", ["mod", "3"]],
+      ["Projects", ["mod", "4"]],
+      ["Studio", ["mod", "5"]],
+      ["Open or close the sidebar", ["mod", "\\"]],
       ["Back out of what's open", ["Esc"]],
     ],
   },

@@ -27,13 +27,19 @@ import {
   addCards,
   addMemory,
   addProjectFile,
+  addRoutine,
   allCards,
   attemptsSince,
+  createAssistant,
   createDeck,
   createNote,
+  createProject,
   db,
+  deleteAssistant,
   deleteMemory,
   deleteNote,
+  deleteProject,
+  deleteRoutine,
   deriveTitle,
   removeProjectFile,
   studyDays,
@@ -357,7 +363,7 @@ const TOOLS: Tool[] = [
     spec: {
       name: "list_made",
       description:
-        "List the things built in this app — pages, code and web canvases in the Artifacts room — newest first, optionally matching a word. " +
+        "List the things built in this app — pages, code and web things made in Studio — newest first, optionally matching a word. " +
         "Use when they refer to something they made or built earlier.",
       schema: { type: "object", properties: { query: { type: "string" } } },
     },
@@ -372,7 +378,7 @@ const TOOLS: Tool[] = [
       const text = top
         .map((c) => `- ${q(c.title || "Untitled")} — ${c.kind}${c.lang ? ` (${c.lang})` : ""}, ${new Date(c.updatedAt).toISOString().slice(0, 10)}, id ${c.id}`)
         .join("\n");
-      return { ok: true, text, summary: `Listed ${plural(top.length, "thing")} made here`, open: { section: "code", id: top[0].id } };
+      return { ok: true, text, summary: `Listed ${plural(top.length, "thing")} made here`, open: { section: "creative", id: top[0].id } };
     },
   },
   {
@@ -405,7 +411,7 @@ const TOOLS: Tool[] = [
         ok: true,
         text: `${q(canvas.title || "Untitled")} — ${canvas.kind}${canvas.lang ? ` (${canvas.lang})` : ""}\n\n${cut ? body.slice(0, 24_000) + "\n\n[… it goes on; this is the first 24,000 characters]" : body}`,
         summary: `Read ${q(canvas.title || "Untitled")}`,
-        open: { section: "code", id: canvas.id },
+        open: { section: "creative", id: canvas.id },
       };
     },
   },
@@ -467,6 +473,115 @@ const TOOLS: Tool[] = [
       return { ok: true, text, summary: "Checked the clock" };
     },
   },
+  /* ---- the app's own machinery: a schedule, a project, an assistant.
+     ChatGPT's scheduled tasks, projects and GPTs are each a form; here they
+     are also a sentence in the chat, which is where the wish is spoken. */
+  {
+    spec: {
+      name: "schedule_routine",
+      description:
+        "Set up a routine: a prompt that runs as a new conversation at a time of day, on the days chosen, whenever the app is open then. " +
+        "Use when they ask to be quizzed, reminded or briefed every morning, on weekdays, at a set time. Give the prompt in their words, as an instruction.",
+      schema: {
+        type: "object",
+        properties: {
+          prompt: { type: "string", description: "What to send when it runs, e.g. 'Quiz me on what is due today'." },
+          hour: { type: "integer", minimum: 0, maximum: 23, description: "24-hour clock, local time." },
+          minute: { type: "integer", minimum: 0, maximum: 59 },
+          days: { type: "string", enum: ["daily", "weekdays", "weekends"], description: "Which days. Default daily." },
+        },
+        required: ["prompt", "hour"],
+      },
+    },
+    offered: (ctx) => !ctx.temporary,
+    doing: "Setting up the routine",
+    run: async (input) => {
+      const prompt = str(input.prompt, 2_000);
+      if (!prompt) return fail("A routine needs the prompt it will send.");
+      const hour = Math.round(Number(input.hour));
+      const minute = input.minute === undefined ? 0 : Math.round(Number(input.minute));
+      if (!Number.isFinite(hour) || hour < 0 || hour > 23) return fail("The hour has to be 0 to 23.");
+      if (!Number.isFinite(minute) || minute < 0 || minute > 59) return fail("The minute has to be 0 to 59.");
+      const when = str(input.days, 20).toLowerCase();
+      const days = when === "weekdays" ? [1, 2, 3, 4, 5] : when === "weekends" ? [0, 6] : [];
+      const row = await addRoutine({ prompt, hour, minute, days });
+      const clock = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+      const onDays = when === "weekdays" ? "on weekdays" : when === "weekends" ? "at weekends" : "every day";
+      const summary = `Set a routine for ${clock} ${onDays}`;
+      return {
+        ok: true,
+        text: `${summary}: ${q(prompt)}. It runs the next time the app is open after that time; they can change or stop it under Settings → Routines.`,
+        summary,
+        open: { section: "settings", id: "routines" },
+        undo: async () => { await deleteRoutine(row.id); },
+      };
+    },
+  },
+  {
+    spec: {
+      name: "create_project",
+      description:
+        "Make a project — a folder of conversations and files that share standing instructions — and put this conversation in it. " +
+        "Use when they ask for a project, a folder or a workspace for a piece of work. Instructions are optional and apply to every chat in it.",
+      schema: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          instructions: { type: "string", description: "Standing instructions for every chat in the project, if they gave any." },
+        },
+        required: ["name"],
+      },
+    },
+    offered: (ctx) => !ctx.temporary && !ctx.projectId,
+    doing: "Making the project",
+    run: async (input, ctx) => {
+      const name = str(input.name, 80);
+      if (!name) return fail("The project needs a name.");
+      const project = await createProject({ name, instructions: str(input.instructions, 4_000) });
+      await db.conversations.update(ctx.conversationId, { projectId: project.id });
+      const summary = `Made the project ${q(name)}`;
+      return {
+        ok: true,
+        text: `${summary} and put this conversation in it. Its instructions apply from the next message.`,
+        summary,
+        open: { section: "projects", id: project.id },
+        undo: async () => { await deleteProject(project.id); },
+      };
+    },
+  },
+  {
+    spec: {
+      name: "create_assistant",
+      description:
+        "Make an assistant: a named way of answering with its own instructions, reachable afterwards as /its-name in any chat. " +
+        "Use when they ask for a tutor, coach, persona or specialist they can come back to. Write the instructions as directions to the assistant.",
+      schema: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          instructions: { type: "string", description: "How it answers: tone, method, what it always does first." },
+        },
+        required: ["name", "instructions"],
+      },
+    },
+    offered: (ctx) => !ctx.temporary,
+    doing: "Making the assistant",
+    run: async (input) => {
+      const name = str(input.name, 60);
+      const instructions = str(input.instructions, 6_000);
+      if (!name) return fail("The assistant needs a name.");
+      if (!instructions) return fail("The assistant needs instructions: how it should answer.");
+      const row = await createAssistant({ name, instructions });
+      const summary = `Made the assistant ${q(name)}`;
+      return {
+        ok: true,
+        text: `${summary}. They can call it with /${row.short} at the start of a message, or choose it from the box's menu.`,
+        summary,
+        open: { section: "settings", id: "assistants" },
+        undo: async () => { await deleteAssistant(row.id); },
+      };
+    },
+  },
 ];
 
 /* ------------------------------------------------------------ the api -- */
@@ -482,7 +597,7 @@ export function doingOf(name: string): string {
 }
 
 /** The rooms this can reach, for the settings line and the docs. */
-export const ACTION_AREAS = ["Study", "Notebook", "Memory", "Projects", "Creations", "Conversations", "Calculator", "Code", "Clock"] as const;
+export const ACTION_AREAS = ["Study", "Notebook", "Memory", "Projects", "Studio", "Conversations", "Routines", "Assistants", "Calculator", "Code", "Clock"] as const;
 
 /**
  * Run one call. Never throws: a tool that fails answers the model with why,
@@ -491,7 +606,6 @@ export const ACTION_AREAS = ["Study", "Notebook", "Memory", "Projects", "Creatio
 export async function runAction(call: ToolCall, ctx: ActionContext): Promise<ActionDone> {
   const tool = TOOLS.find((t) => t.spec.name === call.name);
   if (!tool) return fail(`No tool called ${q(call.name)}.`);
-  if (tool.offered && !tool.offered(ctx)) return fail(`${q(call.name)} is not available in this conversation.`);
   if (tool.offered && !tool.offered(ctx)) return fail(`${q(call.name)} is not available in this conversation.`);
   try {
     return await tool.run(call.input ?? {}, ctx);

@@ -3,6 +3,7 @@
 import { RevisePicker } from "@/components/chat/RevisePicker";
 import { getConfigured } from "@/lib/configured";
 import * as React from "react";
+import { CreativeView } from "./CreativeView";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Code2, FileText, GraduationCap, LayoutTemplate, NotebookPen } from "lucide-react";
 import { db, deleteCanvas, deleteDeck, deleteNote } from "@/lib/db";
@@ -57,12 +58,17 @@ export function LibraryView({
   onOpen,
   onNewCanvas,
   onNew,
+  onBuild,
+  onMade,
 }: {
   /** Open a thing in the room that edits it. */
   onOpen: (kind: "page" | "deck" | "canvas", id: string) => void;
   /** A starter made a canvas; go there, with a first sentence to finish. */
   onNewCanvas: (id: string, seed?: string) => void;
   onNew: () => void;
+  /** Studio's head: a request to build, and the things ready this second. */
+  onBuild?: (text: string) => void;
+  onMade?: (canvasId: string, seed: string) => void;
 }) {
   const notes = useLiveQuery(() => db.notes.orderBy("updatedAt").reverse().toArray(), []);
   const decks = useLiveQuery(() => db.decks.orderBy("updatedAt").reverse().toArray(), []);
@@ -164,7 +170,7 @@ export function LibraryView({
 
   return (
     <SectionIndex
-      title="Creations"
+      title="Studio"
       newLabel="New document"
       right={<RevisePicker configured={getConfigured()} />}
       emptyTitle="Nothing made yet."
@@ -172,7 +178,12 @@ export function LibraryView({
       loading={loading}
       lead={
         <>
+          {onBuild && onMade && <CreativeView embedded onBuild={onBuild} onMade={onMade} />}
+          <h2 className="mb-2 mt-2 text-base font-medium text-primary">Start blank</h2>
           <Starters onSelect={onNewCanvas} />
+          {(loading || items.length > 0) && (
+            <h2 className="mb-2 mt-6 text-base font-medium text-primary">Made here</h2>
+          )}
           {present.length > 1 && (
             <div role="group" aria-label="Kinds" className="mb-3 flex flex-wrap gap-1.5">
               {[{ id: "all" as const, plural: "All" }, ...present].map((k) => {

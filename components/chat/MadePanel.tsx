@@ -71,7 +71,7 @@ export function MadePanel({
           <IconButton label="Reload" size={28} onClick={() => setNonce((n) => n + 1)}>
             <RefreshCw size={14} />
           </IconButton>
-          <IconButton label="Open in Code" size={28} onClick={onEdit}>
+          <IconButton label="Open in Studio" size={28} onClick={onEdit}>
             <SquarePen size={14} />
           </IconButton>
           <IconButton label="Close" keys={["Esc"]} size={28} onClick={onClose}>

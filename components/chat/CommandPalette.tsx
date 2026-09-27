@@ -4,7 +4,7 @@ import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  Code2, Columns2, Download, FileText, FolderOpen, GraduationCap, Library, Link2, MessageSquare, MessageSquarePlus, Moon, NotebookPen, Palette, PanelLeft, Settings2, Sparkles, Sun, Trash2, Type, Wand2,
+  Code2, Columns2, Download, FileText, FolderOpen, GraduationCap, Link2, MessageSquare, MessageSquarePlus, Moon, NotebookPen, Palette, PanelLeft, Settings2, Sparkles, Sun, Trash2, Type, Wand2,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { bestHit, textOf, type Hit } from "@/lib/find";
@@ -67,7 +67,7 @@ function bodyScore(query: string, body?: string): number {
    name did not find it, and a hit inside a thread should never push the
    thread itself down the list. */
 const GROUP_ORDER = [
-  "Actions", "Assistants", "Go to", "View", "Models", "Chats", "Projects", "Creations", "Notebook", "Study",
+  "Actions", "Assistants", "Go to", "View", "Models", "Chats", "Projects", "Studio", "Notebook", "Study",
   "In conversations", "In cards",
 ];
 /** No single kind of thing may fill the list and bury the rest. */
@@ -282,7 +282,6 @@ export function CommandPalette({
     const nav: Command[] = (
       [
         ["chat", "Chats", <MessageSquare key="c" size={15} />],
-        ["code", "Creations", <Library key="k" size={15} />],
         ["creative", "Studio", <Sparkles key="v" size={15} />],
         ["projects", "Projects", <FolderOpen key="j" size={15} />],
         ["notebook", "Notebook", <NotebookPen key="n" size={15} />],
@@ -324,8 +323,8 @@ export function CommandPalette({
       hint: c.content.split("\n").find((l) => l.trim()) ?? "Empty",
       body: c.content,
       icon: <Code2 size={15} />,
-      group: "Creations",
-      run: () => actions.open("code", c.id),
+      group: "Studio",
+      run: () => actions.open("creative", c.id),
     }));
 
     const noteCmds: Command[] = (notes ?? []).map((n) => ({

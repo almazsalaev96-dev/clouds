@@ -73,7 +73,7 @@ console.log("\nA page becomes a Word file");
 
 console.log("\nA deck becomes a PowerPoint file, and can be printed one slide a page");
 {
-  await p.locator("aside nav").getByRole("button", { name: "Creations" }).first().click();
+  await p.locator("aside nav").getByRole("button", { name: "Studio" }).first().click();
   await p.waitForTimeout(600);
   await p.getByRole("button", { name: /^All canvases/ }).click().catch(() => {});
   await p.waitForTimeout(300);

@@ -129,7 +129,7 @@ export function CanvasView({
   if (!canvas) {
     return (
       <SectionIndex
-        title="Creations"
+        title="Studio"
         newLabel="New canvas"
         right={<RevisePicker configured={configured} />}
         emptyTitle="Nothing made yet."

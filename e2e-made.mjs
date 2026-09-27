@@ -103,7 +103,7 @@ console.log("\nClosed, and opened again from the card");
 
 console.log("\nAnd into Code, running, in one press");
 {
-  await p.getByRole("button", { name: "Open in Code" }).click();
+  await p.getByRole("button", { name: "Open in Studio" }).click();
   await p.waitForTimeout(900);
   check(await p.getByRole("button", { name: /Use it/ }).isVisible(), "Code opens it with Use it on it");
   const f = p.frameLocator("iframe").first();

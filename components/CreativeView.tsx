@@ -46,7 +46,10 @@ const IDEAS = [
 export function CreativeView({
   onMade,
   onBuild,
+  embedded = false,
 }: {
+  /** Inside the Studio index, under its own title: no page margins, an h2. */
+  embedded?: boolean;
   /** Built and ready: hand it to the room that runs canvases. */
   onMade: (canvasId: string, seed: string) => void;
   /** Start a making conversation with this request. */
@@ -63,8 +66,12 @@ export function CreativeView({
   };
 
   return (
-    <div className="mx-auto w-full max-w-[var(--measure-wide)] px-4 py-8">
-      <h1 className="text-[1.75rem] font-medium leading-tight text-primary sm:text-3xl">What should we make?</h1>
+    <div className={embedded ? "mb-8" : "mx-auto w-full max-w-[var(--measure-wide)] px-4 py-8"}>
+      {embedded ? (
+        <h2 className="text-lg font-medium leading-tight text-primary">What should we make?</h2>
+      ) : (
+        <h1 className="text-[1.75rem] font-medium leading-tight text-primary sm:text-3xl">What should we make?</h1>
+      )}
       <p className="mt-1 max-w-prose text-sm text-secondary">
         Describe it and it is built and running beside the conversation — a working thing, not a page of
         code. Ask for changes in the same breath and it changes in place.
