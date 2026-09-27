@@ -469,6 +469,8 @@ export default function Page() {
      project: set by the front door, the palette or a Settings row before
      there is a conversation to be a property of. */
   const [pendingAssistant, setPendingAssistant] = React.useState<string | null>(null);
+  /* The project a chat not yet started belongs to; declared up here because `send` reads it. */
+  const [pendingProject, setPendingProject] = React.useState<string | null>(null);
 
   /* --- Titles are generated quietly, on the cheapest model with a key, and
          never block anything the user is doing. -------------------------- */
@@ -1562,7 +1564,7 @@ export default function Page() {
 
       if (isFirst) void generateTitle(convId, blockText(content));
     },
-    [activeId, conversation?.leafId, conversation?.temporary, pendingTemporary, path, threadModelId, runTurn, generateTitle, compareWith, configured, settings.keys, settings.modelId, settings.memoryOn, pendingAssistant, assistants, slashExtras],
+    [activeId, conversation?.leafId, conversation?.temporary, pendingTemporary, pendingDeep, pendingProject, pendingResearch, pendingLearn, path, threadModelId, runTurn, generateTitle, compareWith, configured, settings.keys, settings.modelId, settings.memoryOn, pendingAssistant, assistants, slashExtras],
   );
 
   /* Anything that lands on a conversation that already exists settles the
@@ -1578,7 +1580,6 @@ export default function Page() {
    * Cleared by anything that lands somewhere else, so a project named and then
    * abandoned does not attach itself to an unrelated chat half an hour later.
    */
-  const [pendingProject, setPendingProject] = React.useState<string | null>(null);
 
   /* What ⌘K is looking at, and what saying something would do to it. */
   /**
@@ -2307,6 +2308,36 @@ export default function Page() {
     setSettingsOpen(true);
   }, []);
 
+  /* A project made from where you are: named for the conversation, with
+     this chat in it from the first moment. What ChatGPT's "add to project"
+     does from the thread, without leaving the thread. */
+  const newProjectHere = React.useCallback(async () => {
+    const title = conversation?.title?.trim();
+    const made = await createProject({ name: title || "New project" });
+    if (activeId && conversation) await db.conversations.update(activeId, { projectId: made.id });
+    else setPendingProject(made.id);
+    setReading(`Made the project "${made.name}" with this chat in it. Its instructions and files are a press away in Projects.`);
+    window.setTimeout(() => setReading(null), 3_600);
+  }, [activeId, conversation]);
+
+  /* An assistant, chosen from the box: a thread already going becomes its
+     from here on, with its model; a chat not yet started waits for it. */
+  const answerAs = React.useCallback(
+    (id: string | null) => {
+      if (activeId && conversation) {
+        const a = id ? assistants.find((x) => x.id === id) : undefined;
+        /* Dropping the assistant drops its model too: the thread goes back
+           to the model chosen for the app, not on answering as the
+           assistant would with no assistant named. */
+        if (!id) { void db.conversations.update(activeId, { assistantId: undefined, modelId: settings.modelId }); return; }
+        if (!a || conversation.assistantId === a.id) return;
+        void db.conversations.update(activeId, { assistantId: a.id, ...(a.modelId ? { modelId: a.modelId } : {}) });
+        void db.assistants.update(a.id, { uses: (a.uses ?? 0) + 1 });
+      } else setPendingAssistant(id);
+    },
+    [activeId, conversation, assistants, settings.modelId],
+  );
+
   const removeConversation = React.useCallback(async () => {
     if (!activeId) return;
     const title = conversation?.title || "this conversation";
@@ -2388,15 +2419,23 @@ export default function Page() {
         case "2":
         case "3":
         case "4":
-        case "4": {
+        case "5":
+        case "6": {
           e.preventDefault();
           // The order the sidebar shows them in, so the number you press is
           // the position you can see rather than one you have to remember.
-          const sections = ["chat", "code", "projects", "notebook"] as const;
+          const sections = ["chat", "study", "notebook", "projects", "creative", "code"] as const;
           goToSection(sections[Number(e.key) - 1]);
           break;
         }
         case "\\":
+          e.preventDefault();
+          settings.toggleSidebar();
+          break;
+        /* The reference's own chord for the same thing, so a hand that
+           learnt it there finds it here. */
+        case "s":
+          if (!e.shiftKey) break;
           e.preventDefault();
           settings.toggleSidebar();
           break;
@@ -2650,6 +2689,25 @@ export default function Page() {
         else setPendingLearn((v) => !v);
       }}
       onPicture={() => useDrafts.getState().setDraft(activeId ?? "new", "/image ")}
+      onSlides={() => useDrafts.getState().setDraft(activeId ?? "new", "/slides ")}
+      onCompare={() => useDrafts.getState().setDraft(activeId ?? "new", "/compare ")}
+      deep={conversation ? !!conversation.deep : pendingDeep}
+      onToggleDeep={() => {
+        if (activeId && conversation) void db.conversations.update(activeId, conversation.deep ? { deep: false } : { deep: true, research: true });
+        else { setPendingDeep((v) => !v); if (!pendingDeep) setPendingResearch(true); }
+      }}
+      temporary={conversation ? undefined : pendingTemporary}
+      onToggleTemporary={conversation ? undefined : () => setPendingTemporary((v) => !v)}
+      projects={projects}
+      inProject={conversation?.projectId ?? (conversation ? null : pendingProject) ?? null}
+      onMoveToProject={(pid) => {
+        if (activeId && conversation) void db.conversations.update(activeId, { projectId: pid ?? undefined });
+        else setPendingProject(pid);
+      }}
+      onNewProjectHere={newProjectHere}
+      assistants={assistants}
+      assistantId={conversation?.assistantId ?? (conversation ? null : pendingAssistant) ?? null}
+      onAssistant={answerAs}
       voice={voice}
     />
   ) : null;
@@ -2701,7 +2759,7 @@ export default function Page() {
                   hides this lone row; a room with no such header keeps the
                   row, which is one button and not a blank strip. */}
               {!inUse && (
-                <header className="room-toggle-row no-print flex h-[var(--topbar-h)] shrink-0 items-center gap-1 px-2">
+                <header className="room-toggle-row no-print flex h-[var(--topbar-h)] shrink-0 items-center gap-1 px-2 md:hidden">
                   <IconButton
                     label={settings.sidebarOpen ? "Hide sidebar" : "Show sidebar"}
                     keys={["mod", "\\"]}
@@ -2719,7 +2777,7 @@ export default function Page() {
                       label={settings.sidebarOpen ? "Hide sidebar" : "Show sidebar"}
                       keys={["mod", "\\"]}
                       onClick={settings.toggleSidebar}
-                      className="rounded-lg hover:bg-subtle"
+                      className="rounded-lg hover:bg-subtle md:hidden"
                     >
                       <PanelLeft size={16} />
                     </IconButton>

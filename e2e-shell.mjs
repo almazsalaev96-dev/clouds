@@ -20,23 +20,23 @@ await p.waitForTimeout(900);
 
 
 
-console.log("\nThe panel's switch is not drawn on the panel");
+console.log("\nThe panel carries its own switch, and leaves a rail");
 {
-  /* It was in the sidebar's header: a control that hides a thing, drawn on
-     the thing it hides, which then needed a second copy elsewhere for when
-     it had worked. One control now, in the bar beside the model, saying
-     show or hide in the same square of screen either way. */
-  const bar = p.locator("header").first();
-  const hide = bar.getByRole("button", { name: "Hide sidebar" });
-  check(await hide.isVisible(), "the switch sits in the bar beside the model, not inside the panel");
-  check((await p.locator("aside").getByRole("button", { name: /Hide sidebar/ }).count()) === 0,
-    "and there is no second copy of it on the panel itself");
-  await hide.click();
+  /* As the reference draws it: the close control in the panel's header,
+     the open control at the top of the rail the closed panel leaves, and
+     no copy of either in the bar on a desk. */
+  const aside = p.locator("aside").first();
+  const close = aside.getByRole("button", { name: "Close sidebar" });
+  check(await close.isVisible(), "the switch sits in the panel's header");
+  check((await p.locator("header").first().getByRole("button", { name: /Hide sidebar|Show sidebar/ }).filter({ visible: true }).count()) === 0,
+    "and the bar carries no copy of it on a desk");
+  await close.click();
   await p.waitForTimeout(600);
-  check(await bar.getByRole("button", { name: "Show sidebar" }).isVisible(),
-    "closed, the same control is in the same place and says the other thing");
-  await bar.getByRole("button", { name: "Show sidebar" }).click();
+  check(await aside.getByRole("button", { name: "Open sidebar" }).isVisible(),
+    "closed, the rail's top square is the open control");
+  await aside.getByRole("button", { name: "Open sidebar" }).click();
   await p.waitForTimeout(600);
+  check(await close.isVisible(), "and it opens again from there");
 }
 
 console.log("\nAnd search is a button until it is wanted");

@@ -95,10 +95,10 @@ console.log("\nOn a desktop window");
 
 console.log("\nHidden on a desktop window");
 {
-  /* Hidden is hidden. There used to be a 64-72px rail of icons left behind
-     on a desk; the person who hid the panel on a tablet wanted the page,
-     not a thinner panel. Nothing is left, nothing is reachable, and the
-     one switch in the bar brings it back. */
+  /* Closed on a desk is a rail, as the reference draws it: 56px of the
+     panel's own controls, the page beside them, the full panel inert
+     behind it, and the rail's top square the one way to bring it back —
+     the bar carries no copy. */
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
   await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
@@ -106,13 +106,16 @@ console.log("\nHidden on a desktop window");
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(700);
   const aside = await p.locator("aside").boundingBox();
-  check(!aside || aside.width <= 1, "the sidebar takes no width at all", aside ? `${Math.round(aside.width)}px` : "not laid out");
-  const inert = await p.locator("aside").evaluate((n) => n.hasAttribute("inert"));
-  check(inert, "and what is inside it cannot be reached by tab");
+  band(aside ? Math.round(aside.width) : null, 52, 60, "closed, the rail");
+  const inert = await p.locator("aside [inert]").count();
+  check(inert === 1, "and the full panel behind it cannot be reached by tab");
   const mainX = await p.locator("main").boundingBox();
-  check(Boolean(mainX) && mainX.x <= 8, "so the page starts at the left edge", mainX ? `${Math.round(mainX.x)}px in` : "no main");
-  const toggles = await p.getByRole("button", { name: "Show sidebar" }).count();
-  check(toggles === 1, "and exactly one way to bring it back, in the bar", `${toggles} found`);
+  check(Boolean(mainX) && mainX.x >= 56 && mainX.x <= 72, "so the page starts just past the rail", mainX ? `${Math.round(mainX.x)}px in` : "no main");
+  const opens = await p.locator("aside").getByRole("button", { name: "Open sidebar" }).count();
+  const barCopies = await p.locator("header").getByRole("button", { name: /Show sidebar|Hide sidebar/ }).filter({ visible: true }).count();
+  check(opens === 1 && barCopies === 0, "and exactly one way to bring it back, at the top of the rail", `${opens} on the rail, ${barCopies} in the bar`);
+  for (const name of ["New chat", "Search", "Conversations", "Settings"])
+    check(await p.locator("aside").getByRole("button", { name, exact: true }).isVisible(), `the rail carries ${name}`);
   await ctx.close();
 }
 
@@ -124,13 +127,14 @@ console.log("\nOn a phone");
   band(title, 26, 32, "a page's own title");
   const spill = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   check(spill <= 1, "and the page does not scroll sideways", `${spill}px over`);
-  /* The phone keeps the drawer: closed, it is off-screen and inert, and the
-     rail never appears — 72px of a 390px screen is a fifth of it. */
+  /* The phone keeps the drawer: closed, it is off-screen and its panel
+     inert, and the rail never appears — 56px of a 390px screen is a
+     seventh of it. */
   await p.evaluate((s) => localStorage.setItem("store.settings.v1", s), SETTINGS.replace('"sidebarOpen":true', '"sidebarOpen":false'));
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(700);
-  const closed = await p.locator("aside").evaluate((n) => ({ inert: n.hasAttribute("inert"), x: n.getBoundingClientRect().right }));
-  check(closed.inert && closed.x <= 0, "closed on a phone, the drawer is off-screen and inert", `right edge at ${Math.round(closed.x)}px, inert=${closed.inert}`);
+  const closed = await p.locator("aside").evaluate((n) => ({ inert: Boolean(n.querySelector("[inert]")), x: n.getBoundingClientRect().right, rail: [...n.querySelectorAll("[data-rail]")].some((r) => r.getClientRects().length > 0) }));
+  check(closed.inert && closed.x <= 0 && !closed.rail, "closed on a phone, the drawer is off-screen and inert, and there is no rail", `right edge at ${Math.round(closed.x)}px, inert=${closed.inert}, rail=${closed.rail}`);
   await ctx.close();
 }
 

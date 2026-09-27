@@ -103,22 +103,14 @@ export function TopBar({
         scrolled ? "glass border-line" : "border-transparent bg-transparent",
       )}
     >
-      {/* The panel's own switch, and it lives out here rather than inside
-          the panel.
-
-          It was in the sidebar's header, which is the one place it cannot
-          sensibly be: a control that hides a thing, drawn on the thing it
-          hides. Collapsed, it had to be replaced by a second copy somewhere
-          else, and the two took turns existing. Out here it is one control
-          that never moves and never changes meaning — it says show when the
-          panel is away and hide when it is there, in the same square of
-          screen either way, which is what makes it findable without being
-          looked for. It is also where the reference puts it. */}
+      {/* On a desk the panel carries its own control, in its header when
+          open and at the top of the rail when closed, as the reference has
+          it. This one opens the drawer on a phone, where there is no rail. */}
       <IconButton
         label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
         keys={["mod", "\\"]}
         onClick={toggleSidebar}
-        className="rounded-lg hover:bg-subtle"
+        className="rounded-lg hover:bg-subtle md:hidden"
       >
         <PanelLeft size={16} />
       </IconButton>

@@ -4,13 +4,13 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   ChevronRight, FolderOpen, GraduationCap, Keyboard, Library, MessagesSquare, NotebookPen,
-  Pin, PinOff, Plus, Search, Settings2, Sparkles, Trash2, X,
+  PanelLeft, Pin, PinOff, Plus, Search, Settings2, Sparkles, SquarePen, Trash2, X,
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { db, deleteConversation, groupConversations } from "@/lib/db";
 import { dueNow } from "@/lib/study";
 import { useDebounced } from "@/lib/hooks/useDebounced";
-import { Lockup } from "@/components/brand/Logo";
+import { Lockup, Mark } from "@/components/brand/Logo";
 import { offerUndo } from "@/lib/undo";
 import { useSettings, type Section } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -111,11 +111,12 @@ export function Sidebar({
      left running behind a shut box is a list that is missing rows for a
      reason nobody can see. */
   const [searching, setSearching] = React.useState(false);
-  /* Closed is closed. It used to leave a 72px rail of icons on a desk,
-     on the theory that "collapse" is not "hide" — and the person hiding
-     the panel on a tablet did not want a thinner panel, they wanted the
-     page. The rooms are one press away through the switch in the bar,
-     which never moves, and through the palette. */
+  /* Closed on a desk is a rail, as the reference has it: the panel's own
+     controls at icon size, the page beside them. It was once a 72px rail,
+     then nothing at all ("closed is closed"), and the reference settled
+     the argument — a rail is what people expect, and a rail of 56px is
+     not a thinner panel, it is the panel's index. On a phone the drawer
+     leaves nothing behind, as before. */
   return (
     <>
       {sidebarOpen && (
@@ -141,29 +142,69 @@ export function Sidebar({
           "md:my-2 md:ml-2 md:rounded-xl md:border-r-0 md:shadow-md",
           sidebarOpen
             ? "translate-x-0 md:w-[var(--sidebar-w)]"
-            : "-translate-x-full md:w-0 md:translate-x-0 md:my-0 md:ml-0 md:shadow-none",
+            : "-translate-x-full md:w-[var(--rail-w)] md:translate-x-0",
         )}
-        /* `inert` as well as `aria-hidden`, and the pair is the point.
-           Collapsed, this becomes `w-0` with `overflow-hidden` — clipped to
-           nothing on the screen, while everything inside keeps its place in
-           the document and its place in the tab order. So four controls
-           (this toggle, the two room switches and New chat) could be tabbed
-           to while invisible, and `aria-hidden` meant a screen reader said
-           nothing when they were. That pairing — focusable inside
-           aria-hidden — is the one combination the spec calls out, and the
-           browser makes it worse by scrolling a focused child of an
-           `overflow:hidden` box into view, which drags the clipped column
-           back over the page. `inert` removes both at once. */
-        inert={!sidebarOpen}
-        aria-hidden={!sidebarOpen}
+        /* The full panel, below, is `inert` as well as `aria-hidden` when
+           closed, and the pair is the point: clipped to nothing on a desk
+           behind the rail and translated off-screen on a phone, its
+           controls would otherwise keep their place in the tab order —
+           focusable inside aria-hidden is the one combination the spec
+           calls out, and the browser makes it worse by scrolling a focused
+           child of an overflow:hidden box into view. `inert` removes both
+           at once, and the rail, which is not inert, is what takes the
+           keyboard instead. */
       >
-        <div className="flex w-[var(--sidebar-w)] flex-1 flex-col">
-          {/* The name, and one round control. The switch that hides this
-              panel is not here any more — it was a button drawn on the thing
-              it hides, which had to be duplicated elsewhere the moment it
-              worked; it lives in the bar beside the model now, where it is
-              one control that never moves. What is left is what the header
-              is for: whose app this is, and the way into finding things. */}
+        {/* Closed on a desk or a tablet, the panel becomes a rail — the
+            reference's collapsed sidebar: the mark at the top, which turns
+            into the open-sidebar icon under the pointer; New chat; Search;
+            the rooms as icons; the account at the bottom. Everything a
+            press away, no label in the way of the page. */}
+        {!sidebarOpen && (
+          <div className="hidden h-full w-[var(--rail-w)] flex-col items-center gap-1 px-2 py-2 md:flex" data-rail>
+            <SidebarToggle open={false} onClick={toggleSidebar} />
+            <IconButton label="New chat" keys={["mod", "N"]} onClick={onNewChat} size={40} className="rounded-lg">
+              <SquarePen size={18} />
+            </IconButton>
+            <IconButton label="Search" onClick={() => { toggleSidebar(); setSearching(true); }} size={40} className="rounded-lg">
+              <Search size={18} />
+            </IconButton>
+            <span className="my-1 h-px w-6 shrink-0 bg-line" aria-hidden />
+            <nav aria-label="Rooms" className="flex flex-col gap-1">
+              {SECTIONS.map((s) => {
+                const on = section === s.id;
+                return (
+                  <IconButton
+                    key={s.id}
+                    label={s.label}
+                    aria-current={on ? "true" : undefined}
+                    onClick={() => onGoToSection(s.id)}
+                    size={40}
+                    className={cn("rounded-lg", on ? "bg-accent-subtle text-accent hover:bg-accent-subtle hover:text-accent" : "")}
+                  >
+                    {s.icon}
+                  </IconButton>
+                );
+              })}
+            </nav>
+            <span className="flex-1" />
+            <button
+              onClick={onOpenSettings}
+              aria-label="Settings"
+              className="tap mb-1 flex size-9 shrink-0 items-center justify-center rounded-full bg-accent-subtle text-tiny font-semibold uppercase text-accent transition-colors duration-[var(--dur-fast)] hover:brightness-110"
+            >
+              {(name.trim()[0] ?? "").toUpperCase() || <Settings2 size={14} />}
+            </button>
+          </div>
+        )}
+        <div
+          className={cn("flex w-[var(--sidebar-w)] flex-1 flex-col", !sidebarOpen && "md:hidden")}
+          inert={!sidebarOpen}
+          aria-hidden={!sidebarOpen}
+        >
+          {/* The name, the close control and the round search control, as
+              the reference's header has them: the panel carries its own
+              switch, and the same square at the top of the rail carries
+              the other half of it when the panel is closed. */}
           <div className="flex h-[var(--topbar-h)] items-center gap-2 px-3">
             {/* The drawn word, not the name set in the interface font. A
                 product's own name is the one string it should never render in
@@ -171,6 +212,7 @@ export function Sidebar({
             <span className="min-w-0 flex-1">
               <Lockup />
             </span>
+            <SidebarToggle open onClick={toggleSidebar} />
             <button
               onClick={() => setSearching((v) => !v)}
               /* Not the same name as the field it opens: two controls with
@@ -362,6 +404,38 @@ export function Sidebar({
         </div>
       </aside>
     </>
+  );
+}
+
+/**
+ * The control that opens and closes the panel, as the reference draws it:
+ * on the closed rail it is the mark, and under the pointer it becomes the
+ * open-sidebar icon; on the open panel it is the icon, in the header's
+ * corner. Same square, same shortcut, either way.
+ */
+function SidebarToggle({ open, onClick }: { open: boolean; onClick: () => void }) {
+  return (
+    <Tooltip label={open ? "Close sidebar" : "Open sidebar"} keys={["mod", "\\"]} side={open ? "bottom" : "right"}>
+      <button
+        onClick={onClick}
+        aria-label={open ? "Close sidebar" : "Open sidebar"}
+        aria-expanded={open}
+        className={cn(
+          "group tap relative flex size-10 shrink-0 items-center justify-center rounded-lg text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary",
+        )}
+      >
+        {open ? (
+          <PanelLeft size={18} />
+        ) : (
+          <>
+            <span className="transition-opacity duration-[var(--dur-fast)] group-hover:opacity-0 group-focus-visible:opacity-0">
+              <Mark size={22} className="text-primary" />
+            </span>
+            <PanelLeft size={18} className="absolute opacity-0 transition-opacity duration-[var(--dur-fast)] group-hover:opacity-100 group-focus-visible:opacity-100" />
+          </>
+        )}
+      </button>
+    </Tooltip>
   );
 }
 

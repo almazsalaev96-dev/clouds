@@ -1,0 +1,158 @@
+/**
+ * The frame, as the reference draws it.
+ *
+ * The claims: on a desk the sidebar's own header holds the close control;
+ * closed, a rail stays — the mark at the top that becomes the open icon
+ * under the pointer, New chat, Search, the six rooms, the account — and
+ * the bar shows no toggle of its own; ⌘\ and ⌘⇧S both toggle; ⌘1–6 go to
+ * the rooms in the order the sidebar lists them; on a phone the bar's
+ * toggle opens the drawer. The box's plus menu offers, beyond files and a
+ * photo: a picture, Learn, Research, Deep research, Slides, Compare, a
+ * project, an assistant and a temporary chat; "New project from this
+ * chat" makes one named for the thread and puts the chat in it; "Answer
+ * as an assistant" switches the thread to it.
+ *
+ *   bash /tmp/claude-0/one.sh e2e-chrome
+ */
+import { chromium } from "playwright";
+const MOCK = "http://127.0.0.1:8787";
+const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
+const ctx = await b.newContext({ viewport: { width: 1440, height: 960 } });
+const p = await ctx.newPage();
+const errs = [];
+p.on("pageerror", (e) => errs.push("PAGE: " + e.message));
+let failed = 0;
+const check = (c, l, d = "") => { if (!c) failed++; console.log(`${c ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
+const S = { theme: "light", density: "comfortable", modelId: "one", styleId: "auto", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", rules: [], name: "Almaz", nameAsked: true };
+
+await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
+await p.evaluate(async (s) => {
+  localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 }));
+  const db = await new Promise((res) => { const r = indexedDB.open("clouds"); r.onsuccess = () => res(r.result); });
+  const now = Date.now();
+  const tx = db.transaction(["assistants", "projects"], "readwrite");
+  tx.objectStore("assistants").put({ id: "as1", name: "Chem coach", short: "chem-coach", icon: "⚗️", instructions: "Safety note first.", modelId: "one", createdAt: now, updatedAt: now, uses: 0 });
+  tx.objectStore("projects").put({ id: "pr1", name: "Timetable review", description: "", instructions: "Money in pounds.", createdAt: now, updatedAt: now });
+  await new Promise((res) => { tx.oncomplete = res; });
+}, S);
+await p.reload({ waitUntil: "networkidle" });
+await p.waitForTimeout(900);
+
+console.log("\nThe sidebar carries its own control, and leaves a rail when closed");
+{
+  const aside = p.locator("aside").first();
+  const close = aside.getByRole("button", { name: "Close sidebar" });
+  check(await close.isVisible(), "open, the panel's header holds Close sidebar");
+  check((await p.locator("header").getByRole("button", { name: /Hide sidebar|Show sidebar/ }).filter({ visible: true }).count()) === 0, "and the bar shows no toggle of its own on a desk");
+  await close.click();
+  await p.waitForTimeout(500);
+  const w = await aside.evaluate((el) => el.getBoundingClientRect().width);
+  check(w > 40 && w < 80, "closed, a rail stays rather than nothing", `${Math.round(w)}px wide`);
+  const open = aside.getByRole("button", { name: "Open sidebar" });
+  check(await open.isVisible(), "with the mark at the top, which is the open control");
+  const before = await open.locator("span").first().evaluate((el) => getComputedStyle(el).opacity);
+  await open.hover();
+  await p.waitForTimeout(350);
+  const after = await open.locator("span").first().evaluate((el) => getComputedStyle(el).opacity);
+  check(before === "1" && after === "0", "the mark gives way to the open icon under the pointer", `mark opacity ${before} → ${after}`);
+  for (const name of ["New chat", "Search", "Conversations", "Study", "Notebook", "Projects", "Studio", "Creations", "Settings"])
+    check(await aside.getByRole("button", { name, exact: true }).isVisible(), `the rail has ${name}`);
+  check((await aside.locator("[inert]").count()) === 1, "the full panel is inert behind the rail, so nothing hidden takes focus");
+  await aside.getByRole("button", { name: "Study", exact: true }).click();
+  await p.waitForTimeout(600);
+  check(/Study|Decks|Today's plan/.test(await p.locator("main").innerText()), "a rail room button goes to the room");
+  await p.keyboard.press("Meta+Shift+S");
+  await p.waitForTimeout(500);
+  check(await aside.getByRole("button", { name: "Close sidebar" }).isVisible(), "⌘⇧S opens it again, as the reference's chord does");
+  await p.keyboard.press("Meta+\\");
+  await p.waitForTimeout(500);
+  check(await aside.getByRole("button", { name: "Open sidebar" }).isVisible(), "and ⌘\\ closes it");
+  await p.keyboard.press("Meta+\\");
+  await p.waitForTimeout(400);
+  await p.keyboard.press("Meta+4");
+  await p.waitForTimeout(600);
+  check(await aside.getByRole("button", { name: "Projects", exact: true }).getAttribute("aria-current") === "true", "⌘4 is the fourth room the sidebar lists, Projects");
+  await p.keyboard.press("Meta+1");
+  await p.waitForTimeout(500);
+}
+
+console.log("\nThe box's plus menu holds the functions");
+{
+  await p.getByRole("button", { name: "Add files and tools" }).click();
+  await p.waitForTimeout(300);
+  const menu = await p.locator("[data-radix-popper-content-wrapper]").last().innerText();
+  for (const item of ["Add photos and files", "Take a photo", "Make a picture", "Learn", "Research", "Deep research", "Slides", "Compare two models", "Add to a project", "Answer as an assistant", "Temporary chat"])
+    check(menu.includes(item), `offers ${item}`);
+  await p.getByRole("button", { name: /^Add to a project/ }).click();
+  await p.waitForTimeout(250);
+  const pane = await p.locator("[data-radix-popper-content-wrapper]").last().innerText();
+  check(/New project from this chat/.test(pane) && /Timetable review/.test(pane), "the project page lists yours and offers a new one", pane.replace(/\s+/g, " ").slice(0, 80));
+  await p.getByRole("button", { name: /^Timetable review/ }).click();
+  await p.waitForTimeout(400);
+  check(await p.getByRole("button", { name: /Timetable review/ }).first().isVisible(), "choosing one puts the chat-to-be in it, said in the header");
+  await p.getByRole("button", { name: "Add files and tools" }).click();
+  await p.locator("[data-radix-popper-content-wrapper]").last().waitFor({ timeout: 3000 });
+  await p.waitForTimeout(200);
+  const again = await p.locator("[data-radix-popper-content-wrapper]").last().innerText();
+  check(/Answer as an assistant/.test(again), "reopened, the menu is back on its first page", again.replace(/\s+/g, " ").slice(0, 120));
+  await p.getByRole("button", { name: /^Answer as an assistant/ }).click();
+  await p.waitForTimeout(250);
+  await p.locator("[data-radix-popper-content-wrapper]").last().getByRole("button", { name: /^Chem coach/ }).click();
+  await p.waitForTimeout(400);
+  check(await p.getByRole("button", { name: "Answering as Chem coach" }).isVisible(), "choosing an assistant sets who answers, said in the header");
+  await p.getByRole("button", { name: "Add files and tools" }).click();
+  await p.waitForTimeout(300);
+  await p.getByRole("button", { name: /^Deep research/ }).click();
+  await p.waitForTimeout(300);
+  await p.getByRole("button", { name: "Add files and tools" }).click();
+  await p.waitForTimeout(300);
+  check(/Stop deep research/.test(await p.locator("[data-radix-popper-content-wrapper]").last().innerText()), "Deep research is a switch, and shows it is on");
+  await p.keyboard.press("Escape");
+}
+
+console.log("\nA project from the chat itself");
+{
+  await fetch(`${MOCK}/__reset`);
+  await p.getByRole("textbox", { name: "Message" }).fill("What is a debounce and when would I use one");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(4000);
+  await p.getByRole("button", { name: "Add files and tools" }).click();
+  await p.waitForTimeout(300);
+  await p.getByRole("button", { name: /^In Timetable review|^Add to a project/ }).click();
+  await p.waitForTimeout(250);
+  await p.getByRole("button", { name: /^New project from this chat/ }).click();
+  await p.waitForTimeout(800);
+  check(/Made the project/.test(await p.locator("main").innerText()), "the box says the project was made");
+  const rows = await p.evaluate(async () => {
+    const d = await new Promise((r) => { const q = indexedDB.open("clouds"); q.onsuccess = () => r(q.result); });
+    const projects = await new Promise((r) => { const q = d.transaction("projects").objectStore("projects").getAll(); q.onsuccess = () => r(q.result); });
+    const convs = await new Promise((r) => { const q = d.transaction("conversations").objectStore("conversations").getAll(); q.onsuccess = () => r(q.result); });
+    const made = projects.find((x) => x.id !== "pr1");
+    return { projects: projects.length, made: made?.name, linked: convs.some((c) => c.projectId === made?.id), assistant: convs[0]?.assistantId, deep: convs[0]?.deep };
+  });
+  check(rows.projects === 2 && rows.linked, "a second project exists with this conversation in it", JSON.stringify(rows));
+  check(Boolean(rows.made) && rows.made !== "New project", "named for the conversation", rows.made);
+  check(rows.assistant === "as1" && rows.deep === true, "and the assistant and deep research chosen before the first message stuck to it", JSON.stringify({ assistant: rows.assistant, deep: rows.deep }));
+}
+
+console.log("\nOn a phone the bar opens the drawer");
+{
+  const phone = await (await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })).newPage();
+  await phone.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await phone.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: { ...s, sidebarOpen: false }, version: 1 })), S);
+  await phone.reload({ waitUntil: "networkidle" });
+  await phone.waitForTimeout(800);
+  const opener = phone.getByRole("button", { name: "Show sidebar" }).first();
+  check(await opener.isVisible(), "the bar's toggle is there on a phone");
+  const railHidden = (await phone.locator("[data-rail]").count()) === 0 || !(await phone.locator("[data-rail]").first().isVisible());
+  check(railHidden, "and no rail crowds the phone");
+  await opener.click();
+  await phone.waitForTimeout(500);
+  check(await phone.locator("aside").getByRole("button", { name: "Close sidebar" }).isVisible(), "the drawer opens, with its own close control");
+  await phone.close();
+}
+
+console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors");
+console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
+await b.close();
+process.exit(failed ? 1 : 0);

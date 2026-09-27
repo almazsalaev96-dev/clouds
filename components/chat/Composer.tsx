@@ -3,8 +3,8 @@
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
-  Check, ChevronDown, FileText, MessageSquare, Paperclip, Plus,
-  SlidersHorizontal, Sparkles, Wand2, X, Globe, ListChecks, GraduationCap, Camera, ImagePlus } from "lucide-react";
+  Check, ChevronDown, ChevronLeft, ChevronRight, Columns2, FileText, FolderOpen, FolderPlus, MessageSquare, MessageSquareDashed, Paperclip, Plus,
+  Presentation, SlidersHorizontal, Sparkles, Telescope, Wand2, X, Globe, ListChecks, GraduationCap, Camera, ImagePlus } from "lucide-react";
 import { slashCommands, typingSlash, type SlashExtra } from "@/lib/slash";
 import type { ContentBlock, Style } from "@/lib/types";
 import { getModel, estimateTokens, formatTokens } from "@/lib/models";
@@ -49,6 +49,19 @@ export function Composer({
   rulesCount = 0,
   slashExtras = [],
   onOpenRules,
+  onSlides,
+  onCompare,
+  deep,
+  onToggleDeep,
+  temporary,
+  onToggleTemporary,
+  projects = [],
+  inProject = null,
+  onMoveToProject,
+  onNewProjectHere,
+  assistants = [],
+  assistantId = null,
+  onAssistant,
   voice,
 }: {
   conversationId: string;
@@ -79,6 +92,24 @@ export function Composer({
   onOpenRules?: () => void;
   /** The person's assistants, each a command of its own in the slash menu. */
   slashExtras?: SlashExtra[];
+  /** "/slides " and "/compare " in the box, from the menu. */
+  onSlides?: () => void;
+  onCompare?: () => void;
+  /** Deep research: several searches, then a report with sources. A mode of the thread. */
+  deep?: boolean;
+  onToggleDeep?: () => void;
+  /** Only before the first message: a chat is temporary from its first word or not at all. */
+  temporary?: boolean;
+  onToggleTemporary?: () => void;
+  /** The projects, to put this chat in one from the box; null takes it out. */
+  projects?: { id: string; name: string }[];
+  inProject?: string | null;
+  onMoveToProject?: (projectId: string | null) => void;
+  onNewProjectHere?: () => void;
+  /** The assistants, to answer as one from here on; null is none. */
+  assistants?: { id: string; name: string; icon: string }[];
+  assistantId?: string | null;
+  onAssistant?: (id: string | null) => void;
   /** Chat or Creative. */
   /** The style this thread answers in. */
   /** Voice mode, where the browser can do it. */
@@ -97,6 +128,10 @@ export function Composer({
   const fileRef = React.useRef<HTMLInputElement>(null);
   const cameraRef = React.useRef<HTMLInputElement>(null);
   const [plusOpen, setPlusOpen] = React.useState(false);
+  /* The menu has two second pages — a list of projects, a list of
+     assistants — reached from the first and left by a back row. */
+  const [pane, setPane] = React.useState<"main" | "project" | "assistant">("main");
+  React.useEffect(() => { if (!plusOpen) setPane("main"); }, [plusOpen]);
   const reasoning = paramsFor(modelId).reasoningEffort;
   /* The same three words the picker uses. "Medium" on the bar and "Normal"
      in the menu below it are two names for one setting, which reads as two
@@ -353,71 +388,89 @@ export function Composer({
                 align="start"
                 side="top"
                 sideOffset={8}
-                className="z-50 w-60 rounded-md glass border border-line p-1.5 shadow-lg anim-menu"
+                className="z-50 max-h-[min(72vh,640px)] w-64 overflow-y-auto rounded-md glass border border-line p-1.5 shadow-lg anim-menu"
               >
-                <button
-                  onClick={() => {
-                    setPlusOpen(false);
-                    fileRef.current?.click();
-                  }}
-                  className="focus-inset flex h-9 w-full items-center gap-2.5 rounded-xl px-2.5 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
-                >
-                  <Paperclip size={16} className="text-tertiary" />
-                  Add photos and files
-                </button>
+                {pane === "main" && (
+                  <>
+                <MenuRow icon={<Paperclip size={16} />} title="Add photos and files" onClick={() => { setPlusOpen(false); fileRef.current?.click(); }} />
                 {/* The camera, on a phone the way the other apps have it: a
                     photograph of the page, the working, the board — taken
                     now, not chosen from a roll. A desk browser opens its
                     picker instead. */}
-                <button
-                  onClick={() => { setPlusOpen(false); cameraRef.current?.click(); }}
-                  className="focus-inset flex h-9 w-full items-center gap-2.5 rounded-xl px-2.5 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
-                >
-                  <Camera size={16} className="text-tertiary" />
-                  Take a photo
-                </button>
+                <MenuRow icon={<Camera size={16} />} title="Take a photo" onClick={() => { setPlusOpen(false); cameraRef.current?.click(); }} />
                 {onPicture && (
-                  <button
-                    onClick={() => { setPlusOpen(false); onPicture(); }}
-                    className="focus-inset flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
-                  >
-                    <ImagePlus size={16} className="mt-0.5 shrink-0 text-tertiary" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block">Make a picture</span>
-                      <span className="block text-xs text-tertiary">Describe it and it is drawn in the thread.</span>
-                    </span>
-                  </button>
+                  <MenuRow icon={<ImagePlus size={16} />} title="Make a picture" hint="Describe it and it is drawn in the thread." onClick={() => { setPlusOpen(false); onPicture(); }} />
                 )}
                 {/* The tools, each with a line saying what it does — the +
                     menu as Gemini and ChatGPT have it, for the person who
                     would rather read a menu than learn the chips. */}
                 {onToggleLearn && (
-                  <button
-                    onClick={() => { setPlusOpen(false); onToggleLearn(); }}
-                    aria-pressed={Boolean(learn)}
-                    className="focus-inset flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
-                  >
-                    <GraduationCap size={16} className="mt-0.5 shrink-0 text-tertiary" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block">{learn ? "Stop learning mode" : "Learn"}</span>
-                      <span className="block text-xs text-tertiary">A plan, one step at a time, a check after each.</span>
-                    </span>
-                    {learn && <Check size={14} className="mt-0.5 shrink-0 text-accent" />}
-                  </button>
+                  <MenuRow icon={<GraduationCap size={16} />} on={learn} title={learn ? "Stop learning mode" : "Learn"} hint="A plan, one step at a time, a check after each." onClick={() => { setPlusOpen(false); onToggleLearn(); }} />
                 )}
                 {onToggleResearch && (
-                  <button
-                    onClick={() => { setPlusOpen(false); onToggleResearch(); }}
-                    aria-pressed={Boolean(research)}
-                    className="focus-inset flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
-                  >
-                    <Globe size={16} className="mt-0.5 shrink-0 text-tertiary" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block">{research ? "Stop searching the web" : "Research"}</span>
-                      <span className="block text-xs text-tertiary">Let it search the web and say what it read.</span>
-                    </span>
-                    {research && <Check size={14} className="mt-0.5 shrink-0 text-accent" />}
-                  </button>
+                  <MenuRow icon={<Globe size={16} />} on={research} title={research ? "Stop searching the web" : "Research"} hint="Let it search the web and say what it read." onClick={() => { setPlusOpen(false); onToggleResearch(); }} />
+                )}
+                {onToggleDeep && (
+                  <MenuRow icon={<Telescope size={16} />} on={deep} title={deep ? "Stop deep research" : "Deep research"} hint="Several searches from different angles, then a report with sources." onClick={() => { setPlusOpen(false); onToggleDeep(); }} />
+                )}
+                {onSlides && (
+                  <MenuRow icon={<Presentation size={16} />} title="Slides" hint="A deck, built and run beside the chat; prints to PDF, saves as PowerPoint." onClick={() => { setPlusOpen(false); onSlides(); }} />
+                )}
+                {onCompare && (
+                  <MenuRow icon={<Columns2 size={16} />} title="Compare two models" hint="Two companies answer, side by side; keep the better one." onClick={() => { setPlusOpen(false); onCompare(); }} />
+                )}
+                {(onMoveToProject || onNewProjectHere) && (
+                  <MenuRow
+                    icon={<FolderOpen size={16} />}
+                    title={inProject ? `In ${projects.find((p) => p.id === inProject)?.name ?? "a project"}` : "Add to a project"}
+                    hint={inProject ? "Change it, or take this chat out." : "Its instructions and files apply to this chat."}
+                    more
+                    onClick={() => setPane("project")}
+                  />
+                )}
+                {onAssistant && assistants.length > 0 && (
+                  <MenuRow
+                    icon={<span className="flex w-4 justify-center text-sm leading-none">{assistants.find((a) => a.id === assistantId)?.icon ?? "✦"}</span>}
+                    title={assistantId ? `Answering as ${assistants.find((a) => a.id === assistantId)?.name ?? "an assistant"}` : "Answer as an assistant"}
+                    hint={assistantId ? "Change it, or answer as Armi." : "One of yours: its way of working, its model."}
+                    more
+                    onClick={() => setPane("assistant")}
+                  />
+                )}
+                {onToggleTemporary && (
+                  <MenuRow icon={<MessageSquareDashed size={16} />} on={temporary} title={temporary ? "Keep this chat" : "Temporary chat"} hint="Not kept, not remembered, gone when you leave." onClick={() => { setPlusOpen(false); onToggleTemporary(); }} />
+                )}
+                  </>
+                )}
+                {pane === "project" && (
+                  <>
+                    <button onClick={() => setPane("main")} className="focus-inset mb-1 flex h-8 w-full items-center gap-1.5 rounded-xl px-2 text-left text-xs text-tertiary hover:bg-subtle hover:text-primary">
+                      <ChevronLeft size={14} /> Back
+                    </button>
+                    {onNewProjectHere && (
+                      <MenuRow icon={<FolderPlus size={16} />} title="New project from this chat" hint="Named for it, with this chat in it." onClick={() => { setPlusOpen(false); onNewProjectHere(); }} />
+                    )}
+                    {projects.length > 0 && <p className="px-2.5 pb-1 pt-2 text-tiny font-medium uppercase tracking-wide text-tertiary">Your projects</p>}
+                    <div>
+                      {projects.map((p) => (
+                        <MenuRow key={p.id} icon={<FolderOpen size={16} />} on={inProject === p.id} title={p.name} onClick={() => { setPlusOpen(false); onMoveToProject?.(p.id); }} />
+                      ))}
+                    </div>
+                    {inProject && <MenuRow icon={<X size={16} />} title="No project" hint="Take this chat out of it." onClick={() => { setPlusOpen(false); onMoveToProject?.(null); }} />}
+                  </>
+                )}
+                {pane === "assistant" && (
+                  <>
+                    <button onClick={() => setPane("main")} className="focus-inset mb-1 flex h-8 w-full items-center gap-1.5 rounded-xl px-2 text-left text-xs text-tertiary hover:bg-subtle hover:text-primary">
+                      <ChevronLeft size={14} /> Back
+                    </button>
+                    <div>
+                      {assistants.map((a) => (
+                        <MenuRow key={a.id} icon={<span className="flex w-4 justify-center text-sm leading-none">{a.icon}</span>} on={assistantId === a.id} title={a.name} onClick={() => { setPlusOpen(false); onAssistant?.(a.id); }} />
+                      ))}
+                    </div>
+                    {assistantId && <MenuRow icon={<X size={16} />} title="Answer as Armi" hint="No assistant on this chat." onClick={() => { setPlusOpen(false); onAssistant?.(null); }} />}
+                  </>
                 )}
               </Popover.Content>
             </Popover.Portal>
@@ -570,5 +623,27 @@ export function Composer({
           answer, where it would be read once and then be furniture. */}
       <p className="no-print mt-1.5 px-4 text-center text-xs text-tertiary">Armi can be wrong. Check what matters.</p>
     </div>
+  );
+}
+
+/**
+ * One row of the plus menu: an icon, a title, a line under it saying what
+ * it does, a tick when it is on, a chevron when it opens a second page.
+ */
+function MenuRow({ icon, title, hint, on, more, onClick }: { icon: React.ReactNode; title: string; hint?: string; on?: boolean; more?: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={more ? undefined : on}
+      className="focus-inset flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+    >
+      <span className="mt-0.5 shrink-0 text-tertiary" aria-hidden>{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate">{title}</span>
+        {hint && <span className="block text-xs text-tertiary">{hint}</span>}
+      </span>
+      {on && !more && <Check size={14} className="mt-0.5 shrink-0 text-accent" />}
+      {more && <ChevronRight size={14} className="mt-0.5 shrink-0 text-tertiary" />}
+    </button>
   );
 }

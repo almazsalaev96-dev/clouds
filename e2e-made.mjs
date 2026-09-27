@@ -93,7 +93,7 @@ console.log("\nAsked again, it is the same thing, updated");
 
 console.log("\nClosed, and opened again from the card");
 {
-  await p.getByRole("button", { name: "Close" }).click();
+  await p.getByRole("button", { name: "Close", exact: true }).click();
   await p.waitForTimeout(400);
   check(!(await column.isVisible().catch(() => false)), "the column closes");
   await p.getByRole("group", { name: "Made: Two minutes" }).first().getByRole("button", { name: "Open" }).click();
