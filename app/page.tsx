@@ -2858,7 +2858,10 @@ export default function Page() {
     (async () => {
       type Claimed = { pass?: string | null; customerId?: string; until?: number };
       let out: Claimed | null = null;
-      if (sessionId || paymentId) {
+      /* Asked a few times: straight back from the card, Dodo can still be
+         finishing the payment, and a first "not yet" is not a "no". */
+      for (let attempt = 0; attempt < 4 && (sessionId || paymentId) && !out?.pass; attempt += 1) {
+        if (attempt) await new Promise((r) => setTimeout(r, 2500));
         out = (await fetch("/api/plus/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sessionId, paymentId, subscriptionId }) })
           .then((r) => r.json()).catch(() => null)) as Claimed | null;
       }

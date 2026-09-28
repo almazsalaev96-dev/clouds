@@ -20,7 +20,7 @@ import {
 import { useSettings, paramsFor, DEFAULT_PARAMS, forgetLocalStorage } from "@/lib/store";
 import { PRESETS, engineOf, getPreset, profileOf, resolveCast, shortName } from "@/lib/presets";
 import { PLUS_NAME, PLUS_PRICE, PLUS_ALLOWED } from "@/lib/plus";
-import { getPlusOffer } from "@/lib/configured";
+import { getPlusOffer, setPlusOffer } from "@/lib/configured";
 import { does } from "./ModelPicker";
 import { useReturnFocus } from "@/lib/hooks/useReturnFocus";
 import { cn } from "@/lib/utils";
@@ -1698,7 +1698,7 @@ function StylesPanel() {
 
 
 /**
- * Armi Plus: a dollar a month, no keys to add.
+ * Armi Plus: pay a dollar, use it until it is spent, no keys to add.
  *
  * Three states, said plainly. Not switched on for this installation (a
  * self-hosted copy with no Dodo product behind it); on and not yet a
@@ -1710,7 +1710,18 @@ function StylesPanel() {
 function PlusPanel() {
   const plus = useSettings((s) => s.plus);
   const setPlus = useSettings((s) => s.setPlus);
-  const offer = getPlusOffer();
+  /* Read fresh whenever the panel opens: the balance moves with every
+     answer, and what the page learned when it loaded is already old. */
+  const [offer, setOffer] = React.useState(getPlusOffer);
+  React.useEffect(() => {
+    if (!plus?.key) return;
+    let live = true;
+    fetch(`/api/models?plus=${encodeURIComponent(plus.key)}`)
+      .then((r) => r.json())
+      .then((d: { plus?: typeof offer }) => { if (live && d.plus) { setPlusOffer(d.plus); setOffer(d.plus); } })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [plus?.key]);
   const [paymentId, setPaymentId] = React.useState("");
   const [busy, setBusy] = React.useState<"pay" | "claim" | null>(null);
   const [note, setNote] = React.useState<string | null>(null);
@@ -1764,19 +1775,32 @@ function PlusPanel() {
   }
 
   if (plus) {
-    const until = plus.until ? new Date(plus.until) : null;
+    const hasBalance = typeof offer.left === "number" && typeof offer.paid === "number" && offer.paid > 0;
+    const out = hasBalance && (offer.left ?? 0) <= 0;
     return (
-      <Panel title={PLUS_NAME} description={`On — ${offer.price}.`}>
+      <Panel title={PLUS_NAME} description="On.">
         <p className="text-sm text-secondary" role="status">
           {offer.valid === false
-            ? "Your subscription no longer checks out — it may have ended or a payment failed. Renew from the email Dodo Payments sent, then paste the new payment id below."
-            : "Armi Plus is on. The everyday tiers — Nova 4, Mira 4.1 and Lumos 4 — answer on Armi's keys, within a monthly allowance. The top of the ladder still needs a key of your own."}
+            ? "This payment no longer checks out. Paste the email you paid with, or the new payment id, below."
+            : out
+              ? "Armi Plus is on, and what you paid is used up. Top up to keep going."
+              : "Armi Plus is on. Nova 4, Mira 4.1 and Lumos 4 answer on Armi's keys until your balance is spent."}
         </p>
-        <p className="mt-2 text-xs text-tertiary">
-          {until && offer.valid !== false ? `Paid up to ${until.toLocaleDateString(undefined, { day: "numeric", month: "long" })} · ` : ""}
-          billing is handled by Dodo Payments; cancel from the email they sent you.
-        </p>
+        {hasBalance && offer.valid !== false && (
+          <div className="mt-3" aria-label="Balance">
+            <div className="flex items-baseline justify-between text-sm">
+              <span className="tnum font-medium text-primary">${(offer.left ?? 0).toFixed(2)} left</span>
+              <span className="tnum text-xs text-tertiary">of ${(offer.paid ?? 0).toFixed(2)}</span>
+            </div>
+            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-subtle" role="progressbar" aria-label="Balance left" aria-valuemin={0} aria-valuemax={offer.paid} aria-valuenow={offer.left}>
+              <div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, ((offer.left ?? 0) / (offer.paid || 1)) * 100)}%` }} />
+            </div>
+          </div>
+        )}
         <div className="mt-3 flex flex-wrap gap-2">
+          <Button size="sm" variant={out ? "primary" : "secondary"} disabled={busy !== null} onClick={() => void subscribe()}>
+            {busy === "pay" ? "Opening checkout…" : `Top up — ${PLUS_PRICE}`}
+          </Button>
           <Button size="sm" variant="ghost" onClick={() => { setPlus(null); setNote("Removed from this browser. The subscription itself is cancelled from Dodo's email."); }}>
             Remove from this browser
           </Button>
@@ -1796,17 +1820,16 @@ function PlusPanel() {
   }
 
   return (
-    <Panel title={PLUS_NAME} description={`${offer.price}. No keys to add.`}>
+    <Panel title={PLUS_NAME} description="No keys to add.">
       <p className="text-sm text-secondary">
-        Everything the everyday tiers do — Nova 4, Mira 4.1, Lumos 4, and the study, notebook and studio work that runs on them — on Armi's own keys, with a monthly allowance that covers ordinary use. Astro 5 and the dearest engines under the specialists still need a key of your own.
+        Pay {offer.price} and use Nova 4, Mira 4.1 and Lumos 4 — with every study, notebook and studio tool on them — until the {offer.price} is spent. Top up any time. Astro 5 and the dearest specialist engines still need a key of your own.
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Button size="sm" variant="primary" disabled={busy !== null} onClick={() => void subscribe()}>
-          {busy === "pay" ? "Opening checkout…" : `Subscribe — ${PLUS_PRICE}`}
+          {busy === "pay" ? "Opening checkout…" : `Get Plus — ${PLUS_PRICE}`}
         </Button>
-        <span className="text-xs text-tertiary">Pay, and you are brought straight back with Plus on. Dodo Payments is the merchant of record; cancel any time.</span>
       </div>
-      <Field label="Already paid?" hint="If you paid and were not brought back, the email you paid with switches it on. A payment id (pay_…) or subscription id (sub_…) from the receipt works too.">
+      <Field label="Already paid?" hint="The email you paid with, or the payment id from the receipt.">
         <div className="flex gap-2">
           <input
             value={paymentId}

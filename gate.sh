@@ -142,6 +142,11 @@ run e2e-plus node e2e-plus.mjs
 run e2e-member node e2e-member.mjs
 
 echo
+echo "== Armi Plus, as a balance =="
+serve DODO_BASE_URL=http://127.0.0.1:8787 DODO_PAYMENTS_API_KEY=dodo_test_mock DODO_PLUS_PRODUCT_ID=pdt_mock ARMI_LEDGER_URL=http://127.0.0.1:8787/__ledger OPENAI_BASE_URL=http://127.0.0.1:8787 OPENAI_API_KEY=sk-mock
+run e2e-balance node e2e-balance.mjs
+
+echo
 echo "== the slow mock =="
 mock mock-slow.mjs
 serve

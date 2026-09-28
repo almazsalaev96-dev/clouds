@@ -15,6 +15,16 @@ import { createServer } from "node:http";
 let plusBalance = 60000;
 const plusDebits = [];
 let plusValidations = 0;
+/* What each member has spent (the app's own ledger, ARMI_LEDGER_URL), and
+   the payments a customer has made — a top-up adds one. */
+const ledger = new Map();
+let topUps = 0;
+const mockPayments = () => [
+  { payment_id: "pay_mock", status: "succeeded", created_at: new Date().toISOString(), customer: { customer_id: "cus_mock" }, subscription_id: "sub_mock", product_cart: [{ product_id: "pdt_mock", quantity: 1 }], total_amount: 100, currency: "USD" },
+  ...Array.from({ length: topUps }, (_, i) => ({ payment_id: `pay_top${i + 1}`, status: "succeeded", created_at: new Date().toISOString(), customer: { customer_id: "cus_mock" }, subscription_id: null, product_cart: [{ product_id: "pdt_mock", quantity: 1 }], total_amount: 100, currency: "USD" })),
+  { payment_id: "pay_other", status: "succeeded", created_at: new Date().toISOString(), customer: { customer_id: "cus_mock" }, subscription_id: null, product_cart: [{ product_id: "pdt_somethingelse", quantity: 1 }], total_amount: 5000, currency: "USD" },
+  { payment_id: "pay_failed", status: "failed", created_at: new Date().toISOString(), customer: { customer_id: "cus_mock" }, subscription_id: null, product_cart: [{ product_id: "pdt_mock", quantity: 1 }], total_amount: 100, currency: "USD" },
+];
 
 /** A whole page, the way Creative answers a request to make something. */
 const MADE = `Here it is.
@@ -164,11 +174,18 @@ createServer(async (req, res) => {
     const json = (code, obj) => { res.writeHead(code, { "content-type": "application/json" }); res.end(JSON.stringify(obj)); };
     const readBody = async () => { let raw = ""; for await (const c of req) raw += c; try { return JSON.parse(raw || "{}"); } catch { return {}; } };
     if (u === "/__plus") { json(200, { balance: plusBalance, debits: plusDebits, validations: plusValidations }); return; }
-    if (u === "/__plus/reset") { plusBalance = 60000; plusDebits.length = 0; plusValidations = 0; json(200, { ok: true }); return; }
+    if (u === "/__plus/reset") { plusBalance = 60000; plusDebits.length = 0; plusValidations = 0; ledger.clear(); topUps = 0; json(200, { ok: true }); return; }
+    if (u === "/__plus/topup") { topUps += 1; json(200, { topUps }); return; }
+    if (u.startsWith("/__ledger/")) {
+      const id = decodeURIComponent(u.slice("/__ledger/".length));
+      if (req.method === "PUT") { ledger.set(id, JSON.stringify(await readBody())); json(200, { ok: true }); return; }
+      if (!ledger.has(id)) { json(404, { message: "none" }); return; }
+      res.writeHead(200, { "content-type": "application/json" }); res.end(ledger.get(id)); return;
+    }
     if (u.startsWith("/__checkout")) { res.writeHead(200, { "content-type": "text/html" }); res.end("<h1>Mock checkout</h1>"); return; }
     if (u.startsWith("/customers?")) { const q = new URL(u, "http://x").searchParams.get("email") ?? ""; json(200, { items: q.toLowerCase() === "almaz@example.com" ? [{ customer_id: "cus_mock", email: "almaz@example.com" }] : [] }); return; }
     if (u.startsWith("/subscriptions?")) { const q = new URL(u, "http://x").searchParams.get("customer_id"); json(200, { items: q === "cus_mock" ? [{ subscription_id: "sub_mock", status: "active", product_id: "pdt_mock", customer: { customer_id: "cus_mock" }, next_billing_date: new Date(Date.now() + 30 * 86400000).toISOString() }] : [] }); return; }
-    if (u.startsWith("/payments?")) { const q = new URL(u, "http://x").searchParams.get("customer_id"); json(200, { items: q === "cus_mock" ? [{ payment_id: "pay_mock", status: "succeeded", created_at: new Date().toISOString(), customer: { customer_id: "cus_mock" }, subscription_id: "sub_mock", product_cart: [{ product_id: "pdt_mock", quantity: 1 }] }] : [] }); return; }
+    if (u.startsWith("/payments?")) { const q = new URL(u, "http://x").searchParams.get("customer_id"); json(200, { items: q === "cus_mock" ? mockPayments() : [] }); return; }
     if (u.startsWith("/subscriptions/sub_mock")) { plusValidations += 1; json(200, { subscription_id: "sub_mock", status: "active", product_id: "pdt_mock", customer: { customer_id: "cus_mock" }, next_billing_date: new Date(Date.now() + 30 * 86400000).toISOString() }); return; }
     if (u.startsWith("/subscriptions/")) { json(404, { message: "no such subscription" }); return; }
     if (u.startsWith("/checkouts/cks_mock")) { json(200, { id: "cks_mock", created_at: new Date().toISOString(), payment_id: "pay_mock", payment_status: "succeeded", customer_email: "almaz@example.com" }); return; }

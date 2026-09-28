@@ -56,7 +56,7 @@ await page.locator("aside nav").getByRole("button", { name: "Projects", exact: t
    a fixed 400ms is a race this test would win on a fast machine and lose on a
    slow one — and losing it would report a broken empty state rather than a
    section that had not arrived yet. */
-await page.getByText("No projects yet.").waitFor({ timeout: 5000 }).catch(() => {});
+await page.getByText("No projects yet.").waitFor({ timeout: 10_000 }).catch(() => {});
 check(await page.getByText("No projects yet.").isVisible().catch(() => false), "the empty state says what a project is for");
 
 await page.getByRole("button", { name: /New project/i }).first().click();

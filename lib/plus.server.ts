@@ -15,8 +15,16 @@
  *   DODO_BASE_URL           an override, for the mock in tests
  *   DODO_PLUS_PRODUCT_ID    the $1-a-month subscription product
  *   DODO_PLUS_SECRET        optional: what the passes are signed with
- *   DODO_PLUS_CREDIT_ID     optional: the credit entitlement attached to that
- *                           product, for the monthly allowance
+ *   DODO_PLUS_CREDIT_ID     optional: a Dodo credit entitlement to draw the
+ *                           allowance from instead of the ledger below
+ *   PLUS_ALLOWANCE_SHARE    optional: the part of each dollar paid that is
+ *                           spent on models (default 1 — a dollar buys a
+ *                           dollar of model cost)
+ *
+ * The allowance, without a credit entitlement: what the customer has paid
+ * for the product (read from Dodo) less what they have spent (the ledger,
+ * lib/ledger.server.ts). A one-time payment does not run out by date —
+ * it runs out when it is spent, and paying again tops it up.
  *
  * With `DODO_PLUS_PRODUCT_ID` set, the server's provider keys are for Plus
  * members: a request without a valid pass uses the key the browser sent
@@ -25,6 +33,7 @@
  * person hosting the app for themselves wants.
  */
 import { PLUS_PRICE, creditsFor, type PlusOffer } from "./plus";
+import { addSpent, ledgerKind, spentUsd } from "./ledger.server";
 
 const env = (k: string) => {
   const v = process.env[k];
@@ -102,6 +111,7 @@ export async function diagnose(): Promise<Record<string, unknown>> {
        pasted-in something-else from a key with a quote on the end. */
     keyShape: { length: key.length, startsWithDodo: key.startsWith("dodo"), hasQuotesOrSpaces: /["'\s]/.test(key) },
     appMode: env("DODO_ENVIRONMENT") ?? "test_mode (default)",
+    ledger: env("DODO_PLUS_CREDIT_ID") ? "dodo credit entitlement" : ledgerKind() ?? "none — no spending limit is enforced",
     base: dodoBase(),
     product: product ?? null,
     productLookup: prod,
@@ -238,9 +248,11 @@ export async function createCheckout(returnTo: string, email?: string): Promise<
 
 /** A month and a few days' grace: what a pass stands on its own for. */
 const A_MONTH = 35 * 24 * 60 * 60_000;
+/* A one-time payment is limited by what is left of it, not by a date. */
+const BY_BALANCE = 10 * 365 * 24 * 60 * 60_000;
 
 type Sub = { subscription_id?: string; status?: string; next_billing_date?: string; product_id?: string; customer?: { customer_id?: string } };
-type Pay = { payment_id?: string; status?: string; created_at?: string; customer?: { customer_id?: string }; subscription_id?: string | null; product_cart?: { product_id?: string }[] | null };
+type Pay = { payment_id?: string; status?: string; created_at?: string; customer?: { customer_id?: string }; subscription_id?: string | null; product_cart?: { product_id?: string }[] | null; total_amount?: number; currency?: string };
 
 const grace = (iso?: string) => {
   const t = iso ? Date.parse(iso) : NaN;
@@ -292,7 +304,7 @@ export async function claimPass(from: { sessionId?: string; paymentId?: string; 
       if (!forThis(sub?.product_id)) return null;
       return issue(customerId, subscriptionId, paymentId, grace(sub?.next_billing_date));
     }
-    return issue(customerId, undefined, paymentId, Date.now() + A_MONTH);
+    return issue(customerId, undefined, paymentId, Date.now() + BY_BALANCE);
   }
 
   const subscriptionId = from.subscriptionId?.trim();
@@ -310,7 +322,7 @@ export async function claimPass(from: { sessionId?: string; paymentId?: string; 
       if (sub) return issue(customerId, sub.subscription_id, undefined, grace(sub.next_billing_date));
       const pays = await call<{ items?: Pay[] }>(`/payments?${new URLSearchParams({ customer_id: customerId })}`);
       const pay = (pays?.items ?? []).find((x) => x.payment_id && x.status === "succeeded" && ((x.product_cart ?? []).length === 0 || (x.product_cart ?? []).some((c) => forThis(c.product_id))));
-      if (pay) return issue(customerId, pay.subscription_id ?? undefined, pay.payment_id, grace(pay.created_at ? new Date(Date.parse(pay.created_at) + 30 * 24 * 60 * 60_000).toISOString() : undefined));
+      if (pay) return issue(customerId, pay.subscription_id ?? undefined, pay.payment_id, pay.subscription_id ? grace(pay.created_at ? new Date(Date.parse(pay.created_at) + 30 * 24 * 60 * 60_000).toISOString() : undefined) : Date.now() + BY_BALANCE);
     }
     return null;
   }
@@ -347,5 +359,82 @@ export async function debit(customerId: string, usd: number, what: string): Prom
   });
 }
 
-/** The one sentence said when the month's allowance is gone. */
-export const USED_UP = "Your Armi Plus allowance for this month is used up. It refills on your renewal date — or add a key of your own in Settings.";
+/* ------------------------------------------------ what is paid, what is left -- */
+
+const share = () => {
+  const n = Number(env("PLUS_ALLOWANCE_SHARE") ?? "1");
+  return n > 0 && n <= 1 ? n : 1;
+};
+
+/* Asked of Dodo at most every ten minutes a customer, and again at once
+   when the balance reaches nothing — which is the moment a top-up matters. */
+const paidSeen = new Map<string, { usd: number; at: number }>();
+
+/**
+ * Dollars paid for this product by this customer, from Dodo: every
+ * succeeded payment for it, at what was charged. Null when Dodo cannot be
+ * asked.
+ */
+export async function paidUsd(customerId: string, fresh = false): Promise<number | null> {
+  const had = paidSeen.get(customerId);
+  if (!fresh && had && Date.now() - had.at < REMEMBER) return had.usd;
+  const product = env("DODO_PLUS_PRODUCT_ID");
+  const pays = await call<{ items?: Pay[] }>(`/payments?${new URLSearchParams({ customer_id: customerId, page_size: "100" })}`);
+  if (!pays) return had?.usd ?? null;
+  let usd = 0;
+  for (const p of pays.items ?? []) {
+    if (p.status !== "succeeded") continue;
+    const cart = (p.product_cart ?? []).map((c) => c.product_id).filter(Boolean);
+    if (product && cart.length && !cart.includes(product)) continue;
+    /* What was charged, where it was charged in dollars; the price
+       otherwise, since a price is what a payment for this product is. */
+    usd += typeof p.total_amount === "number" && (p.currency ?? "USD").toUpperCase() === "USD" ? p.total_amount / 100 : PLUS_DOLLARS;
+  }
+  paidSeen.set(customerId, { usd, at: Date.now() });
+  return usd;
+}
+
+const PLUS_DOLLARS = 1;
+
+export interface Allowance {
+  /** Dollars of model cost left. */
+  left: number;
+  /** Dollars paid, as model cost (after the share). */
+  paid: number;
+  spent: number;
+}
+
+/**
+ * What a member has left, in dollars — or null where nothing is
+ * configured to count it (then nothing is refused on its account).
+ */
+export async function allowance(customerId: string): Promise<Allowance | null> {
+  if (!customerId) return null;
+  if (creditId()) {
+    const credits = await balance(customerId);
+    return credits === null ? null : { left: credits / 100_000, paid: 0, spent: 0 };
+  }
+  if (!ledgerKind()) return null;
+  const spent = await spentUsd(customerId);
+  if (spent === null) return null;
+  let paid = await paidUsd(customerId);
+  if (paid === null) return null;
+  if (paid * share() - spent <= 0) paid = (await paidUsd(customerId, true)) ?? paid;
+  const budget = paid * share();
+  return { left: Math.max(0, Math.round((budget - spent) * 1e4) / 1e4), paid: Math.round(budget * 1e4) / 1e4, spent: Math.round(spent * 1e4) / 1e4 };
+}
+
+/** Take a request's cost off what is left. Never throws. */
+export async function charge(customerId: string, usd: number, what: string): Promise<void> {
+  if (!customerId || !(usd > 0)) return;
+  if (creditId()) return debit(customerId, usd, what);
+  await addSpent(customerId, usd);
+}
+
+/** Forget what Dodo said a customer paid, so the next look is fresh (a top-up just came back). */
+export function forgetPaid(customerId: string): void {
+  paidSeen.delete(customerId);
+}
+
+/** The one sentence said when what was paid is spent. */
+export const USED_UP = "Your Armi Plus balance is used up. Top up in Settings to keep going — or add a key of your own.";

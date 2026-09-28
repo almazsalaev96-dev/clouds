@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { claimPass, plusConfigured } from "@/lib/plus.server";
+import { allowance, claimPass, forgetPaid, plusConfigured } from "@/lib/plus.server";
 
 export const runtime = "edge";
 
@@ -27,7 +27,9 @@ export async function POST(req: NextRequest) {
   const out = await claimPass({ sessionId, paymentId, subscriptionId, email });
   console.log(`plus claim: ${paymentId || subscriptionId || sessionId || (email ? "email" : "?")} → ${out ? `pass for ${out.customerId}` : "no pass"}`);
   if (!out) return Response.json({ pass: null, error: email && !paymentId && !subscriptionId
-    ? "No active Armi Plus subscription was found under that email at Dodo Payments. Check it is the email you paid with — and that the app's Dodo key is a live-mode key."
+    ? "No active Armi Plus subscription was found under that email at Dodo Payments. Check it is the email you paid with."
     : "No successful payment for Armi Plus was found under that id. Check it against the receipt from Dodo Payments." });
-  return Response.json(out);
+  /* A payment just came back: what they have paid is asked afresh. */
+  forgetPaid(out.customerId);
+  return Response.json({ ...out, allowance: await allowance(out.customerId).catch(() => null) });
 }

@@ -3,7 +3,7 @@ import { adapterFor } from "@/lib/providers";
 import { getModel, PROVIDERS } from "@/lib/models";
 import type { ChatRequest, ChatError, StreamEvent } from "@/lib/types";
 import { PLUS_PRICE, plusAllowed } from "@/lib/plus";
-import { USED_UP, balance, debit, passCustomer, plusGating, validatePass } from "@/lib/plus.server";
+import { USED_UP, allowance, charge, passCustomer, plusGating, validatePass } from "@/lib/plus.server";
 import { serverKeyFor } from "@/lib/serverKeys";
 
 export const runtime = "edge";
@@ -87,10 +87,10 @@ export async function POST(req: NextRequest) {
         return;
       }
 
-      /* The allowance, where one is configured: a member whose month is
-         spent is told so before a token is bought on their behalf. */
+      /* What is left of what they paid: a member whose balance is spent
+         is told so before a token is bought on their behalf. */
       if (member) {
-        const left = await balance(member);
+        const left = (await allowance(member))?.left ?? null;
         if (left !== null && left <= 0) {
           emit({ type: "error", error: { kind: "quota", message: USED_UP, action: "add_key" } });
           clearInterval(heartbeat);
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
         clearInterval(heartbeat);
         controller.close();
         /* Paid for after the fact, from what the provider said it cost. */
-        if (member && spent > 0) await debit(member, spent, model.id).catch(() => undefined);
+        if (member && spent > 0) await charge(member, spent, model.id).catch(() => undefined);
       }
     },
   });

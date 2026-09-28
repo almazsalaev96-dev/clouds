@@ -1,5 +1,5 @@
 /**
- * Armi Plus: a dollar a month, and no keys to add.
+ * Armi Plus: a dollar, used until it is spent, and no keys to add.
  *
  * The server holds a provider key and Plus is switched on, so that key is
  * for members. A browser with no keys of its own is told it needs a key or
@@ -55,7 +55,7 @@ console.log("\nA payment id from the receipt is checked with Dodo and a pass kep
   await p.getByRole("button", { name: /^Armi Plus$/ }).first().click();
   await p.waitForTimeout(400);
   const panel = await p.locator("[role=dialog]").first().innerText();
-  check(/\$1 a month/.test(panel) && /Subscribe/.test(panel), "the panel says the price and offers to subscribe", (panel.split("\n").find((l) => /\$1/.test(l)) ?? "").slice(0, 80));
+  check(/Pay \$1/.test(panel) && /Get Plus — \$1/.test(panel), "the panel says the price and offers to pay", (panel.split("\n").find((l) => /\$1/.test(l)) ?? "").slice(0, 80));
   check(/Astro 5 .* still need/.test(panel.replace(/\n/g, " ")), "and says plainly what a dollar does not cover");
   check(!/license key/i.test(panel), "and never mentions a license key");
   await p.getByLabel("Email or payment id").fill("pay_nope");
@@ -71,7 +71,7 @@ console.log("\nA payment id from the receipt is checked with Dodo and a pass kep
   await p.waitForTimeout(1200);
   const after = await p.locator("[role=dialog]").first().innerText();
   check(/Armi Plus is on/.test(after), "the email paid with turns Plus on — no id to find", (after.split("\n").find((l) => /is on/.test(l)) ?? "").slice(0, 80));
-  check(/Paid up to/.test(after), "and says until when", (after.split("\n").find((l) => /Paid up/.test(l)) ?? "").slice(0, 80));
+  check(/Top up/.test(after), "and offers to top up", (after.split("\n").find((l) => /Top up/.test(l)) ?? "").slice(0, 80));
   const kept = await p.evaluate(() => JSON.parse(localStorage.getItem("store.settings.v1")).state.plus);
   check(/^v1\.[\w-]+\.[\w-]+$/.test(kept?.key ?? "") && kept?.customerId === "cus_mock", "and the browser keeps a signed pass and who it belongs to", JSON.stringify(kept)?.slice(0, 120));
   await p.keyboard.press("Escape");

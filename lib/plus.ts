@@ -21,7 +21,7 @@
  */
 
 export const PLUS_NAME = "Armi Plus";
-export const PLUS_PRICE = "$1 a month";
+export const PLUS_PRICE = "$1";
 
 /**
  * The engines a dollar covers, by id. The everyday tiers' writers and
@@ -79,4 +79,7 @@ export interface PlusOffer {
   price: string;
   /** The pass the browser sent was valid, when it sent one. */
   valid?: boolean;
+  /** What that member has left and has paid, in dollars of model cost. */
+  left?: number;
+  paid?: number;
 }

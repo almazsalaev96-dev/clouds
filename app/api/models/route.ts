@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { PROVIDERS } from "@/lib/models";
 import type { ProviderId } from "@/lib/types";
-import { plusGating, plusOffer, validatePass } from "@/lib/plus.server";
+import { allowance, passCustomer, plusGating, plusOffer, validatePass } from "@/lib/plus.server";
 import { serverKeyFor } from "@/lib/serverKeys";
 
 export const runtime = "edge";
@@ -23,5 +23,7 @@ export async function GET(req: NextRequest) {
     const v = serverKeyFor(id);
     configured[id] = open && Boolean(v && v.trim());
   }
-  return Response.json({ configured, plus: plusOffer(valid) });
+  /* A member is told what is left of what they paid. */
+  const left = valid && plusKey ? await allowance((await passCustomer(plusKey)) ?? "").catch(() => null) : null;
+  return Response.json({ configured, plus: { ...plusOffer(valid), ...(left ? { left: left.left, paid: left.paid } : {}) } });
 }
