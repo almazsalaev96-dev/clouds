@@ -153,7 +153,7 @@ export interface Message {
     standard: string[];
     imagined: string;
     modelId: string;
-    judged?: { verdict: "meets" | "short"; missing: string[]; weak: string[]; modelId: string };
+    judged?: { verdict: "meets" | "short"; missing: string[]; weak: string[]; fix?: string; modelId: string };
   };
   /**
    * What the reader thought of it. Up is one press and stored as it is; down
@@ -237,6 +237,12 @@ export interface Conversation {
    * a second deck.
    */
   madeId?: string;
+  /**
+   * Slides or Picture, switched on for this conversation from the box's
+   * menu. Stays on until the chip is pressed, the way Learn does: every
+   * message is a deck (or a change to the deck) or a picture.
+   */
+  make?: "slides" | "picture";
 }
 
 /* ----------------------------------------------------------------- study -- */

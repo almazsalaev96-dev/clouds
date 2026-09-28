@@ -24,6 +24,18 @@ const check = (pass, label, detail = "") => {
   if (!pass) failed++;
   console.log(`${pass ? "  ✓" : "  ✗"} ${label}${detail ? " — " + detail : ""}`);
 };
+/* Rules, memory, routines, assistants and styles left the Settings list;
+   each is a command in the palette. */
+const openPanel = async (pg, label) => {
+  await pg.keyboard.press("Escape");
+  await pg.waitForTimeout(150);
+  await pg.keyboard.press("Control+k");
+  await pg.waitForTimeout(350);
+  await pg.getByRole("textbox", { name: "Command palette" }).fill(label);
+  await pg.waitForTimeout(300);
+  await pg.getByRole("option", { name: new RegExp("^" + label) }).first().click();
+  await pg.waitForTimeout(600);
+};
 
 /** What the provider actually received on the last request. */
 const lastSystem = async () => {
@@ -138,9 +150,7 @@ check(Boolean(stuck?.projectId), "and so is the project");
 // Settings → Styles → start from a built-in, edit it, then use it. The built-in
 // is the template on purpose: a blank box titled "Instructions" is where most
 // people give up on writing one.
-await page.keyboard.press("Control+,");
-await page.waitForTimeout(600);
-await page.getByRole("button", { name: "Styles", exact: true }).click();
+await openPanel(page, "Your styles");
 await page.waitForTimeout(500);
 await page.getByRole("button", { name: /Start from this/ }).first().click();
 await page.waitForTimeout(700);

@@ -19,7 +19,7 @@ import {
 import { draftCards } from "@/lib/generate";
 import { cheapestAvailable, complete, whyItFailed } from "@/lib/complete";
 import {
-  answeredToday, calibration, calibrationLine, clozeAnswer, clozeHidden, clozeQuestion, cramOrder,
+  accuracyTrend, answeredToday, calibration, calibrationLine, clozeAnswer, clozeHidden, clozeQuestion, cramOrder, readiness,
   clampRetention, dailyLoad, dueNow, isCloze, isLeech, RETENTION_CHOICES, topicKey, mistakeQueue, progressOf, previewGaps, streakOf, topicStats, weakestTopic, whenDue,
   type Attempt, type Calibration, type Card, type Rating, type StudyDay, type TopicStat,
 } from "@/lib/study";
@@ -536,79 +536,162 @@ export function StudyView({
           {busy && !pasting && <p className="sheen mt-2 text-sm font-medium">Reading it</p>}
           {notice && <p className="mt-2 text-sm text-warning">{notice}</p>}
 
-          {/* Days in a row. The one number that is about the person rather
-              than the cards, and the reason somebody opens this room on a
-              day nothing is due. Counted from the log, not from the cards:
-              a card keeps only its last answer and forgets the day before. */}
-          {weakest && weakDeck && (
-            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-tertiary tnum" aria-label={`Shakiest deck: ${weakDeck.name}`}>
-              <span>
-                Shakiest: <span className="text-secondary">{weakDeck.name}</span> — {weakest.shaky} of {weakest.reviewed} likely forgotten
-              </span>
-              <button
-                onClick={() => setSession({ deckId: weakDeck.id, mode: "cram" })}
-                className="btn-touch press rounded-full border border-line bg-surface px-2.5 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
-              >
-                Practise it
-              </button>
-            </p>
-          )}
-          {/* The deck is the box somebody filed it in; the topic is the
-              thing being learned, and the two come apart the moment a deck
-              is made from a chapter. "Biology paper 2 is at 78%" does not
-              say which of osmosis, respiration and the light reaction to
-              spend the evening on. This does. */}
-          {weakTopic && (
-            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-tertiary tnum" aria-label={`Weakest topic: ${weakTopic.topic}`}>
-              <span>
-                Weakest topic: <span className="text-secondary">{weakTopic.topic}</span>
-                {weakTopic.shaky > 0 && <> — {weakTopic.shaky} of {weakTopic.reviewed} likely forgotten</>}
-                {weakTopic.wrong > 0 && <> · got wrong {weakTopic.wrong} of {weakTopic.tried}</>}
-              </span>
-              <button
-                onClick={() => {
-                  const ids = cards.filter((c) => c.topic === weakTopic.topic).map((c) => c.id);
-                  setSession({ deckId: null, mode: "cram", only: ids, title: weakTopic.topic });
-                }}
-                className="btn-touch press rounded-full border border-line bg-surface px-2.5 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
-              >
-                Practise it
-              </button>
-            </p>
-          )}
-
-          {/* The wrong answers themselves, which the cards cannot remember.
-              "You wrote meiosis" is a sentence somebody can act on; "lapses:
-              2" is not. Worst first, and only what is still being missed —
-              a mistake you have stopped making is not a mistake. */}
-          {missed.length > 0 && (
-            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-tertiary tnum" aria-label="Mistakes">
-              <span>
-                <span className="text-secondary">{missed.length}</span> {missed.length === 1 ? "card you keep" : "cards you keep"} getting wrong
-              </span>
-              <button
-                onClick={() => setSession({
-                  deckId: null, mode: "cram", only: missed.map((c) => c.id), title: "Mistakes",
-                })}
-                className="btn-touch press rounded-full border border-line bg-surface px-2.5 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
-              >
-                Practise these
-              </button>
-            </p>
-          )}
-
-          <Record days={days} now={now} cards={cards} />
-          {surenessLine && <Sureness c={sureness} line={surenessLine} />}
-          {topics.length > 1 && <Topics topics={topics} onPractise={practise} />}
-          {streak > 1 && (
-            <p className="mt-2 flex items-center gap-1.5 text-xs text-tertiary tnum" aria-label={`${streak} days in a row`}>
-              <Flame size={12} className="text-[var(--accent-2)]" />
-              {streak} days in a row
-            </p>
+          {/* Your results — one card for what used to be six grey lines
+              scattered under the decks: how ready you are, what is known and
+              what is not, how your answers are going, and the presses that
+              gain the most marks, in that order. */}
+          {cards.length > 0 && (
+            <Results
+              cards={cards}
+              attempts={attempts ?? []}
+              now={now}
+              weakTopic={weakTopic}
+              weakDeck={weakest && weakDeck ? { name: weakDeck.name, shaky: weakest.shaky, reviewed: weakest.reviewed } : null}
+              missed={missed.length}
+              due={due}
+              onPractise={practise}
+              onPractiseDeck={weakDeck ? () => setSession({ deckId: weakDeck.id, mode: "cram" }) : undefined}
+              onMistakes={() => setSession({ deckId: null, mode: "cram", only: missed.map((c) => c.id), title: "Mistakes" })}
+              onStudyDue={() => setSession({ deckId: null, mode: "due" })}
+            >
+              {topics.length > 1 && <Topics topics={topics} onPractise={practise} />}
+              <Record days={days} now={now} cards={cards} />
+              {surenessLine && <Sureness c={sureness} line={surenessLine} />}
+              {streak > 1 && (
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-tertiary tnum" aria-label={`${streak} days in a row`}>
+                  <Flame size={12} className="text-[var(--accent-2)]" />
+                  {streak} days in a row
+                </p>
+              )}
+            </Results>
           )}
         </div>
       }
     />
+  );
+}
+
+/**
+ * Your results.
+ *
+ * What a student sits down wanting to know, in the order they want it: how
+ * ready am I (the expected share right if tested on everything now, from
+ * the scheduler's memory model), what is known, shaky and not started, how
+ * my answers are going (the last fortnight against the one before), and —
+ * the part that turns a number into marks — the presses that gain the most,
+ * ranked: the weakest topic, the mistakes still being made, what is due,
+ * what has never been studied. Practice testing and spacing are the two
+ * techniques with the strongest evidence for exam results (Dunlosky et al.,
+ * 2013), so every press here is one of those two.
+ */
+function Results({
+  cards,
+  attempts,
+  now,
+  weakTopic,
+  weakDeck,
+  missed,
+  due,
+  onPractise,
+  onPractiseDeck,
+  onMistakes,
+  onStudyDue,
+  children,
+}: {
+  cards: Card[];
+  attempts: Attempt[];
+  now: number;
+  weakTopic: TopicStat | null;
+  weakDeck: { name: string; shaky: number; reviewed: number } | null;
+  missed: number;
+  due: number;
+  onPractise: (topic: string) => void;
+  onPractiseDeck?: () => void;
+  onMistakes: () => void;
+  onStudyDue: () => void;
+  children?: React.ReactNode;
+}) {
+  const r = readiness(cards, now);
+  const acc = accuracyTrend(attempts, now);
+  if (r.score === null) return null;
+  const pct = Math.round(r.score * 100);
+  const seg = (n: number) => `${(n / Math.max(1, r.total)) * 100}%`;
+  const delta = acc.rate !== null && acc.prev !== null ? Math.round((acc.rate - acc.prev) * 100) : null;
+  /* Ranked by marks: what is forgotten or wrong costs marks now; what is
+     due costs them soon; what was never studied costs them all. */
+  const moves: { key: string; label: string; why: string; run: () => void }[] = [];
+  /* The weakest topic by the same measure as the headline, so the two
+     numbers on the card never contradict each other. */
+  const byTopic = new Map<string, Card[]>();
+  for (const c of cards) if (c.topic) byTopic.set(c.topic, [...(byTopic.get(c.topic) ?? []), c]);
+  let worst: { topic: string; score: number } | null = null;
+  for (const [topic, cs] of byTopic) {
+    if (cs.length < 3) continue;
+    const t = readiness(cs, now).score;
+    if (t !== null && t < 0.85 && (!worst || t < worst.score)) worst = { topic, score: t };
+  }
+  if (worst) { const w = worst; moves.push({ key: "topic", label: `Practise ${w.topic}`, why: `your weakest topic, ${Math.round(w.score * 100)}% ready`, run: () => onPractise(w.topic) }); }
+  else if (weakTopic && weakTopic.mean < 0.85) moves.push({ key: "topic", label: `Practise ${weakTopic.topic}`, why: `your weakest topic, ${Math.round(weakTopic.mean * 100)}% remembered`, run: () => onPractise(weakTopic.topic) });
+  else if (weakDeck && onPractiseDeck) moves.push({ key: "deck", label: `Practise ${weakDeck.name}`, why: `${weakDeck.shaky} of ${weakDeck.reviewed} likely forgotten`, run: onPractiseDeck });
+  if (missed > 0) moves.push({ key: "mistakes", label: `Redo ${missed} mistake${missed === 1 ? "" : "s"}`, why: "the answers you keep getting wrong", run: onMistakes });
+  if (due > 0) moves.push({ key: "due", label: `Review ${due} due`, why: "before they slip", run: onStudyDue });
+  if (r.fresh > 0 && due === 0) moves.push({ key: "fresh", label: `Learn ${Math.min(r.fresh, 20)} new`, why: `${r.fresh} never studied — each is a mark you do not get yet`, run: onStudyDue });
+
+  return (
+    <section aria-label="Your results" className="mt-4 rounded-xl border border-line bg-surface px-4 py-3.5">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 className="text-base font-medium text-primary">Your results</h2>
+        <span className="text-xs text-tertiary">{r.total} card{r.total === 1 ? "" : "s"}</span>
+      </div>
+      <div className="mt-2 flex items-end gap-3">
+        <span className="tnum text-[2.5rem] font-medium leading-none tracking-[-0.02em] text-primary" aria-label={`Exam readiness ${pct} per cent`}>
+          {pct}%
+        </span>
+        <span className="mb-1 flex flex-col">
+          <span className={cn("text-sm font-medium", pct >= 85 ? "text-[var(--success)]" : pct >= 50 ? "text-accent" : "text-warning")}>{r.band}</span>
+          <span className="text-xs text-tertiary">exam readiness</span>
+        </span>
+      </div>
+      <p className="mt-1.5 text-xs text-tertiary">
+        Tested on all of it today, you would likely get about {pct}% right.
+      </p>
+      {/* Known, shaky, not started — one bar, with the words under it. */}
+      <div className="mt-3 flex h-2 w-full gap-[2px] overflow-hidden rounded-full" aria-hidden>
+        {r.known > 0 && <span className="h-full rounded-full bg-[var(--success)]" style={{ width: seg(r.known) }} />}
+        {r.shaky > 0 && <span className="h-full rounded-full bg-[var(--warning)]" style={{ width: seg(r.shaky) }} />}
+        {r.fresh > 0 && <span className="h-full rounded-full bg-[var(--border-strong)] opacity-40" style={{ width: seg(r.fresh) }} />}
+      </div>
+      <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-tertiary tnum">
+        <span><span className="text-secondary">{r.known}</span> known</span>
+        <span><span className="text-secondary">{r.shaky}</span> shaky</span>
+        <span><span className="text-secondary">{r.fresh}</span> not started</span>
+        {acc.rate !== null && acc.tried >= 5 && (
+          <span>
+            <span className="text-secondary">{Math.round(acc.rate * 100)}%</span> right in the last 14 days
+            {delta !== null && delta !== 0 && <span className={delta > 0 ? "text-[var(--success)]" : "text-warning"}>, {delta > 0 ? "up" : "down"} {Math.abs(delta)} on the 14 before</span>}
+          </span>
+        )}
+      </p>
+      {moves.length > 0 && (
+        <div className="mt-3">
+          <p className="text-xs font-medium text-secondary">Most marks for your time</p>
+          <ul className="mt-1.5 space-y-1.5" aria-label="Most marks for your time">
+            {moves.slice(0, 3).map((m, i) => (
+              <li key={m.key} className="flex items-center gap-3">
+                <span className="min-w-0 flex-1 text-sm text-secondary">
+                  <span className="text-primary">{m.label}</span>
+                  <span className="text-tertiary"> — {m.why}</span>
+                </span>
+                <Button size="sm" variant={i === 0 ? "primary" : "secondary"} onClick={m.run} aria-label={m.label}>
+                  Go
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {children}
+    </section>
   );
 }
 

@@ -119,12 +119,26 @@ console.log("\nThe room reads by topic, not only by deck");
     txt.replace(/\s+/g, " ").slice(0, 90));
 }
 
+console.log("\nThe room leads with a result a student can act on");
+{
+  const card = p.getByRole("region", { name: "Your results" }).or(p.locator('section[aria-label="Your results"]')).first();
+  const txt = (await card.innerText().catch(() => "")).replace(/\s+/g, " ");
+  check(await card.isVisible().catch(() => false), "a results card sits at the top of the room");
+  check(/\d+%/.test(txt) && /exam readiness/.test(txt), "it gives one readiness score", txt.slice(0, 80));
+  check(/Exam-ready|Nearly there|Building|Starting/.test(txt), "with a band in words, not only a number");
+  check(/known/.test(txt) && /shaky/.test(txt) && /not started/.test(txt), "and splits the cards into known, shaky and not started");
+  const moves = card.getByRole("list", { name: "Most marks for your time" });
+  const n = await moves.getByRole("listitem").count().catch(() => 0);
+  check(n >= 1 && n <= 3, "it names at most three moves, ranked by marks", `${n} moves`);
+  check(/Redo \d+ mistake/.test(await moves.innerText().catch(() => "")), "and redoing the mistakes is one of them");
+}
+
 console.log("\nAnd the mistakes are a queue you can actually practise");
 {
   const room = await p.locator("main").innerText();
   check(/getting wrong/.test(room), "the cards that keep going wrong are counted",
     (room.split("\n").find((l) => /getting wrong/.test(l)) ?? "").slice(0, 60));
-  await p.getByRole("button", { name: "Practise these" }).click();
+  await p.getByRole("button", { name: /^Redo \d+ mistakes?$/ }).click();
   await p.waitForTimeout(900);
   const header = await p.locator("header").last().innerText();
   check(/Mistakes/.test(header), "and pressing it opens a run of exactly those", header.replace(/\s+/g, " ").slice(0, 50));

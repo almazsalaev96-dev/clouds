@@ -8,7 +8,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   AlertCircle, Brain, Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Clock, Code2, Copy,
   Download, Printer, FolderPlus, GraduationCap, LayoutTemplate, MoreHorizontal, NotebookPen, PanelRight, Pencil, Play, RefreshCw, Scissors, Search, SearchCheck, ShieldQuestion,
-  SquarePen, ThumbsDown, ThumbsUp, Volume2, X, FileText, Ruler,
+  SquarePen, ThumbsDown, ThumbsUp, Volume2, X, FileText, Ruler, Sparkles,
 } from "lucide-react";
 import { builtDocument, titleOf, withoutBuild } from "@/lib/built";
 import { computeBlock, type Outcome } from "@/lib/compute";
@@ -307,6 +307,7 @@ function AssistantMessageImpl({
   onRate,
   onSwitchModel,
   onVerify,
+  onImprove,
   verifying,
   judging,
   onFactCheck,
@@ -351,6 +352,7 @@ function AssistantMessageImpl({
   onSwitchModel?: () => void;
   /** Ask a model from another provider whether this answer is right. */
   onVerify?: (message: Msg) => void;
+  onImprove?: (message: Msg) => void;
   verifying?: boolean;
   /** A model is reading this answer against the standard it was held to. */
   judging?: boolean;
@@ -629,7 +631,7 @@ function AssistantMessageImpl({
           A second model is judging this against the standard it was held to…
         </p>
       )}
-      {message.craft && <Standard craft={message.craft} authorProvider={model?.provider} />}
+      {message.craft && <Standard craft={message.craft} authorProvider={model?.provider} onImprove={onImprove ? () => onImprove(message) : undefined} />}
       {message.verdict && (
         <SecondOpinion verdict={message.verdict} authorProvider={model?.provider} />
       )}
@@ -1258,7 +1260,7 @@ function ConfidenceLine({
  * findings show only when it found the answer short, on the answer it
  * found short; the pass that followed says it met the standard.
  */
-function Standard({ craft, authorProvider }: { craft: NonNullable<Msg["craft"]>; authorProvider?: string }) {
+function Standard({ craft, authorProvider, onImprove }: { craft: NonNullable<Msg["craft"]>; authorProvider?: string; onImprove?: () => void }) {
   const [open, setOpen] = React.useState(false);
   const judged = craft.judged;
   const judgeModel = judged ? getModel(judged.modelId) : null;
@@ -1267,7 +1269,7 @@ function Standard({ craft, authorProvider }: { craft: NonNullable<Msg["craft"]>;
     ? `${craft.standard.length} points`
     : judged.verdict === "meets"
       ? `${craft.standard.length} points · judged to meet it${independent ? " by another company" : ""}`
-      : `${craft.standard.length} points · judged short${independent ? " by another company" : ""}, answered again`;
+      : `${craft.standard.length} points · judged short${independent ? " by another company" : ""}`;
   return (
     <div role="group" aria-label="The standard this answer was held to" className="mt-2 rounded-xl border border-line bg-surface p-3">
       <button
@@ -1310,6 +1312,19 @@ function Standard({ craft, authorProvider }: { craft: NonNullable<Msg["craft"]>;
             </div>
           )}
         </div>
+      )}
+      {/* One press to have it written again with what the judge found, on
+          the last answer only. It used to happen by itself, which put a
+          second answer under the first every time. */}
+      {judged?.verdict === "short" && onImprove && (
+        <button
+          type="button"
+          onClick={onImprove}
+          className="btn-touch press focus-inset mt-2.5 flex h-8 items-center gap-1.5 rounded-full bg-[var(--cta)] px-3.5 text-xs font-medium text-[var(--cta-fg)] transition-colors duration-[var(--dur-fast)] hover:bg-[var(--cta-hover)]"
+        >
+          <Sparkles size={13} />
+          Improve it
+        </button>
       )}
     </div>
   );

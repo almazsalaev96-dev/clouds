@@ -16,6 +16,18 @@ const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-119
 const S = { theme: "dark", density: "comfortable", modelId: "claude-sonnet-4-5", styleId: "normal", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true, memoryOn: true };
 let failed = 0;
 const check = (p, l, d = "") => { if (!p) failed++; console.log(`${p ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
+/* Rules, memory, routines, assistants and styles left the Settings list;
+   each is a command in the palette. */
+const openPanel = async (pg, label) => {
+  await pg.keyboard.press("Escape");
+  await pg.waitForTimeout(150);
+  await pg.keyboard.press("Control+k");
+  await pg.waitForTimeout(350);
+  await pg.getByRole("textbox", { name: "Command palette" }).fill(label);
+  await pg.waitForTimeout(300);
+  await pg.getByRole("option", { name: new RegExp("^" + label) }).first().click();
+  await pg.waitForTimeout(600);
+};
 const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
 const p = await ctx.newPage();
 const errs = []; p.on("pageerror", (e) => errs.push(e.message));
@@ -47,9 +59,7 @@ console.log("\nRemember that");
 
 console.log("\nShown in full, and deletable");
 {
-  await p.keyboard.press("Control+,");
-  await p.waitForTimeout(400);
-  await p.getByRole("button", { name: "Memory" }).click();
+  await openPanel(p, "Your memory");
   await p.waitForTimeout(300);
   const list = p.getByRole("list", { name: "Memories" });
   check(await list.getByText("I teach year 9 maths").count() === 1, "the line is in Settings, as said");
@@ -69,9 +79,7 @@ console.log("\nShown in full, and deletable");
 
 console.log("\nSwitched off, the list stays and the prompt loses it");
 {
-  await p.keyboard.press("Control+,");
-  await p.waitForTimeout(400);
-  await p.getByRole("button", { name: "Memory" }).click();
+  await openPanel(p, "Your memory");
   await p.waitForTimeout(300);
   await p.getByRole("switch", { name: "Use memory" }).click();
   check(await p.getByRole("list", { name: "Memories" }).locator("li").count() === 1, "the list is still there");
@@ -79,9 +87,7 @@ console.log("\nSwitched off, the list stays and the prompt loses it");
   await p.waitForTimeout(300);
   await say("and a queue?");
   check(!/About this person/.test(await lastSystem()), "and the prompt says nothing about the person");
-  await p.keyboard.press("Control+,");
-  await p.waitForTimeout(400);
-  await p.getByRole("button", { name: "Memory" }).click();
+  await openPanel(p, "Your memory");
   await p.getByRole("switch", { name: "Use memory" }).click();
   await p.keyboard.press("Escape");
   await p.waitForTimeout(300);

@@ -33,7 +33,7 @@ await p.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify
 await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(900);
 
-console.log("\nA task is studied, written to a standard, judged, and answered again");
+console.log("\nA task is studied, planned, the plan judged and mended — all before the answer — and written once");
 {
   await newChat();
   await fetch(`${MOCK}/__slow?kind=study&ms=1500`);
@@ -42,31 +42,52 @@ console.log("\nA task is studied, written to a standard, judged, and answered ag
   await settle(500);
   const status = p.getByRole("status").filter({ hasText: /Studying how the best do this/ });
   check(await status.isVisible(), "the line says the field is being studied first", (await status.innerText().catch(() => "")).slice(0, 70));
+  let sawPlan = false;
+  for (let i = 0; i < 60 && !sawPlan; i += 1) {
+    sawPlan = (await p.getByRole("status").filter({ hasText: /Planning it to the standard|judging the plan|Mending the plan/ }).count()) > 0;
+    if (!sawPlan) await p.waitForTimeout(100);
+  }
+  check(sawPlan, "then that the answer is being planned and the plan judged");
   await settle(9000);
   const calls = await recent();
   const seq = calls.map((r) => r.kind);
-  check(seq[0] === "study", "the first call studies the field", seq.join(" → "));
-  check(seq.includes("judge"), "a judge reads the answer against the standard", seq.join(" → "));
+  const at = (k) => seq.indexOf(k);
+  check(at("study") === 0, "the first call studies the field", seq.join(" → "));
+  check(at("blueprint") > at("study") && at("plan-judge") > at("blueprint") && at("mend") > at("plan-judge"), "then the plan is drafted, judged and mended", seq.join(" → "));
+  check(at("answer") > at("mend"), "all before the answer is written", seq.join(" → "));
   const answers = calls.filter((r) => r.kind === "answer");
-  check(answers.length === 2, "and, judged short, the writer answered again", `${answers.length} answers`);
-  check(/held to\. It is not an instruction/.test(answers[0]?.system ?? "") && /The standard:/.test(answers[0]?.system ?? ""), "the first answer was handed the standard", (answers[0]?.system ?? "").match(/The standard:[^\n]*/)?.[0]);
-  check(/found it short/.test(answers[1]?.system ?? "") && /The standard:/.test(answers[1]?.system ?? ""), "the second was handed the findings and the same standard");
+  check(answers.length === 1, "and the answer is written once, not twice", `${answers.length} answers`);
+  check(/held to\. It is not an instruction/.test(answers[0]?.system ?? "") && /The standard:/.test(answers[0]?.system ?? ""), "the answer was handed the standard", (answers[0]?.system ?? "").match(/The standard:[^\n]*/)?.[0]);
+  check(/\[mended plan\]/.test(answers[0]?.system ?? "") && /Build the answer from it/.test(answers[0]?.system ?? ""), "and the mended plan to build from");
   const studyCall = calls.find((r) => r.kind === "study");
-  const judgeCall = calls.find((r) => r.kind === "judge");
+  const planJudge = calls.find((r) => r.kind === "plan-judge");
   check(studyCall && answers[0] && studyCall.model !== answers[0].model, "the study came from a different company than the answer", `${studyCall?.model} · ${answers[0]?.model}`);
-  check(judgeCall && answers[0] && judgeCall.model !== answers[0].model, "and so did the judge", `${judgeCall?.model} · ${answers[0]?.model}`);
+  check(planJudge && answers[0] && planJudge.model !== answers[0].model, "and so did the plan's judge", `${planJudge?.model} · ${answers[0]?.model}`);
+  check(seq.includes("judge"), "the finished answer is judged too", seq.join(" → "));
   const row = p.locator(".msg").last();
   const text = await row.innerText();
   check(/studied the field first, held to a standard of \d+/.test(text), "the row says the field was studied and the standard set", (text.match(/studied the field[^\n·]*/) ?? [""])[0]);
-  check(/answered again after a second model judged it short of the standard/.test(text), "and that it was answered again after the judge");
+  check(/planned, judged and mended before writing/.test(text), "and that the plan was judged and mended before writing");
   const block = row.getByRole("group", { name: "The standard this answer was held to" });
   check(await block.isVisible(), "the answer carries the standard as a block");
   await block.getByRole("button").first().click();
   await settle(300);
   const opened = await block.innerText();
   check(/Practice questions with mark schemes/.test(opened) && /Save My Exams/.test(opened), "opened, it names the standard and who does this best", opened.replace(/\s+/g, " ").slice(0, 100));
-  check(/judged to meet it/.test(await block.innerText()), "and the second answer was judged to meet it", (await block.innerText()).replace(/\s+/g, " ").slice(0, 80));
+  check(/judged short/.test(opened), "the judge found it short", opened.replace(/\s+/g, " ").slice(0, 80));
+  const improve = block.getByRole("button", { name: "Improve it" });
+  check(await improve.isVisible(), "and Improve it is one press away, rather than a second answer on its own");
   check(/\{|"verdict"/.test(text) === false, "no JSON leaks onto the page");
+  await fetch(`${MOCK}/__reset`);
+  await fetch(`${MOCK}/__slow?kind=study&ms=0`);
+  await improve.click();
+  await settle(6000);
+  const again = await recent();
+  const k2 = again.map((r) => r.kind);
+  check(!k2.includes("study") && !k2.includes("blueprint"), "pressed, it is not studied or planned again", k2.join(" → "));
+  const second = again.find((r) => r.kind === "answer");
+  check(/found it short/.test(second?.system ?? "") && /\[mended plan\]/.test(second?.system ?? ""), "it is written again with the findings and the same plan");
+  check(/answered again after a second model judged it short of the standard/.test(await p.locator(".msg").last().innerText()), "and the row says so");
 }
 
 console.log("\nA short ask buys none of it");
@@ -98,7 +119,7 @@ console.log("\nOne open choice is asked first, with examples, and the reply is m
   check(/Edexcel/.test(await p.locator(".msg").nth(2).innerText().catch(() => "")), "pressing one sends its words as the reply");
   const calls = await recent();
   const seq2 = calls.map((r) => r.kind);
-  check(seq2[0] === "answer" && !seq2.includes("study"), "the reply is not studied again", seq2.join(" → "));
+  check(!seq2.includes("study") && seq2.includes("blueprint") && seq2.indexOf("blueprint") < seq2.indexOf("answer"), "the reply is not studied again, but it is planned to the parked standard first", seq2.join(" → "));
   check(/The standard:/.test(calls.find((r) => r.kind === "answer")?.system ?? ""), "but is written to the parked standard");
   check(seq2.includes("judge"), "and judged like any crafted answer");
 }

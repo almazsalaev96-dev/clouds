@@ -30,17 +30,23 @@ import { SHORTCUT_GROUPS } from "@/components/ShortcutsOverlay";
 
 type Tab = "keys" | "plus" | "appearance" | "model" | "styles" | "memory" | "routines" | "data" | "shortcuts" | "privacy" | "rules" | "assistants";
 
-const TABS: { id: Tab; label: string }[] = [
+/* Settings holds what is set once: keys, the plan, how it looks, the model,
+   your data, privacy. Rules, assistants, styles, memory, routines and
+   shortcuts are not listed here any more — they are reached where they are
+   used (the rules chip in the box, "Answer as an assistant" in its menu, a
+   routine's chip, the keyboard button in the sidebar) and from the command
+   palette, and a panel opened that way still shows its page here. */
+const TABS: { id: Tab; label: string; hidden?: boolean }[] = [
   { id: "keys", label: "API keys" },
   { id: "plus", label: "Armi Plus" },
   { id: "appearance", label: "Appearance" },
   { id: "model", label: "Model" },
-  { id: "rules", label: "Rules" },
-  { id: "assistants", label: "Assistants" },
-  { id: "styles", label: "Styles" },
-  { id: "memory", label: "Memory" },
-  { id: "routines", label: "Routines" },
-  { id: "shortcuts", label: "Shortcuts" },
+  { id: "rules", label: "Rules", hidden: true },
+  { id: "assistants", label: "Assistants", hidden: true },
+  { id: "styles", label: "Styles", hidden: true },
+  { id: "memory", label: "Memory", hidden: true },
+  { id: "routines", label: "Routines", hidden: true },
+  { id: "shortcuts", label: "Shortcuts", hidden: true },
   { id: "data", label: "Data" },
   { id: "privacy", label: "Privacy" },
 ];
@@ -93,7 +99,7 @@ export function Settings({
             )}
           >
             <Dialog.Title className="px-2 py-2 text-sm font-medium text-primary max-sm:sr-only">Settings</Dialog.Title>
-            {TABS.map((t) => (
+            {TABS.filter((t) => !t.hidden || t.id === tab).map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
@@ -896,6 +902,21 @@ function ModelPanel({ configured }: { configured: Record<string, boolean> }) {
           : `These settings are remembered per model.`
       }
     >
+      {/* How it works, before which engine: the two switches that change
+          what a turn does. They lived under Memory, which is not where
+          anybody looks for "study the field first". */}
+      <Toggle
+        checked={s.craftOn}
+        onChange={(craftOn) => s.set({ craftOn })}
+        label="Craft bigger tasks"
+        hint="On a task that is more than a question — a site, a plan, notes, a letter, a deck — a model first studies how the best make exactly that and sets the standard, the answer is planned to it, a second model judges the plan and it is mended, and only then is it written. Afterwards the answer is judged against the standard, and Improve it is one press away if it fell short. Questions and follow-ups go straight to the writer. Off, everything does."
+      />
+      <Toggle
+        checked={s.actionsOn}
+        onChange={(actionsOn) => s.set({ actionsOn })}
+        label="Let it use the rooms"
+        hint="The model can save cards, write a page, keep a memory, add to a project, set a routine, make an assistant, look in your notes and past conversations, do sums exactly and check the clock — each one shown under the answer with Undo. Off, it can only answer."
+      />
       <Field
         label="The Armi models"
         hint="Each one is a cast: two or three models, from different companies wherever your keys allow it, with a different job each. Armi trains no models of its own — it decides which to call, what to ask each of them, and what to do when they disagree. Which companies those are is set by the keys on the Keys tab. Prices are for a turn of ordinary size, summed over every model it calls."
@@ -1374,20 +1395,6 @@ function MemoryPanel() {
         onChange={(memoryOn) => settings.set({ memoryOn })}
         label="Use memory"
         hint="Off keeps the list but sends none of it."
-      />
-
-      <Toggle
-        checked={settings.craftOn}
-        onChange={(craftOn) => settings.set({ craftOn })}
-        label="Craft bigger tasks"
-        hint="On a task that is more than a question — a site, a plan, notes, a letter, a deck — a model first studies how the best make exactly that and sets the standard; the answer is written to it, and a second model judges the result against what you asked and that standard, and has it done again if it falls short. Not on every message: questions and follow-ups go straight to the writer. Off, everything does."
-      />
-
-      <Toggle
-        checked={settings.actionsOn}
-        onChange={(actionsOn) => settings.set({ actionsOn })}
-        label="Let it use the rooms"
-        hint="The model can save cards, write a page, keep a memory, add to a project, look in your notes and past conversations, do sums exactly and check the clock — each one shown under the answer with Undo. Off, it can only answer."
       />
 
       <Field label="Add something to remember">

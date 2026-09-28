@@ -714,6 +714,15 @@ It also reports a figure of nine hundred percent [[cite: ${name} | the result wa
      ask up to the standard, so the screen has to show both and the second
      pass has to happen. */
   const studying = /^Study how the best do this, before anyone writes it\./.test(asked);
+  /* The plan before the answer: drafted, judged (short, so the mend runs),
+     mended. The mended plan carries a mark the answer's request can be
+     searched for. */
+  const blueprinting = /^Plan the deliverable below to the standard, before it is written\./.test(asked);
+  const planJudging = /^Judge the plan below against the ask and the standard, before anything is written\./.test(asked);
+  const mending = /^Mend the plan below with what the judge found\./.test(asked);
+  const BLUEPRINT = "## Form\nA page of notes that reads on a phone.\n\n## Parts\n1. The four Ps, each with a real product as the example.\n2. Key terms table.";
+  const PLAN_VERDICT = JSON.stringify({ verdict: "short", missing: ["Practice questions with mark schemes"], weak: ["The parts name topics without the content"], fix: "Add a questions section with mark schemes and write out each P." });
+  const MENDED = BLUEPRINT + "\n3. Six exam-style questions with mark schemes. [mended plan]";
   const craftJudging = /^Judge the answer below against the ask and the standard\./.test(asked);
   const craftAsk = (asked.match(/\nThe ask:\n\n([^\n]+)/) ?? [, ""])[1].trim();
   const STUDY = JSON.stringify({
@@ -771,7 +780,7 @@ Nothing here looks like it breaks a caller — the return type is the same array
   /* Every call, in order, so a test can prove that one turn was two models:
      a brief to one company and the answer to another, in that order. `__last`
      alone can only ever show whichever was most recent. */
-  const callKind = isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : scouting ? "scout" : deepPlanning ? "plan" : studying ? "study" : craftJudging ? "judge" : "answer";
+  const callKind = isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : scouting ? "scout" : deepPlanning ? "plan" : studying ? "study" : craftJudging ? "judge" : blueprinting ? "blueprint" : planJudging ? "plan-judge" : mending ? "mend" : "answer";
   if (slow[callKind]) await new Promise((r) => setTimeout(r, slow[callKind]));
   lastByKind[callKind] = lastSeen;
   recent.push({
@@ -811,7 +820,7 @@ Nothing here looks like it breaks a caller — the return type is the same array
        reached which call rather than only that something did. */
     sharedParts: ["Project documents", "Attached to the question", "Earlier in the conversation", "its instructions"].filter((k) => asked.includes(k)),
   });
-  if (recent.length > 16) recent.shift();
+  if (recent.length > 24) recent.shift();
 
   let text = isTitle
     ? "Debouncing a search input"
@@ -837,6 +846,12 @@ Nothing here looks like it breaks a caller — the return type is the same array
     ? STUDY
     : craftJudging
     ? CRAFT_JUDGE
+    : blueprinting
+    ? BLUEPRINT
+    : planJudging
+    ? PLAN_VERDICT
+    : mending
+    ? MENDED
     : whying
     ? WHY
     : trying

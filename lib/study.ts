@@ -878,3 +878,56 @@ export function makeReverse(card: Card, id: string, now: number): Card | null {
     reverseOf: card.id,
   });
 }
+
+/* ------------------------------------------------------------ readiness -- */
+
+/**
+ * If you were tested on all of it now, how much would you get right?
+ *
+ * The one number a student sitting down to revise actually wants, worked
+ * out from the scheduler's own memory model rather than from a count of
+ * cards "done": each reviewed card contributes the chance it would be
+ * recalled today, a card still being learned half, a card never studied
+ * nothing — because on the day, a card you have never seen is a mark you do
+ * not get. Seneca's "memory", Save My Exams' topic progress and Anki's
+ * retention all say part of this; none of them says it as the expected
+ * share of marks on the material you have.
+ */
+export interface Readiness {
+  /** 0–1, the expected share right if tested on everything now; null with no cards. */
+  score: number | null;
+  /** Reviewed and likely known now (≥ 85%). */
+  known: number;
+  /** Seen, but likely to slip: learning, or reviewed under 85%. */
+  shaky: number;
+  /** Never studied. */
+  fresh: number;
+  total: number;
+  band: "Exam-ready" | "Nearly there" | "Building" | "Starting" | null;
+}
+
+export function readiness(cards: Card[], now: number): Readiness {
+  let sum = 0, known = 0, shaky = 0, fresh = 0;
+  for (const c of cards) {
+    if (c.state === "new" || !c.reps) { fresh += 1; continue; }
+    if (c.state !== "review" || !c.stability || c.interval <= 0) { shaky += 1; sum += 0.5; continue; }
+    const last = c.due - c.interval * DAY;
+    const r = retrievability(Math.max(0, (now - last) / DAY), c.stability);
+    sum += r;
+    if (r >= 0.85) known += 1; else shaky += 1;
+  }
+  const total = cards.length;
+  const score = total ? sum / total : null;
+  const band = score === null ? null : score >= 0.85 ? "Exam-ready" : score >= 0.7 ? "Nearly there" : score >= 0.5 ? "Building" : "Starting";
+  return { score, known, shaky, fresh, total, band };
+}
+
+/** Right answers over the last `span` days, and over the span before it, for the trend. */
+export function accuracyTrend(attempts: Attempt[], now: number, span = 14): { rate: number | null; tried: number; prev: number | null } {
+  const from = now - span * DAY;
+  const before = from - span * DAY;
+  const cur = attempts.filter((a) => a.at > from && a.at <= now);
+  const old = attempts.filter((a) => a.at > before && a.at <= from);
+  const rate = (xs: Attempt[]) => (xs.length ? xs.filter((a) => a.right).length / xs.length : null);
+  return { rate: rate(cur), tried: cur.length, prev: old.length >= 5 ? rate(old) : null };
+}

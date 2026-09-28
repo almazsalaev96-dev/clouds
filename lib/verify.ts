@@ -92,7 +92,10 @@ ${question.slice(0, 20_000)}
 ${context ? `\n${context}\n` : ""}
 THE ANSWER
 ${answer.slice(0, 40_000)}`,
-    { modelId: checkerId, maxTokens: 1536, temperature: 0.2, ...progress },
+    /* 4096, not 1536: a checker that reasons spent the whole of 1536 thinking
+       about a long page of code and came back with nothing to say, which the
+       screen reported as "the check didn't come back" on answer after answer. */
+    { modelId: checkerId, maxTokens: 4096, temperature: 0.2, ...progress },
   );
   if (!out) return null;
 

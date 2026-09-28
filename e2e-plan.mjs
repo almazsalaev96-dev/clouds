@@ -85,10 +85,12 @@ console.log("\nThe deck most likely to be forgotten is named, with a way to prac
   await p.waitForTimeout(600);
   await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
   await p.waitForTimeout(700);
-  const line = p.getByLabel(/^Shakiest deck: /);
+  /* The shakiest deck is now one of the "most marks for your time" moves
+     on the results card, rather than a line of its own. */
+  const line = p.getByRole("list", { name: "Most marks for your time" }).getByRole("listitem").filter({ hasText: /Practise Shaky deck/ });
   check(await line.isVisible().catch(() => false), "the shakiest deck is named on the index", (await line.innerText().catch(() => "")).replace(/\n/g, " "));
-  check(/Shaky deck/.test(await line.innerText().catch(() => "")) && /6 of 6 likely forgotten/.test(await line.innerText().catch(() => "")), "with how many of its cards are likely gone", (await line.innerText().catch(() => "")).replace(/\n/g, " "));
-  await line.getByRole("button", { name: "Practise it" }).click();
+  check(/6 of 6 likely forgotten/.test(await line.innerText().catch(() => "")), "with how many of its cards are likely gone", (await line.innerText().catch(() => "")).replace(/\n/g, " "));
+  await line.getByRole("button", { name: /Practise Shaky deck/ }).click();
   await p.waitForTimeout(600);
   check(/practice/.test((await p.locator("main").innerText().catch(() => "")).toLowerCase()) && /qw\d/.test(await p.locator("main").innerText().catch(() => "")), "and one press starts a practice run through it", (await p.locator("main").innerText().catch(() => "")).replace(/\s+/g, " ").slice(0, 80));
 }

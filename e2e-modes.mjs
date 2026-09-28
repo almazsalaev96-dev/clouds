@@ -57,7 +57,22 @@ console.log("\nSlides: a press in the menu, a chip by the model, no slash");
   await p.waitForTimeout(3500);
   const main = await p.locator("main").innerText();
   check(/Make a slide deck on: the water cycle/.test(main), "the message went as a request for a deck", (main.match(/Make a slide deck[^\n]*/) ?? [""])[0]);
-  check((await bar().getByRole("button", { name: "Stop slides" }).count()) === 0, "and the chip goes with it: one deck, asked for once");
+  check(await bar().getByRole("button", { name: "Stop slides" }).isVisible(), "and the chip stays on for the chat, the way Learn does");
+  const conv = await p.evaluate(() => new Promise((res) => { const r = indexedDB.open("clouds"); r.onsuccess = () => { const t = r.result.transaction("conversations").objectStore("conversations").getAll(); t.onsuccess = () => res(t.result); }; }));
+  check(conv.some((c) => c.make === "slides"), "kept on the conversation, so it is still on after a reload");
+  await p.reload({ waitUntil: "networkidle" });
+  await p.waitForTimeout(900);
+  check(await bar().getByRole("button", { name: "Stop slides" }).isVisible(), "and it is");
+  await fetch(`${MOCK}/__reset`);
+  await box().fill("add a slide on evaporation");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(3500);
+  const main2 = await p.locator("main").innerText();
+  const deckMade = await p.evaluate(() => new Promise((res) => { const r = indexedDB.open("clouds"); r.onsuccess = () => { const t = r.result.transaction("conversations").objectStore("conversations").getAll(); t.onsuccess = () => res(t.result.some((c) => c.madeId)); }; }));
+  check(deckMade ? /Change the slide deck[^\n]*add a slide on evaporation/.test(main2) : /Make a slide deck on: add a slide on evaporation/.test(main2), "the next message goes to the deck too — a change to it once one is made", (main2.match(/(Change the slide deck|Make a slide deck)[^\n]*/) ?? [""])[0].slice(0, 90));
+  await bar().getByRole("button", { name: "Stop slides" }).click();
+  await p.waitForTimeout(300);
+  check((await bar().getByRole("button", { name: "Stop slides" }).count()) === 0, "pressing the chip turns it off");
 }
 
 console.log("\nLearn and Research: on in the bar, off with a press");

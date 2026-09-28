@@ -12,6 +12,18 @@ const errs = [];
 p.on("pageerror", (e) => errs.push("PAGE: " + e.message));
 let failed = 0;
 const check = (c, l, d = "") => { if (!c) failed++; console.log(`${c ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
+/* Rules, memory, routines, assistants and styles left the Settings list;
+   each is a command in the palette. */
+const openPanel = async (pg, label) => {
+  await pg.keyboard.press("Escape");
+  await pg.waitForTimeout(150);
+  await pg.keyboard.press("Control+k");
+  await pg.waitForTimeout(350);
+  await pg.getByRole("textbox", { name: "Command palette" }).fill(label);
+  await pg.waitForTimeout(300);
+  await pg.getByRole("option", { name: new RegExp("^" + label) }).first().click();
+  await pg.waitForTimeout(600);
+};
 const S = { theme: "dark", density: "comfortable", modelId: "one", styleId: "auto", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true };
 
 await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
@@ -21,9 +33,7 @@ await p.waitForTimeout(800);
 
 console.log("\nA routine is made in Settings");
 {
-  await p.keyboard.press("Control+,");
-  await p.waitForTimeout(500);
-  await p.getByRole("button", { name: "Routines" }).click();
+  await openPanel(p, "Your routines");
   await p.waitForTimeout(300);
   await p.getByLabel("What to send").fill("Quiz me on what is due today");
   await p.getByLabel("At what time").fill("07:30");
@@ -63,9 +73,7 @@ console.log("\nOne owed a run runs on open, once");
     return new Promise((res) => { const q = db.transaction("conversations").objectStore("conversations").getAll(); q.onsuccess = () => res(q.result.length); });
   });
   check(after === convs, "and opening again does not run it a second time for the same minute", `${convs} → ${after}`);
-  await p.keyboard.press("Control+,");
-  await p.waitForTimeout(500);
-  await p.getByRole("button", { name: "Routines" }).click();
+  await openPanel(p, "Your routines");
   await p.waitForTimeout(300);
   check(/last ran/.test(await p.getByRole("list", { name: "Routines" }).innerText()), "the panel says when it last ran");
   await p.keyboard.press("Escape");

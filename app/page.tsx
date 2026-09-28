@@ -3,7 +3,7 @@
 import { parseSlash, type SlashExtra } from "@/lib/slash";
 import { encodeShare, decodeShare, shareUrl, SHARE_LIMIT } from "@/lib/share";
 import { wantsPicture, pictureSubject, makePicture } from "@/lib/image";
-import { worthCrafting, studyPrompt, parseStudy, standardNote, askFirst, judgePrompt, parseJudgement, improveNote, craftLine, type Study } from "@/lib/craft";
+import { worthCrafting, studyPrompt, parseStudy, standardNote, askFirst, judgePrompt, parseJudgement, improveNote, craftLine, planPrompt, judgePlanPrompt, mendPlanPrompt, planNote, type Study, type Judgement } from "@/lib/craft";
 import { chunk, rank } from "@/lib/retrieve";
 import { actionSpecs, doingOf, keepUndo, runAction, undoAction, type ActionContext } from "@/lib/actions";
 import { cleanRecap, covers, recapPrompt, recapSection, RECAP_TOKENS } from "@/lib/recap";
@@ -170,7 +170,9 @@ export default function Page() {
   /* The next message is a slide deck, or a picture. Chosen from the box's
      menu, shown as a chip by the model, and gone once that message is sent:
      a deck is a thing asked for once, where Learn is a way of working. */
-  const [nextMake, setNextMake] = React.useState<"slides" | "picture" | null>(null);
+  /* Slides or Picture for a chat not yet started; once it has started, the
+     choice lives on the conversation row (`make`) and stays on. */
+  const [pendingMake, setPendingMake] = React.useState<"slides" | "picture" | null>(null);
 
   /* Reloading should not lose your place. The last conversation is written to
      settings on every change and read back once on mount — but only after
@@ -272,7 +274,7 @@ export default function Page() {
   const [modelPickerOpen, setModelPickerOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   if (settingsOpen) everOpened.current.settings = true;
-  const [settingsTab, setSettingsTab] = React.useState<"keys" | "plus" | "appearance" | "model" | "rules" | "assistants" | "routines" | "styles" | "data" | "shortcuts">("keys");
+  const [settingsTab, setSettingsTab] = React.useState<"keys" | "plus" | "appearance" | "model" | "rules" | "assistants" | "routines" | "styles" | "memory" | "data" | "shortcuts">("keys");
   const [scrolled, setScrolled] = React.useState(false);
   const [artifact, setArtifact] = React.useState<Artifact | null>(null);
   /** Where j/k currently sit in the transcript. */
@@ -296,6 +298,9 @@ export default function Page() {
      is asked the one open question; and which questions were judged, so
      the second pass is not itself judged into a third. */
   const craftByAsk = React.useRef(new Map<string, Study>());
+  /* The checked plan, kept by the question, so "Improve it" writes from
+     the same plan rather than planning again. */
+  const planByAsk = React.useRef(new Map<string, { plan: string; planned: "checked" | "mended" | null }>());
   /* The brief and the council's notes, kept by the question: a second pass
      — after the judge, after an objection — is written with the same notes
      the first was, rather than without them. The work was bought once and
@@ -314,7 +319,7 @@ export default function Page() {
     craft?: Study | null;
   } | null>(null);
   /* `verify` is defined below and the finish callback above needs it. */
-  const verifyRef = React.useRef<((m: Message, pinned?: string) => void) | null>(null);
+  const verifyRef = React.useRef<((m: Message, pinned?: string, quiet?: boolean) => void) | null>(null);
   const judgeRef = React.useRef<((m: Message, study: Study, ask: string) => void) | null>(null);
   /**
    * Questions whose answer has already been round the loop once.
@@ -618,7 +623,7 @@ export default function Page() {
        doubt is one you will trust by accident. */
     /* Not on "thanks" or "shorter": those are turns on an answer already
        checked when it was written (worthChecking). */
-    if (sent.plan.check === "second" && !m.error && text && worthChecking(sent.ask ?? "")) verifyRef.current?.(m, sent.checkWith ?? undefined);
+    if (sent.plan.check === "second" && !m.error && text && worthChecking(sent.ask ?? "")) verifyRef.current?.(m, sent.checkWith ?? undefined, true);
     /* And the judgement a crafted answer earns: read against the ask and
        the standard by a second model, and answered again if short. */
     if (sent.craft && !m.error && text) {
@@ -949,8 +954,11 @@ export default function Page() {
         !opts?.revised &&
         picked !== "flash" &&
         worthCrafting(asked, kind, history.reduce((n, m) => n + costOf(m), 0));
+      /* The plan stage runs wherever there is a standard to plan to: a
+         fresh study, or one parked while the person was asked a question. */
+      const willPlan = settings.craftOn !== false && !opts?.revised && Boolean(study || willCraft);
       const prepCtl = new AbortController();
-      if (willBrief || willConvene || willResearch || willCraft) {
+      if (willBrief || willConvene || willResearch || willCraft || willPlan) {
         prepRef.current?.abort();
         prepRef.current = prepCtl;
         setPrep({ conversationId });
@@ -1011,6 +1019,36 @@ export default function Page() {
           routedWhy: routedWhy || undefined,
         });
         return;
+      }
+      /* Craft, before the answer: the writer plans the deliverable to the
+         standard, a model from another company judges the plan, and a
+         short plan is mended — all before a word streams, so the reader
+         gets one answer made to a checked plan rather than an answer and
+         then a second one. Never fatal: any step that fails leaves the
+         plan as far as it got, or none. */
+      let blueprint = opts?.revised ? planByAsk.current.get(craftKey)?.plan ?? "" : "";
+      let planState: "checked" | "mended" | null = opts?.revised ? planByAsk.current.get(craftKey)?.planned ?? null : null;
+      if (study && willPlan) {
+        stage("Planning it to the standard…");
+        const draft = await complete(planPrompt(asked, study, shared), { modelId, maxTokens: 2_000, temperature: 0.3, signal: prepCtl.signal }).catch(() => null);
+        if (draft?.trim() && !prepCtl.signal.aborted) {
+          blueprint = draft.trim();
+          const where = { configured, keys: settings.keys };
+          const { checker } = await import("@/lib/route");
+          const judgeWith = checker(engineOf(modelId, where), where) ?? playerFor(cast, "brief")?.modelId ?? modelId;
+          stage("A second model is judging the plan against the standard…");
+          const verdict: Judgement | null = parseJudgement(
+            await complete(judgePlanPrompt(asked, study, blueprint), { modelId: judgeWith, maxTokens: 1_200, temperature: 0.2, signal: prepCtl.signal }).catch(() => null),
+            judgeWith,
+          );
+          if (verdict) planState = "checked";
+          if (verdict?.verdict === "short" && !prepCtl.signal.aborted) {
+            stage("Mending the plan with what the judge found…");
+            const mended = await complete(mendPlanPrompt(asked, blueprint, verdict), { modelId, maxTokens: 2_000, temperature: 0.3, signal: prepCtl.signal }).catch(() => null);
+            if (mended?.trim()) { blueprint = mended.trim(); planState = "mended"; }
+          }
+          planByAsk.current.set(craftKey, { plan: blueprint, planned: planState });
+        }
       }
       const kept = opts?.revised ? notesByAsk.current.get(craftKey) : undefined;
       let brief = kept?.brief ?? "";
@@ -1148,7 +1186,7 @@ export default function Page() {
            the command word's meaning and the marks to account for. Every
            question is one in the Exam stance; elsewhere only one that
            carries marks. */
-        note: [note, preset?.stance, examNote(asked, style?.id === "exam"), study ? standardNote(study) : "", brief ? briefNote(brief) : "", council, deepNotes].filter(Boolean).join("\n\n") || undefined,
+        note: [note, preset?.stance, examNote(asked, style?.id === "exam"), study ? standardNote(study) : "", blueprint ? planNote(blueprint, planState === "mended") : "", brief ? briefNote(brief) : "", council, deepNotes].filter(Boolean).join("\n\n") || undefined,
       });
       /* Said on the answer, like the model's reason: an app that quietly
          changes how it writes to you is an app whose answers you cannot
@@ -1177,7 +1215,7 @@ export default function Page() {
         cast?.answer.why,
         brief ? "briefed first by another model" : "",
         council ? `${seats.length} models consulted` : "",
-        craftLine(study),
+        craftLine(study, null, planState),
       ].filter(Boolean);
       /* The clause before the first dash is stripped where this is drawn —
          the header already says the name — so it carries the name for the
@@ -1395,11 +1433,20 @@ export default function Page() {
       }
       /* Slides or a picture, chosen from the box's menu and shown by the
          model: it applies to this one message, then the chip goes. */
-      const make = nextMake;
-      if (make) setNextMake(null);
+      /* Slides or a picture, switched on from the box's menu and shown by
+         the model. It stays on for the conversation until its chip is
+         pressed: the first message in slides makes the deck, every later
+         one changes that deck; in picture, every message is a picture. */
+      const make = (convId ? conversation?.make : pendingMake) ?? null;
       if (make === "slides" && !slash?.slides) {
         const about = blockText(content).trim();
-        if (about) content = content.map((c) => (c.type === "text" ? { ...c, text: `Make a slide deck on: ${about}` } : c));
+        const deckExists = Boolean(convId && conversation?.madeId);
+        if (about)
+          content = content.map((c) =>
+            c.type === "text"
+              ? { ...c, text: deckExists ? `Change the slide deck, and send the whole deck again as one HTML document: ${about}` : `Make a slide deck on: ${about}` }
+              : c,
+          );
       }
       /* A file bigger than any window the keys reach is read in parts first
          (lib/digest.ts) — sent whole, the provider refused it outright. */
@@ -1441,7 +1488,9 @@ export default function Page() {
              for it to be a property of, like the project above. */
           temporary: wantsTemporary, research: wantsResearch || undefined,
           deep: (pendingDeep || Boolean(slash?.deep)) || undefined,
+          make: pendingMake ?? undefined,
         });
+        setPendingMake(null);
         setPendingProject(null);
         setPendingAssistant(null);
         setPendingTemporary(false);
@@ -1677,7 +1726,7 @@ export default function Page() {
 
       if (isFirst) void generateTitle(convId, blockText(content));
     },
-    [activeId, conversation?.leafId, conversation?.temporary, pendingTemporary, pendingDeep, pendingProject, pendingResearch, pendingLearn, nextMake, path, threadModelId, runTurn, generateTitle, configured, settings.keys, settings.modelId, settings.memoryOn, pendingAssistant, assistants, slashExtras],
+    [activeId, conversation?.leafId, conversation?.temporary, pendingTemporary, pendingDeep, pendingProject, pendingResearch, pendingLearn, pendingMake, conversation?.make, conversation?.madeId, path, threadModelId, runTurn, generateTitle, configured, settings.keys, settings.modelId, settings.memoryOn, pendingAssistant, assistants, slashExtras],
   );
 
   /* Anything that lands on a conversation that already exists settles the
@@ -1793,10 +1842,16 @@ export default function Page() {
   );
 
   const verify = React.useCallback(
-    async (message: Message, pinned?: string) => {
+    async (message: Message, pinned?: string, quiet = false) => {
+      /* `quiet` is the check the app ran on its own, after an answer. A
+         check nobody pressed for must never put an error on the screen:
+         "The check didn't come back" over an answer that was fine was the
+         most common red line in the app, and it said nothing the reader
+         could act on. The pressed check still says what went wrong. */
+      const say = (text: string) => { if (!quiet) setNotice(text); };
       if (verifyingId) {
         // Silently doing nothing reads as a broken button.
-        if (verifyingId !== message.id) setNotice("One check at a time — the last one is still running.");
+        if (verifyingId !== message.id) say("One check at a time — the last one is still running.");
         return;
       }
       const asked = pathTo(allMessages ?? [], message.parentId)
@@ -1831,7 +1886,7 @@ export default function Page() {
           ...Object.entries(configured).filter(([, on]) => on).map(([p]) => p),
           ...Object.entries(settings.keys).filter(([, v]) => v).map(([p]) => p),
         ]).size;
-        setNotice(
+        say(
           providers > 1
             ? "That answer came from a model this app no longer recognises, so it cannot promise the check would come from somewhere else."
             : "A second opinion has to come from a different provider, and only one is configured. Add another key in Settings.",
@@ -1847,9 +1902,13 @@ export default function Page() {
         const projectFiles = projectRow ? await filesOf(projectRow.id) : [];
         const before = pathTo(allMessages ?? [], message.parentId).filter((m) => m.id !== asked.id);
         const shared = castContext({ project: projectRow, files: projectFiles, content: asked.content, earlier: before });
-        const verdict = await verifyAnswer(blockText(asked.content), blockText(message.content), who, undefined, shared);
+        /* Once more if nothing came back: a dropped stream or an empty reply
+           is usually the connection, not the answer. */
+        const verdict =
+          (await verifyAnswer(blockText(asked.content), blockText(message.content), who, undefined, shared).catch(() => null)) ??
+          (await verifyAnswer(blockText(asked.content), blockText(message.content), who, undefined, shared).catch(() => null));
         if (verdict) await db.messages.update(message.id, { verdict });
-        else setNotice("The check didn't come back. Try again.");
+        else say("The check didn't come back. Try again.");
 
         /* And the part that makes a check worth buying. A verdict on its own
            is a report — "the second paragraph is wrong", printed under an
@@ -1893,7 +1952,7 @@ export default function Page() {
           );
         }
       } catch {
-        setNotice("That check failed. Check the key and the connection.");
+        say("That check failed. Check the key and the connection.");
       } finally {
         setVerifyingId(null);
       }
@@ -1903,7 +1962,7 @@ export default function Page() {
   /* Handed to the finish callback, which is declared above this and has to
      be able to ask for a check without being rebuilt every time `verify`
      changes identity. */
-  verifyRef.current = verify as (m: Message, pinned?: string) => void;
+  verifyRef.current = verify as (m: Message, pinned?: string, quiet?: boolean) => void;
 
   /**
    * The judge (lib/craft.ts). A crafted answer is read against what was
@@ -1921,41 +1980,53 @@ export default function Page() {
       const who = checker(engine, where) ?? engine;
       setJudgingId(message.id);
       try {
-        const raw = await complete(judgePrompt(ask, study, blockText(message.content)), { modelId: who, maxTokens: 700, temperature: 0.2 }).catch(() => null);
+        /* 2400, not 700: a judge that reasons spent 700 on thinking and
+           returned nothing. */
+        const raw = await complete(judgePrompt(ask, study, blockText(message.content)), { modelId: who, maxTokens: 2_400, temperature: 0.2 }).catch(() => null);
         const judgement = parseJudgement(raw, who);
         if (!judgement) return;
+        /* The judgement is written on the answer and nothing more. It used
+           to send the answer round again on its own, which put a second
+           answer under the first and made the reader wait for both; the
+           plan is now judged before the answer is written, and what is
+           left short afterwards is one press away ("Improve it"). */
         await db.messages.update(message.id, {
-          craft: { field: study.field, makers: study.makers, standard: study.standard, imagined: study.imagined, modelId: study.modelId, judged: { verdict: judgement.verdict, missing: judgement.missing, weak: judgement.weak, modelId: who } },
+          craft: { field: study.field, makers: study.makers, standard: study.standard, imagined: study.imagined, modelId: study.modelId, judged: { verdict: judgement.verdict, missing: judgement.missing, weak: judgement.weak, fix: judgement.fix, modelId: who } },
         });
-        /* One second pass per question, whoever asks for it: a judge and an
-           objecting checker both finding fault would otherwise buy two
-           revisions of the same answer, and the reader would see three. */
-        if (judgement.verdict === "short" && message.conversationId === activeId && !arguedRef.current.has(parent)) {
-          arguedRef.current.add(parent);
-          const history = pathTo(allMessages ?? [], message.parentId);
-          const answeredAs = message.presetId && message.presetId !== AUTO ? message.presetId : threadModelId;
-          /* What the first pass already did in the rooms — cards saved, a
-             page written — is done: the second pass is told, so it writes
-             the better answer rather than saving the cards twice. */
-          const { didOf } = await import("@/lib/providers/shared");
-          const done = didOf(message).trim();
-          void runTurn(
-            message.conversationId,
-            message.parentId,
-            history,
-            answeredAs,
-            message.routedWhy?.match(/Auto chose [^·]*?(?=, [a-z]|·|$)/)?.[0]?.trim() || undefined,
-            [improveNote(judgement), done ? `Already done in this app by your first answer, and not to be done again: ${done}` : ""].filter(Boolean).join("\n\n"),
-            { revised: true, judged: true },
-          );
-        }
       } finally {
         setJudgingId(null);
       }
     },
-    [allMessages, configured, settings.keys, settings.modelId, threadModelId, activeId, runTurn],
+    [configured, settings.keys, settings.modelId],
   );
   judgeRef.current = judge;
+
+  /** "Improve it", on an answer the judge found short: written again, from
+   *  the same checked plan, with what the judge found. */
+  const improveCrafted = React.useCallback(
+    async (message: Message) => {
+      const j = message.craft?.judged;
+      if (!j || message.conversationId !== activeId) return;
+      const judgement: Judgement = { verdict: j.verdict, missing: j.missing, weak: j.weak, fix: j.fix ?? "", modelId: j.modelId };
+      const history = pathTo(allMessages ?? [], message.parentId);
+      const answeredAs = message.presetId && message.presetId !== AUTO ? message.presetId : threadModelId;
+      /* What the first pass already did in the rooms — cards saved, a page
+         written — is done: the second pass is told, so it writes the better
+         answer rather than saving the cards twice. */
+      const { didOf } = await import("@/lib/providers/shared");
+      const done = didOf(message).trim();
+      void runTurn(
+        message.conversationId,
+        message.parentId,
+        history,
+        answeredAs,
+        message.routedWhy?.match(/Auto chose [^·]*?(?=, [a-z]|·|$)/)?.[0]?.trim() || undefined,
+        [improveNote(judgement), done ? `Already done in this app by your first answer, and not to be done again: ${done}` : ""].filter(Boolean).join("\n\n"),
+        { revised: true, judged: true },
+      );
+    },
+    [allMessages, threadModelId, activeId, runTurn],
+  );
 
   /** Regenerating reuses the parent, so the new answer is a sibling of the old. */
   /* Taking back what an answer did. The closure that knows how lives with
@@ -2853,6 +2924,11 @@ export default function Page() {
     if (activeId && conversation) void db.conversations.update(activeId, conversation.deep ? { deep: false } : { deep: true, research: true });
     else { setPendingDeep((v) => !v); if (!pendingDeep) setPendingResearch(true); }
   };
+  const makeOn = conversation ? conversation.make ?? null : pendingMake;
+  const setMake = (v: "slides" | "picture" | null) => {
+    if (activeId && conversation) void db.conversations.update(activeId, { make: v ?? undefined });
+    else setPendingMake(v);
+  };
   const modes = [
     ...(learnOn ? [{ id: "learn", label: "Learn", off: "Stop learning mode", icon: <GraduationCap size={13} />, onOff: toggleLearn }] : []),
     ...(deepOn
@@ -2860,8 +2936,8 @@ export default function Page() {
       : researchOn
         ? [{ id: "research", label: "Research", off: "Stop searching the web", icon: <Globe size={13} />, onOff: toggleResearch }]
         : []),
-    ...(nextMake === "slides" ? [{ id: "slides", label: "Slides", off: "Stop slides", icon: <Presentation size={13} />, onOff: () => setNextMake(null) }] : []),
-    ...(nextMake === "picture" ? [{ id: "picture", label: "Picture", off: "Stop making a picture", icon: <ImagePlus size={13} />, onOff: () => setNextMake(null) }] : []),
+    ...(makeOn === "slides" ? [{ id: "slides", label: "Slides", off: "Stop slides", icon: <Presentation size={13} />, onOff: () => setMake(null) }] : []),
+    ...(makeOn === "picture" ? [{ id: "picture", label: "Picture", off: "Stop making a picture", icon: <ImagePlus size={13} />, onOff: () => setMake(null) }] : []),
   ];
 
   /* Built once, docked under the transcript whether or not there is one yet.
@@ -2889,18 +2965,18 @@ export default function Page() {
       research={researchOn}
       onToggleResearch={toggleResearch}
       placeholder={
-        nextMake === "slides"
+        makeOn === "slides"
           ? "What should the slides be about?"
-          : nextMake === "picture"
+          : makeOn === "picture"
             ? "Describe the picture"
             : findMode((conversation ? conversation.mode : pendingLearn ? "learn" : undefined) ?? "chat").placeholder
       }
       learn={learnOn}
       onToggleLearn={toggleLearn}
-      onPicture={() => setNextMake((v) => (v === "picture" ? null : "picture"))}
-      picture={nextMake === "picture"}
-      onSlides={() => setNextMake((v) => (v === "slides" ? null : "slides"))}
-      slides={nextMake === "slides"}
+      onPicture={() => setMake(makeOn === "picture" ? null : "picture")}
+      picture={makeOn === "picture"}
+      onSlides={() => setMake(makeOn === "slides" ? null : "slides")}
+      slides={makeOn === "slides"}
       deep={deepOn}
       onToggleDeep={toggleDeep}
       temporary={conversation ? undefined : pendingTemporary}
@@ -3179,6 +3255,7 @@ export default function Page() {
                 teaching={isTeaching(conversation?.styleId) || getPreset(threadModelId)?.id === "tutor"}
                 onRate={rate}
                 onVerify={verify}
+                onImprove={(m) => void improveCrafted(m)}
                 verifyingId={verifyingId}
                 judgingId={judgingId}
                 onFactCheck={factCheckMessage}
@@ -3272,6 +3349,7 @@ export default function Page() {
           actions={{
             newChat,
             openSettings: openKeys,
+            openSettingsAt: (tab) => { setSettingsTab(tab); setSettingsOpen(true); },
             open: selectInSection,
             goToSection,
             setModel: settings.setModel,

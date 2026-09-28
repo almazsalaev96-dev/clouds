@@ -7,7 +7,7 @@ import type { Deck } from "@/lib/types";
 import { addCards, cardsOf, deleteCard, importCards, updateCard } from "@/lib/db";
 import { draftCards } from "@/lib/generate";
 import { cheapestAvailable, whyItFailed } from "@/lib/complete";
-import { clozeQuestion, exportCards, isCloze, progressOf, whenDue, type Card } from "@/lib/study";
+import { readiness, clozeQuestion, exportCards, isCloze, progressOf, whenDue, type Card } from "@/lib/study";
 import { offerUndo } from "@/lib/undo";
 import { Button } from "@/components/ui/primitives";
 import { cn } from "@/lib/utils";
@@ -180,6 +180,7 @@ export function DeckPanel({
         <p className="mt-1 text-base text-tertiary tnum">
           {p.total} card{p.total === 1 ? "" : "s"} · {p.known} known
           {p.due > 0 ? ` · ${p.due} due now` : p.nextDue ? ` · next ${whenDue(p.nextDue, now)}` : ""}
+          {(() => { const r = readiness(cards, now); return r.score === null ? null : <> · <span className="text-secondary">{Math.round(r.score * 100)}% ready</span></>; })()}
         </p>
       </div>
 

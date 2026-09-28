@@ -55,6 +55,7 @@ function MessageListImpl({
   teaching,
   onRate,
   onVerify,
+  onImprove,
   verifyingId,
   judgingId,
   onFactCheck,
@@ -111,6 +112,8 @@ function MessageListImpl({
   onRate: (message: Msg, rating: Rating) => void;
   /** Ask a model from another provider whether an answer is right. */
   onVerify: (message: Msg) => void;
+  /** Written again with what the Craft judge found, on the last answer. */
+  onImprove?: (message: Msg) => void;
   verifyingId?: string | null;
   /** The answer a model is judging against its standard right now. */
   judgingId?: string | null;
@@ -305,6 +308,7 @@ function MessageListImpl({
                 onRate={onRate}
                 onSwitchModel={onSwitchModel}
                 onVerify={onVerify}
+                onImprove={last ? onImprove : undefined}
                 onFactCheck={onFactCheck}
                 factChecking={factCheckingId === m.id}
                 onOpenAction={onOpenAction}

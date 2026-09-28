@@ -280,9 +280,118 @@ export function improveNote(judgement: Judgement): string {
 }
 
 /** The words on the answer's line, for what happened besides being answered. */
-export function craftLine(study: Study | null, judgement?: Judgement | null): string {
+export function craftLine(study: Study | null, judgement?: Judgement | null, planned?: "checked" | "mended" | null): string {
   if (!study) return "";
   const parts = [`studied the field first, held to a standard of ${study.standard.length}`];
+  if (planned) parts.push(planned === "mended" ? "planned, judged and mended before writing" : "planned and judged before writing");
   if (judgement) parts.push(judgement.verdict === "meets" ? "judged to meet it" : "judged short, answered again");
   return parts.join(", ");
+}
+
+/* ------------------------------------------------- before the answer -- */
+/*
+ * The plan, checked before a word of the answer is written.
+ *
+ * Judging the finished answer and then writing it again put two answers on
+ * the screen and made the reader wait for both; the reference apps that
+ * plan (Gemini's Deep Research, the planner-executor agents) settle the shape
+ * first and write once. So the check moves forward: the writer drafts a
+ * blueprint of the deliverable against the standard, a model from another
+ * company judges the blueprint, and — if it is short — the writer mends it,
+ * all before the answer streams. A plan is a page long where the answer may
+ * be ten, so judging it is the cheap place to be strict.
+ */
+
+export const PLAN_HEAD = "Plan the deliverable below to the standard, before it is written.";
+
+/** The writer's blueprint of the thing, not the thing. */
+export function planPrompt(ask: string, study: Study, context = ""): string {
+  return [
+    PLAN_HEAD,
+    "",
+    "Someone asked for the thing below. The field was studied and a standard set. Write the blueprint the answer will be built from — not the answer itself.",
+    "",
+    "The blueprint, in markdown, 250 to 700 words:",
+    "- What it is and its form: a page that runs, a document, a deck, an answer — and why that form.",
+    "- The parts, in order, and for each the specific content it will carry: the actual topics, examples, numbers, functions, questions — not \"a section on X\".",
+    "- For every point of the standard, which part meets it.",
+    "- What the person most likely pictured beyond their words, and where the blueprint gives it to them.",
+    "- The three things answers like this most often leave out or get wrong, and how this one will not.",
+    "",
+    "The standard:",
+    ...study.standard.map((s) => `- ${s}`),
+    study.imagined ? `\nWhat they most likely picture: ${study.imagined}` : "",
+    context ? `\n${context}` : "",
+    "",
+    "The ask:",
+    "",
+    ask.trim(),
+  ].join("\n");
+}
+
+export const PLAN_JUDGE_HEAD = "Judge the plan below against the ask and the standard, before anything is written.";
+
+/** The judge reads the blueprint, which is where fixing costs least. */
+export function judgePlanPrompt(ask: string, study: Study, plan: string): string {
+  return [
+    PLAN_JUDGE_HEAD,
+    "",
+    "Someone asked an assistant for something. The field was studied and a standard set, and the assistant has planned what it will write. Say whether the plan, carried out, would produce something good enough to hand over.",
+    "",
+    "Judge: does the plan cover everything asked; does each point of the standard have a part that meets it; is it specific (real content) rather than headings; would it deliver the thing itself rather than a sketch of it?",
+    "",
+    "\"short\" only when something the person would notice is missing or thin. Not for taste.",
+    "",
+    "Answer with JSON and nothing else:",
+    "",
+    '{"verdict": "meets" | "short",',
+    ' "missing": ["what the plan leaves out"],',
+    ' "weak": ["what the plan has but too thin, and how"],',
+    ' "fix": "what to change in the plan, in one paragraph"}',
+    "",
+    "The ask:",
+    "",
+    ask.trim(),
+    "",
+    "The standard:",
+    ...study.standard.map((s) => `- ${s}`),
+    "",
+    "The plan:",
+    "",
+    plan.trim().slice(0, 12_000),
+  ].join("\n");
+}
+
+export const PLAN_MEND_HEAD = "Mend the plan below with what the judge found.";
+
+export function mendPlanPrompt(ask: string, plan: string, judgement: Judgement): string {
+  return [
+    PLAN_MEND_HEAD,
+    "",
+    "Keep everything in it that was right; add what is missing; make specific what was thin. Return the whole plan, in the same form, and nothing else.",
+    "",
+    "What the judge found:",
+    ...judgement.missing.map((m) => `- Missing: ${m}`),
+    ...judgement.weak.map((w) => `- Thin: ${w}`),
+    judgement.fix ? `- ${judgement.fix}` : "",
+    "",
+    "The ask:",
+    "",
+    ask.trim(),
+    "",
+    "The plan:",
+    "",
+    plan.trim().slice(0, 12_000),
+  ].join("\n");
+}
+
+/** How the checked plan reaches the model that is writing. */
+export function planNote(plan: string, mended: boolean): string {
+  return [
+    `Before this, the answer was planned to the standard${mended ? ", the plan was judged by a second model and mended," : " and the plan was judged by a second model"} — here it is. Build the answer from it: every part, with the specific content it names, in one answer. Do not mention the plan.`,
+    "",
+    "<plan>",
+    plan.trim().slice(0, 12_000),
+    "</plan>",
+  ].join("\n");
 }

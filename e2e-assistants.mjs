@@ -19,6 +19,18 @@ const errs = [];
 p.on("pageerror", (e) => errs.push("PAGE: " + e.message));
 let failed = 0;
 const check = (c, l, d = "") => { if (!c) failed++; console.log(`${c ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
+/* Rules, memory, routines, assistants and styles left the Settings list;
+   each is a command in the palette. */
+const openPanel = async (pg, label) => {
+  await pg.keyboard.press("Escape");
+  await pg.waitForTimeout(150);
+  await pg.keyboard.press("Control+k");
+  await pg.waitForTimeout(350);
+  await pg.getByRole("textbox", { name: "Command palette" }).fill(label);
+  await pg.waitForTimeout(300);
+  await pg.getByRole("option", { name: new RegExp("^" + label) }).first().click();
+  await pg.waitForTimeout(600);
+};
 const S = { theme: "light", density: "comfortable", modelId: "auto", styleId: "auto", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", rules: ["british"], name: "Almaz", nameAsked: true };
 const answerSystem = async () => {
   const recent = (await fetch(`${MOCK}/__recent`).then((r) => r.json())).recent ?? [];
@@ -33,9 +45,7 @@ await p.waitForTimeout(900);
 console.log("\nMade in Settings");
 {
   check((await p.getByRole("list", { name: "Your assistants" }).count()) === 0, "with none made, the front door shows no row of them");
-  await p.getByRole("button", { name: /Settings/ }).last().click();
-  await p.waitForTimeout(600);
-  await p.getByRole("button", { name: "Assistants", exact: true }).click();
+  await openPanel(p, "Your assistants");
   await p.waitForTimeout(300);
   const dlg = p.locator("[role=dialog]");
   check(/None yet/.test(await dlg.innerText()), "the panel says none yet");
@@ -108,9 +118,7 @@ console.log("\nIn the palette, and gone without taking its chats");
   check(/Chat with Chem coach/.test(pal), "the palette offers a chat with it", pal.split("\n").find((l) => /Chem/.test(l)));
   await p.keyboard.press("Escape");
   await p.waitForTimeout(200);
-  await p.getByRole("button", { name: /Settings/ }).last().click();
-  await p.waitForTimeout(500);
-  await p.getByRole("button", { name: "Assistants", exact: true }).click();
+  await openPanel(p, "Your assistants");
   await p.waitForTimeout(300);
   const dlg = p.locator("[role=dialog]");
   check(/2 conversations/.test(await dlg.innerText()), "its row counts the conversations it answered in", (await dlg.innerText()).match(/\d+ conversations?/)?.[0]);

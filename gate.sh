@@ -76,6 +76,7 @@ run test-presets npx jiti test-presets.ts
 run test-wire  npx jiti test-wire.ts
 run test-callout npx jiti test-callout.ts
 run test-study npx jiti test-study.ts
+run test-readiness npx jiti test-readiness.ts
 run test-topics npx jiti test-topics.ts
 run test-tokens npx jiti test-tokens.ts
 run test-find  npx jiti test-find.ts

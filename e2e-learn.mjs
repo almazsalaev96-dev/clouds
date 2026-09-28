@@ -28,6 +28,18 @@ const errs = [];
 p.on("pageerror", (e) => errs.push("PAGE: " + e.message));
 let failed = 0;
 const check = (c, l, d = "") => { if (!c) failed++; console.log(`${c ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
+/* Rules, memory, routines, assistants and styles left the Settings list;
+   each is a command in the palette. */
+const openPanel = async (pg, label) => {
+  await pg.keyboard.press("Escape");
+  await pg.waitForTimeout(150);
+  await pg.keyboard.press("Control+k");
+  await pg.waitForTimeout(350);
+  await pg.getByRole("textbox", { name: "Command palette" }).fill(label);
+  await pg.waitForTimeout(300);
+  await pg.getByRole("option", { name: new RegExp("^" + label) }).first().click();
+  await pg.waitForTimeout(600);
+};
 const S = { theme: "dark", density: "comfortable", modelId: "claude-sonnet-4-5", styleId: "normal", mode: "chat", sidebarOpen: true, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true };
 
 await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
@@ -103,9 +115,7 @@ console.log("\nFour like that, and the next one is checked without being asked")
 
 console.log("\nIt says what it thinks it knows, and can be made to forget it");
 {
-  await p.keyboard.press("Control+,");
-  await p.waitForTimeout(500);
-  await p.getByRole("button", { name: "Memory" }).click();
+  await openPanel(p, "Your memory");
   await p.waitForTimeout(400);
   const learned = p.getByRole("list", { name: "What the app has learned" });
   check(await learned.count() === 1, "Settings shows the record it is acting on");

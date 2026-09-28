@@ -62,7 +62,9 @@ console.log("\nA command, and a menu entry");
   await p.waitForTimeout(2500);
   const sent = await fetch(`${MOCK}/__last`).then((r) => r.json());
   check(sent.prompt === "the water cycle as a diagram", "the description is what is drawn, whole", JSON.stringify(sent.prompt));
-  check((await p.locator("header").getByRole("button", { name: "Stop making a picture" }).count()) === 0, "and the chip goes once the picture is asked for");
+  check(await p.locator("header").getByRole("button", { name: "Stop making a picture" }).isVisible(), "and the chip stays on, so the next message is a picture too");
+  await p.locator("header").getByRole("button", { name: "Stop making a picture" }).click();
+  await p.waitForTimeout(300);
   check(await p.locator(".msg img[alt]").count() === 2, "a second picture, in the same thread");
 }
 

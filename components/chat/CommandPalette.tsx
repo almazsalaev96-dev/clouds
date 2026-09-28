@@ -102,6 +102,8 @@ export function CommandPalette({
   actions: {
     newChat: () => void;
     openSettings: () => void;
+    /** A Settings page not listed in Settings any more: rules, memory, routines… */
+    openSettingsAt?: (tab: "rules" | "assistants" | "styles" | "memory" | "routines") => void;
     /** Opens an item and moves to its section. Both halves, always. */
     open: (section: Section, id: string) => void;
     goToSection: (section: Section) => void;
@@ -189,6 +191,15 @@ export function CommandPalette({
     const base: Command[] = [
       { id: "new", label: "New chat", keys: ["mod", "N"], icon: <MessageSquarePlus size={15} />, group: "Actions", run: actions.newChat },
       { id: "settings", label: "Open settings", keys: ["mod", ","], icon: <Settings2 size={15} />, group: "Actions", run: actions.openSettings },
+      ...(actions.openSettingsAt
+        ? ([
+            ["rules", "Your rules", "what it must and must not do, everywhere"],
+            ["memory", "Your memory", "what it keeps about you"],
+            ["assistants", "Your assistants", "the ones you made, and a new one"],
+            ["routines", "Your routines", "prompts that run on a schedule"],
+            ["styles", "Your styles", "how answers are written"],
+          ] as const).map(([tab, label, hint]) => ({ id: `panel-${tab}`, label, hint, icon: <Settings2 size={15} />, group: "Actions", run: () => actions.openSettingsAt!(tab) }))
+        : []),
       // Offered only when there is one. A command that silently does nothing
       // teaches you not to trust the list it is in.
       ...(actions.hasConversation
