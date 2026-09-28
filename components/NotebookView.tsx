@@ -982,13 +982,12 @@ export function NotebookView({
             <span className="hidden sm:inline">New notebook</span>
           </Button>
         }
-        emptyTitle="Nothing written down yet."
-        emptyHint="Pages are markdown: text you can send back to a model, export, and still read in a year."
+        emptyTitle="No pages yet."
         loading={notes === undefined}
         waysIn={[
           { label: "New page", icon: <Plus size={12} />, onPick: onNew },
           { label: "New notebook", icon: <BookOpen size={12} />, onPick: () => void newNotebook() },
-          ...(onToChat ? [{ label: "Keep an answer from a chat", icon: <MessageSquare size={12} />, onPick: onToChat }] : []),
+          ...(onToChat ? [{ label: "From a chat", icon: <MessageSquare size={12} />, onPick: onToChat }] : []),
         ]}
         /* The box that asks the pages is not shown until there are pages:
            "what did I write about the Krebs cycle?" over an empty notebook
@@ -1000,7 +999,6 @@ export function NotebookView({
               value={question}
               onChange={setQuestion}
               onSubmit={() => void askNotebook()}
-              placeholder="Ask your notebook — “what did I write about the Krebs cycle?”"
               ariaLabel="Ask your notebook"
               canSend={Boolean(question.trim()) && !asking}
               busy={asking}
@@ -1315,7 +1313,7 @@ export function NotebookView({
                     onChange={(e) => { onChange(e.target.value); assist.onInput(e); }}
                     onKeyDown={assist.onKeyDown}
                     onBlur={assist.onBlur}
-                    placeholder={"Title\n\nStart writing… type / for headings, checklists, tables, maths, a lecture recording and more"}
+                    placeholder="Title"
                     spellCheck
                     aria-label="Page content"
                     className="bare min-h-[50vh] w-full resize-none overflow-hidden bg-transparent font-sans text-base leading-[1.65] text-primary outline-none placeholder:text-tertiary"
@@ -1328,7 +1326,7 @@ export function NotebookView({
                   onChange={(e) => { onChange(e.target.value); assist.onInput(e); }}
                   onKeyDown={assist.onKeyDown}
                   onBlur={assist.onBlur}
-                  placeholder={"Title\n\nStart writing… type / for headings, checklists, tables, maths, a lecture recording and more"}
+                  placeholder="Title"
                   spellCheck
                   aria-label="Page content"
                   // Field-sizing keeps the box exactly as tall as the text, so the
@@ -1404,7 +1402,6 @@ export function NotebookView({
                 streaming={busy}
                 onStop={stop}
                 ariaLabel="Ask for a change"
-                placeholder="Ask for a change — “tighten the second section”"
                 above={
                   <div
                     className="flex flex-wrap items-center gap-1.5 px-3 pb-1 pt-3"

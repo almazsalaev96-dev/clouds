@@ -741,7 +741,6 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
             value={question}
             onChange={setQuestion}
             onSubmit={() => void ask(question)}
-            placeholder={box ? "Ask about what you pointed at…" : strokes.length ? "Ask about the page and what you wrote…" : `Ask about page ${page}…`}
             ariaLabel="Ask about this page"
             canSend={Boolean(question.trim()) && !asking}
           />

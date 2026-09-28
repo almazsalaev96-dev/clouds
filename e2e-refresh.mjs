@@ -5,7 +5,7 @@
  * The claims: switching the tone to warm changes the neutrals and only the
  * neutrals, in both themes, at the same lightness; pressing Learn in the
  * composer puts the thread in a mode whose instructions reach the model and
- * the placeholder says so; the + menu lists Learn and Research with a line
+ * the box carries no prompt text; the + menu lists Learn and Research with a line
  * each; and the thinking setting decides whether reasoning is open under
  * the answer.
  *
@@ -103,7 +103,7 @@ console.log("\nLearn: a mode of the thread, a press away");
   const sys = [...recent].reverse().find((r) => r.kind === "answer")?.system ?? "";
   check(/## Mode: Learn/.test(sys), "the request carries the Learn mode", (sys.match(/## Mode: [^\n]*/) ?? [""])[0]);
   check(/lay out a short plan/.test(sys) && /one question that checks they followed/.test(sys), "with a plan first and a check after each step");
-  check(/What are you trying to understand\?/.test(await p.getByRole("textbox", { name: "Message" }).getAttribute("placeholder") ?? ""), "and the box says what it is for now");
+  check(!(await p.getByRole("textbox", { name: "Message" }).getAttribute("placeholder")), "and the box carries no prompt text");
   /* It stays on for the thread. */
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(1200);

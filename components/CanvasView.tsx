@@ -1311,15 +1311,6 @@ function Editor({
                   streaming={Boolean(busy)}
                   onStop={stop}
                   ariaLabel="Ask for a change"
-                  placeholder={
-                    picked
-                      ? `Change ${nameOf(picked)} — “make it smaller and calmer”`
-                      : selection
-                      ? "Change just these lines — “make this a loop”"
-                      : canvas.kind === "doc"
-                        ? "Ask for a change — “tighten the second section”"
-                        : "Ask for a change — “add retry with backoff”"
-                  }
                   above={
                     <Shortcuts
                       kind={canvas.kind}
@@ -1742,7 +1733,7 @@ function RulesPanel({
           onChange={(e) => onChange(e.target.value)}
           rows={4}
           aria-label="House rules for this file"
-          placeholder={"Use TypeScript. No inline styles — the design system only.\nNever change the auth flow without saying why.\nEvery exported function gets a test."}
+          placeholder=""
           className="w-full resize-y rounded-lg border border-line bg-inset px-3 py-2 text-meta leading-[1.6] text-primary outline-none placeholder:text-faint focus:border-accent"
         />
       </div>

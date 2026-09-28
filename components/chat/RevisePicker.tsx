@@ -75,7 +75,7 @@ export function RevisePicker({ configured }: { configured: Record<string, boolea
             <span className="truncate">{chosen?.short ?? "Auto"}</span>
           </>
         ) : (
-          <span className="truncate text-tertiary">No key</span>
+          <span className="truncate text-tertiary">Model</span>
         )}
       </button>
     </ModelPicker>

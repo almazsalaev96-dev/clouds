@@ -3054,13 +3054,6 @@ export default function Page() {
          there is a thread to keep it on. */
       research={researchOn}
       onToggleResearch={toggleResearch}
-      placeholder={
-        makeOn === "slides"
-          ? "What should the slides be about?"
-          : makeOn === "picture"
-            ? "Describe the picture"
-            : findMode((conversation ? conversation.mode : pendingLearn ? "learn" : undefined) ?? "chat").placeholder
-      }
       learn={learnOn}
       onToggleLearn={toggleLearn}
       onPicture={() => setMake(makeOn === "picture" ? null : "picture")}

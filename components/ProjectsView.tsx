@@ -91,7 +91,7 @@ export function ProjectsView({
         newLabel="New project"
         right={<RevisePicker configured={configured} />}
         emptyTitle="No projects yet."
-        emptyHint="A project holds instructions and material every chat inside it can see — a course, a codebase, a piece of writing."
+        emptyHint="Chats, files and instructions, together."
         waysIn={[{ label: "New project", icon: <Plus size={12} />, onPick: onNew }]}
         loading={projects === undefined}
         items={(projects ?? []).map((p) => ({
@@ -234,7 +234,7 @@ function AskPanel({
             onKeyDown={(e) => {
               if (e.key === "Enter") void ask();
             }}
-            placeholder="Where is…? How does…? What calls…?"
+            placeholder=""
             aria-label="Ask about this project"
             className="focus-inset tap w-full rounded-lg border border-line bg-surface py-2 pl-9 pr-3 text-sm text-primary outline-none placeholder:text-tertiary"
           />
@@ -450,14 +450,14 @@ function ProjectPage({
                 rows={1}
                 onChange={(e) => void db.projects.update(project.id, { name: e.target.value.replace(/\n/g, " ") })}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
-                placeholder="A project or an idea"
+                placeholder="Name"
                 aria-label="Project name"
                 className="title-field tap w-full min-w-0 resize-none overflow-hidden bg-transparent font-normal text-primary outline-none placeholder:text-faint"
               />
               <input
                 value={project.description}
                 onChange={(e) => void db.projects.update(project.id, { description: e.target.value })}
-                placeholder="What this project is, in one line"
+                placeholder="Description"
                 aria-label="Project description"
                 className="tap mt-1 w-full min-w-0 bg-transparent text-base text-tertiary outline-none placeholder:text-faint"
               />
@@ -522,7 +522,7 @@ function ProjectPage({
                    sized for a page reads as a page left blank. It grows with
                    what is typed. */
                 rows={Math.min(12, Math.max(3, instructions.split("\n").length + 1))}
-                placeholder="“You are helping with a second-year thermodynamics course. Use SI units. When I give a numeric answer, check it before agreeing.”"
+                placeholder=""
                 aria-label="Project instructions"
                 className="focus-inset mt-2.5 w-full resize-y rounded-2xl border border-line bg-field px-4 py-3 text-sm leading-relaxed text-primary outline-none placeholder:text-tertiary"
               />
@@ -712,7 +712,7 @@ function ProjectPage({
             value={ask}
             onChange={setAsk}
             onSubmit={askHere}
-            placeholder="Ask in this project…"
+            placeholder=""
             ariaLabel="Ask in this project"
             canSend={Boolean(ask.trim())}
             className="glass"

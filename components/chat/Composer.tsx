@@ -43,7 +43,7 @@ export function Composer({
   onOpenModels,
   research,
   onToggleResearch,
-  placeholder = "How can I help you today?",
+  placeholder = "",
   learn,
   onToggleLearn,
   onPicture,
@@ -358,7 +358,7 @@ export function Composer({
         onStop={onStop}
         streaming={streaming}
         canSend={canSend}
-        placeholder={placeholder}
+        placeholder={placeholder || undefined}
         onArrowUp={onEditLast}
         onPaste={onPaste}
         focusKey={conversationId}

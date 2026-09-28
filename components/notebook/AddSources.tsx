@@ -112,7 +112,6 @@ export function AddSources({ notebookId, onClose, onAdded }: {
           <button onClick={onClose} aria-label="Close" className="ctl focus-inset flex [--ctl:2rem] items-center justify-center rounded-md text-tertiary hover:bg-subtle hover:text-primary"><X size={15} /></button>
         </header>
         <div className="p-4">
-          <p className="mb-3 text-sm text-tertiary">Answers, the audio overview and everything the Studio makes come from these — and only these.</p>
           <div role="tablist" aria-label="How to add" className="mb-4 grid grid-cols-4 gap-1 rounded-xl bg-subtle p-1">
             {WAYS.map((w) => (
               <button

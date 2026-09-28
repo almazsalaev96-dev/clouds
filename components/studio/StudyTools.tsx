@@ -63,7 +63,6 @@ export function StudyTools() {
     <section aria-label="Study tools" className="mb-6">
       <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h2 className="text-base font-medium text-primary">Study tools</h2>
-        <span className="text-xs text-tertiary">from a book, your notes or a topic — each written to a standard and checked</span>
       </div>
       <button
         onClick={() => openStudio({})}
@@ -72,7 +71,7 @@ export function StudyTools() {
         <Sparkles size={18} className="shrink-0 text-accent" aria-hidden />
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-medium text-primary">Make study materials from a book or notes</span>
-          <span className="block text-xs text-secondary">It reads it, tells you what it is, and asks what you want: notes, cards, a paper, a plan…</span>
+          <span className="block text-xs text-secondary">Notes, cards, papers and more</span>
         </span>
       </button>
       <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{lead.map(tile)}</ul>

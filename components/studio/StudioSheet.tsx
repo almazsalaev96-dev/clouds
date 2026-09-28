@@ -331,14 +331,14 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
               <input ref={fileRef} type="file" accept=".pdf,.txt,.md,.markdown,.rtf,.csv,.html,text/*,application/pdf" className="hidden" aria-label="Choose a file to make study material from" onChange={(e) => { void takeFile(e.target.files?.[0]); e.target.value = ""; }} />
               {pasting && (
                 <div>
-                  <textarea autoFocus value={pasted} onChange={(e) => setPasted(e.target.value)} rows={6} aria-label="Material to make study material from" placeholder="Paste the material here…" className="field w-full rounded-lg border border-line bg-field px-3 py-2 text-sm text-primary outline-none focus:border-[var(--accent)]" />
+                  <textarea autoFocus value={pasted} onChange={(e) => setPasted(e.target.value)} rows={6} aria-label="Material to make study material from" placeholder="" className="field w-full rounded-lg border border-line bg-field px-3 py-2 text-sm text-primary outline-none focus:border-[var(--accent)]" />
                   <Button className="mt-2" variant="primary" size="sm" disabled={!pasted.trim()} onClick={() => { const src = { name: pasted.trim().split("\n")[0].slice(0, 60) || "Pasted", text: pasted.trim() }; setSource(src); void read(src, ""); }}>Read it</Button>
                 </div>
               )}
               <div>
                 <label className="text-xs font-medium text-secondary" htmlFor="studio-topic">Or a topic</label>
                 <div className="mt-1 flex gap-2">
-                  <input id="studio-topic" value={topic} onChange={(e) => setTopic(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && topic.trim()) void read(null, topic.trim()); }} placeholder="Photosynthesis, the causes of WW1, integration by parts…" aria-label="Topic" className="field min-w-0 flex-1 rounded-lg border border-line bg-field px-3 py-2 text-sm text-primary outline-none focus:border-[var(--accent)]" />
+                  <input id="studio-topic" value={topic} onChange={(e) => setTopic(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && topic.trim()) void read(null, topic.trim()); }} placeholder="Topic" aria-label="Topic" className="field min-w-0 flex-1 rounded-lg border border-line bg-field px-3 py-2 text-sm text-primary outline-none focus:border-[var(--accent)]" />
                   <Button variant="secondary" disabled={!topic.trim()} onClick={() => void read(null, topic.trim())}>Next</Button>
                 </div>
               </div>
@@ -425,11 +425,11 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
                   <span className="text-xs font-medium text-secondary">Level</span>
-                  <input value={brief.level ?? ""} onChange={(e) => setBrief((b) => ({ ...b, level: e.target.value }))} placeholder="GCSE, A level, IB, university…" aria-label="Level" className="field mt-1 w-full rounded-lg border border-line bg-field px-3 py-1.5 text-sm text-primary outline-none focus:border-[var(--accent)]" />
+                  <input value={brief.level ?? ""} onChange={(e) => setBrief((b) => ({ ...b, level: e.target.value }))} placeholder="Level" aria-label="Level" className="field mt-1 w-full rounded-lg border border-line bg-field px-3 py-1.5 text-sm text-primary outline-none focus:border-[var(--accent)]" />
                 </label>
                 <label className="block">
                   <span className="text-xs font-medium text-secondary">Exam board (optional)</span>
-                  <input value={brief.board ?? ""} onChange={(e) => setBrief((b) => ({ ...b, board: e.target.value }))} placeholder="AQA, Edexcel, OCR, Cambridge…" aria-label="Exam board" className="field mt-1 w-full rounded-lg border border-line bg-field px-3 py-1.5 text-sm text-primary outline-none focus:border-[var(--accent)]" />
+                  <input value={brief.board ?? ""} onChange={(e) => setBrief((b) => ({ ...b, board: e.target.value }))} placeholder="Board" aria-label="Exam board" className="field mt-1 w-full rounded-lg border border-line bg-field px-3 py-1.5 text-sm text-primary outline-none focus:border-[var(--accent)]" />
                 </label>
               </div>
               <div className="flex flex-wrap gap-x-6 gap-y-3">
@@ -468,7 +468,7 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
               )}
               <label className="block">
                 <span className="text-xs font-medium text-secondary">Anything else? (optional)</span>
-                <input value={brief.extra ?? ""} onChange={(e) => setBrief((b) => ({ ...b, extra: e.target.value }))} placeholder="“I keep mixing up osmosis and diffusion”, “in Russian”, “for a 6-mark question”…" aria-label="Anything else" className="field mt-1 w-full rounded-lg border border-line bg-field px-3 py-1.5 text-sm text-primary outline-none focus:border-[var(--accent)]" />
+                <input value={brief.extra ?? ""} onChange={(e) => setBrief((b) => ({ ...b, extra: e.target.value }))} placeholder="" aria-label="Anything else" className="field mt-1 w-full rounded-lg border border-line bg-field px-3 py-1.5 text-sm text-primary outline-none focus:border-[var(--accent)]" />
               </label>
             </div>
           )}
@@ -594,13 +594,13 @@ function Checker({ configured, modelId, rules }: { configured: Record<string, bo
   return (
     <div className="space-y-3">
       <div className="grid gap-2 sm:grid-cols-3">
-        <label className="block"><span className="text-xs font-medium text-secondary">Subject</span><input value={subject} onChange={(e) => setSubject(e.target.value)} aria-label="Subject" placeholder="Biology" className={field} /></label>
-        <label className="block"><span className="text-xs font-medium text-secondary">Level</span><input value={level} onChange={(e) => setLevel(e.target.value)} aria-label="Level" placeholder="GCSE" className={field} /></label>
-        <label className="block"><span className="text-xs font-medium text-secondary">Board</span><input value={board} onChange={(e) => setBoard(e.target.value)} aria-label="Board" placeholder="AQA" className={field} /></label>
+        <label className="block"><span className="text-xs font-medium text-secondary">Subject</span><input value={subject} onChange={(e) => setSubject(e.target.value)} aria-label="Subject" placeholder="Subject" className={field} /></label>
+        <label className="block"><span className="text-xs font-medium text-secondary">Level</span><input value={level} onChange={(e) => setLevel(e.target.value)} aria-label="Level" placeholder="Level" className={field} /></label>
+        <label className="block"><span className="text-xs font-medium text-secondary">Board</span><input value={board} onChange={(e) => setBoard(e.target.value)} aria-label="Board" placeholder="Board" className={field} /></label>
       </div>
       <label className="block">
         <span className="text-xs font-medium text-secondary">The question</span>
-        <textarea value={question} onChange={(e) => setQuestion(e.target.value)} rows={3} aria-label="The question" placeholder="Explain why… [4]" className={field} />
+        <textarea value={question} onChange={(e) => setQuestion(e.target.value)} rows={3} aria-label="The question" placeholder="" className={field} />
       </label>
       <div className="flex flex-wrap items-end gap-3">
         <label className="block w-24"><span className="text-xs font-medium text-secondary">Marks</span><input type="number" min={1} max={40} value={marks} onChange={(e) => setMarks(e.target.value ? Number(e.target.value) : "")} aria-label="Marks" className={field} /></label>
@@ -608,11 +608,11 @@ function Checker({ configured, modelId, rules }: { configured: Record<string, bo
       </div>
       <label className="block">
         <span className="text-xs font-medium text-secondary">Mark scheme (optional)</span>
-        <textarea value={scheme} onChange={(e) => setScheme(e.target.value)} rows={3} aria-label="Mark scheme" placeholder="One point a line. Leave empty and one is written in the board's style first." className={field} />
+        <textarea value={scheme} onChange={(e) => setScheme(e.target.value)} rows={3} aria-label="Mark scheme" placeholder="Optional" className={field} />
       </label>
       <label className="block">
         <span className="text-xs font-medium text-secondary">Your answer</span>
-        <textarea value={answer} onChange={(e) => setAnswer(e.target.value)} rows={6} aria-label="Your answer" placeholder="Write it as you would in the exam…" className={field} />
+        <textarea value={answer} onChange={(e) => setAnswer(e.target.value)} rows={6} aria-label="Your answer" placeholder="" className={field} />
       </label>
       {photo && (
         <div className="flex items-center gap-2">

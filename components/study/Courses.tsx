@@ -121,7 +121,7 @@ export function CourseStrip({ courses, rows, cards, now, onOpen, onAdd }: {
       <section aria-label="Your courses" className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3.5">
         <Target size={18} className="shrink-0 text-accent" aria-hidden />
         <p className="min-w-0 flex-1 text-sm text-secondary">
-          <span className="font-medium text-primary">Studying for an exam?</span> Add the course: every topic on the specification, questions marked point by point, notes and mock papers.
+          <span className="font-medium text-primary">Preparing for an exam?</span> Add your course.
         </p>
         <Button size="sm" variant="primary" onClick={onAdd}>
           <Plus size={13} /> Add a course
@@ -230,7 +230,7 @@ export function AddCourse({ configured, onDone, onCancel }: {
         value={subject}
         onChange={(e) => setSubject(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") void build(); }}
-        placeholder="Biology, Maths, English Literature, Economics…"
+        placeholder="Subject"
         aria-label="Subject"
         className="field mt-1 w-full rounded-lg border border-line bg-field px-3 py-2 text-sm text-primary outline-none focus:border-[var(--accent)]"
       />
@@ -841,7 +841,7 @@ function Questions({ course, topic, rows, configured, onAsk }: {
                 onChange={(e) => setAnswer(e.target.value)}
                 rows={Math.min(14, Math.max(4, q.marks + 2))}
                 aria-label="Your answer"
-                placeholder="Write your answer as you would in the exam…"
+                placeholder=""
                 className="field mt-3 w-full resize-y rounded-lg border border-line bg-field px-3 py-2 text-sm leading-relaxed text-primary outline-none focus:border-[var(--accent)]"
               />
               {photo && (

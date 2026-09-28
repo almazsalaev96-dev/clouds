@@ -157,7 +157,7 @@ function Customise({ format, setFormat, length, setLength, focus, setFocus, onGe
           value={focus}
           onChange={(e) => setFocus(e.target.value)}
           rows={3}
-          placeholder="“Only the chapter on osmosis” · “Explain it for a Year 10 student” · “Quiz me as you go”"
+          placeholder=""
           className="field w-full resize-none rounded-xl border border-line bg-field px-3 py-2 text-sm text-primary outline-none focus:border-[var(--accent)]"
         />
       </label>
@@ -331,7 +331,7 @@ function Player({ title, audio, sources, modelId, onSave, onKeep, onNotice, onRe
             autoFocus
             value={asked}
             onChange={(e) => setAsked(e.target.value)}
-            placeholder="Ask the hosts a question…"
+            placeholder=""
             aria-label="Your question for the hosts"
             className="field min-w-0 flex-1 rounded-full border border-line bg-field px-3.5 text-sm text-primary outline-none focus:border-[var(--accent)]"
           />

@@ -55,7 +55,7 @@ console.log("\nA command, and a menu entry");
      top, and the box asks for the description. */
   check((await box().inputValue()) === "", "which types nothing into the box", JSON.stringify(await box().inputValue()));
   check(await p.locator("header").getByRole("button", { name: "Stop making a picture" }).isVisible(), "and puts a Picture chip by the model");
-  check(/Describe the picture/.test((await box().getAttribute("placeholder")) ?? ""), "while the box asks for the description");
+  check(!(await box().getAttribute("placeholder")), "while the box itself carries no prompt text");
   await fetch(`${MOCK}/__reset`);
   await box().fill("the water cycle as a diagram");
   await p.keyboard.press("Enter");

@@ -72,17 +72,13 @@ export function CreativeView({
       ) : (
         <h1 className="text-[1.75rem] font-medium leading-tight text-primary sm:text-3xl">What should we make?</h1>
       )}
-      <p className="mt-1 max-w-prose text-sm text-secondary">
-        Describe it and it is built and running beside the conversation — a working thing, not a page of
-        code. Ask for changes in the same breath and it changes in place.
-      </p>
 
       <div className="mt-5">
         <MessageBar
           value={text}
           onChange={setText}
           onSubmit={submit}
-          placeholder="A flashcard deck for… a timer that… a tracker for…"
+          placeholder=""
           ariaLabel="What to make"
           canSend={Boolean(text.trim())}
           autoFocus
@@ -105,11 +101,7 @@ export function CreativeView({
         ))}
       </div>
 
-      <h2 className="mt-10 text-base font-medium text-primary">Ready this second</h2>
-      <p className="mt-0.5 text-sm text-tertiary">
-        Already built. Press one and it opens running, with a half-written instruction for putting your
-        own material in.
-      </p>
+      <h2 className="mt-10 text-base font-medium text-primary">Ready to use</h2>
 
       <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-3">
         {MAKES.map((m) => (

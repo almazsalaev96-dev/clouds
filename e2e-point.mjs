@@ -91,8 +91,8 @@ console.log("\nThe bar is now about that element");
 {
   const bar = await page.locator(".composer-shell").innerText();
   check(/button/.test(bar), "the chip says what was chosen", (bar.split("\n").find((l) => /button/.test(l)) ?? "").slice(0, 40));
-  check((await page.getByPlaceholder(/^Change the/).count()) === 1,
-    "and the question narrows to it rather than to the file");
+  check(!(await page.getByRole("textbox", { name: "Ask for a change" }).getAttribute("placeholder")),
+    "and the bar carries no prompt text — the chip is the whole account");
   await page.screenshot({ path: `${OUT}/point-chip.png` });
 }
 

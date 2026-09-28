@@ -98,7 +98,7 @@ export function TestMode({ cards, now, onDone, onReview }: {
         onChange={(e) => setTyped(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); answer(); } }}
         aria-label="Your answer"
-        placeholder="Write the answer, then Enter"
+        placeholder=""
         rows={3}
         className="focus-inset mt-3 w-full resize-none rounded-md border border-line bg-field px-3 py-2 text-sm text-primary outline-none placeholder:text-tertiary focus:border-accent"
       />

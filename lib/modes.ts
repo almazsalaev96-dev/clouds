@@ -23,8 +23,6 @@ export interface ModeSpec {
   id: Mode;
   label: string;
   blurb: string;
-  /** What the composer asks, so the box itself says which mode you are in. */
-  placeholder: string;
   /** Layered after the style, closest to the answer. */
   instructions: string;
   /** Applied over the model's own parameters. */
@@ -42,7 +40,6 @@ export const MODES: ModeSpec[] = [
     id: "learn",
     label: "Learn",
     blurb: "A plan, one step at a time, and a check after each.",
-    placeholder: "What are you trying to understand?",
     instructions: [
       "You are teaching, not answering. The goal is that they can do it without you afterwards.",
       "On the first turn about a topic: ask, in one line, what they already know and what level they are at (school year, exam, course) — unless the conversation already says. Then lay out a short plan: three to six steps, one line each, from where they are to where they want to be.",
@@ -57,14 +54,12 @@ export const MODES: ModeSpec[] = [
     id: "chat",
     label: "Chat",
     blurb: "Straight answers.",
-    placeholder: "How can I help you today?",
     instructions: "",
   },
   {
     id: "creative",
     label: "Creative",
     blurb: "Range, options, the unobvious one.",
-    placeholder: "What should we make?",
     instructions: [
       "Work in a creative register.",
       "Where there is more than one good answer, give more than one, and say what each is good for — do not silently pick the safe one.",

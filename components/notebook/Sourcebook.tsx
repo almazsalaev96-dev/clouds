@@ -258,7 +258,7 @@ export function Sourcebook({ note, sources, configured, onBack, onOpenPage, onOp
           <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
             <span className="flex size-12 items-center justify-center rounded-full bg-accent-subtle text-accent"><Plus size={20} /></span>
             <h2 className="text-lg font-medium text-primary">Add a source to get started</h2>
-            <p className="text-sm text-tertiary">A chapter, a paper, lecture notes, a web page. Every answer here comes from them, and says exactly where.</p>
+            <p className="text-sm text-tertiary">Answers come from your sources, with citations.</p>
             <Button variant="primary" onClick={() => setAdding(true)}>Add sources</Button>
           </div>
         ) : (
@@ -339,14 +339,12 @@ export function Sourcebook({ note, sources, configured, onBack, onOpenPage, onOp
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void ask(q); } }}
               rows={1}
-              placeholder="Ask about your sources…"
               aria-label="Ask about your sources"
               className="max-h-40 min-h-[2rem] flex-1 resize-none bg-transparent py-1 text-sm text-primary outline-none placeholder:text-faint"
             />
             <span className="shrink-0 pb-1.5 text-xs text-tertiary tnum">{on.length} source{on.length === 1 ? "" : "s"}</span>
             <button type="submit" disabled={!q.trim() || Boolean(pending)} aria-label="Ask" className="ctl [--ctl:2rem] focus-ring flex shrink-0 items-center justify-center rounded-full bg-cta text-cta-fg disabled:opacity-40"><ArrowUp size={15} /></button>
           </form>
-          <p className="mt-1.5 text-center text-[0.7rem] text-faint">Answers come only from the ticked sources, and every quote is checked against them.</p>
         </div>
       )}
     </Panel>
@@ -593,7 +591,7 @@ function ChatSettings({ nb, onSave, onClear }: { nb: NotebookState; onSave: (p: 
               onChange={(e) => setCustom(e.target.value)}
               onBlur={() => void onSave({ custom })}
               rows={3}
-              placeholder="“Answer like my biology teacher, with an exam tip at the end”"
+              placeholder=""
               aria-label="Custom style"
               className="field mt-2 w-full resize-none rounded-xl border border-line bg-field px-3 py-2 text-sm text-primary outline-none focus:border-[var(--accent)]"
             />

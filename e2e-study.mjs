@@ -193,7 +193,7 @@ console.log("\nA list pasted in becomes a deck, and asks nothing of a model");
   await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
   await p.waitForTimeout(600);
   const before = (await cards()).length;
-  await p.getByRole("button", { name: /paste a list of cards/ }).click();
+  await p.getByRole("button", { name: /Paste cards/ }).click();
   await p.waitForTimeout(300);
   await p.getByRole("textbox", { name: "Cards to paste" }).fill([
     "What is the powerhouse of the cell :: The mitochondria",

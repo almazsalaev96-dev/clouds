@@ -199,7 +199,7 @@ function RulesPanel() {
           onChange={(e) => s.setSystemPrompt(e.target.value)}
           rows={4}
           aria-label="Your own rules"
-          placeholder={"Always show the units.\nCall the exam board AQA, not the board."}
+          placeholder=""
           className="w-full resize-y rounded-md border border-line-strong bg-field px-2.5 py-2 text-sm text-primary outline-none focus:border-accent"
         />
       </Field>
@@ -275,17 +275,13 @@ function KeysPanel({ configured }: { configured: Record<string, boolean> }) {
   return (
     <Panel
       title="API keys"
-      description="Keys set on the server never reach this browser. A key you paste here is stored in this browser only, and is sent to your own server, which forwards it to the provider — never to anyone else."
+      description="A key you add is kept in this browser only."
     >
       <div className="space-y-2">
         {(Object.keys(PROVIDERS) as ProviderId[]).map((p) => (
           <KeyRow key={p} provider={p} serverConfigured={Boolean(configured[p])} />
         ))}
       </div>
-      <p className="mt-4 text-xs text-tertiary">
-        To set a key on the server instead, put it in{" "}
-        <code className="rounded-sm bg-subtle px-1">.env.local</code> and restart.
-      </p>
     </Panel>
   );
 }
@@ -344,7 +340,7 @@ function KeyRow({ provider, serverConfigured }: { provider: ProviderId; serverCo
         />
         <span className="text-sm font-medium text-primary">{meta.name}</span>
         <span className="text-xs text-tertiary">
-          {serverConfigured ? "Set on the server" : value ? "Stored in this browser" : "Not set"}
+          {serverConfigured ? "Included" : value ? "Stored in this browser" : "Not set"}
         </span>
         <a
           href={meta.keyUrl}
@@ -359,7 +355,7 @@ function KeyRow({ provider, serverConfigured }: { provider: ProviderId; serverCo
 
       {serverConfigured ? (
         <p className="text-xs text-secondary">
-          This provider is already configured server-side. Nothing to do here.
+          Ready to use.
         </p>
       ) : editing ? (
         /* While it is being typed, and only then, the key can be read back.
@@ -621,7 +617,7 @@ function AssistantsPanel({ onStart }: { onStart?: (id: string) => void }) {
         <input
           value={editing.name ?? ""}
           onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-          placeholder="Chemistry coach"
+          placeholder="Name"
           aria-label="Name"
           autoFocus
           className="focus-inset h-9 min-w-0 flex-1 rounded-md border border-line bg-field px-3 text-sm text-primary outline-none placeholder:text-tertiary"
@@ -635,7 +631,7 @@ function AssistantsPanel({ onStart }: { onStart?: (id: string) => void }) {
       <textarea
         value={editing.instructions ?? ""}
         onChange={(e) => setEditing({ ...editing, instructions: e.target.value })}
-        placeholder="How it works. Who it is for, what it always does first, what it never does, how long its answers are."
+        placeholder=""
         aria-label="How it works"
         rows={5}
         className="focus-inset w-full resize-y rounded-md border border-line bg-field px-3 py-2 text-sm leading-relaxed text-primary outline-none placeholder:text-tertiary"
@@ -643,7 +639,7 @@ function AssistantsPanel({ onStart }: { onStart?: (id: string) => void }) {
       <input
         value={editing.starter ?? ""}
         onChange={(e) => setEditing({ ...editing, starter: e.target.value })}
-        placeholder="What the box opens with, if anything: “Explain a reaction I name”"
+        placeholder=""
         aria-label="Opening line"
         className="focus-inset h-9 w-full rounded-md border border-line bg-field px-3 text-sm text-primary outline-none placeholder:text-tertiary"
       />
@@ -758,7 +754,7 @@ function RoutinesPanel() {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") void add(); }}
-            placeholder="Quiz me on what is due today, one question at a time"
+            placeholder=""
             aria-label="What to send"
             className="focus-inset h-9 w-full rounded-md border border-line bg-field px-3 text-sm text-primary outline-none placeholder:text-tertiary"
           />
@@ -1411,7 +1407,7 @@ function MemoryPanel() {
             onKeyDown={(e) => {
               if (e.key === "Enter") void add();
             }}
-            placeholder="I teach year 9 maths"
+            placeholder=""
             aria-label="Something to remember"
             className="focus-inset h-9 min-w-0 flex-1 rounded-md border border-line bg-field px-3 text-sm text-primary outline-none placeholder:text-tertiary"
           />
@@ -1669,7 +1665,7 @@ function StylesPanel() {
                     onChange={(e) =>
                       void db.styles.update(st.id, { blurb: e.target.value, updatedAt: Date.now() })
                     }
-                    placeholder="One line, for the picker"
+                    placeholder=""
                     aria-label="Style description"
                     className="focus-inset mt-2 w-full rounded-md border border-line bg-field px-2 py-1.5 text-xs text-primary outline-none placeholder:text-tertiary"
                   />
@@ -1682,7 +1678,7 @@ function StylesPanel() {
                       })
                     }
                     rows={6}
-                    placeholder="Write it as instructions to the model: “Answer in as few words as the question takes. No preamble.”"
+                    placeholder=""
                     aria-label="Style instructions"
                     className="focus-inset mt-1.5 w-full resize-y rounded-md border border-line bg-field px-2 py-1.5 text-xs leading-relaxed text-primary outline-none placeholder:text-tertiary"
                   />

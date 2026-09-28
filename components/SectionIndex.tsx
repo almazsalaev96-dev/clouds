@@ -62,7 +62,7 @@ export function SectionIndex({
    */
   loading?: boolean;
   emptyTitle: string;
-  emptyHint: string;
+  emptyHint?: string;
   onOpen: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
@@ -175,7 +175,7 @@ export function SectionIndex({
              still be when the room is full. */
           <div className="px-4 pb-6 pt-12 text-center anim-fade">
             <p className="display-italic text-[1.25rem] text-secondary">{emptyTitle}</p>
-            <p className="mx-auto mt-2 max-w-[28rem] text-sm text-tertiary">{emptyHint}</p>
+            {emptyHint && <p className="mx-auto mt-2 max-w-[28rem] text-sm text-tertiary">{emptyHint}</p>}
             {waysIn && waysIn.length > 0 && (
               <p className="mt-5 flex flex-wrap items-center justify-center gap-x-1 gap-y-1 text-xs text-tertiary" aria-label="Ways to start">
                 {waysIn.map((w, i) => (

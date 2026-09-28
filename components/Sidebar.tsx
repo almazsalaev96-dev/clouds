@@ -463,7 +463,6 @@ function Empty({ query, noun, onNew }: { query: string; noun: string; onNew?: ()
   return (
     <div className="px-2 py-6 text-center">
       <p className="text-sm text-secondary">No {noun} yet.</p>
-      <p className="mt-1 text-xs text-tertiary">Ask anything and it will be kept here.</p>
       {onNew && (
         <button
           onClick={onNew}

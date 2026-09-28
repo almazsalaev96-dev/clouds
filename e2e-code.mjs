@@ -123,8 +123,8 @@ console.log("\nChanging only what you selected");
 
   const chip = await page.locator(".composer-shell").innerText();
   check(/Lines \d+–\d+/.test(chip), "the bar says what it is about to change", (chip.match(/Lines[^\n]*/) ?? [""])[0]);
-  check((await page.getByPlaceholder(/Change just these lines/).count()) === 1,
-    "and asks a narrower question than it does for a whole file");
+  check(!(await page.getByRole("textbox", { name: "Ask for a change" }).getAttribute("placeholder")),
+    "and the bar itself carries no prompt text — the chip says it");
 
   const bar = page.getByRole("textbox", { name: "Ask for a change" });
   await bar.fill("use map");

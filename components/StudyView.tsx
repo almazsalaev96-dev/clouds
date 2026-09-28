@@ -413,7 +413,6 @@ export function StudyView({
       right={<RevisePicker configured={configured} />}
       loading={decks === undefined}
       emptyTitle={(courses ?? []).length ? "No flashcard decks yet." : "Nothing to study yet."}
-      emptyHint="Name a subject above, or ask for cards in any chat. They come back on a schedule — sooner whenever you get one wrong."
       items={(decks ?? []).map((d) => {
         const mine = cards.filter((c) => c.deckId === d.id);
         const p = progressOf(mine, now);
@@ -493,7 +492,6 @@ export function StudyView({
             value={subject}
             onChange={setSubject}
             onSubmit={make}
-            placeholder="What are you learning? — “the French Revolution”, “React hooks”, “kanji N5”"
             ariaLabel="What to study"
             canSend={Boolean(subject.trim()) && !busy}
             busy={busy}
@@ -529,7 +527,7 @@ export function StudyView({
               onClick={() => setPasting(true)}
               className="focus-inset mt-1.5 rounded-sm text-xs text-tertiary hover:text-primary hover:underline"
             >
-              …or paste a list of cards
+              Paste cards
             </button>
           )}
           {/* The other way to study: not cards you have made, but the thing
@@ -1191,7 +1189,7 @@ function Session({
                     value={typed}
                     onChange={(e) => setTyped(e.target.value)}
                     aria-label="Your answer"
-                    placeholder="Type the answer…"
+                    placeholder=""
                     autoComplete="off"
                     className="focus-inset h-10 w-full max-w-md rounded-full border border-line bg-surface px-4 text-sm text-primary outline-none placeholder:text-tertiary"
                   />
@@ -1448,7 +1446,7 @@ function EditCard({ card, onDone }: { card: Card; onDone: () => void }) {
           list="known-topics"
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
-          placeholder="the thing this is about"
+          placeholder=""
           autoComplete="off"
           className="focus-inset h-8 min-w-0 flex-1 rounded-md border border-line bg-field px-2.5 text-xs text-secondary outline-none placeholder:text-faint"
         />

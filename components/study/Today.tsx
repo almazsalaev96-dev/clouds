@@ -85,7 +85,7 @@ export function Today({
             </button>
           </li>
         )}
-        {nothing && <li className="text-sm text-tertiary">Nothing waiting. Make a deck above, or set the exam date.</li>}
+        {nothing && <li className="text-sm text-tertiary">All caught up.</li>}
       </ul>
       {settingExam && (
         <form

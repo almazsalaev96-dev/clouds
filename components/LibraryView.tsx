@@ -175,7 +175,6 @@ export function LibraryView({
       newLabel="New document"
       right={<RevisePicker configured={getConfigured()} />}
       emptyTitle="Nothing made yet."
-      emptyHint="Every page, deck, document and app you make lands here, whichever room you made it in."
       loading={loading}
       lead={
         <>

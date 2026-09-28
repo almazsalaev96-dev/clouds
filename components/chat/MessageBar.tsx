@@ -36,7 +36,7 @@ export interface MessageBarProps {
   value: string;
   onChange: (next: string) => void;
   onSubmit: () => void;
-  placeholder: string;
+  placeholder?: string;
   /** The name a screen reader reads for the box itself. */
   ariaLabel?: string;
   /** Greyed and inert; the send disc shows the thinking orb instead. */
@@ -221,7 +221,7 @@ export function MessageBar({
           onKeyDown={onKeyDown}
           onPaste={onPaste}
           rows={1}
-          placeholder={placeholder}
+          placeholder={placeholder || undefined}
           aria-label={ariaLabel}
           /* 16px, not 15: anything smaller and iOS zooms the whole page on
              focus, and the way back out is a pinch. */
