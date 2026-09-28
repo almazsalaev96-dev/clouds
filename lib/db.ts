@@ -1069,7 +1069,7 @@ export async function deleteNote(id: string): Promise<() => Promise<void>> {
 /** Bring something in for a page to be made from. */
 export async function addSource(
   noteId: string,
-  init: { name: string; text: string; pages?: number; size?: number },
+  init: { name: string; text: string; pages?: number; size?: number; url?: string },
 ): Promise<Source> {
   const source: Source = {
     id: uid(),
@@ -1079,6 +1079,7 @@ export async function addSource(
     pages: init.pages,
     size: init.size ?? init.text.length,
     addedAt: Date.now(),
+    ...(init.url ? { url: init.url } : {}),
   };
   await db.sources.add(source);
   return source;
@@ -1421,4 +1422,16 @@ export async function deleteStyle(id: string): Promise<() => Promise<void>> {
   return async () => {
     if (row) await db.styles.put(row);
   };
+}
+
+/**
+ * Something the Studio made, listed in the notebook it was made from.
+ * Newest first, and at most forty: the list is a way back to things, not
+ * an archive.
+ */
+export async function noteMade(notebookId: string, made: import("./types").NotebookMade): Promise<void> {
+  const nb = await db.notes.get(notebookId);
+  if (!nb) return;
+  const list = [made, ...(nb.nb?.made ?? []).filter((m) => m.id !== made.id)].slice(0, 40);
+  await db.notes.update(notebookId, { nb: { ...(nb.nb ?? {}), made: list } });
 }

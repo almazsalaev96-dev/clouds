@@ -18,6 +18,8 @@ export interface StudioRequest {
   pick?: boolean;
   /** Write from a topic rather than a source. */
   topic?: string;
+  /** Made in a notebook: what is made is listed there, and remembers its sources. */
+  from?: { notebookId: string; sourceIds: string[]; projectId?: string };
 }
 
 export const STUDIO_EVENT = "armi:studio";

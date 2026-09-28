@@ -589,6 +589,14 @@ The thing a person is actually holding — a past paper, a chapter, a worksheet,
 | Lecture recording: live transcript into the page under a dated heading; "Make notes from it" opens the Studio on the transcript | ✅ (browser speech recognition) | ⬜ Audio kept with the page where storage allows. |
 | Related pages (by what they say, not by links) | ✅ | Keep. |
 | Palette: New page · New project · Keep this chat as a page | ✅ | Keep. |
+| **Notebook of sources** (a page opened as Sources · Chat · Studio; "New notebook"; "As a page" and back; phone tabs) | ✅ | Keep. |
+| Sources four ways: upload (several PDFs/text at once), a web page (read by the server, private and internal addresses refused), pasted text, one of your own pages | ✅ | ⬜ Discover sources by web search; ⬜ YouTube transcripts. |
+| Sources ticked on and off; select all; a source's guide (summary + topics, topics ask the chat); the full text with a cited passage marked and scrolled to | ✅ | Keep. |
+| Notebook guide: a title (named the notebook if untitled), a summary with key terms in bold, three questions to start on; rewritten when the sources change | ✅ | Keep. |
+| Chat from the ticked sources only, numbered citation chips that open the passage, "n?" for a quote not in the source, the last turns sent for follow-ups; style Default · Learning guide · Custom, length Shorter · Default · Longer; clear; save to note; copy | ✅ | Keep. |
+| Audio Overview: Deep dive · Brief (one voice) · Critique · Debate, Shorter · Default · Longer, a focus; read by two device voices, line by line, speed 0.75–2×, skip, transcript follows and plays from a line; **Join** in any format to ask the hosts, answered from the sources and kept; keep as a note, download, redo, delete | ✅ | ⬜ Rendered audio file where a server voice is available. |
+| Studio tiles: Mind map, Study guide, Briefing doc, FAQ (new tool), Flashcards, Quiz, Timeline, Revision notes, Key terms, Exam paper, all tools — made from the ticked sources and listed under Notes (pages, decks, papers) | ✅ | ⬜ Slide deck and video overview. |
+| Notes: saved answers, added notes and Studio pages belong to the notebook (`nbOf`), each leads back with "In “…”" | ✅ | Keep. |
 
 ---
 

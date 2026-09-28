@@ -6,7 +6,7 @@ import {
   BookOpen, Camera, Check, CheckCircle2, ChevronLeft, CircleDashed, ClipboardCheck, FileText, FileUp,
   Layers, ListChecks, Loader2, NotebookPen, Sparkles, X,
 } from "lucide-react";
-import { db, uid, addCards, createDeck, createNote } from "@/lib/db";
+import { db, uid, addCards, createDeck, createNote, noteMade } from "@/lib/db";
 import { cheapestAvailable, complete, extractJson, whyItFailed } from "@/lib/complete";
 import { draftCards, makeFromSources } from "@/lib/generate";
 import { extractCitations } from "@/lib/cite";
@@ -80,6 +80,10 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
   onOpenPaper: (id: string) => void;
 }) {
   const settings = useSettings();
+  /* Made in a notebook: its pages belong to it, and to its project. */
+  const inNotebook = request.from
+    ? { nbOf: request.from.notebookId, madeFrom: request.from.sourceIds, ...(request.from.projectId ? { projectId: request.from.projectId } : {}) }
+    : {};
   const room = useReviseModel(configured);
   const modelId = room ?? cheapestAvailable(configured);
   const [step, setStep] = React.useState<Step>(request.tool === "checker" ? "checker" : request.source || request.topic ? "reading" : "source");
@@ -228,7 +232,8 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
             if (again?.trim()) { text = again.trim(); fixed = true; }
           }
           const { text: body, citations } = noSource ? { text, citations: [] } : extractCitations(text, [{ id: "studio", noteId: "", name: src.name, text: src.text, size: src.text.length, addedAt: Date.now() }]);
-          const note = await createNote({ title: `${title} — ${tool.name}`, content: body + checkedLine(tool, verdict, fixed), citations, madeAt: Date.now() });
+          const note = await createNote({ title: `${title} — ${tool.name}`, content: body + checkedLine(tool, verdict, fixed), citations, madeAt: Date.now(), ...inNotebook });
+          if (request.from) await noteMade(request.from.notebookId, { kind: "page", id: note.id, label: note.title, tool: tool.id, at: Date.now() });
           if (!firstPage) firstPage = body;
           set(tool.id, { state: "done", note: verdict ? (fixed ? "checked, and rewritten where it fell short" : verdict.verdict === "meets" ? "checked: meets the standard" : "checked") : "made", open: { kind: "page", id: note.id, label: "Open" } });
         } else if (tool.id === "flashcards") {
@@ -238,6 +243,7 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
           if (!drafts?.length) throw new Error("No cards came back.");
           const deck = await createDeck(title, "studio");
           const n = await addCards(deck.id, drafts, "studio");
+          if (request.from) await noteMade(request.from.notebookId, { kind: "deck", id: deck.id, label: `${title} — Flashcards`, tool: tool.id, at: Date.now() });
           set(tool.id, { state: "done", note: `${n} cards, asked again on a schedule`, open: { kind: "deck", id: deck.id, label: "Study them" } });
         } else if (tool.id === "paper" || tool.id === "quiz") {
           set(tool.id, { state: "writing" });
@@ -255,7 +261,8 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
           await db.mocks.add(mock);
           /* And the same paper as a page, to print or save as a PDF, with
              the mark scheme after the questions. */
-          if (tool.id === "paper") await createNote({ title: name, content: paperMarkdown(name, qs, minutes).replace(/^# .*\n\n/, ""), madeAt: Date.now() });
+          if (tool.id === "paper") await createNote({ title: name, content: paperMarkdown(name, qs, minutes).replace(/^# .*\n\n/, ""), madeAt: Date.now(), ...inNotebook });
+          if (request.from) await noteMade(request.from.notebookId, { kind: "paper", id: mock.id, label: name, tool: tool.id, at: Date.now() });
           const total = questions.reduce((s, q) => s + q.marks, 0);
           set(tool.id, { state: "done", note: `${questions.length} questions · ${total} marks${tool.id === "paper" ? " · also a page to print, with the mark scheme" : ""}`, open: { kind: "paper", id: mock.id, label: tool.id === "paper" ? "Sit it" : "Take it" } });
         }

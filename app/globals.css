@@ -2884,3 +2884,35 @@ main:has(.has-room-toggle) > .room-toggle-row { display: none; }
     max-height: min(70vh, 40rem);
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Citations in a notebook's answers: a small numbered chip after the claim,
+   pressed to open the passage in the source. One whose quotation is not in
+   the source reads "3?", and says so when pressed.
+--------------------------------------------------------------------------- */
+.nb-answer a[href^="#armi-cite-"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  margin: 0 0.125rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--bg-subtle, rgba(127, 127, 127, 0.14));
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  vertical-align: 0.12em;
+  font-variant-numeric: tabular-nums;
+  transition: background-color var(--dur-fast, 120ms), color var(--dur-fast, 120ms);
+}
+.nb-answer a[href^="#armi-cite-"]:hover {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+@media (pointer: coarse) {
+  .nb-answer a[href^="#armi-cite-"] { min-width: 1.75rem; height: 1.75rem; }
+}

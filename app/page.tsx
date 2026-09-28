@@ -3222,6 +3222,11 @@ export default function Page() {
                   onToChat={() => withTransition(() => settings.setSection("chat"), "back")}
                   onChatAbout={(id) => void chatAboutPage(id)}
                   onOpenChat={(id) => selectInSection("chat", id)}
+                  onOpenDeck={(id) => selectInSection("study", id)}
+                  onOpenPaper={(id) => {
+                    setPaperId(id);
+                    withTransition(() => settings.setSection("study"), "forward");
+                  }}
                 />
               )}
               {settings.section === "study" && (

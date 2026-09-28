@@ -8,11 +8,14 @@ import { whyItFailed } from "@/lib/complete";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   BookOpen, Download, Eye, Printer, GraduationCap, HelpCircle, Highlighter, Layers, Link2, ListTree,
-  MessageSquare, Paperclip, Pencil, Scissors, SpellCheck2, Tags, X, Plus, BookMarked, ChevronDown, FileText, Sparkles, Square, Volume2, FolderOpen } from "lucide-react";
+  MessageSquare, Paperclip, Pencil, Scissors, SpellCheck2, Tags, X, Plus, BookMarked, ChevronDown, FileText, Sparkles, Square, Volume2, FolderOpen, PanelsTopLeft } from "lucide-react";
 import { speakable } from "@/lib/voice";
 import { guessLang } from "@/lib/lang";
 import { openStudio } from "@/lib/studioBus";
 import { PageConnections, PageHead, Recorder, canRecord, useEditorAssist } from "@/components/notebook/PageParts";
+import dynamic from "next/dynamic";
+/* The notebook view — sources, chat, studio — loaded when one is opened. */
+const Sourcebook = dynamic(() => import("@/components/notebook/Sourcebook").then((m) => m.Sourcebook), { ssr: false });
 import { lastTranscript, toggleTask, type SlashItem } from "@/lib/notebook";
 import type { ToolId } from "@/lib/standards";
 import type { Note, Source } from "@/lib/types";
@@ -142,6 +145,8 @@ export function NotebookView({
   onToChat,
   onChatAbout,
   onOpenChat,
+  onOpenDeck,
+  onOpenPaper,
 }: {
   noteId: string | null;
   configured: Record<string, boolean>;
@@ -160,6 +165,9 @@ export function NotebookView({
   onChatAbout?: (noteId: string) => void;
   /** The chat a page came from, or one opened about it. */
   onOpenChat?: (conversationId: string) => void;
+  /** What a notebook's Studio made that is not a page. */
+  onOpenDeck?: (id: string) => void;
+  onOpenPaper?: (id: string) => void;
 }) {
   // No default value: `undefined` has to keep meaning "not back yet", or the
   // index cannot tell an empty library from an unanswered query.
@@ -929,6 +937,12 @@ export function NotebookView({
     onSelect(made.id);
   };
 
+  /* A notebook: a page opened as sources, chat and studio. */
+  const newNotebook = async () => {
+    const made = await createNote({ title: "Untitled notebook", view: "notebook" });
+    onSelect(made.id);
+  };
+
   const exportMarkdown = () => {
     if (!note) return;
     const blob = new Blob([draft], { type: "text/markdown" });
@@ -940,6 +954,20 @@ export function NotebookView({
     URL.revokeObjectURL(url);
   };
 
+  if (note && note.view === "notebook") {
+    return (
+      <Sourcebook
+        note={note}
+        sources={sources}
+        configured={configured}
+        onBack={onBack}
+        onOpenPage={onSelect}
+        onOpenDeck={onOpenDeck}
+        onOpenPaper={onOpenPaper}
+      />
+    );
+  }
+
   if (!note) {
     return (
       <>
@@ -948,11 +976,18 @@ export function NotebookView({
         title="Notebook"
         newLabel="New page"
         right={<RevisePicker configured={configured} />}
+        after={
+          <Button size="sm" variant="secondary" onClick={() => void newNotebook()} aria-label="New notebook">
+            <BookOpen size={14} />
+            <span className="hidden sm:inline">New notebook</span>
+          </Button>
+        }
         emptyTitle="Nothing written down yet."
         emptyHint="Pages are markdown: text you can send back to a model, export, and still read in a year."
         loading={notes === undefined}
         waysIn={[
           { label: "New page", icon: <Plus size={12} />, onPick: onNew },
+          { label: "New notebook", icon: <BookOpen size={12} />, onPick: () => void newNotebook() },
           ...(onToChat ? [{ label: "Keep an answer from a chat", icon: <MessageSquare size={12} />, onPick: onToChat }] : []),
         ]}
         /* The box that asks the pages is not shown until there are pages:
@@ -1053,7 +1088,10 @@ export function NotebookView({
             id: n.id,
             title: n.title || "Untitled note",
             /* The first heading is the title, so the preview starts after it. */
-            preview: plainLine(n.content.replace(/^\s*#[^\n]*\n?/, "")),
+            /* A notebook is described by what it holds, not by its page. */
+            preview: n.view === "notebook"
+              ? `Notebook${n.nb?.guide?.summary ? ` · ${plainLine(n.nb.guide.summary)}` : " · sources, chat and studio"}`
+              : plainLine(n.content.replace(/^\s*#[^\n]*\n?/, "")),
             meta: new Date(n.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
             pinned: n.pinned,
             searchText: n.content,
@@ -1088,6 +1126,10 @@ export function NotebookView({
         <Button size="sm" variant="ghost" onClick={() => setPreview((p) => !p)}>
           {preview ? <Pencil size={13} /> : <Eye size={13} />}
           {preview ? "Edit" : "Preview"}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => void db.notes.update(note.id, { view: "notebook" })} aria-label="Open as a notebook">
+          <PanelsTopLeft size={13} />
+          <span className="hidden sm:inline">Notebook</span>
         </Button>
         <ReadAloud text={draft} />
         <Button size="sm" variant="ghost" onClick={exportMarkdown} aria-label="Download as Markdown">
@@ -1169,7 +1211,7 @@ export function NotebookView({
               {/* Whether this is still an account of what it was made from.
                   Not a warning about the page being wrong — it may be fine —
                   but the one fact a reader cannot work out for themselves. */}
-              <PageHead note={note} draft={draft} onOpenChat={onOpenChat} onChatAbout={onChatAbout ? () => onChatAbout(note.id) : undefined} />
+              <PageHead note={note} draft={draft} onOpenChat={onOpenChat} onChatAbout={onChatAbout ? () => onChatAbout(note.id) : undefined} onOpenPage={onSelect} />
               {stale && (
                 <p className="mb-3 rounded-lg border border-line bg-inset px-3 py-2 text-xs text-warning">
                   {stale} since this page was made. What is on it still says what it said then.

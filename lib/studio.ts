@@ -189,6 +189,18 @@ export const TOOLS: Tool[] = [
     ].join("\n"),
   },
   {
+    id: "faq",
+    name: "FAQ",
+    blurb: "The questions a student would ask about it, answered from it",
+    kind: "page",
+    standard: STANDARDS.faq.standard,
+    instruction: [
+      "Write the questions a student meeting this source would actually ask, eight to fifteen of them, in the order the source raises them — including the ones about what is confusing or easily mixed up.",
+      "Each as a `### ` heading ending in a question mark, answered below it in two to five sentences from the source, with the evidence or example it gives.",
+      "Where the source does not answer a question a student would ask, include it and say so in one line.",
+    ].join("\n"),
+  },
+  {
     id: "summary",
     name: "Summary",
     blurb: "The shortest true account of it: the argument, the evidence, what it leaves out",

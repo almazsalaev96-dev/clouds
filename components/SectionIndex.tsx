@@ -49,6 +49,7 @@ export function SectionIndex({
   lead,
   waysIn,
   right,
+  after,
 }: {
   title: string;
   items: IndexItem[];
@@ -76,6 +77,8 @@ export function SectionIndex({
   waysIn?: { label: string; icon?: React.ReactNode; onPick: () => void }[];
   /** Beside the primary action: the room's model, where the room has one. */
   right?: React.ReactNode;
+  /** A second way to make something, after the main one. */
+  after?: React.ReactNode;
 }) {
   const [query, setQuery] = React.useState("");
   const toggle = React.useContext(RoomToggle);
@@ -124,6 +127,7 @@ export function SectionIndex({
               <Plus size={14} />
               {newLabel}
             </Button>
+            {after}
           </span>
         </div>
       </header>

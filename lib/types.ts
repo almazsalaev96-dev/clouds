@@ -563,6 +563,73 @@ export interface Note {
   citations?: Citation[];
   /** The project this page belongs to: its pages are the project's knowledge too. */
   projectId?: string;
+  /** The notebook this page was made in — a saved answer, a note, a Studio page. */
+  nbOf?: string;
+  /** Opened as a notebook (sources · chat · studio) rather than as a page. */
+  view?: "page" | "notebook";
+  /** The notebook's own state, when it is one. */
+  nb?: NotebookState;
+}
+
+/** One question and its grounded answer, in a notebook's chat. */
+export interface NotebookTurn {
+  id: string;
+  q: string;
+  body: string;
+  citations: Citation[];
+  at: number;
+  /** Kept as a note in the notebook. */
+  savedAs?: string;
+}
+
+/** What a notebook's sources are, taken together: written once, kept until they change. */
+export interface NotebookGuide {
+  title: string;
+  summary: string;
+  topics: string[];
+  questions: string[];
+  /** The sources it was written from. */
+  for: string[];
+  at: number;
+}
+
+export type AudioFormat = "deep" | "brief" | "critique" | "debate";
+export type AudioLength = "short" | "default" | "long";
+
+export interface AudioLine {
+  /** 0 and 1 are the two hosts; 2 is the listener, when they joined in. */
+  who: 0 | 1 | 2;
+  text: string;
+}
+
+export interface AudioOverview {
+  format: AudioFormat;
+  length: AudioLength;
+  focus: string;
+  lines: AudioLine[];
+  for: string[];
+  at: number;
+}
+
+/** Something the Studio made from a notebook, listed in it. */
+export interface NotebookMade {
+  kind: "page" | "deck" | "paper";
+  id: string;
+  label: string;
+  tool: string;
+  at: number;
+}
+
+export interface NotebookState {
+  chat?: NotebookTurn[];
+  guide?: NotebookGuide;
+  audio?: AudioOverview;
+  made?: NotebookMade[];
+  /** Sources left out of the chat and the Studio. */
+  off?: string[];
+  style?: "default" | "guide" | "custom";
+  custom?: string;
+  length?: "shorter" | "default" | "longer";
 }
 
 /**
@@ -622,6 +689,10 @@ export interface Source {
   /** Bytes of the original, for the list. */
   size: number;
   addedAt: number;
+  /** Where it came from, when that was a web page. */
+  url?: string;
+  /** A few lines on what it is and the topics in it, written the first time it is opened. */
+  guide?: { summary: string; topics: string[] };
 }
 
 /* ---------------------------------------------------------------- canvas -- */

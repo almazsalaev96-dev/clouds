@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import * as Popover from "@radix-ui/react-popover";
-import { Check, ChevronDown, FolderOpen, Link2, MessageSquare, Mic, Square, Sparkles } from "lucide-react";
+import { BookOpen, Check, ChevronDown, FolderOpen, Link2, MessageSquare, Mic, Square, Sparkles } from "lucide-react";
 import { db } from "@/lib/db";
 import type { Note } from "@/lib/types";
 import { chunk, rank } from "@/lib/retrieve";
@@ -21,12 +21,15 @@ import { cn } from "@/lib/utils";
  * page read in preview used to start at its first section heading, with
  * nothing saying which page it was.
  */
-export function PageHead({ note, draft, onOpenChat, onChatAbout }: {
+export function PageHead({ note, draft, onOpenChat, onChatAbout, onOpenPage }: {
   note: Note;
   draft: string;
   onOpenChat?: (conversationId: string) => void;
   onChatAbout?: () => void;
+  /** The notebook a note was made in. */
+  onOpenPage?: (id: string) => void;
 }) {
+  const book = useLiveQuery(() => (note.nbOf ? db.notes.get(note.nbOf) : undefined), [note.nbOf]);
   const projects = useLiveQuery(() => db.projects.toArray(), [], []);
   const from = useLiveQuery(() => (note.sourceConversationId ? db.conversations.get(note.sourceConversationId) : undefined), [note.sourceConversationId]);
   const project = (projects ?? []).find((p) => p.id === note.projectId);
@@ -79,6 +82,12 @@ export function PageHead({ note, draft, onOpenChat, onChatAbout }: {
           <button onClick={() => onOpenChat(from.id)} className="ctl-h [--ctl:1.75rem] focus-ring flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 text-secondary hover:border-line-strong hover:text-primary" aria-label={`From the chat ${from.title || "Untitled"}`}>
             <MessageSquare size={12} className="text-tertiary" aria-hidden />
             <span className="max-w-48 truncate">From “{from.title || "a chat"}”</span>
+          </button>
+        )}
+        {book && onOpenPage && (
+          <button onClick={() => onOpenPage(book.id)} className="ctl-h [--ctl:1.75rem] focus-ring flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 text-secondary hover:border-line-strong hover:text-primary" aria-label={`In the notebook ${book.title || "Untitled notebook"}`}>
+            <BookOpen size={12} className="text-tertiary" aria-hidden />
+            <span className="max-w-48 truncate">In “{book.title || "Untitled notebook"}”</span>
           </button>
         )}
         {tasks.total > 0 && (

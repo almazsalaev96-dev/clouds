@@ -11,7 +11,7 @@
 export type ToolId =
   | "notes" | "guide" | "organiser" | "cornell" | "flashcards" | "quiz" | "paper" | "questions"
   | "mindmap" | "glossary" | "timeline" | "summary" | "worked" | "essay" | "model"
-  | "lesson" | "plan" | "listen" | "checker";
+  | "lesson" | "plan" | "listen" | "checker" | "faq";
 
 /**
  * The rules study material is written under, in brief, for a chat answer
@@ -121,6 +121,15 @@ export const STANDARDS: Record<ToolId, { name: string; standard: string[] }> = {
     "Only dates the source gives or that are certain",
   ],
   },
+  faq: {
+    name: "FAQ",
+    standard: [
+    "Eight to fifteen questions a student would really ask, in the source's order",
+    "Each answered in two to five sentences from the source, with its evidence",
+    "Includes the questions about what is confusing or easily mixed up",
+    "Says when the source does not answer a question rather than guessing",
+  ],
+  },
   summary: {
     name: "Summary",
     standard: [
@@ -226,6 +235,7 @@ export function toolForAsk(ask: string): { id: ToolId; name: string; standard: s
     [/\bexam questions?\b|\bpractice questions?\b|\bpast[- ]paper style\b/, "questions"],
     [/\blesson\b/, "lesson"],
     [/\bsummar(?:y|ise|ize)\b|\bbriefing\b/, "summary"],
+    [/\bfaqs?\b|\bfrequently asked\b/, "faq"],
   ];
   for (const [re, id] of pairs) if (re.test(t)) return { id, ...STANDARDS[id] };
   return null;

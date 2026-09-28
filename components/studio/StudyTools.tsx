@@ -3,13 +3,13 @@
 import * as React from "react";
 import {
   BookOpen, CalendarDays, ClipboardCheck, FileText, GitBranch, GraduationCap, Headphones, Highlighter,
-  Layers, ListChecks, NotebookTabs, PenLine, Presentation, Rows3, ScrollText, Sigma, Sparkles, Tags, Trophy,
+  Layers, ListChecks, MessageCircleQuestion, NotebookTabs, PenLine, Presentation, Rows3, ScrollText, Sigma, Sparkles, Tags, Trophy,
 } from "lucide-react";
 import { TOOLS, type ToolId } from "@/lib/studio";
 import { openStudio } from "@/lib/studioBus";
 import { Button } from "@/components/ui/primitives";
 
-const ICONS: Record<ToolId, React.ReactNode> = {
+export const ICONS: Record<ToolId, React.ReactNode> = {
   notes: <Highlighter size={16} />,
   guide: <BookOpen size={16} />,
   organiser: <Rows3 size={16} />,
@@ -29,6 +29,7 @@ const ICONS: Record<ToolId, React.ReactNode> = {
   plan: <CalendarDays size={16} />,
   listen: <Headphones size={16} />,
   checker: <ClipboardCheck size={16} />,
+  faq: <MessageCircleQuestion size={16} />,
 };
 
 /**

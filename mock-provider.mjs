@@ -838,6 +838,24 @@ It also reports a figure of nine hundred percent [[cite: ${name} | the result wa
   const studioScheme = /^Write the mark scheme for this exam question/.test(asked);
   const STUDIO_SCHEME = JSON.stringify({ scheme: ["Particles have more kinetic energy", "so they move faster", "so more particles cross per second"], model: "More kinetic energy, so faster, so more cross per second.", tip: "Link speed to rate." });
 
+  /* A notebook of sources (lib/sourcebook.ts): its guide, a source's guide,
+     an audio overview in two voices, and the hosts answering a listener. */
+  const nbGuiding = /^Read these sources and describe them as a notebook guide/.test(asked);
+  const NB_GUIDE = JSON.stringify({ title: "Osmosis and water potential", summary: "These sources explain **osmosis** as the movement of water across a partially permeable membrane, and how **water potential** decides which way it goes.", topics: ["Osmosis", "Water potential", "Turgid and flaccid cells"], questions: ["What is osmosis?", "Why is pure water zero kPa?", "What happens to a plant cell in pure water?"] });
+  const nbSourceGuiding = /^Read this source and write its guide/.test(asked);
+  const NB_SOURCE_GUIDE = JSON.stringify({ summary: "A textbook section on **osmosis** and **water potential**.", topics: ["Osmosis", "Water potential"] });
+  const nbAudio = /^Write an audio overview of these sources/.test(asked);
+  const NB_AUDIO = `Maya: Today we are looking at a short textbook section on osmosis.
+Theo: So what actually is osmosis?
+Maya: It is the movement of water across a partially permeable membrane, from higher water potential to lower.
+Theo: And pure water sits at the top of that scale?
+Maya: Right, pure water has a water potential of zero, the highest there is.
+Theo: The three things to remember: water moves, the membrane is partially permeable, and it goes down the water potential gradient.${/WHAT THE LISTENER ASKED THE HOSTS TO FOCUS ON/.test(asked) ? "\nMaya: And as you asked, we kept it to the exam essentials." : ""}`;
+  const nbJoin = /^Two hosts are recording an audio overview and a listener has just asked/.test(asked);
+  const NB_JOIN = `Theo: Good question from our listener.
+Maya: A plant cell in pure water takes in water and becomes turgid.
+Theo: Back to where we were.`;
+
   const checking = /^A change was just made to this/.test(asked);
   const CHECK = `It does what was asked: the concat is gone and the loop pushes instead.
 
@@ -848,7 +866,7 @@ Nothing here looks like it breaks a caller — the return type is the same array
   /* Every call, in order, so a test can prove that one turn was two models:
      a brief to one company and the answer to another, in that order. `__last`
      alone can only ever show whichever was most recent. */
-  const callKind = isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : scouting ? "scout" : deepPlanning ? "plan" : studying ? "study" : studioReading ? "reading" : studioChecking ? "studio-check" : studioFixing ? "studio-fix" : studioTopic ? "studio-topic" : studioPaper ? "studio-paper" : studioQuiz ? "studio-quiz" : studioScheme ? "scheme" : coursing ? "course" : courseNoting ? "course-notes" : questioning ? "question" : examMarking ? "exam-mark" : papering ? "paper" : craftJudging ? "judge" : blueprinting ? "blueprint" : planJudging ? "plan-judge" : mending ? "mend" : "answer";
+  const callKind = isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : scouting ? "scout" : deepPlanning ? "plan" : studying ? "study" : studioReading ? "reading" : studioChecking ? "studio-check" : studioFixing ? "studio-fix" : studioTopic ? "studio-topic" : studioPaper ? "studio-paper" : studioQuiz ? "studio-quiz" : studioScheme ? "scheme" : nbGuiding ? "nb-guide" : nbSourceGuiding ? "nb-source" : nbAudio ? "nb-audio" : nbJoin ? "nb-join" : coursing ? "course" : courseNoting ? "course-notes" : questioning ? "question" : examMarking ? "exam-mark" : papering ? "paper" : craftJudging ? "judge" : blueprinting ? "blueprint" : planJudging ? "plan-judge" : mending ? "mend" : "answer";
   if (slow[callKind]) await new Promise((r) => setTimeout(r, slow[callKind]));
   lastByKind[callKind] = lastSeen;
   recent.push({
@@ -896,6 +914,14 @@ Nothing here looks like it breaks a caller — the return type is the same array
 
   let text = isTitle
     ? "Debouncing a search input"
+    : nbGuiding
+    ? NB_GUIDE
+    : nbSourceGuiding
+    ? NB_SOURCE_GUIDE
+    : nbAudio
+    ? NB_AUDIO
+    : nbJoin
+    ? NB_JOIN
     : studioReading
     ? STUDIO_READING
     : studioChecking
