@@ -8,7 +8,11 @@ import { whyItFailed } from "@/lib/complete";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   BookOpen, Download, Eye, Printer, GraduationCap, HelpCircle, Highlighter, Layers, Link2, ListTree,
-  MessageSquare, Paperclip, Pencil, Scissors, SpellCheck2, Tags, X, Plus, BookMarked, ChevronDown, FileText } from "lucide-react";
+  MessageSquare, Paperclip, Pencil, Scissors, SpellCheck2, Tags, X, Plus, BookMarked, ChevronDown, FileText, Sparkles, Square, Volume2 } from "lucide-react";
+import { speakable } from "@/lib/voice";
+import { guessLang } from "@/lib/lang";
+import { openStudio } from "@/lib/studioBus";
+import type { ToolId } from "@/lib/standards";
 import type { Note, Source } from "@/lib/types";
 import { addCards, addSource, createDeck, createNote, db, deleteNote, deriveTitle, removeSource, sourcesOf } from "@/lib/db";
 import { backlinksTo, outlineOf, readLink, readingTime, tagsIn, withLinks } from "@/lib/links";
@@ -590,6 +594,17 @@ export function NotebookView({
   /** Set by the Study room's "Make a revision pack": the next source makes one. */
   const packOnAttach = React.useRef(false);
 
+  /* A book just added: the page asks what to make from it, rather than
+     leaving a file in a list for the student to work out what to do with. */
+  const [added, setAdded] = React.useState<string | null>(null);
+  React.useEffect(() => { setAdded(null); }, [noteId]);
+  const studioFrom = (tool?: ToolId) => {
+    const text = sources.length ? sources.map((x) => (sources.length > 1 ? `--- ${x.name} ---\n${x.text}` : x.text)).join("\n\n") : note?.content ?? "";
+    const name = sources.length ? sourceName(sources) : note?.title || "This page";
+    setAdded(null);
+    openStudio({ source: { name, text }, tool });
+  };
+
   const attach = async (file: File) => {
     if (!noteId) return;
     setReading(true);
@@ -602,6 +617,7 @@ export function NotebookView({
           return;
         }
         await addSource(noteId, { name: file.name, text: got.text, pages: got.pages, size: file.size });
+        if (!packOnAttach.current) setAdded(file.name);
       } else {
         const text = await file.text();
         if (!text.trim()) {
@@ -609,6 +625,7 @@ export function NotebookView({
           return;
         }
         await addSource(noteId, { name: file.name, text, size: file.size });
+        if (!packOnAttach.current) setAdded(file.name);
       }
     } catch {
       setNotice(`Could not read ${file.name}.`);
@@ -1015,6 +1032,7 @@ export function NotebookView({
           {preview ? <Pencil size={13} /> : <Eye size={13} />}
           {preview ? "Edit" : "Preview"}
         </Button>
+        <ReadAloud text={draft} />
         <Button size="sm" variant="ghost" onClick={exportMarkdown} aria-label="Download as Markdown">
           <Download size={13} />
         </Button>
@@ -1232,6 +1250,23 @@ export function NotebookView({
               {notice && (
                 <p className="mb-2 rounded-lg bg-subtle px-3 py-1.5 text-xs text-secondary">{notice}</p>
               )}
+              {added && sources.length > 0 && !busy && (
+                <div role="group" aria-label="What to make from it" className="mb-2 rounded-xl border border-line bg-surface px-3 py-2.5">
+                  <div className="flex items-start gap-2">
+                    <Sparkles size={14} className="mt-0.5 shrink-0 text-accent" aria-hidden />
+                    <p className="min-w-0 flex-1 text-sm text-secondary">
+                      <span className="text-primary">{added}</span> is here. What should I make from it? I will read it first, then write each thing to a standard and check it.
+                    </p>
+                    <button onClick={() => setAdded(null)} aria-label="Not now" className="ctl focus-inset flex [--ctl:1.5rem] items-center justify-center rounded-md text-tertiary hover:bg-subtle"><X size={13} /></button>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5 pl-6">
+                    {([["notes", "Revision notes"], ["flashcards", "Flashcards"], ["paper", "Exam paper"], ["mindmap", "Mind map"]] as const).map(([id, label]) => (
+                      <button key={id} onClick={() => studioFrom(id)} className="btn-touch press focus-inset rounded-full border border-line bg-canvas px-3 text-xs text-secondary hover:border-line-strong hover:text-primary">{label}</button>
+                    ))}
+                    <button onClick={() => studioFrom()} className="btn-touch press focus-inset rounded-full border border-line bg-canvas px-3 text-xs text-primary hover:border-line-strong">Choose what to make…</button>
+                  </div>
+                </div>
+              )}
               <MessageBar
                 value={instruction}
                 onChange={setInstruction}
@@ -1277,6 +1312,9 @@ export function NotebookView({
                         <NoteChip busy={busy} icon={<BookMarked size={12} />} onClick={() => void runPack()}>
                           Revision pack
                         </NoteChip>
+                        <NoteChip busy={busy} icon={<Sparkles size={12} />} onClick={() => studioFrom()}>
+                          Make from this
+                        </NoteChip>
                         <NoteMenu
                           busy={busy}
                           label="More ways to use this"
@@ -1295,6 +1333,11 @@ export function NotebookView({
                         <NoteChip busy={busy} icon={<Scissors size={12} />} onClick={() => void run("Tighten this. Cut every word that is not doing work, and keep every fact.", "Tighten")}>
                           Tighten
                         </NoteChip>
+                        {(note?.content.trim().length ?? 0) > 200 && (
+                          <NoteChip busy={busy} icon={<Sparkles size={12} />} onClick={() => studioFrom()}>
+                            Make from this
+                          </NoteChip>
+                        )}
                         <NoteMenu
                           busy={busy}
                           label="More ways to edit this"
@@ -1562,3 +1605,30 @@ function NoteChip({
   );
 }
 
+/**
+ * The page, read aloud: for a Studio *Listen* page, which is written for
+ * the ear, and for any page a student would rather hear on the bus. The
+ * browser's own voice, in the language the page is written in.
+ */
+function ReadAloud({ text }: { text: string }) {
+  const [speaking, setSpeaking] = React.useState(false);
+  React.useEffect(() => () => { if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel(); }, []);
+  if (typeof window === "undefined" || typeof speechSynthesis === "undefined" || text.trim().length < 40) return null;
+  const toggle = () => {
+    if (speaking) { speechSynthesis.cancel(); setSpeaking(false); return; }
+    const words = speakable(text);
+    const utter = new SpeechSynthesisUtterance(words);
+    const lang = guessLang(words);
+    if (lang) utter.lang = lang;
+    utter.onend = () => setSpeaking(false);
+    utter.onerror = () => setSpeaking(false);
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utter);
+    setSpeaking(true);
+  };
+  return (
+    <Button size="sm" variant="ghost" onClick={toggle} aria-label={speaking ? "Stop reading aloud" : "Read aloud"} aria-pressed={speaking}>
+      {speaking ? <Square size={12} /> : <Volume2 size={13} />}
+    </Button>
+  );
+}

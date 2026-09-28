@@ -813,6 +813,31 @@ It also reports a figure of nine hundred percent [[cite: ${name} | the result wa
     { topicId: paperIds[2] ?? paperIds[0] ?? "u1t1", question: "Describe the lock and key model of enzyme action. [3]", marks: 3, scheme: ["substrate fits the active site", "shapes are complementary", "products are released"], model: "The substrate fits the complementary active site; the reaction happens; the products are released.", tip: "Use 'complementary'." },
   ] });
 
+  /* The Studio (lib/studio.ts): reading a source, a page written from a
+     topic, the check against the standard and the rewrite, a paper, a quiz,
+     and a mark scheme for the answer checker. The check finds the first
+     version short so the rewrite runs and can be seen. */
+  const studioReading = /^A student has given you this to study from\./.test(asked);
+  const STUDIO_READING = JSON.stringify({ title: "Osmosis", subject: "Biology", level: "GCSE", kind: "textbook", topics: ["Osmosis", "Water potential", "Hypotonic and hypertonic solutions"], recommend: ["notes", "flashcards", "paper"], about: "A textbook section on osmosis and water potential, written for GCSE Biology." });
+  const studioChecking = /^Check this .+ against its standard and the source/.test(asked);
+  const STUDIO_CHECK = JSON.stringify(/\[fixed\]/.test(asked) ? { verdict: "meets", missing: [], fix: "" } : { verdict: "short", missing: ["No worked example"], fix: "Add a worked example with every step." });
+  const studioFixing = /A FIRST VERSION was written and checked\. It fell short:/.test(asked);
+  const STUDIO_FIXED = "## Key points\n\n1. **Osmosis** is the diffusion of water across a partially permeable membrane.\n\n## Worked example\n\nA cell in pure water gains water, because its water potential is lower. [fixed]\n\n## Test yourself\n\n1. What is osmosis?\n\n## Answers\n\n1. The diffusion of water across a partially permeable membrane.";
+  const studioTopic = /^You are making study material for a student\./.test(asked) && /\nTHE TOPIC: /.test(asked) && !studioFixing;
+  const STUDIO_TOPIC = "Written from general knowledge of the topic, at GCSE level.\n\n## Key points\n\n1. **Photosynthesis** makes glucose from carbon dioxide and water using light.\n\n## Test yourself\n\n1. What does photosynthesis make?";
+  const studioPaper = /THE TASK: an exam paper on the source/.test(asked);
+  const STUDIO_PAPER = JSON.stringify({ questions: [
+    { topic: "Osmosis", question: "Define osmosis. [2]", marks: 2, scheme: ["diffusion/movement of water", "across a partially permeable membrane"], model: "The diffusion of water across a partially permeable membrane.", tip: "Say partially permeable." },
+    { topic: "Water potential", question: "Explain why the rate of diffusion increases with temperature. [3]", marks: 3, scheme: ["more kinetic energy", "move faster", "more cross per second"], model: "More kinetic energy, so faster, so more cross per second.", tip: "Link to rate." },
+  ] });
+  const studioQuiz = /THE TASK: a multiple-choice quiz/.test(asked);
+  const STUDIO_QUIZ = JSON.stringify({ questions: [
+    { topic: "Osmosis", question: "What moves in osmosis?", options: ["Water", "Glucose", "Salt", "Oxygen"], answer: 0, why: ["Right: osmosis is the movement of water.", "Glucose moves by diffusion or active transport.", "Salt ions are solutes, not the solvent.", "Oxygen diffuses; it is not osmosis."] },
+    { topic: "Water potential", question: "What is the water potential of pure water?", options: ["-10 kPa", "0 kPa", "100 kPa", "It depends on the cell"], answer: 1, why: ["Negative values are for solutions.", "Right: pure water is 0 kPa, the highest there is.", "Water potential of pure water is not positive.", "It is fixed at zero."] },
+  ] });
+  const studioScheme = /^Write the mark scheme for this exam question/.test(asked);
+  const STUDIO_SCHEME = JSON.stringify({ scheme: ["Particles have more kinetic energy", "so they move faster", "so more particles cross per second"], model: "More kinetic energy, so faster, so more cross per second.", tip: "Link speed to rate." });
+
   const checking = /^A change was just made to this/.test(asked);
   const CHECK = `It does what was asked: the concat is gone and the loop pushes instead.
 
@@ -823,7 +848,7 @@ Nothing here looks like it breaks a caller — the return type is the same array
   /* Every call, in order, so a test can prove that one turn was two models:
      a brief to one company and the answer to another, in that order. `__last`
      alone can only ever show whichever was most recent. */
-  const callKind = isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : scouting ? "scout" : deepPlanning ? "plan" : studying ? "study" : coursing ? "course" : courseNoting ? "course-notes" : questioning ? "question" : examMarking ? "exam-mark" : papering ? "paper" : craftJudging ? "judge" : blueprinting ? "blueprint" : planJudging ? "plan-judge" : mending ? "mend" : "answer";
+  const callKind = isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : scouting ? "scout" : deepPlanning ? "plan" : studying ? "study" : studioReading ? "reading" : studioChecking ? "studio-check" : studioFixing ? "studio-fix" : studioTopic ? "studio-topic" : studioPaper ? "studio-paper" : studioQuiz ? "studio-quiz" : studioScheme ? "scheme" : coursing ? "course" : courseNoting ? "course-notes" : questioning ? "question" : examMarking ? "exam-mark" : papering ? "paper" : craftJudging ? "judge" : blueprinting ? "blueprint" : planJudging ? "plan-judge" : mending ? "mend" : "answer";
   if (slow[callKind]) await new Promise((r) => setTimeout(r, slow[callKind]));
   lastByKind[callKind] = lastSeen;
   recent.push({
@@ -871,6 +896,20 @@ Nothing here looks like it breaks a caller — the return type is the same array
 
   let text = isTitle
     ? "Debouncing a search input"
+    : studioReading
+    ? STUDIO_READING
+    : studioChecking
+    ? STUDIO_CHECK
+    : studioFixing
+    ? (/THE FIRST VERSION\n[\s\S]*Written from general knowledge/.test(asked) ? "Written from general knowledge of the topic, at GCSE level.\n\n" : "") + STUDIO_FIXED
+    : studioTopic
+    ? STUDIO_TOPIC
+    : studioPaper
+    ? STUDIO_PAPER
+    : studioQuiz
+    ? STUDIO_QUIZ
+    : studioScheme
+    ? STUDIO_SCHEME
     : coursing
     ? COURSE
     : courseNoting

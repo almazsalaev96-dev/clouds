@@ -689,8 +689,8 @@ async function deckFor(course: Course): Promise<string> {
 
 /* --------------------------------------------------------- questions -- */
 
-async function markAnswer(
-  course: Course,
+export async function markAnswer(
+  course: Pick<Course, "subject" | "level" | "board">,
   q: ExamQuestion,
   answer: string,
   modelId: string,
@@ -948,7 +948,7 @@ function Scheme({ q }: { q: Pick<ExamQuestion, "scheme" | "model" | "tip"> }) {
   );
 }
 
-function Result({ q, result, answer, busy, onSimilar, onHarder, onRetry, onCards, onAsk }: {
+export function Result({ q, result, answer, busy, onSimilar, onHarder, onRetry, onCards, onAsk }: {
   q: ExamQuestion;
   result: Marking & { marks?: number };
   answer: string;
@@ -1012,10 +1012,18 @@ export function MockExam({ mockId, configured, onBack, onOpenTopic }: {
   mockId: string;
   configured: Record<string, boolean>;
   onBack: () => void;
-  onOpenTopic: (topicId: string) => void;
+  onOpenTopic?: (topicId: string) => void;
 }) {
   const mock = useLiveQuery(() => db.mocks.get(mockId), [mockId]);
-  const course = useLiveQuery(() => (mock ? db.courses.get(mock.courseId) : undefined), [mock?.courseId]);
+  /* null: this paper belongs to no course. undefined: still loading. */
+  const course = useLiveQuery(
+    async (): Promise<Course | null | undefined> => {
+      if (!mock) return undefined;
+      if (!mock.courseId) return null;
+      return (await db.courses.get(mock.courseId)) ?? null;
+    },
+    [mock?.courseId, Boolean(mock)],
+  );
   const rows = useLiveQuery(() => db.marks.where("mockId").equals(mockId).toArray(), [mockId], [] as MarkRow[]);
   const modelId = useModel(configured);
   const [answers, setAnswers] = React.useState<string[] | null>(null);
@@ -1024,6 +1032,10 @@ export function MockExam({ mockId, configured, onBack, onOpenTopic }: {
   const [clock, setClock] = React.useState(Date.now());
 
   React.useEffect(() => { if (mock && !answers) setAnswers(mock.answers ?? mock.questions.map(() => "")); }, [mock, answers]);
+  /* The clock starts when the paper is first opened, not when it was written. */
+  React.useEffect(() => {
+    if (mock && !mock.startedAt && !mock.finishedAt && mock.kind !== "quiz") void db.mocks.update(mockId, { startedAt: Date.now() });
+  }, [mock, mockId]);
   React.useEffect(() => {
     if (!mock || mock.finishedAt) return;
     const t = window.setInterval(() => setClock(Date.now()), 1000);
@@ -1041,34 +1053,58 @@ export function MockExam({ mockId, configured, onBack, onOpenTopic }: {
     });
   };
 
-  if (!mock || !course || !answers) return <div className="flex-1" />;
+  if (!mock || course === undefined || !answers) return <div className="flex-1" />;
+  const about = course ?? { subject: mock.about?.subject || mock.title || "", level: mock.about?.level ?? "", board: mock.about?.board ?? "" };
+  const heading = course?.name ?? mock.title ?? "Paper";
+  const quiz = mock.kind === "quiz" || mock.questions.every((q) => q.options?.length);
+  const topicOf = (q: ExamQuestion) => (course ? findTopic(course, q.topicId)?.title : undefined) ?? q.topic ?? "";
+  const keyOf = (q: ExamQuestion) => q.topicId || `t:${q.topic ?? ""}`;
   const out = mock.questions.reduce((s, q) => s + q.marks, 0);
   const left = mock.startedAt ? mock.startedAt + mock.minutes * 60_000 - clock : mock.minutes * 60_000;
   const mm = Math.max(0, Math.floor(left / 60_000));
   const ss = Math.max(0, Math.floor((left % 60_000) / 1000));
+  const letter = (i: number) => String.fromCharCode(65 + i);
+
+  /* Multiple choice is marked here: there is one right option and the
+     reasons for every option are already written. */
+  const choiceMark = (q: ExamQuestion, ans: string): Marking => {
+    const chosen = ans === "" ? -1 : Number(ans);
+    const right = q.answer ?? 0;
+    const ok = chosen === right;
+    return {
+      got: ok ? 1 : 0,
+      out: 1,
+      points: [{ point: `${letter(right)}. ${q.options?.[right] ?? ""}`, got: ok, why: q.why?.[right] ?? "" }],
+      feedback: chosen < 0 ? "Not answered." : ok ? (q.why?.[right] ?? "Right.") : `You chose ${letter(chosen)}: ${q.why?.[chosen] ?? "not the best answer."}`,
+      better: "",
+    };
+  };
 
   const finish = async () => {
-    if (progress || !modelId) return;
+    if (progress) return;
+    const needsModel = mock.questions.some((q, i) => !q.options?.length && (answers[i] ?? "").trim());
+    if (needsModel && !modelId) { setNotice("No key configured yet — add one in Settings."); return; }
     setNotice(null);
     await db.mocks.update(mockId, { answers });
     let got = 0;
     const done: MarkRow[] = [];
     for (let i = 0; i < mock.questions.length; i += 1) {
       const q = mock.questions[i];
-      setProgress(`Marking question ${i + 1} of ${mock.questions.length}…`);
       const ans = answers[i] ?? "";
       let m: Marking | null = null;
-      if (!ans.trim()) m = { got: 0, out: q.marks, points: q.scheme.map((p) => ({ point: p, got: false, why: "Not answered" })), feedback: "Not answered.", better: q.model };
+      if (q.options?.length) m = choiceMark(q, ans);
+      else if (!ans.trim()) m = { got: 0, out: q.marks, points: q.scheme.map((p) => ({ point: p, got: false, why: "Not answered" })), feedback: "Not answered.", better: q.model };
       else {
-        try { m = await markAnswer(course, q, ans, modelId); } catch (err) { setNotice(whyItFailed(err, "A question could not be marked.")); }
-        if (!m) m = await markAnswer(course, q, ans, modelId).catch(() => null);
+        setProgress(`Marking question ${i + 1} of ${mock.questions.length}…`);
+        try { m = await markAnswer(about, q, ans, modelId!); } catch (err) { setNotice(whyItFailed(err, "A question could not be marked.")); }
+        if (!m) m = await markAnswer(about, q, ans, modelId!).catch(() => null);
       }
       if (!m) { setProgress(null); setNotice(`Question ${i + 1} could not be marked. Press Finish again to carry on.`); return; }
       got += m.got;
-      const t = findTopic(course, q.topicId);
       done.push({
-        id: uid(), at: Date.now(), courseId: course.id, topicId: q.topicId, topic: t?.title ?? "",
-        question: q.question, marks: q.marks, got: m.got, difficulty: "exam", answer: ans || "(not answered)",
+        id: uid(), at: Date.now(), courseId: mock.courseId, topicId: keyOf(q), topic: topicOf(q),
+        question: q.question, marks: q.marks, got: m.got, difficulty: "exam",
+        answer: q.options?.length ? (ans === "" ? "(not answered)" : `${letter(Number(ans))}. ${q.options[Number(ans)] ?? ""}`) : ans || "(not answered)",
         points: m.points, feedback: m.feedback, better: m.better, model: q.model, tip: q.tip, mockId,
       });
     }
@@ -1081,9 +1117,9 @@ export function MockExam({ mockId, configured, onBack, onOpenTopic }: {
   };
 
   const finished = Boolean(mock.finishedAt);
-  const byTopic = new Map<string, { got: number; out: number }>();
+  const byTopic = new Map<string, { label: string; got: number; out: number }>();
   for (const r of rows) {
-    const t = byTopic.get(r.topicId) ?? { got: 0, out: 0 };
+    const t = byTopic.get(r.topicId) ?? { label: r.topic || "Other", got: 0, out: 0 };
     t.got += r.got;
     t.out += r.marks;
     byTopic.set(r.topicId, t);
@@ -1091,8 +1127,8 @@ export function MockExam({ mockId, configured, onBack, onOpenTopic }: {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <PanelHeader onBack={onBack} backLabel={`Back to ${course.subject}`} configured={configured}>
-        {!finished && (
+      <PanelHeader onBack={onBack} backLabel={course ? `Back to ${course.subject}` : "Back"} configured={configured}>
+        {!finished && !quiz && (
           <span className={cn("tnum flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-xs", left < 0 ? "text-danger" : left < 5 * 60_000 ? "text-warning" : "text-secondary")} role="timer" aria-label="Time left">
             <Clock size={12} /> {left < 0 ? "Time is up" : `${mm}:${String(ss).padStart(2, "0")}`}
           </span>
@@ -1104,9 +1140,11 @@ export function MockExam({ mockId, configured, onBack, onOpenTopic }: {
         )}
       </PanelHeader>
       <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-5">
-        <p className="text-xs text-tertiary">{course.name}</p>
-        <h1 className="title-field mt-1 text-primary">{mock.minutes}-minute paper</h1>
-        <p className="mt-1 text-sm text-tertiary tnum">{mock.questions.length} questions · {out} marks · answer every question</p>
+        <p className="text-xs text-tertiary">{course ? course.name : [mock.about?.subject, mock.about?.level, mock.about?.board].filter(Boolean).join(" · ") || "Studio"}</p>
+        <h1 className="title-field mt-1 text-primary">{course ? `${mock.minutes}-minute paper` : heading}</h1>
+        <p className="mt-1 text-sm text-tertiary tnum">
+          {mock.questions.length} questions · {out} marks{quiz ? " · pick one answer each" : ` · ${mock.minutes} minutes · answer every question`}
+        </p>
         {progress && <p role="status" className="mt-3 text-sm text-secondary">{progress}</p>}
         {notice && <p role="status" className="mt-3 text-sm text-warning">{notice}</p>}
 
@@ -1116,42 +1154,67 @@ export function MockExam({ mockId, configured, onBack, onOpenTopic }: {
               <span className="tnum text-[2.5rem] font-medium leading-none text-primary">{mock.got}<span className="text-tertiary">/{mock.out}</span></span>
               <span className="mb-1 text-sm font-medium text-primary">{Math.round(((mock.got ?? 0) / mock.out) * 100)}% of the marks</span>
             </div>
-            <ul className="mt-3 space-y-1.5" aria-label="By topic">
-              {[...byTopic.entries()].sort((a, b) => a[1].got / a[1].out - b[1].got / b[1].out).map(([tid, t]) => {
-                const topic = findTopic(course, tid);
-                return (
+            {byTopic.size > 1 && (
+              <ul className="mt-3 space-y-1.5" aria-label="By topic">
+                {[...byTopic.entries()].sort((a, b) => a[1].got / a[1].out - b[1].got / b[1].out).map(([tid, t]) => (
                   <li key={tid} className="flex items-center gap-3 text-sm">
-                    <span className="min-w-0 flex-1 truncate text-secondary">{topic?.title ?? tid}</span>
+                    <span className="min-w-0 flex-1 truncate text-secondary">{t.label}</span>
                     <span className="w-24"><Meter value={t.out ? t.got / t.out : 0} /></span>
                     <span className="tnum w-12 text-right text-xs text-tertiary">{t.got}/{t.out}</span>
-                    <Button size="sm" variant="ghost" onClick={() => onOpenTopic(tid)} aria-label={`Practise ${topic?.title ?? tid}`}>Practise</Button>
+                    {course && onOpenTopic && <Button size="sm" variant="ghost" onClick={() => onOpenTopic(tid)} aria-label={`Practise ${t.label}`}>Practise</Button>}
                   </li>
-                );
-              })}
-            </ul>
+                ))}
+              </ul>
+            )}
           </section>
         ) : null}
 
         <ol className="mt-6 space-y-5" aria-label="Questions">
           {mock.questions.map((q, i) => {
             const r = rows.find((x) => x.question === q.question);
+            const chosen = answers[i] ?? "";
             return (
               <li key={i} className="rounded-xl border border-line bg-surface px-4 py-4">
                 <div className="flex items-center gap-2 text-xs text-tertiary">
                   <span className="font-medium text-secondary">Question {i + 1}</span>
-                  <span>· {findTopic(course, q.topicId)?.title}</span>
+                  {topicOf(q) && <span>· {topicOf(q)}</span>}
                   <span className="flex-1" />
                   <span className="tnum">{r ? `${r.got}/${q.marks}` : `${q.marks} mark${q.marks === 1 ? "" : "s"}`}</span>
                 </div>
                 <div className="mt-2 text-[0.95rem] leading-relaxed text-primary"><Markdown content={q.question} /></div>
-                {finished ? (
+                {q.options?.length ? (
+                  <div className="mt-3 space-y-1.5" role="radiogroup" aria-label={`Options for question ${i + 1}`}>
+                    {q.options.map((o, j) => {
+                      const picked = chosen !== "" && Number(chosen) === j;
+                      const right = finished && q.answer === j;
+                      const wrong = finished && picked && q.answer !== j;
+                      return (
+                        <button
+                          key={j}
+                          role="radio"
+                          aria-checked={picked}
+                          disabled={finished}
+                          onClick={() => setAnswer(i, String(j))}
+                          className={cn("focus-ring flex w-full items-start gap-2.5 rounded-lg border px-3 py-2 text-left text-sm transition-colors",
+                            right ? "border-[var(--success)] bg-[var(--success)]/10" : wrong ? "border-[var(--danger)] bg-[var(--danger)]/10" : picked ? "border-[var(--text-primary)]" : "border-line hover:bg-subtle")}
+                        >
+                          <span className="tnum w-4 shrink-0 font-medium text-secondary">{letter(j)}</span>
+                          <span className="min-w-0 flex-1 text-primary">
+                            {o}
+                            {finished && (right || wrong) && q.why?.[j] && <span className="mt-0.5 block text-xs text-tertiary">{q.why[j]}</span>}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : finished ? (
                   <>
                     <p className="mt-3 whitespace-pre-wrap rounded-lg bg-subtle px-3 py-2 text-sm text-secondary">{answers[i] || "(not answered)"}</p>
                     {r && <Result q={q} result={{ got: r.got, out: r.marks, points: r.points, feedback: r.feedback, better: r.better }} answer={r.answer} busy={null} />}
                   </>
                 ) : (
                   <textarea
-                    value={answers[i] ?? ""}
+                    value={chosen}
                     onChange={(e) => setAnswer(i, e.target.value)}
                     rows={Math.min(14, Math.max(3, q.marks + 1))}
                     aria-label={`Answer to question ${i + 1}`}

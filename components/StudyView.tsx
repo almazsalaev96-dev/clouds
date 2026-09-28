@@ -4,7 +4,7 @@ import { LESSON } from "@/lib/revision";
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  ArrowLeftRight, BookOpen, ChevronLeft, FileText, Flame, Gauge, Keyboard, Lightbulb, MessageSquare, Pencil, Trash2, BookMarked } from "lucide-react";
+  ArrowLeftRight, BookOpen, ChevronLeft, FileText, Flame, Gauge, Keyboard, Lightbulb, MessageSquare, Pencil, Trash2, BookMarked, Sparkles, ClipboardCheck } from "lucide-react";
 import { mark, type Mark } from "@/lib/grade";
 import { recallRate, todaysPlan, weakestDeck, weeksOf } from "@/lib/plan";
 import { Today } from "@/components/study/Today";
@@ -28,7 +28,8 @@ import { Button } from "@/components/ui/primitives";
 import { MessageBar } from "@/components/chat/MessageBar";
 import { DeckPanel } from "@/components/study/DeckPanel";
 import { AddCourse, CoursePanel, CourseStrip, MockExam, TopicPanel, type TopicTab } from "@/components/study/Courses";
-import type { Course, MarkRow } from "@/lib/course";
+import type { Course, MarkRow, Mock } from "@/lib/course";
+import { openStudio } from "@/lib/studioBus";
 import { SectionIndex } from "@/components/SectionIndex";
 import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
 import { getConfigured } from "@/lib/configured";
@@ -59,6 +60,8 @@ export function StudyView({
   onAsk,
   onOpenPage,
   onPack,
+  openPaperId,
+  onPaperOpened,
 }: {
   configured: Record<string, boolean>;
   /** A deck to open on arrival — from the palette or a link. */
@@ -81,6 +84,9 @@ export function StudyView({
    * live; offered here, where the person with the exam is standing.
    */
   onPack?: () => void;
+  /** A paper made in the Studio, to open here. */
+  openPaperId?: string | null;
+  onPaperOpened?: () => void;
 }) {
   const decks = useLiveQuery(() => db.decks.orderBy("updatedAt").reverse().toArray(), [], [] as Deck[]);
   const cards = useLiveQuery(() => db.cards.toArray(), [], [] as Card[]);
@@ -128,6 +134,13 @@ export function StudyView({
   const [openTopic, setOpenTopic] = React.useState<{ id: string; tab?: TopicTab } | null>(null);
   const [openMock, setOpenMock] = React.useState<string | null>(null);
   const [adding, setAdding] = React.useState(false);
+  const papers = useLiveQuery(() => db.mocks.where("courseId").equals("").reverse().sortBy("createdAt"), [], [] as Mock[]);
+  React.useEffect(() => {
+    if (!openPaperId) return;
+    setOpenMock(openPaperId);
+    onPaperOpened?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openPaperId]);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   /* A document taken in to work through. The text is extracted once, here,
@@ -457,6 +470,21 @@ export function StudyView({
               onAdd={() => setAdding(true)}
             />
           )}
+          {(papers ?? []).length > 0 && (
+            <section aria-label="Your papers" className="mt-4">
+              <h2 className="mb-1.5 text-sm font-medium text-primary">Your papers</h2>
+              <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
+                {(papers ?? []).slice(0, 6).map((m) => (
+                  <li key={m.id}>
+                    <button onClick={() => setOpenMock(m.id)} className="focus-inset flex w-full items-center gap-3 px-3 py-2 text-left text-sm" aria-label={`Open ${m.title ?? "paper"}`}>
+                      <span className="min-w-0 flex-1 truncate text-secondary">{m.title ?? "Paper"}</span>
+                      <span className="tnum text-xs text-tertiary">{m.finishedAt && m.out ? `${m.got} / ${m.out} · ${Math.round(((m.got ?? 0) / m.out) * 100)}%` : m.kind === "quiz" ? "not taken" : "not sat"}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           <div className="mt-4" />
           {/* The way in. A subject, and a deck a few seconds later — this is
               the part every assistant is already good at, so it is one line
@@ -560,6 +588,21 @@ export function StudyView({
                 Make a revision pack
               </button>
             )}
+            {/* The Studio: every tool, from a book, a page or a topic. */}
+            <button
+              onClick={() => openStudio({})}
+              className="btn-touch press focus-inset flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
+            >
+              <Sparkles size={13} />
+              Notes, papers, quizzes…
+            </button>
+            <button
+              onClick={() => openStudio({ tool: "checker" })}
+              className="btn-touch press focus-inset flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
+            >
+              <ClipboardCheck size={13} />
+              Check an answer
+            </button>
             <input
               ref={fileRef}
               type="file"

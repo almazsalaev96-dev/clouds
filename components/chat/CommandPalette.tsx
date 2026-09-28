@@ -1,5 +1,6 @@
 "use client";
 
+import { openStudio } from "@/lib/studioBus";
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -191,6 +192,9 @@ export function CommandPalette({
     const base: Command[] = [
       { id: "new", label: "New chat", keys: ["mod", "N"], icon: <MessageSquarePlus size={15} />, group: "Actions", run: actions.newChat },
       { id: "settings", label: "Open settings", keys: ["mod", ","], icon: <Settings2 size={15} />, group: "Actions", run: actions.openSettings },
+      { id: "studio-make", label: "Studio: make study materials", hint: "notes, flashcards, a paper, a mind map… from a book or a topic", icon: <Sparkles size={15} />, group: "Actions", run: () => openStudio({}) },
+      { id: "studio-check", label: "Check an answer", hint: "marked point by point against the scheme", icon: <Sparkles size={15} />, group: "Actions", run: () => openStudio({ tool: "checker" }) },
+      { id: "studio-paper", label: "Make an exam paper", hint: "timed, marked, with a mark scheme", icon: <Sparkles size={15} />, group: "Actions", run: () => openStudio({ tool: "paper" }) },
       ...(actions.openSettingsAt
         ? ([
             ["rules", "Your rules", "what it must and must not do, everywhere"],

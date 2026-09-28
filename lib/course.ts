@@ -85,6 +85,12 @@ export interface ExamQuestion {
   /** What examiners say students get wrong here. */
   tip: string;
   difficulty: Difficulty;
+  /** Multiple choice: the options, the index of the right one, and why each is right or wrong. */
+  options?: string[];
+  answer?: number;
+  why?: string[];
+  /** The topic in words, for a paper that is not part of a course. */
+  topic?: string;
 }
 
 export interface PointMark {
@@ -126,7 +132,13 @@ export interface MarkRow {
 
 export interface Mock {
   id: string;
+  /** "" for a paper made in the Studio from a book, a page or a topic. */
   courseId: string;
+  /** What the paper is on, where it is not a course's. */
+  title?: string;
+  about?: { subject?: string; level?: string; board?: string };
+  /** "quiz" is multiple choice, marked here without a model. */
+  kind?: "paper" | "quiz";
   createdAt: number;
   minutes: number;
   questions: ExamQuestion[];

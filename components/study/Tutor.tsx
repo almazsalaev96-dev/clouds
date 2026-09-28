@@ -1,5 +1,6 @@
 "use client";
 
+import { openStudio } from "@/lib/studioBus";
 import { readWhole } from "@/lib/digest";
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -723,6 +724,15 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
             className="btn-touch press focus-inset rounded-full px-2 text-xs text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary disabled:opacity-50"
           >
             Cards
+          </button>
+          {/* Everything else the Studio makes, from the whole document. */}
+          <button
+            disabled={asking || !lesson.text.trim()}
+            onClick={() => openStudio({ source: { name: lesson.name, text: lesson.text } })}
+            aria-label="More in the Studio"
+            className="btn-touch press focus-inset rounded-full px-2 text-xs text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary disabled:opacity-50"
+          >
+            More…
           </button>
         </div>
 

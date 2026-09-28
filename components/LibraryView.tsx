@@ -4,6 +4,7 @@ import { RevisePicker } from "@/components/chat/RevisePicker";
 import { getConfigured } from "@/lib/configured";
 import * as React from "react";
 import { CreativeView } from "./CreativeView";
+import { StudyTools } from "./studio/StudyTools";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Code2, FileText, GraduationCap, LayoutTemplate, NotebookPen } from "lucide-react";
 import { db, deleteCanvas, deleteDeck, deleteNote } from "@/lib/db";
@@ -178,6 +179,7 @@ export function LibraryView({
       loading={loading}
       lead={
         <>
+          <StudyTools />
           {onBuild && onMade && <CreativeView embedded onBuild={onBuild} onMade={onMade} />}
           <h2 className="mb-2 mt-2 text-base font-medium text-primary">Start blank</h2>
           <Starters onSelect={onNewCanvas} />

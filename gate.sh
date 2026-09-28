@@ -78,6 +78,7 @@ run test-callout npx jiti test-callout.ts
 run test-study npx jiti test-study.ts
 run test-readiness npx jiti test-readiness.ts
 run test-course npx jiti test-course.ts
+run test-studio npx jiti test-studio.ts
 run test-topics npx jiti test-topics.ts
 run test-tokens npx jiti test-tokens.ts
 run test-find  npx jiti test-find.ts
@@ -112,7 +113,7 @@ serve
 for t in e2e e2e-rest e2e-canvas e2e-web e2e-code e2e-follow e2e-agent e2e-sources e2e-auto e2e-command \
          e2e-project e2e-mode e2e-pdf e2e-editor e2e-makes e2e-bar e2e-motion \
          e2e-use e2e-scale e2e-backup e2e-error e2e-storage e2e-shape e2e-point-at e2e-draw \
-         e2e-ask e2e-crash e2e-dir e2e-keep e2e-made e2e-recover e2e-compute e2e-register e2e-study e2e-today e2e-longer e2e-slides e2e-office e2e-mastery e2e-tutor e2e-comfort e2e-find e2e-table e2e-chart e2e-research e2e-slash e2e-actions e2e-recap e2e-rooms e2e-notebook e2e-plan e2e-look e2e-presets e2e-pack e2e-phone e2e-ink e2e-rules e2e-refresh e2e-shell e2e-book e2e-bigfile e2e-sidelists e2e-routines e2e-assistants e2e-share e2e-chrome e2e-tools e2e-modes e2e-monkey e2e-course; do
+         e2e-ask e2e-crash e2e-dir e2e-keep e2e-made e2e-recover e2e-compute e2e-register e2e-study e2e-today e2e-longer e2e-slides e2e-office e2e-mastery e2e-tutor e2e-comfort e2e-find e2e-table e2e-chart e2e-research e2e-slash e2e-actions e2e-recap e2e-rooms e2e-notebook e2e-plan e2e-look e2e-presets e2e-pack e2e-phone e2e-ink e2e-rules e2e-refresh e2e-shell e2e-book e2e-bigfile e2e-sidelists e2e-routines e2e-assistants e2e-share e2e-chrome e2e-tools e2e-modes e2e-monkey e2e-course e2e-studio; do
   run "$t" node "$t.mjs"
 done
 run test-context node test-context.mjs

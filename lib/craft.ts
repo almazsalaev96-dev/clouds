@@ -33,6 +33,7 @@
 import type { TaskKind } from "./task";
 import { extractJson } from "./complete";
 import { worthChecking } from "./presets";
+import { EDU_RULES, STANDARDS, toolForAsk, type ToolId } from "./standards";
 
 /** What the study came back with. */
 export interface Study {
@@ -48,6 +49,31 @@ export interface Study {
   unsure?: { question: string; options: string[] } | null;
   /** Which model studied. */
   modelId: string;
+  /** Study material: written under the education rules as well. */
+  edu?: boolean;
+}
+
+/**
+ * The kinds of study material that earn Craft by their name alone: "a mind
+ * map of the Krebs cycle" is five words and a real deliverable. A summary
+ * is not on the list: it is the commonest short ask there is, and a long
+ * source already earns Craft by its size.
+ */
+const EDU_GATE = new Set<ToolId>(["notes", "guide", "organiser", "cornell", "mindmap", "glossary", "timeline", "worked", "essay", "model", "plan", "questions", "lesson"]);
+
+/**
+ * The house standard for this ask, when it is a kind of study material
+ * the Studio knows: the bar is written down already, so it is used as the
+ * floor the study builds on — and as the whole standard if the study
+ * cannot be had.
+ */
+export function houseStandardFor(ask: string): { id: ToolId; name: string; standard: string[] } | null {
+  return toolForAsk(ask);
+}
+
+/** A study made from the house standard alone, for when no study came back. */
+export function houseStudy(tool: { id: ToolId; name: string; standard: string[] }, modelId: string): Study {
+  return { field: STANDARDS[tool.id]?.name ?? tool.name, makers: [], standard: tool.standard, imagined: "", unsure: null, modelId, edu: true };
 }
 
 /** What the judge said about the answer. */
@@ -103,6 +129,8 @@ export function worthCrafting(ask: string, kind: TaskKind | undefined, size = 0)
   if (words >= CRAFT_WORDS) return true;
   if (FACT.test(t) && words < 14) return false;
   if (OWN.test(t)) return false;
+  const edu = toolForAsk(t);
+  if (edu && EDU_GATE.has(edu.id) && words >= 3) return true;
   if (!MAKE.test(t)) return false;
   if (BIG.test(t)) return words >= 4;
   return SMALL.test(t) && words >= SMALL_WORDS;
@@ -113,7 +141,7 @@ export function worthCrafting(ask: string, kind: TaskKind | undefined, size = 0)
 export const STUDY_HEAD = "Study how the best do this, before anyone writes it.";
 
 /** The prompt for the model that studies the field. */
-export function studyPrompt(ask: string, context = "", canSearch = false): string {
+export function studyPrompt(ask: string, context = "", canSearch = false, house: string[] = []): string {
   return [
     STUDY_HEAD,
     "",
@@ -134,6 +162,9 @@ export function studyPrompt(ask: string, context = "", canSearch = false): strin
     "",
     "Only if one open choice would change the whole deliverable — the audience, the country, the exam board, the platform — put it under \"unsure\" with two to four concrete options to pick from. Otherwise take the most likely reading, say it under \"imagined\", and leave \"unsure\" null. Do not ask about anything a good maker would simply decide.",
     "",
+    house.length
+      ? `This is study material, and it already has a written house standard, below. Keep every line of it (you may sharpen the wording) and add what this particular ask needs on top: the level, the board, the subject's conventions.\n${house.map((h) => `- ${h}`).join("\n")}\n`
+      : "",
     "Answer with JSON and nothing else:",
     "",
     '{"field": "what is being made, in one line",',
@@ -183,6 +214,7 @@ export function standardNote(study: Study): string {
     study.makers.length ? `Who does this best:\n${study.makers.map((m) => `- ${m}`).join("\n")}` : "",
     `The standard:\n${study.standard.map((s) => `- ${s}`).join("\n")}`,
     study.imagined ? `What they most likely picture: ${study.imagined}` : "",
+    study.edu ? EDU_RULES : "",
     "",
     "Deliver the whole thing, not a sketch of it or a plan for it: everything they asked for and everything they clearly pictured, to this standard, in one answer. No placeholders, no \"you could add\", no lorem ipsum. Where the thing is a page, an app or a document, build it. A second model will read your answer against this standard.",
   ]
