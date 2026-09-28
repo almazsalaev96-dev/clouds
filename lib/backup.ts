@@ -56,6 +56,9 @@ const TABLES = [
   "attempts",
   "routines",
   "assistants",
+  "courses",
+  "marks",
+  "mocks",
 ] as const;
 
 type TableName = (typeof TABLES)[number];

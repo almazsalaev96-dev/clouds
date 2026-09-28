@@ -133,6 +133,7 @@ const lastByKind = {};
 let probeHits = 0;
 let lastTitle = null;
 const recent = [];
+let courseQuestions = 0;
 /* Which asks the craft judge has already read once (see CRAFT_JUDGE). Cleared with /__reset. */
 const judgedAsks = new Set();
 let rateLimitOnce = process.env.MOCK_RATE_LIMIT === "1";
@@ -770,6 +771,48 @@ It also reports a figure of nine hundred percent [[cite: ${name} | the result wa
       ? "## Questions\n\n1. State where photosynthesis happens. (1)\n\n## Mark schemes\n\n1. Chloroplast (1)"
       : "- Photosynthesis happens in the chloroplast.\n- Respiration happens in the mitochondrion.\n\nIt does not cover the light-dependent stage.";
 
+  /* Courses (lib/course.ts): the specification, notes for a topic, one
+     exam question, the marking of an answer, and a mock paper. Each is a
+     fixed shape the app parses, so each has a fixed reply; the marking reads
+     the student's answer, so a probe can make it score more or less. */
+  const coursing = /^Write the specification for this course/.test(asked);
+  const COURSE = JSON.stringify({ units: [
+    { title: "Cell biology", topics: [
+      { code: "4.1.1", title: "Cell structure", points: ["Describe the parts of animal and plant cells", "Explain how the parts relate to their functions"] },
+      { code: "4.1.2", title: "Cell division", points: ["Describe mitosis and the cell cycle"] },
+      { code: "4.1.3", title: "Transport in cells", points: ["Explain diffusion, osmosis and active transport"] },
+    ] },
+    { title: "Organisation", topics: [
+      { code: "4.2.1", title: "Enzymes", points: ["Explain the lock and key model", "Describe the effect of temperature and pH"] },
+      { code: "4.2.2", title: "The heart", points: ["Describe the structure of the heart"] },
+    ] },
+  ] });
+  const courseNoting = /^Write revision notes for one topic of this course/.test(asked);
+  const COURSE_NOTES = "## Key points\n\n1. **Diffusion** is the net movement of particles from high to low concentration.\n2. **Osmosis** is the diffusion of water across a partially permeable membrane.\n\n## Key terms\n\n| Term | Meaning |\n|---|---|\n| Diffusion | Net movement down a concentration gradient |\n\n## Worked example\n\nExplain why oxygen diffuses into a cell. [2]\n\n## Common mistakes\n\n- Saying particles move only one way.\n\n## Examiner tips\n\n- Always say *net* movement.";
+  const questioning = /^Write one exam question on this topic/.test(asked);
+  const COURSE_Q = () => JSON.stringify({
+    question: `Explain why the rate of diffusion increases when the temperature rises. (Question ${++courseQuestions}) [3]`,
+    marks: 3,
+    scheme: ["Particles have more kinetic energy", "so they move faster", "so more particles cross the membrane per second / net movement is faster"],
+    model: "At a higher temperature the particles have more kinetic energy, so they move faster, so more of them cross the membrane each second.",
+    tip: "Students say 'the particles move more' without linking it to energy and rate.",
+  });
+  const examMarking = /^Mark this answer the way an examiner would, against the mark scheme/.test(asked);
+  const studentAnswer = (asked.split("THE STUDENT'S ANSWER")[1] ?? "").split("Return JSON only")[0].trim().toLowerCase();
+  const COURSE_MARK = () => {
+    const hits = [/energy/.test(studentAnswer), /fast/.test(studentAnswer), /per second|more particles|rate/.test(studentAnswer)];
+    const scheme = (asked.split("MARK SCHEME")[1] ?? "").split("\n").filter((l) => /^\d+\. /.test(l)).map((l) => l.replace(/^\d+\. /, ""));
+    const points = (scheme.length ? scheme : ["Particles have more kinetic energy", "so they move faster", "so more particles cross per second"]).map((pt, i) => ({ point: pt, got: Boolean(hits[i]), why: hits[i] ? "Stated in the answer" : "Missing: this link is not made" }));
+    return JSON.stringify({ points, got: points.filter((x) => x.got).length, feedback: "Good start on energy. Link the faster movement to more particles crossing each second for the last mark.", better: "[full marks] At a higher temperature the particles have more kinetic energy, so they move faster, so more cross the membrane per second." });
+  };
+  const papering = /^Write a mock exam paper for this course/.test(asked);
+  const paperIds = [...asked.matchAll(/^- (u\d+t\d+): /gm)].map((m) => m[1]);
+  const COURSE_PAPER = JSON.stringify({ questions: [
+    { topicId: paperIds[0] ?? "u1t1", question: "State what is meant by diffusion. [2]", marks: 2, scheme: ["net movement of particles", "from high to low concentration"], model: "The net movement of particles from a high to a low concentration.", tip: "Say net." },
+    { topicId: paperIds[1] ?? paperIds[0] ?? "u1t1", question: "Explain why the rate of diffusion increases with temperature. [3]", marks: 3, scheme: ["more kinetic energy", "move faster", "more cross per second"], model: "More kinetic energy, so faster, so more cross per second.", tip: "Link to rate." },
+    { topicId: paperIds[2] ?? paperIds[0] ?? "u1t1", question: "Describe the lock and key model of enzyme action. [3]", marks: 3, scheme: ["substrate fits the active site", "shapes are complementary", "products are released"], model: "The substrate fits the complementary active site; the reaction happens; the products are released.", tip: "Use 'complementary'." },
+  ] });
+
   const checking = /^A change was just made to this/.test(asked);
   const CHECK = `It does what was asked: the concat is gone and the loop pushes instead.
 
@@ -780,7 +823,7 @@ Nothing here looks like it breaks a caller — the return type is the same array
   /* Every call, in order, so a test can prove that one turn was two models:
      a brief to one company and the answer to another, in that order. `__last`
      alone can only ever show whichever was most recent. */
-  const callKind = isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : scouting ? "scout" : deepPlanning ? "plan" : studying ? "study" : craftJudging ? "judge" : blueprinting ? "blueprint" : planJudging ? "plan-judge" : mending ? "mend" : "answer";
+  const callKind = isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : scouting ? "scout" : deepPlanning ? "plan" : studying ? "study" : coursing ? "course" : courseNoting ? "course-notes" : questioning ? "question" : examMarking ? "exam-mark" : papering ? "paper" : craftJudging ? "judge" : blueprinting ? "blueprint" : planJudging ? "plan-judge" : mending ? "mend" : "answer";
   if (slow[callKind]) await new Promise((r) => setTimeout(r, slow[callKind]));
   lastByKind[callKind] = lastSeen;
   recent.push({
@@ -813,6 +856,10 @@ Nothing here looks like it breaks a caller — the return type is the same array
     /* The start of what was asked, so a probe can tell a reader's part from
        the writer's page without the whole book riding along. */
     head: JSON.stringify(body.messages ?? body.input ?? "").slice(0, 400),
+    /* The whole of what was asked, bounded: a prompt whose point is near its
+       end (the student's answer under a mark scheme) cannot be read from the
+       head. */
+    asked: asked.slice(0, 8_000),
     /* Whether the call carried the page the writer is on (lib/cast.ts):
        the project's documents, the attachments, the exchange before. */
     shared: /What the answering model was also given/.test(asked),
@@ -824,6 +871,16 @@ Nothing here looks like it breaks a caller — the return type is the same array
 
   let text = isTitle
     ? "Debouncing a search input"
+    : coursing
+    ? COURSE
+    : courseNoting
+    ? COURSE_NOTES
+    : questioning
+    ? COURSE_Q()
+    : examMarking
+    ? COURSE_MARK()
+    : papering
+    ? COURSE_PAPER
     : marking
     ? MARKED
     : tutoring

@@ -10,6 +10,7 @@ import {
   newCard, schedule, dayKey, parseCards, makeReverse,
   type Attempt, type Card, type Rating, type StudyDay,
 } from "./study";
+import type { Course, MarkRow, Mock } from "./course";
 
 /**
  * Local-first. IndexedDB is the source of truth, which makes the app instant,
@@ -38,6 +39,9 @@ class ChatDB extends Dexie {
   attempts!: Table<Attempt, string>;
   routines!: Table<Routine, string>;
   assistants!: Table<Assistant, string>;
+  courses!: Table<Course, string>;
+  marks!: Table<MarkRow, string>;
+  mocks!: Table<Mock, string>;
 
   constructor() {
     super("clouds");
@@ -229,6 +233,13 @@ class ChatDB extends Dexie {
     this.version(18).stores({
       assistants: "id, updatedAt, short",
       conversations: "id, updatedAt, pinned, archived, projectId, assistantId",
+    });
+    /* Courses: a subject, a level and a board cut into topics; the answers
+       marked against their schemes; and the mock papers sat. Additive. */
+    this.version(19).stores({
+      courses: "id, updatedAt",
+      marks: "id, at, courseId, topicId, mockId",
+      mocks: "id, createdAt, courseId",
     });
   }
 }

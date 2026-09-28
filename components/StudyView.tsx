@@ -27,6 +27,8 @@ import { offerUndo } from "@/lib/undo";
 import { Button } from "@/components/ui/primitives";
 import { MessageBar } from "@/components/chat/MessageBar";
 import { DeckPanel } from "@/components/study/DeckPanel";
+import { AddCourse, CoursePanel, CourseStrip, MockExam, TopicPanel, type TopicTab } from "@/components/study/Courses";
+import type { Course, MarkRow } from "@/lib/course";
 import { SectionIndex } from "@/components/SectionIndex";
 import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
 import { getConfigured } from "@/lib/configured";
@@ -119,6 +121,13 @@ export function StudyView({
   const [openDeck, setOpenDeck] = React.useState<string | null>(null);
   const [openLesson, setOpenLesson] = React.useState<string | null>(null);
   const lessons = useLiveQuery(() => db.lessons.orderBy("updatedAt").reverse().toArray(), [], [] as Lesson[]);
+  /* Courses: the exam being sat, its topics, and every answer marked. */
+  const courses = useLiveQuery(() => db.courses.orderBy("updatedAt").reverse().toArray(), [], [] as Course[]);
+  const markRows = useLiveQuery(() => db.marks.toArray(), [], [] as MarkRow[]);
+  const [openCourse, setOpenCourse] = React.useState<string | null>(null);
+  const [openTopic, setOpenTopic] = React.useState<{ id: string; tab?: TopicTab } | null>(null);
+  const [openMock, setOpenMock] = React.useState<string | null>(null);
+  const [adding, setAdding] = React.useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   /* A document taken in to work through. The text is extracted once, here,
@@ -289,6 +298,49 @@ export function StudyView({
     return <Tutor lesson={lesson} configured={configured} onLeave={() => setOpenLesson(null)} onAsk={onAsk} />;
   }
 
+  const practiseTopic = (t: string) => {
+    const ids = cards.filter((c) => c.topic?.trim().toLowerCase() === t.trim().toLowerCase()).map((c) => c.id);
+    setSession({ deckId: null, mode: "cram", only: ids, title: t });
+  };
+  if (openMock) {
+    return (
+      <MockExam
+        mockId={openMock}
+        configured={configured}
+        onBack={() => setOpenMock(null)}
+        onOpenTopic={(id) => { setOpenMock(null); setOpenTopic({ id, tab: "questions" }); }}
+      />
+    );
+  }
+  if (openCourse && openTopic) {
+    return (
+      <TopicPanel
+        key={openTopic.id + (openTopic.tab ?? "")}
+        courseId={openCourse}
+        topicId={openTopic.id}
+        tab={openTopic.tab}
+        configured={configured}
+        cards={cards}
+        onBack={() => setOpenTopic(null)}
+        onPractise={practiseTopic}
+        onAsk={onAsk}
+        onOpenPage={onOpenPage}
+      />
+    );
+  }
+  if (openCourse) {
+    return (
+      <CoursePanel
+        courseId={openCourse}
+        configured={configured}
+        cards={cards}
+        onBack={() => setOpenCourse(null)}
+        onOpenTopic={(id, tab) => setOpenTopic({ id, tab })}
+        onOpenMock={(id) => setOpenMock(id)}
+      />
+    );
+  }
+
   const deck = openDeck ? decks.find((d) => d.id === openDeck) : undefined;
   if (deck) {
     return (
@@ -347,7 +399,7 @@ export function StudyView({
       newLabel="New deck"
       right={<RevisePicker configured={configured} />}
       loading={decks === undefined}
-      emptyTitle="Nothing to study yet."
+      emptyTitle={(courses ?? []).length ? "No flashcard decks yet." : "Nothing to study yet."}
       emptyHint="Name a subject above, or ask for cards in any chat. They come back on a schedule — sooner whenever you get one wrong."
       items={(decks ?? []).map((d) => {
         const mine = cards.filter((c) => c.deckId === d.id);
@@ -389,6 +441,23 @@ export function StudyView({
                thing somebody actually sits down to do. */
             onStartDue={() => setSession({ deckId: null, mode: "due" })}
           />
+          {adding ? (
+            <AddCourse
+              configured={configured}
+              onCancel={() => setAdding(false)}
+              onDone={(id) => { setAdding(false); setOpenCourse(id); }}
+            />
+          ) : (
+            <CourseStrip
+              courses={courses ?? []}
+              rows={markRows ?? []}
+              cards={cards}
+              now={now}
+              onOpen={(id) => setOpenCourse(id)}
+              onAdd={() => setAdding(true)}
+            />
+          )}
+          <div className="mt-4" />
           {/* The way in. A subject, and a deck a few seconds later — this is
               the part every assistant is already good at, so it is one line
               rather than a form. */}
