@@ -1396,6 +1396,12 @@ function MemoryPanel() {
         label="Use memory"
         hint="Off keeps the list but sends none of it."
       />
+      <Toggle
+        checked={settings.notesInChat !== false}
+        onChange={(notesInChat) => settings.set({ notesInChat })}
+        label="Use my notebook in answers"
+        hint="When a page clearly bears on what you ask, the answer builds on it and says which page."
+      />
 
       <Field label="Add something to remember">
         <div className="flex gap-2">

@@ -295,6 +295,7 @@ function AssistantMessageImpl({
   onNavigate,
   onRegenerate,
   onSaveToNote,
+  onAddToPage,
   onOpenMade,
   onComputed,
   onMakeCards,
@@ -328,6 +329,8 @@ function AssistantMessageImpl({
   /** Take an action back. */
   onUndoAction?: (message: Msg, action: Action) => void;
   onSaveToNote: (text: string) => void;
+  /** Add this answer to the end of a page already in the Notebook. */
+  onAddToPage?: (text: string) => void;
   /** Show the thing this answer built, running beside the thread. */
   onOpenMade?: (message: Msg) => void;
   /** A calculation in this answer finished; answer again with what it printed. */
@@ -889,6 +892,15 @@ function AssistantMessageImpl({
                 <NotebookPen size={15} className="text-tertiary" />
                 Keep as a note
               </DropdownMenu.Item>
+              {onAddToPage && (
+                <DropdownMenu.Item
+                  onSelect={() => onAddToPage(text)}
+                  className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-secondary outline-none transition-colors duration-[var(--dur-fast)] data-[highlighted]:bg-subtle data-[highlighted]:text-primary"
+                >
+                  <NotebookPen size={15} className="text-tertiary" />
+                  Add to a page…
+                </DropdownMenu.Item>
+              )}
               {artifact && (
                 <DropdownMenu.Item
                   onSelect={() =>

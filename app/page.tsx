@@ -133,6 +133,11 @@ const StudioSheet = dynamic(
   { ssr: false },
 );
 
+const PagePicker = dynamic(
+  () => import("@/components/notebook/PagePicker").then((m) => m.PagePicker),
+  { ssr: false },
+);
+
 const ShortcutsOverlay = dynamic(
   () => import("@/components/ShortcutsOverlay").then((m) => m.ShortcutsOverlay),
   { ssr: false },
@@ -823,7 +828,17 @@ export default function Page() {
          screen mounted. */
       const project = conv?.projectId ? await db.projects.get(conv.projectId) : undefined;
       const assistant = conv?.assistantId ? await db.assistants.get(conv.assistantId) : undefined;
-      const files = project ? await filesOf(project.id) : [];
+      /* A project's pages are its knowledge as much as its files are: the
+         notes a student keeps for a course are what its chats should know. */
+      const projectPages = project ? await db.notes.where("projectId").equals(project.id).toArray() : [];
+      const files = project
+        ? [
+            ...(await filesOf(project.id)),
+            ...projectPages
+              .filter((n) => n.content.trim())
+              .map((n) => ({ id: `page:${n.id}`, projectId: project.id, name: `${n.title || "Untitled"} (page)`, mimeType: "text/markdown", text: n.content, size: n.content.length, createdAt: n.createdAt })),
+          ]
+        : [];
       /* The rest of the cast reads the same page as the writer (lib/cast.ts):
          a brief, a council seat or a check written without the project's
          document or the answer being shortened is working on a different
@@ -833,6 +848,19 @@ export default function Page() {
       /* What the person asked to be remembered — unless they turned it off,
          or this is a temporary chat, which knows nothing and keeps nothing. */
       const memories = settings.memoryOn && !conv?.temporary ? await allMemories() : [];
+      /* The Notebook in the answer: the pages that clearly bear on what was
+         just asked, a few passages at most, and the row says which. Not in a
+         temporary chat, and not the pages a project already sends whole. */
+      let notebookHits: { id: string; title: string; text: string }[] = [];
+      let notebookSection = "";
+      if (settings.notesInChat !== false && !conv?.temporary) {
+        try {
+          const askedNow = blockText(wantsMsg?.content ?? []);
+          const { relevantPages, pagesSection } = await import("@/lib/notebook");
+          notebookHits = relevantPages(askedNow, await db.notes.toArray(), { exclude: new Set(projectPages.map((n) => n.id)) });
+          notebookSection = pagesSection(notebookHits);
+        } catch { notebookHits = []; }
+      }
       /* The rooms, as tools, where the person allows it. Decided per turn
          from the conversation it is in: no memory in a temporary chat, no
          project file outside a project. */
@@ -924,6 +952,7 @@ export default function Page() {
         mode,
         memories,
         actions: offered,
+        notebook: notebookSection || undefined,
       });
       /* What kind of job this is, and therefore what a good answer to it looks
          like. The app has classified requests since `task.ts` was written and
@@ -1253,6 +1282,8 @@ export default function Page() {
               : "answered again after a second model objected"
           : "",
         opts?.effort ? "asked to think harder" : "",
+        /* Which of their pages it built on, whoever answered. */
+        notebookHits.length ? `built on your notes: ${notebookHits.map((h) => `“${h.title}”`).join(", ")}` : "",
         /* Asked for, not done: with one company's key there is nobody to
            read it back, and the notice says so — the row must not claim
            what the notice denies. */
@@ -2494,6 +2525,37 @@ export default function Page() {
   }, [path, conversation?.title, activeId, settings]);
 
   /** Lift an answer out of the conversation and into something you keep. */
+  /* An answer added to the end of a page already in the Notebook. */
+  const [addText, setAddText] = React.useState<string | null>(null);
+  const addToPage = React.useCallback(async (pageId: string, text: string) => {
+    const page = await db.notes.get(pageId);
+    if (!page) return;
+    const { appendFromChat } = await import("@/lib/notebook");
+    const before = page.content;
+    await db.notes.update(pageId, { content: appendFromChat(before, text, conversation?.title ?? ""), updatedAt: Date.now(), sourceConversationId: page.sourceConversationId ?? activeId ?? undefined });
+    offerUndo(page.title || "the page", async () => { await db.notes.update(pageId, { content: before }); }, "Added to");
+  }, [conversation?.title, activeId]);
+
+  /* A chat opened about a page: in the page's project, carrying the page. */
+  const [composerSeed, setComposerSeed] = React.useState<{ conversationId: string; name: string; text: string } | null>(null);
+  const chatAboutPage = React.useCallback(async (pageId: string) => {
+    const page = await db.notes.get(pageId);
+    if (!page) return;
+    const c = await createConversation({ modelId: settings.modelId, styleId: settings.styleId, projectId: page.projectId, pageId: page.id });
+    setComposerSeed({ conversationId: c.id, name: `${page.title || "Untitled"}.md`, text: page.content });
+    withTransition(() => {
+      setActiveId(c.id);
+      settings.setSection("chat");
+    }, "forward");
+  }, [settings]);
+  const findPages = React.useCallback(async (q: string) => {
+    const all = await db.notes.orderBy("updatedAt").reverse().limit(300).toArray();
+    const { titleMatches } = await import("@/lib/notebook");
+    return titleMatches(q, all.map((n) => ({ id: n.id, title: n.title || "Untitled" })), 6)
+      .map((h) => all.find((n) => n.id === h.id)!)
+      .map((n) => ({ id: n.id, title: n.title || "Untitled", content: n.content }));
+  }, []);
+
   const keepAsNote = React.useCallback(
     async (text: string) => {
       const note = await saveToNote(text, activeId ?? undefined);
@@ -2972,6 +3034,9 @@ export default function Page() {
   const composer = mounted ? (
     <Composer
       conversationId={activeId ?? "new"}
+      findPages={findPages}
+      seed={composerSeed}
+      onSeeded={() => setComposerSeed(null)}
       streaming={(live && stream.phase !== "idle") || prep?.conversationId === activeId}
       contextTokens={contextTokens}
       modelId={threadModelId}
@@ -3102,6 +3167,8 @@ export default function Page() {
                   onNewChatHere={newChatInProject}
                   onOpenCanvas={(id) => selectInSection("creative", id)}
                   onNewCanvasHere={(pid) => void newCanvasInProject(pid)}
+                  onOpenPage={(id) => selectInSection("notebook", id)}
+                  onNewPageHere={(pid) => void (async () => { const page = await createNote({ projectId: pid }); selectInSection("notebook", page.id); })()}
                   configured={configured}
                 />
               )}
@@ -3153,6 +3220,8 @@ export default function Page() {
                      a card you got wrong goes through. */
                   onAsk={(question) => void askInChat(question)}
                   onToChat={() => withTransition(() => settings.setSection("chat"), "back")}
+                  onChatAbout={(id) => void chatAboutPage(id)}
+                  onOpenChat={(id) => selectInSection("chat", id)}
                 />
               )}
               {settings.section === "study" && (
@@ -3276,6 +3345,7 @@ export default function Page() {
                 onRemember={remember}
                 onRegenerate={regenerate}
                 onSaveToNote={keepAsNote}
+                onAddToPage={(t) => setAddText(t)}
                 onContinue={() => void send([{ type: "text", text: CONTINUE_PROMPT }])}
                 onTighten={tighten}
                 onFollowUp={(text) => void send([{ type: "text", text }])}
@@ -3377,6 +3447,9 @@ export default function Page() {
             newChat,
             openSettings: openKeys,
             openSettingsAt: (tab) => { setSettingsTab(tab); setSettingsOpen(true); },
+            newPage: () => void createInSection("notebook"),
+            newProject: () => void createInSection("projects"),
+            chatToPage: () => void conversationToNote(),
             open: selectInSection,
             goToSection,
             setModel: settings.setModel,
@@ -3405,6 +3478,14 @@ export default function Page() {
         <UndoBar />
 
         <ShortcutsOverlay open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+        {addText !== null && (
+          <PagePicker
+            title="Add this answer to a page"
+            onClose={() => setAddText(null)}
+            onPick={(id) => { const t = addText; setAddText(null); void addToPage(id, t); }}
+            onNew={() => { const t = addText; setAddText(null); void keepAsNote(t); }}
+          />
+        )}
         {studio && (
           <StudioSheet
             key={studio.nonce}

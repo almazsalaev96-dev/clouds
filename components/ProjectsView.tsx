@@ -3,7 +3,7 @@
 import * as React from "react";
 import { whyItFailed } from "@/lib/complete";
 import { useLiveQuery } from "dexie-react-hooks";
-import { CalendarClock, Check, FileCode2, FileText, FolderOpen, GraduationCap, Lightbulb, MessageSquare, Paperclip, Search, Sparkles, Trash2, X, Plus } from "lucide-react";
+import { CalendarClock, Check, FileCode2, FileText, FolderOpen, GraduationCap, Lightbulb, MessageSquare, Paperclip, Search, Sparkles, Trash2, X, Plus, NotebookPen } from "lucide-react";
 import { MessageBar } from "@/components/chat/MessageBar";
 import { useDrafts } from "@/lib/store";
 import type { Canvas, Project, ProjectFile } from "@/lib/types";
@@ -50,6 +50,8 @@ export function ProjectsView({
   onNewChatHere,
   onOpenCanvas,
   onNewCanvasHere,
+  onOpenPage,
+  onNewPageHere,
   configured,
 }: {
   projectId: string | null;
@@ -60,6 +62,9 @@ export function ProjectsView({
   onNewChatHere: (projectId: string) => void;
   onOpenCanvas: (id: string) => void;
   onNewCanvasHere: (projectId: string) => void;
+  /** The project's Notebook pages: open one, or start one here. */
+  onOpenPage?: (id: string) => void;
+  onNewPageHere?: (projectId: string) => void;
   /** Which providers have a key, for the question box. */
   configured: Record<string, boolean>;
 }) {
@@ -120,6 +125,8 @@ export function ProjectsView({
       onNewChatHere={onNewChatHere}
       onOpenCanvas={onOpenCanvas}
       onNewCanvasHere={onNewCanvasHere}
+      onOpenPage={onOpenPage}
+      onNewPageHere={onNewPageHere}
       configured={configured}
     />
   );
@@ -288,6 +295,8 @@ function ProjectPage({
   onNewChatHere,
   onOpenCanvas,
   onNewCanvasHere,
+  onOpenPage,
+  onNewPageHere,
   configured,
 }: {
   project: Project;
@@ -296,6 +305,8 @@ function ProjectPage({
   onNewChatHere: (projectId: string) => void;
   onOpenCanvas: (id: string) => void;
   onNewCanvasHere: (projectId: string) => void;
+  onOpenPage?: (id: string) => void;
+  onNewPageHere?: (projectId: string) => void;
   configured: Record<string, boolean>;
 }) {
   const [instructions, setInstructions] = React.useState(project.instructions);
@@ -381,6 +392,7 @@ function ProjectPage({
 
   const sortedChats = [...chats].sort((a, b) => b.updatedAt - a.updatedAt);
   const sortedCanvases = [...canvases].sort((a, b) => b.updatedAt - a.updatedAt);
+  const projectPages = useLiveQuery(() => db.notes.where("projectId").equals(project.id).toArray(), [project.id], []);
 
   /* The notebook, as the reference draws it: an icon, the name large, one
      line on what it is, pills for what it holds, then its chats with their
@@ -614,6 +626,40 @@ function ProjectPage({
                       >
                         <span className="min-w-0 flex-1 truncate text-base text-primary">{c.title || "New chat"}</span>
                         <span className="shrink-0 text-sm text-tertiary">{sinceLabel(c.updatedAt)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+
+          {/* Pages: the project's notes, which its chats know as well as its files. */}
+          <section className="mt-8" aria-label="Pages in this project">
+            <SectionHead
+              title="Pages"
+              hint="Notebook pages in this project. Every chat here knows them, the same as the files above."
+              action={onNewPageHere ? (
+                <Button size="sm" variant="secondary" onClick={() => onNewPageHere(project.id)}>
+                  <NotebookPen size={13} />
+                  New page here
+                </Button>
+              ) : undefined}
+            />
+            <div className="mt-2.5">
+              {(projectPages ?? []).length === 0 ? (
+                <p className="text-xs text-tertiary">No pages yet. Start one here, or put a page in this project from its page in the Notebook.</p>
+              ) : (
+                <ul className="divide-y divide-[var(--border-subtle)]">
+                  {[...(projectPages ?? [])].sort((a, b) => b.updatedAt - a.updatedAt).map((n) => (
+                    <li key={n.id}>
+                      <button
+                        onClick={() => onOpenPage?.(n.id)}
+                        className="focus-inset tap flex w-full items-center gap-3 rounded-lg px-2 py-3 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle"
+                      >
+                        <NotebookPen size={15} className="shrink-0 text-tertiary" />
+                        <span className="min-w-0 flex-1 truncate text-base text-primary">{n.title || "Untitled"}</span>
+                        <span className="shrink-0 text-sm text-tertiary">{sinceLabel(n.updatedAt)}</span>
                       </button>
                     </li>
                   ))}

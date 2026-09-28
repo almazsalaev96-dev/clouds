@@ -8,10 +8,12 @@ import { whyItFailed } from "@/lib/complete";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   BookOpen, Download, Eye, Printer, GraduationCap, HelpCircle, Highlighter, Layers, Link2, ListTree,
-  MessageSquare, Paperclip, Pencil, Scissors, SpellCheck2, Tags, X, Plus, BookMarked, ChevronDown, FileText, Sparkles, Square, Volume2 } from "lucide-react";
+  MessageSquare, Paperclip, Pencil, Scissors, SpellCheck2, Tags, X, Plus, BookMarked, ChevronDown, FileText, Sparkles, Square, Volume2, FolderOpen } from "lucide-react";
 import { speakable } from "@/lib/voice";
 import { guessLang } from "@/lib/lang";
 import { openStudio } from "@/lib/studioBus";
+import { PageConnections, PageHead, Recorder, canRecord, useEditorAssist } from "@/components/notebook/PageParts";
+import { lastTranscript, toggleTask, type SlashItem } from "@/lib/notebook";
 import type { ToolId } from "@/lib/standards";
 import type { Note, Source } from "@/lib/types";
 import { addCards, addSource, createDeck, createNote, db, deleteNote, deriveTitle, removeSource, sourcesOf } from "@/lib/db";
@@ -138,6 +140,8 @@ export function NotebookView({
   onBack,
   onAsk,
   onToChat,
+  onChatAbout,
+  onOpenChat,
 }: {
   noteId: string | null;
   configured: Record<string, boolean>;
@@ -152,6 +156,10 @@ export function NotebookView({
   onAsk?: (question: string) => void;
   /** Into the chat, from an empty notebook: the answers that will be kept here are written there. */
   onToChat?: () => void;
+  /** A chat that has this page open: in the page's project, the page attached. */
+  onChatAbout?: (noteId: string) => void;
+  /** The chat a page came from, or one opened about it. */
+  onOpenChat?: (conversationId: string) => void;
 }) {
   // No default value: `undefined` has to keep meaning "not back yet", or the
   // index cannot tell an empty library from an unanswered query.
@@ -746,6 +754,36 @@ export function NotebookView({
      The index already holds them; nothing more is read. */
   const pages = React.useMemo(() => (notes ?? []).map((n) => ({ id: n.id, title: n.title, content: n.content })), [notes]);
   const backlinks = React.useMemo(() => (note ? backlinksTo(note, pages) : []), [note, pages]);
+  const backlinkIds = React.useMemo(() => new Set(backlinks.map((b) => b.id)), [backlinks]);
+
+  /* The editor's comforts: "/" and "[[" (components/notebook/PageParts.tsx). */
+  const [recording, setRecording] = React.useState(false);
+  const slashAction = (action: NonNullable<SlashItem["action"]>) => {
+    const title = note?.title || "This page";
+    if (action === "record") { if (canRecord()) setRecording(true); else setNotice("This browser cannot transcribe a lecture. Chrome, Edge and Safari can."); return; }
+    if (action === "chat") { if (note) onChatAbout?.(note.id); return; }
+    if (action === "quiz" || action === "cards" || action === "notes") { openStudio({ source: { name: title, text: draft }, tool: action === "cards" ? "flashcards" : action }); return; }
+    if (action === "continue") { void run("Continue this page: write the next paragraph or section it needs, in the same voice, level and format, and stop there. Keep everything already on the page exactly as it is.", "Continue writing"); return; }
+    if (action === "explain") { void run("Rewrite this page in plain words for someone meeting the topic for the first time: short sentences, every term explained the first time, one example per idea. Keep every fact and every heading.", "Explain it simply"); return; }
+  };
+  const assist = useEditorAssist({ textareaRef, draft, onChange: (v) => onChange(v), pages: pages.map((p) => ({ id: p.id, title: p.title || "Untitled" })).filter((p) => p.id !== note?.id), onAction: slashAction });
+
+  /* Checklists in the page are ticked where they are read: the renderer
+     draws them disabled, so they are enabled here and a click rewrites the
+     line it came from. */
+  React.useEffect(() => {
+    const root = previewRef.current;
+    if (!root) return;
+    const fix = () => root.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((el) => { el.disabled = false; el.style.cursor = "pointer"; });
+    fix();
+    const mo = new MutationObserver(fix);
+    mo.observe(root, { childList: true, subtree: true });
+    return () => mo.disconnect();
+  }, [preview, note?.id, draft.length > 0]);
+
+  /* The index narrowed to one project's pages. */
+  const [inProject, setInProject] = React.useState<string | null>(null);
+  const projects = useLiveQuery(() => db.projects.toArray(), [], []);
   const outline = React.useMemo(() => outlineOf(draft), [draft]);
 
   /**
@@ -970,6 +1008,24 @@ export function NotebookView({
             {/* The tags, wherever they were written, as a row that narrows
                 the list. Only once there are two — one tag is a label, not a
                 way of finding anything. */}
+            {/* The projects that hold pages, as a row that narrows the list. */}
+            {(projects ?? []).some((p) => (notes ?? []).some((n) => n.projectId === p.id)) && (
+              <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Projects">
+                {(projects ?? []).filter((p) => (notes ?? []).some((n) => n.projectId === p.id)).map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setInProject(inProject === p.id ? null : p.id)}
+                    aria-pressed={inProject === p.id}
+                    className={cn(
+                      "tap focus-inset flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors duration-[var(--dur-fast)]",
+                      inProject === p.id ? "border-accent bg-accent-subtle text-accent" : "border-line bg-surface text-secondary hover:border-line-strong hover:text-primary",
+                    )}
+                  >
+                    <FolderOpen size={11} aria-hidden /> {p.name} <span className="tnum text-faint">{(notes ?? []).filter((n) => n.projectId === p.id).length}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             {(tagged.counts.length >= 2 || activeTag) && (
               <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Tags">
                 {tagged.counts.slice(0, 16).map((t) => (
@@ -991,6 +1047,7 @@ export function NotebookView({
         )}
         items={[...(notes ?? [])]
           .filter((n) => !activeTag || (tagged.byId.get(n.id) ?? []).includes(activeTag))
+          .filter((n) => !inProject || n.projectId === inProject)
           .sort((a, b) => Number(b.pinned) - Number(a.pinned))
           .map((n) => ({
             id: n.id,
@@ -1112,6 +1169,7 @@ export function NotebookView({
               {/* Whether this is still an account of what it was made from.
                   Not a warning about the page being wrong — it may be fine —
                   but the one fact a reader cannot work out for themselves. */}
+              <PageHead note={note} draft={draft} onOpenChat={onOpenChat} onChatAbout={onChatAbout ? () => onChatAbout(note.id) : undefined} />
               {stale && (
                 <p className="mb-3 rounded-lg border border-line bg-inset px-3 py-2 text-xs text-warning">
                   {stale} since this page was made. What is on it still says what it said then.
@@ -1138,7 +1196,20 @@ export function NotebookView({
               )}
               {preview ? (
                 draft.trim() ? (
-                  <div ref={previewRef} onClick={onCiteClick} className="relative">
+                  <div
+                    ref={previewRef}
+                    onClick={(e) => {
+                      const t = e.target;
+                      if (t instanceof HTMLInputElement && t.type === "checkbox" && previewRef.current) {
+                        const boxes = [...previewRef.current.querySelectorAll('input[type="checkbox"]')];
+                        const i = boxes.indexOf(t);
+                        if (i >= 0) onChange(toggleTask(draft, i));
+                        return;
+                      }
+                      onCiteClick(e);
+                    }}
+                    className="relative"
+                  >
                     <Markdown content={withLinks(draft, pages)} />
                     {/* The offer, over the words. Three things a passage can
                         become, and nothing that needs a menu. */}
@@ -1199,8 +1270,10 @@ export function NotebookView({
                   <textarea
                     ref={textareaRef}
                     value={draft}
-                    onChange={(e) => onChange(e.target.value)}
-                    placeholder={"Title\n\nStart writing…"}
+                    onChange={(e) => { onChange(e.target.value); assist.onInput(e); }}
+                    onKeyDown={assist.onKeyDown}
+                    onBlur={assist.onBlur}
+                    placeholder={"Title\n\nStart writing… type / for headings, checklists, tables, maths, a lecture recording and more"}
                     spellCheck
                     aria-label="Page content"
                     className="bare min-h-[50vh] w-full resize-none overflow-hidden bg-transparent font-sans text-base leading-[1.65] text-primary outline-none placeholder:text-tertiary"
@@ -1210,8 +1283,10 @@ export function NotebookView({
                 <textarea
                   ref={textareaRef}
                   value={draft}
-                  onChange={(e) => onChange(e.target.value)}
-                  placeholder={"Title\n\nStart writing…"}
+                  onChange={(e) => { onChange(e.target.value); assist.onInput(e); }}
+                  onKeyDown={assist.onKeyDown}
+                  onBlur={assist.onBlur}
+                  placeholder={"Title\n\nStart writing… type / for headings, checklists, tables, maths, a lecture recording and more"}
                   spellCheck
                   aria-label="Page content"
                   // Field-sizing keeps the box exactly as tall as the text, so the
@@ -1242,6 +1317,8 @@ export function NotebookView({
                   </ul>
                 </aside>
               )}
+              <PageConnections note={note} pages={pages} exclude={backlinkIds} onSelect={onSelect} onOpenChat={onOpenChat} />
+              {assist.menu}
             </div>
           </div>
 
@@ -1249,6 +1326,14 @@ export function NotebookView({
             <div className="mx-auto w-full max-w-[var(--measure)]">
               {notice && (
                 <p className="mb-2 rounded-lg bg-subtle px-3 py-1.5 text-xs text-secondary">{notice}</p>
+              )}
+              {recording && (
+                <Recorder
+                  draft={draft}
+                  onChange={(v) => onChange(v)}
+                  onClose={() => setRecording(false)}
+                  onDone={() => { setRecording(false); openStudio({ source: { name: `${note.title || "Lecture"} — lecture`, text: lastTranscript(draft) || draft }, tool: "notes" }); }}
+                />
               )}
               {added && sources.length > 0 && !busy && (
                 <div role="group" aria-label="What to make from it" className="mb-2 rounded-xl border border-line bg-surface px-3 py-2.5">

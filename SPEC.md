@@ -578,6 +578,17 @@ The thing a person is actually holding — a past paper, a chapter, a worksheet,
 | Sources on a page: PDFs/text attached to a page with page-level citations | ✅ (`sources`) | ⬜ Highlights: a citation press highlights the span in the source pane (exists for text; add PDF page render). |
 | Version history per page | ⬜ | Keep the last 50 saves (`noteVersions`), diff view reusing `DiffView`. |
 | Handwriting / pencil | ⬜ | Out of scope in the browser until a canvas starter can do it; the Whiteboard starter saves as a picture, which Vision can read. |
+| A page in a project: chip in the page head, the project lists its pages, "New page here", its chats are sent the page as knowledge (`<document name="Title (page)">`) | ✅ | Keep. |
+| Chat about this page: a chat opened with the page attached, in the page's project, remembered (`conversations.pageId`); the page lists "Chats about this page" and its source chat | ✅ | Keep. |
+| "@" in the chat box attaches a page by name | ✅ | ⬜ Tab picks the first. |
+| "Add to a page…" on any answer: appended under a rule, marked "From the chat “…”, date", with Undo | ✅ | Keep. |
+| The notebook in answers: a question two real words deep into a page is sent the passages (at most two pages), fenced as data; the why-line says "built on your notes"; Settings › Memory turns it off | ✅ | ⬜ Scope to a tag. |
+| "/" menu: headings, checklist, lists, table, callouts, quote, divider, code, maths, diagram, date; and Do: link, record a lecture, continue, explain, quiz, flashcards, revision notes, chat | ✅ | Keep. |
+| "[[" offers pages by title; a new title makes a new page when followed | ✅ | Keep. |
+| Checklists tick in the reading view; the head counts "n/m done" | ✅ | Keep. |
+| Lecture recording: live transcript into the page under a dated heading; "Make notes from it" opens the Studio on the transcript | ✅ (browser speech recognition) | ⬜ Audio kept with the page where storage allows. |
+| Related pages (by what they say, not by links) | ✅ | Keep. |
+| Palette: New page · New project · Keep this chat as a page | ✅ | Keep. |
 
 ---
 

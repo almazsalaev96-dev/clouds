@@ -6,6 +6,7 @@ import {
   Check, ChevronDown, ChevronLeft, ChevronRight, FileText, FolderOpen, FolderPlus, MessageSquare, MessageSquareDashed, Paperclip, Plus,
   Presentation, SlidersHorizontal, Sparkles, Telescope, Wand2, X, Globe, ListChecks, GraduationCap, Camera, ImagePlus } from "lucide-react";
 import { slashCommands, typingSlash, type SlashExtra } from "@/lib/slash";
+import { mentionAt } from "@/lib/notebook";
 import type { ContentBlock, Style } from "@/lib/types";
 import { getModel, estimateTokens, formatTokens } from "@/lib/models";
 import { engineOf } from "@/lib/presets";
@@ -64,6 +65,9 @@ export function Composer({
   assistantId = null,
   onAssistant,
   voice,
+  findPages,
+  seed,
+  onSeeded,
 }: {
   conversationId: string;
   streaming: boolean;
@@ -117,6 +121,15 @@ export function Composer({
   /** The style this thread answers in. */
   /** Voice mode, where the browser can do it. */
   voice?: import("@/lib/hooks/useVoiceMode").VoiceMode;
+  /**
+   * The Notebook, for "@": the pages whose titles match what follows the
+   * @, best first. A page picked is attached like a file, so the answer
+   * reads it and the message shows which page went with it.
+   */
+  findPages?: (query: string) => Promise<{ id: string; title: string; content: string }[]>;
+  /** A page to have attached already, for a chat opened about it. */
+  seed?: { conversationId: string; name: string; text: string } | null;
+  onSeeded?: () => void;
 }) {
   const settings = useSettings();
   const drafts = useDrafts();
@@ -155,6 +168,29 @@ export function Composer({
   React.useEffect(() => {
     setAttachments([]);
   }, [conversationId]);
+  /* After the clear above, so a chat opened about a page arrives with it. */
+  React.useEffect(() => {
+    if (!seed || seed.conversationId !== conversationId) return;
+    setAttachments([{ id: `page-${Date.now()}`, kind: "file", name: seed.name, mimeType: "text/markdown", size: seed.text.length, data: seed.text }]);
+    onSeeded?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seed, conversationId]);
+
+  /* "@" and the start of a page's name: the pages that match, to attach. */
+  const mention = findPages ? mentionAt(text, text.length) : null;
+  const [pageHits, setPageHits] = React.useState<{ id: string; title: string; content: string }[]>([]);
+  React.useEffect(() => {
+    let alive = true;
+    if (!mention || !findPages) { setPageHits([]); return; }
+    void findPages(mention.query).then((r) => { if (alive) setPageHits(r.slice(0, 6)); }).catch(() => undefined);
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mention?.query, mention === null]);
+  const attachPage = (p: { title: string; content: string }) => {
+    if (mention) setText(text.slice(0, mention.start).replace(/\s+$/, text.slice(0, mention.start).trim() ? " " : ""));
+    const name = `${p.title || "Untitled"}.md`;
+    setAttachments((a) => (a.some((x) => x.name === name) ? a : [...a, { id: `page-${Date.now()}`, kind: "file", name, mimeType: "text/markdown", size: p.content.length, data: p.content }]));
+  };
 
   const addFiles = React.useCallback(async (files: File[]) => {
     const next: Attachment[] = [];
@@ -536,6 +572,27 @@ export function Composer({
         }
         right={null}
       />
+
+      {/* "@" opens the Notebook: pages to attach to this message. */}
+      {mention && pageHits.length > 0 && (
+        <ul className="mt-1.5 flex flex-wrap items-center gap-1 px-4" role="listbox" aria-label="Attach a page">
+          <li role="presentation" aria-hidden className="pr-1 text-xs text-tertiary">Attach from your notebook</li>
+          {pageHits.map((p) => (
+            <li key={p.id}>
+              <button
+                role="option"
+                aria-selected={false}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => attachPage(p)}
+                className="btn-touch press focus-inset flex h-7 items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 text-xs text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
+              >
+                <FileText size={12} className="text-tertiary" aria-hidden />
+                <span className="max-w-56 truncate text-primary">{p.title || "Untitled"}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {/* A slash at the start of the box opens the list of what a slash can
           do, narrowed as it is typed. Shown here, under the box, because it

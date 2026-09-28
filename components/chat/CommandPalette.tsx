@@ -108,6 +108,10 @@ export function CommandPalette({
     /** Opens an item and moves to its section. Both halves, always. */
     open: (section: Section, id: string) => void;
     goToSection: (section: Section) => void;
+    /** A new page in the Notebook, a new project, this chat kept as a page. */
+    newPage?: () => void;
+    newProject?: () => void;
+    chatToPage?: () => void;
     setModel: (id: string) => void;
     exportMarkdown: () => void;
     deleteConversation: () => void;
@@ -192,6 +196,9 @@ export function CommandPalette({
     const base: Command[] = [
       { id: "new", label: "New chat", keys: ["mod", "N"], icon: <MessageSquarePlus size={15} />, group: "Actions", run: actions.newChat },
       { id: "settings", label: "Open settings", keys: ["mod", ","], icon: <Settings2 size={15} />, group: "Actions", run: actions.openSettings },
+      ...(actions.newPage ? [{ id: "new-page", label: "New page", hint: "a blank page in the Notebook — type / for blocks", icon: <NotebookPen size={15} />, group: "Actions", run: actions.newPage }] : []),
+      ...(actions.newProject ? [{ id: "new-project", label: "New project", hint: "instructions, files, pages and chats for one course", icon: <FolderOpen size={15} />, group: "Actions", run: actions.newProject }] : []),
+      ...(actions.chatToPage && actions.hasConversation ? [{ id: "chat-to-page", label: "Keep this chat as a page", hint: "the whole conversation, in the Notebook", icon: <NotebookPen size={15} />, group: "Actions", run: actions.chatToPage }] : []),
       { id: "studio-make", label: "Studio: make study materials", hint: "notes, flashcards, a paper, a mind map… from a book or a topic", icon: <Sparkles size={15} />, group: "Actions", run: () => openStudio({}) },
       { id: "studio-check", label: "Check an answer", hint: "marked point by point against the scheme", icon: <Sparkles size={15} />, group: "Actions", run: () => openStudio({ tool: "checker" }) },
       { id: "studio-paper", label: "Make an exam paper", hint: "timed, marked, with a mark scheme", icon: <Sparkles size={15} />, group: "Actions", run: () => openStudio({ tool: "paper" }) },
@@ -271,6 +278,7 @@ export function CommandPalette({
         ["creative", "Studio", <Sparkles key="v" size={15} />],
         ["projects", "Projects", <FolderOpen key="j" size={15} />],
         ["notebook", "Notebook", <NotebookPen key="n" size={15} />],
+        ["study", "Study", <GraduationCap key="s" size={15} />],
       ] as const
     ).map(([id, label, icon]) => ({
       id: `go:${id}`,

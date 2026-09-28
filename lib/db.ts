@@ -236,6 +236,11 @@ class ChatDB extends Dexie {
     });
     /* Courses: a subject, a level and a board cut into topics; the answers
        marked against their schemes; and the mock papers sat. Additive. */
+    /* Pages in projects: a page can belong to a project, and is then part
+       of what the project's chats know. Restated with every index notes had. */
+    this.version(20).stores({
+      notes: "id, updatedAt, pinned, projectId",
+    });
     this.version(19).stores({
       courses: "id, updatedAt",
       marks: "id, at, courseId, topicId, mockId",

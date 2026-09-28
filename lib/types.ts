@@ -195,6 +195,8 @@ export interface Conversation {
   archived: boolean;
   modelId: string;
   systemPrompt?: string;
+  /** A Notebook page this chat was opened about: shown on the page, and the page opens from the chat. */
+  pageId?: string;
   /** The project this belongs to, if any. Its instructions and knowledge apply. */
   projectId?: string;
   /** The assistant answering this thread, if one was chosen: its instructions ride with every turn. */
@@ -559,6 +561,8 @@ export interface Note {
   madeFrom?: string[];
   /** What was quoted for each claim, and whether it was really there. */
   citations?: Citation[];
+  /** The project this page belongs to: its pages are the project's knowledge too. */
+  projectId?: string;
 }
 
 /**

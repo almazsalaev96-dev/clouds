@@ -180,6 +180,12 @@ interface Settings {
    * every task goes straight to the writer.
    */
   craftOn: boolean;
+  /**
+   * The Notebook in the chat: the pages that clearly bear on what was
+   * asked are handed to the answer, and the row says which. On by default:
+   * a student's own notes are the best context there is for their question.
+   */
+  notesInChat: boolean;
   showLineNumbers: boolean;
   wrapCode: boolean;
   /** Browser-held keys, used only when the server has none for that provider. */
@@ -257,6 +263,7 @@ export const DEFAULT_SETTINGS = {
   exam: null,
   actionsOn: true,
   craftOn: true,
+  notesInChat: true,
   showLineNumbers: false,
   wrapCode: false,
   keys: {} as Record<string, string>,

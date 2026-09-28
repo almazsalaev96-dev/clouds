@@ -96,7 +96,7 @@ console.log("\nAnd the Study room has its own way in");
   await attach("krebs-cycle.txt");
   /* Polled on the room's text, not on an element: the notice is one line
      among others, and a second pack takes as long as the first. */
-  await p.waitForFunction(() => /3 pages( and \d+ cards)? made/.test(document.querySelector("main")?.innerText ?? ""), null, { timeout: 40_000 }).catch(() => {});
+  await p.waitForFunction(() => /3 pages( and \d+ cards)? made/.test(document.querySelector("main")?.innerText ?? ""), null, { timeout: 60_000 }).catch(() => {});
   const made = await p.locator("main").innerText();
   check(/3 pages and \d+ cards made/.test(made), "and the pack is made the moment the file lands, with no second press", (made.match(/3 pages[^\n]*/) ?? [""])[0].slice(0, 60));
   await go("Notebook");

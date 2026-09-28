@@ -31,6 +31,8 @@ import { estimateTokens } from "./models";
 export const KNOWLEDGE_BUDGET_TOKENS = 60_000;
 
 export interface PromptParts {
+  /** Passages from the person's own pages that bear on this turn (lib/notebook.ts). Per-turn, so volatile. */
+  notebook?: string;
   /** The assistant answering this thread: its way of working, after the person's rules and before the project's. */
   assistant?: Assistant;
   /** Off for the app's own internal calls — a titler wants no house style. */
@@ -194,6 +196,7 @@ export function composeSystemPrompt(parts: PromptParts): ComposedPrompt {
   const mode = parts.mode?.instructions.trim();
   if (mode) sections.push(`## Mode: ${parts.mode?.label}\n\n${mode}`);
 
+  if (parts.notebook) volatile = [volatile, parts.notebook].filter(Boolean).join("\n\n");
   return { text: sections.join("\n\n"), volatile, droppedFiles };
 }
 

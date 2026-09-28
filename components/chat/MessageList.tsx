@@ -45,6 +45,7 @@ function MessageListImpl({
   onRemember,
   onRegenerate,
   onSaveToNote,
+  onAddToPage,
   onOpenMade,
   onComputed,
   onMakeCards,
@@ -97,6 +98,7 @@ function MessageListImpl({
   onRemember?: (text: string) => void;
   onRegenerate: (message: Msg, modelId?: string) => void;
   onSaveToNote: (text: string) => void;
+  onAddToPage?: (text: string) => void;
   onOpenMade?: (message: Msg) => void;
   onComputed?: (message: Msg, out: import("@/lib/compute").Outcome) => void;
   onMakeCards?: (text: string) => void;
@@ -296,6 +298,7 @@ function MessageListImpl({
                 onNavigate={onNavigate}
                 onRegenerate={onRegenerate}
                 onSaveToNote={onSaveToNote}
+                onAddToPage={onAddToPage}
                 onOpenMade={onOpenMade}
                 onComputed={onComputed}
                 onMakeCards={onMakeCards}
