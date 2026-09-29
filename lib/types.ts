@@ -265,6 +265,8 @@ export interface Deck {
   updatedAt: number;
   /** The conversation, note or subject it was made from. */
   source?: string;
+  /** The best score in each game played on it: Match in milliseconds, the rest in points. */
+  best?: Partial<Record<"match" | "blitz" | "gravity", number>>;
 }
 
 /* ----------------------------------------------------------------- turns -- */

@@ -575,6 +575,8 @@ export interface StudyDay {
   right: number;
   /** Minutes sat in a timed session that day, where any were. */
   minutes?: number;
+  /** Points earned that day, from reviews and games. */
+  xp?: number;
 }
 
 export function dayKey(now: number): string {

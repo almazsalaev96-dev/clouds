@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, ClipboardPaste, Download, Plus, Repeat, Trash2 } from "lucide-react";
+import { ChevronLeft, ClipboardPaste, Download, Gamepad2, Plus, Repeat, Trash2 } from "lucide-react";
 import type { Deck } from "@/lib/types";
 import { addCards, cardsOf, deleteCard, importCards, updateCard } from "@/lib/db";
 import { draftCards } from "@/lib/generate";
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { RoomToggle } from "@/components/ui/RoomToggle";
 import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
 import { TestMode } from "@/components/study/TestMode";
+import { Games } from "@/components/study/Games";
 
 /**
  * What is actually in a deck, and the chance to fix it.
@@ -47,6 +48,7 @@ export function DeckPanel({
   onReview?: (cardIds: string[]) => void;
 }) {
   const [testing, setTesting] = React.useState(false);
+  const [playing, setPlaying] = React.useState(false);
   const stored = useLiveQuery(() => cardsOf(deck.id), [deck.id], [] as Card[]);
   /* In the order they matter, not the order the database keeps them. The
      index is by id, and ids sort as text — a deck of numbered cards came out
@@ -159,8 +161,17 @@ export function DeckPanel({
           )}
           {/* Recall, written down: ten questions answered in a box and
               marked, the exam's own shape rather than a card's. */}
+          {/* Games from the same cards — Match, Quick-fire, Gravity — for
+              the evening a review queue is empty and the deck still wants
+              going over. */}
+          {cards.length >= 2 && (
+            <Button size="sm" variant="ghost" onClick={() => { setTesting(false); setPlaying(true); }} aria-label="Play a game">
+              <Gamepad2 size={13} />
+              Play
+            </Button>
+          )}
           {cards.length >= 3 && (
-            <Button size="sm" variant="ghost" onClick={() => setTesting(true)} aria-label="Test me on this deck">
+            <Button size="sm" variant="ghost" onClick={() => { setPlaying(false); setTesting(true); }} aria-label="Test me on this deck">
               Test me
             </Button>
           )}
@@ -184,7 +195,14 @@ export function DeckPanel({
         </p>
       </div>
 
-      {testing ? (
+      {playing ? (
+        <Games
+          deck={deck}
+          cards={cards}
+          onDone={() => setPlaying(false)}
+          onReview={(ids) => { setPlaying(false); onReview?.(ids); }}
+        />
+      ) : testing ? (
         <TestMode
           cards={cards}
           now={now}

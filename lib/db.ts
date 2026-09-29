@@ -11,6 +11,7 @@ import {
   type Attempt, type Card, type Rating, type StudyDay,
 } from "./study";
 import type { Course, MarkRow, Mock } from "./course";
+import { isBest, reviewXp, type GameId } from "./games";
 
 /**
  * Local-first. IndexedDB is the source of truth, which makes the app instant,
@@ -689,12 +690,42 @@ export async function saveInk(lessonId: string, page: number, strokes: PageInk["
 export async function noteStudied(rating: Rating, now = Date.now()): Promise<void> {
   const day = dayKey(now);
   const right = rating === "good" || rating === "easy" ? 1 : 0;
+  const xp = reviewXp(rating);
   await db.transaction("rw", db.studyDays, async () => {
     const row = await db.studyDays.get(day);
     await db.studyDays.put(
-      row ? { ...row, answered: row.answered + 1, right: row.right + right } : { day, answered: 1, right },
+      row ? { ...row, answered: row.answered + 1, right: row.right + right, xp: (row.xp ?? 0) + xp } : { day, answered: 1, right, xp },
     );
   });
+}
+
+/**
+ * A finished game, onto the day: its answers count toward the streak the
+ * way a practice run's do, and its points toward the level. The deck keeps
+ * its best score for that game; the return says whether this was one.
+ */
+export async function noteGame(
+  deckId: string,
+  game: GameId,
+  r: { answered: number; right: number; xp: number; best: number },
+  now = Date.now(),
+): Promise<{ best: boolean }> {
+  const day = dayKey(now);
+  let best = false;
+  await db.transaction("rw", db.studyDays, db.decks, async () => {
+    const row = await db.studyDays.get(day);
+    await db.studyDays.put(
+      row
+        ? { ...row, answered: row.answered + r.answered, right: row.right + r.right, xp: (row.xp ?? 0) + r.xp }
+        : { day, answered: r.answered, right: r.right, xp: r.xp },
+    );
+    const deck = await db.decks.get(deckId);
+    if (deck && r.answered > 0 && isBest(game, r.best, deck.best?.[game])) {
+      best = true;
+      await db.decks.update(deckId, { best: { ...deck.best, [game]: r.best } });
+    }
+  });
+  return { best };
 }
 
 /** Minutes from a timed session, added to the day. */

@@ -37,6 +37,8 @@ import { RoomToggle } from "@/components/ui/RoomToggle";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { cn, formatBytes } from "@/lib/utils";
 import { LearnerCard } from "@/components/study/Learner";
+import { Level } from "@/components/study/Games";
+import { totalXp } from "@/lib/games";
 import { useSettings } from "@/lib/store";
 import { explainCard, splitQuote } from "@/lib/explain";
 
@@ -375,6 +377,7 @@ export function StudyView({
   const due = dueNow(cards, now).length;
   const today = answeredToday(cards, now);
   const streak = streakOf(days, now);
+  const xp = totalXp(days);
   /* Where the trouble is, from the cards' own memory model: the deck most
      likely to be forgotten right now, offered as a practice run. Not a
      hook: this line sits below the early returns for a session and an open
@@ -672,6 +675,7 @@ export function StudyView({
               {topics.length > 1 && <Topics topics={topics} onPractise={practise} />}
               <Record days={days} now={now} cards={cards} />
               {surenessLine && <Sureness c={sureness} line={surenessLine} />}
+              {xp > 0 && <Level xp={xp} className="mt-3" />}
               {streak > 1 && (
                 <p className="mt-2 flex items-center gap-1.5 text-xs text-tertiary tnum" aria-label={`${streak} days in a row`}>
                   <Flame size={12} className="text-[var(--accent-2)]" />
