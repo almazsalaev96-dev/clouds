@@ -18,6 +18,8 @@ const check = (c, l, d = "") => { if (!c) failed++; console.log(`${c ? "  ✓" :
 const S = { theme: "light", density: "comfortable", modelId: "one", styleId: "auto", mode: "chat", sidebarOpen: false, sendOnEnter: true, showLineNumbers: false, wrapCode: false, keys: {}, params: {}, favorites: [], recentModels: [], systemPrompt: "", name: "Almaz", nameAsked: true, section: "notebook" };
 /* Opens the drawer only if it is shut — closing Settings leaves it as it was. */
 const drawer = async (label) => {
+  /* Study is not in the list of rooms; it opens by its shortcut. */
+  if (label === "Study") { await p.keyboard.press("Meta+5"); await p.waitForTimeout(900); return; }
   const room = p.getByRole("button", { name: label }).first();
   if (!(await room.isVisible().catch(() => false))) { await p.getByRole("button", { name: /sidebar/i }).first().click(); await p.waitForTimeout(500); }
   await room.click();

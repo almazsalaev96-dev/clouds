@@ -51,7 +51,7 @@ await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
 await p.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), S);
 await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(900);
-await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
+await p.keyboard.press("Meta+5");
 await p.waitForTimeout(600);
 
 

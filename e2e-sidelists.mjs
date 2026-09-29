@@ -52,7 +52,7 @@ await p.evaluate(async () => {
 await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(1000);
 const side = p.locator("aside");
-const go = async (room) => { await side.locator("nav").getByRole("button", { name: room, exact: true }).click(); await p.waitForTimeout(700); };
+const go = async (room) => { if (room === "Study") await p.keyboard.press("Meta+5"); else await side.locator("nav").getByRole("button", { name: room, exact: true }).click(); await p.waitForTimeout(700); };
 const rows = (label) => side.getByRole("region", { name: label }).getByRole("button");
 
 console.log("\nStudy: the decks, with what is due");

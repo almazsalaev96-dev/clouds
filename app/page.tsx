@@ -2755,8 +2755,9 @@ export default function Page() {
         case "5": {
           e.preventDefault();
           // The order the sidebar shows them in, so the number you press is
-          // the position you can see rather than one you have to remember.
-          const sections = ["chat", "study", "notebook", "projects", "creative"] as const;
+          // the position you can see rather than one you have to remember;
+          // Study, which the sidebar does not list, comes after them.
+          const sections = ["chat", "notebook", "projects", "creative", "study"] as const;
           goToSection(sections[Number(e.key) - 1]);
           break;
         }

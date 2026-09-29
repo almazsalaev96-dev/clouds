@@ -79,7 +79,7 @@ console.log("\nA picture");
 
 console.log("\nA deck in Study");
 {
-  await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
+  await p.keyboard.press("Meta+5");
   await p.waitForTimeout(700);
   await fetch(`${MOCK}/__reset`);
   await p.getByRole("textbox", { name: "What to study" }).first().fill("osmosis");

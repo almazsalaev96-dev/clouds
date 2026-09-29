@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  ChevronRight, FolderOpen, GraduationCap, Keyboard, MessagesSquare, NotebookPen,
+  ChevronRight, FolderOpen, Keyboard, MessagesSquare, NotebookPen,
   PanelLeft, Pin, PinOff, Plus, Search, Settings2, Sparkles, SquarePen, Trash2, X,
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
@@ -55,7 +55,8 @@ const SECTIONS: { id: Section; label: string; icon: React.ReactNode }[] = [
      gone there was no way back to the thread you were reading except opening
      one, and "New chat" is not that — it is a different conversation. */
   { id: "chat", label: "Conversations", icon: <MessagesSquare size={20} /> },
-  { id: "study", label: "Study", icon: <GraduationCap size={20} /> },
+  /* Study is not listed here: it is opened from the command palette (⌘K),
+     ⌘5, a deck or a due-cards line, and never from the list of rooms. */
   { id: "notebook", label: "Notebook", icon: <NotebookPen size={20} /> },
   { id: "projects", label: "Projects", icon: <FolderOpen size={20} /> },
   /* Studio is the one making room: what you ask for, what is ready this

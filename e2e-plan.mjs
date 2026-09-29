@@ -83,7 +83,7 @@ console.log("\nThe deck most likely to be forgotten is named, with a way to prac
   }), { now, DAY });
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(600);
-  await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
+  await p.keyboard.press("Meta+5");
   await p.waitForTimeout(700);
   /* The shakiest deck is now one of the "most marks for your time" moves
      on the results card, rather than a line of its own. */

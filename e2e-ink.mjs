@@ -67,7 +67,7 @@ await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
 await p.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), S);
 await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(900);
-await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
+await p.keyboard.press("Meta+5");
 await p.waitForTimeout(600);
 await p.getByLabel("A document to work through").setInputFiles({ name: "osmosis.pdf", mimeType: "application/pdf", buffer: pdf() });
 await p.getByRole("img", { name: /Page 1 of osmosis\.pdf/ }).waitFor({ timeout: 20000 });
@@ -107,7 +107,7 @@ console.log("\nThe ink is kept");
   check((await paths()) === 1, "the last stroke can be taken back", `${await paths()} path(s)`);
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(1200);
-  await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
+  await p.keyboard.press("Meta+5");
   await p.waitForTimeout(600);
   await p.getByRole("button", { name: /Open osmosis\.pdf/ }).click();
   await p.getByRole("img", { name: /Page 1 of osmosis\.pdf/ }).waitFor({ timeout: 20000 });
@@ -171,7 +171,7 @@ console.log("\nAnd a study guide made from it lands in the Notebook");
 
 console.log("\nOn a phone the page keeps its share of the screen");
 {
-  await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
+  await p.keyboard.press("Meta+5");
   await p.waitForTimeout(600);
   await p.getByRole("button", { name: /Open osmosis\.pdf/ }).click();
   await p.getByRole("img", { name: /Page 1 of osmosis\.pdf/ }).waitFor({ timeout: 20000 });

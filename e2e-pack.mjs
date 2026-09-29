@@ -24,7 +24,7 @@ const CHAPTER = [
   "A cell placed in a hypotonic solution gains water; an animal cell may burst while a plant cell becomes turgid.",
   "A cell placed in a hypertonic solution loses water; a plant cell becomes flaccid and then plasmolysed.",
 ].join("\n\n");
-const go = async (label) => { await p.getByRole("button", { name: label }).first().click(); await p.waitForTimeout(800); };
+const go = async (label) => { if (label === "Study") await p.keyboard.press("Meta+5"); else await p.getByRole("button", { name: label }).first().click(); await p.waitForTimeout(800); };
 const attach = async (name) => {
   await p.getByLabel("Choose something to read").setInputFiles({ name, mimeType: "text/plain", buffer: Buffer.from(CHAPTER) });
   await p.waitForTimeout(800);

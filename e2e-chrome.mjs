@@ -55,12 +55,16 @@ console.log("\nThe sidebar carries its own control, and leaves a rail when close
   await p.waitForTimeout(350);
   const after = await open.locator("span").first().evaluate((el) => getComputedStyle(el).opacity);
   check(before === "1" && after === "0", "the mark gives way to the open icon under the pointer", `mark opacity ${before} → ${after}`);
-  for (const name of ["New chat", "Search", "Conversations", "Study", "Notebook", "Projects", "Studio", "Settings"])
+  for (const name of ["New chat", "Search", "Conversations", "Notebook", "Projects", "Studio", "Settings"])
     check(await aside.getByRole("button", { name, exact: true }).isVisible(), `the rail has ${name}`);
+  check(!(await aside.getByRole("button", { name: "Study", exact: true }).count()), "and no Study: it is not one of the listed rooms");
   check((await aside.locator("[inert]").count()) === 1, "the full panel is inert behind the rail, so nothing hidden takes focus");
-  await aside.getByRole("button", { name: "Study", exact: true }).click();
+  await aside.getByRole("button", { name: "Notebook", exact: true }).click();
   await p.waitForTimeout(600);
-  check(/Study|Decks|Today's plan/.test(await p.locator("main").innerText()), "a rail room button goes to the room");
+  check(await aside.getByRole("button", { name: "Notebook", exact: true }).getAttribute("aria-current") === "true", "a rail room button goes to the room");
+  await p.keyboard.press("Meta+5");
+  await p.waitForTimeout(600);
+  check(/Today|Decks|Add a course/.test(await p.locator("main").innerText()), "and Study is still there, one shortcut away");
   await p.keyboard.press("Meta+Shift+S");
   await p.waitForTimeout(500);
   check(await aside.getByRole("button", { name: "Close sidebar" }).isVisible(), "⌘⇧S opens it again, as the reference's chord does");
@@ -69,9 +73,9 @@ console.log("\nThe sidebar carries its own control, and leaves a rail when close
   check(await aside.getByRole("button", { name: "Open sidebar" }).isVisible(), "and ⌘\\ closes it");
   await p.keyboard.press("Meta+\\");
   await p.waitForTimeout(400);
-  await p.keyboard.press("Meta+4");
+  await p.keyboard.press("Meta+3");
   await p.waitForTimeout(600);
-  check(await aside.getByRole("button", { name: "Projects", exact: true }).getAttribute("aria-current") === "true", "⌘4 is the fourth room the sidebar lists, Projects");
+  check(await aside.getByRole("button", { name: "Projects", exact: true }).getAttribute("aria-current") === "true", "⌘3 is the third room the sidebar lists, Projects");
   await p.keyboard.press("Meta+1");
   await p.waitForTimeout(500);
 }

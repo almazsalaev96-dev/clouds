@@ -91,7 +91,7 @@ console.log("\nThey ride at the start of every conversation");
 
 console.log("\nAnd they hold in the document reader too");
 {
-  await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
+  await p.keyboard.press("Meta+5");
   await p.waitForTimeout(600);
   await p.getByLabel("A document to work through").setInputFiles({ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("Osmosis moves water across a membrane.") });
   await p.waitForTimeout(1500);

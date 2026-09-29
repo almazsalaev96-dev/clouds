@@ -30,7 +30,7 @@ await p.keyboard.press("Meta+Enter");
 await p.waitForTimeout(4500);
 
 /* And a deck, so there are cards to look inside. */
-await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
+await p.keyboard.press("Meta+5");
 await p.waitForTimeout(600);
 await p.getByRole("textbox", { name: /What to study/ }).fill("debouncing");
 await p.keyboard.press("Enter");

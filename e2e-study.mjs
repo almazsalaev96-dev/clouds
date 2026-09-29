@@ -39,7 +39,7 @@ const cards = () => p.evaluate(() => new Promise((ok) => {
 
 console.log("\nA subject becomes a deck");
 {
-  await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
+  await p.keyboard.press("Meta+5");
   /* Waited for rather than slept at: the room is its own chunk and arrives
      when it arrives. */
   await p.getByText("Nothing to study yet.").waitFor({ timeout: 10_000 }).catch(() => {});
@@ -127,13 +127,13 @@ console.log("\nAn answer in a chat can become a deck too");
   await p.waitForTimeout(4500);
   const after = (await cards()).length;
   check(after > before, "and pressing it makes a deck from the answer", `${before} → ${after} cards`);
-  check(/Study/.test(await p.locator("aside nav").innerText()), "which lands you in the room where it is kept");
+  check(/^Study$/m.test(await p.locator("main").innerText()), "which lands you in the room where it is kept");
   check((await p.getByRole("list", { name: "Study" }).locator("li").count()) === 2, "as a second deck, named after the conversation");
 }
 
 console.log("\nA deck can be looked at, and fixed");
 {
-  await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
+  await p.keyboard.press("Meta+5");
   await p.waitForTimeout(600);
   await p.getByRole("button", { name: /^Open debouncing/ }).click();
   await p.waitForTimeout(500);
@@ -190,7 +190,7 @@ console.log("\nAnd a card you got wrong can be explained");
 
 console.log("\nA list pasted in becomes a deck, and asks nothing of a model");
 {
-  await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
+  await p.keyboard.press("Meta+5");
   await p.waitForTimeout(600);
   const before = (await cards()).length;
   await p.getByRole("button", { name: /Paste cards/ }).click();

@@ -61,7 +61,7 @@ await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
   }).catch(() => {});
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(900);
-  await p.locator("aside nav").getByRole("button", { name: "Study", exact: true }).click();
+  await p.keyboard.press("Meta+5");
   await p.waitForTimeout(900);
 
 console.log("\nToday, at the top of Study, worked out here");

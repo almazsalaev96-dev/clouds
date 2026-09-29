@@ -16,7 +16,7 @@ const ctx = await b.newContext({ viewport: { width: 1366, height: 1024 } });
 const p = await ctx.newPage();
 const errs = [];
 p.on("pageerror", (e) => errs.push("PAGE: " + e.message));
-const go = async (label) => { await p.getByRole("button", { name: label }).first().click(); await p.waitForTimeout(900); };
+const go = async (label) => { if (label === "Study") await p.keyboard.press("Meta+5"); else await p.getByRole("button", { name: label }).first().click(); await p.waitForTimeout(900); };
 
 await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
 await p.evaluate(async () => {
@@ -199,7 +199,7 @@ console.log("\nOn a touch screen the box does not raise the keyboard by itself")
   check(coarse, "the probe's touch context reads as a coarse pointer", `${coarse}`);
   const focusedBlank = await t.evaluate(() => document.activeElement?.tagName === "TEXTAREA");
   check(!focusedBlank, "the blank page does not put the caret in the box — that would raise the keyboard over the greeting");
-  await t.getByRole("button", { name: "Study" }).first().click();
+  await t.keyboard.press("Meta+5");
   await t.waitForTimeout(800);
   const focusedRoom = await t.evaluate(() => document.activeElement?.tagName === "TEXTAREA");
   check(!focusedRoom, "nor does walking into a room");

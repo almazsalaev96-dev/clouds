@@ -41,7 +41,7 @@ const rows = (store) => p.evaluate((store) => new Promise((ok) => {
 }), store);
 const waitFor = async (loc, ms = 20000) => { await loc.first().waitFor({ timeout: ms }).catch(() => {}); return loc.first().isVisible().catch(() => false); };
 const settings = () => p.evaluate(() => JSON.parse(localStorage.getItem("store.settings.v1")).state);
-const room = async (name) => { await p.locator("aside nav").getByRole("button", { name, exact: true }).first().click(); await p.waitForTimeout(600); };
+const room = async (name) => { if (name === "Study") await p.keyboard.press("Meta+5"); else await p.locator("aside nav").getByRole("button", { name, exact: true }).first().click(); await p.waitForTimeout(600); };
 
 await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
 await p.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), S);
@@ -116,7 +116,7 @@ console.log("\n\"Not now\" puts it away");
   await fresh.goto("http://localhost:3100", { waitUntil: "networkidle" });
   await fresh.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), S);
   await fresh.reload({ waitUntil: "networkidle" });
-  await fresh.locator("aside nav").getByRole("button", { name: "Study", exact: true }).first().click();
+  await fresh.keyboard.press("Meta+5");
   await fresh.waitForTimeout(600);
   const card = fresh.getByRole("region", { name: "What are you studying for?" });
   await card.getByRole("button", { name: "Not now" }).last().click();

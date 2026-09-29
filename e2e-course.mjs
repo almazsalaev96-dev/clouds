@@ -32,7 +32,7 @@ await p.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify
 await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(700);
 await fetch(`${MOCK}/__reset`);
-await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
+await p.keyboard.press("Meta+5");
 await p.waitForTimeout(700);
 
 console.log("\nA course is built from a subject, a level and a board");
@@ -175,7 +175,7 @@ console.log("\nThe course is on the Study index with its result");
   check(await tile.isVisible(), "the course has a tile");
   check(/\d+%/.test(await tile.innerText()) && /topics tried/.test(await tile.innerText()), "with its likely marks and how much is covered", (await tile.innerText()).replace(/\s+/g, " "));
   await p.reload({ waitUntil: "networkidle" });
-  await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
+  await p.keyboard.press("Meta+5");
   await p.waitForTimeout(700);
   check(await p.getByRole("button", { name: "Open course Biology · GCSE · AQA" }).isVisible(), "and it survives a reload");
 }
