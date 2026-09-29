@@ -1,0 +1,22 @@
+{%- comment -%} Totals + checkout button, shared by cart page and drawer. {%- endcomment -%}
+{%- liquid
+  assign savings = 0
+  for item in cart.items
+    if item.variant.compare_at_price > item.variant.price
+      assign line_save = item.variant.compare_at_price | minus: item.variant.price | times: item.quantity
+      assign savings = savings | plus: line_save
+    endif
+  endfor
+  assign savings = savings | plus: cart.total_discount
+-%}
+<div class="summary-row"><span>Subtotal ({{ cart.item_count }} {{ cart.item_count | pluralize: 'item', 'items' }})</span><span>{{ cart.items_subtotal_price | money }}</span></div>
+{%- for discount in cart.cart_level_discount_applications -%}
+  <div class="summary-row summary-row--save"><span>{{ discount.title }}</span><span>−{{ discount.total_allocated_amount | money }}</span></div>
+{%- endfor -%}
+{%- if savings > 0 -%}
+  <div class="summary-row summary-row--save"><span>You're saving</span><span>{{ savings | money }}</span></div>
+{%- endif -%}
+<div class="summary-row summary-row--total"><span>Estimated total</span><span>{{ cart.total_price | money_with_currency }}</span></div>
+<p class="muted" style="font-size:.84rem;">Taxes and shipping calculated at checkout.</p>
+<button type="submit" name="checkout" form="{{ form_id }}" class="btn btn--brand btn--lg btn--full">Proceed to Checkout</button>
+<div class="cart-secure">{% render 'icon', icon: 'lock' %} Secure checkout · {{ settings.returns_message }}</div>

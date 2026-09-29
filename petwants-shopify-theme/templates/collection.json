@@ -1,0 +1,18 @@
+{
+  "sections": {
+    "main": { "type": "main-collection", "settings": { "per_page": 24, "columns": 4, "show_description": true, "show_image": false } },
+    "trust": {
+      "type": "trust-bar",
+      "blocks": {
+        "t1": { "type": "item", "settings": { "icon": "truck", "title": "Free shipping $49+", "text": "Fast delivery to your door" } },
+        "t2": { "type": "item", "settings": { "icon": "autoship", "title": "Autoship & save", "text": "Skip or cancel anytime" } },
+        "t3": { "type": "item", "settings": { "icon": "phone", "title": "Real pet experts", "text": "Here 7 days a week" } },
+        "t4": { "type": "item", "settings": { "icon": "return", "title": "Easy returns", "text": "We'll make it right" } }
+      },
+      "block_order": ["t1", "t2", "t3", "t4"],
+      "settings": { "alt_bg": true }
+    },
+    "recent": { "type": "recently-viewed", "settings": { "heading": "Recently viewed", "limit": 8 } }
+  },
+  "order": ["main", "trust", "recent"]
+}

@@ -1,0 +1,31 @@
+<div class="page-width section">
+  <div class="image-text" style="align-items:start;">
+    <div>
+      <h1>{{ page.title }}</h1>
+      <div class="rte">{{ page.content }}</div>
+      <ul class="assurance">
+        {%- if settings.support_phone != blank -%}<li>{% render 'icon', icon: 'phone' %}<div><strong><a href="tel:{{ settings.support_phone | remove: ' ' | remove: '-' }}">{{ settings.support_phone }}</a></strong><span class="muted">{{ settings.support_hours }}</span></div></li>{%- endif -%}
+        <li>{% render 'icon', icon: 'mail' %}<div><strong>{{ shop.email }}</strong><span class="muted">We reply within one business day</span></div></li>
+      </ul>
+    </div>
+    <div class="card-box">
+      {%- form 'contact', id: 'ContactForm' -%}
+        {%- if form.posted_successfully? -%}
+          <div class="form-message form-message--success">Thanks! We'll get back to you soon.</div>
+        {%- elsif form.errors -%}
+          <div class="form-message form-message--error">{{ form.errors | default_errors }}</div>
+        {%- endif -%}
+        <div class="field"><label for="ContactName">Name</label><input class="input" id="ContactName" name="contact[name]" autocomplete="name" value="{{ form.name }}"></div>
+        <div class="field"><label for="ContactEmail">Email *</label><input class="input" id="ContactEmail" type="email" name="contact[email]" autocomplete="email" required value="{{ form.email }}"></div>
+        <div class="field"><label for="ContactPhone">Phone</label><input class="input" id="ContactPhone" type="tel" name="contact[phone]" autocomplete="tel" value="{{ form.phone }}"></div>
+        <div class="field"><label for="ContactOrder">Order number (optional)</label><input class="input" id="ContactOrder" name="contact[order]"></div>
+        <div class="field"><label for="ContactBody">How can we help?</label><textarea class="textarea" id="ContactBody" name="contact[body]">{{ form.body }}</textarea></div>
+        <button type="submit" class="btn btn--brand btn--full">Send message</button>
+      {%- endform -%}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{ "name": "Contact form", "tag": "section" }
+{% endschema %}

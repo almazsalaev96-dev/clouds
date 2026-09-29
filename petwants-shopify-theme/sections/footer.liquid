@@ -1,0 +1,99 @@
+<footer class="site-footer">
+  {%- if section.settings.show_trust -%}
+    <div class="footer-trust">
+      <div class="page-width footer-trust__inner">
+        <div class="footer-trust__item">{% render 'icon', icon: 'truck' %}<div><strong>Free shipping</strong>{% if settings.free_shipping_threshold > 0 %}On orders {{ settings.free_shipping_threshold | times: 100 | money_without_trailing_zeros }}+{% else %}On every order{% endif %}</div></div>
+        <div class="footer-trust__item">{% render 'icon', icon: 'return' %}<div><strong>Hassle-free returns</strong>{{ settings.returns_message }}</div></div>
+        <div class="footer-trust__item">{% render 'icon', icon: 'phone' %}<div><strong>Real pet experts</strong>{{ settings.support_hours }}</div></div>
+        <div class="footer-trust__item">{% render 'icon', icon: 'lock' %}<div><strong>Secure checkout</strong>Your data is encrypted</div></div>
+      </div>
+    </div>
+  {%- endif -%}
+
+  <div class="page-width footer-main" style="--cols: {{ section.blocks.size | at_least: 1 }};">
+    <div class="footer-brand">
+      <a href="{{ routes.root_url }}">{% render 'logo', width: 170, loading: 'lazy' %}</a>
+      {%- if section.settings.about != blank -%}<p>{{ section.settings.about }}</p>{%- endif -%}
+      {%- if settings.support_phone != blank -%}
+        <div class="footer-support">
+          <small>Questions? Call or text us</small>
+          <a href="tel:{{ settings.support_phone | remove: ' ' | remove: '-' }}">{{ settings.support_phone }}</a>
+          <small>{{ settings.support_hours }}</small>
+        </div>
+      {%- endif -%}
+      <ul class="social" aria-label="Social media">
+        {%- if settings.social_facebook != blank -%}<li><a href="{{ settings.social_facebook }}" aria-label="Facebook" target="_blank" rel="noopener">{% render 'icon', icon: 'facebook' %}</a></li>{%- endif -%}
+        {%- if settings.social_instagram != blank -%}<li><a href="{{ settings.social_instagram }}" aria-label="Instagram" target="_blank" rel="noopener">{% render 'icon', icon: 'instagram' %}</a></li>{%- endif -%}
+        {%- if settings.social_tiktok != blank -%}<li><a href="{{ settings.social_tiktok }}" aria-label="TikTok" target="_blank" rel="noopener">{% render 'icon', icon: 'tiktok' %}</a></li>{%- endif -%}
+        {%- if settings.social_youtube != blank -%}<li><a href="{{ settings.social_youtube }}" aria-label="YouTube" target="_blank" rel="noopener">{% render 'icon', icon: 'youtube' %}</a></li>{%- endif -%}
+        {%- if settings.social_pinterest != blank -%}<li><a href="{{ settings.social_pinterest }}" aria-label="Pinterest" target="_blank" rel="noopener">{% render 'icon', icon: 'pinterest' %}</a></li>{%- endif -%}
+      </ul>
+    </div>
+
+    {%- for block in section.blocks -%}
+      <div class="footer-col" {{ block.shopify_attributes }}>
+        <details open data-footer-accordion>
+          <summary><h3>{{ block.settings.heading | default: block.settings.menu.title }} <span class="footer-col__chev" aria-hidden="true">{% render 'icon', icon: 'chevron-down', class: 'icon--sm' %}</span></h3></summary>
+          {%- if block.type == 'menu' and block.settings.menu != blank -%}
+            <ul>
+              {%- for link in block.settings.menu.links -%}
+                <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+              {%- endfor -%}
+            </ul>
+          {%- elsif block.type == 'text' -%}
+            <div class="rte" style="color:#cfcfcf;font-size:.92rem;">{{ block.settings.text }}</div>
+          {%- endif -%}
+        </details>
+      </div>
+    {%- endfor -%}
+  </div>
+
+  <div class="footer-bottom">
+    <div class="page-width footer-bottom__inner">
+      <div>&copy; {{ 'now' | date: '%Y' }} {{ shop.name | link_to: routes.root_url }}. All rights reserved.</div>
+      <ul class="footer-legal">
+        {%- for policy in shop.policies -%}
+          <li><a href="{{ policy.url }}">{{ policy.title }}</a></li>
+        {%- endfor -%}
+      </ul>
+      {%- if section.settings.show_payment -%}
+        <ul class="payment-icons" aria-label="Payment methods">
+          {%- for type in shop.enabled_payment_types -%}
+            <li>{{ type | payment_type_svg_tag }}</li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+    </div>
+  </div>
+</footer>
+
+{% schema %}
+{
+  "name": "Footer",
+  "class": "section-footer",
+  "max_blocks": 4,
+  "settings": [
+    { "type": "checkbox", "id": "show_trust", "label": "Show trust strip", "default": true },
+    { "type": "textarea", "id": "about", "label": "About text", "default": "PetWants brings pet parents the food, treats, toys and care their pets want — delivered fast, with real people ready to help." },
+    { "type": "checkbox", "id": "show_payment", "label": "Show payment icons", "default": true }
+  ],
+  "blocks": [
+    {
+      "type": "menu",
+      "name": "Menu",
+      "settings": [
+        { "type": "text", "id": "heading", "label": "Heading" },
+        { "type": "link_list", "id": "menu", "label": "Menu", "default": "footer" }
+      ]
+    },
+    {
+      "type": "text",
+      "name": "Text",
+      "settings": [
+        { "type": "text", "id": "heading", "label": "Heading", "default": "Our promise" },
+        { "type": "richtext", "id": "text", "label": "Text", "default": "<p>Every order is backed by real pet experts. Not happy? We'll make it right.</p>" }
+      ]
+    }
+  ]
+}
+{% endschema %}

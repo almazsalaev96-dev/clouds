@@ -1,0 +1,37 @@
+{% layout none %}
+<!doctype html>
+<html lang="{{ request.locale.iso_code }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Your {{ gift_card.initial_value | money }} gift card from {{ shop.name }}</title>
+    {{ content_for_header }}
+    {{ 'theme.css' | asset_url | stylesheet_tag }}
+    <script src="{{ 'vendor/qrcode.js' | shopify_asset_url }}" defer></script>
+    <style>
+      :root { --c-brand: {{ settings.color_brand }}; --c-brand-dark: {{ settings.color_brand | color_darken: 10 }}; --c-on-brand: {{ settings.color_on_brand }}; --c-ink: {{ settings.color_ink }}; --c-bg-alt: {{ settings.color_background_alt }}; --radius: 14px; --radius-btn: 28px; --font-body: system-ui, sans-serif; --font-heading: system-ui, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <main class="not-found" style="max-width:520px;margin:0 auto;">
+      <img src="{{ 'petwants-logo.png' | asset_url }}" alt="{{ shop.name | escape }}" width="220" height="163" style="width:220px;margin:0 auto 18px;">
+      <h1>Here's your {{ gift_card.initial_value | money }} gift card!</h1>
+      {%- if gift_card.enabled == false or gift_card.expired -%}
+        <p class="form-message form-message--error">This gift card is {% if gift_card.expired %}expired{% else %}disabled{% endif %}.</p>
+      {%- endif -%}
+      <p>Balance: <strong>{{ gift_card.balance | money }}</strong></p>
+      <div class="coupon" style="justify-content:center;">{{ gift_card.code | format_code }}</div>
+      <div id="QrCode" data-identifier="{{ gift_card.qr_identifier }}" style="display:grid;place-items:center;margin:16px 0;"></div>
+      {%- if gift_card.pass_url -%}
+        <a href="{{ gift_card.pass_url }}"><img src="{{ 'gift-card/add-to-apple-wallet.svg' | shopify_asset_url }}" width="120" height="40" alt="Add to Apple Wallet" loading="lazy" style="margin:0 auto 14px;"></a>
+      {%- endif -%}
+      <p><a href="{{ shop.url }}" class="btn btn--brand">Start shopping</a> <button type="button" class="btn btn--outline" onclick="window.print()">Print</button></p>
+    </main>
+    <script>
+      window.addEventListener('load', function () {
+        var el = document.getElementById('QrCode');
+        if (window.QRCode && el) new QRCode(el, { text: el.dataset.identifier, width: 120, height: 120 });
+      });
+    </script>
+  </body>
+</html>

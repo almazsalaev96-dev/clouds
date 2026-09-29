@@ -1,0 +1,49 @@
+<section class="section{% if section.settings.alt_bg %} section--alt{% endif %}">
+  <div class="page-width">
+    <div class="image-text{% if section.settings.reverse %} image-text--reverse{% endif %}">
+      <div class="image-text__media">
+        {%- if section.settings.image != blank -%}
+          {{ section.settings.image | image_url: width: 1400 | image_tag: loading: 'lazy', sizes: '(min-width: 750px) 50vw, 100vw', widths: '500, 750, 1000, 1400' }}
+        {%- else -%}
+          {{ 'lifestyle-2' | placeholder_svg_tag }}
+        {%- endif -%}
+      </div>
+      <div>
+        {%- if section.settings.eyebrow != blank -%}<p class="promo__eyebrow" style="color:var(--c-trust);">{{ section.settings.eyebrow }}</p>{%- endif -%}
+        <h2>{{ section.settings.heading }}</h2>
+        <div class="rte">{{ section.settings.text }}</div>
+        {%- if section.settings.bullets != blank -%}
+          <ul class="check-list">
+            {%- assign lines = section.settings.bullets | newline_to_br | split: '<br />' -%}
+            {%- for line in lines -%}
+              {%- assign l = line | strip -%}
+              {%- if l != blank -%}<li>{% render 'icon', icon: 'check' %}<span>{{ l }}</span></li>{%- endif -%}
+            {%- endfor -%}
+          </ul>
+        {%- endif -%}
+        {%- if section.settings.button_label != blank -%}
+          <a href="{{ section.settings.button_link | default: '#' }}" class="btn btn--dark">{{ section.settings.button_label }}</a>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Image with text",
+  "tag": "div",
+  "settings": [
+    { "type": "image_picker", "id": "image", "label": "Image" },
+    { "type": "checkbox", "id": "reverse", "label": "Image on right", "default": false },
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Why PetWants" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Pet parents helping pet parents" },
+    { "type": "richtext", "id": "text", "label": "Text", "default": "<p>We only carry products we'd give our own pets, and our team is here whenever you need a hand.</p>" },
+    { "type": "textarea", "id": "bullets", "label": "Checklist (one per line)", "default": "Brands you know and trust\nFast, reliable delivery\nFriendly experts, real answers" },
+    { "type": "text", "id": "button_label", "label": "Button label", "default": "Our story" },
+    { "type": "url", "id": "button_link", "label": "Button link" },
+    { "type": "checkbox", "id": "alt_bg", "label": "Soft background", "default": false }
+  ],
+  "presets": [ { "name": "Image with text" } ]
+}
+{% endschema %}

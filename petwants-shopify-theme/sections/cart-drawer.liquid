@@ -1,0 +1,40 @@
+<div class="drawer drawer--right cart-drawer" id="CartDrawer" aria-hidden="true">
+  <button type="button" class="drawer__overlay" data-drawer-close tabindex="-1" aria-label="Close cart"></button>
+  <div class="drawer__panel" role="dialog" aria-modal="true" aria-label="Your cart" data-cart-drawer-inner>
+    <div class="drawer__head">
+      <h2>Your cart{% if cart.item_count > 0 %} ({{ cart.item_count }}){% endif %}</h2>
+      <button type="button" class="drawer__close" data-drawer-close aria-label="Close cart">{% render 'icon', icon: 'close' %}</button>
+    </div>
+    {%- if cart.item_count > 0 -%}
+      <div class="drawer__body">
+        <div class="cart-drawer__ship">{% render 'ship-bar' %}</div>
+        <div class="cart-drawer__items">{% render 'cart-items' %}</div>
+        {% render 'cart-upsell' %}
+      </div>
+      <div class="drawer__foot">
+        <form action="{{ routes.cart_url }}" method="post" id="CartDrawerForm" novalidate></form>
+        {% render 'cart-summary', form_id: 'CartDrawerForm' %}
+        <a href="{{ routes.cart_url }}" class="link" style="display:block;text-align:center;margin-top:10px;">View full cart</a>
+      </div>
+    {%- else -%}
+      <div class="drawer__body">
+        <div class="cart-drawer__empty">
+          {% render 'icon', icon: 'cart', class: 'icon--lg' %}
+          <h3>Your cart is empty</h3>
+          <p class="muted">Let's find something your pet will love.</p>
+          <a href="{{ routes.all_products_collection_url }}" class="btn btn--brand">Start shopping</a>
+          {%- if customer == nil and shop.customer_accounts_enabled -%}
+            <p style="margin-top:18px;font-size:.92rem;">Have an account? <a class="link" href="{{ routes.account_login_url }}">Sign in</a> to see your cart.</p>
+          {%- endif -%}
+        </div>
+      </div>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Cart drawer",
+  "tag": "div"
+}
+{% endschema %}

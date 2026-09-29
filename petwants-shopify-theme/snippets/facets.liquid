@@ -1,0 +1,41 @@
+{%- comment -%}
+  Storefront filters (set up in the Search & Discovery app).
+  Accepts: results (collection or search), form_id, sort_options
+{%- endcomment -%}
+<form id="{{ form_id }}" class="facets-form" data-facets-form>
+  {%- if results.terms -%}
+    <input type="hidden" name="q" value="{{ results.terms | escape }}">
+    <input type="hidden" name="options[prefix]" value="last">
+  {%- endif -%}
+  <input type="hidden" name="sort_by" value="{{ results.sort_by | default: results.default_sort_by }}" data-sort-mirror>
+  {%- for filter in results.filters -%}
+    <details class="filter-group"{% if forloop.index <= 4 or filter.active_values.size > 0 %} open{% endif %}>
+      <summary>{{ filter.label }} {% render 'icon', icon: 'chevron-down', class: 'icon--sm' %}</summary>
+      {%- case filter.type -%}
+        {%- when 'price_range' -%}
+          {%- assign max_price = filter.range_max | money_without_currency | remove: ',' -%}
+          <div class="filter-price">
+            <label class="visually-hidden" for="{{ form_id }}-pmin">Min price</label>
+            <input class="input" type="number" id="{{ form_id }}-pmin" name="{{ filter.min_value.param_name }}" value="{% if filter.min_value.value %}{{ filter.min_value.value | money_without_currency | remove: ',' }}{% endif %}" placeholder="$0" min="0" step="1">
+            <span>–</span>
+            <label class="visually-hidden" for="{{ form_id }}-pmax">Max price</label>
+            <input class="input" type="number" id="{{ form_id }}-pmax" name="{{ filter.max_value.param_name }}" value="{% if filter.max_value.value %}{{ filter.max_value.value | money_without_currency | remove: ',' }}{% endif %}" placeholder="{{ max_price }}" min="0" step="1">
+          </div>
+        {%- when 'boolean' or 'list' -%}
+          <ul>
+            {%- for value in filter.values -%}
+              {%- assign disabled = false -%}
+              {%- if value.count == 0 and value.active == false -%}{%- assign disabled = true -%}{%- endif -%}
+              <li>
+                <label class="filter-check{% if disabled %} is-disabled{% endif %}">
+                  <input type="checkbox" name="{{ value.param_name }}" value="{{ value.value }}"{% if value.active %} checked{% endif %}{% if disabled %} disabled{% endif %}>
+                  <span>{{ value.label }} <small>({{ value.count }})</small></span>
+                </label>
+              </li>
+            {%- endfor -%}
+          </ul>
+      {%- endcase -%}
+    </details>
+  {%- endfor -%}
+  <noscript><button type="submit" class="btn btn--dark btn--full" style="margin-top:14px;">Apply filters</button></noscript>
+</form>

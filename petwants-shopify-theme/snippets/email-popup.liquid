@@ -1,0 +1,45 @@
+{%- comment -%}
+  Welcome email popup. Shown once per visitor after a delay (never on cart/checkout pages).
+  Reciprocity: a genuine perk in exchange for an email; easy to dismiss.
+{%- endcomment -%}
+{%- unless template.name == 'cart' or template.name == 'password' or template.name contains 'customers' -%}
+  <div class="modal" id="EmailPopup" data-email-popup data-delay="{{ settings.popup_delay }}" role="dialog" aria-modal="true" aria-labelledby="EmailPopupTitle">
+    <button type="button" class="modal__overlay" data-modal-close aria-label="Close"></button>
+    <div class="modal__box modal__box--split">
+      <button type="button" class="modal__close" data-modal-close aria-label="Close">{% render 'icon', icon: 'close' %}</button>
+      <div class="modal__media">
+        {%- if settings.popup_image != blank -%}
+          {{ settings.popup_image | image_url: width: 720 | image_tag: loading: 'lazy', alt: '' }}
+        {%- else -%}
+          <img class="is-logo" src="{{ 'petwants-logo.png' | asset_url }}" alt="" loading="lazy" width="300" height="222">
+        {%- endif -%}
+      </div>
+      <div class="modal__body">
+        {%- form 'customer', id: 'EmailPopupForm' -%}
+          <input type="hidden" name="contact[tags]" value="newsletter,welcome-popup">
+          {%- if form.posted_successfully? -%}
+            <h2 id="EmailPopupTitle">You're in the pack!</h2>
+            {%- if settings.popup_code != blank -%}
+              <p>Use this code at checkout:</p>
+              <div class="coupon"><span>{{ settings.popup_code }}</span><button type="button" class="btn btn--dark btn--sm" data-copy="{{ settings.popup_code | escape }}">Copy</button></div>
+            {%- else -%}
+              <p>Thanks for signing up. Watch your inbox for deals and pet-care tips.</p>
+            {%- endif -%}
+            <button type="button" class="btn btn--brand btn--full" data-modal-close data-popup-success>Start shopping</button>
+          {%- else -%}
+            <h2 id="EmailPopupTitle">{{ settings.popup_heading }}</h2>
+            <p>{{ settings.popup_text }}</p>
+            {%- if form.errors -%}<div class="form-message form-message--error">{{ form.errors | default_errors }}</div>{%- endif -%}
+            <div class="field">
+              <label for="EmailPopupEmail" class="visually-hidden">Email</label>
+              <input id="EmailPopupEmail" class="input" type="email" name="contact[email]" autocomplete="email" placeholder="Your email address" required>
+            </div>
+            <button type="submit" class="btn btn--brand btn--full">Sign me up</button>
+            <button type="button" class="link" data-modal-close style="display:block;margin:14px auto 0;font-weight:600;">No thanks</button>
+            <p class="newsletter__fine">Unsubscribe anytime. We never sell your data.</p>
+          {%- endif -%}
+        {%- endform -%}
+      </div>
+    </div>
+  </div>
+{%- endunless -%}

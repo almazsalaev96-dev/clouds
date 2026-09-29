@@ -1,0 +1,240 @@
+{%- liquid
+  assign menu = section.settings.menu
+  assign highlight = section.settings.highlight_keyword | downcase
+-%}
+<header class="site-header{% if section.settings.sticky %} is-sticky{% endif %}" data-header style="--logo-w: {{ settings.logo_width }}px; --logo-w-mobile: {{ settings.logo_width | times: 0.7 | round }}px;">
+  {%- if section.settings.show_utility -%}
+    <div class="header-utility">
+      <div class="page-width header-utility__inner">
+        <div class="header-utility__contact">
+          <span class="dot" aria-hidden="true"></span>
+          {{ section.settings.utility_text }}
+          {%- if settings.support_phone != blank -%}
+            <a href="tel:{{ settings.support_phone | remove: ' ' | remove: '-' }}">{{ settings.support_phone }}</a>
+          {%- endif -%}
+        </div>
+        {%- if section.settings.utility_menu != blank -%}
+          <ul class="header-utility__links">
+            {%- for link in section.settings.utility_menu.links -%}
+              <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+            {%- endfor -%}
+          </ul>
+        {%- endif -%}
+      </div>
+    </div>
+  {%- endif -%}
+
+  <div class="header-main">
+    <div class="page-width header-main__inner">
+      <div class="header-main__left">
+        <button type="button" class="menu-toggle" data-drawer-open="MenuDrawer" aria-controls="MenuDrawer" aria-expanded="false" aria-label="Open menu">
+          {% render 'icon', icon: 'menu' %}
+        </button>
+        {%- if request.page_type == 'index' -%}<h1 class="visually-hidden">{{ shop.name }}</h1>{%- endif -%}
+        <a href="{{ routes.root_url }}" class="header-logo">{% render 'logo' %}</a>
+      </div>
+
+      <div class="header-search">
+        <form action="{{ routes.search_url }}" method="get" role="search" class="search-form" data-predictive-search>
+          <label for="HeaderSearch" class="visually-hidden">Search</label>
+          <input
+            id="HeaderSearch"
+            class="search-form__input"
+            type="search"
+            name="q"
+            value="{{ search.terms | escape }}"
+            placeholder="{{ section.settings.search_placeholder }}"
+            autocomplete="off"
+            role="combobox"
+            aria-expanded="false"
+            aria-controls="PredictiveResults"
+            aria-autocomplete="list"
+          >
+          <input type="hidden" name="options[prefix]" value="last">
+          <button type="submit" class="search-form__btn" aria-label="Search">{% render 'icon', icon: 'search', class: 'icon--sm' %}</button>
+          <div class="predictive" id="PredictiveResults" role="listbox" data-predictive-results></div>
+        </form>
+      </div>
+
+      <div class="header-actions">
+        {%- if settings.autoship_url != blank and section.settings.show_autoship -%}
+          <a href="{{ settings.autoship_url }}" class="header-action">
+            {% render 'icon', icon: 'autoship' %}
+            <span class="header-action__text">Manage<strong>{{ settings.autoship_label }}</strong></span>
+          </a>
+        {%- endif -%}
+        {%- if shop.customer_accounts_enabled -%}
+          <a href="{%- if customer -%}{{ routes.account_url }}{%- else -%}{{ routes.account_login_url }}{%- endif -%}" class="header-action" aria-label="{% if customer %}Your account{% else %}Sign in{% endif %}">
+            {% render 'icon', icon: 'user' %}
+            <span class="header-action__text">
+              {%- if customer -%}Hi, {{ customer.first_name | default: 'there' }}<strong>Account</strong>{%- else -%}Hi, Sign in<strong>Account</strong>{%- endif -%}
+            </span>
+          </a>
+        {%- endif -%}
+        <a href="{{ routes.cart_url }}" class="header-action" data-cart-open aria-label="Cart, {{ cart.item_count }} {{ cart.item_count | pluralize: 'item', 'items' }}">
+          {% render 'icon', icon: 'cart' %}
+          <span class="cart-count" data-cart-count data-count="{{ cart.item_count }}">{{ cart.item_count }}</span>
+          <span class="header-action__text">Cart<strong data-cart-total>{{ cart.total_price | money }}</strong></span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {%- if menu != blank -%}
+    <nav class="header-nav" aria-label="Main">
+      <div class="page-width">
+        <ul class="header-nav__list" data-mega-nav>
+          {%- for link in menu.links -%}
+            {%- liquid
+              assign title_down = link.title | downcase
+              assign is_highlight = false
+              if highlight != blank and title_down contains highlight
+                assign is_highlight = true
+              endif
+            -%}
+            <li class="header-nav__item">
+              {%- if link.links.size > 0 -%}
+                <button type="button" class="header-nav__link{% if is_highlight %} header-nav__link--highlight{% endif %}" aria-expanded="false" aria-controls="Mega-{{ forloop.index }}">
+                  {{ link.title }} {% render 'icon', icon: 'chevron-down' %}
+                </button>
+                <div class="mega" id="Mega-{{ forloop.index }}">
+                  <div class="page-width mega__inner">
+                    <div>
+                      <div class="mega__cols">
+                        {%- for child in link.links -%}
+                          <div>
+                            <a href="{{ child.url }}" class="mega__heading">{{ child.title }}</a>
+                            {%- if child.links.size > 0 -%}
+                              <ul class="mega__list">
+                                {%- for grandchild in child.links -%}
+                                  <li><a href="{{ grandchild.url }}">{{ grandchild.title }}</a></li>
+                                {%- endfor -%}
+                              </ul>
+                            {%- endif -%}
+                          </div>
+                        {%- endfor -%}
+                      </div>
+                      <a href="{{ link.url }}" class="mega__shop-all">Shop all {{ link.title }} →</a>
+                    </div>
+                    {%- for block in section.blocks -%}
+                      {%- assign promo_for = block.settings.menu_item | downcase | strip -%}
+                      {%- if promo_for == title_down -%}
+                        <a href="{{ block.settings.link | default: link.url }}" class="mega__promo" {{ block.shopify_attributes }}>
+                          {%- if block.settings.image != blank -%}
+                            {{ block.settings.image | image_url: width: 600 | image_tag: loading: 'lazy', alt: block.settings.heading, sizes: '300px', widths: '300, 600' }}
+                          {%- endif -%}
+                          <div class="mega__promo-body">
+                            <strong>{{ block.settings.heading }}</strong>
+                            <span class="muted">{{ block.settings.text }}</span>
+                          </div>
+                        </a>
+                        {%- break -%}
+                      {%- endif -%}
+                    {%- endfor -%}
+                  </div>
+                </div>
+              {%- else -%}
+                <a href="{{ link.url }}" class="header-nav__link{% if is_highlight %} header-nav__link--highlight{% endif %}"{% if link.current %} aria-current="page"{% endif %}>{{ link.title }}</a>
+              {%- endif -%}
+            </li>
+          {%- endfor -%}
+        </ul>
+      </div>
+    </nav>
+  {%- endif -%}
+</header>
+
+<div class="drawer drawer--left" id="MenuDrawer" aria-hidden="true">
+  <button type="button" class="drawer__overlay" data-drawer-close tabindex="-1" aria-label="Close menu"></button>
+  <div class="drawer__panel" role="dialog" aria-modal="true" aria-label="Menu">
+    <div class="drawer__head">
+      <a href="{{ routes.root_url }}" class="header-logo">{% render 'logo', width: 150, loading: 'lazy' %}</a>
+      <button type="button" class="drawer__close" data-drawer-close aria-label="Close menu">{% render 'icon', icon: 'close' %}</button>
+    </div>
+    <div class="drawer__body">
+      {%- if menu != blank -%}
+        <ul class="mobile-menu">
+          {%- for link in menu.links -%}
+            <li>
+              {%- if link.links.size > 0 -%}
+                <details>
+                  <summary>{{ link.title }} {% render 'icon', icon: 'chevron-down' %}</summary>
+                  <ul class="mobile-menu__sub">
+                    <li><a href="{{ link.url }}">Shop all {{ link.title }}</a></li>
+                    {%- for child in link.links -%}
+                      <li>
+                        {%- if child.links.size > 0 -%}
+                          <details>
+                            <summary>{{ child.title }} {% render 'icon', icon: 'chevron-down' %}</summary>
+                            <ul class="mobile-menu__sub">
+                              <li><a href="{{ child.url }}">All {{ child.title }}</a></li>
+                              {%- for grandchild in child.links -%}
+                                <li><a href="{{ grandchild.url }}">{{ grandchild.title }}</a></li>
+                              {%- endfor -%}
+                            </ul>
+                          </details>
+                        {%- else -%}
+                          <a href="{{ child.url }}">{{ child.title }}</a>
+                        {%- endif -%}
+                      </li>
+                    {%- endfor -%}
+                  </ul>
+                </details>
+              {%- else -%}
+                <a href="{{ link.url }}">{{ link.title }}</a>
+              {%- endif -%}
+            </li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+      <div class="mobile-menu-extra">
+        {%- if shop.customer_accounts_enabled -%}
+          <a href="{% if customer %}{{ routes.account_url }}{% else %}{{ routes.account_login_url }}{% endif %}">{% render 'icon', icon: 'user' %}{% if customer %}My account{% else %}Sign in / Create account{% endif %}</a>
+        {%- endif -%}
+        {%- if settings.autoship_url != blank -%}
+          <a href="{{ settings.autoship_url }}">{% render 'icon', icon: 'autoship' %}{{ settings.autoship_label }}</a>
+        {%- endif -%}
+        {%- if settings.support_phone != blank -%}
+          <a href="tel:{{ settings.support_phone | remove: ' ' | remove: '-' }}">{% render 'icon', icon: 'phone' %}{{ settings.support_phone }}</a>
+          <span class="muted" style="font-size:.85rem;">{{ settings.support_hours }}</span>
+        {%- endif -%}
+        {%- if section.settings.utility_menu != blank -%}
+          {%- for link in section.settings.utility_menu.links -%}
+            <a href="{{ link.url }}">{{ link.title }}</a>
+          {%- endfor -%}
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Header",
+  "class": "section-header",
+  "settings": [
+    { "type": "link_list", "id": "menu", "label": "Main menu", "default": "main-menu", "info": "Nest links two levels deep to build mega menus: Dog → Food → Dry Food." },
+    { "type": "text", "id": "highlight_keyword", "label": "Highlight menu items containing", "default": "Deal", "info": "Shown in red to draw the eye, e.g. Deals." },
+    { "type": "checkbox", "id": "sticky", "label": "Sticky header", "default": true },
+    { "type": "text", "id": "search_placeholder", "label": "Search placeholder", "default": "Search food, treats, toys, brands…" },
+    { "type": "checkbox", "id": "show_autoship", "label": "Show Autoship link", "default": true, "info": "Requires an Autoship info page in Theme settings → Autoship." },
+    { "type": "header", "content": "Top utility bar" },
+    { "type": "checkbox", "id": "show_utility", "label": "Show utility bar", "default": true },
+    { "type": "text", "id": "utility_text", "label": "Support text", "default": "Pet experts ready to help:" },
+    { "type": "link_list", "id": "utility_menu", "label": "Utility links", "info": "E.g. Track order, Help, Autoship, Gift cards." }
+  ],
+  "blocks": [
+    {
+      "type": "mega_promo",
+      "name": "Mega menu promo",
+      "settings": [
+        { "type": "text", "id": "menu_item", "label": "Show under menu item", "info": "Exact top-level menu title, e.g. Dog", "default": "Dog" },
+        { "type": "image_picker", "id": "image", "label": "Image" },
+        { "type": "text", "id": "heading", "label": "Heading", "default": "New arrivals for dogs" },
+        { "type": "text", "id": "text", "label": "Text", "default": "Fresh picks from brands you trust" },
+        { "type": "url", "id": "link", "label": "Link" }
+      ]
+    }
+  ]
+}
+{% endschema %}

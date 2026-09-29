@@ -1,0 +1,24 @@
+{%- comment -%}
+  Star rating from the standard reviews metafields (written by Shopify Product Reviews,
+  Judge.me, Okendo, Yotpo, Loox, Stamped and others).
+  Accepts: product, size ('lg'), link (anchor href)
+{%- endcomment -%}
+{%- liquid
+  assign rating = product.metafields.reviews.rating.value
+  assign rating_count = product.metafields.reviews.rating_count.value | default: 0
+-%}
+{%- if rating != blank and rating_count > 0 -%}
+  {%- liquid
+    assign r = rating.rating | times: 1.0
+    assign max = rating.scale_max | times: 1.0
+    assign pct = r | divided_by: max | times: 100 | round: 1
+  -%}
+  <span class="stars{% if size == 'lg' %} stars--lg{% endif %}">
+    <span class="stars__icons" style="--pct: {{ pct }}%;" role="img" aria-label="Rated {{ r | round: 1 }} out of {{ max | round }} stars"></span>
+    {%- if link -%}
+      <a href="{{ link }}" class="stars__count">{{ r | round: 1 }} ({{ rating_count }} {{ rating_count | pluralize: 'review', 'reviews' }})</a>
+    {%- else -%}
+      <span class="stars__count">{{ rating_count }}</span>
+    {%- endif -%}
+  </span>
+{%- endif -%}

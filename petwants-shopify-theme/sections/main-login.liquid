@@ -1,0 +1,36 @@
+<div class="page-width">
+  <div class="auth">
+    <div data-login-panel>
+      <h1>Sign in</h1>
+      {%- form 'customer_login', novalidate: 'novalidate' -%}
+        {%- if form.errors -%}<div class="form-message form-message--error">{{ form.errors | default_errors }}</div>{%- endif -%}
+        <div class="field"><label for="LoginEmail">Email</label><input class="input" type="email" id="LoginEmail" name="customer[email]" autocomplete="email" autocapitalize="off" required></div>
+        {%- if form.password_needed -%}
+          <div class="field"><label for="LoginPassword">Password</label><input class="input" type="password" id="LoginPassword" name="customer[password]" autocomplete="current-password" required></div>
+          <p><a href="#recover" class="link" data-show-recover>Forgot your password?</a></p>
+        {%- endif -%}
+        <button type="submit" class="btn btn--brand btn--full">Sign in</button>
+      {%- endform -%}
+      <p class="auth__alt">New to {{ shop.name }}? <a class="link" href="{{ routes.account_register_url }}">Create an account</a></p>
+    </div>
+    <div id="recover" data-recover-panel hidden>
+      <h1>Reset password</h1>
+      <p class="muted center">We'll email you a link to reset your password.</p>
+      {%- form 'recover_customer_password' -%}
+        {%- if form.posted_successfully? -%}<div class="form-message form-message--success">Check your email for a reset link.</div>{%- endif -%}
+        {%- if form.errors -%}<div class="form-message form-message--error">{{ form.errors | default_errors }}</div>{%- endif -%}
+        <div class="field"><label for="RecoverEmail">Email</label><input class="input" type="email" id="RecoverEmail" name="email" autocomplete="email" required></div>
+        <button type="submit" class="btn btn--brand btn--full">Send reset link</button>
+      {%- endform -%}
+      <p class="auth__alt"><a href="#" class="link" data-hide-recover>Back to sign in</a></p>
+    </div>
+    {%- if shop.checkout.guest_login -%}
+      <hr style="margin:22px 0;border:0;border-top:1px solid var(--c-line-soft);">
+      {%- form 'guest_login' -%}<button type="submit" class="btn btn--outline btn--full">Continue as guest</button>{%- endform -%}
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{ "name": "Login", "tag": "section" }
+{% endschema %}

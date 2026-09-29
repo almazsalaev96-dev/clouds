@@ -1,0 +1,104 @@
+{%- comment -%}
+  Product card — the core Chewy-style tile: image, brand, title, rating,
+  price with savings, Autoship price, shipping line and one-tap add to cart.
+  Accepts: product (required), loading ('lazy'|'eager')
+{%- endcomment -%}
+{%- liquid
+  assign variant = product.selected_or_first_available_variant
+  assign load = loading | default: 'lazy'
+  assign ratio = '1'
+  if settings.card_image_ratio == 'portrait'
+    assign ratio = '0.8'
+  elsif settings.card_image_ratio == 'natural' and product.featured_media
+    assign ratio = product.featured_media.aspect_ratio
+  endif
+  assign on_sale = false
+  if variant.compare_at_price > variant.price
+    assign on_sale = true
+  endif
+  assign autoship_alloc = variant.selling_plan_allocations | sort: 'price' | first
+  assign is_new = false
+  assign age_seconds = 'now' | date: '%s' | times: 1
+  assign published_seconds = product.published_at | date: '%s' | times: 1
+  assign age_days = age_seconds | minus: published_seconds | divided_by: 86400
+  assign img_alt = product.featured_media.alt | default: product.title
+  if age_days < 30
+    assign is_new = true
+  endif
+-%}
+<div class="card" style="--card-ratio: {{ ratio }};">
+  <div class="card__badges">
+    {%- if product.available == false -%}
+      <span class="badge badge--soldout">Sold out</span>
+    {%- elsif on_sale -%}
+      <span class="badge badge--sale">Deal</span>
+    {%- elsif is_new -%}
+      <span class="badge badge--new">New</span>
+    {%- endif -%}
+    {%- if product.tags contains 'vet-recommended' -%}
+      <span class="badge badge--trust">Vet recommended</span>
+    {%- elsif product.tags contains 'best-seller' or product.tags contains 'bestseller' -%}
+      <span class="badge badge--brand">Best seller</span>
+    {%- endif -%}
+  </div>
+
+  {%- if settings.card_show_favorite -%}
+    <button type="button" class="fav-btn" data-fav="{{ product.handle }}" aria-pressed="false" aria-label="Save {{ product.title | escape }} to favorites">
+      {% render 'icon', icon: 'heart' %}
+    </button>
+  {%- endif -%}
+
+  <a href="{{ product.url }}" class="card__media" tabindex="-1" aria-hidden="true">
+    {%- if product.featured_media -%}
+      {{ product.featured_media | image_url: width: 600 | image_tag: loading: load, sizes: '(min-width: 1200px) 240px, (min-width: 750px) 25vw, 50vw', widths: '180, 240, 360, 480, 600', alt: img_alt }}
+      {%- if product.media[1] and product.media[1].media_type == 'image' -%}
+        {{ product.media[1] | image_url: width: 600 | image_tag: loading: 'lazy', class: 'card__img-2', sizes: '(min-width: 1200px) 240px, (min-width: 750px) 25vw, 50vw', widths: '240, 360, 480, 600', alt: '' }}
+      {%- endif -%}
+    {%- else -%}
+      {{ 'product-apparel-1' | placeholder_svg_tag }}
+    {%- endif -%}
+  </a>
+
+  <div class="card__body">
+    {%- if settings.card_show_vendor and product.vendor != blank -%}
+      <div class="card__vendor">{{ product.vendor }}</div>
+    {%- endif -%}
+    <h3 class="card__title"><a href="{{ product.url }}">{{ product.title }}</a></h3>
+
+    {%- if settings.card_show_rating -%}
+      <div class="card__rating">{% render 'stars', product: product %}</div>
+    {%- endif -%}
+
+    {%- if product.has_only_default_variant == false and product.variants.size > 1 -%}
+      <div class="card__swatches">{{ product.variants.size }} options</div>
+    {%- endif -%}
+
+    <div class="card__price">
+      {% render 'price', product: product %}
+      {%- if autoship_alloc and autoship_alloc.price < variant.price -%}
+        <div class="card__autoship">
+          {% render 'icon', icon: 'autoship' %}
+          {{ autoship_alloc.price | money }} with {{ settings.autoship_label }}
+        </div>
+      {%- endif -%}
+      {%- if settings.shipping_message != blank -%}
+        <div class="card__ship">{{ settings.shipping_message }}</div>
+      {%- endif -%}
+    </div>
+
+    {%- if settings.card_show_quick_add -%}
+      <div class="card__cta">
+        {%- if product.available == false -%}
+          <a href="{{ product.url }}" class="btn btn--outline btn--sm">View details</a>
+        {%- elsif product.has_only_default_variant and product.requires_selling_plan == false -%}
+          {%- form 'product', product, class: 'js-product-form', data-quick-add: '' -%}
+            <input type="hidden" name="id" value="{{ variant.id }}">
+            <button type="submit" name="add" class="btn btn--brand btn--sm">Add to Cart</button>
+          {%- endform -%}
+        {%- else -%}
+          <a href="{{ product.url }}" class="btn btn--outline btn--sm">Choose options</a>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+  </div>
+</div>

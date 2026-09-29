@@ -1,0 +1,17 @@
+{
+  "type": "footer",
+  "name": "Footer group",
+  "sections": {
+    "footer": {
+      "type": "footer",
+      "blocks": {
+        "m1": { "type": "menu", "settings": { "heading": "Shop", "menu": "main-menu" } },
+        "m2": { "type": "menu", "settings": { "heading": "Customer service", "menu": "footer" } },
+        "t1": { "type": "text", "settings": { "heading": "Our promise", "text": "<p>Every order is backed by real pet experts. Not happy? We'll make it right.</p>" } }
+      },
+      "block_order": ["m1", "m2", "t1"],
+      "settings": { "show_trust": true, "show_payment": true }
+    }
+  },
+  "order": ["footer"]
+}

@@ -1,0 +1,52 @@
+<section class="section">
+  <div class="page-width">
+    {%- if section.settings.heading != blank -%}
+      <div class="section-head"><h2>{{ section.settings.heading }}</h2></div>
+    {%- endif -%}
+    <div class="promo-grid" style="--cols: {{ section.blocks.size | at_most: 4 | at_least: 1 }};">
+      {%- for block in section.blocks -%}
+        <a href="{{ block.settings.link | default: '#' }}" class="promo{% if block.settings.overlay and block.settings.image != blank %} promo--overlay{% endif %}" style="--tile-bg: {{ block.settings.bg }}; --tile-fg: {{ block.settings.fg }}; --tile-h: {{ section.settings.height }}px;" {{ block.shopify_attributes }}>
+          {%- if block.settings.image != blank -%}
+            <div class="promo__media">{{ block.settings.image | image_url: width: 1200 | image_tag: loading: 'lazy', sizes: '(min-width: 750px) 33vw, 100vw', widths: '400, 600, 800, 1200', alt: '' }}</div>
+          {%- endif -%}
+          <div class="promo__body">
+            {%- if block.settings.eyebrow != blank -%}<div class="promo__eyebrow">{{ block.settings.eyebrow }}</div>{%- endif -%}
+            <h3 class="promo__heading">{{ block.settings.heading }}</h3>
+            {%- if block.settings.text != blank -%}<p style="margin:0 0 10px;">{{ block.settings.text }}</p>{%- endif -%}
+            {%- if block.settings.link_label != blank -%}<span class="promo__link">{{ block.settings.link_label }}</span>{%- endif -%}
+          </div>
+        </a>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Promo tiles",
+  "tag": "div",
+  "max_blocks": 4,
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading" },
+    { "type": "range", "id": "height", "min": 180, "max": 480, "step": 20, "unit": "px", "label": "Tile height", "default": 260 }
+  ],
+  "blocks": [
+    {
+      "type": "tile",
+      "name": "Tile",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Image" },
+        { "type": "checkbox", "id": "overlay", "label": "Darken image behind text", "default": true },
+        { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Limited time" },
+        { "type": "text", "id": "heading", "label": "Heading", "default": "Treat time deals" },
+        { "type": "text", "id": "text", "label": "Text", "default": "Tasty rewards they'll sit for." },
+        { "type": "text", "id": "link_label", "label": "Link label", "default": "Shop treats" },
+        { "type": "url", "id": "link", "label": "Link" },
+        { "type": "color", "id": "bg", "label": "Background", "default": "#F6E7D6" },
+        { "type": "color", "id": "fg", "label": "Text", "default": "#262626" }
+      ]
+    }
+  ],
+  "presets": [ { "name": "Promo tiles", "blocks": [ { "type": "tile" }, { "type": "tile" }, { "type": "tile" } ] } ]
+}
+{% endschema %}

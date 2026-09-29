@@ -1,0 +1,7 @@
+{
+  "sections": {
+    "main": { "type": "main-cart", "settings": {} },
+    "recent": { "type": "recently-viewed", "settings": { "heading": "Recently viewed", "limit": 8 } }
+  },
+  "order": ["main", "recent"]
+}

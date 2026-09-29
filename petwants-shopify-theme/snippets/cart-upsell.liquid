@@ -1,0 +1,31 @@
+{%- comment -%} "Don't forget" add-ons — small, relevant items that complete the order. {%- endcomment -%}
+{%- assign upsell = settings.cart_upsell_collection -%}
+{%- if upsell != blank and upsell.products_count > 0 and cart.item_count > 0 -%}
+  {%- liquid
+    assign in_cart = cart.items | map: 'product_id'
+    assign shown = 0
+  -%}
+  <div class="upsell">
+    <h3>Don't forget these</h3>
+    <div class="upsell__list">
+      {%- for p in upsell.products limit: 12 -%}
+        {%- if shown < 6 and p.available and p.has_only_default_variant and p.requires_selling_plan == false -%}
+          {%- unless in_cart contains p.id -%}
+            {%- assign shown = shown | plus: 1 -%}
+            <div class="upsell__item">
+              {%- if p.featured_media -%}{{ p.featured_media | image_url: width: 120 | image_tag: loading: 'lazy', alt: '' }}{%- endif -%}
+              <div>
+                <p><a href="{{ p.url }}">{{ p.title }}</a></p>
+                <strong style="font-size:.9rem;">{{ p.price | money }}</strong>
+                {%- form 'product', p, class: 'js-product-form', data-quick-add: '' -%}
+                  <input type="hidden" name="id" value="{{ p.selected_or_first_available_variant.id }}">
+                  <button type="submit" class="btn btn--outline btn--sm">+ Add</button>
+                {%- endform -%}
+              </div>
+            </div>
+          {%- endunless -%}
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+  </div>
+{%- endif -%}

@@ -1,0 +1,86 @@
+{%- liquid
+  assign sort_by = search.sort_by | default: search.default_sort_by
+-%}
+<div class="page-width">
+  <div class="collection-hero">
+    <h1>{% if search.performed %}Results for “{{ search.terms | escape }}”{% else %}Search{% endif %}</h1>
+    <form action="{{ routes.search_url }}" method="get" role="search" class="search-form" style="max-width:640px;">
+      <label for="SearchPage" class="visually-hidden">Search</label>
+      <input id="SearchPage" class="search-form__input" type="search" name="q" value="{{ search.terms | escape }}" placeholder="Search food, treats, toys, brands…">
+      <input type="hidden" name="options[prefix]" value="last">
+      <button type="submit" class="search-form__btn" aria-label="Search">{% render 'icon', icon: 'search', class: 'icon--sm' %}</button>
+    </form>
+  </div>
+
+  {%- if search.performed -%}
+    {%- paginate search.results by section.settings.per_page -%}
+      <div class="collection-layout">
+        {%- if search.filters.size > 0 -%}
+          <aside class="filters" aria-label="Filters">{% render 'facets', results: search, form_id: 'FacetsDesktop' %}</aside>
+        {%- endif -%}
+        <div>
+          <div class="toolbar">
+            <span class="toolbar__count">{{ search.results_count }} {{ search.results_count | pluralize: 'result', 'results' }}</span>
+            <div class="toolbar__right">
+              {%- if search.filters.size > 0 -%}
+                <button type="button" class="btn btn--outline btn--sm filter-toggle" data-drawer-open="FilterDrawer">{% render 'icon', icon: 'filter', class: 'icon--sm' %} Filter</button>
+              {%- endif -%}
+              <label class="toolbar__sort" for="SortBy">
+                <span class="visually-hidden">Sort by</span>
+                <select id="SortBy" class="select" data-sort-select>
+                  {%- for option in search.sort_options -%}
+                    <option value="{{ option.value }}"{% if option.value == sort_by %} selected{% endif %}>{{ option.name }}</option>
+                  {%- endfor -%}
+                </select>
+              </label>
+            </div>
+          </div>
+
+          {%- if search.results_count > 0 -%}
+            <ul class="product-grid" role="list" style="--cols: 4;">
+              {%- for item in search.results -%}
+                {%- case item.object_type -%}
+                  {%- when 'product' -%}
+                    <li>{% render 'product-card', product: item %}</li>
+                  {%- when 'article' -%}
+                    <li><a href="{{ item.url }}" class="card"><span class="badge badge--trust">Article</span><h3 class="card__title" style="margin-top:8px;">{{ item.title }}</h3><p class="muted" style="font-size:.9rem;">{{ item.excerpt_or_content | strip_html | truncate: 100 }}</p></a></li>
+                  {%- when 'page' -%}
+                    <li><a href="{{ item.url }}" class="card"><span class="badge badge--new">Page</span><h3 class="card__title" style="margin-top:8px;">{{ item.title }}</h3><p class="muted" style="font-size:.9rem;">{{ item.content | strip_html | truncate: 100 }}</p></a></li>
+                {%- endcase -%}
+              {%- endfor -%}
+            </ul>
+            {% render 'pagination', paginate: paginate %}
+          {%- else -%}
+            <div class="empty-state">
+              {% render 'icon', icon: 'search', class: 'icon--lg' %}
+              <h2>No results for “{{ search.terms | escape }}”</h2>
+              <p class="muted">Check the spelling or try a broader term like “dog food” or “cat litter”.</p>
+              <a href="{{ routes.all_products_collection_url }}" class="btn btn--dark">Browse all products</a>
+            </div>
+          {%- endif -%}
+        </div>
+      </div>
+    {%- endpaginate -%}
+
+    {%- if search.filters.size > 0 -%}
+      <div class="drawer drawer--left" id="FilterDrawer" aria-hidden="true">
+        <button type="button" class="drawer__overlay" data-drawer-close tabindex="-1" aria-label="Close filters"></button>
+        <div class="drawer__panel" role="dialog" aria-modal="true" aria-label="Filters">
+          <div class="drawer__head"><h2>Filter</h2><button type="button" class="drawer__close" data-drawer-close aria-label="Close filters">{% render 'icon', icon: 'close' %}</button></div>
+          <div class="drawer__body filters--drawer">{% render 'facets', results: search, form_id: 'FacetsMobile' %}</div>
+          <div class="drawer__foot"><button type="button" class="btn btn--dark btn--full" data-drawer-close>Show results</button></div>
+        </div>
+      </div>
+    {%- endif -%}
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "Search results",
+  "tag": "section",
+  "settings": [
+    { "type": "range", "id": "per_page", "min": 12, "max": 48, "step": 4, "label": "Results per page", "default": 24 }
+  ]
+}
+{% endschema %}

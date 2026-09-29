@@ -1,0 +1,9 @@
+{%- comment -%} Renders one product card; fetched via ?section_id=product-card-render for Recently viewed. {%- endcomment -%}
+{%- if product -%}<li>{% render 'product-card', product: product %}</li>{%- endif -%}
+
+{% schema %}
+{
+  "name": "Product card (internal)",
+  "tag": "div"
+}
+{% endschema %}

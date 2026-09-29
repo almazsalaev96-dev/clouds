@@ -1,0 +1,19 @@
+<article class="page-width section">
+  <div class="article">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="{{ routes.root_url }}">Home</a></li><li><a href="{{ blog.url }}">{{ blog.title }}</a></li><li aria-current="page">{{ article.title | truncate: 40 }}</li></ol></nav>
+    <h1>{{ article.title }}</h1>
+    <p class="muted">{{ article.published_at | date: '%B %d, %Y' }}{% if article.author != blank %} · By {{ article.author }}{% endif %}</p>
+    {%- if article.image -%}
+      <div class="article__hero">{{ article.image | image_url: width: 1600 | image_tag: loading: 'eager', sizes: '(min-width: 800px) 780px, 100vw', widths: '600, 900, 1200, 1600' }}</div>
+    {%- endif -%}
+    <div class="rte">{{ article.content }}</div>
+    {%- if article.tags.size > 0 -%}
+      <p style="margin-top:24px;">{% for tag in article.tags %}<a class="pill" href="{{ blog.url }}/tagged/{{ tag | handle }}">{{ tag }}</a> {% endfor %}</p>
+    {%- endif -%}
+    <p style="margin-top:28px;"><a class="link" href="{{ blog.url }}">← Back to {{ blog.title }}</a></p>
+  </div>
+</article>
+
+{% schema %}
+{ "name": "Blog post", "tag": "section" }
+{% endschema %}

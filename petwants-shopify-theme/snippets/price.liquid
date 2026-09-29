@@ -1,0 +1,38 @@
+{%- comment -%}
+  Renders a product or variant price with compare-at and savings.
+  Accepts: product (required), variant (optional), size ('lg' optional), show_unit (bool)
+{%- endcomment -%}
+{%- liquid
+  assign target = product.selected_or_first_available_variant
+  if variant
+    assign target = variant
+  endif
+  assign price = target.price
+  assign compare_at = target.compare_at_price
+  assign range = false
+  if variant == blank and product.price_varies and size != 'lg'
+    assign range = true
+  endif
+  assign on_sale = false
+  if compare_at > price and range == false
+    assign on_sale = true
+    assign saved = compare_at | minus: price
+    assign save_pct = saved | times: 100.0 | divided_by: compare_at | round
+  endif
+-%}
+<div class="price{% if on_sale %} price--sale{% endif %}{% if size == 'lg' %} price--lg{% endif %}" data-price>
+  <span class="price__current">
+    {%- if range -%}<span class="price__from">From</span> {{ product.price_min | money }}{%- else -%}{{ price | money }}{%- endif -%}
+  </span>
+  {%- if on_sale -%}
+    <s class="price__compare"><span class="visually-hidden">Regular price</span>{{ compare_at | money }}</s>
+    <span class="price__save">Save {{ save_pct }}%</span>
+  {%- endif -%}
+  {%- if show_unit and target.unit_price_measurement -%}
+    <span class="price__unit">
+      {{- target.unit_price | money }}/
+      {%- if target.unit_price_measurement.reference_value != 1 -%}{{ target.unit_price_measurement.reference_value }}{%- endif -%}
+      {{ target.unit_price_measurement.reference_unit -}}
+    </span>
+  {%- endif -%}
+</div>

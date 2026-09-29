@@ -1,0 +1,24 @@
+<div class="page-width">
+  <div class="auth">
+    <h1>Create account</h1>
+    <ul class="auth__perks">
+      <li>{% render 'icon', icon: 'autoship' %} Manage {{ settings.autoship_label }} deliveries in one place</li>
+      <li>{% render 'icon', icon: 'package' %} Track orders and reorder in one tap</li>
+      <li>{% render 'icon', icon: 'gift' %} Member-only deals and early access</li>
+    </ul>
+    {%- form 'create_customer', novalidate: 'novalidate' -%}
+      {%- if form.errors -%}<div class="form-message form-message--error">{{ form.errors | default_errors }}</div>{%- endif -%}
+      <div class="field"><label for="RegFirst">First name</label><input class="input" id="RegFirst" name="customer[first_name]" autocomplete="given-name"></div>
+      <div class="field"><label for="RegLast">Last name</label><input class="input" id="RegLast" name="customer[last_name]" autocomplete="family-name"></div>
+      <div class="field"><label for="RegEmail">Email</label><input class="input" type="email" id="RegEmail" name="customer[email]" autocomplete="email" autocapitalize="off" required></div>
+      <div class="field"><label for="RegPassword">Password</label><input class="input" type="password" id="RegPassword" name="customer[password]" autocomplete="new-password" required></div>
+      <label class="filter-check" style="margin-bottom:14px;"><input type="checkbox" name="customer[accepts_marketing]" checked> Send me deals and pet-care tips</label>
+      <button type="submit" class="btn btn--brand btn--full">Create account</button>
+    {%- endform -%}
+    <p class="auth__alt">Already have an account? <a class="link" href="{{ routes.account_login_url }}">Sign in</a></p>
+  </div>
+</div>
+
+{% schema %}
+{ "name": "Register", "tag": "section" }
+{% endschema %}

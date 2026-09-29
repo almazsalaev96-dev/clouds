@@ -1,0 +1,37 @@
+<section class="section">
+  <div class="page-width">
+    <div class="autoship-banner" style="background: {{ section.settings.bg }};">
+      <div>
+        <span class="autoship-banner__eyebrow">{% render 'icon', icon: 'autoship', class: 'icon--sm' %} {{ settings.autoship_label }}</span>
+        <h2>{{ section.settings.heading }}</h2>
+        <p>{{ section.settings.text }}</p>
+      </div>
+      <ol class="autoship-steps">
+        {%- if section.settings.step_1 != blank -%}<li>{{ section.settings.step_1 }}</li>{%- endif -%}
+        {%- if section.settings.step_2 != blank -%}<li>{{ section.settings.step_2 }}</li>{%- endif -%}
+        {%- if section.settings.step_3 != blank -%}<li>{{ section.settings.step_3 }}</li>{%- endif -%}
+      </ol>
+      {%- if section.settings.button_label != blank -%}
+        <a href="{{ section.settings.button_link | default: settings.autoship_url | default: routes.all_products_collection_url }}" class="btn btn--brand btn--lg">{{ section.settings.button_label }}</a>
+      {%- endif -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Autoship banner",
+  "tag": "div",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Never run out of their favorites" },
+    { "type": "textarea", "id": "text", "label": "Text", "default": "Set it once and save on every repeat delivery. Skip, reschedule or cancel anytime — no fees, no commitment." },
+    { "type": "text", "id": "step_1", "label": "Step 1", "default": "Choose Autoship on any eligible item" },
+    { "type": "text", "id": "step_2", "label": "Step 2", "default": "Pick how often it arrives" },
+    { "type": "text", "id": "step_3", "label": "Step 3", "default": "Save automatically on every order" },
+    { "type": "text", "id": "button_label", "label": "Button label", "default": "Learn about Autoship" },
+    { "type": "url", "id": "button_link", "label": "Button link" },
+    { "type": "color", "id": "bg", "label": "Background", "default": "#1B4B8F" }
+  ],
+  "presets": [ { "name": "Autoship banner" } ]
+}
+{% endschema %}

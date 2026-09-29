@@ -1,0 +1,48 @@
+<div class="page-width" data-cart-page>
+  <h1 style="margin-top:20px;">Your cart{% if cart.item_count > 0 %} <span class="muted" style="font-size:1rem;font-weight:600;">({{ cart.item_count }} {{ cart.item_count | pluralize: 'item', 'items' }})</span>{% endif %}</h1>
+  {%- if cart.item_count > 0 -%}
+    <div class="cart-page">
+      <div>
+        {% render 'ship-bar' %}
+        <form action="{{ routes.cart_url }}" method="post" id="CartPageForm" novalidate>
+          {% render 'cart-items' %}
+          {%- if settings.cart_notes -%}
+            <details class="cart-note">
+              <summary>Add order note</summary>
+              <label for="CartNote" class="visually-hidden">Order note</label>
+              <textarea id="CartNote" name="note" class="textarea" style="margin-top:10px;" placeholder="Delivery instructions, gift message…">{{ cart.note }}</textarea>
+            </details>
+          {%- endif -%}
+        </form>
+        {% render 'cart-upsell' %}
+      </div>
+      <aside class="cart-summary" aria-label="Order summary">
+        <h2>Order summary</h2>
+        {% render 'cart-summary', form_id: 'CartPageForm' %}
+        {%- if additional_checkout_buttons -%}
+          <div style="margin-top:12px;">{{ content_for_additional_checkout_buttons }}</div>
+        {%- endif -%}
+        <ul class="assurance">
+          <li>{% render 'icon', icon: 'return' %}<div><strong>{{ settings.returns_message }}</strong></div></li>
+          {%- if settings.support_phone != blank -%}
+            <li>{% render 'icon', icon: 'phone' %}<div><strong>Need help?</strong><span class="muted">{{ settings.support_phone }}</span></div></li>
+          {%- endif -%}
+        </ul>
+      </aside>
+    </div>
+  {%- else -%}
+    <div class="empty-state">
+      {% render 'icon', icon: 'cart', class: 'icon--lg' %}
+      <h2>Your cart is empty</h2>
+      <p class="muted">Food, treats, toys — everything they want is a click away.</p>
+      <a href="{{ routes.all_products_collection_url }}" class="btn btn--brand btn--lg">Continue shopping</a>
+    </div>
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "Cart",
+  "tag": "section"
+}
+{% endschema %}

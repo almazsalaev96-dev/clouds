@@ -1,0 +1,111 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero-slider",
+      "blocks": {
+        "s1": { "type": "slide", "settings": { "eyebrow": "New here?", "heading": "Everything your pet wants, delivered fast", "text": "<p>Food, treats, toys and health essentials from brands you trust — with free shipping on orders $49+.</p>", "button_label": "Shop best sellers", "button_link": "shopify://collections/all", "button_style": "brand", "align": "left", "bg": "#F6E7D6", "fg": "#262626" } },
+        "s2": { "type": "slide", "settings": { "eyebrow": "Autoship", "heading": "Set it. Save on it. Never run out.", "text": "<p>Get their favorites on repeat and save on every delivery. Skip or cancel anytime.</p>", "button_label": "How Autoship works", "button_style": "light", "align": "left", "bg": "#1B4B8F", "fg": "#FFFFFF" } },
+        "s3": { "type": "slide", "settings": { "eyebrow": "This week only", "heading": "Treat yourself to deals on treats", "text": "<p>Chews, biscuits and training rewards they'll sit for.</p>", "button_label": "Shop deals", "button_style": "dark", "align": "left", "bg": "#FBE3C4", "fg": "#262626" } }
+      },
+      "block_order": ["s1", "s2", "s3"],
+      "settings": { "height": 440, "height_mobile": 460, "autoplay": true, "interval": 6 }
+    },
+    "pets": {
+      "type": "collection-circles",
+      "blocks": {
+        "p1": { "type": "item", "settings": { "label": "Dog" } },
+        "p2": { "type": "item", "settings": { "label": "Cat" } },
+        "p3": { "type": "item", "settings": { "label": "Fish" } },
+        "p4": { "type": "item", "settings": { "label": "Bird" } },
+        "p5": { "type": "item", "settings": { "label": "Small Pet" } },
+        "p6": { "type": "item", "settings": { "label": "Reptile" } },
+        "p7": { "type": "item", "settings": { "label": "Deals" } },
+        "p8": { "type": "item", "settings": { "label": "Pharmacy" } }
+      },
+      "block_order": ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"],
+      "settings": { "heading": "Shop by pet", "shape": "circle", "min_size": 110, "alt_bg": false }
+    },
+    "trust": {
+      "type": "trust-bar",
+      "blocks": {
+        "t1": { "type": "item", "settings": { "icon": "truck", "title": "Free shipping $49+", "text": "Fast delivery to your door" } },
+        "t2": { "type": "item", "settings": { "icon": "autoship", "title": "Autoship & save", "text": "Skip or cancel anytime" } },
+        "t3": { "type": "item", "settings": { "icon": "phone", "title": "Real pet experts", "text": "Call, text or chat 7 days a week" } },
+        "t4": { "type": "item", "settings": { "icon": "return", "title": "Easy returns", "text": "We'll make it right" } }
+      },
+      "block_order": ["t1", "t2", "t3", "t4"],
+      "settings": { "alt_bg": true }
+    },
+    "deals": {
+      "type": "featured-collection",
+      "settings": { "heading": "Today's top deals", "subheading": "Handpicked savings on pet parent favorites", "limit": 12, "layout": "carousel", "per_row": 6, "show_link": true, "alt_bg": false }
+    },
+    "promos": {
+      "type": "promo-tiles",
+      "blocks": {
+        "pt1": { "type": "tile", "settings": { "eyebrow": "Nutrition", "heading": "Food they'll finish", "text": "Dry, wet & fresh food for every life stage.", "link_label": "Shop food", "overlay": true, "bg": "#F6E7D6", "fg": "#262626" } },
+        "pt2": { "type": "tile", "settings": { "eyebrow": "Play", "heading": "Toys built to last", "text": "Chew, fetch and puzzle toys for busy paws.", "link_label": "Shop toys", "overlay": true, "bg": "#E3ECF8", "fg": "#1B2A44" } },
+        "pt3": { "type": "tile", "settings": { "eyebrow": "Health", "heading": "Flea, tick & wellness", "text": "Vet-trusted care, delivered.", "link_label": "Shop health", "overlay": true, "bg": "#E4F2E8", "fg": "#17402A" } }
+      },
+      "block_order": ["pt1", "pt2", "pt3"],
+      "settings": { "heading": "", "height": 260 }
+    },
+    "dogs": {
+      "type": "featured-collection",
+      "settings": { "heading": "Best sellers for dogs", "limit": 12, "layout": "carousel", "per_row": 6, "show_link": true, "alt_bg": true }
+    },
+    "autoship": {
+      "type": "autoship-banner",
+      "settings": {}
+    },
+    "categories": {
+      "type": "collection-circles",
+      "blocks": {
+        "c1": { "type": "item", "settings": { "label": "Dry Food" } },
+        "c2": { "type": "item", "settings": { "label": "Wet Food" } },
+        "c3": { "type": "item", "settings": { "label": "Treats" } },
+        "c4": { "type": "item", "settings": { "label": "Toys" } },
+        "c5": { "type": "item", "settings": { "label": "Cat Litter" } },
+        "c6": { "type": "item", "settings": { "label": "Flea & Tick" } },
+        "c7": { "type": "item", "settings": { "label": "Beds" } },
+        "c8": { "type": "item", "settings": { "label": "Health" } }
+      },
+      "block_order": ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8"],
+      "settings": { "heading": "Popular categories", "shape": "tile", "min_size": 130, "alt_bg": false }
+    },
+    "cats": {
+      "type": "featured-collection",
+      "settings": { "heading": "Cat favorites", "limit": 12, "layout": "carousel", "per_row": 6, "show_link": true, "alt_bg": false }
+    },
+    "brands": {
+      "type": "brand-logos",
+      "blocks": {
+        "b1": { "type": "brand", "settings": { "name": "Brand 1" } },
+        "b2": { "type": "brand", "settings": { "name": "Brand 2" } },
+        "b3": { "type": "brand", "settings": { "name": "Brand 3" } },
+        "b4": { "type": "brand", "settings": { "name": "Brand 4" } },
+        "b5": { "type": "brand", "settings": { "name": "Brand 5" } },
+        "b6": { "type": "brand", "settings": { "name": "Brand 6" } }
+      },
+      "block_order": ["b1", "b2", "b3", "b4", "b5", "b6"],
+      "settings": { "heading": "Shop top brands" }
+    },
+    "why": {
+      "type": "image-with-text",
+      "settings": { "eyebrow": "Why PetWants", "heading": "Pet parents helping pet parents", "alt_bg": true }
+    },
+    "reviews": {
+      "type": "testimonials",
+      "settings": { "heading": "Loved by pet parents" }
+    },
+    "newsletter": {
+      "type": "newsletter",
+      "settings": {}
+    },
+    "recent": {
+      "type": "recently-viewed",
+      "settings": { "heading": "Recently viewed", "limit": 8 }
+    }
+  },
+  "order": ["hero", "pets", "trust", "deals", "promos", "dogs", "autoship", "categories", "cats", "brands", "why", "reviews", "newsletter", "recent"]
+}

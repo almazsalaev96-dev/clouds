@@ -1,0 +1,45 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-product",
+      "blocks": {
+        "vendor": { "type": "vendor", "settings": {} },
+        "title": { "type": "title", "settings": {} },
+        "meta": { "type": "meta", "settings": { "show_sku": true } },
+        "badges": { "type": "badges", "settings": {} },
+        "price": { "type": "price", "settings": {} },
+        "variants": { "type": "variant_picker", "settings": {} },
+        "purchase": { "type": "purchase_options", "settings": { "default_autoship": false } },
+        "stock": { "type": "stock", "settings": {} },
+        "buy": { "type": "buy_buttons", "settings": { "show_dynamic_checkout": true } },
+        "delivery": { "type": "delivery", "settings": {} },
+        "assurance": { "type": "assurance", "settings": {} },
+        "tab1": { "type": "collapsible", "settings": { "heading": "Description", "source": "description", "open": true } },
+        "tab2": { "type": "collapsible", "settings": { "heading": "Specifications", "source": "custom" } },
+        "tab3": { "type": "collapsible", "settings": { "heading": "Ingredients & nutrition", "source": "custom" } },
+        "tab4": { "type": "collapsible", "settings": { "heading": "Feeding instructions", "source": "custom" } },
+        "tab5": { "type": "collapsible", "settings": { "heading": "Shipping & returns", "source": "custom", "content": "<p>Free shipping on orders over $49. Most orders arrive in 2–5 business days. Not happy? Contact us and we'll make it right.</p>" } },
+        "share": { "type": "share", "settings": {} }
+      },
+      "block_order": ["vendor", "title", "meta", "badges", "price", "variants", "purchase", "stock", "buy", "delivery", "assurance", "tab1", "tab2", "tab3", "tab4", "tab5", "share"],
+      "settings": { "sticky_atc": true }
+    },
+    "complementary": {
+      "type": "product-recommendations",
+      "settings": { "heading": "Goes great with", "intent": "complementary", "limit": 10, "alt_bg": false }
+    },
+    "reviews": {
+      "type": "apps",
+      "settings": {}
+    },
+    "related": {
+      "type": "product-recommendations",
+      "settings": { "heading": "Customers also bought", "intent": "related", "limit": 10, "alt_bg": true }
+    },
+    "recent": {
+      "type": "recently-viewed",
+      "settings": { "heading": "Recently viewed", "limit": 8 }
+    }
+  },
+  "order": ["main", "complementary", "reviews", "related", "recent"]
+}

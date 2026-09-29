@@ -1,0 +1,381 @@
+[
+  {
+    "name": "theme_info",
+    "theme_name": "PetWants",
+    "theme_version": "1.0.0",
+    "theme_author": "PetWants",
+    "theme_documentation_url": "https://help.shopify.com/manual/online-store/themes",
+    "theme_support_url": "https://help.shopify.com/"
+  },
+  {
+    "name": "Logo & brand",
+    "settings": [
+      {
+        "type": "image_picker",
+        "id": "logo",
+        "label": "Header logo",
+        "info": "Leave empty to use the bundled PetWants logo. A wide logo works best."
+      },
+      {
+        "type": "range",
+        "id": "logo_width",
+        "min": 100,
+        "max": 320,
+        "step": 5,
+        "unit": "px",
+        "label": "Logo width (desktop)",
+        "default": 210
+      },
+      {
+        "type": "image_picker",
+        "id": "favicon",
+        "label": "Favicon",
+        "info": "32 × 32px square PNG."
+      }
+    ]
+  },
+  {
+    "name": "Colors",
+    "settings": [
+      {
+        "type": "header",
+        "content": "Brand"
+      },
+      {
+        "type": "color",
+        "id": "color_brand",
+        "label": "Brand (buttons, highlights)",
+        "default": "#D08A45",
+        "info": "Warm orange from the logo. Signals warmth, energy and action."
+      },
+      {
+        "type": "color",
+        "id": "color_on_brand",
+        "label": "Text on brand color",
+        "default": "#1C1C1C"
+      },
+      {
+        "type": "color",
+        "id": "color_ink",
+        "label": "Text / charcoal",
+        "default": "#262626"
+      },
+      {
+        "type": "color",
+        "id": "color_trust",
+        "label": "Trust accent (links, Autoship, badges)",
+        "default": "#1B4B8F",
+        "info": "Deep blue reads as dependable and safe — used for Autoship, links and guarantees."
+      },
+      {
+        "type": "header",
+        "content": "Status"
+      },
+      {
+        "type": "color",
+        "id": "color_save",
+        "label": "Savings",
+        "default": "#1E7B45"
+      },
+      {
+        "type": "color",
+        "id": "color_sale",
+        "label": "Sale / deal",
+        "default": "#C62828"
+      },
+      {
+        "type": "color",
+        "id": "color_star",
+        "label": "Rating stars",
+        "default": "#F2A516"
+      },
+      {
+        "type": "header",
+        "content": "Backgrounds"
+      },
+      {
+        "type": "color",
+        "id": "color_background",
+        "label": "Page background",
+        "default": "#FFFFFF"
+      },
+      {
+        "type": "color",
+        "id": "color_background_alt",
+        "label": "Soft section background",
+        "default": "#FBF6F0"
+      }
+    ]
+  },
+  {
+    "name": "Typography",
+    "settings": [
+      {
+        "type": "font_picker",
+        "id": "type_header_font",
+        "label": "Headings",
+        "default": "nunito_sans_n8"
+      },
+      {
+        "type": "font_picker",
+        "id": "type_body_font",
+        "label": "Body",
+        "default": "nunito_sans_n4"
+      }
+    ]
+  },
+  {
+    "name": "Layout",
+    "settings": [
+      {
+        "type": "range",
+        "id": "page_width",
+        "min": 1100,
+        "max": 1600,
+        "step": 20,
+        "unit": "px",
+        "label": "Page width",
+        "default": 1400
+      },
+      {
+        "type": "range",
+        "id": "radius",
+        "min": 0,
+        "max": 24,
+        "step": 2,
+        "unit": "px",
+        "label": "Card corner radius",
+        "default": 12
+      },
+      {
+        "type": "range",
+        "id": "radius_button",
+        "min": 0,
+        "max": 40,
+        "step": 2,
+        "unit": "px",
+        "label": "Button corner radius",
+        "default": 28
+      }
+    ]
+  },
+  {
+    "name": "Shipping & trust",
+    "settings": [
+      {
+        "type": "range",
+        "id": "free_shipping_threshold",
+        "min": 0,
+        "max": 200,
+        "step": 1,
+        "unit": "$",
+        "label": "Free shipping threshold",
+        "default": 49,
+        "info": "Powers the free-shipping progress bar in the cart. Match this to your real shipping rates. Set 0 to hide the bar."
+      },
+      {
+        "type": "text",
+        "id": "shipping_message",
+        "label": "Short shipping line on product cards",
+        "default": "Free shipping $49+",
+        "info": "Leave empty to hide."
+      },
+      {
+        "type": "range",
+        "id": "delivery_min_days",
+        "min": 0,
+        "max": 14,
+        "step": 1,
+        "label": "Delivery estimate: min business days",
+        "default": 2
+      },
+      {
+        "type": "range",
+        "id": "delivery_max_days",
+        "min": 0,
+        "max": 21,
+        "step": 1,
+        "label": "Delivery estimate: max business days",
+        "default": 5,
+        "info": "Shown as \"Estimated delivery\" on product pages. Set both to 0 to hide."
+      },
+      {
+        "type": "text",
+        "id": "returns_message",
+        "label": "Returns promise",
+        "default": "Easy returns within 30 days"
+      },
+      {
+        "type": "text",
+        "id": "support_phone",
+        "label": "Support phone",
+        "default": "1-800-000-0000"
+      },
+      {
+        "type": "text",
+        "id": "support_hours",
+        "label": "Support hours",
+        "default": "Mon–Sun, 8am–10pm ET"
+      },
+      {
+        "type": "range",
+        "id": "low_stock_threshold",
+        "min": 0,
+        "max": 30,
+        "step": 1,
+        "label": "Low stock warning at",
+        "default": 8,
+        "info": "Shows \"Only X left\" only when inventory is tracked and truly at or below this number. Set 0 to hide."
+      }
+    ]
+  },
+  {
+    "name": "Autoship",
+    "settings": [
+      {
+        "type": "paragraph",
+        "content": "Autoship uses Shopify selling plans. Install a subscription app (e.g. Shopify Subscriptions) and add a plan to products — the Autoship option then appears automatically on product pages, cards and the cart."
+      },
+      {
+        "type": "text",
+        "id": "autoship_label",
+        "label": "Program name",
+        "default": "Autoship"
+      },
+      {
+        "type": "text",
+        "id": "autoship_benefit",
+        "label": "Short benefit line",
+        "default": "Skip, pause or cancel anytime. No fees."
+      },
+      {
+        "type": "url",
+        "id": "autoship_url",
+        "label": "Autoship info page"
+      }
+    ]
+  },
+  {
+    "name": "Cart",
+    "settings": [
+      {
+        "type": "select",
+        "id": "cart_type",
+        "label": "Cart type",
+        "options": [
+          { "value": "drawer", "label": "Slide-out drawer" },
+          { "value": "page", "label": "Cart page" }
+        ],
+        "default": "drawer"
+      },
+      {
+        "type": "checkbox",
+        "id": "cart_notes",
+        "label": "Enable order notes",
+        "default": false
+      },
+      {
+        "type": "collection",
+        "id": "cart_upsell_collection",
+        "label": "\"Don't forget\" add-ons in cart",
+        "info": "Small, low-price items (treats, toys, poop bags) work best."
+      }
+    ]
+  },
+  {
+    "name": "Product cards",
+    "settings": [
+      {
+        "type": "checkbox",
+        "id": "card_show_vendor",
+        "label": "Show brand",
+        "default": true
+      },
+      {
+        "type": "checkbox",
+        "id": "card_show_rating",
+        "label": "Show star rating",
+        "default": true,
+        "info": "Reads the standard reviews.rating metafield written by most review apps."
+      },
+      {
+        "type": "checkbox",
+        "id": "card_show_quick_add",
+        "label": "Show Add to Cart button",
+        "default": true
+      },
+      {
+        "type": "checkbox",
+        "id": "card_show_favorite",
+        "label": "Show favorite (heart) button",
+        "default": true
+      },
+      {
+        "type": "select",
+        "id": "card_image_ratio",
+        "label": "Image shape",
+        "options": [
+          { "value": "square", "label": "Square" },
+          { "value": "portrait", "label": "Portrait" },
+          { "value": "natural", "label": "Original" }
+        ],
+        "default": "square"
+      }
+    ]
+  },
+  {
+    "name": "Email popup",
+    "settings": [
+      {
+        "type": "checkbox",
+        "id": "popup_enable",
+        "label": "Show welcome email popup",
+        "default": false,
+        "info": "Shown once per visitor after a delay. Never on cart or checkout."
+      },
+      {
+        "type": "range",
+        "id": "popup_delay",
+        "min": 3,
+        "max": 60,
+        "step": 1,
+        "unit": "s",
+        "label": "Delay",
+        "default": 12
+      },
+      {
+        "type": "image_picker",
+        "id": "popup_image",
+        "label": "Image"
+      },
+      {
+        "type": "text",
+        "id": "popup_heading",
+        "label": "Heading",
+        "default": "Join the pack"
+      },
+      {
+        "type": "textarea",
+        "id": "popup_text",
+        "label": "Text",
+        "default": "Get first access to deals, new arrivals and vet-approved care tips."
+      },
+      {
+        "type": "text",
+        "id": "popup_code",
+        "label": "Discount code shown after signup",
+        "info": "Create this code under Discounts first. Leave empty to show a simple thank-you."
+      }
+    ]
+  },
+  {
+    "name": "Social media",
+    "settings": [
+      { "type": "text", "id": "social_facebook", "label": "Facebook URL" },
+      { "type": "text", "id": "social_instagram", "label": "Instagram URL" },
+      { "type": "text", "id": "social_tiktok", "label": "TikTok URL" },
+      { "type": "text", "id": "social_youtube", "label": "YouTube URL" },
+      { "type": "text", "id": "social_pinterest", "label": "Pinterest URL" }
+    ]
+  }
+]

@@ -1,0 +1,1 @@
+{ "sections": { "main": { "type": "main-404", "settings": {} }, "deals": { "type": "featured-collection", "settings": { "heading": "Popular right now", "limit": 12, "layout": "carousel", "per_row": 6, "show_link": true } } }, "order": ["main", "deals"] }

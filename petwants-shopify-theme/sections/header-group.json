@@ -1,0 +1,29 @@
+{
+  "type": "header",
+  "name": "Header group",
+  "sections": {
+    "announcement": {
+      "type": "announcement-bar",
+      "blocks": {
+        "a1": { "type": "announcement", "settings": { "text": "<strong>FREE shipping</strong> on orders $49+ · Fast delivery" } },
+        "a2": { "type": "announcement", "settings": { "text": "<strong>Autoship &amp; save</strong> on every repeat order — cancel anytime" } },
+        "a3": { "type": "announcement", "settings": { "text": "Real pet experts ready to help — <strong>call or chat</strong>" } }
+      },
+      "block_order": ["a1", "a2", "a3"],
+      "settings": { "interval": 5 }
+    },
+    "header": {
+      "type": "header",
+      "settings": {
+        "menu": "main-menu",
+        "highlight_keyword": "Deal",
+        "sticky": true,
+        "search_placeholder": "Search food, treats, toys, brands…",
+        "show_autoship": true,
+        "show_utility": true,
+        "utility_text": "Pet experts ready to help:"
+      }
+    }
+  },
+  "order": ["announcement", "header"]
+}

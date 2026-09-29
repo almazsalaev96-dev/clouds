@@ -1,0 +1,72 @@
+<section class="section{% if section.settings.alt_bg %} section--alt{% endif %}">
+  <div class="page-width">
+    {%- if section.settings.heading != blank -%}
+      <div class="section-head">
+        <div>
+          <h2>{{ section.settings.heading }}</h2>
+          {%- if section.settings.subheading != blank -%}<p class="section-head__sub">{{ section.settings.subheading }}</p>{%- endif -%}
+        </div>
+      </div>
+    {%- endif -%}
+    <div class="circles{% if section.settings.shape == 'tile' %} circles--tiles{% endif %}" style="grid-auto-columns: minmax({{ section.settings.min_size }}px, 1fr);">
+      {%- for block in section.blocks -%}
+        {%- liquid
+          assign c = block.settings.collection
+          assign url = block.settings.link | default: c.url | default: '#'
+          assign label = block.settings.label | default: c.title | default: 'Category'
+          assign img = block.settings.image | default: c.featured_image
+        -%}
+        <a href="{{ url }}" class="circle" {{ block.shopify_attributes }}>
+          <div class="circle__img">
+            {%- if img != blank -%}
+              {{ img | image_url: width: 360 | image_tag: loading: 'lazy', sizes: '180px', widths: '180, 360', alt: '' }}
+            {%- else -%}
+              {{ 'collection-1' | placeholder_svg_tag }}
+            {%- endif -%}
+          </div>
+          <span>{{ label }}</span>
+        </a>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Shop by (circles)",
+  "tag": "div",
+  "max_blocks": 16,
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Shop by pet" },
+    { "type": "text", "id": "subheading", "label": "Subheading" },
+    { "type": "select", "id": "shape", "label": "Shape", "options": [ { "value": "circle", "label": "Circle" }, { "value": "tile", "label": "Rounded tile" } ], "default": "circle" },
+    { "type": "range", "id": "min_size", "min": 80, "max": 200, "step": 10, "unit": "px", "label": "Minimum item width", "default": 110 },
+    { "type": "checkbox", "id": "alt_bg", "label": "Soft background", "default": false }
+  ],
+  "blocks": [
+    {
+      "type": "item",
+      "name": "Item",
+      "settings": [
+        { "type": "collection", "id": "collection", "label": "Collection" },
+        { "type": "text", "id": "label", "label": "Label override" },
+        { "type": "image_picker", "id": "image", "label": "Image override", "info": "Square image, pet or product on a clean background." },
+        { "type": "url", "id": "link", "label": "Link override" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Shop by pet",
+      "blocks": [
+        { "type": "item", "settings": { "label": "Dog" } },
+        { "type": "item", "settings": { "label": "Cat" } },
+        { "type": "item", "settings": { "label": "Fish" } },
+        { "type": "item", "settings": { "label": "Bird" } },
+        { "type": "item", "settings": { "label": "Small Pet" } },
+        { "type": "item", "settings": { "label": "Reptile" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

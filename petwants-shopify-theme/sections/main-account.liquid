@@ -1,0 +1,51 @@
+<div class="page-width section">
+  <div class="section-head">
+    <div><h1 style="margin:0;">Hi, {{ customer.first_name | default: 'there' }}!</h1><p class="section-head__sub">Manage your orders, {{ settings.autoship_label }} and addresses.</p></div>
+    <a href="{{ routes.account_logout_url }}" class="btn btn--outline btn--sm">Sign out</a>
+  </div>
+  <div class="account-grid">
+    <div class="card-box">
+      <h2>Order history</h2>
+      {%- paginate customer.orders by 20 -%}
+        {%- if customer.orders.size > 0 -%}
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Order</th><th>Date</th><th>Payment</th><th>Fulfillment</th><th>Total</th></tr></thead>
+              <tbody>
+                {%- for order in customer.orders -%}
+                  <tr>
+                    <td><a class="link" href="{{ order.customer_url }}">{{ order.name }}</a></td>
+                    <td>{{ order.created_at | date: '%b %d, %Y' }}</td>
+                    <td>{{ order.financial_status_label }}</td>
+                    <td>{{ order.fulfillment_status_label }}</td>
+                    <td>{{ order.total_price | money }}</td>
+                  </tr>
+                {%- endfor -%}
+              </tbody>
+            </table>
+          </div>
+          {% render 'pagination', paginate: paginate %}
+        {%- else -%}
+          <p class="muted">You haven't placed any orders yet.</p>
+          <a href="{{ routes.all_products_collection_url }}" class="btn btn--brand">Start shopping</a>
+        {%- endif -%}
+      {%- endpaginate -%}
+    </div>
+    <div style="display:grid;gap:16px;align-content:start;">
+      <div class="card-box">
+        <h2 style="font-size:1.15rem;">{% render 'icon', icon: 'autoship', class: 'icon--sm' %} {{ settings.autoship_label }}</h2>
+        <p class="muted" style="font-size:.92rem;">Skip, reschedule or cancel upcoming deliveries.</p>
+        <a href="{{ routes.account_url }}#subscriptions" class="btn btn--trust btn--sm">Manage {{ settings.autoship_label }}</a>
+      </div>
+      <div class="card-box">
+        <h2 style="font-size:1.15rem;">Default address</h2>
+        {%- if customer.default_address -%}<p style="font-size:.92rem;">{{ customer.default_address | format_address }}</p>{%- else -%}<p class="muted">No address saved.</p>{%- endif -%}
+        <a href="{{ routes.account_addresses_url }}" class="link">Manage addresses ({{ customer.addresses_count }})</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{ "name": "Account", "tag": "section" }
+{% endschema %}

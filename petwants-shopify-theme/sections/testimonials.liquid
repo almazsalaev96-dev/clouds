@@ -1,0 +1,77 @@
+{%- comment -%}
+  Social proof. Use only real customer quotes — add them as blocks in the theme editor.
+  Nothing renders on the live store until at least one review block exists.
+{%- endcomment -%}
+{%- if section.blocks.size > 0 or request.design_mode -%}
+<section class="section section--alt">
+  <div class="page-width">
+    <div class="section-head" style="justify-content:center;text-align:center;">
+      <div>
+        <h2>{{ section.settings.heading }}</h2>
+        {%- if section.settings.subheading != blank -%}<p class="section-head__sub">{{ section.settings.subheading }}</p>{%- endif -%}
+      </div>
+    </div>
+    {%- if section.settings.stat_1_value != blank or section.settings.stat_2_value != blank or section.settings.stat_3_value != blank -%}
+      <div class="proof-stats">
+        {%- if section.settings.stat_1_value != blank -%}<div class="proof-stat"><strong>{{ section.settings.stat_1_value }}</strong><span>{{ section.settings.stat_1_label }}</span></div>{%- endif -%}
+        {%- if section.settings.stat_2_value != blank -%}<div class="proof-stat"><strong>{{ section.settings.stat_2_value }}</strong><span>{{ section.settings.stat_2_label }}</span></div>{%- endif -%}
+        {%- if section.settings.stat_3_value != blank -%}<div class="proof-stat"><strong>{{ section.settings.stat_3_value }}</strong><span>{{ section.settings.stat_3_label }}</span></div>{%- endif -%}
+      </div>
+    {%- endif -%}
+    {%- if section.blocks.size > 0 -%}
+      <div class="testimonials">
+        {%- for block in section.blocks -%}
+          <figure class="testimonial" {{ block.shopify_attributes }} style="margin:0;">
+            <span class="stars"><span class="stars__icons" style="--pct: {{ block.settings.rating | times: 20 }}%;" role="img" aria-label="Rated {{ block.settings.rating }} out of 5"></span></span>
+            <blockquote>“{{ block.settings.quote }}”</blockquote>
+            <figcaption class="testimonial__who">
+              {%- if block.settings.image != blank -%}{{ block.settings.image | image_url: width: 120 | image_tag: loading: 'lazy', alt: '' }}{%- endif -%}
+              <div>
+                {{ block.settings.name }}
+                {%- if block.settings.pet != blank -%}<small>{{ block.settings.pet }}</small>{%- endif -%}
+                {%- if block.settings.verified -%}<span class="testimonial__verified">{% render 'icon', icon: 'check', class: 'icon--sm' %} Verified buyer</span>{%- endif -%}
+              </div>
+            </figcaption>
+          </figure>
+        {%- endfor -%}
+      </div>
+    {%- else -%}
+      <div class="editor-hint">Add real customer reviews as blocks. This section stays hidden on your live store until you do.</div>
+    {%- endif -%}
+  </div>
+</section>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Customer love",
+  "tag": "div",
+  "max_blocks": 6,
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Loved by pet parents" },
+    { "type": "text", "id": "subheading", "label": "Subheading" },
+    { "type": "header", "content": "Proof numbers (optional)", "info": "Only use numbers you can back up." },
+    { "type": "text", "id": "stat_1_value", "label": "Stat 1 value", "info": "e.g. 4.8★" },
+    { "type": "text", "id": "stat_1_label", "label": "Stat 1 label", "default": "Average rating" },
+    { "type": "text", "id": "stat_2_value", "label": "Stat 2 value" },
+    { "type": "text", "id": "stat_2_label", "label": "Stat 2 label", "default": "Happy pets" },
+    { "type": "text", "id": "stat_3_value", "label": "Stat 3 value" },
+    { "type": "text", "id": "stat_3_label", "label": "Stat 3 label", "default": "Orders shipped" }
+  ],
+  "blocks": [
+    {
+      "type": "review",
+      "name": "Review",
+      "settings": [
+        { "type": "range", "id": "rating", "min": 1, "max": 5, "step": 1, "label": "Stars", "default": 5 },
+        { "type": "textarea", "id": "quote", "label": "Quote" },
+        { "type": "text", "id": "name", "label": "Customer name" },
+        { "type": "text", "id": "pet", "label": "Pet", "info": "e.g. Mom of Luna, 3-yr-old Lab" },
+        { "type": "image_picker", "id": "image", "label": "Photo" },
+        { "type": "checkbox", "id": "verified", "label": "Verified buyer", "default": true }
+      ]
+    }
+  ],
+  "presets": [ { "name": "Customer love" } ]
+}
+{% endschema %}

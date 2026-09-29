@@ -1,0 +1,132 @@
+{%- liquid
+  assign per_page = section.settings.per_page
+  assign sort_by = collection.sort_by | default: collection.default_sort_by
+-%}
+<div class="page-width">
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="{{ routes.root_url }}">Home</a></li>
+      <li aria-current="page">{{ collection.title }}</li>
+    </ol>
+  </nav>
+
+  <div class="collection-hero">
+    <div class="collection-hero__inner{% if section.settings.show_image and collection.image %} collection-hero__inner--image{% endif %}">
+      <div>
+        <h1>{{ collection.title }}</h1>
+        {%- if section.settings.show_description and collection.description != blank -%}
+          <div class="rte">{{ collection.description }}</div>
+        {%- endif -%}
+      </div>
+      {%- if section.settings.show_image and collection.image -%}
+        <div class="collection-hero__media">{{ collection.image | image_url: width: 1000 | image_tag: loading: 'eager', sizes: '(min-width: 750px) 40vw, 100vw', widths: '500, 750, 1000' }}</div>
+      {%- endif -%}
+    </div>
+  </div>
+
+  {%- paginate collection.products by per_page -%}
+    <div class="collection-layout" data-collection-results>
+      {%- if collection.filters.size > 0 -%}
+        <aside class="filters" aria-label="Filters">
+          {% render 'facets', results: collection, form_id: 'FacetsDesktop' %}
+        </aside>
+      {%- endif -%}
+
+      <div>
+        <div class="toolbar">
+          <span class="toolbar__count">{{ collection.products_count }} {{ collection.products_count | pluralize: 'result', 'results' }}</span>
+          <div class="toolbar__right">
+            {%- if collection.filters.size > 0 -%}
+              <button type="button" class="btn btn--outline btn--sm filter-toggle" data-drawer-open="FilterDrawer">{% render 'icon', icon: 'filter', class: 'icon--sm' %} Filter</button>
+            {%- endif -%}
+            <label class="toolbar__sort" for="SortBy">
+              <span class="visually-hidden">Sort by</span>
+              <select id="SortBy" class="select" data-sort-select>
+                {%- for option in collection.sort_options -%}
+                  <option value="{{ option.value }}"{% if option.value == sort_by %} selected{% endif %}>{{ option.name }}</option>
+                {%- endfor -%}
+              </select>
+            </label>
+          </div>
+        </div>
+
+        {%- liquid
+          assign active_count = 0
+          for filter in collection.filters
+            assign active_count = active_count | plus: filter.active_values.size
+            if filter.type == 'price_range'
+              if filter.min_value.value != nil or filter.max_value.value != nil
+                assign active_count = active_count | plus: 1
+              endif
+            endif
+          endfor
+        -%}
+        {%- if active_count > 0 -%}
+          <div class="active-filters">
+            {%- for filter in collection.filters -%}
+              {%- for value in filter.active_values -%}
+                <a href="{{ value.url_to_remove }}" class="pill" data-facet-link>{{ value.label }} {% render 'icon', icon: 'close' %}<span class="visually-hidden">Remove filter</span></a>
+              {%- endfor -%}
+              {%- if filter.type == 'price_range' -%}
+                {%- if filter.min_value.value != nil or filter.max_value.value != nil -%}
+                  <a href="{{ filter.url_to_remove }}" class="pill" data-facet-link>
+                    {{ filter.min_value.value | default: 0 | money }} – {% if filter.max_value.value %}{{ filter.max_value.value | money }}{% else %}{{ filter.range_max | money }}{% endif %}
+                    {% render 'icon', icon: 'close' %}
+                  </a>
+                {%- endif -%}
+              {%- endif -%}
+            {%- endfor -%}
+            <a href="{{ collection.url }}?sort_by={{ sort_by }}" class="link" data-facet-link style="align-self:center;">Clear all</a>
+          </div>
+        {%- endif -%}
+
+        {%- if collection.products.size > 0 -%}
+          <ul class="product-grid" role="list" style="--cols: {{ section.settings.columns }};">
+            {%- for product in collection.products -%}
+              {%- liquid
+                assign card_loading = 'lazy'
+                if forloop.index <= 4
+                  assign card_loading = 'eager'
+                endif
+              -%}
+              <li>{% render 'product-card', product: product, loading: card_loading %}</li>
+            {%- endfor -%}
+          </ul>
+          {% render 'pagination', paginate: paginate %}
+        {%- else -%}
+          <div class="empty-state">
+            {% render 'icon', icon: 'paw', class: 'icon--lg' %}
+            <h2>No products found</h2>
+            <p class="muted">Try removing a filter or searching for something else.</p>
+            <a href="{{ collection.url }}" class="btn btn--dark">Clear filters</a>
+          </div>
+        {%- endif -%}
+      </div>
+    </div>
+  {%- endpaginate -%}
+</div>
+
+{%- if collection.filters.size > 0 -%}
+  <div class="drawer drawer--left" id="FilterDrawer" aria-hidden="true">
+    <button type="button" class="drawer__overlay" data-drawer-close tabindex="-1" aria-label="Close filters"></button>
+    <div class="drawer__panel" role="dialog" aria-modal="true" aria-label="Filters">
+      <div class="drawer__head"><h2>Filter</h2><button type="button" class="drawer__close" data-drawer-close aria-label="Close filters">{% render 'icon', icon: 'close' %}</button></div>
+      <div class="drawer__body filters--drawer">{% render 'facets', results: collection, form_id: 'FacetsMobile' %}</div>
+      <div class="drawer__foot"><button type="button" class="btn btn--dark btn--full" data-drawer-close>Show {{ collection.products_count }} results</button></div>
+    </div>
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Product grid",
+  "tag": "section",
+  "class": "section-main-collection",
+  "settings": [
+    { "type": "range", "id": "per_page", "min": 12, "max": 48, "step": 4, "label": "Products per page", "default": 24 },
+    { "type": "range", "id": "columns", "min": 3, "max": 5, "step": 1, "label": "Columns (desktop)", "default": 4 },
+    { "type": "checkbox", "id": "show_description", "label": "Show collection description", "default": true },
+    { "type": "checkbox", "id": "show_image", "label": "Show collection image", "default": false }
+  ]
+}
+{% endschema %}

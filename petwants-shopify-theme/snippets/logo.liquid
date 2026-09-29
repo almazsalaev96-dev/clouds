@@ -1,0 +1,10 @@
+{%- comment -%} Header / footer logo. Accepts: width (number), loading {%- endcomment -%}
+{%- liquid
+  assign w = width | default: settings.logo_width
+  assign load = loading | default: 'eager'
+-%}
+{%- if settings.logo != blank -%}
+  {{ settings.logo | image_url: width: 640 | image_tag: alt: shop.name, width: w, loading: load, sizes: '(min-width: 990px) 320px, 180px', widths: '200, 320, 480, 640' }}
+{%- else -%}
+  <img src="{{ 'petwants-logo-horizontal.png' | asset_url }}" alt="{{ shop.name | escape }}" width="{{ w }}" height="{{ w | times: 240 | divided_by: 1281 }}" loading="{{ load }}">
+{%- endif -%}
