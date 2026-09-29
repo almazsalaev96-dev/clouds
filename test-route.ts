@@ -100,7 +100,8 @@ const price = (id: string) => {
   return m.priceIn + m.priceOut * 3;
 };
 {
-  const cheapest = [...MODELS].sort((a, b) => price(a.id) - price(b.id)).slice(0, 4).map((m) => m.id);
+  /* Among the models this browser can reach: the four companies it has keys for. */
+  const cheapest = [...MODELS].filter((m) => (ALL as Record<string, boolean>)[m.provider]).sort((a, b) => price(a.id) - price(b.id)).slice(0, 4).map((m) => m.id);
   const quick = route("translate this to French: hello", ctx() as never);
   check(cheapest.includes(quick.modelId), "a one-line rewrite goes somewhere fast and cheap",
     `${quick.modelId}, against ${cheapest.join(", ")}`);

@@ -39,7 +39,7 @@ await group.getByRole("button", { name: "Example" }).click();
 await p.waitForTimeout(3200);
 const after = await p.locator(".msg").count();
 check(after === before + 2, "pressing one sends a real turn and gets an answer", `${before} → ${after} messages`);
-const sent = await p.locator(".msg .whitespace-pre-wrap.bg-subtle").last().innerText();
+const sent = await p.locator('.msg .whitespace-pre-wrap[class*="--bubble"]').last().innerText();
 check(sent === "Give me one concrete example of that.", "and the transcript shows what was asked, in the person's own turn", sent);
 check(await p.getByRole("group", { name: "Follow up" }).count() === 1, "the row moves to the new last answer, not one per answer");
 

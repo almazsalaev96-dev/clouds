@@ -85,6 +85,8 @@
      The blue-tinted ice that was here read as a tint over every word once
      it sat beside ChatGPT's and Gemini's light screens, which are white. */
   --bg-canvas: #ffffff;
+  /* What you wrote, as ChatGPT sets it apart: a soft grey. */
+  --bubble: #f4f4f4;
   /* Not pure white: a lit edge on a raised surface is painted in white, and
      a surface already at the top of the range leaves it nothing to be lighter
      than — the rim disappears and the card goes flat. This keeps a step. */
@@ -141,7 +143,8 @@
      (16.5 · 13.6 · 9.8 · 6.5), so a reader who switches theme finds the
      same structure: plain greys, the reference's, at the lightness that
      lands each rung on the same ratio against white. */
-  --text-primary: #1f1f1f;
+  /* ChatGPT's light ink. */
+  --text-primary: #0d0d0d;
   --text-secondary: #2e2e2e;
   --text-tertiary: #444444;
   --text-faint: #5e5e5e;
@@ -401,7 +404,7 @@
     1.017, 1.010, 1.005, 1.002, 1
   );
 
-  --dur-fast: 140ms;
+  --dur-fast: 150ms;
   --dur-enter: 200ms;
   --dur-layout: 280ms;
   /* A room change: quicker than a layout change, because it is the most
@@ -426,7 +429,8 @@
      rationales and no callers; a token nobody reads is a claim, not a
      setting. */
   --dur-tooltip: 140ms;
-  --dur-menu: 180ms;
+  /* ChatGPT's popovers: 350ms on a long ease-out, from 95%. */
+  --dur-menu: 350ms;
   --dur-modal: 240ms;
   --dur-toast: 220ms;
 
@@ -586,6 +590,7 @@
        Every pair below is computed against WCAG (`node contrast.mjs`).
        --------------------------------------------------------------------- */
     --bg-canvas: #000000;
+    --bubble: #2f2f2f;
     --bg-surface: #171717;
     --bg-subtle: #212121;
     --bg-section: #0d0d0d;
@@ -596,7 +601,11 @@
     --border-subtle: #2a2a2a;
     --border-strong: #7d7d7d;
 
-    --text-primary: #e4e4e4;
+    /* ChatGPT's dark ink — #cdcdcd and #afafaf under it, held a step brighter
+       (#d0d0d0, #b1b1b1) so dark is never the weaker theme, and at the top a
+       hair under white (#fafafa), so the ladder climbs by the same steps as
+       the light theme's #0d0d0d does against white. */
+    --text-primary: #fafafa;
     --text-secondary: #d0d0d0;
     --text-tertiary: #b1b1b1;
     --text-faint: #8f8f8f;
@@ -752,14 +761,15 @@
        ground lost its blue. */
     /* ChatGPT's box: a solid grey pill a step above the page, a hairline
        you barely see, no glow while you type. */
-    --composer-bg: #262626;
-    --composer-line: rgba(255, 255, 255, 0.06);
-    --composer-line-focus: rgba(255, 255, 255, 0.10);
-    --composer-lift: 0 8px 24px -16px rgb(0 0 0 / 0.8);
+    --composer-bg: #212121;
+    --composer-line: transparent;
+    /* A faint edge while the caret is in it, so the keyboard can see where it is. */
+    --composer-line-focus: rgba(255, 255, 255, 0.15);
+    --composer-lift: inset 0 0 1px rgb(255 255 255 / 0.2);
     /* The ring around the box you type in, only while the caret is in it, and
        in the cyan of the signal rather than in the structural blue: it marks
        where you are writing, which is the one thing a signal light does. */
-    --composer-lift-focus: 0 8px 24px -16px rgb(0 0 0 / 0.8);
+    --composer-lift-focus: inset 0 0 1px rgb(255 255 255 / 0.2);
   }
 }
 
@@ -847,14 +857,15 @@
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
 
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
-    "Helvetica Neue", sans-serif;
+  /* ChatGPT's stack: the system face — SF Pro on an iPad or a Mac, Segoe UI
+     on Windows — rather than a webfont of our own. */
+  --font-sans: -apple-system-body, ui-sans-serif, -apple-system, BlinkMacSystemFont, system-ui,
+    "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
   --font-serif: "Cormorant Garamond", "Iowan Old Style", "Palatino Linotype", Palatino,
     Georgia, serif;
   --font-script: "Pinyon Script", "Snell Roundhand", "Apple Chancery", "URW Chancery L",
     cursive;
-  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo,
-    Consolas, monospace;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
   /* The scale, measured against the three apps this one is answering to.
      ---------------------------------------------------------------------
@@ -1028,7 +1039,7 @@ textarea:focus-visible {
   --bg-overlay: rgba(28, 24, 16, 0.46);
   --border-subtle: #e4ded1;
   --border-strong: #8a8271;
-  --text-primary: #1d1a14;
+  --text-primary: #090805;
   --text-secondary: #2f2b22;
   --text-tertiary: #444034;
   --text-faint: #5d584c;
@@ -1777,6 +1788,10 @@ body::after {
    centres dialogs with `-translate-x-1/2 -translate-y-1/2`, which compiles to
    the `translate` property, so animating it here throws every centred dialog
    into a corner. The spring easing supplies the character instead. */
+@keyframes menu-in {
+  from { opacity: 0; scale: 0.95; }
+  to { opacity: 1; scale: 1; }
+}
 @keyframes pop-in {
   from { opacity: 0; scale: 0.94; }
   to { opacity: 1; scale: 1; }
@@ -1835,7 +1850,7 @@ body::after {
    number so the two halves of one object arrive together; they were 120ms
    apart, and the half the eye tracks was the slow one. */
 .anim-tip   { animation: pop-in var(--dur-tooltip) var(--ease-out) both; }
-.anim-menu  { animation: pop-in var(--dur-menu) var(--ease-out) both; }
+.anim-menu  { animation: menu-in var(--dur-menu) cubic-bezier(0.19, 1, 0.22, 1) both; }
 .anim-modal { animation: pop-in var(--dur-modal) var(--ease-out) both; }
 .anim-toast { animation: pop-in var(--dur-toast) var(--ease-out) both; }
 .anim-scrim { animation: fade-in var(--dur-modal) var(--ease-out) both; }
@@ -2374,9 +2389,11 @@ textarea.bare:focus-visible,
    to find the start of the next, and leading is what keeps it from landing
    on the wrong one. */
 [data-read="chat"] {
-  --measure: 47.5rem;
+  --measure: 48rem;
+  --measure-text: 48rem;
   --read-size: var(--text-base);
-  --read-leading: 1.7;
+  /* ChatGPT's 16 on 26. */
+  --read-leading: 1.625;
   --read-gap: 1em;
 }
 
@@ -2918,3 +2935,9 @@ main:has(.has-room-toggle) > .room-toggle-row { display: none; }
 @media (pointer: coarse) {
   .nb-answer a[href^="#armi-cite-"] { min-width: 1.75rem; height: 1.75rem; }
 }
+
+/* A streamed word arriving, as ChatGPT fades it in: half a second, on its
+   curve. Still, for anyone who has asked for less motion. */
+.prose .sw { animation: word-in 0.5s cubic-bezier(0.37, 0.55, 0.86, 0.88) both; }
+@keyframes word-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .prose .sw { animation: none; } }

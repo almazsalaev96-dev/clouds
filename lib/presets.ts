@@ -203,12 +203,12 @@ export const PRESETS: Preset[] = [
     blurb:
       "Your primary assistant, and it changes shape for the job: on code it is planned, built and read back by coders; on maths it lists the risks first, shows its working and is checked twice; teaching, it starts from the usual misconceptions and ends with questions; translating, another company reads the result against the original; on a letter it works out the reader first; on a book it reads the whole on the widest window. On everything else, a model from one company lists what the answer has to get right, a model from another writes it, and a cheap third reads it back when that has been going wrong.",
     examples: ["what is a debounce", "is this contract clause normal", "plan my week around three deadlines"],
-    engines: ["gpt-5.6-terra", "claude-opus-5-5", "claude-sonnet-5", "kimi-k3", "deepseek-v4-pro", "claude-sonnet-4-6", "gpt-5.5", "claude-sonnet-4-5"],
+    engines: ["gpt-5.6-terra", "claude-opus-5-5", "claude-sonnet-5", "kimi-k3", "deepseek-v4-pro", "claude-sonnet-4-6", "gpt-5.5", "claude-sonnet-4-5", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5", "gemini-3.8-flash", "grok-4.3", "mistral-large-2512", "qwen3.6-plus", "or/auto", "groq/gpt-oss-120b"],
     want: "balanced",
     group: "everyday",
     cast: [
-      { role: "brief", as: "cover", engines: ["gpt-5.6-luna", "kimi-k2.6", "deepseek-flash", "claude-haiku-4-5", "gpt-5.2", "gpt-5"], want: "cheap" },
-      { role: "check", engines: ["deepseek-flash", "gpt-5.6-luna", "kimi-k2.6", "claude-haiku-4-5", "gpt-5.2", "gpt-5"], want: "cheap", when: "earned" },
+      { role: "brief", as: "cover", engines: ["gpt-5.6-luna", "kimi-k2.6", "deepseek-flash", "claude-haiku-4-5", "gpt-5.2", "gpt-5", "gemini-3.1-flash-lite", "qwen3.8-flash", "mistral-small-latest", "groq/gpt-oss-20b", "grok-4.20-0309-non-reasoning", "groq/gpt-oss-120b"], want: "cheap" },
+      { role: "check", engines: ["deepseek-flash", "gpt-5.6-luna", "kimi-k2.6", "claude-haiku-4-5", "gpt-5.2", "gpt-5", "gemini-3.1-flash-lite", "qwen3.8-flash", "mistral-small-latest", "groq/gpt-oss-20b", "grok-4.20-0309-non-reasoning", "groq/gpt-oss-120b"], want: "cheap", when: "earned" },
     ],
     escalate: ["gpt-5.6-sol", "claude-opus-5-5", "claude-fable-5-1", "kimi-k3", "deepseek-v4-pro"],
     revise: true,
@@ -232,14 +232,14 @@ export const PRESETS: Preset[] = [
     blurb:
       "For the hardest few per cent: a whole architecture, thirty papers into one reading, a problem that will not come apart in one pass. One company plans it, the strongest writer you have takes it on, a reasoner from another company works the logic independently, a third company's cheap model checks what came of it, and when the check objects the writer goes again with the objection in hand. On a plan or a design a third seat joins the council for the strategy; on code, maths, teaching or translation it writes the way that job demands. The dearest thing here, and the only one that earns it.",
     examples: ["design the complete architecture of my AI SaaS", "read these thirty papers and write a rigorous synthesis", "prove this holds for every input"],
-    engines: ["gpt-5.6-sol", "claude-fable-5-1", "claude-opus-5-5", "kimi-k3", "deepseek-v4-pro", "gpt-5.5", "claude-fable-5", "claude-opus-4-8"],
+    engines: ["gpt-5.6-sol", "claude-fable-5-1", "claude-opus-5-5", "kimi-k3", "deepseek-v4-pro", "gpt-5.5", "claude-fable-5", "claude-opus-4-8", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5", "gemini-3.8-flash", "grok-4.3", "mistral-large-2512", "qwen3.6-plus", "or/auto", "groq/gpt-oss-120b"],
     want: "strong",
     group: "everyday",
     cast: [
-      { role: "brief", as: "plan", engines: ["deepseek-v4-pro", "kimi-k3", "claude-opus-5-5", "gpt-5.6-terra", "claude-sonnet-5", "gpt-5.5"], want: "strong" },
-      { role: "council", angle: "logic", engines: ["claude-fable-5-1", "gpt-5.6-sol", "deepseek-v4-pro", "kimi-k3", "claude-opus-5-5", "gpt-5.5"], want: "strong" },
-      { role: "council", angle: "knowledge", engines: ["kimi-k3", "deepseek-flash", "gpt-5.6-terra", "claude-sonnet-5", "kimi-k2.6", "gpt-5.2"], want: "long" },
-      { role: "check", engines: ["deepseek-flash", "gpt-5.6-luna", "kimi-k2.6", "claude-haiku-4-5", "gpt-5.2", "claude-sonnet-4-5"], want: "cheap" },
+      { role: "brief", as: "plan", engines: ["deepseek-v4-pro", "kimi-k3", "claude-opus-5-5", "gpt-5.6-terra", "claude-sonnet-5", "gpt-5.5", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5"], want: "strong" },
+      { role: "council", angle: "logic", engines: ["claude-fable-5-1", "gpt-5.6-sol", "deepseek-v4-pro", "kimi-k3", "claude-opus-5-5", "gpt-5.5", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5"], want: "strong" },
+      { role: "council", angle: "knowledge", engines: ["kimi-k3", "deepseek-flash", "gpt-5.6-terra", "claude-sonnet-5", "kimi-k2.6", "gpt-5.2", "gemini-3.8-flash", "qwen3.6-plus", "gemini-3.1-pro-preview", "grok-4.3", "qwen3.8-max"], want: "long" },
+      { role: "check", engines: ["deepseek-flash", "gpt-5.6-luna", "kimi-k2.6", "claude-haiku-4-5", "gpt-5.2", "claude-sonnet-4-5", "gemini-3.1-flash-lite", "qwen3.8-flash", "mistral-small-latest", "groq/gpt-oss-20b", "grok-4.20-0309-non-reasoning", "groq/gpt-oss-120b"], want: "cheap" },
     ],
     effort: "high",
     stance:
@@ -255,11 +255,11 @@ export const PRESETS: Preset[] = [
     blurb:
       "For quick questions, rewrites and the high volume of small scoped work. The fastest engine you have a key for answers straight away, and a second company's cheap model checks it while you are already reading.",
     examples: ["what does ECONNRESET mean", "shorten this to one line", "ten flashcards on the water cycle"],
-    engines: ["gpt-5.6-luna", "deepseek-flash", "claude-haiku-4-5", "kimi-k2.6", "gpt-5.2", "claude-sonnet-4-5"],
+    engines: ["gpt-5.6-luna", "deepseek-flash", "claude-haiku-4-5", "kimi-k2.6", "gpt-5.2", "claude-sonnet-4-5", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5", "gemini-3.8-flash", "grok-4.3", "mistral-large-2512", "qwen3.6-plus", "or/auto", "groq/gpt-oss-120b"],
     want: "cheap",
     group: "everyday",
     cast: [
-      { role: "check", engines: ["claude-haiku-4-5", "deepseek-flash", "gpt-5.6-luna", "kimi-k2.6", "gpt-5", "gpt-5.2"], want: "cheap" },
+      { role: "check", engines: ["groq/gpt-oss-120b", "claude-haiku-4-5", "deepseek-flash", "gpt-5.6-luna", "kimi-k2.6", "gpt-5", "gpt-5.2", "gemini-3.1-flash-lite", "qwen3.8-flash", "mistral-small-latest", "groq/gpt-oss-20b", "grok-4.20-0309-non-reasoning"], want: "cheap" },
     ],
     effort: "low",
     register: "concise",
@@ -275,12 +275,12 @@ export const PRESETS: Preset[] = [
     blurb:
       "Mathematics, economics, logic, analysis, hard strategy. One model writes down where this is most likely to go wrong before anybody answers, the strongest engine you have does the work, and a third from a different company checks it. Pure arithmetic never reaches a model at all — this app works that out exactly, for nothing.",
     examples: ["compound return over seven years", "event sourcing or CRUD, and why", "does this spreadsheet actually add up"],
-    engines: ["claude-opus-5-5", "claude-opus-5", "deepseek-v4-pro", "kimi-k3", "claude-fable-5-1", "claude-opus-4-8", "gpt-5.6-sol"],
+    engines: ["claude-opus-5-5", "claude-opus-5", "deepseek-v4-pro", "kimi-k3", "claude-fable-5-1", "claude-opus-4-8", "gpt-5.6-sol", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5", "gemini-3.8-flash", "grok-4.3", "mistral-large-2512", "qwen3.6-plus", "or/auto", "groq/gpt-oss-120b"],
     want: "strong",
     group: "job",
     cast: [
-      { role: "brief", as: "risks", engines: ["deepseek-v4-pro", "kimi-k3", "gpt-5.6-terra", "claude-sonnet-5", "gpt-5.5", "claude-sonnet-4-6"], want: "strong" },
-      { role: "check", engines: ["kimi-k3", "deepseek-v4-pro", "claude-opus-5-5", "claude-opus-5", "gpt-5.6-sol", "claude-opus-4-7"], want: "strong" },
+      { role: "brief", as: "risks", engines: ["deepseek-v4-pro", "kimi-k3", "gpt-5.6-terra", "claude-sonnet-5", "gpt-5.5", "claude-sonnet-4-6", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5"], want: "strong" },
+      { role: "check", engines: ["kimi-k3", "deepseek-v4-pro", "claude-opus-5-5", "claude-opus-5", "gpt-5.6-sol", "claude-opus-4-7", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5"], want: "strong" },
     ],
     effort: "high",
     stance:
@@ -299,17 +299,17 @@ export const PRESETS: Preset[] = [
     blurb:
       "The most this app can bring to one question. Three companies each take a different half of it — the strategy, the reasoning, what is actually known — a fourth writes one answer out of the three, and a fifth reads that answer back and can send it round again. Five models a turn, and by some way the dearest thing here.",
     examples: ["design my AI education startup", "should we rebuild this or refactor it", "review this plan before we commit"],
-    engines: ["claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "kimi-k3", "claude-fable-5", "claude-opus-4-8", "gpt-5.6-sol"],
+    engines: ["claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "kimi-k3", "claude-fable-5", "claude-opus-4-8", "gpt-5.6-sol", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5", "gemini-3.8-flash", "grok-4.3", "mistral-large-2512", "qwen3.6-plus", "or/auto", "groq/gpt-oss-120b"],
     want: "strong",
     group: "job",
     cast: [
-      { role: "council", angle: "strategy", engines: ["kimi-k3", "claude-opus-5-5", "claude-opus-5", "deepseek-v4-pro", "gpt-5.6-sol", "claude-opus-4-7"], want: "strong" },
-      { role: "council", angle: "logic", engines: ["deepseek-v4-pro", "kimi-k3", "claude-opus-5-5", "claude-opus-5", "gpt-5.5", "claude-opus-4-6"], want: "strong" },
-      { role: "council", angle: "knowledge", engines: ["kimi-k3", "deepseek-flash", "gpt-5.6-terra", "claude-sonnet-5", "kimi-k2.6", "gpt-5.2"], want: "strong" },
+      { role: "council", angle: "strategy", engines: ["kimi-k3", "claude-opus-5-5", "claude-opus-5", "deepseek-v4-pro", "gpt-5.6-sol", "claude-opus-4-7", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5"], want: "strong" },
+      { role: "council", angle: "logic", engines: ["deepseek-v4-pro", "kimi-k3", "claude-opus-5-5", "claude-opus-5", "gpt-5.5", "claude-opus-4-6", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5"], want: "strong" },
+      { role: "council", angle: "knowledge", engines: ["grok-4.7", "kimi-k3", "deepseek-flash", "gpt-5.6-terra", "claude-sonnet-5", "kimi-k2.6", "gpt-5.2", "gemini-3.1-pro-preview", "qwen3.8-max", "mistral-medium-3-5"], want: "strong" },
       /* And the seat that reads what came of it. Three specialists and a
          writer can still be confidently wrong together; the one job nobody
          at the table has is looking at the finished answer from outside it. */
-      { role: "check", engines: ["gpt-5.6-sol", "kimi-k3", "deepseek-v4-pro", "claude-opus-5-5", "claude-opus-5", "claude-sonnet-4-6"], want: "strong" },
+      { role: "check", engines: ["gpt-5.6-sol", "kimi-k3", "deepseek-v4-pro", "claude-opus-5-5", "claude-opus-5", "claude-sonnet-4-6", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5"], want: "strong" },
     ],
     effort: "high",
     revise: true,
@@ -323,11 +323,11 @@ export const PRESETS: Preset[] = [
     blurb:
       "Books, PDFs, research, threads that have run all day. It answers on the biggest window you have a key for, and a second company reads the summary back against what it was meant to say.",
     examples: ["summarise this 80-page report", "what changed between these two contracts", "find every mention of the deadline"],
-    engines: ["gpt-5.6-terra", "kimi-k3", "deepseek-flash", "claude-sonnet-5", "claude-sonnet-4-6", "gpt-5.5", "claude-fable-5"],
+    engines: ["gpt-5.6-terra", "kimi-k3", "deepseek-flash", "claude-sonnet-5", "claude-sonnet-4-6", "gpt-5.5", "claude-fable-5", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5", "gemini-3.8-flash", "grok-4.3", "mistral-large-2512", "qwen3.6-plus", "or/auto", "groq/gpt-oss-120b"],
     want: "long",
     group: "job",
     cast: [
-      { role: "check", engines: ["kimi-k3", "claude-sonnet-5", "deepseek-flash", "gpt-5.6-terra", "kimi-k2.6", "claude-sonnet-4-5"], want: "balanced" },
+      { role: "check", engines: ["kimi-k3", "claude-sonnet-5", "deepseek-flash", "gpt-5.6-terra", "kimi-k2.6", "claude-sonnet-4-5", "gemini-3.8-flash", "grok-4.3", "mistral-large-2512", "qwen3.6-plus", "or/auto"], want: "balanced" },
     ],
     revise: true,
     icon: "aperture",
@@ -342,12 +342,12 @@ export const PRESETS: Preset[] = [
     blurb:
       "Code, and pages that run beside the conversation. Another company plans the thing first — the pieces, the order, what is easy to leave out — the strongest coder you have builds it, and a third reads the result back. It would rather make the thing than describe it.",
     examples: ["build me a stopwatch with lap times", "refactor this to remove the nested loop", "why does this test fail only in CI"],
-    engines: ["claude-opus-5-5", "claude-opus-5", "kimi-k2.7-code", "claude-sonnet-5", "claude-fable-5-1", "claude-opus-4-8", "deepseek-v4-pro"],
+    engines: ["claude-opus-5-5", "claude-opus-5", "kimi-k2.7-code", "claude-sonnet-5", "claude-fable-5-1", "claude-opus-4-8", "deepseek-v4-pro", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5", "gemini-3.8-flash", "grok-4.3", "mistral-large-2512", "qwen3.6-plus", "or/auto", "groq/gpt-oss-120b"],
     want: "strong",
     group: "job",
     cast: [
-      { role: "brief", as: "plan", engines: ["deepseek-v4-pro", "kimi-k2.7-code", "claude-sonnet-5", "gpt-5.6-sol", "claude-sonnet-4-6"], want: "strong" },
-      { role: "check", engines: ["kimi-k2.7-code", "deepseek-v4-pro", "claude-opus-5-5", "claude-opus-5", "kimi-k2.7-code-highspeed", "claude-opus-4-6"], want: "strong" },
+      { role: "brief", as: "plan", engines: ["deepseek-v4-pro", "kimi-k2.7-code", "claude-sonnet-5", "gpt-5.6-sol", "claude-sonnet-4-6", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5"], want: "strong" },
+      { role: "check", engines: ["kimi-k2.7-code", "deepseek-v4-pro", "claude-opus-5-5", "claude-opus-5", "kimi-k2.7-code-highspeed", "claude-opus-4-6", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5"], want: "strong" },
     ],
     effort: "high",
     stance:
@@ -363,13 +363,13 @@ export const PRESETS: Preset[] = [
     blurb:
       "Screenshots, diagrams, worksheets, photographs of a whiteboard, a chart. Perception first — a PDF is read into text here, a picture goes to a model that can actually see — then two models that can see are given the same picture and answer side by side, because what a model gets wrong about an image it gets wrong confidently and a second reading is the only way to catch it.",
     examples: ["what is wrong in this screenshot", "read this handwriting", "what does this graph show"],
-    engines: ["gpt-5.6-terra", "claude-sonnet-5", "deepseek-flash", "kimi-k3", "gpt-5.6-sol", "claude-opus-5-5", "claude-sonnet-4-6"],
+    engines: ["gpt-5.6-terra", "claude-sonnet-5", "deepseek-flash", "kimi-k3", "gpt-5.6-sol", "claude-opus-5-5", "claude-sonnet-4-6", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5", "gemini-3.8-flash", "grok-4.3", "mistral-large-2512", "qwen3.6-plus", "or/auto", "groq/gpt-oss-120b"],
     want: "balanced",
     group: "everyday",
     sees: true,
     cast: [
-      { role: "duel", engines: ["kimi-k3", "gpt-5.6-terra", "deepseek-flash", "claude-sonnet-5", "gpt-5.6-sol", "kimi-k2.6"], want: "balanced" },
-      { role: "check", engines: ["deepseek-flash", "gpt-5.6-luna", "kimi-k2.6", "claude-haiku-4-5", "gpt-5.2", "claude-sonnet-4-5"], want: "cheap", when: "earned" },
+      { role: "duel", engines: ["qwen3.8-max", "kimi-k3", "gpt-5.6-terra", "deepseek-flash", "claude-sonnet-5", "gpt-5.6-sol", "kimi-k2.6", "gemini-3.8-flash", "grok-4.3", "mistral-large-2512", "qwen3.6-plus", "or/auto"], want: "balanced" },
+      { role: "check", engines: ["deepseek-flash", "gpt-5.6-luna", "kimi-k2.6", "claude-haiku-4-5", "gpt-5.2", "claude-sonnet-4-5", "gemini-3.1-flash-lite", "qwen3.8-flash", "mistral-small-latest", "groq/gpt-oss-20b", "grok-4.20-0309-non-reasoning", "groq/gpt-oss-120b"], want: "cheap", when: "earned" },
     ],
     stance:
       "Look before you reason: in the first lines, say what is actually in the picture — every label, number, axis and word you can read — then answer. Where a part of the picture is unclear or cut off, say which part rather than guessing at it.",
@@ -383,12 +383,12 @@ export const PRESETS: Preset[] = [
     blurb:
       "For learning something rather than obtaining it. Another model first writes down what somebody asking this usually believes that is wrong, so the explanation starts where you actually are; the answer ends with questions you cannot pass by having just read it; and a second company checks the teaching was right before you commit it to memory. Cards made here live in Study.",
     examples: ["explain eigenvalues like I have forgotten the algebra", "teach me the water cycle", "I have an exam on the Krebs cycle on Friday"],
-    engines: ["claude-sonnet-5", "gpt-5.6-terra", "kimi-k3", "deepseek-flash", "claude-sonnet-4-6", "gpt-5.5"],
+    engines: ["claude-sonnet-5", "gpt-5.6-terra", "kimi-k3", "deepseek-flash", "claude-sonnet-4-6", "gpt-5.5", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5", "gemini-3.8-flash", "grok-4.3", "mistral-large-2512", "qwen3.6-plus", "or/auto", "groq/gpt-oss-120b"],
     want: "balanced",
     group: "job",
     cast: [
-      { role: "brief", as: "misconceptions", engines: ["kimi-k2.6", "gpt-5.6-luna", "deepseek-flash", "claude-haiku-4-5", "gpt-5.2", "gpt-5"], want: "cheap" },
-      { role: "check", engines: ["gpt-5.6-luna", "deepseek-flash", "kimi-k2.6", "claude-haiku-4-5", "gpt-5", "claude-sonnet-4-5"], want: "cheap" },
+      { role: "brief", as: "misconceptions", engines: ["kimi-k2.6", "gpt-5.6-luna", "deepseek-flash", "claude-haiku-4-5", "gpt-5.2", "gpt-5", "gemini-3.1-flash-lite", "qwen3.8-flash", "mistral-small-latest", "groq/gpt-oss-20b", "grok-4.20-0309-non-reasoning", "groq/gpt-oss-120b"], want: "cheap" },
+      { role: "check", engines: ["gpt-5.6-luna", "deepseek-flash", "kimi-k2.6", "claude-haiku-4-5", "gpt-5", "claude-sonnet-4-5", "gemini-3.1-flash-lite", "qwen3.8-flash", "mistral-small-latest", "groq/gpt-oss-20b", "grok-4.20-0309-non-reasoning", "groq/gpt-oss-120b"], want: "cheap" },
     ],
     register: "explanatory",
     stance:
@@ -403,11 +403,11 @@ export const PRESETS: Preset[] = [
     blurb:
       "Translation, where the mistake you cannot see is the one that matters. One model translates and a model from a different company reads the translation against the original and reports what drifted.",
     examples: ["translate this email into Japanese", "what does this clause say in English", "is this the right register for a formal letter"],
-    engines: ["kimi-k3", "claude-sonnet-5", "gpt-5.6-terra", "deepseek-v4-pro", "kimi-k2.6", "gpt-5.5", "claude-sonnet-4-6"],
+    engines: ["kimi-k3", "claude-sonnet-5", "gpt-5.6-terra", "deepseek-v4-pro", "kimi-k2.6", "gpt-5.5", "claude-sonnet-4-6", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5", "gemini-3.8-flash", "grok-4.3", "mistral-large-2512", "qwen3.6-plus", "or/auto", "groq/gpt-oss-120b"],
     want: "balanced",
     group: "job",
     cast: [
-      { role: "check", engines: ["gpt-5.6-terra", "claude-sonnet-5", "deepseek-v4-pro", "kimi-k3", "claude-sonnet-4-5"], want: "balanced" },
+      { role: "check", engines: ["mistral-medium-3-5", "gpt-5.6-terra", "claude-sonnet-5", "deepseek-v4-pro", "kimi-k3", "claude-sonnet-4-5", "gemini-3.8-flash", "grok-4.3", "mistral-large-2512", "qwen3.6-plus", "or/auto"], want: "balanced" },
     ],
     stance:
       "Translate the meaning and the register, not the words. Keep names, numbers, and formatting exactly as they are. Where an idiom has no equivalent, say plainly what it means rather than inventing one.",
@@ -421,11 +421,11 @@ export const PRESETS: Preset[] = [
     blurb:
       "Emails, letters, posts, anything with a reader who is not you. Another model works out who reads it and what it has to achieve before a word is written, which is the part that is usually skipped and the reason most drafts have to be rewritten.",
     examples: ["write to my landlord about the boiler", "a resignation letter that keeps the door open", "turn these notes into an announcement"],
-    engines: ["gpt-5.6-sol", "claude-sonnet-5", "kimi-k3", "gpt-5.6-terra", "gpt-5.5", "claude-sonnet-4-6", "deepseek-v4-pro"],
+    engines: ["gpt-5.6-sol", "claude-sonnet-5", "kimi-k3", "gpt-5.6-terra", "gpt-5.5", "claude-sonnet-4-6", "deepseek-v4-pro", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5", "gemini-3.8-flash", "grok-4.3", "mistral-large-2512", "qwen3.6-plus", "or/auto", "groq/gpt-oss-120b"],
     want: "balanced",
     group: "job",
     cast: [
-      { role: "brief", as: "audience", engines: ["kimi-k2.6", "claude-haiku-4-5", "deepseek-flash", "gpt-5.6-luna", "gpt-5.2", "claude-sonnet-4-5"], want: "cheap" },
+      { role: "brief", as: "audience", engines: ["kimi-k2.6", "claude-haiku-4-5", "deepseek-flash", "gpt-5.6-luna", "gpt-5.2", "claude-sonnet-4-5", "gemini-3.1-flash-lite", "qwen3.8-flash", "mistral-small-latest", "groq/gpt-oss-20b", "grok-4.20-0309-non-reasoning", "groq/gpt-oss-120b"], want: "cheap" },
     ],
     register: "formal",
     icon: "feather",
@@ -438,11 +438,11 @@ export const PRESETS: Preset[] = [
     blurb:
       "Two companies answer the same question, side by side, and you keep the one you prefer. Where judgement or taste decides, two answers are worth more than one model's verdict — and unlike Constellation, nothing is blended away.",
     examples: ["what should we call this feature", "is this opening paragraph any good", "which of these two designs"],
-    engines: ["claude-opus-5-5", "claude-opus-5", "kimi-k3", "deepseek-v4-pro", "claude-fable-5-1", "claude-opus-4-7", "gpt-5.6-sol"],
+    engines: ["claude-opus-5-5", "claude-opus-5", "kimi-k3", "deepseek-v4-pro", "claude-fable-5-1", "claude-opus-4-7", "gpt-5.6-sol", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5", "gemini-3.8-flash", "grok-4.3", "mistral-large-2512", "qwen3.6-plus", "or/auto", "groq/gpt-oss-120b"],
     want: "strong",
     group: "job",
     cast: [
-      { role: "duel", engines: ["kimi-k3", "deepseek-v4-pro", "claude-opus-5-5", "claude-opus-5", "gpt-5.6-sol", "claude-opus-4-8"], want: "strong" },
+      { role: "duel", engines: ["kimi-k3", "deepseek-v4-pro", "claude-opus-5-5", "claude-opus-5", "gpt-5.6-sol", "claude-opus-4-8", "gemini-3.1-pro-preview", "grok-4.7", "qwen3.8-max", "mistral-medium-3-5"], want: "strong" },
     ],
     icon: "scale",
   },

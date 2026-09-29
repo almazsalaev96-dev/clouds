@@ -23,6 +23,37 @@ import { calloutKind } from "@/lib/callout";
 const REMARK = [remarkGfm, remarkMath];
 const REHYPE = [[rehypeKatex, { throwOnError: false, strict: false }]] as never;
 
+/* ChatGPT's arrival: while an answer streams, each new word fades in rather
+   than appearing at once. Only the last block is touched — every block
+   before it is finished — and each of its words becomes a span, so React
+   keeps the words already on screen (same place, same element) and only the
+   ones that just arrived mount, and animate. Code and maths are left whole. */
+type HNode = { type: string; tagName?: string; value?: string; properties?: Record<string, unknown>; children?: HNode[] };
+function rehypeStreamWords() {
+  return (tree: HNode) => {
+    const blocks = (tree.children ?? []).filter((n) => n.type === "element");
+    const last = blocks[blocks.length - 1];
+    if (!last || last.tagName === "pre") return;
+    const walk = (node: HNode) => {
+      if (!node.children) return;
+      node.children = node.children.flatMap((child) => {
+        if (child.type === "text" && child.value) {
+          return child.value.split(/(?<=\s)/).filter(Boolean).map((w) => ({
+            type: "element", tagName: "span", properties: { className: ["sw"] }, children: [{ type: "text", value: w }],
+          }));
+        }
+        if (child.type === "element") {
+          const cls = String((child.properties?.className as string[] | undefined)?.join(" ") ?? "");
+          if (child.tagName !== "code" && child.tagName !== "pre" && !/katex|math/.test(cls)) walk(child);
+        }
+        return [child];
+      });
+    };
+    walk(last);
+  };
+}
+const REHYPE_STREAMING = [[rehypeKatex, { throwOnError: false, strict: false }], rehypeStreamWords] as never;
+
 function makeComponents(streaming: boolean): Components {
   return {
     code({ className, children, ...props }) {
@@ -171,7 +202,7 @@ export default function MarkdownRenderer({
     <div className="prose" dir="auto">
       <ReactMarkdown
         remarkPlugins={REMARK}
-        rehypePlugins={REHYPE}
+        rehypePlugins={streaming ? REHYPE_STREAMING : REHYPE}
         components={streaming ? STREAMING_COMPONENTS : STATIC_COMPONENTS}
       >
         {content}

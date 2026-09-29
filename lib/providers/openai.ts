@@ -60,7 +60,9 @@ export async function* streamOpenAICompatible(
     ...(quirks.noStreamOptions ? {} : { stream_options: { include_usage: true } }),
   };
   /* This app's rooms, as functions the model may call. */
-  if (req.actions?.length) {
+  /* Only to a model that takes them: an engine without function calling
+     answers a request that carries tools with an error, not an answer. */
+  if (req.actions?.length && model.tools) {
     body.tools = req.actions.map((a) => ({
       type: "function",
       function: { name: a.name, description: a.description, parameters: a.schema },

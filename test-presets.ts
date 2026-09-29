@@ -8,6 +8,7 @@
  * comes from a different company or does not come at all.
  *
  *   npx jiti test-presets.ts */
+import { PROVIDERS } from "./lib/models";
 import {
   PRESETS, DEFAULT_PRESET_ID, getPreset, isPreset, resolveCast, resolvePreset, engineOf,
   playerFor, playersFor, profileOf, shapePlan, worthBriefing, worthChecking, worthConvening, briefPrompt, canRun,
@@ -20,7 +21,7 @@ import { cheapestAvailable } from "./lib/complete";
 let failed = 0;
 const check = (p: boolean, l: string, d = "") => { if (!p) failed++; console.log(`${p ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
 
-const all = { anthropic: true, openai: true, moonshot: true, deepseek: true };
+const all = Object.fromEntries(Object.keys(PROVIDERS).map((p) => [p, true])) as Record<string, boolean>;
 const only = (p: string) => ({ anthropic: false, openai: false, moonshot: false, deepseek: false, [p]: true });
 const spec = (id: string) => MODELS.find((m) => m.id === id)!;
 const engine = (id: string, where: Parameters<typeof resolveCast>[1]) => resolveCast(id, where)!.answer.modelId;
@@ -97,9 +98,19 @@ console.log("\nThe cast is designed, not whatever the bench happened to hand ove
   };
   const used = new Set(PRESETS.flatMap((p) => cast(p.id)));
   const current = MODELS.filter((m) => !m.legacy);
-  const idle = current.filter((m) => !used.has(m.id));
-  check(idle.length === 0, "every model a provider currently sells has a seat somewhere",
-    idle.map((m) => m.id).join(", ") || `all ${current.length} of them`);
+  /* Eleven companies' models are more than the tactics have seats, so the
+     promise is twofold: every company sits somewhere, and every current
+     model is named in some tactic — reachable by name the moment its key is
+     the one in hand — rather than left for a blind pick. */
+  const seatedLabs = new Set([...used].map((id) => spec(id).provider));
+  /* OpenRouter is a gateway to the others' models, not a lab of its own. */
+  const unseated = Object.keys(PROVIDERS).filter((p) => p !== "openrouter" && !seatedLabs.has(p as never) && current.some((m) => m.provider === p));
+  check(unseated.length === 0, "every company that sells a current model has a seat somewhere",
+    unseated.join(", ") || `all ${seatedLabs.size} of them`);
+  const named = new Set(PRESETS.flatMap((p) => [...p.engines, ...p.cast.flatMap((c) => c.engines)]));
+  const unnamed = current.filter((m) => !named.has(m.id));
+  check(unnamed.length === 0, "and every model a provider currently sells is named by some tactic",
+    unnamed.map((m) => m.id).join(", ") || `all ${current.length} of them`);
   /* And the older bench is not cast when everything is available — it is
      depth for the browsers that are missing a key, which is a different job. */
   const stale = MODELS.filter((m) => m.legacy && used.has(m.id));
@@ -236,7 +247,8 @@ console.log("\nWith one company's key it still fields a cast, and says what kind
   check(kin.parts.every((x) => x.sameCompany), "and marks the seats that went to a sibling");
   check(/sibling/.test(kin.short ?? ""), "in words, not only in a flag", kin.short ?? "");
   check(makers({ configured: only("anthropic") }).length === 1, "which is what one key means");
-  check(makers({ configured: all }).length === 4, "and four keys are four companies");
+  check(makers({ configured: { anthropic: true, openai: true, moonshot: true, deepseek: true } }).length === 4, "and four keys are four companies");
+  check(makers({ configured: all }).length === Object.keys(PROVIDERS).length, "and every company's key is a company", String(makers({ configured: all }).length));
 }
 
 console.log("\nIt runs on whatever key you actually hold");

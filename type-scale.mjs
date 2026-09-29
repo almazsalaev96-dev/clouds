@@ -110,7 +110,8 @@ console.log("\nA conversation and a document are set differently");
      at this column width than it would at a narrower one — the longer the
      line, the further the eye travels back to find the start of the next, and
      leading is the only thing keeping it off the wrong one. */
-  check(Math.abs(chat.leading - 1.7) < 0.02, "and is given the air that length needs", `${chatLeading}`);
+  /* 1.625: ChatGPT's own 16 on 26, which this app now sets exactly. */
+  check(Math.abs(chat.leading - 1.625) < 0.02, "and is given the air that length needs", `${chatLeading}`);
   const gap = await p.evaluate(() => {
     const el = document.querySelector(".prose > * + *");
     return el ? parseFloat(getComputedStyle(el).marginTop) : null;
@@ -209,7 +210,7 @@ console.log("\nHierarchy comes from size and brightness, not from weight");
      not by the radius it happened to have. `.rounded-[20px]` named a value,
      and the day the corner joined the scale this selector would have found
      nothing and reported the user's text missing. */
-  const user = await p.evaluate(`(${READER})([...document.querySelectorAll(".msg .whitespace-pre-wrap.bg-subtle")].pop())`);
+  const user = await p.evaluate(`(${READER})([...document.querySelectorAll('.msg .whitespace-pre-wrap[class*="--bubble"]')].pop())`);
   /* The same 16 as the answer. It was 15 for a while, on the argument that
      your own words are re-read at a glance rather than read — which is true of
      the column and the leading and was never true of the size. A bubble set a

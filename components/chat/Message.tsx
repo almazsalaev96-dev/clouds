@@ -181,7 +181,7 @@ function UserMessageImpl({
           /* 94% of the column on a phone, 85% from `sm` up; a corner from the
              scale rather than a 20 drawn by hand; 14 of side padding, which is
              inside the 10-14 band where 16 was not. */
-          className="max-w-[94%] whitespace-pre-wrap rounded-lg bg-subtle px-3.5 py-2.5 text-base [overflow-wrap:anywhere] sm:max-w-[85%]"
+          className="max-w-[85%] whitespace-pre-wrap rounded-[18px] bg-[var(--bubble)] px-4 py-2.5 text-base leading-[1.625] text-primary [overflow-wrap:anywhere] sm:max-w-[70%]"
         >
           {text}
         </div>
