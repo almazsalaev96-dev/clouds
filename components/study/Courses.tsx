@@ -14,10 +14,11 @@ import {
   BOARDS, DIFFICULTIES, DIFFICULTY_LABEL, LEVELS,
   allTopics, courseMoves, courseName, courseScore, daysUntil, findTopic, marksFor,
   markPrompt, mockPrompt, notesPrompt, parseMarking, parseMock, parseQuestion, parseSyllabus,
-  questionPrompt, syllabusPrompt, topicResult, weakestFirst,
+  questionPrompt, syllabusFor, syllabusFromDocPrompt, syllabusPrompt, topicResult, weakestFirst,
   type Confidence, type Course, type CourseTopic, type Difficulty, type ExamQuestion,
   type MarkRow, type Marking, type Mock,
 } from "@/lib/course";
+import { extractPdf, isPdf, readTextFile, readingLine } from "@/lib/pdf";
 import type { Note } from "@/lib/types";
 import { Button } from "@/components/ui/primitives";
 import { Markdown } from "@/components/chat/Markdown";
@@ -186,9 +187,35 @@ export function AddCourse({ configured, onDone, onCancel }: {
   const [board, setBoard] = React.useState<string>(BOARDS.GCSE[0]);
   const [busy, setBusy] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
+  /* The official specification, when they have it: the course is then
+     built from the document itself — its topics, its codes, its words —
+     and every note and question reads the part for its topic. */
+  const [spec, setSpec] = React.useState<{ name: string; text: string } | null>(null);
+  const [reading, setReading] = React.useState<string | null>(null);
+  const specRef = React.useRef<HTMLInputElement>(null);
   const modelId = useModel(configured);
 
   React.useEffect(() => { setBoard(BOARDS[level][0] ?? "Other"); }, [level]);
+
+  const takeSpec = async (file: File | undefined) => {
+    if (!file) return;
+    setNotice(null);
+    setReading(`Reading ${file.name}…`);
+    try {
+      let text = "";
+      if (isPdf(file)) {
+        const out = await extractPdf(file, (page, all) => setReading(readingLine(file.name, page, all)));
+        if (out.imageOnly) { setNotice("That PDF is a scan with no text in it. Try the board's downloadable PDF instead."); return; }
+        text = out.text;
+      } else text = (await readTextFile(file)).text;
+      if (!text.trim()) { setNotice("Nothing could be read from that file."); return; }
+      setSpec({ name: file.name, text });
+    } catch {
+      setNotice("That file could not be opened.");
+    } finally {
+      setReading(null);
+    }
+  };
 
   const build = async () => {
     if (!subject.trim() || busy) return;
@@ -196,13 +223,14 @@ export function AddCourse({ configured, onDone, onCancel }: {
     setBusy(true);
     setNotice(null);
     try {
-      const raw = await complete(syllabusPrompt(subject, level, board), { modelId, maxTokens: 8_000, temperature: 0.2 });
+      const raw = await complete(spec ? syllabusFromDocPrompt(subject, level, board, spec.text) : syllabusPrompt(subject, level, board), { modelId, maxTokens: 10_000, temperature: 0.2 });
       const units = parseSyllabus(extractJson(raw ?? ""));
       if (!units) { setNotice("The specification did not come back in a shape that could be read. Try again, or name the subject more exactly."); return; }
       const now = Date.now();
       const course: Course = {
         id: uid(), subject: subject.trim(), level, board, name: courseName(subject, level, board),
         units, confidence: {}, notes: {}, createdAt: now, updatedAt: now,
+        ...(spec ? { syllabus: { name: spec.name, text: spec.text.slice(0, 2_000_000) } } : {}),
       };
       await db.courses.add(course);
       onDone(course.id);
@@ -264,9 +292,24 @@ export function AddCourse({ configured, onDone, onCancel }: {
           </button>
         ))}
       </div>
+      <p className="mt-3 text-xs font-medium text-secondary">Your syllabus</p>
+      <div className="mt-1 flex flex-wrap items-center gap-2" aria-label="Your syllabus">
+        {spec ? (
+          <span className="flex min-w-0 items-center gap-1.5 rounded-full bg-subtle py-1 pl-3 pr-1 text-xs text-secondary">
+            <span className="max-w-[16rem] truncate">{spec.name}</span>
+            <button onClick={() => setSpec(null)} aria-label="Remove the syllabus" className="ctl focus-inset flex [--ctl:1.5rem] items-center justify-center rounded-full text-tertiary hover:text-primary"><X size={12} /></button>
+          </span>
+        ) : (
+          <Button size="sm" variant="secondary" onClick={() => specRef.current?.click()} disabled={Boolean(reading)}>
+            {reading ?? "Add the specification (PDF)"}
+          </Button>
+        )}
+        <span className="text-xs text-tertiary">{spec ? "Topics, codes and wording come from it." : "Recommended: the course is then built from the real document."}</span>
+        <input ref={specRef} type="file" accept=".pdf,.txt,.md,text/*,application/pdf" aria-label="Choose the specification" className="sr-only" tabIndex={-1} onChange={(e) => { void takeSpec(e.target.files?.[0]); e.target.value = ""; }} />
+      </div>
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Button variant="primary" disabled={!subject.trim() || busy} onClick={() => void build()}>
-          {busy ? "Writing out the specification…" : "Build the course"}
+        <Button variant="primary" disabled={!subject.trim() || busy || Boolean(reading)} onClick={() => void build()}>
+          {busy ? (spec ? "Reading the specification…" : "Writing out the specification…") : "Build the course"}
         </Button>
         {notice && <p role="status" className="text-xs text-warning">{notice}</p>}
       </div>
@@ -578,7 +621,7 @@ function Notes({ course, topic, configured, onOpenPage, onQuestions }: {
     setBusy(true);
     setNotice(null);
     try {
-      const text = await complete(notesPrompt(course, topic), { modelId, maxTokens: 5_000, temperature: 0.3 });
+      const text = await complete(notesPrompt(course, topic, syllabusFor(course, topic)), { modelId, maxTokens: 5_000, temperature: 0.3 });
       if (!text?.trim()) throw new Error("Nothing came back.");
       const title = `${course.subject} — ${topic.title}`;
       if (note) await db.notes.update(note.id, { content: text.trim(), updatedAt: Date.now() });
@@ -733,7 +776,7 @@ function Questions({ course, topic, rows, configured, onAsk }: {
     setReview(null);
     try {
       const avoid = [...(q ? [q.question] : []), ...rows.slice(0, 8).map((r) => r.question)];
-      const raw = await complete(questionPrompt(course, topic, d, avoid), { modelId, maxTokens: 3_000, temperature: 0.7 });
+      const raw = await complete(questionPrompt(course, topic, d, avoid, syllabusFor(course, topic)), { modelId, maxTokens: 3_000, temperature: 0.7 });
       const next = parseQuestion(extractJson(raw ?? ""), topic.id, d);
       if (!next) { setNotice("The question did not come back in a shape that could be read. Try again."); return; }
       setQ(next);

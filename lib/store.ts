@@ -121,6 +121,18 @@ export type Density = "compact" | "comfortable" | "spacious";
  */
 export type Section = "chat" | "code" | "creative" | "projects" | "notebook" | "study";
 
+/** Who is studying, and for what. Every field is the student's own words. */
+export interface Learner {
+  stage: "school" | "university" | "other";
+  /** "GCSE", "A level", "IB", "Year 2, BSc Biology", "IELTS". */
+  level: string;
+  /** Exam board, or university and module. */
+  board: string;
+  subjects: string;
+  /** "a 9", "an A*", "a first", "band 7". */
+  target: string;
+}
+
 interface Settings {
   theme: Theme;
   density: Density;
@@ -186,6 +198,12 @@ interface Settings {
    * a student's own notes are the best context there is for their question.
    */
   notesInChat: boolean;
+  /**
+   * Who is studying, and for what: asked once in Study, used by every
+   * tool that writes study material and by the chat, so nobody types
+   * "GCSE, AQA, aiming for a 9" into every box.
+   */
+  learner: Learner | null;
   showLineNumbers: boolean;
   wrapCode: boolean;
   /** Browser-held keys, used only when the server has none for that provider. */
@@ -211,6 +229,7 @@ interface Settings {
   setReviseModel: (id: string | null) => void;
   setPlus: (p: PlusMembership | null) => void;
   setExam: (e: { name: string; date: string } | null) => void;
+  setLearner: (l: Learner | null) => void;
   setParams: (modelId: string, p: Partial<ModelParams>) => void;
   toggleFavorite: (id: string) => void;
   set: (partial: Partial<Settings>) => void;
@@ -264,6 +283,7 @@ export const DEFAULT_SETTINGS = {
   actionsOn: true,
   craftOn: true,
   notesInChat: true,
+  learner: null,
   showLineNumbers: false,
   wrapCode: false,
   keys: {} as Record<string, string>,
@@ -300,6 +320,7 @@ export const useSettings = create<Settings>()(
       setSidebar: (sidebarOpen) => set({ sidebarOpen }),
       setPlus: (plus) => set({ plus }),
       setExam: (exam) => set({ exam }),
+      setLearner: (learner) => set({ learner }),
       setKey: (p, key) => set((s) => ({ keys: { ...s.keys, [p]: key } })),
       setParams: (modelId, p) =>
         set((s) => ({

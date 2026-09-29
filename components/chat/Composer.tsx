@@ -13,7 +13,7 @@ import { engineOf } from "@/lib/presets";
 import { paramsFor } from "@/lib/store";
 import { MessageBar } from "./MessageBar";
 import { fileToBase64, formatBytes, sniffKind, cn } from "@/lib/utils";
-import { isPdf, pdfBlock } from "@/lib/pdf";
+import { isPdf, pdfBlock, readingLine, readTextFile, cutLine } from "@/lib/pdf";
 import { useSettings, useDrafts } from "@/lib/store";
 import { Tooltip } from "@/components/ui/primitives";
 
@@ -195,8 +195,11 @@ export function Composer({
   const addFiles = React.useCallback(async (files: File[]) => {
     const next: Attachment[] = [];
     for (const file of files) {
-      if (file.size > MAX_FILE_BYTES) {
-        setNotice(`${file.name} is ${formatBytes(file.size)} — the limit is 20 MB.`);
+      /* A picture goes to the model as it is, so the model's limit holds.
+         A PDF or a text file is read here and only its words are sent — a
+         300 MB textbook is fine; the long reader takes it in parts. */
+      if (file.type.startsWith("image/") && file.size > MAX_FILE_BYTES) {
+        setNotice(`${file.name} is ${formatBytes(file.size)} — pictures can be up to 20 MB.`);
         continue;
       }
       /* The label and the bytes have to agree. The type is the browser's
@@ -226,7 +229,7 @@ export function Composer({
         // drags at an assistant, and "isn't a text file" is a true sentence
         // that is no use to the person reading it.
         setNotice(`Reading ${file.name}…`);
-        const out = await pdfBlock(file);
+        const out = await pdfBlock(file, (page, pages) => setNotice(readingLine(file.name, page, pages)));
         setNotice(null);
         if ("error" in out) {
           setNotice(out.error);
@@ -256,7 +259,7 @@ export function Composer({
           name: file.name,
           mimeType: file.type || "text/plain",
           size: file.size,
-          data: await file.text(),
+          data: await (async () => { const r = await readTextFile(file); if (r.cut) setNotice(cutLine(file.name)); return r.text; })(),
         });
       }
     }

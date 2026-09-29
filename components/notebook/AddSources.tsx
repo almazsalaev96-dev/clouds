@@ -4,7 +4,7 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ClipboardPaste, FileText, Globe, Upload, X } from "lucide-react";
 import { addSource, db } from "@/lib/db";
-import { extractPdf, isPdf } from "@/lib/pdf";
+import { extractPdf, isPdf, readingLine, readTextFile, cutLine } from "@/lib/pdf";
 import { titleMatches } from "@/lib/notebook";
 import { Button } from "@/components/ui/primitives";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,8 @@ export function AddSources({ notebookId, onClose, onAdded }: {
   const [way, setWay] = React.useState<Way>("upload");
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  /* How far through a long PDF — news, not a fault, so said politely. */
+  const [progress, setProgress] = React.useState<string | null>(null);
   const [url, setUrl] = React.useState("");
   const [pasteName, setPasteName] = React.useState("");
   const [pasteText, setPasteText] = React.useState("");
@@ -46,16 +48,19 @@ export function AddSources({ notebookId, onClose, onAdded }: {
     for (const f of Array.from(list)) {
       try {
         if (isPdf(f)) {
-          const got = await extractPdf(f);
+          const got = await extractPdf(f, (page, all) => setProgress(readingLine(f.name, page, all)));
+          setProgress(null);
           if (got.imageOnly) { problems.push(`${f.name} is a scan with no text in it`); continue; }
           await addSource(notebookId, { name: f.name, text: got.text, pages: got.pages, size: f.size });
         } else {
-          const text = await f.text();
+          const { text, cut } = await readTextFile(f);
+          if (cut) problems.push(cutLine(f.name).replace(/\.$/, ""));
           if (!text.trim()) { problems.push(`${f.name} is empty`); continue; }
           await addSource(notebookId, { name: f.name, text, size: f.size });
         }
         names.push(f.name);
       } catch {
+        setProgress(null);
         problems.push(`${f.name} could not be read`);
       }
     }
@@ -211,6 +216,7 @@ export function AddSources({ notebookId, onClose, onAdded }: {
             </div>
           )}
 
+          {progress && <p role="status" aria-live="polite" className="mt-3 text-sm text-secondary tnum">{progress}</p>}
           {error && <p role="alert" className="mt-3 text-sm text-[var(--danger)]">{error}</p>}
         </div>
       </section>

@@ -938,6 +938,7 @@ export default function Page() {
         who: preset?.name,
         assistant,
         base: [rulesText(settings.rules ?? [], settings.systemPrompt), conv?.systemPrompt ?? "", conv?.deep ? DEEP_RESEARCH : ""].filter(Boolean).join("\n\n"),
+        learner: conv?.temporary ? null : settings.learner,
         project,
         files,
         /* What was asked, so a project holding more than fits sends the

@@ -82,7 +82,7 @@ console.log("\nA deck in Study");
   await p.locator("aside nav").getByRole("button", { name: "Study" }).first().click();
   await p.waitForTimeout(700);
   await fetch(`${MOCK}/__reset`);
-  await p.getByRole("textbox", { name: /deck|subject|what/i }).first().fill("osmosis");
+  await p.getByRole("textbox", { name: "What to study" }).first().fill("osmosis");
   await p.keyboard.press("Enter");
   await p.waitForTimeout(7000);
   const cards = await rows("cards");

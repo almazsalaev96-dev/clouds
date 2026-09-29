@@ -14,6 +14,7 @@
  * Pure: prompts and parsers. The calls live in the component.
  */
 
+import { ANNOTATE_RULES, LEARNING_RULES, stageOf, stageRules, type Stage } from "./pedagogy";
 import { COMMAND_WORDS } from "./exam";
 import { CORNELL, EXAM, LESSON, ORGANISER } from "./revision";
 import { STANDARDS, type ToolId } from "./standards";
@@ -29,14 +30,7 @@ import { STANDARDS, type ToolId } from "./standards";
  */
 export const HOUSE_RULES = [
   "You are making study material for a student. These rules hold for everything you write:",
-  "1. Correct first. Only what is true at this level; where the source is wrong, unclear or out of date, say so plainly instead of repeating it.",
-  "2. Aimed at the exam. Use the subject's own terms and the exam board's wording; bold the words a mark scheme looks for.",
-  "3. From the source. When a source is given, everything comes from it or is marked as added; never invent quotations, page numbers, statistics or board codes.",
-  "4. Made to be recalled, not reread. Prefer questions, cues and steps to paragraphs; every section should give the student something to test themselves on.",
-  "5. Concrete and light to carry. Every abstract idea gets an example; every method gets a worked example with the reason for each step; a diagram where a structure or process is easier seen than read; short chunks, one idea at a time.",
-  "6. Honest about level. Pitch it at the level given; if none is given, at school exam level, and say what you assumed in one line at the top.",
-  "7. Complete and clean. No preamble, no filler, no placeholders, no 'as an AI'. Headings, tables and lists in Markdown.",
-  "8. The student's language. Write in the language the source is written in, or the student's, keeping names, symbols and quoted terms exact.",
+  LEARNING_RULES,
 ].join("\n");
 
 /* -------------------------------------------------------------- tools -- */
@@ -79,15 +73,19 @@ export const TOOLS: Tool[] = [
     kind: "page",
     standard: STANDARDS.notes.standard,
     instruction: [
-      "Write revision notes on the source, the kind a student reads the night before and comes away able to score full marks.",
-      "One `##` heading per topic, in the order of the source. Under each:",
-      "- **Key points**: numbered, short, exact; bold the words a mark scheme looks for.",
+      "Write revision notes on the source that a student works through — answering as they go — and comes away able to score full marks.",
+      "Open with `## Before you start`: three questions on what this builds on, answers hidden at the end. A guess now makes the notes stick better, right or wrong.",
+      "Then one `##` heading per topic, in the order of the specification or the source. Under each:",
+      "- **The big idea**: one sentence — what this topic is about and why it matters.",
+      "- **Key points**: numbered, short, exact, each small enough to be marked right or wrong; bold the words a mark scheme looks for.",
       "- **Key terms**: a table, term | meaning, in the subject's own wording (only where the topic has terms).",
-      "- **Worked example**: where the topic has a method or calculation, one example with every step and the reason for it.",
-      "- **Common mistakes**: two or three, each with the fix. Use `> [!mistake]` for the worst one in the whole page.",
-      "- **Examiner tip**: one or two lines on how the marks are awarded here.",
-      "Use a Mermaid diagram (```mermaid) where a process, cycle or structure is easier seen than read, at most three in the page.",
-      "End with `## Test yourself`: eight questions across the topics, then `## Answers` with each answer in one or two lines.",
+      "- **See it**: a labelled diagram (```mermaid), table or timeline where the structure, process or comparison is easier seen than read — at most three in the page, labels on the parts they name.",
+      "- **Worked example**: where the topic has a method or calculation, one example with every step and the reason for it; then **Your turn**, a similar one with its answer at the end.",
+      "- **Why?**: one or two questions that ask the student to explain a key point in their own words, or connect it to another topic.",
+      "- **Common mistakes**: two or three, each with the fix, and any look-alikes that get confused and how to tell them apart. Use `> [!mistake]` for the worst one in the whole page.",
+      "- **How it is examined**: the command words used for this topic and what each needs, and one line on how the marks are awarded here.",
+      "- **Quick check**: two short questions.",
+      "End with `## Test yourself`: eight questions mixing all the topics (not in order), then `## Answers` with every answer — the before-you-start, your-turn and quick-check ones too — in one or two lines each.",
     ].join("\n"),
   },
   {
@@ -186,6 +184,20 @@ export const TOOLS: Tool[] = [
       "A table with the header `When | What happened | Why it mattered`. Use only dates the source gives or that are certain; where the order is known but not the date, say so.",
       "Then `## Turning points`: the three moments that changed most, with the reason for each.",
       "If the source has no chronology, make it a sequence of stages instead and say so in one line.",
+    ].join("\n"),
+  },
+  {
+    id: "annotate",
+    name: "Annotated text",
+    blurb: "The text with an examiner's notes in the margin: what it shows, how, and why it matters",
+    kind: "page",
+    standard: STANDARDS.annotate.standard,
+    instruction: [
+      "Annotate the source the way a top-band student and their teacher would, for revision.",
+      "Quote the text in short passages as blockquotes, in order, and under each passage write its annotations as a list. For a long source, choose the passages that matter most for the exam and say that you did.",
+      ANNOTATE_RULES,
+      "Then `## What to take into the exam`: the five to eight points and quotations most worth learning, each with the idea it proves.",
+      "Then `## Test yourself` and `## Answers`.",
     ].join("\n"),
   },
   {
@@ -382,6 +394,8 @@ export interface Brief {
   /** Topics to concentrate on, from the reading. */
   focus?: string[];
   difficulty?: "easy" | "standard" | "hard";
+  /** School, university or neither, when the student has said. */
+  stage?: Stage;
   /** Anything the student added. */
   extra?: string;
 }
@@ -419,6 +433,7 @@ export function pagePrompt(tool: Tool, brief: Brief, source: string, sourceName:
     ...tool.standard.map((s, i) => `${i + 1}. ${s}`),
     "",
     briefLines(brief),
+    stageRules(brief.stage ?? stageOf(brief.level ?? "")),
     "",
     `THE SOURCE: ${sourceName}`,
     source.slice(0, 120_000),

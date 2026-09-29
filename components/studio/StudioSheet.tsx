@@ -10,7 +10,7 @@ import { db, uid, addCards, createDeck, createNote, noteMade } from "@/lib/db";
 import { cheapestAvailable, complete, extractJson, whyItFailed } from "@/lib/complete";
 import { draftCards, makeFromSources } from "@/lib/generate";
 import { extractCitations } from "@/lib/cite";
-import { extractPdf, isPdf } from "@/lib/pdf";
+import { extractPdf, isPdf, readingLine, readTextFile } from "@/lib/pdf";
 import { readWhole } from "@/lib/digest";
 import { marksOf } from "@/lib/exam";
 import { rulesText } from "@/lib/rules";
@@ -91,7 +91,12 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
   const [topic, setTopic] = React.useState(request.topic ?? "");
   const [reading, setReading] = React.useState<Reading | null>(null);
   const [picked, setPicked] = React.useState<Set<ToolId>>(new Set(request.tool && request.tool !== "checker" ? [request.tool] : []));
-  const [brief, setBrief] = React.useState<Brief>({ title: "", purpose: "exam", difficulty: "standard" });
+  /* Their level and board as they gave them in Study, so the brief starts
+     filled in rather than asking the same thing every time. */
+  const [brief, setBrief] = React.useState<Brief>(() => {
+    const l = useSettings.getState().learner;
+    return { title: "", purpose: "exam", difficulty: "standard", ...(l?.level ? { level: l.level, stage: l.stage } : {}), ...(l?.board ? { board: l.board } : {}) };
+  });
   const [minutes, setMinutes] = React.useState(45);
   const [jobs, setJobs] = React.useState<Job[]>([]);
   const [notice, setNotice] = React.useState<string | null>(null);
@@ -152,13 +157,13 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
     if (!file) return;
     setNotice(null);
     try {
-      if (file.size > 40_000_000) { setNotice("That file is over 40MB."); return; }
       let text = "";
       if (isPdf(file)) {
-        const out = await extractPdf(file);
+        const out = await extractPdf(file, (page, all) => setNotice(readingLine(file.name, page, all)));
+        setNotice(null);
         if (out.imageOnly || !out.text.trim()) { setNotice("That PDF is a scan with no text in it. Open it in Study → Work through a document, where pages are read as pictures."); return; }
         text = out.text;
-      } else text = await file.text();
+      } else text = (await readTextFile(file)).text;
       if (!text.trim()) { setNotice("Nothing could be read from that file."); return; }
       const src = { name: file.name, text };
       setSource(src);
@@ -425,7 +430,7 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
                   <span className="text-xs font-medium text-secondary">Level</span>
-                  <input value={brief.level ?? ""} onChange={(e) => setBrief((b) => ({ ...b, level: e.target.value }))} placeholder="Level" aria-label="Level" className="field mt-1 w-full rounded-lg border border-line bg-field px-3 py-1.5 text-sm text-primary outline-none focus:border-[var(--accent)]" />
+                  <input value={brief.level ?? ""} onChange={(e) => setBrief((b) => ({ ...b, level: e.target.value, stage: undefined }))} placeholder="Level" aria-label="Level" className="field mt-1 w-full rounded-lg border border-line bg-field px-3 py-1.5 text-sm text-primary outline-none focus:border-[var(--accent)]" />
                 </label>
                 <label className="block">
                   <span className="text-xs font-medium text-secondary">Exam board (optional)</span>

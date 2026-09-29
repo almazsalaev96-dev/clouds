@@ -9,7 +9,7 @@ import { mark, type Mark } from "@/lib/grade";
 import { recallRate, todaysPlan, weakestDeck, weeksOf } from "@/lib/plan";
 import { Today } from "@/components/study/Today";
 import { Tutor } from "@/components/study/Tutor";
-import { extractPdf, isPdf } from "@/lib/pdf";
+import { extractPdf, isPdf, roomFor, readingLine, readTextFile } from "@/lib/pdf";
 import { createLesson, createNote, deleteLesson } from "@/lib/db";
 import type { Deck, Lesson, Note } from "@/lib/types";
 import {
@@ -35,7 +35,8 @@ import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
 import { getConfigured } from "@/lib/configured";
 import { RoomToggle } from "@/components/ui/RoomToggle";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
-import { cn } from "@/lib/utils";
+import { cn, formatBytes } from "@/lib/utils";
+import { LearnerCard } from "@/components/study/Learner";
 import { useSettings } from "@/lib/store";
 import { explainCard, splitQuote } from "@/lib/explain";
 
@@ -158,18 +159,21 @@ export function StudyView({
     setBusy(true);
     setNotice(null);
     try {
-      if (file.size > 40_000_000) {
-        setNotice("That file is over 40MB — too big to keep in this browser.");
+      /* Kept whole — its pages are drawn from the file — so what limits it
+         is the room this browser has, not a number picked in advance. */
+      if ((await roomFor(file.size)) === false) {
+        setNotice(`There isn't room in this browser's storage for ${file.name} (${formatBytes(file.size)}). Free some space, or add it to a notebook instead — only its text is kept there.`);
         return;
       }
       let text = "";
       let pages = 1;
       if (isPdf(file)) {
-        const out = await extractPdf(file);
+        const out = await extractPdf(file, (page, all) => setNotice(readingLine(file.name, page, all)));
+        setNotice(null);
         text = out.text;
         pages = out.pages;
       } else if (!file.type.startsWith("image/")) {
-        text = await file.text();
+        text = (await readTextFile(file)).text;
       }
       const lesson = await createLesson({ name: file.name, mimeType: file.type || "application/pdf", bytes: file, text, pages });
       setOpenLesson(lesson.id);
@@ -453,6 +457,7 @@ export function StudyView({
                thing somebody actually sits down to do. */
             onStartDue={() => setSession({ deckId: null, mode: "due" })}
           />
+          <LearnerCard />
           {adding ? (
             <AddCourse
               configured={configured}

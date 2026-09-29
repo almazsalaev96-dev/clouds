@@ -1,3 +1,4 @@
+import type { Learner } from "./store";
 import type { ToolSpec, Assistant } from "./types";
 import { actionsSection } from "./actions.text";
 import { memorySection } from "./memory";
@@ -52,6 +53,8 @@ export interface PromptParts {
   mode?: ModeSpec;
   /** What the person asked to be remembered. Empty in a temporary chat. */
   memories?: Memory[];
+  /** Who is studying and for what (Study → your profile). */
+  learner?: Learner | null;
   /** The app's own tools on offer this conversation, so the model knows the manners. */
   actions?: ToolSpec[];
 }
@@ -115,6 +118,8 @@ export function composeSystemPrompt(parts: PromptParts): ComposedPrompt {
      are the narrower thing, so they outrank it. */
   const memory = memorySection(parts.memories ?? []);
   if (memory) sections.push(memory);
+  const learner = learnerSection(parts.learner);
+  if (learner) sections.push(learner);
 
   const project = parts.project;
   if (project) {
@@ -238,4 +243,24 @@ export function composeTurnPrompt(parts: {
 
 function escapeAttr(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+/**
+ * Who the answer is for, when they have said. Pitched at their level, in
+ * their board's terms, aimed at the grade they want — and never assumed
+ * beyond what they wrote.
+ */
+export function learnerSection(l?: Learner | null): string {
+  if (!l || !(l.level.trim() || l.subjects.trim())) return "";
+  const lines = [
+    l.level.trim() && `- Studying: ${l.level.trim()}${l.board.trim() ? ` (${l.board.trim()})` : ""}`,
+    l.subjects.trim() && `- Subjects: ${l.subjects.trim()}`,
+    l.target.trim() && `- Aiming for: ${l.target.trim()}`,
+  ].filter(Boolean);
+  const how = l.stage === "university"
+    ? "Teach at university depth: the reasoning and the derivation, not only the result; the field's terms; where the evidence or the debate stands."
+    : l.stage === "school"
+      ? "Teach to the exam: this level's content and no further unless asked, the board's own wording, the words a mark scheme rewards, and how the marks are earned."
+      : "Pitch it at the level they gave.";
+  return `## Who you are teaching\n\nThe person told the app this about their studies. Use it to pitch every explanation, example and question; do not repeat it back to them.\n\n${lines.join("\n")}\n\n${how}`;
 }

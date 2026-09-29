@@ -968,3 +968,79 @@ Sources: [G1] [Everything you can do with Notion AI — Notion](https://www.noti
 **What is honest about the difference.** Google renders the Audio Overview as recorded audio with its own voices; here it is read by the device, so it is only as good as the device's voices, and it cannot be downloaded as sound — the transcript can. Not built yet: discovering sources by web search, YouTube sources, video overviews and slide decks.
 
 Sources: [H1] [NotebookLM gets a new look, audio interactivity and a premium version — Google](https://blog.google/innovation-and-ai/models-and-research/google-labs/notebooklm-new-features-december-2024/); [H2] [NotebookLM is now Gemini Notebook — Google](https://blog.google/innovation-and-ai/products/gemini-notebook/notebooklm-gemini-notebook/); [H3] [Use chat in Gemini Notebook — Google Help](https://support.google.com/notebooklm/answer/16179559?hl=en); [H4] [Customize the style and length of your notebook responses — Futurepedia](https://www.futurepedia.io/courses/google-notebooklm-complete-course/lessons/customize-the-style-and-length-of-your-notebook-responses); [H5] [Generate Audio Overview in Gemini Notebook — Google Help](https://support.google.com/notebooklm/answer/16212820?hl=en); [H6] [NotebookLM rolling new Audio Overview formats: Brief, Critique & Debate — 9to5Google](https://9to5google.com/2025/09/02/notebooklm-audio-overview-debate/); [H7] [Interactive Audio Overview — XDA](https://www.xda-developers.com/i-regret-ignoring-notebooklm-interactive-audio-overview/); [H8] [Audio Overview interactive mode — Futurepedia](https://www.futurepedia.io/courses/google-notebooklm-complete-course/lessons/audio-overview-interactive-mode). Found by search on 28 September 2026; the summary rests on the search results' text.
+
+## 13. How study material should be written, from what is known about memory and marks
+
+**The question.** The person asked for the tools to be rewritten from research: how an AI should make flashcards, notes, revision material and annotations, how notebooks and projects should be written, and how to teach so that a student at school, at university or anywhere else gets full marks. They also asked for the app to ask for the syllabus, and for files of any size.
+
+**What the evidence says.**
+- **Testing beats rereading, and spacing beats massing.** Retrieving something strengthens it more than studying it again, even when the retrieval fails at first `[I1][I2][I3]`. Reviews spread over growing gaps beat the same time massed together, and the best gap grows with how long it must be kept `[I4][I5]`. A pre-question asked before the lesson helps, even when it is answered wrongly `[I6]`. Dunlosky and colleagues rate practice testing and distributed practice as the two techniques with high utility, and highlighting and rereading as low `[I7]`.
+- **Mixing topics beats one topic at a time** for problems where the method has to be chosen `[I8][I9]`.
+- **For a novice, a worked example first, then faded ones.** Worked examples beat problem-solving for novices. Removing the last steps one at a time moves the student to solving alone without losing that gain `[I10][I11][I12]`. Rosenshine's principles say the same for a class: small steps, practice after each, checks for understanding, and a high success rate `[I13]`.
+- **Asking why, and concrete examples.** Explaining each step to oneself improves understanding `[I14]`. Generating an answer beats reading it `[I15]`.
+- **Words and a meaningful picture together.** Put the labels on the picture itself, not in a key, and leave out decoration `[I16]`. The "learning styles" idea has no support; words and a picture help everyone `[I17]`.
+- **Flashcards.** Wozniak's twenty rules say understand first, keep each card minimal, avoid sets and enumerations, and use cloze deletions `[I18]`. Matuschak's five properties say a good prompt is focused, precise, consistent, tractable and effortful `[I19]`.
+- **Marks.** The boards' command words set what an answer must do, for example "state", "describe", "explain", "evaluate" and "calculate". Mark schemes give a mark a creditable point, accept the scheme's key words, carry an early error forward and mark long answers by level descriptors `[I20][I21]`.
+- **Deep and surface approaches.** University students who look for the principle underneath learn differently from those who memorise, and the task set shapes which approach they take `[I22]`. Proof and problem-solving follow Pólya's four steps `[I23]`, and a research paper is read in passes `[I24]`. Sleep after study keeps it `[I25]`.
+
+**What was built from it.**
+1. **One place for the rules.** `lib/pedagogy.ts` holds the rules, and every writer uses them: the Studio, the courses, the flashcards and the notes.
+   - Eleven learning rules for all material.
+   - Card rules: one fact per card, no lists, recall rather than recognition, and a card of its own for look-alikes.
+   - Exam rules: the command word, the list rule, key words, error carried forward, units and levels of response.
+   - Annotation rules:
+     - Literature: What, How, Why.
+     - Historical sources: Nature, Origin, Purpose.
+     - Papers: Claim, Evidence, Method, Limitation.
+   - Separate rules for university and for school, read from the level the student gives.
+2. **Notes in the order memory works.**
+   - Two questions before the topic.
+   - The big idea, then small numbered points with the mark-scheme words in bold.
+   - A labelled diagram.
+   - A worked example, then "your turn", then "why?" prompts.
+   - Common mistakes and look-alikes.
+   - How the topic is examined.
+   - A quick check, then mixed questions with every answer.
+3. **An annotating tool** that follows those conventions.
+4. **What are you studying for?** Study asks once for:
+   - school, university or something else;
+   - the level and the board;
+   - the subjects and the target.
+
+   The chat then pitches every answer at that. The Studio and new courses start from it.
+5. **The syllabus.** A course can be built from the student's own specification document, with its units, codes and wording. The part of the document about a topic is sent with that topic's notes and questions, fenced as data.
+6. **No size limit on files.**
+   - PDFs are read page by page, with the page count shown.
+   - Text files are read no further than 4 million characters. The student is told when there was more, so a 200 MB file is never pulled whole into memory.
+   - Storage is checked before a big file is kept.
+
+**What is honest about it.** The rules shape what a model writes; they cannot guarantee it. Every page is still checked against its standard (§10). Scanned PDFs with no text layer are still not read, because there is no OCR yet.
+
+Sources:
+- [I1] Roediger & Karpicke (2006), "Test-enhanced learning", *Psychological Science* 17(3), doi:10.1111/j.1467-9280.2006.01693.x
+- [I2] Karpicke & Blunt (2011), "Retrieval practice produces more learning than elaborative studying with concept mapping", *Science* 331, doi:10.1126/science.1199327
+- [I3] Kornell, Hays & Bjork (2009), "Unsuccessful retrieval attempts enhance subsequent learning", *JEP: LMC* 35(4)
+- [I4] Cepeda et al. (2006), "Distributed practice in verbal recall tasks", *Psychological Bulletin* 132(3), doi:10.1037/0033-2909.132.3.354
+- [I5] Cepeda et al. (2008), "Spacing effects in learning: a temporal ridgeline of optimal retention", *Psychological Science* 19(11)
+- [I6] Richland, Kornell & Kao (2009), "The pretesting effect", *JEP: Applied* 15(3)
+- [I7] Dunlosky et al. (2013), "Improving students' learning with effective learning techniques", *Psychological Science in the Public Interest* 14(1), doi:10.1177/1529100612453266
+- [I8] Rohrer & Taylor (2007), "The shuffling of mathematics problems improves learning", *Instructional Science* 35
+- [I9] Kornell & Bjork (2008), "Learning concepts and categories: is spacing the 'enemy of induction'?", *Psychological Science* 19(6)
+- [I10] Sweller, cognitive load theory, as summarised in [Cognitive load theory: research that teachers really need to understand — NSW CESE (2017)](https://education.nsw.gov.au/about-us/education-data-and-research/cese/publications/literature-reviews/cognitive-load-theory)
+- [I11] Renkl & Atkinson (2003), "Structuring the transition from example study to problem solving", *Educational Psychologist* 38(1)
+- [I12] Atkinson, Derry, Renkl & Wortham (2000), "Learning from examples", *Review of Educational Research* 70(2)
+- [I13] [Rosenshine (2012), "Principles of Instruction", *American Educator*](https://www.aft.org/sites/default/files/Rosenshine.pdf)
+- [I14] Chi et al. (1994), "Eliciting self-explanations improves understanding", *Cognitive Science* 18(3)
+- [I15] Slamecka & Graf (1978), "The generation effect", *JEP: HLM* 4(6)
+- [I16] Mayer, *Multimedia Learning* (Cambridge University Press)
+- [I17] Pashler, McDaniel, Rohrer & Bjork (2008), "Learning styles: concepts and evidence", *Psychological Science in the Public Interest* 9(3)
+- [I18] [Wozniak, "Effective learning: twenty rules of formulating knowledge" — SuperMemo](https://www.supermemo.com/en/blog/twenty-rules-of-formulating-knowledge)
+- [I19] [Matuschak, "How to write good prompts"](https://andymatuschak.org/prompts/)
+- [I20] The command-word lists of AQA, OCR and Cambridge International, and [AQA GCSE Physics mark scheme, June 2023](https://filestore.aqa.org.uk/sample-papers-and-mark-schemes/2023/june/AQA-8464P1F-MS-JUN23.PDF)
+- [I21] OCR's guidance on the assessment objectives, and Pearson's guide to using historical sources
+- [I22] Marton & Säljö (1976), "On qualitative differences in learning", *British Journal of Educational Psychology* 46; Biggs & Collis, the SOLO taxonomy
+- [I23] Pólya, *How to Solve It* (1945)
+- [I24] [Keshav, "How to read a paper", *ACM SIGCOMM CCR* (2007)](http://ccr.sigcomm.org/online/files/p83-keshav.pdf)
+- [I25] Walker & Stickgold (2004), "Sleep-dependent learning and memory consolidation", *Neuron* 44; Weinstein, Madan & Sumeracki (2018), "Teaching the science of learning", *Cognitive Research: Principles and Implications* 3
+
+These were gathered by search on 29 September 2026. The papers are cited from their published records; the web pages could not be opened from here.

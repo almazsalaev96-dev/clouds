@@ -29,7 +29,7 @@ import { useAutoGrow } from "@/lib/hooks/useAutoGrow";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { draftCards, makeFromSources, reviseCanvas } from "@/lib/generate";
 import { citeScore, extractCitations, findIn, type Citation } from "@/lib/cite";
-import { extractPdf, isPdf } from "@/lib/pdf";
+import { extractPdf, isPdf, readingLine, readTextFile, cutLine } from "@/lib/pdf";
 import { Markdown } from "@/components/chat/Markdown";
 import { MessageBar } from "@/components/chat/MessageBar";
 import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
@@ -627,7 +627,8 @@ export function NotebookView({
     setNotice(null);
     try {
       if (isPdf(file)) {
-        const got = await extractPdf(file);
+        const got = await extractPdf(file, (page, all) => setNotice(readingLine(file.name, page, all)));
+        setNotice(null);
         if (got.imageOnly) {
           setNotice(`${file.name} is a scan — pictures of pages with no text in them. There is nothing to read.`);
           return;
@@ -635,7 +636,8 @@ export function NotebookView({
         await addSource(noteId, { name: file.name, text: got.text, pages: got.pages, size: file.size });
         if (!packOnAttach.current) setAdded(file.name);
       } else {
-        const text = await file.text();
+        const { text, cut } = await readTextFile(file);
+        if (cut) setNotice(cutLine(file.name));
         if (!text.trim()) {
           setNotice(`${file.name} is empty.`);
           return;

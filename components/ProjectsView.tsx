@@ -14,7 +14,7 @@ import { KNOWLEDGE_BUDGET_TOKENS } from "@/lib/prompt";
 import { estimateTokens } from "@/lib/models";
 import { offerUndo } from "@/lib/undo";
 import { cn, formatBytes } from "@/lib/utils";
-import { isPdf, extractPdf } from "@/lib/pdf";
+import { isPdf, extractPdf, readingLine, readTextFile, cutLine } from "@/lib/pdf";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { Button, IconButton, SaveBadge } from "@/components/ui/primitives";
 import { Markdown } from "@/components/chat/Markdown";
@@ -36,7 +36,6 @@ import { DetailBar, SectionIndex } from "@/components/SectionIndex";
  * silently drops the third document is worse than one that never took it.
  */
 
-const MAX_FILE_BYTES = 20 * 1024 * 1024;
 
 const READABLE =
   /\.(md|markdown|txt|csv|tsv|json|ya?ml|toml|ini|env|log|tsx?|jsx?|mjs|cjs|py|rb|go|rs|java|kt|swift|c|h|cpp|cs|php|sh|sql|html?|css|scss)$/i;
@@ -351,16 +350,14 @@ function ProjectPage({
 
   const addFiles = async (list: File[]) => {
     for (const file of list) {
-      if (file.size > MAX_FILE_BYTES) {
-        setNotice(`${file.name} is ${formatBytes(file.size)} — the limit is 20 MB.`);
-        continue;
-      }
+      /* Only the words are kept, so a PDF or a text file of any size is
+         taken; anything else is refused below for having none. */
       if (isPdf(file)) {
         // A syllabus, a spec, a paper — project knowledge is a PDF at least as
         // often as it is a text file.
         setNotice(`Reading ${file.name}…`);
         try {
-          const { text, pages, imageOnly } = await extractPdf(file);
+          const { text, pages, imageOnly } = await extractPdf(file, (page, pages) => setNotice(readingLine(file.name, page, pages)));
           setNotice(null);
           if (imageOnly) {
             setNotice(`${file.name} is a scan — ${pages} page${pages === 1 ? "" : "s"} of pictures with no text in them.`);
@@ -384,7 +381,7 @@ function ProjectPage({
       await addProjectFile(project.id, {
         name: file.name,
         mimeType: file.type || "text/plain",
-        text: await file.text(),
+        text: await (async () => { const r = await readTextFile(file); if (r.cut) setNotice(cutLine(file.name)); return r.text; })(),
         size: file.size,
       });
     }

@@ -38,7 +38,7 @@ await p.waitForTimeout(700);
 
 console.log("\nCards made by the app arrive knowing what they are about");
 {
-  await p.getByRole("textbox", { name: /deck|subject|what/i }).first().fill("debouncing");
+  await p.getByRole("textbox", { name: "What to study" }).first().fill("debouncing");
   await p.keyboard.press("Enter");
   await p.waitForTimeout(6000);
   const cards = await rows("cards");

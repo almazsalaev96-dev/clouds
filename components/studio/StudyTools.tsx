@@ -3,7 +3,7 @@
 import * as React from "react";
 import {
   BookOpen, CalendarDays, ClipboardCheck, FileText, GitBranch, GraduationCap, Headphones, Highlighter,
-  Layers, ListChecks, MessageCircleQuestion, NotebookTabs, PenLine, Presentation, Rows3, ScrollText, Sigma, Sparkles, Tags, Trophy,
+  Layers, ListChecks, MessageCircleQuestion, NotebookTabs, PenTool, PenLine, Presentation, Rows3, ScrollText, Sigma, Sparkles, Tags, Trophy,
 } from "lucide-react";
 import { TOOLS, type ToolId } from "@/lib/studio";
 import { openStudio } from "@/lib/studioBus";
@@ -30,6 +30,7 @@ export const ICONS: Record<ToolId, React.ReactNode> = {
   listen: <Headphones size={16} />,
   checker: <ClipboardCheck size={16} />,
   faq: <MessageCircleQuestion size={16} />,
+  annotate: <PenTool size={16} />,
 };
 
 /**

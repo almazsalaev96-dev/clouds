@@ -35,17 +35,33 @@ export interface PdfText {
   imageOnly: boolean;
 }
 
-/** Roughly a novel's worth. Past this the context fitter would drop it anyway. */
-const MAX_CHARS = 400_000;
+/**
+ * Several textbooks' worth. Only the text is kept, never the file, so a
+ * 300 MB PDF of a 900-page book costs a few megabytes here — and the long
+ * reader (lib/digest.ts) reads all of it in parts rather than the start.
+ */
+const MAX_CHARS = 4_000_000;
 
-export async function extractPdf(file: File | ArrayBuffer): Promise<PdfText> {
+/** How far through a long PDF the reading has got. */
+export type PdfProgress = (page: number, pages: number) => void;
+
+export async function extractPdf(file: File | ArrayBuffer, onPage?: PdfProgress): Promise<PdfText> {
   const mod = await load();
   const data = file instanceof ArrayBuffer ? file : await file.arrayBuffer();
   const doc = await mod.getDocument({ data: new Uint8Array(data) }).promise;
 
   const out: string[] = [];
   let chars = 0;
+  /* Freed however the reading ends: a page that throws halfway through a
+     900-page book must not leave the worker holding the whole file. */
+  try {
   for (let n = 1; n <= doc.numPages && chars < MAX_CHARS; n++) {
+    /* Said every few pages, and a breath given to the page between them: a
+       900-page book is minutes of work, and a frozen tab reads as a crash. */
+    if (n === 1 || n % 10 === 0) {
+      onPage?.(n, doc.numPages);
+      await new Promise((r) => setTimeout(r, 0));
+    }
     const page = await doc.getPage(n);
     const content = await page.getTextContent();
 
@@ -71,8 +87,10 @@ export async function extractPdf(file: File | ArrayBuffer): Promise<PdfText> {
     }
     page.cleanup();
   }
+  } finally {
+    void doc.destroy();
+  }
   const pages = doc.numPages;
-  await doc.destroy();
 
   return {
     text: out.join("\n\n"),
@@ -87,9 +105,10 @@ export async function extractPdf(file: File | ArrayBuffer): Promise<PdfText> {
 /** The attachment a PDF becomes, or the reason it cannot become one. */
 export async function pdfBlock(
   file: File,
+  onPage?: PdfProgress,
 ): Promise<{ block: ContentBlock } | { error: string }> {
   try {
-    const { text, pages, imageOnly } = await extractPdf(file);
+    const { text, pages, imageOnly } = await extractPdf(file, onPage);
     if (imageOnly) {
       return {
         error: `${file.name} is a scan — ${pages} page${pages === 1 ? "" : "s"} of pictures with no text in them. Reading it would need OCR, which this doesn't do.`,
@@ -120,16 +139,45 @@ export async function pdfBlock(
  * out of it is worth sending: a region cut from a page drawn at 200px wide
  * is four grey squares.
  */
+type PdfDoc = Awaited<ReturnType<typeof import("pdfjs-dist").getDocument>["promise"]>;
+
+/* The document being worked through, opened once. A lesson may be a
+   300 MB book: copying it for every page drawn and every quote found was
+   a copy of the whole book on every page turn. */
+let held: { key: Blob; doc: Promise<PdfDoc> } | null = null;
+
+async function openFor(data: ArrayBuffer | Blob): Promise<{ doc: PdfDoc; own: boolean }> {
+  const mod = await load();
+  if (data instanceof Blob) {
+    if (held?.key !== data) {
+      const prev = held;
+      held = { key: data, doc: data.arrayBuffer().then((buf) => mod.getDocument({ data: new Uint8Array(buf) }).promise) };
+      if (prev) void prev.doc.then((d) => d.destroy()).catch(() => {});
+      /* A file that would not open is not kept, so the next try opens it again. */
+      const mine = held;
+      mine.doc.catch(() => { if (held === mine) held = null; });
+    }
+    return { doc: await held.doc, own: false };
+  }
+  /* pdf.js takes ownership of a buffer and leaves it detached, so a buffer
+     the caller keeps is copied for the call. */
+  return { doc: await mod.getDocument({ data: new Uint8Array(data.slice(0)) }).promise, own: true };
+}
+
+/** Let go of the document a lesson had open. */
+export function closePdf(key: Blob): void {
+  if (held?.key !== key) return;
+  const prev = held;
+  held = null;
+  void prev.doc.then((d) => d.destroy()).catch(() => {});
+}
+
 export async function renderPage(
-  data: ArrayBuffer,
+  data: ArrayBuffer | Blob,
   pageNo: number,
   opts: { width?: number } = {},
 ): Promise<{ url: string; width: number; height: number; pages: number }> {
-  const mod = await load();
-  /* pdf.js takes ownership of the buffer it is given and leaves it detached,
-     which makes the second call on the same document fail with "detached
-     ArrayBuffer". The copy is per render and costs a few milliseconds. */
-  const doc = await mod.getDocument({ data: new Uint8Array(data.slice(0)) }).promise;
+  const { doc, own } = await openFor(data);
   const page = await doc.getPage(Math.min(Math.max(1, pageNo), doc.numPages));
   const base = page.getViewport({ scale: 1 });
   /* Capped: past about 2000px the canvas costs more memory than the detail
@@ -145,7 +193,7 @@ export async function renderPage(
   const url = canvas.toDataURL("image/jpeg", 0.82);
   const pages = doc.numPages;
   page.cleanup();
-  await doc.destroy();
+  if (own) await doc.destroy();
   return { url, width: canvas.width, height: canvas.height, pages };
 }
 
@@ -160,9 +208,8 @@ export async function renderPage(
  */
 export interface TextRun { str: string; x: number; y: number; w: number; h: number }
 
-export async function pageLayout(data: ArrayBuffer, pageNo: number): Promise<TextRun[]> {
-  const mod = await load();
-  const doc = await mod.getDocument({ data: new Uint8Array(data.slice(0)) }).promise;
+export async function pageLayout(data: ArrayBuffer | Blob, pageNo: number): Promise<TextRun[]> {
+  const { doc, own } = await openFor(data);
   const page = await doc.getPage(Math.min(Math.max(1, pageNo), doc.numPages));
   const vp = page.getViewport({ scale: 1 });
   const content = await page.getTextContent();
@@ -185,7 +232,7 @@ export async function pageLayout(data: ArrayBuffer, pageNo: number): Promise<Tex
     });
   }
   page.cleanup();
-  await doc.destroy();
+  if (own) await doc.destroy();
   return runs;
 }
 
@@ -247,3 +294,46 @@ export function pageText(text: string, pageNo: number): string {
 
 export const isPdf = (f: { name: string; type: string }) =>
   f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+
+/** "Reading page 120 of 900 — biology.pdf", for whichever notice is showing. */
+export function readingLine(name: string, page: number, pages: number): string {
+  return pages > 20 ? `Reading page ${page} of ${pages} — ${name}` : `Reading ${name}…`;
+}
+
+/**
+ * Room left in this browser's storage for a file that is kept whole (a
+ * document worked through page by page is drawn from the file itself).
+ * Null when the browser will not say.
+ */
+export async function roomFor(bytes: number): Promise<boolean | null> {
+  try {
+    const est = await navigator.storage?.estimate?.();
+    if (!est?.quota) return null;
+    return est.quota - (est.usage ?? 0) > bytes * 1.2;
+  } catch {
+    return null;
+  }
+}
+
+/** What a text file holds, up to the same limit a PDF is read to. */
+export const TEXT_LIMIT = MAX_CHARS;
+
+/**
+ * A text file's words, read no further than the limit — a 200 MB log or a
+ * whole book exported as text is not pulled into memory to be thrown away.
+ * `cut` says when there was more.
+ */
+export async function readTextFile(file: File, max = TEXT_LIMIT): Promise<{ text: string; cut: boolean }> {
+  /* Four bytes a character at most in UTF-8, so this many bytes always
+     holds `max` characters. */
+  const bytes = Math.min(file.size, max * 4);
+  let text = await file.slice(0, bytes).text();
+  const cut = bytes < file.size || text.length > max;
+  if (text.length > max) text = text.slice(0, max);
+  /* A character split by the byte cut decodes as a replacement mark. */
+  if (bytes < file.size) text = text.replace(/\uFFFD+$/, "");
+  return { text, cut };
+}
+
+/** The line said when a long file was kept only in part. */
+export const cutLine = (name: string) => `${name} is very long — the first 4 million characters (about 2,000 pages) were kept.`;

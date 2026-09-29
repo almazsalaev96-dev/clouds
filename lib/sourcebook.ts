@@ -81,7 +81,7 @@ export function chatInstruction(q: string, state: Pick<NotebookState, "style" | 
   const past = history.slice(-3).map((t) => `Q: ${t.q}\nA: ${t.body.replace(/\[(\d+\??)\]\(#armi-cite-\d+\)/g, "").slice(0, 700)}`).join("\n\n");
   const style =
     state.style === "guide"
-      ? "Answer as a tutor, not an answer key: explain the idea in plain steps, check understanding with one short question at the end, and where the student seems to want an answer to hand in, help them get there rather than writing it for them."
+      ? "Answer as a tutor, not an answer key: explain the idea in small plain steps, one idea at a time, with a concrete example from the sources and a 'why' for the step that matters most; name the mistake students usually make here. End with one short question for them to answer from memory — not yes/no — and hold back its answer until they try. Where the student seems to want an answer to hand in, help them get there rather than writing it for them."
       : state.style === "custom" && state.custom?.trim()
         ? `How the student wants answers: ${state.custom.trim().slice(0, 500)}`
         : "Answer clearly and directly, as a knowledgeable study partner.";

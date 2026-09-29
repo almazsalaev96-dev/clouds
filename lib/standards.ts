@@ -11,26 +11,28 @@
 export type ToolId =
   | "notes" | "guide" | "organiser" | "cornell" | "flashcards" | "quiz" | "paper" | "questions"
   | "mindmap" | "glossary" | "timeline" | "summary" | "worked" | "essay" | "model"
-  | "lesson" | "plan" | "listen" | "checker" | "faq";
+  | "lesson" | "plan" | "listen" | "checker" | "faq" | "annotate";
 
 /**
  * The rules study material is written under, in brief, for a chat answer
  * that is study material. The Studio's own copy (lib/studio.ts HOUSE_RULES)
  * is the long form of the same eight.
  */
-export const EDU_RULES = "This is study material, so: correct at the level asked; the subject's own terms and the exam board's wording, with the words a mark scheme looks for in bold; built to be recalled rather than reread (questions, cues, steps); every idea with a concrete example and every method with a worked example; nothing invented, and anything beyond the source marked as added.";
+export const EDU_RULES = "This is study material, so: correct at the level asked; the subject's own terms and the exam board's wording, with the words a mark scheme looks for in bold and how the marks are earned; built to be recalled rather than reread — questions before, quick checks during, retrieval questions with answers after; small steps, one idea at a time; every idea with a concrete example, every method with a worked example and then one to try; a labelled diagram or table where a structure is easier seen than read; common mistakes and look-alikes named; nothing invented, and anything beyond the source marked as added.";
 
 export const STANDARDS: Record<ToolId, { name: string; standard: string[] }> = {
   notes: {
     name: "Revision notes",
     standard: [
-    "Follows the order of the source or specification, one heading per topic",
+    "Follows the order of the specification or source, one heading per topic, each opening with its big idea",
+    "Opens with questions on what it builds on, and has a quick check after every topic",
     "Key points are short, numbered and exact enough to be marked right or wrong, with mark-scheme words in bold",
     "Every key term is defined in the subject's own wording",
-    "Each method or calculation has a worked example with the reason for every step",
-    "Common mistakes are named with the fix for each",
-    "Examiner tips say how the marks are awarded: command words, units, the phrasing that earns the point",
-    "Ends with retrieval questions and their answers",
+    "Each method or calculation has a worked example with the reason for every step, then one for the student to try",
+    "A diagram, table or timeline wherever a structure or process is easier seen than read",
+    "Common mistakes and confusable look-alikes are named with the fix for each",
+    "Says how each topic is examined: the command words and how the marks are awarded",
+    "Ends with mixed retrieval questions and every answer",
     "Nothing is invented; anything added beyond the source is marked as added",
   ],
   },
@@ -66,8 +68,11 @@ export const STANDARDS: Record<ToolId, { name: string; standard: string[] }> = {
   flashcards: {
     name: "Flashcards",
     standard: [
-    "One idea per card",
-    "The question can be answered from memory and never gives the answer away",
+    "One fact a card, one right answer, the same every time",
+    "The question is answered from memory and never gives the answer away",
+    "No lists: each member of a set on its own card with a cue that singles it out",
+    "Look-alikes that get confused have a card asking how they differ",
+    "Cards on causes, reasons and applications as well as definitions",
     "Covers what is examined and easy to get wrong, not trivia",
   ],
   },
@@ -119,6 +124,15 @@ export const STANDARDS: Record<ToolId, { name: string; standard: string[] }> = {
     "Every dated event or stage in the source, in order",
     "Each with its significance, not only its description",
     "Only dates the source gives or that are certain",
+  ],
+  },
+  annotate: {
+    name: "Annotated text",
+    standard: [
+    "Every annotation says what the passage shows, how (the technique or evidence, with a short quotation) and why it matters — never a technique named and left",
+    "Sparse and purposeful: no passage marked without a comment",
+    "Sources get provenance (nature, origin, purpose) and usefulness; papers get claim, evidence, method and limitation",
+    "Ends with the points and quotations most worth learning, and questions with answers",
   ],
   },
   faq: {
@@ -236,6 +250,7 @@ export function toolForAsk(ask: string): { id: ToolId; name: string; standard: s
     [/\blesson\b/, "lesson"],
     [/\bsummar(?:y|ise|ize)\b|\bbriefing\b/, "summary"],
     [/\bfaqs?\b|\bfrequently asked\b/, "faq"],
+    [/\bannotat(?:e|ed|ion|ions)\b/, "annotate"],
   ];
   for (const [re, id] of pairs) if (re.test(t)) return { id, ...STANDARDS[id] };
   return null;

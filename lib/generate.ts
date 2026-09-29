@@ -1,3 +1,4 @@
+import { CARD_RULES } from "./pedagogy";
 import { readWhole } from "./digest";
 import { complete, extractJson, type Progress } from "./complete";
 import { BASE_BRIEF } from "./base";
@@ -158,12 +159,9 @@ export async function draftCards(
 
 Rules:
 - Return JSON only: an array of objects with "front", "back" and "topic". No prose, no fence, nothing else.
-- The front is a question that can be answered from memory in a sentence or two. Not "Tell me about X".
 - The back is the answer, and only the answer: no restating the question, no "the answer is".
-- One idea per card. Split anything that needs two.
-- Ask about what matters and what is easy to get wrong — the distinction, the exception, the number, the order — not the trivia around it.
-- Never give the answer away inside the question.
-- Where the material has specifics, use them: real names, real numbers, real examples from it.
+${CARD_RULES}
+- Where the material has specifics, use them: real names, real numbers, real examples from it — and only cards the material itself teaches.
 - Give each card a "topic": two or three words for the thing it is about, finer than the material as a whole. Cards about the same thing must use the exact same topic string, or they will not group.
 - Write the cards in the language the material is written in, keeping names, symbols and quoted terms as the material has them.
 ${opts.about ? `\nThe subject is: ${opts.about}\n` : ""}

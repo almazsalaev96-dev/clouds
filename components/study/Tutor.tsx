@@ -7,7 +7,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft, ChevronRight, Eraser, Highlighter, Loader2, MousePointer2, PenLine, Trash2, Undo2, X } from "lucide-react";
 import type { ContentBlock, Lesson, LessonTurn } from "@/lib/types";
 import { addLessonTurn, addCards, createDeck, createNote, db, deckForSource, inkFor, saveInk } from "@/lib/db";
-import { renderPage, pageText, pageLayout, findQuote, type TextRun } from "@/lib/pdf";
+import { renderPage, pageText, pageLayout, findQuote, closePdf, type TextRun } from "@/lib/pdf";
 import { boundsOf, composite, marksMarkdown, parseMarks, quotesIn, type Stroke, type Tool } from "@/lib/ink";
 import { complete, whyItFailed } from "@/lib/complete";
 import { tryFirst, type TryFirst } from "@/lib/explain";
@@ -78,7 +78,9 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
   const [penSeen, setPenSeen] = React.useState(false);
   const [highlights, setHighlights] = React.useState<Box[]>([]);
   const [marks, setMarks] = React.useState<{ x: number; y: number; ok: boolean; n: number }[]>([]);
-  const bytes = React.useRef<ArrayBuffer | null>(null);
+  const bytes = React.useRef<Blob | null>(null);
+  /* The open document is let go of when the lesson is closed. */
+  React.useEffect(() => () => { if (bytes.current) closePdf(bytes.current); }, []);
   const layouts = React.useRef(new Map<number, TextRun[]>());
   const chatRef = React.useRef<HTMLDivElement>(null);
   const pageRef = React.useRef<HTMLDivElement>(null);
@@ -124,7 +126,7 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
     setBox(null);
     void (async () => {
       try {
-        if (!bytes.current) bytes.current = await lesson.bytes.arrayBuffer();
+        if (!bytes.current) bytes.current = lesson.bytes;
         if (lesson.mimeType.startsWith("image/")) {
           const url = URL.createObjectURL(lesson.bytes);
           const img = new Image();
