@@ -5,7 +5,7 @@
  *   npx jiti test-sourcebook.ts
  */
 import {
-  audioPrompt, chatInstruction, guidePrompt, guideStale, htmlToText, isPrivateAddress, joinPrompt, material, minutesOf,
+  askedIn, readThreads, threadTitle, whenLine, audioPrompt, chatInstruction, guidePrompt, guideStale, htmlToText, isPrivateAddress, joinPrompt, material, minutesOf,
   pickVoices, readGuide, readScript, readSourceGuide, scriptText, speakChunks, suggestions,
 } from "./lib/sourcebook";
 import type { NotebookTurn } from "./lib/types";
@@ -91,6 +91,20 @@ console.log("\nA server is not sent to private addresses");
   for (const ip of ["8.8.8.8", "172.32.0.1", "142.250.72.14", "2606:4700::1111"]) {
     check(!isPrivateAddress(ip), `${ip} is public`);
   }
+}
+
+console.log("\nA notebook holds several chats");
+{
+  const turn = (q: string, at: number) => ({ id: q, q, body: "b", citations: [], at });
+  const legacy = readThreads({ chat: [turn("What is osmosis?", 10), turn("And why?", 20)] });
+  check(legacy.length === 1 && legacy[0].id === "chat" && legacy[0].title === "What is osmosis?" && legacy[0].at === 20, "a notebook's one old conversation reads as its first chat");
+  const both = readThreads({ chat: [turn("Old", 5)], threads: [{ id: "t1", title: "New", turns: [turn("New", 50)], at: 50 }] });
+  check(both.map((t) => t.id).join(",") === "t1,chat", "newest first, the old one kept");
+  check(readThreads({ chat: [turn("Old", 5)], threads: [{ id: "chat", title: "Old", turns: [turn("Old", 5)], at: 5 }] }).length === 1, "and not twice once it has been written as a chat");
+  check(askedIn(both).length === 2, "every question asked, across the chats");
+  check(threadTitle("  what   is\nosmosis? ") === "what is osmosis?" && threadTitle("x".repeat(80)).length === 60 && threadTitle("") === "New chat", "a chat is named by its first question, on one line");
+  const now = new Date(2026, 8, 29, 12).getTime();
+  check(whenLine(now - 3600_000, now) === "Today" && whenLine(now - 86_400_000, now) === "Yesterday" && whenLine(now - 3 * 86_400_000, now) === "3 days ago", "when, as Gemini says it");
 }
 
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");

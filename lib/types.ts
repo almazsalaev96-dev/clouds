@@ -620,8 +620,21 @@ export interface NotebookMade {
   at: number;
 }
 
+/** One conversation in a notebook; a notebook holds as many as are started. */
+export interface NotebookThread {
+  id: string;
+  title: string;
+  turns: NotebookTurn[];
+  /** When it was last added to. */
+  at: number;
+}
+
 export interface NotebookState {
+  /** The one conversation a notebook had before it could hold several; read as the first of `threads`. */
   chat?: NotebookTurn[];
+  threads?: NotebookThread[];
+  /** The notebook's mark, an emoji chosen for it. */
+  icon?: string;
   guide?: NotebookGuide;
   audio?: AudioOverview;
   made?: NotebookMade[];

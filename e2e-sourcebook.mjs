@@ -54,6 +54,18 @@ const CHAPTER = [
 ].join("\n\n");
 const dialog = () => p.getByRole("dialog", { name: "Add sources" });
 const sourcesList = () => p.getByRole("list", { name: "Your sources", exact: true });
+const main = () => p.locator("main");
+/* The notebook's two doors: the sources and the Studio open beside the page. */
+const openSheet = async (which) => {
+  const region = p.getByRole("region", { name: which === "sources" ? "Sources" : "Studio", exact: true });
+  if (await region.isVisible().catch(() => false)) return;
+  await main().getByRole("button", { name: which === "sources" ? /^Sources, \d+$/ : "Notebook studio" }).first().click();
+  await region.waitFor({ timeout: 3000 }).catch(() => {});
+};
+const home = async () => {
+  const back = p.getByRole("button", { name: "Back to the notebook" });
+  if (await back.isVisible().catch(() => false)) { await back.click(); await p.waitForTimeout(300); }
+};
 
 await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
 await p.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), S);
@@ -61,7 +73,7 @@ await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(700);
 await fetch(`${MOCK}/__reset`);
 
-console.log("\nA new notebook: sources, chat and studio");
+console.log("\nA new notebook, laid out as Gemini lays one out");
 {
   await p.locator("aside nav").getByRole("button", { name: "Notebook", exact: true }).first().click();
   await p.waitForTimeout(500);
@@ -73,9 +85,12 @@ console.log("\nA new notebook: sources, chat and studio");
   await p.getByRole("button", { name: "All pages" }).first().click();
   await p.waitForTimeout(400);
   await p.getByRole("button", { name: "New notebook" }).first().click();
-  check(await waitFor(p.getByRole("region", { name: "Sources" })), "the Sources panel is there");
-  check(await p.getByRole("region", { name: "Chat" }).isVisible() && await p.getByRole("region", { name: "Studio" }).isVisible(), "beside the chat and the Studio");
+  check(await waitFor(p.getByRole("textbox", { name: "Notebook name" })), "one column: its name at the top");
+  check(await main().getByRole("button", { name: "Sources, 0" }).isVisible() && await main().getByRole("button", { name: "Notebook studio" }).isVisible(), "the sources and the Studio a press away, not three panels at once");
+  check(!(await p.getByRole("region", { name: "Sources", exact: true }).count()), "the sources panel closed until asked for");
   check(await p.getByText("Add a source to get started").isVisible(), "and an empty notebook says where to start");
+  check(await p.getByRole("button", { name: "Change the notebook's icon" }).isVisible(), "with a mark that can be changed");
+  check(await p.locator("aside").getByRole("region", { name: "Notebooks" }).getByRole("button", { name: "Untitled notebook" }).isVisible(), "and the sidebar lists it under Notebooks");
 }
 
 console.log("\nSources, four ways in");
@@ -86,6 +101,8 @@ console.log("\nSources, four ways in");
   await p.getByLabel("Source name").fill("Osmosis chapter");
   await p.getByLabel("Pasted text").fill(CHAPTER);
   await dialog().getByRole("button", { name: "Add", exact: true }).click();
+  await p.waitForTimeout(400);
+  await openSheet("sources");
   check(await waitFor(sourcesList().getByRole("button", { name: "Osmosis chapter", exact: true })), "pasted text becomes a source");
 
   await p.getByRole("region", { name: "Sources" }).getByRole("button", { name: "Add" }).click();
@@ -108,10 +125,10 @@ console.log("\nSources, four ways in");
 console.log("\nThe guide: what the sources are, and where to start");
 {
   const guide = p.getByRole("region", { name: "Notebook guide" });
-  check(await waitFor(guide.getByRole("heading", { name: "Osmosis and water potential" }), 15000), "a title and a summary, written from the sources");
+  check(await waitFor(guide.getByRole("heading", { name: "About your sources" }), 15000), "a summary, written from the sources");
   check(/\bosmosis\b/.test(await guide.locator("strong").first().innerText().catch(() => "")), "with the key terms in bold");
   await p.waitForTimeout(500);
-  check((await book())?.title === "Osmosis and water potential", "and the untitled notebook takes its name", (await book())?.title);
+  check((await book())?.title === "Osmosis and water potential" && (await p.getByRole("textbox", { name: "Notebook name" }).inputValue()) === "Osmosis and water potential", "and the untitled notebook takes its name", (await book())?.title);
   const sugg = p.getByRole("group", { name: "Suggested questions" });
   check(await sugg.getByRole("button").count() === 3, "three questions to start on");
 }
@@ -172,6 +189,7 @@ console.log("\nAn answer kept as a note in the notebook");
   const conv = p.getByRole("list", { name: "Conversation" });
   await conv.getByRole("button", { name: "Save to note" }).first().click();
   await p.waitForTimeout(600);
+  await openSheet("studio");
   const notes = p.getByRole("region", { name: "Notes" });
   check(/What is osmosis\?/.test(await notes.innerText()), "it is listed under Notes");
   const kept = (await rows("notes")).find((n) => n.title === "What is osmosis?");
@@ -230,21 +248,44 @@ console.log("\nThe Studio makes from the notebook, and lists what it made");
   check(/— FAQ/.test(await p.getByRole("region", { name: "Notes" }).innerText()), "and is listed under Notes");
 }
 
+console.log("\nA notebook holds several chats, listed under its name");
+{
+  await home();
+  const list = p.getByRole("list", { name: "Chats in this notebook" });
+  check(await waitFor(list) && await list.getByRole("listitem").count() === 1 && /What is osmosis\?/.test(await list.innerText()) && /Today/.test(await list.innerText()), "the chat so far, named by its first question, with when", (await list.innerText().catch(() => "")).replace(/\n/g, " | ").slice(0, 80));
+  await fetch(`${MOCK}/__reset`);
+  await p.getByRole("textbox", { name: "Ask about your sources" }).fill("What does hypotonic mean?");
+  await p.keyboard.press("Enter");
+  await until((c) => c.some((r) => r.kind === "answer"));
+  const asked = (await recent()).find((r) => r.kind === "answer")?.asked ?? "";
+  check(!/Q: What is osmosis\?/.test(asked), "a question from the notebook's page starts a new chat, without the old one's history");
+  await p.waitForTimeout(500);
+  await home();
+  check(await list.getByRole("listitem").count() === 2 && /What does hypotonic mean\?/.test(await list.getByRole("listitem").first().innerText()), "two chats, newest first");
+  await list.getByRole("listitem").first().hover();
+  await list.getByRole("button", { name: /^Delete What does hypotonic mean/ }).click();
+  await p.waitForTimeout(400);
+  check(await list.getByRole("listitem").count() === 1, "and one can be deleted");
+  await list.getByRole("button", { name: /^What is osmosis\?/ }).click();
+  check(await waitFor(p.getByRole("list", { name: "Conversation" })) && (await p.getByRole("list", { name: "Conversation" }).getByRole("listitem").count()) >= 3, "an old chat opens where it was left");
+}
+
 console.log("\nA note leads back; a notebook is still a page underneath");
 {
+  await openSheet("studio");
   await p.getByRole("region", { name: "Notes" }).getByRole("button", { name: /What is osmosis\?/ }).click();
   await p.waitForTimeout(700);
   const back = p.getByRole("button", { name: /^In the notebook / });
   check(await waitFor(back), "the note says which notebook it is in");
   await back.click();
-  check(await waitFor(p.getByRole("region", { name: "Studio" })), "and goes back to it");
+  check(await waitFor(p.getByRole("textbox", { name: "Notebook name" })), "and goes back to it");
   await p.getByRole("button", { name: "Open as a page" }).click();
   check(await waitFor(p.getByRole("button", { name: "Open as a notebook" })), "“As a page” shows the page, and the way back");
   await p.getByRole("button", { name: "Open as a notebook" }).click();
-  check(await waitFor(p.getByRole("region", { name: "Chat" })), "which returns to the notebook");
+  check(await waitFor(p.getByRole("textbox", { name: "Notebook name" })), "which returns to the notebook");
 }
 
-console.log("\nOn a phone, the three panels are tabs");
+console.log("\nOn a phone, the sources come up over the page");
 {
   await p.setViewportSize({ width: 390, height: 844 });
   await p.waitForTimeout(500);
@@ -252,14 +293,14 @@ console.log("\nOn a phone, the three panels are tabs");
   const scrim = p.locator("div.fixed.inset-0.z-30[aria-hidden='true']");
   if (await scrim.isVisible().catch(() => false)) await scrim.click({ position: { x: 380, y: 400 } });
   await p.waitForTimeout(400);
-  const tabs = p.getByRole("tablist", { name: "Notebook" });
-  check(await tabs.isVisible(), "a tab for each panel");
-  await tabs.getByRole("tab", { name: /studio/i }).click();
-  check(await p.getByRole("region", { name: "Studio" }).isVisible() && !(await p.getByRole("region", { name: "Chat" }).isVisible()), "one at a time");
-  await tabs.getByRole("tab", { name: /sources/i }).click();
-  check(/sources · 3/i.test(await tabs.innerText()) && await sourcesList().isVisible(), "the sources tab counts them");
+  check(await p.getByRole("textbox", { name: "Ask about your sources" }).isVisible(), "the box to ask is at the foot");
+  await openSheet("sources");
+  const box = await p.getByRole("region", { name: "Sources", exact: true }).boundingBox();
+  check(await sourcesList().isVisible() && box && box.width > 340, "the sources open over the page, the width of the phone", box ? `${Math.round(box.width)}px` : "");
+  await p.getByRole("region", { name: "Sources", exact: true }).getByRole("button", { name: "Close" }).click();
+  await p.waitForTimeout(300);
+  check(!(await p.getByRole("region", { name: "Sources", exact: true }).count()), "and close again");
 }
-
 check(!errs.length, "no page errors", errs.join(" | ").slice(0, 200));
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 await b.close();

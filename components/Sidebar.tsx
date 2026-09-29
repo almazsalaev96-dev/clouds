@@ -3,11 +3,11 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  ChevronRight, FolderOpen, Keyboard, MessagesSquare, NotebookPen,
+  BookOpen, ChevronRight, FolderOpen, Keyboard, MessagesSquare, MoreHorizontal, NotebookPen,
   PanelLeft, Pin, PinOff, Plus, Search, Settings2, Sparkles, SquarePen, Trash2, X,
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
-import { db, deleteConversation, groupConversations } from "@/lib/db";
+import { createNote, db, deleteConversation, groupConversations } from "@/lib/db";
 import { dueNow } from "@/lib/study";
 import { useDebounced } from "@/lib/hooks/useDebounced";
 import { Lockup, Mark } from "@/components/brand/Logo";
@@ -86,6 +86,8 @@ export function Sidebar({
   onOpenShortcuts,
   onOpenItem,
   openItems,
+  onOpenNotebook,
+  onAllNotebooks,
 }: {
   activeChatId: string | null;
   onSelectChat: (id: string) => void;
@@ -97,6 +99,10 @@ export function Sidebar({
   onOpenItem?: (section: Section, id: string) => void;
   /** What is open in each room, so its row can say so. */
   openItems?: Partial<Record<Section, string | null>>;
+  /** Open a notebook from wherever you are. */
+  onOpenNotebook?: (id: string) => void;
+  /** The Notebook room, showing only the notebooks. */
+  onAllNotebooks?: () => void;
 }) {
   const { sidebarOpen, toggleSidebar, section, name } = useSettings();
   const [query, setQuery] = React.useState("");
@@ -348,6 +354,16 @@ export function Sidebar({
                 in Projects, what you made in Studio — each a tap away
                 from any of them, the way the reference keeps a room's things
                 in its sidebar rather than only in the room. */}
+            {/* Notebooks, as Gemini keeps them: a way to start one, the
+                latest few, and the rest one press away — above the
+                conversations and above the pages. */}
+            {onOpenNotebook && (section === "chat" || section === "notebook") && !query.trim() && (
+              <Notebooks
+                activeId={section === "notebook" ? openItems?.notebook ?? null : null}
+                onOpen={onOpenNotebook}
+                onAll={onAllNotebooks}
+              />
+            )}
             {section === "chat" || !onOpenItem ? (
               <ChatList
                 query={query}
@@ -357,6 +373,7 @@ export function Sidebar({
               />
             ) : (
               <RoomList
+                quietWhenEmpty={section === "notebook" && Boolean(onOpenNotebook)}
                 section={section}
                 query={query}
                 activeId={openItems?.[section] ?? null}
@@ -481,6 +498,49 @@ function Empty({ query, noun, onNew }: { query: string; noun: string; onNew?: ()
   );
 }
 
+/* ---------------------------------------------------------- notebooks -- */
+
+function Notebooks({ activeId, onOpen, onAll }: { activeId: string | null; onOpen: (id: string) => void; onAll?: () => void }) {
+  const books = useLiveQuery(() => db.notes.filter((n) => n.view === "notebook").toArray(), [], []);
+  const recent = [...(books ?? [])].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 3);
+  const row = "tap focus-inset flex h-9 w-full items-center gap-2.5 rounded-md px-2 text-left text-sm transition-colors duration-[var(--dur-fast)]";
+  return (
+    <section aria-label="Notebooks" className="mb-3">
+      <GroupLabel>Notebooks</GroupLabel>
+      <ul className="flex flex-col gap-px">
+        <li>
+          <button
+            onClick={async () => { const made = await createNote({ title: "Untitled notebook", view: "notebook" }); onOpen(made.id); }}
+            className={cn(row, "text-secondary hover:bg-subtle/60 hover:text-primary")}
+          >
+            <Plus size={16} className="shrink-0 text-tertiary" aria-hidden /> New notebook
+          </button>
+        </li>
+        {recent.map((n) => (
+          <li key={n.id}>
+            <button
+              onClick={() => onOpen(n.id)}
+              aria-current={n.id === activeId || undefined}
+              title={n.title || "Untitled notebook"}
+              className={cn(row, n.id === activeId ? "bg-subtle text-primary" : "text-secondary hover:bg-subtle/60 hover:text-primary")}
+            >
+              {n.nb?.icon ? <span aria-hidden className="w-4 shrink-0 text-center text-[0.9rem] leading-none">{n.nb.icon}</span> : <BookOpen size={16} className="shrink-0 text-tertiary" aria-hidden />}
+              <span className="min-w-0 flex-1 truncate">{n.title?.trim() || "Untitled notebook"}</span>
+            </button>
+          </li>
+        ))}
+        {onAll && (books?.length ?? 0) > 0 && (
+          <li>
+            <button onClick={onAll} className={cn(row, "text-secondary hover:bg-subtle/60 hover:text-primary")}>
+              <MoreHorizontal size={16} className="shrink-0 text-tertiary" aria-hidden /> All notebooks
+            </button>
+          </li>
+        )}
+      </ul>
+    </section>
+  );
+}
+
 /* ------------------------------------------------------------ room lists -- */
 
 type RoomRow = { id: string; title: string; meta?: string; badge?: string; pinned?: boolean };
@@ -492,11 +552,14 @@ type RoomRow = { id: string; title: string; meta?: string; badge?: string; pinne
  * without anything telling it to.
  */
 function RoomList({
+  quietWhenEmpty,
   section,
   query,
   activeId,
   onOpen,
 }: {
+  /* Under the notebooks, an empty list of pages says nothing: the notebooks above are not nothing. */
+  quietWhenEmpty?: boolean;
   section: Section;
   query: string;
   activeId: string | null;
@@ -516,7 +579,7 @@ function RoomList({
       });
     }
     if (section === "notebook") {
-      const notes = await db.notes.orderBy("updatedAt").reverse().toArray();
+      const notes = (await db.notes.orderBy("updatedAt").reverse().toArray()).filter((n) => n.view !== "notebook");
       return notes.map((n) => ({ id: n.id, title: n.title?.trim() || "Untitled", pinned: Boolean(n.pinned) }));
     }
     if (section === "projects") {
@@ -537,7 +600,7 @@ function RoomList({
   const noun = { study: "decks", notebook: "pages", projects: "projects", code: "creations", creative: "creations" }[section as "study"] ?? "things";
 
   if (rows === undefined) return null;
-  if (!ordered.length) return <Empty query={query} noun={noun} />;
+  if (!ordered.length) return quietWhenEmpty && !query.trim() ? null : <Empty query={query} noun={noun} />;
   return (
     <section aria-label={heading}>
       <GroupLabel>{heading}</GroupLabel>

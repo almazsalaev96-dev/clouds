@@ -48,6 +48,7 @@ import { setConfigured as setConfiguredGlobal, setPlusOffer } from "@/lib/config
 import { whyAvoided } from "@/lib/health";
 import { cheapestAvailable, complete } from "@/lib/complete";
 import { useSettings, useDrafts, paramsFor, paramsSet, type Section } from "@/lib/store";
+import { useNotebookFilter } from "@/lib/notebookFilter";
 import { useStream } from "@/lib/hooks/useStream";
 import { cn, inOverlay } from "@/lib/utils";
 import { offerUndo } from "@/lib/undo";
@@ -3108,6 +3109,8 @@ export default function Page() {
           onOpenShortcuts={() => setShortcutsOpen(true)}
           onOpenItem={selectInSection}
           openItems={{ study: deckId, notebook: noteId, projects: projectId, creative: canvasId }}
+          onOpenNotebook={(id) => { useNotebookFilter.getState().set(false); openFromLibrary("page", id); }}
+          onAllNotebooks={() => withTransition(() => { closeDrawerOnMobile(); useNotebookFilter.getState().set(true); setNoteId(null); settings.setSection("notebook"); }, "forward")}
         />
         )}
 

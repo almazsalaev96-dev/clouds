@@ -66,6 +66,7 @@ console.log("\nThe same file as a notebook source");
   await p.getByRole("button", { name: "Add sources" }).first().click();
   const dialog = p.getByRole("dialog", { name: "Add sources" });
   await dialog.getByLabel("Choose files to add as sources").setInputFiles(HUGE);
+  await p.locator("main").getByRole("button", { name: /^Sources, \d+$/ }).first().click({ timeout: 60000 }).catch(() => {});
   const listed = await waitFor(p.getByRole("list", { name: "Your sources", exact: true }).getByText(/armi-huge-lectures/), 60000);
   check(listed, "it is added as a source");
   const src = (await rows("sources")).find((r) => r.name === "armi-huge-lectures.txt");

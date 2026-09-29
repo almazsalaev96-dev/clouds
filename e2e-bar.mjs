@@ -163,7 +163,8 @@ console.log("\nWhat the row says");
   await page.screenshot({ path: `${OUT}/bar-canvas-row.png` });
   await page.locator("aside nav").getByRole("button", { name: "Notebook", exact: true }).click();
   await page.waitForTimeout(600);
-  await page.getByRole("listitem").first().click().catch(() => {});
+  /* A page, not the sidebar's "New notebook" row above the pages. */
+  await page.locator("aside section[aria-label='Pages'] li").first().click().catch(() => {});
   await page.waitForTimeout(800);
 }
 

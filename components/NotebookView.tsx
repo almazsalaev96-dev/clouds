@@ -15,6 +15,7 @@ import { openStudio } from "@/lib/studioBus";
 import { PageConnections, PageHead, Recorder, canRecord, useEditorAssist } from "@/components/notebook/PageParts";
 import dynamic from "next/dynamic";
 /* The notebook view — sources, chat, studio — loaded when one is opened. */
+import { useNotebookFilter } from "@/lib/notebookFilter";
 const Sourcebook = dynamic(() => import("@/components/notebook/Sourcebook").then((m) => m.Sourcebook), { ssr: false });
 import { lastTranscript, toggleTask, type SlashItem } from "@/lib/notebook";
 import type { ToolId } from "@/lib/standards";
@@ -793,6 +794,8 @@ export function NotebookView({
 
   /* The index narrowed to one project's pages. */
   const [inProject, setInProject] = React.useState<string | null>(null);
+  const onlyNotebooks = useNotebookFilter((s) => s.only);
+  const setOnlyNotebooks = useNotebookFilter((s) => s.set);
   const projects = useLiveQuery(() => db.projects.toArray(), [], []);
   const outline = React.useMemo(() => outlineOf(draft), [draft]);
 
@@ -1043,6 +1046,13 @@ export function NotebookView({
             {/* The tags, wherever they were written, as a row that narrows
                 the list. Only once there are two — one tag is a label, not a
                 way of finding anything. */}
+            {onlyNotebooks && (
+              <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Showing">
+                <button onClick={() => setOnlyNotebooks(false)} aria-pressed className="tap focus-inset flex items-center gap-1.5 rounded-full border border-accent bg-accent-subtle px-2.5 py-1 text-xs text-accent">
+                  <BookOpen size={11} aria-hidden /> Notebooks only <X size={11} aria-label="Show everything" />
+                </button>
+              </div>
+            )}
             {/* The projects that hold pages, as a row that narrows the list. */}
             {(projects ?? []).some((p) => (notes ?? []).some((n) => n.projectId === p.id)) && (
               <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Projects">
@@ -1083,6 +1093,7 @@ export function NotebookView({
         items={[...(notes ?? [])]
           .filter((n) => !activeTag || (tagged.byId.get(n.id) ?? []).includes(activeTag))
           .filter((n) => !inProject || n.projectId === inProject)
+          .filter((n) => !onlyNotebooks || n.view === "notebook")
           .sort((a, b) => Number(b.pinned) - Number(a.pinned))
           .map((n) => ({
             id: n.id,

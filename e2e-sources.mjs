@@ -49,9 +49,9 @@ await page.goto("http://localhost:3100", { waitUntil: "networkidle" });
 await page.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), SETTINGS);
 await page.reload({ waitUntil: "networkidle" });
 await page.waitForTimeout(1000);
-await page.getByRole("button", { name: /Notebook/ }).first().click();
+await page.locator("aside nav").getByRole("button", { name: "Notebook", exact: true }).first().click();
 await page.waitForTimeout(800);
-await page.getByRole("button", { name: /New page|New note/i }).first().click();
+await page.locator("main").getByRole("button", { name: /New page|New note/i }).first().click();
 await page.waitForTimeout(1000);
 
 console.log("\nBringing more than one thing");

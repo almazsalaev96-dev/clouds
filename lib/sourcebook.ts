@@ -3,7 +3,7 @@
  * and an audio overview of them read by two hosts. Pure — prompts in,
  * parsed shapes out — so every rule is tested without a model or a browser.
  */
-import type { AudioFormat, AudioLength, AudioLine, NotebookGuide, NotebookState, NotebookTurn } from "./types";
+import type { NotebookThread, AudioFormat, AudioLength, AudioLine, NotebookGuide, NotebookState, NotebookTurn } from "./types";
 
 type Src = { id: string; name: string; text: string };
 
@@ -279,4 +279,43 @@ export function isPrivateAddress(ip: string): boolean {
   if (/^f[cd][0-9a-f]{2}:/.test(v)) return true;
   if (/^fe[89ab][0-9a-f]:/.test(v)) return true;
   return !v.includes(":") ? true : false;
+}
+
+/* ------------------------------------------------------------ threads -- */
+
+/** A conversation's name: its first question, on one line. */
+export function threadTitle(q: string): string {
+  const line = q.replace(/\s+/g, " ").trim();
+  return line.length > 60 ? `${line.slice(0, 59).trimEnd()}…` : line || "New chat";
+}
+
+/**
+ * A notebook's conversations, newest first. A notebook from before it could
+ * hold several has its one conversation read as the first of them, under
+ * the id "chat", until it is next written.
+ */
+export function readThreads(nb: NotebookState): NotebookThread[] {
+  const threads = [...(nb.threads ?? [])];
+  const legacy = nb.chat ?? [];
+  if (legacy.length && !threads.some((t) => t.id === "chat")) {
+    threads.push({ id: "chat", title: threadTitle(legacy[0].q), turns: legacy, at: legacy[legacy.length - 1].at });
+  }
+  return threads.sort((a, b) => b.at - a.at);
+}
+
+/** Every question asked in the notebook, in any of its conversations. */
+export function askedIn(threads: NotebookThread[]): NotebookTurn[] {
+  return threads.flatMap((t) => t.turns);
+}
+
+/** "Today", "Yesterday", "3 days ago", or the date — how long ago a chat was last used. */
+export function whenLine(at: number, now = Date.now()): string {
+  const day = 86_400_000;
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  if (at >= start.getTime()) return "Today";
+  if (at >= start.getTime() - day) return "Yesterday";
+  const days = Math.ceil((start.getTime() - at) / day);
+  if (days < 7) return `${days} days ago`;
+  return new Date(at).toLocaleDateString(undefined, { month: "short", day: "numeric", ...(new Date(at).getFullYear() !== new Date(now).getFullYear() ? { year: "numeric" } : {}) });
 }

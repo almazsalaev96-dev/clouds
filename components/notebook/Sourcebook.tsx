@@ -13,9 +13,9 @@ import { extractCitations, findIn } from "@/lib/cite";
 import { createNote, db, removeSource } from "@/lib/db";
 import { offerUndo } from "@/lib/undo";
 import { openStudio } from "@/lib/studioBus";
-import { chatInstruction, guidePrompt, guideStale, readGuide, readSourceGuide, sourceGuidePrompt, suggestions } from "@/lib/sourcebook";
+import { askedIn, chatInstruction, guidePrompt, guideStale, readGuide, readSourceGuide, readThreads, sourceGuidePrompt, suggestions, threadTitle, whenLine } from "@/lib/sourcebook";
 import type { ToolId } from "@/lib/standards";
-import type { AudioOverview, Note, NotebookState, NotebookTurn, Source } from "@/lib/types";
+import type { AudioOverview, Note, NotebookState, NotebookThread, NotebookTurn, Source } from "@/lib/types";
 import { uid } from "@/lib/db";
 import { Markdown } from "@/components/chat/Markdown";
 import { RevisePicker, useReviseModel } from "@/components/chat/RevisePicker";
@@ -26,7 +26,7 @@ import { AudioOverviewCard } from "./AudioOverview";
 import { AddSources } from "./AddSources";
 import { RoomToggle } from "@/components/ui/RoomToggle";
 
-type Tab = "sources" | "chat" | "studio";
+type Sheet = "sources" | "studio";
 
 /** The Studio, as a notebook offers it: what a student makes from sources, most asked-for first. */
 const STUDIO: { tool: ToolId; name: string }[] = [
@@ -42,10 +42,16 @@ const STUDIO: { tool: ToolId; name: string }[] = [
   { tool: "paper", name: "Exam paper" },
 ];
 
+/** What a notebook can be marked with. */
+const ICONS_FOR_NOTEBOOK = ["📓", "📘", "📗", "📕", "📝", "🧪", "🧬", "🧮", "🔭", "🌍", "🏛️", "⚖️", "🎨", "🎵", "💻", "💡"];
+
 /**
- * A notebook made of sources: what you brought on the left, a conversation
- * that answers only from it in the middle, and what you can make from it on
- * the right. On a phone the three are tabs.
+ * A notebook, laid out the way Gemini lays one out: one quiet column with
+ * the notebook's mark and name, its sources a press away at the top right,
+ * the conversations held in it listed underneath, and one box at the foot
+ * that starts another. The sources and the Studio open beside it — or over
+ * it, on a phone — rather than taking a third of the screen each all the
+ * time.
  *
  * It is a page underneath — the sources hang off it as they always have —
  * so everything a page can do, it can still do, one press away.
@@ -69,7 +75,8 @@ export function Sourcebook({ note, sources, configured, onBack, onOpenPage, onOp
   React.useEffect(() => { setOffIds(savedOff ? savedOff.split(",") : []); }, [savedOff]);
   const off = React.useMemo(() => new Set(offIds), [offIds]);
   const on = sources.filter((s) => !off.has(s.id));
-  const [tab, setTab] = React.useState<Tab>(sources.length ? "chat" : "sources");
+  const [sheet, setSheet] = React.useState<Sheet | null>(null);
+  const [thread, setThread] = React.useState<string | null>(null);
   const [adding, setAdding] = React.useState(false);
   const [open, setOpen] = React.useState<{ id: string; quote?: string } | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
@@ -86,6 +93,14 @@ export function Sourcebook({ note, sources, configured, onBack, onOpenPage, onOp
   const save = React.useCallback(async (patch: Partial<NotebookState>) => {
     const now = await db.notes.get(note.id);
     await db.notes.update(note.id, { nb: { ...(now?.nb ?? {}), ...patch } });
+  }, [note.id]);
+
+  /* The conversations, the same way: read fresh, changed, written back, and
+     the one conversation an older notebook had folded in as the first. */
+  const changeThreads = React.useCallback(async (fn: (all: NotebookThread[]) => NotebookThread[]) => {
+    const now = await db.notes.get(note.id);
+    const nowNb = now?.nb ?? {};
+    await db.notes.update(note.id, { nb: { ...nowNb, threads: fn(readThreads(nowNb)).slice(0, 200), chat: undefined } });
   }, [note.id]);
 
   /* The guide: what the sources are, taken together, and three questions to
@@ -112,27 +127,36 @@ export function Sourcebook({ note, sources, configured, onBack, onOpenPage, onOp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stale, modelId, sources.length]);
 
-  React.useEffect(() => { chatEnd.current?.scrollIntoView?.({ block: "end" }); }, [nb.chat?.length, pending]);
+  const threads = readThreads(nb);
+  const current = thread ? threads.find((t) => t.id === thread) : undefined;
+  const turns = current?.turns ?? [];
+
+  React.useEffect(() => { chatEnd.current?.scrollIntoView?.({ block: "end" }); }, [turns.length, pending, thread]);
 
   const ask = async (question: string) => {
     const text = question.trim();
     if (!text || pending) return;
     if (!modelId) { setNotice("No key configured yet — add one in Settings."); return; }
-    if (!on.length) { setNotice(sources.length ? "Every source is switched off. Tick at least one on the left." : "Add a source first — answers here come only from your sources."); return; }
+    if (!on.length) { setNotice(sources.length ? "Every source is switched off. Tick at least one in Sources." : "Add a source first — answers here come only from your sources."); return; }
+    /* Asked from the notebook's page, it starts a conversation; asked inside
+       one, it carries on. */
+    const id = thread ?? uid();
+    const history = threads.find((t) => t.id === id)?.turns ?? [];
+    setThread(id);
     setQ("");
-    setTab("chat");
     setNotice(null);
     setPending(text);
     const ctl = new AbortController();
     abortRef.current = ctl;
     try {
-      const raw = await makeFromSources(chatInstruction(text, nb, nb.chat ?? []), on.map((s) => ({ name: s.name, text: s.text })), modelId, 90_000, { signal: ctl.signal });
+      const raw = await makeFromSources(chatInstruction(text, nb, history), on.map((s) => ({ name: s.name, text: s.text })), modelId, 90_000, { signal: ctl.signal });
       if (ctl.signal.aborted) return;
       if (!raw) { setNotice("Nothing usable came back. Try asking it differently."); return; }
       const { text: body, citations } = extractCitations(raw, on);
       const turn: NotebookTurn = { id: uid(), q: text, body, citations, at: Date.now() };
-      const now = await db.notes.get(note.id);
-      await save({ chat: [...(now?.nb?.chat ?? []), turn].slice(-60) });
+      await changeThreads((all) => all.some((t) => t.id === id)
+        ? all.map((t) => (t.id === id ? { ...t, turns: [...t.turns, turn].slice(-60), at: turn.at } : t))
+        : [{ id, title: threadTitle(text), turns: [turn], at: turn.at }, ...all]);
       const missing = citations.filter((c) => !c.found && c.why === "missing").length;
       if (missing) setNotice(`${missing} of ${citations.length} citation${citations.length === 1 ? "" : "s"} could not be found in the source it names — marked with a “?”.`);
     } catch (err) {
@@ -140,6 +164,11 @@ export function Sourcebook({ note, sources, configured, onBack, onOpenPage, onOp
     } finally {
       setPending(null);
       abortRef.current = null;
+      /* A conversation that never got its first answer is not one. */
+      if (!history.length) {
+        const now = readThreads((await db.notes.get(note.id))?.nb ?? {});
+        if (!now.some((t) => t.id === id)) setThread((cur) => (cur === id ? null : cur));
+      }
     }
   };
 
@@ -156,10 +185,10 @@ export function Sourcebook({ note, sources, configured, onBack, onOpenPage, onOp
       return;
     }
     setOpen({ id: src.id, quote: c.quote });
-    setTab("sources");
+    setSheet("sources");
   };
 
-  const keepAnswer = async (turn: NotebookTurn) => {
+  const keepAnswer = async (threadId: string, turn: NotebookTurn) => {
     const made = await createNote({
       title: turn.q.slice(0, 80),
       content: `# ${turn.q}\n\n${turn.body}`,
@@ -168,13 +197,18 @@ export function Sourcebook({ note, sources, configured, onBack, onOpenPage, onOp
       madeFrom: on.map((s) => s.id),
       ...(note.projectId ? { projectId: note.projectId } : {}),
     });
-    const now = await db.notes.get(note.id);
-    await save({ chat: (now?.nb?.chat ?? []).map((t) => (t.id === turn.id ? { ...t, savedAs: made.id } : t)) });
+    await changeThreads((all) => all.map((t) => (t.id === threadId ? { ...t, turns: t.turns.map((x) => (x.id === turn.id ? { ...x, savedAs: made.id } : x)) } : t)));
   };
 
   const keepText = async (title: string, content: string) => {
     await createNote({ title, content, nbOf: note.id, ...(note.projectId ? { projectId: note.projectId } : {}) });
     setNotice(`Kept as a note: ${title}`);
+  };
+
+  const removeThread = async (t: NotebookThread) => {
+    await changeThreads((all) => all.filter((x) => x.id !== t.id));
+    if (thread === t.id) setThread(null);
+    offerUndo(t.title, async () => { await changeThreads((all) => (all.some((x) => x.id === t.id) ? all : [...all, t])); });
   };
 
   const studio = (tool?: ToolId) => {
@@ -195,19 +229,23 @@ export function Sourcebook({ note, sources, configured, onBack, onOpenPage, onOp
   const all = on.length === sources.length;
 
   const title = note.title || nb.guide?.title || "Untitled notebook";
-  const chat = nb.chat ?? [];
+  const suggested = suggestions(stale ? undefined : nb.guide, askedIn(threads));
 
-  /* ------------------------------------------------------------ panels -- */
+  /* ------------------------------------------------------------ sheets -- */
+
+  const closeSheet = (
+    <button onClick={() => setSheet(null)} aria-label="Close" className="ctl [--ctl:2rem] focus-ring flex items-center justify-center rounded-full text-tertiary hover:bg-subtle hover:text-primary"><X size={15} /></button>
+  );
 
   const sourcesPanel = (
-    <Panel label="Sources" count={sources.length} action={<Button size="sm" variant="secondary" onClick={() => setAdding(true)}><Plus size={13} /> Add</Button>}>
+    <Panel label="Sources" count={sources.length} action={<><Button size="sm" variant="secondary" onClick={() => setAdding(true)}><Plus size={13} /> Add</Button>{closeSheet}</>}>
       {open ? (
         <SourceView
           source={sources.find((s) => s.id === open.id)}
           quote={open.quote}
           modelId={modelId}
           onBack={() => setOpen(null)}
-          onTopic={(t) => void ask(`Tell me about ${t}`)}
+          onTopic={(t) => { setSheet(null); void ask(`Tell me about ${t}`); }}
         />
       ) : sources.length ? (
         <div className="flex min-h-0 flex-1 flex-col">
@@ -225,7 +263,7 @@ export function Sourcebook({ note, sources, configured, onBack, onOpenPage, onOp
             {sources.map((s) => (
               <li key={s.id} className="group flex items-center gap-1 rounded-lg hover:bg-subtle">
                 <button onClick={() => setOpen({ id: s.id })} className="tap focus-inset flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-2 text-left">
-                  {s.url ? <Globe size={14} className="shrink-0 text-[var(--accent-2)]" aria-hidden /> : <BookOpen size={14} className="shrink-0 text-[var(--accent-2)]" aria-hidden />}
+                  <SourceMark source={s} />
                   <span className="min-w-0 flex-1 truncate text-sm text-primary">{s.name}</span>
                 </button>
                 <SourceMenu name={s.name} onRemove={async () => offerUndo(s.name, await removeSource(s.id))} />
@@ -251,112 +289,13 @@ export function Sourcebook({ note, sources, configured, onBack, onOpenPage, onOp
     </Panel>
   );
 
-  const chatPanel = (
-    <Panel label="Chat" action={<ChatSettings nb={nb} onSave={save} onClear={chat.length ? () => void save({ chat: [] }) : undefined} />}>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-        {!sources.length ? (
-          <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
-            <span className="flex size-12 items-center justify-center rounded-full bg-accent-subtle text-accent"><Plus size={20} /></span>
-            <h2 className="text-lg font-medium text-primary">Add a source to get started</h2>
-            <p className="text-sm text-tertiary">Answers come from your sources, with citations.</p>
-            <Button variant="primary" onClick={() => setAdding(true)}>Add sources</Button>
-          </div>
-        ) : (
-          <>
-            <section aria-label="Notebook guide" className="mx-auto max-w-2xl">
-              {nb.guide && !stale ? (
-                <>
-                  <span className="flex size-10 items-center justify-center rounded-xl bg-accent-subtle text-accent"><Sparkles size={18} /></span>
-                  <h2 className="mt-3 text-2xl font-semibold tracking-tight text-primary">{nb.guide.title}</h2>
-                  <p className="mt-1 text-xs text-tertiary">{sources.length} source{sources.length === 1 ? "" : "s"}</p>
-                  <div className="prose-sm mt-3 text-[0.95rem] leading-relaxed text-secondary"><Markdown content={nb.guide.summary} /></div>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    <Button size="sm" variant="secondary" onClick={() => void keepText(`${nb.guide!.title} — overview`, nb.guide!.summary)}><Pin size={13} /> Save to note</Button>
-                    <Button size="sm" variant="secondary" onClick={() => setTab("studio")}><Sparkles size={13} /> Audio Overview</Button>
-                    <Button size="sm" variant="secondary" onClick={() => studio("mindmap")}>{ICONS.mindmap} Mind map</Button>
-                  </div>
-                </>
-              ) : (
-                <div className="space-y-2" role="status" aria-label="Writing the notebook guide">
-                  <div className="h-7 w-2/3 animate-pulse rounded-lg bg-subtle" />
-                  <div className="h-4 w-full animate-pulse rounded bg-subtle" />
-                  <div className="h-4 w-5/6 animate-pulse rounded bg-subtle" />
-                  <p className="text-xs text-tertiary">{guiding ? "Reading your sources…" : modelId ? "" : "Add a key in Settings and the notebook will describe its sources here."}</p>
-                </div>
-              )}
-            </section>
-
-            <ol className="mx-auto mt-6 max-w-2xl space-y-6" aria-label="Conversation">
-              {chat.map((t) => (
-                <li key={t.id} className="space-y-3">
-                  <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-subtle px-3.5 py-2 text-sm text-primary">{t.q}</p>
-                  <div className="nb-answer text-[0.95rem] leading-relaxed text-primary" onClick={(e) => openCite(t, e)}>
-                    <Markdown content={t.body} />
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button size="sm" variant="ghost" onClick={() => (t.savedAs ? onOpenPage(t.savedAs) : void keepAnswer(t))} aria-label={t.savedAs ? "Open the saved note" : "Save to note"}>
-                      {t.savedAs ? <Check size={13} /> : <Pin size={13} />} {t.savedAs ? "Saved" : "Save to note"}
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => void navigator.clipboard?.writeText(t.body.replace(/\[(\d+\??)\]\(#armi-cite-\d+\)/g, "[$1]"))} aria-label="Copy the answer"><Copy size={13} /></Button>
-                    <span className="ml-auto text-xs text-faint tnum">{t.citations.length ? `${t.citations.filter((c) => c.found).length}/${t.citations.length} quotes found` : ""}</span>
-                  </div>
-                </li>
-              ))}
-              {pending && (
-                <li className="space-y-3" role="status">
-                  <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-subtle px-3.5 py-2 text-sm text-primary">{pending}</p>
-                  <p className="flex items-center gap-2 text-sm text-tertiary">
-                    <span className="size-2 animate-pulse rounded-full bg-accent" aria-hidden /> Reading {on.length} source{on.length === 1 ? "" : "s"}…
-                    <button onClick={() => abortRef.current?.abort()} className="btn-touch focus-ring rounded-full px-2 text-xs text-tertiary hover:text-primary"><Square size={10} className="mr-1 inline" />Stop</button>
-                  </p>
-                </li>
-              )}
-            </ol>
-            <div ref={chatEnd} />
-          </>
-        )}
-      </div>
-      {notice && (
-        <p role="status" className="mx-4 mb-2 flex items-start gap-2 rounded-xl bg-subtle px-3 py-2 text-xs text-secondary">
-          <span className="flex-1">{notice}</span>
-          <button onClick={() => setNotice(null)} aria-label="Dismiss" className="shrink-0 text-tertiary hover:text-primary"><X size={13} /></button>
-        </p>
-      )}
-      {sources.length > 0 && (
-        <div className="border-t border-line p-3">
-          {!pending && suggestions(stale ? undefined : nb.guide, chat).length > 0 && (
-            <div className="mb-2 flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Suggested questions">
-              {suggestions(nb.guide, chat).map((s) => (
-                <button key={s} onClick={() => void ask(s)} className="btn-touch focus-ring shrink-0 rounded-full border border-line bg-surface px-3 py-1.5 text-left text-xs text-secondary hover:border-line-strong hover:text-primary">
-                  {s}
-                </button>
-              ))}
-            </div>
-          )}
-          <form onSubmit={(e) => { e.preventDefault(); void ask(q); }} className="flex items-end gap-2 rounded-2xl border border-line bg-field px-3 py-2 focus-within:border-[var(--accent)]">
-            <textarea
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void ask(q); } }}
-              rows={1}
-              aria-label="Ask about your sources"
-              className="max-h-40 min-h-[2rem] flex-1 resize-none bg-transparent py-1 text-sm text-primary outline-none placeholder:text-faint"
-            />
-            <span className="shrink-0 pb-1.5 text-xs text-tertiary tnum">{on.length} source{on.length === 1 ? "" : "s"}</span>
-            <button type="submit" disabled={!q.trim() || Boolean(pending)} aria-label="Ask" className="ctl [--ctl:2rem] focus-ring flex shrink-0 items-center justify-center rounded-full bg-cta text-cta-fg disabled:opacity-40"><ArrowUp size={15} /></button>
-          </form>
-        </div>
-      )}
-    </Panel>
-  );
-
   const made = [
     ...(kept ?? []).map((n) => ({ key: n.id, kind: "page" as const, id: n.id, label: n.title || "Untitled note", at: n.updatedAt })),
     ...(nb.made ?? []).filter((m) => m.kind !== "page").map((m) => ({ key: m.id, kind: m.kind, id: m.id, label: m.label, at: m.at })),
   ].sort((a, b) => b.at - a.at);
 
   const studioPanel = (
-    <Panel label="Studio">
+    <Panel label="Studio" action={closeSheet}>
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3">
         <AudioOverviewCard
           title={title}
@@ -410,57 +349,241 @@ export function Sourcebook({ note, sources, configured, onBack, onOpenPage, onOp
     </Panel>
   );
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col" data-sourcebook>
-      <header className="flex shrink-0 items-center gap-2 px-3 py-2 sm:px-4">
-        {roomToggle && <div className="has-room-toggle -ml-1">{roomToggle}</div>}
-        <button onClick={onBack} aria-label="All pages" className="ctl focus-ring flex [--ctl:2rem] items-center justify-center rounded-full text-tertiary hover:bg-subtle hover:text-primary"><ArrowLeft size={16} /></button>
-        <input
+  /* ------------------------------------------------------------- pages -- */
+
+  const pill = "btn-touch focus-ring flex h-10 shrink-0 items-center gap-2 rounded-full border border-line bg-subtle px-4 text-sm text-primary transition-colors hover:border-line-strong aria-pressed:border-line-strong";
+
+  const home = (
+    <div className="pb-6 pt-6 sm:pt-10">
+      <IconPicker icon={nb.icon} onPick={(icon) => void save({ icon })} />
+      <div className="mt-4 flex flex-wrap items-start gap-3">
+        <textarea
           value={note.title}
-          onChange={(e) => void db.notes.update(note.id, { title: e.target.value, updatedAt: Date.now() })}
+          onChange={(e) => void db.notes.update(note.id, { title: e.target.value.replace(/\n/g, " "), updatedAt: Date.now() })}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLTextAreaElement).blur(); } }}
           placeholder="Untitled notebook"
           aria-label="Notebook name"
-          className="ctl-h [--ctl:2.25rem] min-w-0 flex-1 truncate bg-transparent text-lg font-medium text-primary outline-none placeholder:text-faint"
+          rows={1}
+          className="[field-sizing:content] min-w-0 flex-1 basis-72 resize-none bg-transparent text-3xl font-normal leading-tight tracking-tight text-primary outline-none placeholder:text-faint sm:text-4xl"
         />
-        <Button size="sm" variant="ghost" onClick={() => void db.notes.update(note.id, { view: "page" })} aria-label="Open as a page"><PanelLeftClose size={13} /><span className="hidden sm:inline">As a page</span></Button>
-        <RevisePicker configured={configured} />
-      </header>
-
-      {/* On a phone and a small tablet, one panel at a time. */}
-      <div role="tablist" aria-label="Notebook" className="mx-3 mb-2 grid shrink-0 grid-cols-3 gap-1 rounded-xl bg-subtle p-1 lg:hidden">
-        {(["sources", "chat", "studio"] as Tab[]).map((t) => (
-          <button
-            key={t}
-            role="tab"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
-            className={cn("ctl-h [--ctl:2.25rem] focus-ring rounded-lg text-sm capitalize transition-colors", tab === t ? "bg-surface font-medium text-primary shadow-sm" : "text-tertiary hover:text-primary")}
-          >
-            {t}{t === "sources" && sources.length ? ` · ${sources.length}` : ""}
+        <div className="flex gap-2 pt-1">
+          <button onClick={() => { setOpen(null); setSheet(sheet === "sources" ? null : "sources"); }} aria-pressed={sheet === "sources"} aria-label={`Sources, ${sources.length}`} className={pill}>
+            {sources[0] ? <SourceMark source={sources[0]} /> : <FileText size={15} className="text-tertiary" aria-hidden />}
+            <span>Sources</span>
+            <span className="tnum text-tertiary">{sources.length}</span>
           </button>
-        ))}
+          <button onClick={() => setSheet(sheet === "studio" ? null : "studio")} aria-pressed={sheet === "studio"} aria-label="Notebook studio" className={pill}>
+            <Sparkles size={15} className="text-accent" aria-hidden />
+            <span>Studio</span>
+          </button>
+        </div>
       </div>
 
-      <div className="grid min-h-0 flex-1 gap-3 px-3 pb-3 lg:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)_minmax(17rem,21rem)]">
-        <div className={cn("min-h-0", tab === "sources" ? "flex" : "hidden", "lg:flex")}>{sourcesPanel}</div>
-        <div className={cn("min-h-0", tab === "chat" ? "flex" : "hidden", "lg:flex")}>{chatPanel}</div>
-        <div className={cn("min-h-0", tab === "studio" ? "flex" : "hidden", "lg:flex")}>{studioPanel}</div>
-      </div>
+      {!sources.length ? (
+        <div className="mt-12 flex flex-col items-center gap-3 text-center">
+          <h2 className="text-lg font-medium text-primary">Add a source to get started</h2>
+          <p className="max-w-sm text-sm text-tertiary">PDFs, web pages, pasted text or your own pages. Answers here come only from them, with citations.</p>
+          <Button variant="primary" onClick={() => setAdding(true)}><Plus size={14} /> Add sources</Button>
+        </div>
+      ) : (
+        <>
+          {threads.length > 0 && (
+            <ul className="-mx-3 mt-6 flex flex-col" aria-label="Chats in this notebook">
+              {threads.map((t) => (
+                <li key={t.id} className="group flex items-center gap-1 rounded-xl hover:bg-subtle">
+                  <button onClick={() => setThread(t.id)} className="tap focus-inset flex min-w-0 flex-1 items-center gap-4 rounded-xl px-3 py-3 text-left">
+                    <span className="min-w-0 flex-1 truncate text-[0.95rem] text-primary">{t.title}</span>
+                    <span className="shrink-0 text-sm text-tertiary tnum">{whenLine(t.at)}</span>
+                  </button>
+                  <button onClick={() => void removeThread(t)} aria-label={`Delete ${t.title}`} className="ctl [--ctl:2rem] focus-ring reveal mr-1 flex shrink-0 items-center justify-center rounded-full text-tertiary hover:bg-surface hover:text-[var(--danger)]"><Trash2 size={14} /></button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <section aria-label="Notebook guide" className={cn("rounded-2xl", threads.length ? "mt-8 border border-line p-4" : "mt-6")}>
+            {nb.guide && !stale ? (
+              <>
+                <h2 className="eyebrow text-faint">About your sources</h2>
+                <div className="prose-sm mt-2 text-[0.95rem] leading-relaxed text-secondary"><Markdown content={nb.guide.summary} /></div>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <Button size="sm" variant="secondary" onClick={() => void keepText(`${nb.guide!.title} — overview`, nb.guide!.summary)}><Pin size={13} /> Save to note</Button>
+                  <Button size="sm" variant="secondary" onClick={() => setSheet("studio")}><Sparkles size={13} /> Audio Overview</Button>
+                  <Button size="sm" variant="secondary" onClick={() => studio("mindmap")}>{ICONS.mindmap} Mind map</Button>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-2" role="status" aria-label="Writing the notebook guide">
+                <div className="h-4 w-full animate-pulse rounded bg-subtle" />
+                <div className="h-4 w-5/6 animate-pulse rounded bg-subtle" />
+                <p className="text-xs text-tertiary">{guiding ? "Reading your sources…" : modelId ? "" : "Add a key in Settings and the notebook will describe its sources here."}</p>
+              </div>
+            )}
+          </section>
+        </>
+      )}
+    </div>
+  );
+
+  const conversation = (
+    <div className="pb-6 pt-4">
+      <ol className="space-y-6" aria-label="Conversation">
+        {turns.map((t) => (
+          <li key={t.id} className="space-y-3">
+            <p className="ml-auto w-fit max-w-[85%] rounded-3xl rounded-br-lg bg-subtle px-4 py-2.5 text-[0.95rem] text-primary">{t.q}</p>
+            <div className="nb-answer text-[0.975rem] leading-relaxed text-primary" onClick={(e) => openCite(t, e)}>
+              <Markdown content={t.body} />
+            </div>
+            <div className="flex items-center gap-1">
+              <Button size="sm" variant="ghost" onClick={() => (t.savedAs ? onOpenPage(t.savedAs) : void keepAnswer(current!.id, t))} aria-label={t.savedAs ? "Open the saved note" : "Save to note"}>
+                {t.savedAs ? <Check size={13} /> : <Pin size={13} />} {t.savedAs ? "Saved" : "Save to note"}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => void navigator.clipboard?.writeText(t.body.replace(/\[(\d+\??)\]\(#armi-cite-\d+\)/g, "[$1]"))} aria-label="Copy the answer"><Copy size={13} /></Button>
+              <span className="ml-auto text-xs text-faint tnum">{t.citations.length ? `${t.citations.filter((c) => c.found).length}/${t.citations.length} quotes found` : ""}</span>
+            </div>
+          </li>
+        ))}
+        {pending && (
+          <li className="space-y-3" role="status">
+            <p className="ml-auto w-fit max-w-[85%] rounded-3xl rounded-br-lg bg-subtle px-4 py-2.5 text-[0.95rem] text-primary">{pending}</p>
+            <p className="flex items-center gap-2 text-sm text-tertiary">
+              <span className="size-2 animate-pulse rounded-full bg-accent" aria-hidden /> Reading {on.length} source{on.length === 1 ? "" : "s"}…
+              <button onClick={() => abortRef.current?.abort()} className="btn-touch focus-ring rounded-full px-2 text-xs text-tertiary hover:text-primary"><Square size={10} className="mr-1 inline" />Stop</button>
+            </p>
+          </li>
+        )}
+      </ol>
+      <div ref={chatEnd} />
+    </div>
+  );
+
+  return (
+    <div className="relative flex min-h-0 flex-1" data-sourcebook>
+      <section aria-label="Chat" className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <header className="flex shrink-0 items-center gap-1.5 px-3 py-2 sm:px-4">
+          {roomToggle && <div className="has-room-toggle -ml-1">{roomToggle}</div>}
+          {thread ? (
+            <button onClick={() => setThread(null)} aria-label="Back to the notebook" className="btn-touch focus-ring flex min-w-0 items-center gap-1.5 rounded-full py-1 pl-1.5 pr-3 text-sm text-secondary hover:bg-subtle hover:text-primary">
+              <ArrowLeft size={16} className="shrink-0" />
+              <span aria-hidden className="shrink-0">{nb.icon ?? "📓"}</span>
+              <span className="truncate">{title}</span>
+            </button>
+          ) : (
+            <button onClick={onBack} aria-label="All pages" className="ctl focus-ring flex [--ctl:2rem] items-center justify-center rounded-full text-tertiary hover:bg-subtle hover:text-primary"><ArrowLeft size={16} /></button>
+          )}
+          <span className="flex-1" />
+          {/* Inside a conversation the notebook's page is a step away, so
+              its two doors come up here. */}
+          {thread && (
+            <>
+              <button onClick={() => { setOpen(null); setSheet(sheet === "sources" ? null : "sources"); }} aria-pressed={sheet === "sources"} aria-label={`Sources, ${sources.length}`} className="btn-touch focus-ring flex h-9 items-center gap-1.5 rounded-full px-3 text-sm text-secondary hover:bg-subtle hover:text-primary aria-pressed:bg-subtle aria-pressed:text-primary">
+                <FileText size={15} aria-hidden /><span className="tnum">{sources.length}</span>
+              </button>
+              <button onClick={() => setSheet(sheet === "studio" ? null : "studio")} aria-pressed={sheet === "studio"} aria-label="Notebook studio" className="btn-touch focus-ring flex h-9 items-center gap-1.5 rounded-full px-3 text-sm text-secondary hover:bg-subtle hover:text-primary aria-pressed:bg-subtle aria-pressed:text-primary">
+                <Sparkles size={15} className="text-accent" aria-hidden /><span className="hidden sm:inline">Studio</span>
+              </button>
+            </>
+          )}
+          <RevisePicker configured={configured} />
+          <ChatSettings nb={nb} onSave={save} onClear={current ? () => void removeThread(current) : undefined} />
+          <Button size="sm" variant="ghost" onClick={() => void db.notes.update(note.id, { view: "page" })} aria-label="Open as a page"><PanelLeftClose size={13} /><span className="hidden md:inline">As a page</span></Button>
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-3xl px-4 sm:px-6">
+            {thread ? (
+              conversation
+            ) : home}
+          </div>
+        </div>
+
+        {notice && (
+          <p role="status" className="mx-auto mb-2 flex w-[calc(100%-2rem)] max-w-3xl items-start gap-2 rounded-xl bg-subtle px-3 py-2 text-xs text-secondary">
+            <span className="flex-1">{notice}</span>
+            <button onClick={() => setNotice(null)} aria-label="Dismiss" className="shrink-0 text-tertiary hover:text-primary"><X size={13} /></button>
+          </p>
+        )}
+        <div className="shrink-0 px-3 pb-3 sm:px-6 sm:pb-5">
+          <div className="mx-auto w-full max-w-3xl">
+            {!pending && sources.length > 0 && suggested.length > 0 && (
+              <div className="mb-2 flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Suggested questions">
+                {suggested.map((s) => (
+                  <button key={s} onClick={() => void ask(s)} className="btn-touch focus-ring shrink-0 rounded-full border border-line bg-surface px-3 py-1.5 text-left text-xs text-secondary hover:border-line-strong hover:text-primary">
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+            <form onSubmit={(e) => { e.preventDefault(); void ask(q); }} className="flex items-end gap-1.5 rounded-[1.75rem] border border-line bg-surface p-2 shadow-sm focus-within:border-[var(--accent)]">
+              <button type="button" onClick={() => setAdding(true)} aria-label="Add sources" className="ctl [--ctl:2.5rem] focus-ring flex shrink-0 items-center justify-center rounded-full text-secondary hover:bg-subtle hover:text-primary"><Plus size={20} /></button>
+              <textarea
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void ask(q); } }}
+                rows={1}
+                aria-label="Ask about your sources"
+                className="max-h-40 min-h-[2.5rem] flex-1 resize-none bg-transparent px-1 py-2 text-[0.95rem] text-primary outline-none placeholder:text-faint"
+              />
+              {sources.length > 0 && <span className="shrink-0 self-center text-xs text-tertiary tnum">{on.length} source{on.length === 1 ? "" : "s"}</span>}
+              <button type="submit" disabled={!q.trim() || Boolean(pending)} aria-label="Ask" className="ctl [--ctl:2.5rem] focus-ring flex shrink-0 items-center justify-center rounded-full bg-cta text-cta-fg disabled:opacity-30"><ArrowUp size={17} /></button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      {/* The sources and the Studio: beside the column on a wide screen,
+          over it on a narrow one. */}
+      {sheet && (
+        <>
+          <div className="fixed inset-0 z-30 bg-black/30 lg:hidden" aria-hidden onClick={() => setSheet(null)} />
+          <div className="fixed inset-y-0 right-0 z-40 flex w-full max-w-md p-2 lg:static lg:z-auto lg:w-[24rem] lg:max-w-none lg:p-0 lg:py-2 lg:pr-2">
+            {sheet === "sources" ? sourcesPanel : studioPanel}
+          </div>
+        </>
+      )}
 
       {adding && (
         <AddSources
           notebookId={note.id}
           onClose={() => setAdding(false)}
-          onAdded={(names) => { setAdding(false); setNotice(`Added ${names.join(", ")}.`); setTab("chat"); }}
+          onAdded={(names) => { setAdding(false); setNotice(`Added ${names.join(", ")}.`); }}
         />
       )}
     </div>
   );
 }
 
+/** A source's mark: a PDF, a web page, or text. */
+function SourceMark({ source }: { source: Source }) {
+  if (source.url) return <Globe size={15} className="shrink-0 text-[var(--accent-2)]" aria-hidden />;
+  if (/\.pdf$/i.test(source.name)) return <span aria-hidden className="flex h-4 shrink-0 items-center rounded-[3px] bg-[var(--danger)] px-0.5 text-[0.5rem] font-bold leading-none text-white">PDF</span>;
+  return <BookOpen size={15} className="shrink-0 text-[var(--accent-2)]" aria-hidden />;
+}
+
+/** The notebook's mark, and a choice of others. */
+function IconPicker({ icon, onPick }: { icon?: string; onPick: (icon: string) => void }) {
+  return (
+    <Popover.Root>
+      <Popover.Trigger asChild>
+        <button aria-label="Change the notebook's icon" className="focus-ring flex size-16 items-center justify-center rounded-2xl bg-subtle text-4xl transition-transform hover:scale-105">
+          <span aria-hidden>{icon ?? "📓"}</span>
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content align="start" sideOffset={6} aria-label="Icons" className="glass anim-menu z-50 grid w-64 grid-cols-8 gap-0.5 rounded-2xl border border-line p-2 shadow-lg">
+          {ICONS_FOR_NOTEBOOK.map((e) => (
+            <Popover.Close asChild key={e}>
+              <button onClick={() => onPick(e)} aria-label={`Use ${e}`} className={cn("focus-ring flex size-7 items-center justify-center rounded-lg text-lg hover:bg-subtle", e === (icon ?? "📓") && "bg-subtle")}>{e}</button>
+            </Popover.Close>
+          ))}
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
 function Panel({ label, count, action, children }: { label: string; count?: number; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section aria-label={label} className="flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-canvas">
+    <section aria-label={label} className="flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-canvas shadow-lg lg:shadow-none">
       <header className="flex h-12 shrink-0 items-center gap-2 border-b border-line px-3.5">
         <h2 className="flex-1 text-sm font-medium text-primary">{label}{count ? <span className="ml-1.5 text-tertiary tnum">{count}</span> : null}</h2>
         {action}
