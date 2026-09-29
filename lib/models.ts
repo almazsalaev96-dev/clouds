@@ -28,6 +28,48 @@ export const PROVIDERS: Record<
     keyUrl: "https://platform.deepseek.com/api_keys",
     keyPrefix: "sk-",
   },
+  google: {
+    name: "Google Gemini",
+    keyName: "GEMINI_API_KEY",
+    keyUrl: "https://aistudio.google.com/apikey",
+    keyPrefix: "AIza",
+  },
+  xai: {
+    name: "xAI Grok",
+    keyName: "XAI_API_KEY",
+    keyUrl: "https://console.x.ai",
+    keyPrefix: "xai-",
+  },
+  mistral: {
+    name: "Mistral",
+    keyName: "MISTRAL_API_KEY",
+    keyUrl: "https://console.mistral.ai/api-keys",
+    keyPrefix: "",
+  },
+  qwen: {
+    name: "Qwen (Alibaba)",
+    keyName: "DASHSCOPE_API_KEY",
+    keyUrl: "https://modelstudio.console.alibabacloud.com/?tab=playground#/api-key",
+    keyPrefix: "sk-",
+  },
+  perplexity: {
+    name: "Perplexity",
+    keyName: "PERPLEXITY_API_KEY",
+    keyUrl: "https://www.perplexity.ai/account/api/keys",
+    keyPrefix: "pplx-",
+  },
+  groq: {
+    name: "Groq (Llama)",
+    keyName: "GROQ_API_KEY",
+    keyUrl: "https://console.groq.com/keys",
+    keyPrefix: "gsk_",
+  },
+  openrouter: {
+    name: "OpenRouter",
+    keyName: "OPENROUTER_API_KEY",
+    keyUrl: "https://openrouter.ai/settings/keys",
+    keyPrefix: "sk-or-",
+  },
 };
 
 /**
@@ -530,7 +572,7 @@ export function blindPick(m: ModelSpec): boolean {
 }
 
 export function modelsByProvider(): [ProviderId, ModelSpec[]][] {
-  const order: ProviderId[] = ["anthropic", "openai", "moonshot", "deepseek"];
+  const order: ProviderId[] = ["anthropic", "openai", "google", "xai", "moonshot", "deepseek", "mistral", "qwen", "perplexity", "groq", "openrouter"];
   return order.map((p) => [p, MODELS.filter((m) => m.provider === p)]);
 }
 

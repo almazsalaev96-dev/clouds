@@ -13,6 +13,9 @@ export async function* streamOpenAICompatible(
   signal: AbortSignal,
   provider: ProviderId,
   baseUrl: string,
+  /** What "compatible" does not cover: headers a gateway asks for, and
+      the usage option some strict endpoints refuse as an unknown field. */
+  quirks: { headers?: Record<string, string>; noStreamOptions?: boolean } = {},
 ): AsyncGenerator<StreamEvent> {
   const model = getModel(req.modelId);
 
@@ -54,7 +57,7 @@ export async function* streamOpenAICompatible(
     model: model.apiName,
     messages,
     stream: true,
-    stream_options: { include_usage: true },
+    ...(quirks.noStreamOptions ? {} : { stream_options: { include_usage: true } }),
   };
   /* This app's rooms, as functions the model may call. */
   if (req.actions?.length) {
@@ -90,7 +93,7 @@ export async function* streamOpenAICompatible(
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     signal,
-    headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+    headers: { "content-type": "application/json", authorization: `Bearer ${key}`, ...(quirks.headers ?? {}) },
     body: JSON.stringify(body),
   });
 
@@ -188,3 +191,32 @@ export const streamMoonshot = (req: ChatRequest, key: string, signal: AbortSigna
 
 export const streamDeepSeek = (req: ChatRequest, key: string, signal: AbortSignal) =>
   streamOpenAICompatible(req, key, signal, "deepseek", baseUrlFor("deepseek", "https://api.deepseek.com/v1"));
+
+/* ------------------------------------------------------------------------
+   The rest of the field, every one of them on this same wire format: an
+   endpoint and a key each, and where "compatible" stops short, a quirk. */
+
+export const streamGoogle = (req: ChatRequest, key: string, signal: AbortSignal) =>
+  streamOpenAICompatible(req, key, signal, "google", baseUrlFor("google", "https://generativelanguage.googleapis.com/v1beta/openai"));
+
+export const streamXai = (req: ChatRequest, key: string, signal: AbortSignal) =>
+  streamOpenAICompatible(req, key, signal, "xai", baseUrlFor("xai", "https://api.x.ai/v1"));
+
+/* Mistral's API refuses fields it does not define, and the usage option is one. */
+export const streamMistral = (req: ChatRequest, key: string, signal: AbortSignal) =>
+  streamOpenAICompatible(req, key, signal, "mistral", baseUrlFor("mistral", "https://api.mistral.ai/v1"), { noStreamOptions: true });
+
+export const streamQwen = (req: ChatRequest, key: string, signal: AbortSignal) =>
+  streamOpenAICompatible(req, key, signal, "qwen", baseUrlFor("qwen", "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"));
+
+export const streamPerplexity = (req: ChatRequest, key: string, signal: AbortSignal) =>
+  streamOpenAICompatible(req, key, signal, "perplexity", baseUrlFor("perplexity", "https://api.perplexity.ai"), { noStreamOptions: true });
+
+export const streamGroq = (req: ChatRequest, key: string, signal: AbortSignal) =>
+  streamOpenAICompatible(req, key, signal, "groq", baseUrlFor("groq", "https://api.groq.com/openai/v1"));
+
+/* OpenRouter asks who is calling, so its rankings can say. */
+export const streamOpenRouter = (req: ChatRequest, key: string, signal: AbortSignal) =>
+  streamOpenAICompatible(req, key, signal, "openrouter", baseUrlFor("openrouter", "https://openrouter.ai/api/v1"), {
+    headers: { "HTTP-Referer": "https://armi.app", "X-Title": "Armi" },
+  });

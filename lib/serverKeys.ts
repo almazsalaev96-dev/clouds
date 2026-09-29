@@ -11,6 +11,13 @@ const ALIASES: Record<string, string[]> = {
   anthropic: ["ANTHROPIC_API_KEY", "ANTHROPIC_KEY", "CLAUDE_API_KEY", "claude_api_key", "ANTHROPIC"],
   moonshot: ["MOONSHOT_API_KEY", "MOONSHOT_KEY", "KIMI_API_KEY", "kimi_api_key", "MOONSHOT"],
   deepseek: ["DEEPSEEK_API_KEY", "DEEPSEEK_KEY", "deepseek_api_key", "DEEPSEEK"],
+  google: ["GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "gemini_api_key", "GEMINI"],
+  xai: ["XAI_API_KEY", "GROK_API_KEY", "xai_api_key", "grok_api_key", "XAI"],
+  mistral: ["MISTRAL_API_KEY", "MISTRAL_KEY", "mistral_api_key", "MISTRAL"],
+  qwen: ["DASHSCOPE_API_KEY", "QWEN_API_KEY", "qwen_api_key", "DASHSCOPE"],
+  perplexity: ["PERPLEXITY_API_KEY", "PPLX_API_KEY", "perplexity_api_key", "PERPLEXITY"],
+  groq: ["GROQ_API_KEY", "groq_api_key", "GROQ"],
+  openrouter: ["OPENROUTER_API_KEY", "openrouter_api_key", "OPENROUTER"],
 };
 
 export function serverKeyFor(provider: string): string | undefined {

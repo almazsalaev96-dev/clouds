@@ -21,6 +21,26 @@ const PROBES: Record<ProviderId, (key: string) => Promise<Response>> = {
     fetch("https://api.moonshot.ai/v1/models", { headers: { authorization: `Bearer ${key}` } }),
   deepseek: (key) =>
     fetch("https://api.deepseek.com/v1/models", { headers: { authorization: `Bearer ${key}` } }),
+  google: (key) =>
+    fetch("https://generativelanguage.googleapis.com/v1beta/openai/models", { headers: { authorization: `Bearer ${key}` } }),
+  xai: (key) =>
+    fetch("https://api.x.ai/v1/models", { headers: { authorization: `Bearer ${key}` } }),
+  mistral: (key) =>
+    fetch("https://api.mistral.ai/v1/models", { headers: { authorization: `Bearer ${key}` } }),
+  qwen: (key) =>
+    fetch("https://dashscope-intl.aliyuncs.com/compatible-mode/v1/models", { headers: { authorization: `Bearer ${key}` } }),
+  /* No list of models to ask for, so the smallest real question. */
+  perplexity: (key) =>
+    fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model: "sonar", max_tokens: 1, messages: [{ role: "user", content: "hi" }] }),
+    }),
+  groq: (key) =>
+    fetch("https://api.groq.com/openai/v1/models", { headers: { authorization: `Bearer ${key}` } }),
+  /* Its model list is public, so it proves nothing about a key; this does. */
+  openrouter: (key) =>
+    fetch("https://openrouter.ai/api/v1/key", { headers: { authorization: `Bearer ${key}` } }),
 };
 
 export async function POST(req: NextRequest) {

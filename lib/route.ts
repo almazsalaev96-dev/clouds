@@ -482,6 +482,13 @@ function providerOf(id: string): ProviderId | null {
   if (/^(gpt-|o[1-9]|chatgpt)/.test(id)) return "openai";
   if (/^(kimi-|moonshot-)/.test(id)) return "moonshot";
   if (/^deepseek-/.test(id)) return "deepseek";
+  if (/^gemini-/.test(id)) return "google";
+  if (/^grok-/.test(id)) return "xai";
+  if (/^(mistral-|magistral-|codestral-|ministral-|pixtral-|devstral-)/.test(id)) return "mistral";
+  if (/^(qwen|qwq-)/.test(id)) return "qwen";
+  if (/^sonar/.test(id)) return "perplexity";
+  if (/^groq\//.test(id)) return "groq";
+  if (/^or\//.test(id)) return "openrouter";
   return null;
 }
 
