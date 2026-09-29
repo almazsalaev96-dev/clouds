@@ -204,6 +204,10 @@ interface Settings {
    * "GCSE, AQA, aiming for a 9" into every box.
    */
   learner: Learner | null;
+  /** Points a day to aim for, from reviews and games. */
+  xpGoal: number;
+  /** Sounds in the study games. */
+  gameSound: boolean;
   showLineNumbers: boolean;
   wrapCode: boolean;
   /** Browser-held keys, used only when the server has none for that provider. */
@@ -284,6 +288,8 @@ export const DEFAULT_SETTINGS = {
   craftOn: true,
   notesInChat: true,
   learner: null,
+  xpGoal: 50,
+  gameSound: true,
   showLineNumbers: false,
   wrapCode: false,
   keys: {} as Record<string, string>,

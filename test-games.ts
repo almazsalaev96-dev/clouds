@@ -8,7 +8,7 @@
 import { newCard, streakOf, dayKey } from "./lib/study";
 import {
   GAMES, pairsOf, matchRound, isMatch, choicesFor, comboOf, blitzPoints, fallMs, gravityPoints,
-  reviewXp, gameXp, levelOf, totalXp, isBest, clock,
+  reviewXp, gameXp, levelOf, totalXp, isBest, clock, hintFor, goalStreak, xpOn, GOALS,
 } from "./lib/games";
 
 let failed = 0;
@@ -87,6 +87,45 @@ console.log("\nBest scores");
   check(isBest("match", 9_000, undefined) && isBest("match", 9_000, 10_000) && !isBest("match", 11_000, 10_000), "Match: a faster time is better");
   check(isBest("blitz", 120, 100) && !isBest("gravity", 80, 100), "the rest: more points is better");
   check(clock(12_345) === "12.3s", "a clock in tenths");
+}
+
+console.log("\nQuick-fire's wrong answers are plausible");
+{
+  const pool = [
+    { id: "a", q: "Year the war ended", a: "1945" },
+    { id: "b", q: "x", a: "1918" },
+    { id: "c", q: "x", a: "1066" },
+    { id: "d", q: "x", a: "2001" },
+    { id: "e", q: "x", a: "A biological catalyst that speeds up reactions" },
+    { id: "f", q: "x", a: "The powerhouse of the cell, where respiration happens" },
+    { id: "g", q: "x", a: "Water moving across a partially permeable membrane" },
+  ];
+  let all = true;
+  for (let i = 0; i < 20; i++) {
+    const ch = choicesFor(pool[0], pool, rand);
+    if (!ch.every((c) => /^\d+$/.test(c))) all = false;
+  }
+  check(all, "a year is asked against years, not against sentences");
+  const long = choicesFor(pool[4], pool, rand);
+  check(long.filter((c) => c.length > 20).length === 3, "a sentence against sentences where the deck has them", long.join(" | ").slice(0, 90));
+}
+
+console.log("\nGravity's hint");
+{
+  check(hintFor("Plasmolysis") === "Starts with “P” · 11 letters", "one word: its first letter and its length", hintFor("Plasmolysis"));
+  check(hintFor("  active transport ") === "Starts with “A” · 2 words", "several: the first letter and how many words");
+  check(gravityPoints(0, true) === 5 && gravityPoints(8, true) === 10, "and taking it halves the points");
+}
+
+console.log("\nThe daily goal");
+{
+  const DAY = 86_400_000;
+  const d = (ago: number, xp: number) => ({ day: dayKey(now - ago * DAY), answered: 1, right: 1, xp });
+  check(GOALS.map((g) => g.xp).join() === "20,50,100,200", "four goals, a few minutes to an evening");
+  check(xpOn([d(0, 35), d(1, 80)], dayKey(now)) === 35 && xpOn([], dayKey(now)) === 0, "points today");
+  check(goalStreak([d(0, 60), d(1, 50), d(2, 70), d(3, 10)], 50, now) === 3, "days in a row the goal was met");
+  check(goalStreak([d(1, 60), d(2, 90)], 50, now) === 2, "today not met yet does not break it");
+  check(goalStreak([d(0, 49)], 50, now) === 0, "a point short is not met");
 }
 
 console.log("\nA game keeps the streak");

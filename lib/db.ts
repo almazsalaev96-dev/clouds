@@ -705,7 +705,7 @@ export async function noteStudied(rating: Rating, now = Date.now()): Promise<voi
  * its best score for that game; the return says whether this was one.
  */
 export async function noteGame(
-  deckId: string,
+  deckId: string | null,
   game: GameId,
   r: { answered: number; right: number; xp: number; best: number },
   now = Date.now(),
@@ -719,10 +719,10 @@ export async function noteGame(
         ? { ...row, answered: row.answered + r.answered, right: row.right + r.right, xp: (row.xp ?? 0) + r.xp }
         : { day, answered: r.answered, right: r.right, xp: r.xp },
     );
-    const deck = await db.decks.get(deckId);
+    const deck = deckId ? await db.decks.get(deckId) : undefined;
     if (deck && r.answered > 0 && isBest(game, r.best, deck.best?.[game])) {
       best = true;
-      await db.decks.update(deckId, { best: { ...deck.best, [game]: r.best } });
+      await db.decks.update(deck.id, { best: { ...deck.best, [game]: r.best } });
     }
   });
   return { best };

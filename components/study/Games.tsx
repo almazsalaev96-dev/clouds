@@ -2,18 +2,21 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ArrowDownToLine, Heart, Timer, Trophy, Zap } from "lucide-react";
+import { ArrowDownToLine, ChevronLeft, Heart, Lightbulb, Target, Timer, Trophy, Volume2, VolumeX, Zap } from "lucide-react";
 import type { Deck } from "@/lib/types";
 import { noteGame, studyDays } from "@/lib/db";
 import { mark } from "@/lib/grade";
-import type { Card, StudyDay } from "@/lib/study";
+import { cramOrder, dayKey, type Card, type StudyDay } from "@/lib/study";
+import { useSettings } from "@/lib/store";
+import { play } from "@/lib/sfx";
 import {
   BLITZ_MS, GAMES, GRAVITY_LIVES, MATCH_PENALTY_MS,
-  blitzPoints, choicesFor, clock, comboOf, fallMs, gameXp, gravityPoints, isMatch, levelOf, matchRound, pairsOf, shuffle, totalXp,
+  blitzPoints, choicesFor, clock, comboOf, fallMs, gameXp, gravityPoints, goalStreak, GOALS, hintFor, isMatch, levelOf, matchRound, pairsOf, shuffle, totalXp, xpOn,
   type GameId, type Pair, type Tile,
 } from "@/lib/games";
 import { Button } from "@/components/ui/primitives";
 import { cn } from "@/lib/utils";
+import { RoomToggle } from "@/components/ui/RoomToggle";
 
 /**
  * Games from a deck: Match, Quick-fire and Gravity.
@@ -22,7 +25,14 @@ import { cn } from "@/lib/utils";
  * are played on. A game ends on a result — the score, the best kept for
  * the deck, the points earned and the level they lead to — and the cards
  * it missed, offered as a study session of exactly those.
+ *
+ * Played from a deck, the deck keeps its best scores. Played from the Study
+ * page, the cards are everything, the ones going worst first, and there is
+ * no deck to keep a best on.
  */
+
+/** Sound on or off, from the settings, for the games to read. */
+const useSound = () => useSettings((s) => s.gameSound);
 
 interface Outcome {
   game: GameId;
@@ -38,8 +48,10 @@ interface Outcome {
 
 const NEEDS: Record<GameId, number> = { match: 2, blitz: 2, gravity: 1 };
 
-export function Games({ deck, cards, onDone, onReview }: {
-  deck: Deck;
+export function Games({ deck, cards, onDone, onReview, doneLabel = "Back to the cards" }: {
+  /** The deck played, or null for all the cards together. */
+  deck: Deck | null;
+  doneLabel?: string;
   cards: Card[];
   onDone: () => void;
   /** Study exactly these, in this order — the ones a game missed. */
@@ -47,7 +59,10 @@ export function Games({ deck, cards, onDone, onReview }: {
 }) {
   const [game, setGame] = React.useState<GameId | null>(null);
   const [round, setRound] = React.useState(0);
-  const [result, setResult] = React.useState<(Outcome & { xp: number; before: number; best: boolean }) | null>(null);
+  const [result, setResult] = React.useState<Won | null>(null);
+  const goal = useSettings((s) => s.xpGoal);
+  const sound = useSound();
+  const setSettings = useSettings((s) => s.set);
   const days = useLiveQuery(() => studyDays(), [], [] as StudyDay[]);
   const pairs = React.useMemo(() => pairsOf(cards), [cards]);
 
@@ -56,21 +71,38 @@ export function Games({ deck, cards, onDone, onReview }: {
     if (o.answered === 0) return setGame(null);
     const xp = gameXp(o.game, { score: o.score, pairs: o.pairs, ms: o.score });
     const before = totalXp(days);
-    const { best } = await noteGame(deck.id, o.game, { answered: o.answered, right: o.right, xp, best: o.score });
-    setResult({ ...o, xp, before, best });
+    const todayBefore = xpOn(days, dayKey(Date.now()));
+    const { best } = await noteGame(deck?.id ?? null, o.game, { answered: o.answered, right: o.right, xp, best: o.score });
+    const goalMet = todayBefore < goal && todayBefore + xp >= goal;
+    if (best || goalMet) play("win", sound);
+    setResult({ ...o, xp, before, best, goalMet, goal });
   };
   const again = () => { setResult(null); setRound((n) => n + 1); };
 
   if (result) {
-    return <Result r={result} onAgain={again} onOther={() => { setResult(null); setGame(null); }} onDone={onDone} onReview={onReview} />;
+    return <Result r={result} onAgain={again} onOther={() => { setResult(null); setGame(null); }} onDone={onDone} doneLabel={doneLabel} onReview={onReview} />;
   }
   if (!game) {
     return (
       <section aria-label="Games" className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-4">
-        <Level xp={totalXp(days)} />
+        <div className="flex items-start gap-3">
+          <Level xp={totalXp(days)} className="flex-1" />
+          <button
+            onClick={() => setSettings({ gameSound: !sound })}
+            aria-label="Sound"
+            aria-pressed={sound}
+            className="ctl focus-ring flex [--ctl:2.25rem] shrink-0 items-center justify-center rounded-full text-tertiary hover:bg-subtle hover:text-primary"
+          >
+            {sound ? <Volume2 size={16} /> : <VolumeX size={16} />}
+          </button>
+        </div>
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-tertiary tnum">
+          <Target size={12} aria-hidden />
+          Today {xpOn(days, dayKey(Date.now()))} of {goal} XP
+        </p>
         <ul className="mt-4 grid gap-2.5 sm:grid-cols-3">
           {GAMES.map((g) => {
-            const kept = deck.best?.[g.id];
+            const kept = deck?.best?.[g.id];
             const short = pairs.length < NEEDS[g.id];
             return (
               <li key={g.id}>
@@ -94,7 +126,7 @@ export function Games({ deck, cards, onDone, onReview }: {
           })}
         </ul>
         <div className="mt-4">
-          <Button size="sm" variant="ghost" onClick={onDone}>Back to the cards</Button>
+          <Button size="sm" variant="ghost" onClick={onDone}>{doneLabel}</Button>
         </div>
       </section>
     );
@@ -102,7 +134,7 @@ export function Games({ deck, cards, onDone, onReview }: {
   const quit = () => setGame(null);
   return (
     <section aria-label={GAMES.find((g) => g.id === game)!.name} className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-4">
-      {game === "match" && <Match key={round} cards={cards} onEnd={(o) => void end(o)} onQuit={quit} />}
+      {game === "match" && <Match key={round} cards={cards} best={deck?.best?.match} onEnd={(o) => void end(o)} onQuit={quit} />}
       {game === "blitz" && <Blitz key={round} pool={pairs} onEnd={(o) => void end(o)} onQuit={quit} />}
       {game === "gravity" && <Gravity key={round} pool={pairs} onEnd={(o) => void end(o)} onQuit={quit} />}
     </section>
@@ -127,11 +159,14 @@ export function Level({ xp, className }: { xp: number; className?: string }) {
   );
 }
 
-function Result({ r, onAgain, onOther, onDone, onReview }: {
-  r: Outcome & { xp: number; before: number; best: boolean };
+type Won = Outcome & { xp: number; before: number; best: boolean; goalMet: boolean; goal: number };
+
+function Result({ r, onAgain, onOther, onDone, doneLabel, onReview }: {
+  r: Won;
   onAgain: () => void;
   onOther: () => void;
   onDone: () => void;
+  doneLabel: string;
   onReview?: (ids: string[]) => void;
 }) {
   const up = levelOf(r.before + r.xp).level > levelOf(r.before).level;
@@ -144,6 +179,9 @@ function Result({ r, onAgain, onOther, onDone, onReview }: {
           <span className="anim-pop inline-flex items-center gap-1.5 rounded-full bg-[var(--blue)] px-3 py-1 font-medium text-white"><Trophy size={14} aria-hidden />New best</span>
         )}
         <span className="inline-flex items-center rounded-full bg-subtle px-3 py-1 text-primary tnum">+{r.xp} XP</span>
+        {r.goalMet && (
+          <span className="anim-pop inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_oklab,var(--success)_16%,transparent)] px-3 py-1 font-medium text-primary tnum"><Target size={14} aria-hidden />Daily goal reached · {r.goal} XP</span>
+        )}
         {up && <span className="anim-pop inline-flex items-center rounded-full bg-subtle px-3 py-1 font-medium text-primary tnum">Level {levelOf(r.before + r.xp).level}!</span>}
       </div>
       <Level xp={r.before + r.xp} className="mt-5" />
@@ -160,7 +198,7 @@ function Result({ r, onAgain, onOther, onDone, onReview }: {
           </Button>
         )}
         <Button size="sm" variant="ghost" onClick={onOther}>Other games</Button>
-        <Button size="sm" variant="ghost" onClick={onDone}>Back to the cards</Button>
+        <Button size="sm" variant="ghost" onClick={onDone}>{doneLabel}</Button>
       </div>
     </section>
   );
@@ -178,7 +216,8 @@ function Bar({ children, onQuit }: { children: React.ReactNode; onQuit: () => vo
 
 /* ----------------------------------------------------------------- match -- */
 
-function Match({ cards, onEnd, onQuit }: { cards: Card[]; onEnd: (o: Outcome) => void; onQuit: () => void }) {
+function Match({ cards, best, onEnd, onQuit }: { cards: Card[]; best?: number; onEnd: (o: Outcome) => void; onQuit: () => void }) {
+  const sound = useSound();
   const [{ pairs, tiles }] = React.useState(() => matchRound(cards));
   const [picked, setPicked] = React.useState<string | null>(null);
   const [gone, setGone] = React.useState<Set<string>>(() => new Set());
@@ -204,6 +243,7 @@ function Match({ cards, onEnd, onQuit }: { cards: Card[]; onEnd: (o: Outcome) =>
       const next = new Set(gone).add(first.key).add(tile.key);
       setGone(next);
       setPicked(null);
+      if (next.size < tiles.length) play("pair", sound);
       if (next.size === tiles.length) {
         over.current = true;
         const ms = Math.round(performance.now() - start.current + penalty);
@@ -216,6 +256,7 @@ function Match({ cards, onEnd, onQuit }: { cards: Card[]; onEnd: (o: Outcome) =>
       }
       return;
     }
+    play("wrong", sound);
     confused.current.add(first.pairId).add(tile.pairId);
     setPenalty((p) => p + MATCH_PENALTY_MS);
     setWrong([first.key, tile.key]);
@@ -228,6 +269,11 @@ function Match({ cards, onEnd, onQuit }: { cards: Card[]; onEnd: (o: Outcome) =>
         <span aria-label="Time" className="text-lg font-semibold text-primary">{clock(elapsed + penalty)}</span>
         {penalty > 0 && <span className="text-[var(--danger)]">+{penalty / 1000}s</span>}
         <span>{(tiles.length - gone.size) / 2} pairs left</span>
+        {best !== undefined && (
+          <span aria-label="Time to beat" className={cn("hidden sm:inline", elapsed + penalty > best && "text-[var(--danger)]")}>
+            <Trophy size={12} className="-mt-0.5 mr-1 inline" aria-hidden />{clock(best)}
+          </span>
+        )}
       </Bar>
       {start.current === null && <p className="mb-3 text-sm text-tertiary">Tap a term, then its answer. The clock starts on your first tap.</p>}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4" role="group" aria-label="Tiles">
@@ -286,6 +332,7 @@ function useDealer(pool: Pair[]) {
 function Blitz({ pool, onEnd: ended, onQuit }: { pool: Pair[]; onEnd: (o: Outcome) => void; onQuit: () => void }) {
   const onEnd = useLatest(ended);
   const deal = useDealer(pool);
+  const sound = useSound();
   const [cur, setCur] = React.useState(() => { const p = deal(); return { pair: p, choices: choicesFor(p, pool) }; });
   const [chosen, setChosen] = React.useState<string | null>(null);
   const [left, setLeft] = React.useState(BLITZ_MS);
@@ -326,6 +373,7 @@ function Blitz({ pool, onEnd: ended, onQuit }: { pool: Pair[]; onEnd: (o: Outcom
       x.run = 0;
       x.missed.add(cur.pair.id);
     }
+    play(right ? "right" : "wrong", sound);
     setChosen(c);
     bump();
     window.setTimeout(() => {
@@ -334,7 +382,7 @@ function Blitz({ pool, onEnd: ended, onQuit }: { pool: Pair[]; onEnd: (o: Outcom
       setCur({ pair: p, choices: choicesFor(p, pool) });
       setChosen(null);
     }, right ? 280 : 1_000);
-  }, [chosen, cur, deal, pool]);
+  }, [chosen, cur, deal, pool, sound]);
 
   React.useEffect(() => {
     const on = (e: KeyboardEvent) => {
@@ -390,7 +438,10 @@ function Blitz({ pool, onEnd: ended, onQuit }: { pool: Pair[]; onEnd: (o: Outcom
 function Gravity({ pool, onEnd: ended, onQuit }: { pool: Pair[]; onEnd: (o: Outcome) => void; onQuit: () => void }) {
   const onEnd = useLatest(ended);
   const deal = useDealer(pool);
+  const sound = useSound();
   const [cur, setCur] = React.useState<Pair>(() => deal());
+  /* After one wrong try at the question falling, a hint — for half the points. */
+  const [hinted, setHinted] = React.useState(false);
   const [phase, setPhase] = React.useState<"falling" | "missed">("falling");
   const [drop, setDrop] = React.useState(0);
   const [typed, setTyped] = React.useState("");
@@ -415,6 +466,7 @@ function Gravity({ pool, onEnd: ended, onQuit }: { pool: Pair[]; onEnd: (o: Outc
   const next = () => {
     setCur(deal());
     setTyped("");
+    setHinted(false);
     setPhase("falling");
     setDrop((n) => n + 1);
     input.current?.focus();
@@ -432,18 +484,26 @@ function Gravity({ pool, onEnd: ended, onQuit }: { pool: Pair[]; onEnd: (o: Outc
       g.lives--;
       g.answered++;
       g.missed.add(cur.id);
+      play("wrong", sound);
       setTyped("");
       setPhase("missed");
     }, fall);
     return () => { window.clearInterval(tick); window.clearTimeout(land); };
-  }, [drop, phase, cur]);
+  }, [drop, phase, cur, sound]);
 
   const submit = () => {
     if (x.over) return;
     const ok = mark(typed, cur.a).mark !== "wrong";
-    if (!ok) { setShake((n) => n + 1); setTyped(""); return; }
+    if (!ok) {
+      play("wrong", sound);
+      setShake((n) => n + 1);
+      setTyped("");
+      if (phase === "falling") setHinted(true);
+      return;
+    }
+    play("right", sound);
     if (phase === "falling") {
-      x.score += gravityPoints(x.cleared);
+      x.score += gravityPoints(x.cleared, hinted);
       x.cleared++;
       x.answered++;
       x.right++;
@@ -478,6 +538,12 @@ function Gravity({ pool, onEnd: ended, onQuit }: { pool: Pair[]; onEnd: (o: Outc
         </div>
         <div className="absolute inset-x-0 bottom-0 h-1 bg-[var(--danger)] opacity-40" aria-hidden />
       </div>
+      {phase === "falling" && hinted && (
+        <p className="mt-3 flex items-center gap-1.5 text-sm text-secondary" aria-label="Hint">
+          <Lightbulb size={14} className="text-[var(--accent-2)]" aria-hidden />
+          {hintFor(cur.a)} <span className="text-tertiary">· half points</span>
+        </p>
+      )}
       {phase === "missed" && (
         <p className="mt-3 text-sm text-secondary" role="status">
           It landed. The answer is <span className="font-semibold text-primary">{cur.a}</span> — type it to go on.
@@ -502,5 +568,98 @@ function Gravity({ pool, onEnd: ended, onQuit }: { pool: Pair[]; onEnd: (o: Outc
         <Button size="sm" variant="ghost" onClick={finish}>End the game</Button>
       </div>
     </>
+  );
+}
+
+/* ------------------------------------------------------ the Study page -- */
+
+/**
+ * Today's goal, on the Study page: a ring filling with the day's points,
+ * the days in a row it was met, the level, and a way in to the games with
+ * every card. The goal is the student's to set — twenty points is a few
+ * minutes, two hundred is an evening.
+ */
+export function DailyGoal({ days, now, onPlay }: { days: StudyDay[]; now: number; onPlay?: () => void }) {
+  const goal = useSettings((s) => s.xpGoal);
+  const setSettings = useSettings((s) => s.set);
+  const [choosing, setChoosing] = React.useState(false);
+  const today = xpOn(days, dayKey(now));
+  const done = today >= goal;
+  const run = goalStreak(days, goal, now);
+  const R = 20;
+  const C = 2 * Math.PI * R;
+  const part = Math.min(1, today / goal);
+  return (
+    <section aria-label="Daily goal" className="mt-3 rounded-2xl border border-line bg-surface px-4 py-3.5">
+      <div className="flex items-center gap-3.5">
+        <svg width="52" height="52" viewBox="0 0 52 52" className="shrink-0 -rotate-90" role="img" aria-label={`${today} of ${goal} points so far`}>
+          <circle cx="26" cy="26" r={R} fill="none" strokeWidth="6" style={{ stroke: "var(--border-subtle)" }} />
+          <circle
+            cx="26" cy="26" r={R} fill="none" strokeWidth="6" strokeLinecap="round"
+            style={{ stroke: done ? "var(--success)" : "var(--blue)", strokeDasharray: C, strokeDashoffset: C * (1 - part), transition: "stroke-dashoffset 600ms var(--ease-out, ease-out)" }}
+          />
+        </svg>
+        <div className="min-w-0 flex-1">
+          <p className="text-base font-medium text-primary">{done ? "Goal reached today" : "Daily goal"}</p>
+          <p className="text-sm text-tertiary tnum">
+            {today} of {goal} XP{run > 1 ? ` · met ${run} days in a row` : ""}
+          </p>
+        </div>
+        {onPlay && (
+          <Button size="sm" variant="primary" onClick={onPlay} aria-label="Play a game with all your cards">
+            <Zap size={13} />
+            Play
+          </Button>
+        )}
+      </div>
+      <Level xp={totalXp(days)} className="mt-3" />
+      <div className="mt-2">
+        {choosing ? (
+          <div role="radiogroup" aria-label="Points a day" className="flex flex-wrap gap-1.5">
+            {GOALS.map((g) => (
+              <button
+                key={g.xp}
+                role="radio"
+                aria-checked={goal === g.xp}
+                onClick={() => { setSettings({ xpGoal: g.xp }); setChoosing(false); }}
+                className={cn("btn-touch focus-ring rounded-full border px-3 py-1 text-xs tnum transition-colors", goal === g.xp ? "border-transparent bg-cta text-cta-fg" : "border-line text-secondary hover:bg-subtle")}
+              >
+                {g.name} · {g.xp}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button onClick={() => setChoosing(true)} className="focus-ring rounded-md text-xs text-tertiary underline-offset-2 hover:text-primary hover:underline">
+            Change the goal
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The games with every card, from the Study page: the cards going worst
+ * first, forty of them, so a game is spent where it helps.
+ */
+export function GamesPage({ cards, onBack, onReview }: { cards: Card[]; onBack: () => void; onReview: (ids: string[]) => void }) {
+  const toggle = React.useContext(RoomToggle);
+  const pool = React.useMemo(() => cramOrder(cards).slice(0, 40), [cards]);
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto">
+      <header className="glass safe-top sticky top-0 z-10 border-b border-line">
+        <div className="mx-auto flex w-full max-w-[var(--measure)] items-center gap-2 px-3 py-3">
+          {toggle && <div className="has-room-toggle -ml-1">{toggle}</div>}
+          <button onClick={onBack} aria-label="Back to Study" className="ctl focus-inset flex [--ctl:2rem] shrink-0 items-center justify-center rounded-md text-tertiary hover:bg-subtle hover:text-primary">
+            <ChevronLeft size={16} />
+          </button>
+        </div>
+      </header>
+      <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-2 pt-5">
+        <h1 className="title-field text-primary">Games</h1>
+        <p className="mt-1 text-base text-tertiary tnum">{pool.length} cards from every deck, the ones going worst first</p>
+      </div>
+      <Games deck={null} cards={pool} onDone={onBack} doneLabel="Back to Study" onReview={onReview} />
+    </div>
   );
 }

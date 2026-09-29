@@ -19,7 +19,7 @@
  * Points (XP) come from studying of every kind — a review, a game — and add
  * up to a level. Everything here is pure, so the tests can play it.
  */
-import { clozeHidden, clozeQuestion, isCloze, type Card, type Rating, type StudyDay } from "./study";
+import { clozeHidden, clozeQuestion, dayKey, isCloze, type Card, type Rating, type StudyDay } from "./study";
 
 export type GameId = "match" | "blitz" | "gravity";
 
@@ -116,20 +116,27 @@ export const BLITZ_MS = 60_000;
 
 /**
  * Four answers for one question: the right one and three from the rest of
- * the deck, none repeating it in other letters-case. A deck of three gives
- * three choices; that is still a question.
+ * the deck, none repeating it in other letter-case. The wrong ones are the
+ * most plausible the deck has: answers of about the same length, and a
+ * number against numbers, because "a biological catalyst" beside "1945",
+ * "Paris" and "yes" is answered by elimination, not by knowing. A little
+ * chance among the closest keeps the same three from coming back every
+ * time. A deck of three gives three choices; that is still a question.
  */
 export function choicesFor(pair: Pair, pool: Pair[], rand: () => number = Math.random, n = 4): string[] {
   const right = pair.a.toLowerCase();
+  const numeric = (t: string) => /^[\d\s.,%°+−-]+[a-zµ°%/²³]*$/i.test(t.trim());
   const seen = new Set([right]);
-  const others: string[] = [];
+  const candidates: { a: string; far: number }[] = [];
   for (const p of shuffle(pool, rand)) {
     const k = p.a.toLowerCase();
     if (seen.has(k)) continue;
     seen.add(k);
-    others.push(p.a);
-    if (others.length === n - 1) break;
+    const lengths = Math.abs(p.a.length - pair.a.length) / Math.max(p.a.length, pair.a.length, 1);
+    const kind = numeric(p.a) === numeric(pair.a) ? 0 : 1;
+    candidates.push({ a: p.a, far: lengths + kind + rand() * 0.25 });
   }
+  const others = candidates.sort((x, y) => x.far - y.far).slice(0, n - 1).map((c) => c.a);
   return shuffle([pair.a, ...others], rand);
 }
 
@@ -151,9 +158,22 @@ export function fallMs(cleared: number): number {
   return Math.max(5_000, Math.round(12_000 * Math.pow(0.93, cleared)));
 }
 
-/** Points for a question cleared: more the faster it is falling. */
-export function gravityPoints(cleared: number): number {
-  return 10 + Math.floor(cleared / 4) * 5;
+/** Points for a question cleared: more the faster it is falling, half with the hint taken. */
+export function gravityPoints(cleared: number, hinted = false): number {
+  const p = 10 + Math.floor(cleared / 4) * 5;
+  return hinted ? Math.ceil(p / 2) : p;
+}
+
+/**
+ * The hint after a wrong try: the first letter and how long the answer
+ * is, the way a teacher prompts — enough to bring it back, not enough to
+ * copy it out.
+ */
+export function hintFor(answer: string): string {
+  const a = answer.trim();
+  const words = a.split(/\s+/).length;
+  const first = a.match(/[\p{L}\p{N}]/u)?.[0] ?? a[0] ?? "";
+  return `Starts with “${first.toUpperCase()}” · ${words === 1 ? `${a.length} letters` : `${words} words`}`;
 }
 
 /* ------------------------------------------------------------ xp, level -- */
@@ -189,6 +209,32 @@ export function levelOf(xp: number): { level: number; into: number; need: number
   const start = 50 * level * (level - 1);
   const next = 50 * (level + 1) * level;
   return { level, into: x - start, need: next - start, next };
+}
+
+/** The daily goals on offer, in points a day. */
+export const GOALS: { xp: number; name: string }[] = [
+  { xp: 20, name: "Casual" },
+  { xp: 50, name: "Regular" },
+  { xp: 100, name: "Serious" },
+  { xp: 200, name: "Intense" },
+];
+
+/** Points earned on one day. */
+export function xpOn(days: StudyDay[], day: string): number {
+  return days.find((d) => d.day === day)?.xp ?? 0;
+}
+
+/**
+ * Days in a row the goal was met, ending today or yesterday — the same
+ * forgiveness the streak has, so going to bed does not break it.
+ */
+export function goalStreak(days: StudyDay[], goal: number, now: number): number {
+  const met = new Set(days.filter((d) => (d.xp ?? 0) >= goal).map((d) => d.day));
+  let at = now;
+  if (!met.has(dayKey(at))) at -= 86_400_000;
+  let n = 0;
+  while (met.has(dayKey(at))) { n++; at -= 86_400_000; }
+  return n;
 }
 
 export function totalXp(days: StudyDay[]): number {

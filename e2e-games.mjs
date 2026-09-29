@@ -37,6 +37,7 @@ const rows = (store) => p.evaluate((store) => new Promise((ok) => {
   const r = indexedDB.open("clouds");
   r.onsuccess = () => { const q = r.result.transaction(store).objectStore(store).getAll(); q.onsuccess = () => { r.result.close(); ok(q.result); }; };
 }), store);
+const settings = () => p.evaluate(() => JSON.parse(localStorage.getItem("store.settings.v1")).state);
 const today = () => p.evaluate(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; });
 
 await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
@@ -63,6 +64,12 @@ console.log("\nA deck offers three games");
   check(await games.isVisible(), "the games are there");
   for (const g of ["Match", "Quick-fire", "Gravity"]) check(await games.getByRole("button", { name: `Play ${g}` }).isEnabled(), `${g} can be played`);
   check(await games.getByText("Not played yet").count() === 3, "none played yet");
+  check(/Today 0 of 50 XP/.test(await games.innerText()), "today's goal is shown");
+  const sound = games.getByRole("button", { name: "Sound" });
+  check(await sound.getAttribute("aria-pressed") === "true", "sound is on to start");
+  await sound.click();
+  check(await sound.getAttribute("aria-pressed") === "false" && (await settings()).gameSound === false, "and can be turned off, and stays off");
+  await sound.click();
 }
 
 console.log("\nMatch");
@@ -99,6 +106,10 @@ console.log("\nQuick-fire");
 {
   await p.getByRole("button", { name: "Other games" }).click();
   check(/Best \d+\.\ds/.test(await p.getByRole("region", { name: "Games" }).innerText()), "Match shows its best time");
+  await p.getByRole("button", { name: "Play Match" }).click();
+  const beat = p.getByLabel("Time to beat");
+  check(await beat.isVisible() && /\d+\.\ds/.test(await beat.innerText()), "and the next Match shows the time to beat", await beat.innerText().catch(() => ""));
+  await p.getByRole("button", { name: "Quit" }).click();
   await p.getByRole("button", { name: "Play Quick-fire" }).click();
   const game = p.getByRole("region", { name: "Quick-fire" });
   const answers = game.getByRole("group", { name: "Answers" });
@@ -158,6 +169,9 @@ console.log("\nGravity");
   await p.keyboard.press("Enter");
   await p.waitForTimeout(200);
   check((await ask()) === q2 && /10 points/.test(await game.getByLabel("Score").innerText()), "a wrong one does not, and it keeps falling");
+  const hint = game.getByLabel("Hint");
+  const first = CARDS[q2][0].toUpperCase();
+  check(await hint.isVisible() && (await hint.innerText()).includes(`Starts with “${first}”`) && /half points/.test(await hint.innerText()), "a wrong try brings a hint, for half the points", await hint.innerText().catch(() => ""));
   await p.waitForTimeout(12_500);
   const status = game.getByRole("status");
   check(await status.isVisible() && (await status.innerText()).includes(CARDS[q2]), "it landed: the answer is shown", (await status.innerText().catch(() => "")).slice(0, 80));
@@ -170,6 +184,7 @@ console.log("\nGravity");
   await p.keyboard.press("Enter");
   await p.waitForTimeout(200);
   check(await rock.count() === 1 && (await ask()) !== q2, "typed out, the next one falls");
+  check(!(await game.getByLabel("Hint").count()), "without the last one's hint");
   await game.getByRole("button", { name: "End the game" }).click();
   const result = p.getByRole("region", { name: "Game result" });
   const txt = await result.innerText();
@@ -191,6 +206,31 @@ console.log("\nPoints, a level, and the day");
   const level = p.getByLabel(/^Level \d+, \d+ points$/);
   check(await level.first().isVisible(), "the Study page shows the level", await level.first().getAttribute("aria-label").catch(() => ""));
   check(await p.getByRole("progressbar", { name: "Progress to the next level" }).first().isVisible(), "and how far to the next");
+  const goal = p.getByRole("region", { name: "Daily goal" });
+  const ring = goal.getByRole("img", { name: /of 50 points so far$/ });
+  check(await ring.isVisible(), "a ring fills with today's points", await ring.getAttribute("aria-label").catch(() => ""));
+  check(/Goal reached today/.test(await goal.innerText()), "and says when the goal is met");
+  await goal.getByRole("button", { name: "Change the goal" }).click();
+  await goal.getByRole("radio", { name: /^Serious/ }).click();
+  check((await settings()).xpGoal === 100 && /of 100 XP/.test(await goal.innerText()), "the goal can be changed", (await goal.innerText()).split("\n").slice(0, 3).join(" · "));
+}
+
+console.log("\nGames with every card, from the Study page");
+{
+  await p.getByRole("region", { name: "Daily goal" }).getByRole("button", { name: "Play a game with all your cards" }).click();
+  await p.waitForTimeout(300);
+  check(await p.getByRole("heading", { name: "Games", exact: true }).isVisible() && /8 cards from every deck/.test(await p.locator("main").innerText()), "a page of games with every card");
+  await p.getByRole("button", { name: "Play Quick-fire" }).click();
+  const game = p.getByRole("region", { name: "Quick-fire" });
+  const q = (await game.locator("p[aria-live]").innerText()).trim();
+  await game.getByRole("group", { name: "Answers" }).getByRole("button", { name: CARDS[q], exact: true }).click();
+  await p.waitForTimeout(350);
+  await game.getByRole("button", { name: "End the round" }).click();
+  const result = p.getByRole("region", { name: "Game result" });
+  check(/10 points/.test(await result.innerText()) && !/New best/.test(await result.innerText()), "played and scored, with no deck to keep a best on");
+  await result.getByRole("button", { name: "Back to Study" }).click();
+  await p.waitForTimeout(300);
+  check(await p.getByRole("region", { name: "Daily goal" }).isVisible(), "and back to Study");
 }
 
 console.log("\nOn a phone");
