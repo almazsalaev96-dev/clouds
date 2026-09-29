@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useDraft } from "@/lib/hooks/useDraft";
 import { whyItFailed } from "@/lib/complete";
 import { useLiveQuery } from "dexie-react-hooks";
 import { CalendarClock, Check, FileCode2, FileText, FolderOpen, GraduationCap, Lightbulb, MessageSquare, Paperclip, Search, Sparkles, Trash2, X, Plus, NotebookPen } from "lucide-react";
@@ -418,6 +419,8 @@ function ProjectPage({
     onNewChatHere(project.id);
   };
 
+  const nameField = useDraft(project.name, (v) => void db.projects.update(project.id, { name: v.replace(/\n/g, " ") }), 300, project.id);
+  const descField = useDraft(project.description, (description) => void db.projects.update(project.id, { description }), 300, project.id);
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <DetailBar onBack={onBack} backLabel="All projects">
@@ -443,17 +446,15 @@ function ProjectPage({
                   wraps to a second line the way the reference's does,
                   rather than scrolling inside a box. Enter leaves it. */}
               <textarea
-                value={project.name}
+                {...nameField}
                 rows={1}
-                onChange={(e) => void db.projects.update(project.id, { name: e.target.value.replace(/\n/g, " ") })}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
                 placeholder="Name"
                 aria-label="Project name"
                 className="title-field tap w-full min-w-0 resize-none overflow-hidden bg-transparent font-normal text-primary outline-none placeholder:text-faint"
               />
               <input
-                value={project.description}
-                onChange={(e) => void db.projects.update(project.id, { description: e.target.value })}
+                {...descField}
                 placeholder="Description"
                 aria-label="Project description"
                 className="tap mt-1 w-full min-w-0 bg-transparent text-base text-tertiary outline-none placeholder:text-faint"

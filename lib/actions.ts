@@ -50,6 +50,8 @@ import { chunk, rank } from "./retrieve";
 import { matchLine } from "./find";
 import { solve } from "./arith";
 import { runCode } from "./sandbox";
+import { convert } from "./units";
+import { useSettings } from "./store";
 
 export interface ActionContext {
   conversationId: string;
@@ -337,6 +339,39 @@ const TOOLS: Tool[] = [
   },
   {
     spec: {
+      name: "list_memories",
+      description: "List what has been remembered about the person, with ids. Use when they ask what you know about them, or before forgetting something.",
+      schema: { type: "object", properties: {} },
+    },
+    offered: (ctx) => ctx.memoryOn && !ctx.temporary,
+    doing: "Checking what is remembered",
+    run: async () => {
+      const all = await db.memories.orderBy("createdAt").toArray();
+      if (!all.length) return { ok: true, text: "Nothing is remembered about them yet.", summary: "Nothing remembered yet" };
+      return { ok: true, text: all.map((m) => `- ${m.text} (id ${m.id})`).join("\n"), summary: `Checked ${plural(all.length, "memory", "memories")}` };
+    },
+  },
+  {
+    spec: {
+      name: "forget",
+      description: "Forget one remembered fact about the person, by its id from list_memories or by words from it. Only when they ask you to forget something or say it is no longer true.",
+      schema: { type: "object", properties: { id: { type: "string" }, words: { type: "string", description: "Words from the fact, when there is no id." } } },
+    },
+    offered: (ctx) => ctx.memoryOn && !ctx.temporary,
+    doing: "Forgetting",
+    run: async (input) => {
+      const id = str(input.id, 80);
+      const words = str(input.words, 200).toLowerCase();
+      const all = await db.memories.toArray();
+      const m = (id && all.find((x) => x.id === id)) || (words ? all.find((x) => x.text.toLowerCase().includes(words)) : undefined);
+      if (!m) return fail(id || words ? "No remembered fact matches that. list_memories shows them with ids." : "Say which fact: an id or words from it.");
+      await deleteMemory(m.id);
+      const summary = `Forgot ${q(m.text)}`;
+      return { ok: true, text: summary, summary, undo: async () => { await db.memories.put(m); } };
+    },
+  },
+  {
+    spec: {
       name: "save_to_project",
       description:
         "Add a piece of knowledge to this conversation's project, so every chat in the project has it: a summary, a decision, a reference, a snippet. " +
@@ -434,6 +469,32 @@ const TOOLS: Tool[] = [
   },
   {
     spec: {
+      name: "convert_units",
+      description:
+        "Convert a quantity between units exactly: length, mass, time, area, volume, speed, energy, power, pressure, data, amount (mol), charge, force, angle, frequency and temperature (°C, °F, K). " +
+        "Use for every unit conversion rather than working it out. Write units as they are usually written: km, mph, kPa, °C, cm³, kWh, GiB, eV.",
+      schema: {
+        type: "object",
+        properties: {
+          value: { type: "number" },
+          from: { type: "string" },
+          to: { type: "string" },
+          sig: { type: "number", description: "Significant figures in the answer, 4 if not given." },
+        },
+        required: ["value", "from", "to"],
+      },
+    },
+    doing: "Converting",
+    run: async (input) => {
+      const value = typeof input.value === "number" ? input.value : Number(str(input.value, 40));
+      const sig = typeof input.sig === "number" ? Math.min(12, Math.max(1, Math.round(input.sig))) : 4;
+      const r = convert(value, str(input.from, 20), str(input.to, 20), sig);
+      if (!r.ok) return fail(r.why);
+      return { ok: true, text: `${r.text} (exact value ${r.value})`, summary: r.text };
+    },
+  },
+  {
+    spec: {
       name: "run_code",
       description:
         "Run JavaScript in a sandbox and get its console output and returned value back. " +
@@ -471,6 +532,73 @@ const TOOLS: Tool[] = [
       const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const text = `${d.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}, ${d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} (${zone}).`;
       return { ok: true, text, summary: "Checked the clock" };
+    },
+  },
+  {
+    spec: {
+      name: "search_sources",
+      description:
+        "Search the files and web pages the person added as sources in their notebooks (PDFs, documents, pages) and get the passages that match, with the source each came from. " +
+        "Use when they ask about their book, their notes from class, a handout or a paper they uploaded.",
+      schema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
+    },
+    doing: "Reading your sources",
+    run: async (input) => {
+      const query = str(input.query, 200);
+      if (!query) return fail("A query is needed.");
+      const sources = await db.sources.toArray();
+      if (!sources.length) return { ok: true, text: "No sources have been added to any notebook yet.", summary: "No sources yet" };
+      /* A book is millions of characters; the first 600,000 of each keeps a search quick and still covers most of a textbook. */
+      const chunks = sources.flatMap((src) => chunk(src.name, src.text.slice(0, 600_000)));
+      const hits = rank(query, chunks, 6);
+      if (!hits.length) return { ok: true, text: `Nothing in the sources matches ${q(query)}.`, summary: `Searched your sources for ${q(query)}: nothing` };
+      const text = hits.map((h) => `— From ${q(h.source)}:\n${h.text.trim().slice(0, 900)}`).join("\n\n");
+      return { ok: true, text, summary: `Read ${plural(hits.length, "passage")} from your sources for ${q(query)}`, open: { section: "notebook" } };
+    },
+  },
+  {
+    spec: {
+      name: "read_web_page",
+      description:
+        "Read a public web page by its address and get its text. Use when the person gives a link, or when a specific page would answer the question. " +
+        "It cannot search; it reads one address.",
+      schema: { type: "object", properties: { url: { type: "string" } }, required: ["url"] },
+    },
+    doing: "Reading the page",
+    run: async (input) => {
+      const url = str(input.url, 2_000);
+      if (!url) return fail("An address is needed.");
+      const res = await fetch("/api/read-url", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url }) });
+      const got = (await res.json().catch(() => null)) as { ok?: boolean; title?: string; text?: string; url?: string; message?: string } | null;
+      if (!got?.ok || !got.text) return fail(got?.message ?? "That page could not be read.");
+      const cut = got.text.length > 30_000;
+      return {
+        ok: true,
+        text: `# ${got.title}\n${got.url}\n\n${cut ? got.text.slice(0, 30_000) + "\n\n[… the page goes on; this is the first 30,000 characters]" : got.text}`,
+        summary: `Read ${q(got.title || url)}`,
+      };
+    },
+  },
+  {
+    spec: {
+      name: "set_exam_date",
+      description: "Set the person's next exam, which Study counts down to and plans around. Only when they tell you the date of an exam.",
+      schema: {
+        type: "object",
+        properties: { name: { type: "string", description: "e.g. A-level Biology Paper 1" }, date: { type: "string", description: "YYYY-MM-DD" } },
+        required: ["name", "date"],
+      },
+    },
+    offered: (ctx) => !ctx.temporary,
+    doing: "Setting the exam date",
+    run: async (input) => {
+      const name = str(input.name, 80);
+      const date = str(input.date, 20);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(new Date(`${date}T09:00`).getTime())) return fail("The date must be YYYY-MM-DD.");
+      const before = useSettings.getState().exam;
+      useSettings.getState().setExam({ name: name || "Exam", date });
+      const summary = `Exam set: ${name || "Exam"} on ${new Date(`${date}T09:00`).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}`;
+      return { ok: true, text: `${summary}. Study now counts down to it.`, summary, open: { section: "study" }, undo: async () => { useSettings.getState().setExam(before); } };
     },
   },
   /* ---- the app's own machinery: a schedule, a project, an assistant.
@@ -597,7 +725,7 @@ export function doingOf(name: string): string {
 }
 
 /** The rooms this can reach, for the settings line and the docs. */
-export const ACTION_AREAS = ["Study", "Notebook", "Memory", "Projects", "Studio", "Conversations", "Routines", "Assistants", "Calculator", "Code", "Clock"] as const;
+export const ACTION_AREAS = ["Study", "Notebook", "Sources", "Memory", "Projects", "Studio", "Conversations", "Routines", "Assistants", "Calculator", "Units", "Code", "Clock", "Web pages"] as const;
 
 /**
  * Run one call. Never throws: a tool that fails answers the model with why,

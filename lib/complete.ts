@@ -7,7 +7,8 @@ import { noteFailure, noteSuccess, whyAvoided, worthMoving } from "./health";
 import { getConfigured, canCall } from "./configured";
 import { PROVIDERS } from "./models";
 import { useSettings } from "./store";
-import type { ChatError, ContentBlock, ProviderId , WebSource, WebTool } from "./types";
+import type { ChatError, ChatRequest, ContentBlock, ProviderId, StreamEvent, WebSource, WebTool } from "./types";
+import { localResponse } from "./local";
 
 /**
  * The call, and nothing about what is in it.
@@ -132,10 +133,7 @@ async function askOnce(
   let finished = false;
 
   try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
+    const payload = JSON.stringify({
         modelId,
         messages: opts.turns ?? [{ role: "user", content: [{ type: "text", text: prompt }] }],
         systemPrompt: opts.system,
@@ -151,9 +149,10 @@ async function askOnce(
         plusKey: settings.plus?.key || undefined,
         plusCustomer: settings.plus?.customerId || undefined,
         tools: opts.tools,
-      }),
-      signal: opts.signal,
-    });
+      });
+    const res = provider === "local"
+      ? localResponse(JSON.parse(payload) as ChatRequest, opts.signal)
+      : await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: payload, signal: opts.signal });
     if (!res.body) return null;
 
     const reader = res.body.getReader();
@@ -168,22 +167,26 @@ async function askOnce(
         const chunk = buf.slice(0, nl);
         buf = buf.slice(nl + 2);
         if (!chunk.startsWith("data: ")) continue;
+        let ev: StreamEvent;
         try {
-          const ev = JSON.parse(chunk.slice(6));
-          if (ev.type === "text") {
-            out += ev.text;
-            opts.onText?.(out);
-          }
-          if (ev.type === "done") finished = true;
-          if (ev.type === "source" && opts.onSource) opts.onSource(ev.source as WebSource);
-          /* Kept, not dropped. This one line was the whole of why a spent key
-             read as "try saying it differently" in every room but chat. */
-          if (ev.type === "error") {
-            noteFailure(provider as ProviderId, ev.error.kind);
-            throw new Refused(ev.error as ChatError);
-          }
+          ev = JSON.parse(chunk.slice(6)) as StreamEvent;
         } catch {
-          /* partial frame */
+          continue; /* partial frame */
+        }
+        if (ev.type === "text") {
+          out += ev.text;
+          opts.onText?.(out);
+        }
+        if (ev.type === "done") finished = true;
+        if (ev.type === "source" && opts.onSource) opts.onSource(ev.source as WebSource);
+        /* Kept, not dropped — and thrown outside the parse's own catch. It
+           used to be thrown inside it, where "partial frame" swallowed it,
+           so a spent key, a rate limit or a prompt too long read as "the
+           connection dropped" in every room but chat, and the move to
+           another provider (which waits for a Refused) never happened. */
+        if (ev.type === "error") {
+          noteFailure(provider as ProviderId, ev.error.kind);
+          throw new Refused(ev.error as ChatError);
         }
       }
     }

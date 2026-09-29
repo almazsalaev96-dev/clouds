@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useDraft } from "@/lib/hooks/useDraft";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   ArrowLeft, ArrowUp, BookOpen, Check, ChevronLeft, Copy, FileText, Globe, Layers, MoreHorizontal, NotebookPen,
@@ -83,6 +84,11 @@ export function Sourcebook({ note, sources, configured, onBack, onOpenPage, onOp
   const [q, setQ] = React.useState("");
   const [pending, setPending] = React.useState<string | null>(null);
   const [guiding, setGuiding] = React.useState(false);
+  /* A guide that failed says so and can be asked for again; before, the
+     skeleton pulsed forever, because the sources had not changed and so
+     nothing ever asked again. */
+  const [guideFailed, setGuideFailed] = React.useState(false);
+  const [guideTry, setGuideTry] = React.useState(0);
   const abortRef = React.useRef<AbortController | null>(null);
   const chatEnd = React.useRef<HTMLDivElement>(null);
   const kept = useLiveQuery(() => db.notes.filter((n) => n.nbOf === note.id).toArray(), [note.id], []);
@@ -113,19 +119,25 @@ export function Sourcebook({ note, sources, configured, onBack, onOpenPage, onOp
     if (!sources.length || !stale || !modelId || guideFor.current === key) return;
     guideFor.current = key;
     setGuiding(true);
+    setGuideFailed(false);
     void (async () => {
+      let ok = false;
       try {
         const raw = await complete(guidePrompt(sources), { modelId, maxTokens: 900, temperature: 0.3 });
         const guide = readGuide(extractJson(raw ?? ""), ids);
         if (guide) {
           await save({ guide });
+          ok = true;
           if (!note.title.trim() || /^Untitled notebook$/i.test(note.title)) await db.notes.update(note.id, { title: guide.title });
         }
       } catch { /* the guide is a help, not the notebook: without it the chat still works */ }
-      finally { setGuiding(false); }
+      finally {
+        setGuiding(false);
+        if (!ok) { guideFor.current = ""; setGuideFailed(true); }
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stale, modelId, sources.length]);
+  }, [stale, modelId, sources.length, guideTry]);
 
   const threads = readThreads(nb);
   const current = thread ? threads.find((t) => t.id === thread) : undefined;
@@ -353,13 +365,13 @@ export function Sourcebook({ note, sources, configured, onBack, onOpenPage, onOp
 
   const pill = "btn-touch focus-ring flex h-10 shrink-0 items-center gap-2 rounded-full border border-line bg-subtle px-4 text-sm text-primary transition-colors hover:border-line-strong aria-pressed:border-line-strong";
 
+  const titleField = useDraft(note.title, (v) => void db.notes.update(note.id, { title: v.replace(/\n/g, " "), updatedAt: Date.now() }), 300, note.id);
   const home = (
     <div className="pb-6 pt-6 sm:pt-10">
       <IconPicker icon={nb.icon} onPick={(icon) => void save({ icon })} />
       <div className="mt-4 flex flex-wrap items-start gap-3">
         <textarea
-          value={note.title}
-          onChange={(e) => void db.notes.update(note.id, { title: e.target.value.replace(/\n/g, " "), updatedAt: Date.now() })}
+          {...titleField}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLTextAreaElement).blur(); } }}
           placeholder="Untitled notebook"
           aria-label="Notebook name"
@@ -415,7 +427,13 @@ export function Sourcebook({ note, sources, configured, onBack, onOpenPage, onOp
               <div className="space-y-2" role="status" aria-label="Writing the notebook guide">
                 <div className="h-4 w-full animate-pulse rounded bg-subtle" />
                 <div className="h-4 w-5/6 animate-pulse rounded bg-subtle" />
-                <p className="text-xs text-tertiary">{guiding ? "Reading your sources…" : modelId ? "" : "Add a key in Settings and the notebook will describe its sources here."}</p>
+                <p className="text-xs text-tertiary">{guiding ? "Reading your sources…" : guideFailed ? "" : modelId ? "" : "Add a key in Settings and the notebook will describe its sources here."}</p>
+                {guideFailed && !guiding && (
+                  <p className="flex items-center gap-2 text-xs text-tertiary">
+                    Couldn’t describe your sources this time.
+                    <Button size="sm" variant="ghost" onClick={() => setGuideTry((n) => n + 1)}>Try again</Button>
+                  </p>
+                )}
               </div>
             )}
           </section>
@@ -690,7 +708,10 @@ function SourceView({ source, quote, modelId, onBack, onTopic }: {
 }
 
 function ChatSettings({ nb, onSave, onClear }: { nb: NotebookState; onSave: (p: Partial<NotebookState>) => Promise<void>; onClear?: () => void }) {
-  const [custom, setCustom] = React.useState(nb.custom ?? "");
+  /* Saved as it is typed and when the popover closes. It was saved only on
+     blur, and closing the popover with Esc or a click outside unmounts the
+     field without one, so the custom style was quietly lost. */
+  const customField = useDraft(nb.custom ?? "", (custom) => void onSave({ custom }), 500);
   const style = nb.style ?? "default";
   const length = nb.length ?? "default";
   return (
@@ -710,9 +731,7 @@ function ChatSettings({ nb, onSave, onClear }: { nb: NotebookState; onSave: (p: 
           {style === "guide" && <p className="mt-1.5 text-xs text-tertiary">Explains in steps and checks you understood, rather than handing over answers.</p>}
           {style === "custom" && (
             <textarea
-              value={custom}
-              onChange={(e) => setCustom(e.target.value)}
-              onBlur={() => void onSave({ custom })}
+              {...customField}
               rows={3}
               placeholder=""
               aria-label="Custom style"

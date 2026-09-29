@@ -3,11 +3,13 @@
 import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
+  Cpu,
   Aperture, Check, ChevronDown, Compass, Eye, Feather, GraduationCap, Hammer, Languages,
   Network, Scale, Search, Sigma, Wand2, Zap,
 } from "lucide-react";
 import type { ModelSpec } from "@/lib/types";
-import { AUTO, MODELS, formatCost, getModel } from "@/lib/models";
+import { AUTO, MODELS, formatCost, getModel, localModels } from "@/lib/models";
+import "@/lib/local";
 import {
   PRESETS, SEAT_NAMES, canRun, getPreset, profileOf, resolveCast, type Cast, type Player, type Preset,
 } from "@/lib/presets";
@@ -79,6 +81,9 @@ export function ModelPicker({
   const cast = preset ? resolveCast(value, where)! : null;
   const model = getModel(cast ? cast.answer.modelId : value);
 
+  /* Re-read when settings change, which is when the installed list does. */
+  const localSetup = useSettings((s) => s.local);
+  const mine = React.useMemo(() => (localSetup ? localModels() : []), [localSetup]);
   const available = (m: ModelSpec) => configured[m.provider] || Boolean(keys[m.provider]);
   /* A tactic needs a key — any key. Which one it lands on is its own affair. */
   const anyKey = MODELS.some(available);
@@ -235,6 +240,34 @@ export function ModelPicker({
                     are what these four become for that kind of work, and
                     each row's line says so; a menu of eight more names was
                     asking the person to do the routing. */}
+                {/* Models the person downloaded and runs themselves. Named
+                    by their own names: they are the person's, not Armi's,
+                    and the name is how they will recognise what they
+                    installed. Never chosen by Auto; only here, by hand. */}
+                {mine.length > 0 && (
+                  <Section label="On this computer">
+                    {mine.map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => {
+                          onChange(m.id);
+                          onOpenChange?.(false);
+                        }}
+                        className={cn(
+                          "tap focus-inset flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle",
+                          value === m.id && "bg-accent-subtle",
+                        )}
+                      >
+                        <Cpu size={13} className="shrink-0 text-tertiary" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[0.8125rem] font-medium leading-tight text-primary">{m.name}</span>
+                          <span className="block truncate text-tiny text-tertiary">Free and private{m.vision ? " · sees pictures" : ""}</span>
+                        </span>
+                        {value === m.id && <Check size={13} className="shrink-0 text-accent" />}
+                      </button>
+                    ))}
+                  </Section>
+                )}
                 {hidden > 0 && (
                   <p className="px-2 pb-1 pt-0.5 text-tiny text-faint">
                     {hidden} more appear{hidden === 1 ? "s" : ""} when you add another key

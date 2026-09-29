@@ -100,6 +100,21 @@ console.log("\nA link with nothing in it");
   check(/Nothing to show/.test(await fresh.locator("main").innerText()), "says so, and why");
 }
 
+console.log("\nRenamed from the menu");
+{
+  /* The field used to shut the moment it opened: the menu gave focus back
+     to its button as it closed, the field lost it, and saved nothing. */
+  await p.getByRole("button", { name: /Conversation options|More/ }).first().click();
+  await p.getByRole("menuitem", { name: "Rename" }).click();
+  await p.waitForTimeout(400);
+  const field = p.getByRole("textbox", { name: "Conversation title" });
+  check(await field.isVisible() && await field.evaluate((e) => e === document.activeElement), "the title field opens, and keeps the caret");
+  await field.fill("Debounce, explained");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(400);
+  check(await p.locator("aside").getByText("Debounce, explained").first().isVisible(), "and the new name is kept");
+}
+
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors");
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 await b.close();

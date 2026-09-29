@@ -19,7 +19,7 @@
  * Points (XP) come from studying of every kind — a review, a game — and add
  * up to a level. Everything here is pure, so the tests can play it.
  */
-import { clozeHidden, clozeQuestion, dayKey, isCloze, type Card, type Rating, type StudyDay } from "./study";
+import { clozeHidden, clozeQuestion, isCloze, runOf, type Card, type Rating, type StudyDay } from "./study";
 
 export type GameId = "match" | "blitz" | "gravity";
 
@@ -89,8 +89,13 @@ export const MATCH_PAIRS = 6;
  * A table of tiles: `n` pairs, each as two tiles, all shuffled. The pairs
  * are drawn at random, so a deck of forty is not the same six every time.
  */
+/** The pairs short enough for a tile — what Match can actually deal. */
+export function matchable(cards: Card[]): Pair[] {
+  return pairsOf(cards).filter((p) => p.q.length <= TILE_MAX && p.a.length <= TILE_MAX);
+}
+
 export function matchRound(cards: Card[], n = MATCH_PAIRS, rand: () => number = Math.random): { pairs: Pair[]; tiles: Tile[] } {
-  const fits = pairsOf(cards).filter((p) => p.q.length <= TILE_MAX && p.a.length <= TILE_MAX);
+  const fits = matchable(cards);
   const pairs = shuffle(fits, rand).slice(0, n);
   const tiles = shuffle(
     pairs.flatMap((p) => [
@@ -229,12 +234,7 @@ export function xpOn(days: StudyDay[], day: string): number {
  * forgiveness the streak has, so going to bed does not break it.
  */
 export function goalStreak(days: StudyDay[], goal: number, now: number): number {
-  const met = new Set(days.filter((d) => (d.xp ?? 0) >= goal).map((d) => d.day));
-  let at = now;
-  if (!met.has(dayKey(at))) at -= 86_400_000;
-  let n = 0;
-  while (met.has(dayKey(at))) { n++; at -= 86_400_000; }
-  return n;
+  return runOf(new Set(days.filter((d) => (d.xp ?? 0) >= goal).map((d) => d.day)), now);
 }
 
 export function totalXp(days: StudyDay[]): number {

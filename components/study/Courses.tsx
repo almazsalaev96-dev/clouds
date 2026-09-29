@@ -9,7 +9,7 @@ import {
 import { db, uid, addCards, createDeck, createNote } from "@/lib/db";
 import { cheapestAvailable, complete, extractJson, whyItFailed } from "@/lib/complete";
 import { draftCards } from "@/lib/generate";
-import { readiness, type Card } from "@/lib/study";
+import { dayKey, readiness, type Card } from "@/lib/study";
 import {
   BOARDS, DIFFICULTIES, DIFFICULTY_LABEL, LEVELS,
   allTopics, courseMoves, courseName, courseScore, daysUntil, findTopic, marksFor,
@@ -404,7 +404,9 @@ export function CoursePanel({ courseId, configured, cards, onBack, onOpenTopic, 
             <input
               type="date"
               aria-label="Exam date"
-              value={course.examAt ? new Date(course.examAt).toISOString().slice(0, 10) : ""}
+              /* The local day, not the UTC one: stored as 09:00 local, which east of
+                 UTC+9 is still the day before in UTC, so the field showed a day early. */
+              value={course.examAt ? dayKey(course.examAt) : ""}
               onChange={(e) => void db.courses.update(course.id, { examAt: e.target.value ? new Date(e.target.value + "T09:00").getTime() : undefined })}
               className="rounded-md border border-line bg-transparent px-1.5 py-0.5 text-xs text-secondary"
             />

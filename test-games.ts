@@ -128,6 +128,15 @@ console.log("\nThe daily goal");
   check(goalStreak([d(0, 49)], 50, now) === 0, "a point short is not met");
 }
 
+console.log("\nAcross the clocks changing");
+{
+  /* 30 March 2025, 03:00 in London is 02:00+1: a day of 23 hours. Midnight-ish after it, a 24-hour step lands two days back. */
+  process.env.TZ = process.env.TZ || "";
+  const days = ["2025-03-28", "2025-03-29", "2025-03-30", "2025-03-31"].map((day) => ({ day, answered: 3, right: 3, xp: 60 }));
+  const t = new Date(2025, 2, 31, 0, 30).getTime();
+  check(streakOf(days, t) === 4 && goalStreak(days, 50, t) === 4, "a streak counts calendar days, whatever the length of the day", `${streakOf(days, t)} / ${goalStreak(days, 50, t)}`);
+}
+
 console.log("\nA game keeps the streak");
 {
   check(streakOf([{ day: dayKey(now), answered: 6, right: 5, xp: 40 }], now) === 1, "a day with a game on it is a day studied");

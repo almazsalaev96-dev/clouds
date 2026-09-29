@@ -248,7 +248,8 @@ console.log("\nWith one company's key it still fields a cast, and says what kind
   check(/sibling/.test(kin.short ?? ""), "in words, not only in a flag", kin.short ?? "");
   check(makers({ configured: only("anthropic") }).length === 1, "which is what one key means");
   check(makers({ configured: { anthropic: true, openai: true, moonshot: true, deepseek: true } }).length === 4, "and four keys are four companies");
-  check(makers({ configured: all }).length === Object.keys(PROVIDERS).length, "and every company's key is a company", String(makers({ configured: all }).length));
+  /* Every company with a key is a company; "local" is the person's own computer, which no tactic ever picks. */
+  check(makers({ configured: all }).length === Object.keys(PROVIDERS).filter((p) => p !== "local").length, "and every company's key is a company", String(makers({ configured: all }).length));
 }
 
 console.log("\nIt runs on whatever key you actually hold");

@@ -592,13 +592,28 @@ export function dayKey(now: number): string {
  * point of it is the opposite.
  */
 export function streakOf(days: StudyDay[], now: number): number {
-  const have = new Set(days.filter((d) => d.answered > 0).map((d) => d.day));
+  return runOf(new Set(days.filter((d) => d.answered > 0).map((d) => d.day)), now);
+}
+
+/**
+ * Midday of the calendar day before. A step back of 24 hours skipped a day
+ * or counted one twice around the clocks changing — the day is 23 or 25
+ * hours long then — so it steps by the calendar, from noon, where no clock
+ * change can reach.
+ */
+export function dayBefore(t: number): number {
+  const d = new Date(t);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1, 12).getTime();
+}
+
+/** Days in a row in `have`, ending today or yesterday. */
+export function runOf(have: Set<string>, now: number): number {
   let n = 0;
   let at = now;
-  if (!have.has(dayKey(at))) at -= DAY;
+  if (!have.has(dayKey(at))) at = dayBefore(at);
   while (have.has(dayKey(at))) {
     n += 1;
-    at -= DAY;
+    at = dayBefore(at);
   }
   return n;
 }

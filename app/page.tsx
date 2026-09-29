@@ -36,7 +36,8 @@ import { visualFor } from "@/lib/visual";
 import { allStyles, findStyle, isTeaching } from "@/lib/styles";
 import { findMode, modeFor } from "@/lib/modes";
 import { builtDocument, titleOf } from "@/lib/built";
-import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, PROVIDERS, estimateTokens, getModel } from "@/lib/models";
+import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, PROVIDERS, estimateTokens, getModel, isLocalModel } from "@/lib/models";
+import "@/lib/local";
 import {
   briefNote, briefPrompt, councilNote, councilPrompt, engineOf, getPreset, objectionNote,
   playerFor, playersFor, resolveCast, shapePlan, worthBriefing, worthChecking, worthConvening, worthResearching, presetFor, JOB_LINE, PRESETS } from "@/lib/presets";
@@ -481,15 +482,18 @@ export default function Page() {
     [path],
   );
 
+  /* A model on this computer counts: it needs no key and answers all the same. */
   const hasAnyKey =
-    Object.values(configured).some(Boolean) || Object.values(settings.keys).some(Boolean);
+    Object.values(configured).some(Boolean) || Object.values(settings.keys).some(Boolean) || Boolean(settings.local?.models.length);
 
   const modelUsable = React.useCallback(
     (id: string) => {
       /* Through the tactic first: an Armi model is usable when *something* it
          can run on has a key, which is not the same question as whether one
          particular engine does. */
-      const p = getModel(engineOf(id, { configured, keys: settings.keys })).provider;
+      const engine = engineOf(id, { configured, keys: settings.keys });
+      const p = getModel(engine).provider;
+      if (p === "local") return isLocalModel(engine);
       return Boolean(configured[p] || settings.keys[p]);
     },
     [configured, settings.keys],
@@ -700,14 +704,22 @@ export default function Page() {
      runs as a new conversation — one per look, so a morning with two due
      does not open two threads at once. Marked ran before it is sent, so a
      failed send does not send it again every minute. */
+  /* A routine waits for a quiet moment: it used to switch to Chat and open
+     a thread at the minute it fell due, which pulled somebody out of a
+     game, a review or an answer still being written. It is still owed, so
+     it runs at the first look after they are back in Chat with nothing
+     being answered. */
+  const routineBusy = React.useRef(false);
+  routineBusy.current = settings.section !== "chat" || stream.phase !== "idle";
   React.useEffect(() => {
     let alive = true;
     const look = async () => {
+      if (routineBusy.current) return;
       const { isDue } = await import("@/lib/routines");
       const rows = await db.routines.toArray();
       const now = Date.now();
       const due = rows.find((r) => isDue(r, now));
-      if (!due || !alive) return;
+      if (!due || !alive || routineBusy.current) return;
       await db.routines.update(due.id, { lastRan: now });
       void askInChat(due.prompt);
     };

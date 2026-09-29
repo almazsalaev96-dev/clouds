@@ -11,7 +11,7 @@ import { useSettings } from "@/lib/store";
 import { play } from "@/lib/sfx";
 import {
   BLITZ_MS, GAMES, GRAVITY_LIVES, MATCH_PENALTY_MS,
-  blitzPoints, choicesFor, clock, comboOf, fallMs, gameXp, gravityPoints, goalStreak, GOALS, hintFor, isMatch, levelOf, matchRound, pairsOf, shuffle, totalXp, xpOn,
+  blitzPoints, choicesFor, clock, comboOf, fallMs, gameXp, gravityPoints, goalStreak, GOALS, hintFor, isMatch, levelOf, matchable, matchRound, pairsOf, shuffle, totalXp, xpOn,
   type GameId, type Pair, type Tile,
 } from "@/lib/games";
 import { Button } from "@/components/ui/primitives";
@@ -65,6 +65,10 @@ export function Games({ deck, cards, onDone, onReview, doneLabel = "Back to the 
   const setSettings = useSettings((s) => s.set);
   const days = useLiveQuery(() => studyDays(), [], [] as StudyDay[]);
   const pairs = React.useMemo(() => pairsOf(cards), [cards]);
+  /* Match counts only the cards short enough for a tile. It counted every
+     pair, so a deck of long definitions was offered Match and dealt an
+     empty table with a clock that never started. */
+  const tiles = React.useMemo(() => matchable(cards).length, [cards]);
 
   const end = async (o: Outcome) => {
     /* Ended before a single answer: nothing to score, nothing to keep. */
@@ -72,7 +76,9 @@ export function Games({ deck, cards, onDone, onReview, doneLabel = "Back to the 
     const xp = gameXp(o.game, { score: o.score, pairs: o.pairs, ms: o.score });
     const before = totalXp(days);
     const todayBefore = xpOn(days, dayKey(Date.now()));
-    const { best } = await noteGame(deck?.id ?? null, o.game, { answered: o.answered, right: o.right, xp, best: o.score });
+    /* The result shows even when saving fails (storage full, blocked):
+       the game was played, and a frozen screen would take that away too. */
+    const { best } = await noteGame(deck?.id ?? null, o.game, { answered: o.answered, right: o.right, xp, best: o.score }).catch(() => ({ best: false }));
     const goalMet = todayBefore < goal && todayBefore + xp >= goal;
     if (best || goalMet) play("win", sound);
     setResult({ ...o, xp, before, best, goalMet, goal });
@@ -103,7 +109,8 @@ export function Games({ deck, cards, onDone, onReview, doneLabel = "Back to the 
         <ul className="mt-4 grid gap-2.5 sm:grid-cols-3">
           {GAMES.map((g) => {
             const kept = deck?.best?.[g.id];
-            const short = pairs.length < NEEDS[g.id];
+            const have = g.id === "match" ? tiles : pairs.length;
+            const short = have < NEEDS[g.id];
             return (
               <li key={g.id}>
                 <button
@@ -118,7 +125,7 @@ export function Games({ deck, cards, onDone, onReview, doneLabel = "Back to the 
                   </span>
                   <span className="mt-1 text-sm text-secondary">{g.line}</span>
                   <span className="mt-2 text-xs text-tertiary tnum">
-                    {short ? `Needs ${NEEDS[g.id]} cards with different answers` : kept === undefined ? "Not played yet" : `Best ${g.id === "match" ? clock(kept) : `${kept} points`}`}
+                    {short ? (g.id === "match" && pairs.length >= NEEDS.match ? "These cards are too long for tiles" : `Needs ${NEEDS[g.id]} cards with different answers`) : kept === undefined ? "Not played yet" : `Best ${g.id === "match" ? clock(kept) : `${kept} points`}`}
                   </span>
                 </button>
               </li>
@@ -492,7 +499,8 @@ function Gravity({ pool, onEnd: ended, onQuit }: { pool: Pair[]; onEnd: (o: Outc
   }, [drop, phase, cur, sound]);
 
   const submit = () => {
-    if (x.over) return;
+    /* Enter on an empty box is not an answer: it cost a try, a buzz and half the points. */
+    if (x.over || !typed.trim()) return;
     const ok = mark(typed, cur.a).mark !== "wrong";
     if (!ok) {
       play("wrong", sound);

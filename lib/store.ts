@@ -7,6 +7,7 @@ import type { ModelParams, ProviderId } from "./types";
 import { DEFAULT_PRESET_ID } from "./presets";
 import { AUTO_STYLE } from "./register";
 import { DEFAULT_MODE } from "./modes";
+import { toggled } from "./rules";
 
 /**
  * Storage keys are deliberately not the product name.
@@ -133,6 +134,23 @@ export interface Learner {
   target: string;
 }
 
+/** One model installed on this computer, as its server described it. */
+export interface LocalModel {
+  /** The server's own name for it: "qwen3.8:27b". */
+  name: string;
+  vision: boolean;
+  tools: boolean;
+  thinks?: boolean;
+  /** Tokens the app may send, when the server said. */
+  context?: number;
+}
+
+export interface LocalSetup {
+  url: string;
+  models: LocalModel[];
+  checkedAt: number;
+}
+
 interface Settings {
   theme: Theme;
   density: Density;
@@ -206,6 +224,8 @@ interface Settings {
   learner: Learner | null;
   /** Points a day to aim for, from reviews and games. */
   xpGoal: number;
+  /** Models on this computer (Ollama, LM Studio): where, and what is installed. */
+  local: LocalSetup | null;
   /** Sounds in the study games. */
   gameSound: boolean;
   showLineNumbers: boolean;
@@ -289,6 +309,7 @@ export const DEFAULT_SETTINGS = {
   notesInChat: true,
   learner: null,
   xpGoal: 50,
+  local: null,
   gameSound: true,
   showLineNumbers: false,
   wrapCode: false,
@@ -317,7 +338,7 @@ export const useSettings = create<Settings>()(
         })),
       setReviseModel: (reviseModelId) => set({ reviseModelId }),
       setSystemPrompt: (systemPrompt) => set({ systemPrompt }),
-      toggleRule: (id) => set((st) => ({ rules: st.rules.includes(id) ? st.rules.filter((r) => r !== id) : [...st.rules, id] })),
+      toggleRule: (id) => set((st) => ({ rules: toggled(st.rules, id) })),
       setThinkingOpen: (thinkingOpen) => set({ thinkingOpen }),
       setTone: (tone) => set({ tone }),
       setStyle: (styleId) => set({ styleId }),

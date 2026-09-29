@@ -4,6 +4,14 @@ export const PROVIDERS: Record<
   ProviderId,
   { name: string; keyName: string; keyUrl: string; keyPrefix: string }
 > = {
+  /* Models the person downloaded and runs on their own computer, through
+     Ollama or LM Studio. No key and no bill; see `lib/local.ts`. */
+  local: {
+    name: "On this computer",
+    keyName: "",
+    keyUrl: "https://ollama.com/download",
+    keyPrefix: "",
+  },
   anthropic: {
     name: "Anthropic",
     keyName: "ANTHROPIC_API_KEY",
@@ -855,8 +863,28 @@ export const DEFAULT_MODEL_ID = "claude-sonnet-5";
 
 const byId = new Map(MODELS.map((m) => [m.id, m]));
 
+/* Models on this computer: known only once the browser has asked the local
+   server what is installed, so they live apart from MODELS. Everything that
+   chooses blind — Auto, the tactics, the fallbacks — reads MODELS and so
+   never lands on a local model; only the person picks one. */
+let LOCAL: ModelSpec[] = [];
+let localById = new Map<string, ModelSpec>();
+
+export function setLocalModels(specs: ModelSpec[]): void {
+  LOCAL = specs;
+  localById = new Map(specs.map((m) => [m.id, m]));
+}
+
+export function localModels(): ModelSpec[] {
+  return LOCAL;
+}
+
+export function isLocalModel(id: string): boolean {
+  return localById.has(id);
+}
+
 export function getModel(id: string): ModelSpec {
-  return byId.get(id) ?? byId.get(DEFAULT_MODEL_ID)!;
+  return byId.get(id) ?? localById.get(id) ?? byId.get(DEFAULT_MODEL_ID)!;
 }
 
 /**

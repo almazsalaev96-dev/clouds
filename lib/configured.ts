@@ -20,6 +20,7 @@
 import type { ProviderId } from "./types";
 
 import { plusAllowed, type PlusOffer } from "./plus";
+import { isLocalModel } from "./models";
 
 let held: Record<string, boolean> = {};
 let offer: PlusOffer = { on: false, price: "" };
@@ -43,6 +44,8 @@ export const viaPlus = (): boolean => offer.on && offer.valid === true;
  * or the server's — which, through Plus, covers the everyday engines only.
  */
 export function canCall(modelId: string, provider: string, configured: Record<string, boolean>, keys?: Record<string, string | undefined>): boolean {
+  /* On this computer: no key, no server — callable once it is installed. */
+  if (provider === "local") return isLocalModel(modelId);
   if (keys?.[provider]) return true;
   if (!configured[provider]) return false;
   return !viaPlus() || plusAllowed(modelId);

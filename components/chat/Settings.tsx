@@ -23,12 +23,13 @@ import { PLUS_NAME, PLUS_PRICE, PLUS_ALLOWED } from "@/lib/plus";
 import { getPlusOffer, setPlusOffer } from "@/lib/configured";
 import { does } from "./ModelPicker";
 import { useReturnFocus } from "@/lib/hooks/useReturnFocus";
+import { LocalPanel } from "./LocalPanel";
 import { cn } from "@/lib/utils";
 import { GROUPS, RULES, rulesCount } from "@/lib/rules";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
 import { SHORTCUT_GROUPS } from "@/components/ShortcutsOverlay";
 
-type Tab = "keys" | "plus" | "appearance" | "model" | "styles" | "memory" | "routines" | "data" | "shortcuts" | "privacy" | "rules" | "assistants";
+type Tab = "keys" | "local" | "plus" | "appearance" | "model" | "styles" | "memory" | "routines" | "data" | "shortcuts" | "privacy" | "rules" | "assistants";
 
 /* Settings holds what is set once: keys, the plan, how it looks, the model,
    your data, privacy. Rules, assistants, styles, memory, routines and
@@ -38,6 +39,7 @@ type Tab = "keys" | "plus" | "appearance" | "model" | "styles" | "memory" | "rou
    palette, and a panel opened that way still shows its page here. */
 const TABS: { id: Tab; label: string; hidden?: boolean }[] = [
   { id: "keys", label: "API keys" },
+  { id: "local", label: "Free AI" },
   { id: "plus", label: "Armi Plus" },
   { id: "appearance", label: "Appearance" },
   { id: "model", label: "Model" },
@@ -115,6 +117,7 @@ export function Settings({
 
           <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
             {tab === "keys" && <KeysPanel configured={configured} />}
+            {tab === "local" && <LocalPanel />}
             {tab === "plus" && <PlusPanel />}
             {tab === "appearance" && <AppearancePanel />}
             {tab === "model" && <ModelPanel configured={configured} />}
@@ -278,7 +281,7 @@ function KeysPanel({ configured }: { configured: Record<string, boolean> }) {
       description="A key you add is kept in this browser only."
     >
       <div className="space-y-2">
-        {(Object.keys(PROVIDERS) as ProviderId[]).map((p) => (
+        {(Object.keys(PROVIDERS) as ProviderId[]).filter((p) => p !== "local").map((p) => (
           <KeyRow key={p} provider={p} serverConfigured={Boolean(configured[p])} />
         ))}
       </div>

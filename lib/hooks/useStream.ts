@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Action, ChatError, ContentBlock, Message, ProviderId, StreamEvent, ToolCall, ToolSpec, Usage, WebSource, WebTool } from "../types";
+import type { Action, ChatError, ChatRequest, ContentBlock, Message, ProviderId, StreamEvent, ToolCall, ToolSpec, Usage, WebSource, WebTool } from "../types";
+import { localResponse } from "../local";
 import type { ActionDone } from "../actions";
 import { noteFailure, noteSuccess, worthMoving } from "../health";
 import { getModel, estimateTokens } from "../models";
@@ -257,9 +258,17 @@ export function useStream(onFinish?: (m: Message) => void) {
 
       // A live elapsed counter, not a spinner: it is the difference between
       // "this is broken" and "this is working, and here is how hard".
+      /* It shows whole seconds, so the state changes once a second: an
+         update every 100 ms re-rendered the app ten times a second through
+         the whole turn for a number that had not changed. Returning the
+         same state object lets React skip the render. */
       timerRef.current = setInterval(() => {
-        setState((s) => (s.phase === "idle" ? s : { ...s, elapsed: Date.now() - startedRef.current }));
-      }, 100);
+        setState((s) => {
+          if (s.phase === "idle") return s;
+          const e = Date.now() - startedRef.current;
+          return Math.floor(e / 1000) === Math.floor(s.elapsed / 1000) ? s : { ...s, elapsed: e };
+        });
+      }, 250);
       rafRef.current = requestAnimationFrame(drain);
 
       const ac = new AbortController();
@@ -287,11 +296,7 @@ export function useStream(onFinish?: (m: Message) => void) {
         let calls: ToolCall[] = [];
         let raw: { provider: ProviderId; content: unknown } | null = null;
         stopReason = "stop";
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          signal: ac.signal,
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
+        const payload = JSON.stringify({
             modelId: opts.modelId,
             tools: opts.tools,
             actions: opts.actions?.specs.length ? opts.actions.specs : undefined,
@@ -302,8 +307,13 @@ export function useStream(onFinish?: (m: Message) => void) {
             clientKey: settings.keys[model.provider] || undefined,
             plusKey: settings.plus?.key || undefined,
             plusCustomer: settings.plus?.customerId || undefined,
-          }),
-        });
+          });
+        /* A model on this computer is asked from this tab: the server
+           cannot reach it. Same frames either way, so the reader below
+           does not know or care which. */
+        const res = model.provider === "local"
+          ? localResponse(JSON.parse(payload) as ChatRequest, ac.signal)
+          : await fetch("/api/chat", { method: "POST", signal: ac.signal, headers: { "content-type": "application/json" }, body: payload });
 
         if (!res.ok || !res.body) {
           refusedRef.current = true;

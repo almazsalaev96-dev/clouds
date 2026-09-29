@@ -4,6 +4,7 @@ import { printMarkdown } from "@/lib/print";
 import { markdownToDocx } from "@/lib/office";
 import { useSettings } from "@/lib/store";
 import * as React from "react";
+import { dayKey } from "@/lib/study";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   AlertCircle, Brain, Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as Caret, Clock, Code2, Copy,
@@ -405,7 +406,7 @@ function AssistantMessageImpl({
   /* A whole answer, as a file, without going through the thread exporter —
      the unit people actually want to keep is usually one reply. */
   const copyAsMarkdown = () => {
-    const stamp = new Date(message.createdAt).toISOString().slice(0, 10);
+    const stamp = dayKey(message.createdAt);
     const name = (text.match(/^#{1,3}\s+(.+)$/m)?.[1] ?? author ?? "answer")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")

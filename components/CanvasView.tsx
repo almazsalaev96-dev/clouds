@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useDraft } from "@/lib/hooks/useDraft";
 import { whyItFailed } from "@/lib/complete";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -933,6 +934,7 @@ function Editor({
      preview and mount a new one, which reloads the iframe: the deck reshuffles
      and the timer starts again the moment you go full-screen. Everything
      below hides in place, and the frame never moves. */
+  const titleField = useDraft(canvas.title, (title) => void db.canvases.update(canvas.id, { title }), 300, canvas.id);
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
       {focused && (
@@ -954,8 +956,7 @@ function Editor({
             file you are in. So the row wraps: name first, controls under it. */}
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1 gap-y-0.5">
           <input
-            value={canvas.title}
-            onChange={(e) => void db.canvases.update(canvas.id, { title: e.target.value })}
+            {...titleField}
             aria-label="Canvas title"
             /* As tall as the back button on a phone, so the two share a row. */
             className="tap min-w-0 flex-1 basis-full bg-transparent text-sm font-medium text-primary outline-none max-sm:h-9 sm:basis-0"

@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
-  Archive, ArchiveRestore, Check, ChevronDown, Download, FolderOpen, MessageSquareDashed,
+  Archive, ArchiveRestore, Check, ChevronDown, Cpu, Download, FolderOpen, MessageSquareDashed,
   MoreHorizontal, NotebookPen, Pencil, Pin, PinOff, Share2, SquarePen, Trash2, Wand2, X,
 } from "lucide-react";
 import type { Conversation, Project } from "@/lib/types";
@@ -12,7 +12,7 @@ import { formatCost, formatTokens } from "@/lib/models";
 import { cn } from "@/lib/utils";
 import { IconButton, Tooltip } from "@/components/ui/primitives";
 import { ModelPicker, PresetIcon } from "./ModelPicker";
-import { AUTO, getModel } from "@/lib/models";
+import { AUTO, getModel, isLocalModel } from "@/lib/models";
 import { getPreset, resolvePreset } from "@/lib/presets";
 import { paramsFor } from "@/lib/store";
 
@@ -86,6 +86,11 @@ export function TopBar({
 }) {
   const { sidebarOpen, toggleSidebar, keys } = useSettings();
   const [editing, setEditing] = React.useState(false);
+  /* Rename is chosen in a menu, and a menu gives focus back to its button
+     as it closes — after the title field has taken it, so the field lost
+     focus, saved nothing and shut the moment it opened. The field now opens
+     once the menu has finished closing, with that hand-back cancelled. */
+  const renaming = React.useRef(false);
   const [draft, setDraft] = React.useState("");
   const inProject = conversation?.projectId ?? (conversation ? null : pendingProject) ?? null;
   const asAssistant = assistants.find((a) => a.id === (conversation?.assistantId ?? (conversation ? null : pendingAssistant))) ?? null;
@@ -93,6 +98,7 @@ export function TopBar({
      tactic is what was chosen and the engine is who is answering, and an app
      that showed only the first would be claiming a model it did not build. */
   const preset = getPreset(modelId);
+  const local = isLocalModel(modelId) ? getModel(modelId) : null;
   const model = getModel(preset ? resolvePreset(modelId, { configured, keys })!.modelId : modelId);
   const reasoning = paramsFor(modelId).reasoningEffort ?? preset?.effort;
   const effort = reasoning ? { low: "Quick", medium: "Normal", high: "Hard" }[reasoning] : "";
@@ -140,7 +146,9 @@ export function TopBar({
               ? "Model: chosen automatically"
               : preset
                 ? `Model: ${preset.name}`
-                : "Model: Armi"
+                : local
+                  ? `Model: ${local.name}, on this computer`
+                  : "Model: Armi"
           }
           /* On a phone the chips beside it give way (they scroll), not the
              name of the model: "M…" beside two whole chips said the least
@@ -164,6 +172,12 @@ export function TopBar({
                   rather than about the model they picked, and it is in the
                   menu below and in Settings. */}
               {effort && <span className="hidden text-tertiary sm:inline">{effort}</span>}
+            </>
+          ) : local ? (
+            /* A model the person installed: their own, named by its own name. */
+            <>
+              <Cpu size={12} className="shrink-0 text-tertiary" />
+              <span className="truncate">{local.name}</span>
             </>
           ) : (
             /* A thread pinned to an engine before the menu stopped offering
@@ -311,6 +325,12 @@ export function TopBar({
               <DropdownMenu.Content
                 align="end"
                 sideOffset={6}
+                onCloseAutoFocus={(e) => {
+                  if (!renaming.current) return;
+                  renaming.current = false;
+                  e.preventDefault();
+                  setEditing(true);
+                }}
                 className="z-50 w-52 rounded-md glass border border-line p-1.5 shadow-lg anim-menu"
               >
                 <Item onSelect={onTogglePin} icon={conversation.pinned ? <PinOff size={14} /> : <Pin size={14} />}>
@@ -350,7 +370,7 @@ export function TopBar({
                     </DropdownMenu.Portal>
                   </DropdownMenu.Sub>
                 )}
-                <Item onSelect={() => { setDraft(conversation.title); setEditing(true); }} icon={<Pencil size={14} />}>
+                <Item onSelect={() => { setDraft(conversation.title); renaming.current = true; }} icon={<Pencil size={14} />}>
                   Rename
                 </Item>
                 <Item onSelect={onSaveAsNote} icon={<NotebookPen size={14} />}>

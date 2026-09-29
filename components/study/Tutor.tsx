@@ -282,9 +282,20 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
     setQuestion("");
     setAsking(true);
     setLive("");
-    const pic = await picture();
+    /* The picture and the save can fail too (a page that will not draw,
+       storage full). Before, they sat outside the try below, so a failure
+       left the box busy for good with the question already cleared. */
+    let pic: Awaited<ReturnType<typeof picture>>;
     const markedBox = box;
-    await addLessonTurn({ lessonId: lesson.id, role: "user", text: q, page, crop: pic?.what === "region" ? pic.url : undefined });
+    try {
+      pic = await picture();
+      await addLessonTurn({ lessonId: lesson.id, role: "user", text: q, page, crop: pic?.what === "region" ? pic.url : undefined });
+    } catch (err) {
+      setAsking(false);
+      setQuestion(q);
+      setNotice(err instanceof Error && err.message ? `That did not go: ${err.message}` : "That did not go. Try again.");
+      return;
+    }
 
     /* Every turn so far as the exchange, then this one with its picture. A
        tutor that forgot the last thing it explained would be a search box. */

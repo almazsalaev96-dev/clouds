@@ -41,6 +41,9 @@ const PROBES: Record<ProviderId, (key: string) => Promise<Response>> = {
   /* Its model list is public, so it proves nothing about a key; this does. */
   openrouter: (key) =>
     fetch("https://openrouter.ai/api/v1/key", { headers: { authorization: `Bearer ${key}` } }),
+  /* Nothing to test on the server: a local model has no key, and the
+     server cannot see the person's computer. */
+  local: async () => Response.json({ ok: false, message: "Models on your computer are checked from the browser, in Settings." }, { status: 400 }),
 };
 
 export async function POST(req: NextRequest) {
