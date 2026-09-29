@@ -65,14 +65,15 @@ console.log("\nOn a desktop window");
      built to the height of its text rather than to the size of a thing you
      point at. */
   const nav = await p.locator("aside nav button").first().boundingBox();
-  band(nav ? nav.height : null, 36, 44, "a navigation row");
+  /* 48, as ChatGPT's iPad app sets its rows. */
+  band(nav ? nav.height : null, 44, 52, "a navigation row");
 
   /* The sidebar's own primary action, which is a hand-rolled row rather than
      the shared Button — worth holding separately for exactly that reason.
      `btn-touch` raises the shared one to 44 under a thumb; this is the height
      a cursor gets. */
   const btn = await p.getByRole("button", { name: "New chat" }).first().boundingBox();
-  band(btn ? btn.height : null, 36, 44, "the sidebar's primary action");
+  band(btn ? btn.height : null, 44, 52, "the sidebar's primary action");
 
   /* The composer's ceiling, from the element and not from the class: a `vh`
      value reads as adaptive and is the opposite — the taller the window, the
@@ -96,10 +97,9 @@ console.log("\nOn a desktop window");
 
 console.log("\nHidden on a desktop window");
 {
-  /* Closed on a desk is a rail, as the reference draws it: 56px of the
-     panel's own controls, the page beside them, the full panel inert
-     behind it, and the rail's top square the one way to bring it back —
-     the bar carries no copy. */
+  /* Closed on a desk is closed, as ChatGPT's app has it: no rail, the page
+     from the left edge, and one round button at its top left to bring the
+     panel back. */
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
   await p.goto("http://localhost:3100", { waitUntil: "networkidle" });
@@ -107,16 +107,13 @@ console.log("\nHidden on a desktop window");
   await p.reload({ waitUntil: "networkidle" });
   await p.waitForTimeout(700);
   const aside = await p.locator("aside").boundingBox();
-  band(aside ? Math.round(aside.width) : null, 52, 60, "closed, the rail");
+  check(!aside || aside.width < 2, "closed, no rail is left", aside ? `${Math.round(aside.width)}px` : "gone");
   const inert = await p.locator("aside [inert]").count();
-  check(inert === 1, "and the full panel behind it cannot be reached by tab");
+  check(inert === 1, "and the panel cannot be reached by tab");
   const mainX = await p.locator("main").boundingBox();
-  check(Boolean(mainX) && mainX.x >= 56 && mainX.x <= 72, "so the page starts just past the rail", mainX ? `${Math.round(mainX.x)}px in` : "no main");
-  const opens = await p.locator("aside").getByRole("button", { name: "Open sidebar" }).count();
-  const barCopies = await p.locator("header").getByRole("button", { name: /Show sidebar|Hide sidebar/ }).filter({ visible: true }).count();
-  check(opens === 1 && barCopies === 0, "and exactly one way to bring it back, at the top of the rail", `${opens} on the rail, ${barCopies} in the bar`);
-  for (const name of ["New chat", "Search", "Conversations", "Settings"])
-    check(await p.locator("aside").getByRole("button", { name, exact: true }).isVisible(), `the rail carries ${name}`);
+  check(Boolean(mainX) && mainX.x <= 8, "so the page starts at the left edge", mainX ? `${Math.round(mainX.x)}px in` : "no main");
+  const show = p.locator("main header").getByRole("button", { name: "Show sidebar" }).filter({ visible: true });
+  check(await show.count() === 1, "and one round button at the top left brings it back", `${await show.count()}`);
   await ctx.close();
 }
 

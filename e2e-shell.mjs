@@ -20,23 +20,23 @@ await p.waitForTimeout(900);
 
 
 
-console.log("\nThe panel carries its own switch, and leaves a rail");
+console.log("\nThe sidebar's switch is a round button on the page, and closed is closed");
 {
-  /* As the reference draws it: the close control in the panel's header,
-     the open control at the top of the rail the closed panel leaves, and
-     no copy of either in the bar on a desk. */
+  /* As ChatGPT's app has it: one round control at the top left of the page,
+     open or shut, and no rail left behind when the panel is away. */
   const aside = p.locator("aside").first();
-  const close = aside.getByRole("button", { name: "Close sidebar" });
-  check(await close.isVisible(), "the switch sits in the panel's header");
-  check((await p.locator("header").first().getByRole("button", { name: /Hide sidebar|Show sidebar/ }).filter({ visible: true }).count()) === 0,
-    "and the bar carries no copy of it on a desk");
-  await close.click();
+  const hide = p.locator("main").getByRole("button", { name: "Hide sidebar" }).first();
+  check(await hide.isVisible(), "the switch sits at the top left of the page");
+  const box = await hide.boundingBox();
+  check(box && Math.abs(box.width - box.height) < 2 && box.width >= 40, "round, and big enough for a finger", box ? `${Math.round(box.width)}×${Math.round(box.height)}` : "");
+  await hide.click();
   await p.waitForTimeout(600);
-  check(await aside.getByRole("button", { name: "Open sidebar" }).isVisible(),
-    "closed, the rail's top square is the open control");
-  await aside.getByRole("button", { name: "Open sidebar" }).click();
+  check(!(await aside.isVisible()) || (await aside.evaluate((el) => el.getBoundingClientRect().width)) < 2, "closed, nothing of the panel is left");
+  const show = p.locator("main").getByRole("button", { name: "Show sidebar" }).first();
+  check(await show.isVisible(), "and the same button opens it");
+  await show.click();
   await p.waitForTimeout(600);
-  check(await close.isVisible(), "and it opens again from there");
+  check(await hide.isVisible() && await aside.getByRole("button", { name: "New chat" }).isVisible(), "which brings it back, with the Chat button at its foot");
 }
 
 console.log("\nAnd search is a button until it is wanted");

@@ -7,7 +7,6 @@ import { BookOpen, GraduationCap, KeyRound, LayoutTemplate, PenLine, Sparkles, X
 import { db } from "@/lib/db";
 import { dueNow, type Card } from "@/lib/study";
 import { useSettings, type Section } from "@/lib/store";
-import { Mark } from "@/components/brand/Logo";
 
 /**
  * The time of day, as a greeting.
@@ -156,22 +155,15 @@ export function EmptyState({
           {/* The mark sits *in* the line rather than above it. Stacked, the
               name and the greeting are two announcements; on one line they are
               a signature at the head of a letter, which is the whole idea. */}
+          {/* One plain line in the interface's own type, as ChatGPT greets
+              you — no mark, no second line under it. */}
           <h1
-            className="display flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[1.75rem] text-primary anim-rise"
+            className="text-[1.75rem] font-normal tracking-tight text-primary anim-rise"
+            title={greeting}
             suppressHydrationWarning
           >
-            <Mark size={42} className="text-primary" />
-            <span>
-              {greeting}
-              {name ? `, ${name.trim()}` : ""}
-            </span>
+            {name.trim() ? `Where should we start, ${name.trim()}?` : "Where should we start?"}
           </h1>
-          <p
-            className="display-italic mt-1.5 text-[1.25rem] text-secondary anim-rise"
-            style={{ animationDelay: "40ms" }}
-          >
-            Where should we start?
-          </p>
           {/* Which model is answering is no longer announced here: it lives in
               the composer, next to the box you are about to type in, where it
               is both visible and changeable. Saying it twice on one screen

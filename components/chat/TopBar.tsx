@@ -4,7 +4,7 @@ import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Archive, ArchiveRestore, Check, ChevronDown, Download, FolderOpen, MessageSquareDashed,
-  MoreHorizontal, NotebookPen, PanelLeft, Pin, PinOff, Share2, Trash2, Wand2, X,
+  MoreHorizontal, NotebookPen, Pencil, Pin, PinOff, Share2, SquarePen, Trash2, Wand2, X,
 } from "lucide-react";
 import type { Conversation, Project } from "@/lib/types";
 import { useSettings } from "@/lib/store";
@@ -43,6 +43,7 @@ export function TopBar({
   modelPickerOpen,
   onModelPickerOpenChange,
   onModelChange,
+  onNewChat,
 }: {
   conversation: Conversation | null;
   scrolled: boolean;
@@ -80,6 +81,8 @@ export function TopBar({
   modelPickerOpen: boolean;
   onModelPickerOpenChange: (o: boolean) => void;
   onModelChange: (id: string) => void;
+  /** Start another conversation, from the pill at the top right. */
+  onNewChat?: () => void;
 }) {
   const { sidebarOpen, toggleSidebar, keys } = useSettings();
   const [editing, setEditing] = React.useState(false);
@@ -96,28 +99,25 @@ export function TopBar({
 
   return (
     <header
-      className={cn(
-        "safe-top no-print sticky top-0 z-20 flex h-[calc(var(--topbar-h)+env(safe-area-inset-top))] shrink-0 items-center gap-1 px-2 transition-[border-color,background-color] duration-[var(--dur-fast)]",
-        "border-b",
-        /* Not a bar until there is something to be a bar over. At rest the
-           page shows through and the two controls sit on it as pills, the
-           way the reference's do; once the transcript scrolls under, the
-           strip takes the glass and the hairline so the words stay legible
-           behind the controls. */
-        scrolled ? "glass border-line" : "border-transparent bg-transparent",
-      )}
+      /* No bar: two floating controls at the top left and one pill at the
+         top right, over the page, as ChatGPT's app has them. The strip
+         itself lets touches through to what scrolls beneath it. */
+      className="safe-top no-print pointer-events-none sticky top-0 z-20 flex h-[calc(4.25rem+env(safe-area-inset-top))] shrink-0 items-center gap-2 px-3 [&>*]:pointer-events-auto"
+      data-scrolled={scrolled || undefined}
     >
-      {/* On a desk the panel carries its own control, in its header when
-          open and at the top of the rail when closed, as the reference has
-          it. This one opens the drawer on a phone, where there is no rail. */}
-      <IconButton
-        label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
-        keys={["mod", "\\"]}
-        onClick={toggleSidebar}
-        className="rounded-lg hover:bg-subtle md:hidden"
-      >
-        <PanelLeft size={16} />
-      </IconButton>
+      {/* The sidebar's switch, round, in the corner, open or shut. */}
+      <Tooltip label={sidebarOpen ? "Hide sidebar" : "Show sidebar"} keys={["mod", "\\"]}>
+        <button
+          onClick={toggleSidebar}
+          aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+          aria-expanded={sidebarOpen}
+          className="tap flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-primary shadow-sm transition-[filter] duration-[var(--dur-fast)] hover:brightness-125"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+            <path d="M3 7h14M3 13h9" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+          </svg>
+        </button>
+      </Tooltip>
 
       {/* Which model answers, at the top left, which is where the eye starts
           and where every assistant with more than one model puts it. It has
@@ -145,7 +145,7 @@ export function TopBar({
           /* On a phone the chips beside it give way (they scroll), not the
              name of the model: "M…" beside two whole chips said the least
              important thing whole and the most important one not at all. */
-          className="btn-touch focus-inset flex h-8 min-w-0 shrink items-center gap-1 rounded-full bg-subtle/70 px-3 text-[0.9375rem] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary max-sm:shrink-0"
+          className="btn-touch focus-inset flex h-10 min-w-0 shrink items-center gap-1.5 rounded-xl px-2.5 text-[1.0625rem] text-primary transition-colors duration-[var(--dur-fast)] hover:bg-subtle max-sm:shrink-0"
         >
           {modelId === AUTO ? (
             <>
@@ -178,7 +178,7 @@ export function TopBar({
               )}
             </>
           )}
-          <ChevronDown size={11} className="shrink-0 text-tertiary" />
+          <ChevronDown size={15} className="shrink-0 text-tertiary" />
         </button>
       </ModelPicker>
 
@@ -253,40 +253,30 @@ export function TopBar({
         </div>
       )}
 
-      {conversation && (
-        <div className="mx-2 hidden min-w-0 flex-1 text-center sm:block">
-          {editing ? (
-            <input
-              autoFocus
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onBlur={() => {
-                onRename(draft.trim() || conversation.title);
-                setEditing(false);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") e.currentTarget.blur();
-                if (e.key === "Escape") setEditing(false);
-              }}
-              aria-label="Conversation title"
-              className="w-full max-w-sm rounded-sm bg-transparent text-center text-sm text-primary outline-none ring-1 ring-accent"
-            />
-          ) : (
-            <button
-              onClick={() => {
-                setDraft(conversation.title);
-                setEditing(true);
-              }}
-              className="mx-auto block max-w-sm truncate rounded-sm px-2 py-0.5 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
-              title={conversation.title || "Untitled"}
-            >
-              {conversation.title || "New chat"}
-            </button>
-          )}
+      {/* No title on the page, as ChatGPT has none: the sidebar names the
+          chat. Renaming, from the menu, is done here. */}
+      {conversation && editing && (
+        <div className="mx-2 min-w-0 flex-1 text-center">
+          <input
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={() => {
+              onRename(draft.trim() || conversation.title);
+              setEditing(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+              if (e.key === "Escape") setEditing(false);
+            }}
+            aria-label="Conversation title"
+            className="h-10 w-full max-w-sm rounded-full border border-line bg-surface px-4 text-center text-sm text-primary outline-none focus:border-[var(--accent)]"
+          />
         </div>
       )}
 
-      <div className="ml-auto flex items-center gap-0.5">
+      {/* New chat and the thread's menu, in one pill at the top right. */}
+      <div className="ml-auto flex h-11 items-center gap-0.5 rounded-full border border-line bg-surface px-1 shadow-sm">
         {/* Before the first message only. ChatGPT, Gemini and Claude all
             put this here, top right of a new chat, and it is the right
             place: a decision about the chat you are about to have, made
@@ -298,8 +288,13 @@ export function TopBar({
             props stay on this component because the bar still owns temporary,
             and a room that wants the pair together has somewhere to put it. */}
         {!conversation && onToggleTemporary && (
-          <IconButton label={temporary ? "Keep this chat" : "Temporary chat"} active={temporary} onClick={onToggleTemporary}>
-            <MessageSquareDashed size={16} />
+          <IconButton label={temporary ? "Keep this chat" : "Temporary chat"} active={temporary} onClick={onToggleTemporary} className="rounded-full">
+            <MessageSquareDashed size={19} />
+          </IconButton>
+        )}
+        {onNewChat && (
+          <IconButton label="Start a new chat" keys={["mod", "N"]} onClick={onNewChat} className="rounded-full text-primary">
+            <SquarePen size={19} />
           </IconButton>
         )}
         {conversation && (
@@ -307,9 +302,9 @@ export function TopBar({
             <DropdownMenu.Trigger asChild>
               <button
                 aria-label="Conversation options"
-                className="ctl [--ctl:2rem] flex items-center justify-center rounded-md text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+                className="ctl [--ctl:2.25rem] flex items-center justify-center rounded-full text-primary transition-colors duration-[var(--dur-fast)] hover:bg-subtle"
               >
-                <MoreHorizontal size={16} />
+                <MoreHorizontal size={20} />
               </button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
@@ -355,6 +350,9 @@ export function TopBar({
                     </DropdownMenu.Portal>
                   </DropdownMenu.Sub>
                 )}
+                <Item onSelect={() => { setDraft(conversation.title); setEditing(true); }} icon={<Pencil size={14} />}>
+                  Rename
+                </Item>
                 <Item onSelect={onSaveAsNote} icon={<NotebookPen size={14} />}>
                   Save as a note
                 </Item>

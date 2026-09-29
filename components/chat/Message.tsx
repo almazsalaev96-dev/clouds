@@ -450,7 +450,11 @@ function AssistantMessageImpl({
           above metadata to say so. 12px was doing both this job and the job of
           a tiny label, and a scale where one size does two jobs has a missing
           step rather than a spare one. */}
-      <div className="mb-2 flex items-center gap-2 text-meta text-tertiary">
+      {/* No name over the answer, as ChatGPT has none: who answered is still
+          said to a screen reader and in the text a copy takes, and what went
+          wrong with the turn — stopped, refused — is still shown. */}
+      <div className="flex items-center gap-2 text-meta text-tertiary [&:has(>:not(.sr-only))]:mb-2">
+        <span className="sr-only">
         {/* One mark, and it is Armi's. An Armi model is a cast of two or
             three engines from different companies, so one company's mark over
             it would be picking a side — and an answer from a thread pinned to
@@ -468,6 +472,7 @@ function AssistantMessageImpl({
         >
           {computed ? "Calculator" : (author ?? "Assistant")}
         </span>
+        </span>
         {/* Why this one, when the app chose it rather than you. A router you
             cannot see is a router you cannot correct — and "it picked a cheap
             model for my hard question" is only a complaint you can make if you
@@ -483,7 +488,7 @@ function AssistantMessageImpl({
             twice, that the engine it wanted was not available. A sentence
             worth saying is worth the room to say it, so it gets a line. */}
 
-        <span className="reveal flex items-center gap-2">
+        <span className="sr-only">
           {message.latencyMs != null && (
             <span className="tnum" title={describeTiming(message.latencyMs, message.ttftMs)}>
               {formatDuration(message.latencyMs)}

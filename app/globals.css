@@ -41,6 +41,9 @@
 @font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 500; font-display: swap; src: url("/fonts/jetbrains-mono-500.woff2") format("woff2"); }
 
 :root {
+  /* ChatGPT's blue, for the "Chat" pill and the voice button: saturated
+     enough to carry white in either theme. */
+  --blue: #0a7cff;
   color-scheme: light;
 
   /* ---------------------------------------------------------------------
@@ -747,17 +750,16 @@
        ground. It is the lifted surface now, like every other raised thing —
        which means it follows `--bg-subtle`, and followed it again when the
        ground lost its blue. */
-    --composer-bg: rgba(23, 23, 23, 0.9);
-    --composer-line: rgba(231, 232, 233, 0.10);
-    --composer-line-focus: rgba(111, 220, 220, 0.38);
-    --composer-lift: inset 0 1px 0 rgb(231 232 233 / 0.06), 0 16px 40px -20px rgb(0 0 0 / 0.8);
+    /* ChatGPT's box: a solid grey pill a step above the page, a hairline
+       you barely see, no glow while you type. */
+    --composer-bg: #262626;
+    --composer-line: rgba(255, 255, 255, 0.06);
+    --composer-line-focus: rgba(255, 255, 255, 0.10);
+    --composer-lift: 0 8px 24px -16px rgb(0 0 0 / 0.8);
     /* The ring around the box you type in, only while the caret is in it, and
        in the cyan of the signal rather than in the structural blue: it marks
        where you are writing, which is the one thing a signal light does. */
-    --composer-lift-focus:
-      inset 0 1px 0 rgb(231 232 233 / 0.10),
-      0 24px 56px -22px rgb(0 0 0 / 0.9),
-      0 0 0 3px rgb(var(--accent-2-rgb) / 0.10);
+    --composer-lift-focus: 0 8px 24px -16px rgb(0 0 0 / 0.8);
   }
 }
 

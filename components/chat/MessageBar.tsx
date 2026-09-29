@@ -166,6 +166,9 @@ export function MessageBar({
   };
 
   const sendable = canSend && !busy && Boolean(value.trim());
+  /* ChatGPT's corner: with nothing typed, the round button is voice, in
+     blue; the moment there are words it is send. */
+  const voiceInPlace = Boolean(voice?.supported) && voice?.phase === "off" && !value.trim() && !streaming && !busy;
 
   return (
     <div
@@ -270,26 +273,22 @@ export function MessageBar({
               conversation. Its state is on its face — Listening, Thinking,
               Speaking — because a mode you cannot see the state of is a
               mode you cannot trust with your microphone. */}
-          {voice?.supported && (
-            <Tooltip label={voice.phase === "off" ? "Voice mode" : "End voice mode"}>
+          {voice?.supported && voice.phase !== "off" && (
+            <Tooltip label="End voice mode">
               <button
                 onClick={voice.toggle}
-                aria-label={voice.phase === "off" ? "Voice mode" : "End voice mode"}
-                aria-pressed={voice.phase !== "off"}
+                aria-label="End voice mode"
+                aria-pressed
                 className={cn(
                   "focus-inset flex [--ctl:2.25rem] shrink-0 items-center justify-center gap-1.5 rounded-full transition-colors duration-[var(--dur-fast)]",
                   /* Square while it is an icon, a pill once it carries a word. */
-                  voice.phase === "off"
-                    ? "ctl text-secondary hover:bg-subtle hover:text-primary"
-                    : "ctl-h bg-accent-subtle px-3 text-accent",
+                  "ctl-h bg-accent-subtle px-3 text-accent",
                 )}
               >
                 <AudioLines size={18} />
-                {voice.phase !== "off" && (
-                  <span className="text-sm" aria-live="polite">
-                    {voice.phase === "listening" ? "Listening" : voice.phase === "thinking" ? "Thinking" : "Speaking"}
-                  </span>
-                )}
+                <span className="text-sm" aria-live="polite">
+                  {voice.phase === "listening" ? "Listening" : voice.phase === "thinking" ? "Thinking" : "Speaking"}
+                </span>
               </button>
             </Tooltip>
           )}
@@ -310,11 +309,26 @@ export function MessageBar({
                    composer, a fill this close to the surface behind it just
                    disappears, so it borrows the border instead of the surface. */
                 "disabled:bg-[color-mix(in_oklab,var(--text-primary)_16%,transparent)] disabled:text-[var(--text-faint)]",
-                streaming ? "pointer-events-none opacity-0" : "opacity-100",
+                streaming || voiceInPlace ? "pointer-events-none opacity-0" : "opacity-100",
               )}
             >
               {busy ? <span className="think-orb" aria-hidden /> : <ArrowUp size={19} />}
             </button>
+            {voice?.supported && (
+              <button
+                onClick={voice.toggle}
+                disabled={!voiceInPlace}
+                aria-hidden={!voiceInPlace || undefined}
+                tabIndex={voiceInPlace ? 0 : -1}
+                aria-label="Voice mode"
+                className={cn(
+                  "focus-inset absolute inset-0 flex items-center justify-center rounded-full bg-[var(--blue)] text-white transition-[opacity,filter] duration-[var(--dur-fast)] hover:brightness-110",
+                  voiceInPlace ? "opacity-100" : "pointer-events-none opacity-0",
+                )}
+              >
+                <AudioLines size={18} />
+              </button>
+            )}
             {onStop && (
               <button
                 onClick={onStop}

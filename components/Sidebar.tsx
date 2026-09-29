@@ -4,7 +4,7 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   BookOpen, ChevronRight, FolderOpen, Keyboard, MessagesSquare, MoreHorizontal, NotebookPen,
-  PanelLeft, Pin, PinOff, Plus, Search, Settings2, Sparkles, SquarePen, Trash2, X,
+  PanelLeft, Pin, PinOff, Plus, Search, Settings, Settings2, Sparkles, SquarePen, Trash2, X,
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { createNote, db, deleteConversation, groupConversations } from "@/lib/db";
@@ -141,7 +141,7 @@ export function Sidebar({
           "md:my-2 md:ml-2 md:rounded-xl md:border-r-0 md:shadow-md",
           sidebarOpen
             ? "translate-x-0 md:w-[var(--sidebar-w)]"
-            : "-translate-x-full md:w-[var(--rail-w)] md:translate-x-0",
+            : "-translate-x-full md:hidden",
         )}
         /* The full panel, below, is `inert` as well as `aria-hidden` when
            closed, and the pair is the point: clipped to nothing on a desk
@@ -158,45 +158,11 @@ export function Sidebar({
             into the open-sidebar icon under the pointer; New chat; Search;
             the rooms as icons; the account at the bottom. Everything a
             press away, no label in the way of the page. */}
-        {!sidebarOpen && (
-          <div className="hidden h-full w-[var(--rail-w)] flex-col items-center gap-1 px-2 py-2 md:flex" data-rail>
-            <SidebarToggle open={false} onClick={toggleSidebar} />
-            <IconButton label="New chat" keys={["mod", "N"]} onClick={onNewChat} size={40} className="rounded-lg">
-              <SquarePen size={18} />
-            </IconButton>
-            <IconButton label="Search" onClick={() => { toggleSidebar(); setSearching(true); }} size={40} className="rounded-lg">
-              <Search size={18} />
-            </IconButton>
-            <span className="my-1 h-px w-6 shrink-0 bg-line" aria-hidden />
-            <nav aria-label="Rooms" className="flex flex-col gap-1">
-              {SECTIONS.map((s) => {
-                const on = section === s.id;
-                return (
-                  <IconButton
-                    key={s.id}
-                    label={s.label}
-                    aria-current={on ? "true" : undefined}
-                    onClick={() => onGoToSection(s.id)}
-                    size={40}
-                    className={cn("rounded-lg", on ? "bg-subtle text-primary hover:bg-subtle hover:text-primary" : "")}
-                  >
-                    {s.icon}
-                  </IconButton>
-                );
-              })}
-            </nav>
-            <span className="flex-1" />
-            <button
-              onClick={onOpenSettings}
-              aria-label="Settings"
-              className="tap mb-1 flex size-9 shrink-0 items-center justify-center rounded-full bg-accent-subtle text-tiny font-semibold uppercase text-accent transition-colors duration-[var(--dur-fast)] hover:brightness-110"
-            >
-              {(name.trim()[0] ?? "").toUpperCase() || <Settings2 size={14} />}
-            </button>
-          </div>
-        )}
+        {/* Closed is closed: no rail. The sidebar's switch stays at the top
+            left of the page, a round button over the content, as ChatGPT's
+            iPad app has it. */}
         <div
-          className={cn("flex w-[var(--sidebar-w)] flex-1 flex-col", !sidebarOpen && "md:hidden")}
+          className={cn("relative flex min-h-0 w-[var(--sidebar-w)] flex-1 flex-col", !sidebarOpen && "md:hidden")}
           inert={!sidebarOpen}
           aria-hidden={!sidebarOpen}
         >
@@ -204,14 +170,13 @@ export function Sidebar({
               the reference's header has them: the panel carries its own
               switch, and the same square at the top of the rail carries
               the other half of it when the panel is closed. */}
-          <div className="flex h-[var(--topbar-h)] items-center gap-2 px-3">
+          <div className="flex h-16 items-center gap-2 pl-4 pr-3 pt-1">
             {/* The drawn word, not the name set in the interface font. A
                 product's own name is the one string it should never render in
                 whatever the operating system happened to load. */}
             <span className="min-w-0 flex-1">
               <Lockup />
             </span>
-            <SidebarToggle open onClick={toggleSidebar} />
             <button
               onClick={() => setSearching((v) => !v)}
               /* Not the same name as the field it opens: two controls with
@@ -227,25 +192,14 @@ export function Sidebar({
                    is the floor here too, and a rule that bends for the
                    thing its author happens to be drawing is not a rule. */
                 "tap flex size-11 shrink-0 items-center justify-center rounded-full transition-colors duration-[var(--dur-fast)]",
-                searching ? "bg-accent-subtle text-accent" : "bg-surface text-secondary hover:text-primary",
+                searching ? "bg-accent-subtle text-accent" : "bg-subtle text-primary hover:brightness-110",
               )}
             >
-              <Search size={17} />
+              <Search size={20} />
             </button>
           </div>
 
           <div className="space-y-1 px-2 pb-2">
-            <button
-              onClick={onNewChat}
-              className="tap group flex h-11 w-full items-center gap-3 rounded-md border border-line bg-surface px-3 text-sm font-medium text-primary transition-colors duration-[var(--dur-fast)] hover:border-line-strong"
-            >
-              <Plus size={17} className="text-tertiary transition-colors duration-[var(--dur-fast)] group-hover:text-accent" />
-              New chat
-              <span className="ml-auto reveal">
-                <Kbd keys={["mod", "N"]} />
-              </span>
-            </button>
-
             {/* Shown when it is asked for, which is the same rule the tools
                 in the composer follow. A search box that sits there on every
                 screen of every session is a row of furniture for the one
@@ -328,13 +282,13 @@ export function Sidebar({
                        height costs nothing but air, which a list of six
                        rooms has to spare. */
                     className={cn(
-                      "tap flex h-11 w-full items-center gap-3 rounded-md px-3 text-sm transition-colors duration-[var(--dur-fast)]",
+                      "tap flex h-12 w-full items-center gap-3.5 rounded-xl px-3 text-[1.0625rem] text-primary transition-colors duration-[var(--dur-fast)]",
                       // The row only changes the colour of its ink; the fill
                       // underneath it is the one element that moves.
-                      on ? "font-medium text-primary" : "text-secondary hover:bg-subtle/60 hover:text-primary",
+                      on ? "font-medium" : "hover:bg-subtle/60",
                     )}
                   >
-                    <span className={cn("shrink-0", on ? "text-accent" : "text-tertiary")}>
+                    <span className={cn("shrink-0", on ? "text-accent" : "text-primary")}>
                       {s.icon}
                     </span>
                     {s.label}
@@ -348,7 +302,7 @@ export function Sidebar({
               below read as two different kinds of thing. */}
           <div className="mx-2 mb-1 mt-1 border-t border-line" aria-hidden />
 
-          <div className="flex-1 overflow-y-auto px-2 pb-2">
+          <div className="flex-1 overflow-y-auto px-2 pb-24">
             {/* The list under the rooms is the room's own. Conversations in
                 Conversations; decks in Study, pages in the Notebook, projects
                 in Projects, what you made in Studio — each a tap away
@@ -382,33 +336,25 @@ export function Sidebar({
             )}
           </div>
 
-          {/* The account row. An app that has asked your name and then signs
-              its own footer "Settings" has forgotten it again; this is the one
-              place the answer is worth showing back. It is still the settings
-              button — the name is the label, not a second control. */}
-          <div className="flex items-center gap-1 border-t border-line p-2">
+          {/* The foot, as ChatGPT's iPad app has it — last in the page's order
+              as it is last on the screen, so Tab walks down the panel: a blue "Chat" pill to
+              start a new conversation and a round gear for settings, floating
+              over the end of the list rather than a row of their own. */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-between bg-gradient-to-t from-[var(--bg-canvas)] via-[color-mix(in_oklab,var(--bg-canvas)_70%,transparent)] to-transparent px-4 pb-4 pt-10">
+            <button
+              onClick={onNewChat}
+              aria-label="New chat"
+              className="tap pointer-events-auto flex h-12 items-center gap-2.5 rounded-full bg-[var(--blue)] pl-4 pr-5 text-[1.0625rem] font-medium text-white shadow-lg transition-[filter] duration-[var(--dur-fast)] hover:brightness-110"
+            >
+              <SquarePen size={20} /> Chat
+            </button>
             <button
               onClick={onOpenSettings}
               aria-label="Settings"
-              className="tap group flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 text-left transition-colors duration-[var(--dur-fast)] hover:bg-subtle/60"
+              className="tap pointer-events-auto flex size-12 items-center justify-center rounded-full border border-line bg-subtle text-primary shadow-lg transition-[filter] duration-[var(--dur-fast)] hover:brightness-110"
             >
-              <span
-                aria-hidden
-                className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-subtle text-tiny font-semibold uppercase text-accent"
-              >
-                {(name.trim()[0] ?? "").toUpperCase() || <Settings2 size={13} />}
-              </span>
-              <span className="min-w-0 flex-1 truncate text-sm text-secondary group-hover:text-primary">
-                {name.trim() || "Settings"}
-              </span>
-              {/* `reveal`, not a bare hover: on a touch screen there is no
-                  hover, and a row that reads "Almaz" with nothing beside it
-                  gives no sign it is the way to Settings. */}
-              <Settings2 size={14} className="reveal shrink-0 text-tertiary" />
+              <Settings size={21} />
             </button>
-            <IconButton label="Keyboard shortcuts" keys={["?"]} onClick={onOpenShortcuts}>
-              <Keyboard size={15} />
-            </IconButton>
           </div>
         </div>
       </aside>
@@ -459,7 +405,9 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
        letterspacing is a label shouting its own name; "Today" is a word you
        read past on the way to the thing under it, which is what a group
        heading is for. */
-    <h2 className="glass sticky top-0 z-10 px-2 pb-1 pt-3 text-meta font-medium text-faint">
+    /* A heading you can read, as ChatGPT sets "Recent": the list's own
+       size, in weight, not a faint label. */
+    <h2 className="px-3 pb-1.5 pt-5 text-[1.0625rem] font-semibold text-primary">
       {children}
     </h2>
   );
@@ -503,7 +451,7 @@ function Empty({ query, noun, onNew }: { query: string; noun: string; onNew?: ()
 function Notebooks({ activeId, onOpen, onAll }: { activeId: string | null; onOpen: (id: string) => void; onAll?: () => void }) {
   const books = useLiveQuery(() => db.notes.filter((n) => n.view === "notebook").toArray(), [], []);
   const recent = [...(books ?? [])].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 3);
-  const row = "tap focus-inset flex h-9 w-full items-center gap-2.5 rounded-md px-2 text-left text-sm transition-colors duration-[var(--dur-fast)]";
+  const row = "tap focus-inset flex h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-[1.0625rem] transition-colors duration-[var(--dur-fast)]";
   return (
     <section aria-label="Notebooks" className="mb-3">
       <GroupLabel>Notebooks</GroupLabel>
@@ -511,7 +459,7 @@ function Notebooks({ activeId, onOpen, onAll }: { activeId: string | null; onOpe
         <li>
           <button
             onClick={async () => { const made = await createNote({ title: "Untitled notebook", view: "notebook" }); onOpen(made.id); }}
-            className={cn(row, "text-secondary hover:bg-subtle/60 hover:text-primary")}
+            className={cn(row, "text-primary hover:bg-subtle/60")}
           >
             <Plus size={16} className="shrink-0 text-tertiary" aria-hidden /> New notebook
           </button>
@@ -522,7 +470,7 @@ function Notebooks({ activeId, onOpen, onAll }: { activeId: string | null; onOpe
               onClick={() => onOpen(n.id)}
               aria-current={n.id === activeId || undefined}
               title={n.title || "Untitled notebook"}
-              className={cn(row, n.id === activeId ? "bg-subtle text-primary" : "text-secondary hover:bg-subtle/60 hover:text-primary")}
+              className={cn(row, n.id === activeId ? "bg-subtle text-primary" : "text-primary hover:bg-subtle/60")}
             >
               {n.nb?.icon ? <span aria-hidden className="w-4 shrink-0 text-center text-[0.9rem] leading-none">{n.nb.icon}</span> : <BookOpen size={16} className="shrink-0 text-tertiary" aria-hidden />}
               <span className="min-w-0 flex-1 truncate">{n.title?.trim() || "Untitled notebook"}</span>
@@ -531,7 +479,7 @@ function Notebooks({ activeId, onOpen, onAll }: { activeId: string | null; onOpe
         ))}
         {onAll && (books?.length ?? 0) > 0 && (
           <li>
-            <button onClick={onAll} className={cn(row, "text-secondary hover:bg-subtle/60 hover:text-primary")}>
+            <button onClick={onAll} className={cn(row, "text-primary hover:bg-subtle/60")}>
               <MoreHorizontal size={16} className="shrink-0 text-tertiary" aria-hidden /> All notebooks
             </button>
           </li>
@@ -613,8 +561,8 @@ function RoomList({
                 onClick={() => onOpen(r.id)}
                 aria-current={on || undefined}
                 className={cn(
-                  "tap focus-inset flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-sm transition-colors duration-[var(--dur-fast)]",
-                  on ? "bg-subtle text-primary" : "text-secondary hover:bg-subtle/60 hover:text-primary",
+                  "tap focus-inset flex h-12 w-full items-center gap-2 rounded-xl px-3 text-left text-[1.0625rem] transition-colors duration-[var(--dur-fast)]",
+                  on ? "bg-subtle text-primary" : "text-primary hover:bg-subtle/60",
                 )}
                 title={r.title}
               >
@@ -719,12 +667,14 @@ function ChatList({
           {pinned.map(row)}
         </section>
       )}
-      {groups.map(([label, items]) => (
-        <section key={label} className="mb-2">
-          <GroupLabel>{label}</GroupLabel>
-          {items.map(row)}
+      {/* One list, newest first, under "Recent" — as ChatGPT has it — rather
+          than a heading for every day. */}
+      {groups.length > 0 && (
+        <section className="mb-2" aria-label="Recent">
+          <GroupLabel>Recent</GroupLabel>
+          {groups.flatMap(([, items]) => items).map(row)}
         </section>
-      ))}
+      )}
 
       {/* Archived conversations, out of the way but not out of reach. Closed
           by default and silent when there are none, so it costs nothing to
@@ -774,7 +724,7 @@ function Row({
   return (
     <div
       className={cn(
-        "tap group relative flex h-8 items-center rounded-md pl-2 pr-1 transition-colors duration-[var(--dur-fast)]",
+        "tap group relative flex h-12 items-center rounded-xl pl-3 pr-1.5 transition-colors duration-[var(--dur-fast)]",
         active ? "bg-subtle" : "hover:bg-subtle/60",
       )}
     >
@@ -786,8 +736,7 @@ function Row({
       <button
         onClick={onSelect}
         className={cn(
-          "flex h-full min-w-0 flex-1 items-center text-left text-sm",
-          active ? "text-primary" : "text-secondary group-hover:text-primary",
+          "flex h-full min-w-0 flex-1 items-center text-left text-[1.0625rem] text-primary",
         )}
         title={title}
       >

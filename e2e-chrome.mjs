@@ -38,41 +38,32 @@ await p.evaluate(async (s) => {
 await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(900);
 
-console.log("\nThe sidebar carries its own control, and leaves a rail when closed");
+console.log("\nThe sidebar, laid out as ChatGPT's app lays it out");
 {
   const aside = p.locator("aside").first();
-  const close = aside.getByRole("button", { name: "Close sidebar" });
-  check(await close.isVisible(), "open, the panel's header holds Close sidebar");
-  check((await p.locator("header").getByRole("button", { name: /Hide sidebar|Show sidebar/ }).filter({ visible: true }).count()) === 0, "and the bar shows no toggle of its own on a desk");
-  await close.click();
-  await p.waitForTimeout(500);
-  const w = await aside.evaluate((el) => el.getBoundingClientRect().width);
-  check(w > 40 && w < 80, "closed, a rail stays rather than nothing", `${Math.round(w)}px wide`);
-  const open = aside.getByRole("button", { name: "Open sidebar" });
-  check(await open.isVisible(), "with the mark at the top, which is the open control");
-  const before = await open.locator("span").first().evaluate((el) => getComputedStyle(el).opacity);
-  await open.hover();
-  await p.waitForTimeout(350);
-  const after = await open.locator("span").first().evaluate((el) => getComputedStyle(el).opacity);
-  check(before === "1" && after === "0", "the mark gives way to the open icon under the pointer", `mark opacity ${before} → ${after}`);
-  for (const name of ["New chat", "Search", "Conversations", "Notebook", "Projects", "Studio", "Settings"])
-    check(await aside.getByRole("button", { name, exact: true }).isVisible(), `the rail has ${name}`);
+  for (const name of ["Find a conversation", "Conversations", "Notebook", "Projects", "Studio", "New chat", "Settings"])
+    check(await aside.getByRole("button", { name, exact: true }).isVisible(), `the panel has ${name}`);
   check(!(await aside.getByRole("button", { name: "Study", exact: true }).count()), "and no Study: it is not one of the listed rooms");
-  check((await aside.locator("[inert]").count()) === 1, "the full panel is inert behind the rail, so nothing hidden takes focus");
+  const chat = await aside.getByRole("button", { name: "New chat", exact: true }).boundingBox();
+  const gear = await aside.getByRole("button", { name: "Settings", exact: true }).boundingBox();
+  const panel = await aside.boundingBox();
+  check(chat && gear && panel && chat.y > panel.y + panel.height - 90 && gear.x > chat.x && Math.abs(chat.y + chat.height / 2 - (gear.y + gear.height / 2)) < 4, "the Chat pill and the gear float at the foot, side by side");
+  const header = p.locator("main header").first();
+  check(await header.getByRole("button", { name: "Hide sidebar" }).isVisible(), "the round switch is on the page, top left");
+  check(await header.getByRole("button", { name: "Start a new chat" }).isVisible(), "and a new chat is in the pill at the top right");
+  await header.getByRole("button", { name: "Hide sidebar" }).click();
+  await p.waitForTimeout(500);
+  const w = await aside.evaluate((el) => el.getBoundingClientRect().width).catch(() => 0);
+  check(w < 2, "closed, no rail is left", `${Math.round(w)}px wide`);
+  await p.keyboard.press("Meta+Shift+S");
+  await p.waitForTimeout(500);
+  check(await aside.getByRole("button", { name: "Notebook", exact: true }).isVisible(), "⌘⇧S opens it again, as the reference's chord does");
   await aside.getByRole("button", { name: "Notebook", exact: true }).click();
   await p.waitForTimeout(600);
-  check(await aside.getByRole("button", { name: "Notebook", exact: true }).getAttribute("aria-current") === "true", "a rail room button goes to the room");
+  check(await aside.getByRole("button", { name: "Notebook", exact: true }).getAttribute("aria-current") === "true", "a room button goes to the room");
   await p.keyboard.press("Meta+5");
   await p.waitForTimeout(600);
   check(/Today|Decks|Add a course/.test(await p.locator("main").innerText()), "and Study is still there, one shortcut away");
-  await p.keyboard.press("Meta+Shift+S");
-  await p.waitForTimeout(500);
-  check(await aside.getByRole("button", { name: "Close sidebar" }).isVisible(), "⌘⇧S opens it again, as the reference's chord does");
-  await p.keyboard.press("Meta+\\");
-  await p.waitForTimeout(500);
-  check(await aside.getByRole("button", { name: "Open sidebar" }).isVisible(), "and ⌘\\ closes it");
-  await p.keyboard.press("Meta+\\");
-  await p.waitForTimeout(400);
   await p.keyboard.press("Meta+3");
   await p.waitForTimeout(600);
   check(await aside.getByRole("button", { name: "Projects", exact: true }).getAttribute("aria-current") === "true", "⌘3 is the third room the sidebar lists, Projects");
@@ -152,7 +143,10 @@ console.log("\nOn a phone the bar opens the drawer");
   check(railHidden, "and no rail crowds the phone");
   await opener.click();
   await phone.waitForTimeout(500);
-  check(await phone.locator("aside").getByRole("button", { name: "Close sidebar" }).isVisible(), "the drawer opens, with its own close control");
+  check(await phone.locator("aside").getByRole("button", { name: "New chat" }).isVisible(), "the drawer opens, with the Chat button at its foot");
+  await phone.mouse.click(380, 400);
+  await phone.waitForTimeout(500);
+  check(!(await phone.locator("aside").getByRole("button", { name: "New chat" }).isVisible()), "and a tap beside it closes it, as ChatGPT's does");
   await phone.close();
 }
 

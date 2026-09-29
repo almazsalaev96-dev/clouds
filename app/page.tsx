@@ -3267,6 +3267,7 @@ export default function Page() {
             onExport={exportConversation}
             onShare={shareConversation}
             onDelete={removeConversation}
+            onNewChat={() => void createInSection("chat")}
             onTogglePin={() =>
               activeId && conversation && db.conversations.update(activeId, { pinned: !conversation.pinned })
             }

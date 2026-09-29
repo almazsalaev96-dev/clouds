@@ -63,7 +63,9 @@ const back = await page.evaluate(() => {
   const r = slot.getBoundingClientRect();
   return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.closest("button")?.getAttribute("aria-label");
 });
-check(back === "Send message", "and Send is back on top afterwards", String(back));
+/* With the box empty the round button is voice, where the browser can do
+   it, as ChatGPT has it; send when it cannot. Either way, not Stop. */
+check(back === "Send message" || back === "Voice mode", "and Send (or voice, with nothing typed) is back on top afterwards", String(back));
 
 await ta.click(); await ta.type("carry on", { delay: 3 });
 await page.keyboard.press("Enter");
