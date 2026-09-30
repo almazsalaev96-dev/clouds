@@ -78,6 +78,9 @@ export function markdownToPrintHtml(md: string): string {
     if (li) {
       flush();
       const ordered = /\d/.test(li[2]);
+      /* A list interrupted — by writing space on a worksheet, by a sentence —
+         carries on from its own number instead of starting again at 1. */
+      const first = ordered ? parseInt(li[2], 10) : 1;
       const items: string[] = [];
       while (i < lines.length) {
         const m = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/.exec(lines[i]);
@@ -85,7 +88,7 @@ export function markdownToPrintHtml(md: string): string {
         items.push(`<li>${inline(m[3].replace(/^\[([ xX])\]\s*/, (_, c) => (c === " " ? "☐ " : "☑ ")))}</li>`);
         i += 1;
       }
-      out.push(ordered ? `<ol>${items.join("")}</ol>` : `<ul>${items.join("")}</ul>`);
+      out.push(ordered ? `<ol${first > 1 ? ` start="${first}"` : ""}>${items.join("")}</ol>` : `<ul>${items.join("")}</ul>`);
       continue;
     }
     if (!line.trim()) { flush(); i += 1; continue; }
@@ -158,8 +161,10 @@ export function printMarkdown(title: string, markdown: string, foot = "Made with
      own margin carries the title now. */
   void foot;
   if (typeof document === "undefined") return false;
-  /* The engine is loaded when it is used, not with the app. */
-  void import("./document").then(({ docHtml }) => printInFrame(docHtml({ title: title || "Untitled", markdown, kind: look?.kind, theme: look?.theme, subtitle: look?.subtitle }), 150));
+  /* The engine is loaded when it is used, not with the app. Plain notes
+     unless a kind was chosen: guessing from the words turned an answer that
+     mentions an SSL certificate into a certificate. */
+  void import("./document").then(({ docHtml }) => printInFrame(docHtml({ title: title || "Untitled", markdown, kind: look?.kind ?? "notes", theme: look?.theme, subtitle: look?.subtitle }), 150));
   return true;
 }
 

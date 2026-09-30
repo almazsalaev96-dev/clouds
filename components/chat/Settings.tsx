@@ -26,7 +26,7 @@ import { does } from "./ModelPicker";
 import { useReturnFocus } from "@/lib/hooks/useReturnFocus";
 import { LocalPanel } from "./LocalPanel";
 import { cn } from "@/lib/utils";
-import { GROUPS, RULES, rulesCount } from "@/lib/rules";
+import { GROUPS, RETIRED, RULES, rulesCount } from "@/lib/rules";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
 import { SHORTCUT_GROUPS } from "@/components/ShortcutsOverlay";
 
@@ -198,6 +198,30 @@ function RulesPanel() {
           </div>
         </Field>
       ))}
+
+      {RETIRED.some((r) => on.includes(r.id)) && (
+        <Field label="Kept from before" hint="Presets that are no longer offered, because Armi now does them by default. You had them on, so they still apply until you turn them off.">
+          <div className="divide-y divide-line rounded-lg border border-line bg-surface">
+            {RETIRED.filter((r) => on.includes(r.id)).map((r) => (
+              <label key={r.id} className="tap flex cursor-pointer items-center gap-3 px-3 py-2.5">
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm text-primary">{r.label}</span>
+                  <span className="block text-xs text-tertiary">{r.blurb}</span>
+                </span>
+                <button
+                  role="switch"
+                  aria-checked
+                  aria-label={r.label}
+                  onClick={() => s.toggleRule(r.id)}
+                  className="focus-inset relative h-6 w-10 shrink-0 rounded-full bg-[var(--cta)] transition-colors duration-[var(--dur-fast)]"
+                >
+                  <span aria-hidden className="absolute top-0.5 h-5 w-5 translate-x-[1.125rem] rounded-full bg-white shadow-[var(--shadow-sm)]" />
+                </button>
+              </label>
+            ))}
+          </div>
+        </Field>
+      )}
 
       <Field label="Your own rules" hint="One a line. Specific and action-shaped works — “always show the units”, not “be helpful”. These go at the start of every conversation, after the presets.">
         <textarea
@@ -472,7 +496,7 @@ function PersonalPanel({ onRules }: { onRules: () => void }) {
   const put = (patch: Partial<Persona>) => s.set({ persona: { ...(s.persona ?? {}), ...patch } });
   const field = "focus-inset w-full rounded-md border border-line-strong bg-field px-2.5 text-sm text-primary outline-none focus:border-accent";
   return (
-    <Panel title="Personalization" description="How Armi talks to you and what it knows about you. It is sent with every question; left at Default, nothing is.">
+    <Panel title="Personalization" description="How Armi talks to you in the chat and what it knows about you. It is sent with every chat message; left at Default, nothing is.">
       <Field label="Base style and tone" hint="The voice every answer starts from. Your own instructions below still win.">
         <select
           value={p.base}

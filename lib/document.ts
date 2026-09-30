@@ -78,6 +78,8 @@ function bodyHtml(md: string, kind: DocKind): string {
   const html = markdownToPrintHtml(kind === "worksheet" ? writeSpace(md) : md)
     /* The converter escapes what it is given; the two markers above are the
        only HTML let back through, by exact shape. */
+    /* A line of writing space is a block of its own, not text in a paragraph. */
+    .replace(/<p>&lt;div class=&quot;lines&quot; style=&quot;--n:(\d+)&quot;&gt;&lt;\/div&gt;<\/p>/g, '<div class="lines" style="--n:$1"></div>')
     .replace(/&lt;div class=&quot;lines&quot; style=&quot;--n:(\d+)&quot;&gt;&lt;\/div&gt;/g, '<div class="lines" style="--n:$1"></div>')
     .replace(/&lt;span class=&quot;blank&quot;&gt;&lt;\/span&gt;/g, '<span class="blank"></span>');
   return html;
@@ -138,7 +140,7 @@ function style(th: DocTheme, kind: DocKind, foot = ""): string {
   .cvhead { background: ${th.accent}; color: #fff; margin: 0 0 1.4em; padding: 1.2em 1.4em; border-radius: 4pt; }
   .cvhead h1 { color: #fff; margin: 0; }
   .cvhead .sub { color: rgba(255,255,255,0.85); margin: 0.2em 0 0; }
-  .cert { height: 184mm; border: 3pt solid ${th.accent}; outline: 0.75pt solid ${th.accent}; outline-offset: -3.5mm; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 16mm; }
+  .cert { min-height: 184mm; border: 3pt solid ${th.accent}; outline: 0.75pt solid ${th.accent}; outline-offset: -3.5mm; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 16mm; }
   .cert .kicker { font: 600 10pt ${th.head}; letter-spacing: 0.3em; text-transform: uppercase; color: ${th.accent}; }
   .cert h1 { font-size: 34pt; margin: 0.3em 0; font-family: ${SERIF}; }
   .cert .body { max-width: 34em; font-size: 12pt; }
@@ -189,7 +191,10 @@ export function docHtml(input: DocInput): string {
       head = `<h1>${title}</h1>${sub ? `<p class="sub">${sub}</p>` : `<p class="meta" style="margin:0 0 1.4em">${date}</p>`}`;
   }
   /* The title in the margin, as a string CSS can hold: no quote or backslash to break it. */
-  const foot = input.title.trim().slice(0, 60).replace(/["\\\n]/g, " ");
+  /* Into a stylesheet: nothing that can end the string, the rule or the
+     <style> element itself. "</style><script>" in a title is a script in
+     the print frame otherwise, and a title can come from a model. */
+  const foot = input.title.trim().slice(0, 60).replace(/["'\\\n\r<>{};]/g, " ");
   return `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>${style(th, kind, foot)}</style></head><body>${head}${body}</body></html>`;
 }
 

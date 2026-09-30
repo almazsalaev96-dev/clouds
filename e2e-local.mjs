@@ -67,7 +67,7 @@ await p.waitForTimeout(500);
 
 console.log("\nSettings has a Free AI page");
 {
-  await p.locator("aside").getByRole("button", { name: "Settings", exact: true }).click();
+  await p.locator("aside").getByRole("button", { name: /(^|\s)Settings$/ }).click();
   await p.getByRole("dialog").getByRole("button", { name: "Free AI", exact: true }).click();
   const d = p.getByRole("dialog");
   check(await d.getByRole("heading", { name: "Free AI on your computer" }).isVisible(), "the page is there");

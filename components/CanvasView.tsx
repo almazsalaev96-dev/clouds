@@ -8,7 +8,7 @@ import {
   Braces, Bug, Check, Download, Eye, FileCode2, FilePlus2, FileText, FileType2, History,
   LayoutTemplate, MessageSquareCode, Palette, Pencil, Play, RotateCcw,
   Maximize2, Minimize2, MousePointerClick, ScanSearch, Scroll, Terminal, TextSelect, X,
-  CalendarRange, CheckCheck, ListChecks, Sparkles, Timer, Wand2, Printer, Presentation,
+  CalendarRange, CheckCheck, ListChecks, Sparkles, Timer, Wand2, Printer, Presentation, Sheet,
 } from "lucide-react";
 import type { Canvas, CanvasFile, CanvasVersion } from "@/lib/types";
 import {
@@ -51,7 +51,7 @@ import { plainLine } from "@/lib/plain";
 import { printHtml } from "@/lib/print";
 import { deckToPptx, isDeck, markdownToDocx } from "@/lib/office";
 import { DOC_KINDS, DOC_STYLES, isDocKind, kindFor, type DocThemeId } from "@/lib/docmeta";
-import { THEMES, type ThemeId } from "@/lib/deck";
+import { THEMES, deckInHtml, type ThemeId } from "@/lib/deck";
 
 /**
  * The canvas: a document you and the model both write to.
@@ -937,7 +937,10 @@ function Editor({
      and the timer starts again the moment you go full-screen. Everything
      below hides in place, and the frame never moves. */
   const titleField = useDraft(canvas.title, (title) => void db.canvases.update(canvas.id, { title }), 300, canvas.id);
-  const [pptTheme, setPptTheme] = React.useState<ThemeId>("clean");
+  /* Unset until someone picks one: a deck made in Midnight downloads in
+     Midnight, not in whatever the menu happened to start on. */
+  const [pptTheme, setPptTheme] = React.useState<ThemeId | undefined>(undefined);
+  const ownTheme = React.useMemo(() => (deck && canvas.kind === "web" ? deckInHtml(files.find((f) => f.name === "index.html")?.content ?? "")?.theme : undefined), [deck, canvas.kind, files]);
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
       {focused && (
@@ -1092,13 +1095,29 @@ function Editor({
                       <FileText size={13} />
                       Word
                     </Button>
+                    {/\n\s*\|?\s*:?-{2,}/.test(`\n${draft}`) && /^\s*\|/m.test(draft) && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        aria-label="Save as Excel"
+                        onClick={() => {
+                          void import("@/lib/office").then(({ sheetsToXlsx, tablesOf }) => {
+                            const sheets = tablesOf(draft);
+                            return sheetsToXlsx(canvas.title || "Spreadsheet", sheets).then(() => setNotice(`Saved ${sheets.length} sheet${sheets.length === 1 ? "" : "s"} as Excel.`));
+                          }).catch(() => setNotice("Couldn't make the Excel file."));
+                        }}
+                      >
+                        <Sheet size={13} />
+                        Excel
+                      </Button>
+                    )}
                   </>
                 )}
                 {deck && (
                   /* The look of the PowerPoint: the deck is drawn again in
                      one of the themes, with its own shapes, charts and notes. */
                   <select
-                    value={pptTheme}
+                    value={pptTheme ?? ownTheme ?? "clean"}
                     onChange={(e) => setPptTheme(e.target.value as ThemeId)}
                     aria-label="PowerPoint theme"
                     className="h-8 rounded-md border border-line bg-transparent px-1.5 text-xs text-secondary"
@@ -1114,7 +1133,7 @@ function Editor({
                     onClick={() => {
                       const merged = files.map((f) => (f.name === activeFile?.name ? { ...f, content: draft } : f));
                       deckToPptx(exportWeb(merged), canvas.title || "slides", pptTheme)
-                        .then((n) => setNotice(`Saved ${n} slide${n === 1 ? "" : "s"} as PowerPoint.`))
+                        .then((n) => setNotice(n ? `Saved ${n} slide${n === 1 ? "" : "s"} as PowerPoint.` : "No slides found to save."))
                         .catch(() => setNotice("Couldn't make the PowerPoint file."));
                     }}
                   >

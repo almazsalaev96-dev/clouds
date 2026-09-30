@@ -5,7 +5,16 @@
  * load carries none of it.
  */
 
-const slug = (s: string) => (s || "untitled").replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase() || "untitled";
+/* A Russian or Kazakh title names its file too, in Latin letters: some
+   browsers and file systems turn a Cyrillic file name into "download",
+   and "byudzhet-poezdki.xlsx" is a name wherever it lands. */
+const LATIN: Record<string, string> = {
+  а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "yo", ж: "zh", з: "z", и: "i", й: "y", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t", у: "u", ф: "f", х: "kh", ц: "ts", ч: "ch", ш: "sh", щ: "shch", ъ: "", ы: "y", ь: "", э: "e", ю: "yu", я: "ya",
+  ә: "a", ғ: "gh", қ: "q", ң: "ng", ө: "o", ұ: "u", ү: "u", һ: "h", і: "i",
+};
+export const slug = (s: string) =>
+  [...(s || "untitled").toLowerCase()].map((c) => LATIN[c] ?? c).join("")
+    .replace(/[^\p{L}\p{N}_-]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "untitled";
 
 const save = (blob: Blob, name: string) => {
   const url = URL.createObjectURL(blob);
@@ -29,9 +38,14 @@ const text = (el: Element | null | undefined) => (el?.textContent ?? "").replace
  * numbers, notes) and drawn the same way, rather than dumped as text boxes.
  */
 export async function deckToPptx(html: string, title: string, theme?: import("./deck").ThemeId): Promise<number> {
-  const { deckInHtml, deckFromHtml, downloadPptx } = await import("./deck");
+  const { deckInHtml, deckFromHtml, deckHtml, downloadPptx } = await import("./deck");
   const own = deckInHtml(html);
-  const deck = own ? { ...own, theme: theme ?? own.theme } : deckFromHtml(html, title, theme ?? "clean");
+  /* The deck's own data is exact (charts, notes, layouts) — but only while
+     the slides still say what it says. Edited by hand or by a refine, the
+     page is the truth and the data is stale, so the page is read instead. */
+  const said = (h: string) => (typeof DOMParser === "undefined" ? "" : [...new DOMParser().parseFromString(h, "text/html").querySelectorAll(".slide")].map((el) => text(el)).join("\u0000"));
+  const fresh = own && said(deckHtml(own)) === said(html);
+  const deck = own && fresh ? { ...own, theme: theme ?? own.theme } : deckFromHtml(html, title, theme ?? own?.theme ?? "clean");
   if (!deck) return 0;
   return downloadPptx(deck);
 }
@@ -64,8 +78,10 @@ export async function markdownToDocx(title: string, markdown: string): Promise<v
   const children: InstanceType<typeof Paragraph>[] = [new Paragraph({ text: title || "Untitled", heading: HeadingLevel.TITLE })];
   const lines = markdown.replace(/\r/g, "").split("\n");
   let inCode = false;
+  const table: string[] = [];
   for (const raw of lines) {
     const line = raw.replace(/\s+$/, "");
+    if (table.length && !/^\s*\|/.test(line)) children.push(await wordTable(table.splice(0)) as unknown as InstanceType<typeof Paragraph>);
     if (/^```/.test(line)) { inCode = !inCode; continue; }
     if (inCode) { children.push(new Paragraph({ children: [new TextRun({ text: line || " ", font: "Consolas", size: 18 })] })); continue; }
     if (!line.trim()) continue;
@@ -81,15 +97,36 @@ export async function markdownToDocx(title: string, markdown: string): Promise<v
     if (n) { children.push(new Paragraph({ children: [new TextRun(`${n[1]}. `), ...(await runsOf(n[2]))] })); continue; }
     const quote = /^>\s?(.*)$/.exec(line);
     if (quote) { children.push(new Paragraph({ children: [new TextRun({ text: quote[1], italics: true })], indent: { left: 720 } })); continue; }
-    if (/^\|/.test(line)) {
-      if (/^\|\s*:?-+/.test(line)) continue;
-      children.push(new Paragraph({ children: [new TextRun(line.split("|").map((c) => c.trim()).filter(Boolean).join("   "))] }));
+    if (/^\s*\|/.test(line)) {
+      /* A real Word table, header row bold and shaded, not the cells run
+         together as a line of text. The rows are gathered until the table ends. */
+      table.push(line);
       continue;
     }
+    if (table.length) children.push(await wordTable(table.splice(0)) as unknown as InstanceType<typeof Paragraph>);
     children.push(new Paragraph({ children: await runsOf(line.replace(/^\s*---+\s*$/, "")) , spacing: { after: 120 } }));
   }
+  if (table.length) children.push(await wordTable(table.splice(0)) as unknown as InstanceType<typeof Paragraph>);
   const doc = new Document({ creator: "Armi", title: title || "Untitled", sections: [{ children }] });
   save(await Packer.toBlob(doc), `${slug(title)}.docx`);
+}
+
+/** Markdown table lines as a Word table: header bold on a light fill, full width. */
+async function wordTable(lines: string[]) {
+  const { Table, TableRow, TableCell, Paragraph, TextRun, WidthType, ShadingType } = await import("docx");
+  const cells = (l: string) => l.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+  const rows = lines.filter((l) => !/^\s*\|?\s*:?-{2,}/.test(l)).map(cells);
+  const width = Math.max(1, ...rows.map((r) => r.length));
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: rows.map((r, ri) => new TableRow({
+      tableHeader: ri === 0,
+      children: Array.from({ length: width }, (_, ci) => new TableCell({
+        shading: ri === 0 ? { type: ShadingType.CLEAR, color: "auto", fill: "E8EEF8" } : undefined,
+        children: [new Paragraph({ children: [new TextRun({ text: (r[ci] ?? "").replace(/\*\*/g, ""), bold: ri === 0 })] })],
+      })),
+    })),
+  });
 }
 
 const xml = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -112,35 +149,86 @@ const col = (i: number): string => {
  * everything else is text, inline, so no shared-strings table is needed.
  */
 export async function tableToXlsx(title: string, header: string[], rows: string[][]): Promise<void> {
+  await sheetsToXlsx(title, [{ name: title || "Table", header, rows }]);
+}
+
+export interface Sheet { name: string; header: string[]; rows: string[][] }
+
+/**
+ * Several tables, as one workbook with a sheet each. A cell that starts
+ * with "=" is written as a formula, so a total stays a total when a figure
+ * above it changes; Excel works the value out when the file opens. The
+ * header row is bold on the accent colour, frozen, and filterable.
+ */
+export async function sheetsToXlsx(title: string, sheets: Sheet[]): Promise<void> {
   const { default: JSZip } = await import("jszip");
   const { asNumber } = await import("./table");
+  const list = sheets.filter((sh) => sh.header.length || sh.rows.length).slice(0, 20);
+  if (!list.length) throw new Error("No table to save.");
   const cell = (v: string, r: number, c: number): string => {
     const ref = `${col(c)}${r + 1}`;
+    const style = r === 0 ? ' s="1"' : "";
+    const t = v.trim();
+    if (r > 0 && /^=[A-Za-z(]/.test(t)) return `<c r="${ref}"><f>${xml(t.slice(1))}</f></c>`;
     const n = asNumber(v);
-    if (n !== null && !/^[A-Za-z]/.test(v.trim())) return `<c r="${ref}"${r === 0 ? ' s="1"' : ""}><v>${n}</v></c>`;
-    return `<c r="${ref}" t="inlineStr"${r === 0 ? ' s="1"' : ""}><is><t xml:space="preserve">${xml(v)}</t></is></c>`;
+    if (n !== null && !/^[A-Za-z]/.test(t)) return `<c r="${ref}"${style}><v>${n}</v></c>`;
+    return `<c r="${ref}" t="inlineStr"${style}><is><t xml:space="preserve">${xml(v)}</t></is></c>`;
   };
-  const all = [header, ...rows];
-  const sheetRows = all.map((r, ri) => `<row r="${ri + 1}">${r.map((v, ci) => cell(v ?? "", ri, ci)).join("")}</row>`).join("");
-  const widths = header.map((_, ci) => Math.min(60, Math.max(8, ...all.map((r) => (r[ci] ?? "").length + 2))));
-  const cols = `<cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("")}</cols>`;
-  const last = `${col(Math.max(0, header.length - 1))}${all.length}`;
-  const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:${last}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>${cols}<sheetData>${sheetRows}</sheetData><autoFilter ref="A1:${last}"/></worksheet>`;
+  const sheetXml = (sh: Sheet): string => {
+    const all = [sh.header, ...sh.rows];
+    const width = Math.max(1, ...all.map((r) => r.length));
+    const rowsXml = all.map((r, ri) => `<row r="${ri + 1}">${r.map((v, ci) => cell(v ?? "", ri, ci)).join("")}</row>`).join("");
+    const widths = Array.from({ length: width }, (_, ci) => Math.min(60, Math.max(8, ...all.map((r) => (r[ci] ?? "").length + 2))));
+    const cols = `<cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("")}</cols>`;
+    const last = `${col(width - 1)}${all.length}`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:${last}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>${cols}<sheetData>${rowsXml}</sheetData><autoFilter ref="A1:${last}"/></worksheet>`;
+  };
   const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
-  const name = xml((title || "Table").slice(0, 31).replace(/[\\/?*[\]:]/g, " ")) || "Table";
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0A63D8"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  /* Sheet names: 31 characters, none of \ / ? * [ ] :, and no two alike. */
+  const used = new Set<string>();
+  const names = list.map((sh, i) => {
+    let n = (sh.name || `Sheet ${i + 1}`).replace(/[\\/?*[\]:]/g, " ").trim().slice(0, 31) || `Sheet ${i + 1}`;
+    while (used.has(n.toLowerCase())) n = `${n.slice(0, 27)} ${i + 1}`;
+    used.add(n.toLowerCase());
+    return n;
+  });
   const zip = new JSZip();
   zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`);
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${list.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`);
   zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`);
   zip.file("xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${name}" sheetId="1" r:id="rId1"/></sheets></workbook>`);
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${names.map((n, i) => `<sheet name="${xml(n)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("")}</sheets><definedNames>${list.map((sh, i) => `<definedName name="_xlnm._FilterDatabase" localSheetId="${i}" hidden="1">'${xml(names[i]).replace(/'/g, "''")}'!$A$1:$${col(Math.max(1, sh.header.length, ...sh.rows.map((r) => r.length)) - 1)}$${sh.rows.length + 1}</definedName>`).join("")}</definedNames><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`);
   zip.file("xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
-  zip.file("xl/worksheets/sheet1.xml", sheet);
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${list.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join("")}<Relationship Id="rId${list.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
+  list.forEach((sh, i) => zip.file(`xl/worksheets/sheet${i + 1}.xml`, sheetXml(sh)));
   zip.file("xl/styles.xml", styles);
   const blob = await zip.generateAsync({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", compression: "DEFLATE" });
   save(blob, `${slug(title)}.xlsx`);
+}
+
+/**
+ * The tables in a Markdown document, each named by the heading above it:
+ * what a document becomes when it is saved as a workbook.
+ */
+export function tablesOf(markdown: string): Sheet[] {
+  const lines = markdown.replace(/\r/g, "").split("\n");
+  const out: Sheet[] = [];
+  let heading = "";
+  const cells = (l: string) => l.trim().replace(/^\||\|$/g, "").split(/(?<!\\)\|/).map((c) => c.trim().replace(/\\\|/g, "|").replace(/\*\*/g, ""));
+  for (let i = 0; i < lines.length; i++) {
+    const h = /^#{1,4}\s+(.+?)\s*#*$/.exec(lines[i]);
+    if (h) { heading = h[1].replace(/[*_`]/g, ""); continue; }
+    if (/^\s*\|/.test(lines[i]) && i + 1 < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1])) {
+      const header = cells(lines[i]);
+      const rows: string[][] = [];
+      i += 2;
+      while (i < lines.length && /^\s*\|/.test(lines[i])) { rows.push(cells(lines[i])); i += 1; }
+      i -= 1;
+      out.push({ name: heading || `Table ${out.length + 1}`, header, rows });
+    }
+  }
+  return out;
 }

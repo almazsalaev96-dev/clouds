@@ -927,7 +927,10 @@ export default function Page() {
            promise is two models, and the check is what keeps that promise on
            a turn nothing else would have joined. */
         ask: asked,
-        size: history.reduce((n, m) => n + costOf(m), 0),
+        /* What came with this message, not the whole thread: a "thanks"
+           twenty turns in is still a "thanks", and forty pages attached to
+           "what is this?" are still forty pages. */
+        size: wantsMsg ? costOf(wantsMsg) : 0,
       });
       /* And an effort they set on the tactic itself, from the picker, which is
          the one part of an Armi model they can overrule without leaving it.
@@ -987,7 +990,7 @@ export default function Page() {
          ordinary answer rather than no answer. */
       const briefWith = playerFor(cast, "brief");
       const seatsAhead = playersFor(cast, "council");
-      const willBrief = Boolean(briefWith) && !opts?.revised && worthBriefing(asked, plan, history.reduce((n, m) => n + costOf(m), 0));
+      const willBrief = Boolean(briefWith) && !opts?.revised && worthBriefing(asked, plan, wantsMsg ? costOf(wantsMsg) : 0);
       const willConvene = seatsAhead.length > 0 && !opts?.revised && worthConvening(asked, plan);
       const willResearch = Boolean(conv?.deep && (conv?.research ?? conversation?.research ?? pendingResearch)) && !opts?.revised && worthResearching(asked);
       /* Craft: a task that is more than a normal one is studied first and
@@ -1253,7 +1256,7 @@ export default function Page() {
            sentence, steps, a verdict and a table, the fix first, whole
            files) and how the person seems — except under a teaching
            stance, which decides its own shape on purpose. */
-        note: [note, preset?.stance, isTeaching(style?.id) ? "" : (await import("@/lib/form")).formNote(asked, { kind: task?.kind, earlier: history.filter((m) => m.role === "user").slice(-3).map((m) => blockText(m.content)) }), examNote(asked, style?.id === "exam"), study ? standardNote(study) : "", blueprint ? planNote(blueprint, planState === "mended") : "", brief ? briefNote(brief) : "", council, deepNotes].filter(Boolean).join("\n\n") || undefined,
+        note: [note, preset?.stance, isTeaching(style?.id) ? "" : (await import("@/lib/form")).formNote(asked, { kind: task?.kind, earlier: history.filter((m) => m.role === "user" && m !== wantsMsg).slice(-3).map((m) => blockText(m.content)) }), examNote(asked, style?.id === "exam"), study ? standardNote(study) : "", blueprint ? planNote(blueprint, planState === "mended") : "", brief ? briefNote(brief) : "", council, deepNotes].filter(Boolean).join("\n\n") || undefined,
       });
       /* Said on the answer, like the model's reason: an app that quietly
          changes how it writes to you is an app whose answers you cannot

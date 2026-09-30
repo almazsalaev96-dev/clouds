@@ -49,19 +49,41 @@ const MOODS: Record<Mood, string> = {
 };
 
 const W = (s: string) => new RegExp(s, "i");
-const CHAT = /^(hi|hello|hey|hiya|yo|salam|привет|сәлем|good (morning|afternoon|evening|night)|how are you|how's it going|what'?s up|thanks|thank you|ok(ay)?|cool|nice|great|lol|haha|bye|good ?night|спасибо|рахмет)\b[^?]{0,30}$/iu;
+/* Russian and Kazakh, beside English: most people here write in one of the
+   three, often two in one line. `\b` knows only Latin letters, so these are
+   bounded by "not a letter" in Unicode, and match on stems ("объясн" is
+   объясни, объясните, объяснить). */
+const R = (s: string) => new RegExp(`(?<![\\p{L}])(?:${s})`, "iu");
+const CHAT = /^(hi|hello|hey|hiya|yo|salam|привет|здравствуй\p{L}*|добрый (день|вечер)|доброе утро|как дела|сәлем\p{L}*|қалың қалай|good (morning|afternoon|evening|night)|how are you|how's it going|what'?s up|thanks|thank you|ok(ay)?|cool|nice|great|lol|haha|bye|good ?night|спасибо|благодарю|пока|рахмет|сау бол)(?=$|[\s!?.,)])[^?]{0,30}$/iu;
+const RU = {
+  fact: R("что такое|кто так(ой|ая|ие)|кто (написал|изобр[её]л|открыл|основал|был)|когда (был|была|было|началась|закончилась|произошл)|где находится|сколько (лет|весит|стоит|будет)|столица|что означает|не деген|кім (болған|жазған)|қашан|қай жерде|қанша|астанасы"),
+  steps: R("как (мне )?(сделать|установить|настроить|создать|начать|подключить|включить|запустить)|пошагов|инструкци|қалай (жасау|орнату|бастау)"),
+  compare: R("сравни|сравнение|разниц|отлича|что лучше|против|салыстыр|айырмашылы"),
+  decide: R("стоит ли|что (мне )?выбрать|какой выбрать|посоветуй|порекомендуй|какой лучше|қайсысы (жақсы|дұрыс)|кеңес бер"),
+  fix: R("ошибк|не работает|не запускается|не компилиру|баг|сломал|вылетает|падает|исправь|почини|қате|жұмыс істемейді"),
+  build: R("(сделай|создай|напиши|сгенерируй|разработай|жаса|құрастыр)\\p{L}*( мне| маған)? (\\p{L}+ )?(сайт|веб|приложени|игр|бот|лендинг|калькулятор|страниц|программ|скрипт|api|дашборд|сайтын|қосымша)|(сайт|қосымша|бот|ойын)\\p{L}* (жаса|құрастыр)"),
+  list: R("(дай|приведи|назови|предложи)( мне)? (\\d+|несколько|пару|идеи|список)|список|идеи для|примеры|тізім"),
+  explain: R("объясн|почему|зачем|как работает|что значит|помоги понять|простыми словами|түсіндір|неге|қалай жұмыс"),
+  message: R("(напиши|составь)( мне)? (письм|сообщени|пост|ответ|поздравлени|речь|заявлени)|хат жаз"),
+  deep: R("подробн|детальн|развёрнут|развернут|вс[её] о |толық|егжей"),
+};
 const FACT = /^(what(?:'s| is| are| was| were)|who (is|was|are|were|wrote|invented|discovered|founded|won)|when (is|was|did|does)|where (is|are|was)|how (many|much|old|tall|far|long|big)|define|meaning of|capital of)\b/i;
 const STEPS = W("\\b(how (do|can|should) i|how to|steps? (to|for)|set ?up|install|configure|get started with|walk me through (setting|installing))\\b");
 const COMPARE_STRONG = W("\\b(vs\\.?|versus|compare|comparison|difference between|differences between|which is better)\\b");
 const DECIDE = W("\\b(should i|should we|which (one )?should|what would you (choose|pick|recommend)|recommend|is it worth|best (way|option|choice|laptop|phone|language|framework|approach) (for|to))\\b");
 const FIX = W("\\b(error|exception|bug|broken|doesn'?t work|does not work|not working|fails?|failing|crash(es|ed|ing)?|won'?t (run|compile|start|load)|stack ?trace|undefined is not|cannot read|traceback|fix (this|my|it))\\b");
 const BUILD = W("\\b(build|make|create|code|write) (me )?(an?|the|my)? ?(web ?site|website|web app|webpage|landing page|app|application|game|tool|dashboard|api|backend|server|bot|extension|script|program|calculator|to-?do|tracker|clone)\\b");
-const LIST = W("\\b(ideas? for|list (of|some)|give me (\\d+|some|a few|ten|five)|top \\d+|examples of|names for)\\b");
+const LIST = W("\\b(ideas? for|list (of|some)|(give me|recommend|suggest|name) (\\d+|some|a few|three|five|ten)|top \\d+|examples of|names for)\\b");
 const EXPLAIN = W("\\b(explain|why (does|do|is|are|did)|how (does|do|did) .{1,60} work|what does .{1,40} mean|help me understand|eli5|in simple terms)\\b");
-const MESSAGE = W("\\b(write|draft) (me )?(an?|the|my)? ?(email|letter|message|reply|text|post|cover letter|bio|caption|speech|announcement)\\b");
+const MESSAGE = W("\\b(write|draft) (me )?(an?|the|my)? ?(email|letter|message|reply|text|post|cover letter|bio|caption|speech|announcement|essay|story|poem|article)\\b");
 const DEEP = W("\\b(in detail|in depth|in-depth|detailed|comprehensive|thorough(ly)?|deep dive|everything about|full guide|complete guide)\\b");
 
-const STRESSED = /\b(stress(ed|ful)?|anxious|anxiety|panic(king)?|overwhelm(ed|ing)|can'?t cope|scared|terrified|worried|depress(ed|ing)|burn(ed|t)? out|hopeless|so tired of|i give up|failing (my|the|all)|failed (my|the))\b/i;
+/* A request inside a pleasantry: "great, now make it a table". */
+const ASKING = /\b(write|make|build|create|add|change|give|show|explain|now|can you|could you|please|do it)\b|напиши|сделай|создай|добавь|покажи|объясни|теперь|жаса/iu;
+const STRESSED_RU = R("стресс|тревож|паник|не справляюсь|боюсь|страшно|очень устал|выгор|депресс|завалил|провалил|уайым|қорқам|шаршадым");
+const FRUSTRATED_RU = R("вс[её] ещ[её] не|опять не|снова не|бесит|ничего не работает|сколько можно|тағы да");
+const BEGINNER_RU = R("я новичок|новичок|начинающ|впервые|никогда не (делал|писал|программировал)|с нуля|для чайников|жаңадан");
+const STRESSED = /\b(stress(ed|ful)?|anxious|anxiety|panic(king)?|overwhelm(ed|ing)|can'?t cope|scared|terrified|worried|depress(ed|ing)|burn(ed|t)? out|hopeless|so tired of|i give up|(failing|failed|going to fail) (my|all my|the) (exams?|tests?|class(es)?|course|year|subjects?|a-?levels?|gcses?))\b/i;
 const FRUSTRATED = /\b(still (doesn'?t|does not|not|isn'?t|broken|wrong)|again\?*!|wtf|why won'?t|for the (\w+ )?time|nothing works|useless|ugh+)\b|!{2,}|\b[A-Z]{5,}\b.*\b[A-Z]{4,}\b/;
 const BEGINNER = /\b(i'?m (new|a beginner|just starting)|beginner|never (done|used|coded|programmed)|complete noob|noob|newbie|from scratch|in simple (terms|words)|like i'?m (five|5|a kid))\b/i;
 
@@ -70,17 +92,19 @@ export function formOf(ask: string, kind?: TaskKind): Form | null {
   const t = ask.trim();
   if (!t) return null;
   const words = t.split(/\s+/).length;
-  if (words <= 8 && CHAT.test(t)) return "chat";
-  if (MESSAGE.test(t) || kind === "writing") return "message";
-  if (BUILD.test(t)) return "build";
-  if (FIX.test(t) && (kind === "coding" || /```|\b(code|app|site|page|script|function|npm|pip|python|javascript|react)\b/i.test(t))) return "fix";
-  if (COMPARE_STRONG.test(t)) return "compare";
-  if (DECIDE.test(t)) return "decide";
-  if (DEEP.test(t)) return "deep";
-  if (STEPS.test(t)) return "steps";
-  if (LIST.test(t)) return "list";
-  if (EXPLAIN.test(t) || kind === "learning") return "explain";
-  if (words <= 12 && FACT.test(t)) return "fact";
+  if (MESSAGE.test(t) || RU.message.test(t) || kind === "writing") return "message";
+  if (BUILD.test(t) || RU.build.test(t)) return "build";
+  if ((FIX.test(t) || RU.fix.test(t)) && (kind === "coding" || /```|\b(code|app|site|page|script|function|npm|pip|python|javascript|react)\b|код|сайт|приложени|скрипт|функци/i.test(t))) return "fix";
+  if (COMPARE_STRONG.test(t) || RU.compare.test(t)) return "compare";
+  if (LIST.test(t) || RU.list.test(t)) return "list";
+  if (DECIDE.test(t) || RU.decide.test(t)) return "decide";
+  if (DEEP.test(t) || RU.deep.test(t)) return "deep";
+  if (STEPS.test(t) || RU.steps.test(t)) return "steps";
+  if (EXPLAIN.test(t) || RU.explain.test(t) || kind === "learning") return "explain";
+  if (words <= 12 && (FACT.test(t) || RU.fact.test(t))) return "fact";
+  /* Last: "ok, write the essay" and "thanks! now build me an app" are
+     requests with manners in front, and were read as small talk. */
+  if (CHAT.test(t) && (words <= 3 || (words <= 6 && !ASKING.test(t)))) return "chat";
   return null;
 }
 
@@ -88,9 +112,9 @@ export function formOf(ask: string, kind?: TaskKind): Form | null {
 export function moodOf(ask: string, earlier: string[] = []): Mood[] {
   const t = ask.trim();
   const out: Mood[] = [];
-  if (STRESSED.test(t)) out.push("stressed");
-  if (FRUSTRATED.test(t) || (earlier.length && /\b(still|again)\b/i.test(t) && FIX.test(t))) out.push("frustrated");
-  if (BEGINNER.test(t)) out.push("beginner");
+  if (STRESSED.test(t) || STRESSED_RU.test(t)) out.push("stressed");
+  if (FRUSTRATED.test(t) || FRUSTRATED_RU.test(t) || (earlier.length && /\b(still|again)\b/i.test(t) && FIX.test(t))) out.push("frustrated");
+  if (BEGINNER.test(t) || BEGINNER_RU.test(t)) out.push("beginner");
   return out;
 }
 

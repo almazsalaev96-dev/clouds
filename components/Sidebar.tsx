@@ -233,9 +233,11 @@ export function Sidebar({
               <span className="flex-1">New chat</span>
               <span className="opacity-0 transition-opacity duration-[var(--dur-fast)] group-hover:opacity-100"><Kbd keys={["mod", "N"]} /></span>
             </button>
+            {/* Named by its visible words, so "click Search chats" said to
+                voice control finds it (the round control on a tablet has no
+                words, and keeps its label). */}
             <button
               onClick={() => { if (searching) setQuery(""); setSearching((v) => !v); }}
-              aria-label={`Find ${FIND[section].one}`}
               aria-expanded={searching}
               className={cn(
                 "tap focus-inset flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm text-primary transition-colors duration-[var(--dur-fast)]",
@@ -411,11 +413,10 @@ export function Sidebar({
           <div className="hidden border-t border-line p-2 desk:block">
             <button
               onClick={onOpenSettings}
-              aria-label="Settings"
               className="tap focus-inset flex h-11 w-full items-center gap-2.5 rounded-lg px-2 text-left text-sm text-primary transition-colors duration-[var(--dur-fast)] hover:bg-subtle/70"
             >
               <Avatar name={name} />
-              <span className="min-w-0 flex-1 truncate">{name.trim() || "You"}</span>
+              <span className="min-w-0 flex-1 truncate">{name.trim() || "You"}<span className="sr-only"> Settings</span></span>
               <Settings size={16} className="shrink-0 text-tertiary" aria-hidden />
             </button>
           </div>

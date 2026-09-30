@@ -717,6 +717,62 @@ const TOOLS: Tool[] = [
       };
     },
   },
+  /* ---- a spreadsheet: sheets of rows with live formulas, kept in the
+     Library as a document of tables, saved as a real .xlsx. */
+  {
+    spec: {
+      name: "make_spreadsheet",
+      description:
+        "Make a spreadsheet (Excel .xlsx) and keep it in the Library: one or more sheets, each with column headers and rows. " +
+        "Use when they ask for a spreadsheet, an Excel file, a budget, a tracker, a timetable, a gradebook or a table they will fill in or calculate with. " +
+        "Put numbers as plain numbers (1200, 4.5, 12%) and use Excel formulas for anything derived, starting with = (=SUM(B2:B6), =B2*C2, =AVERAGE(C2:C20)), so the sheet stays live when a figure changes. Rows are counted from 2; row 1 is the header.",
+      schema: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          sheets: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                columns: { type: "array", items: { type: "string" } },
+                rows: { type: "array", items: { type: "array", items: { type: "string" } }, description: "Each row a list of cells as text: \"1200\", \"12%\", \"=SUM(B2:B6)\"." },
+              },
+              required: ["columns", "rows"],
+            },
+          },
+        },
+        required: ["title", "sheets"],
+      },
+    },
+    doing: "Building the spreadsheet",
+    run: async (input, ctx) => {
+      const title = str(input.title, 120) || "Spreadsheet";
+      const cell = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? String(v) : str(v, 500)).replace(/\|/g, "\\|").replace(/\n/g, " ");
+      const sheets = list(input.sheets).slice(0, 12).map((sh, i) => ({
+        name: str(sh.name, 31) || `Sheet ${i + 1}`,
+        columns: (Array.isArray(sh.columns) ? sh.columns : []).slice(0, 40).map(cell),
+        rows: (Array.isArray(sh.rows) ? sh.rows : []).slice(0, 2_000).filter(Array.isArray).map((r) => (r as unknown[]).slice(0, 40).map(cell)),
+      })).filter((sh) => sh.columns.length);
+      if (!sheets.length) return fail("A spreadsheet needs at least one sheet with columns.");
+      const md = sheets.map((sh) => {
+        const width = Math.max(sh.columns.length, ...sh.rows.map((r) => r.length));
+        const pad = (r: string[]) => `| ${Array.from({ length: width }, (_, k) => r[k] ?? "").join(" | ")} |`;
+        return `## ${sh.name}\n\n${pad(sh.columns)}\n|${" --- |".repeat(width)}\n${sh.rows.map(pad).join("\n")}`;
+      }).join("\n\n");
+      const canvas = await createCanvas({ title, kind: "doc", lang: "markdown", content: md, look: { kind: "notes", theme: "clean" }, sourceConversationId: ctx.conversationId });
+      const rows = sheets.reduce((n, sh) => n + sh.rows.length, 0);
+      const summary = `Made a spreadsheet: ${q(title)}, ${plural(sheets.length, "sheet")}, ${plural(rows, "row")}`;
+      return {
+        ok: true,
+        text: `${summary}. It is in the Library; Excel saves it as .xlsx with the formulas live. Tell them in one line; do not repeat the table in the chat.`,
+        summary,
+        open: { section: "creative", id: canvas.id },
+        undo: async () => { await deleteCanvas(canvas.id); },
+      };
+    },
+  },
   /* ---- the app's own machinery: a schedule, a project, an assistant.
      ChatGPT's scheduled tasks, projects and GPTs are each a form; here they
      are also a sentence in the chat, which is where the wish is spoken. */
@@ -841,7 +897,7 @@ export function doingOf(name: string): string {
 }
 
 /** The rooms this can reach, for the settings line and the docs. */
-export const ACTION_AREAS = ["Study", "Notebook", "Sources", "Memory", "Projects", "Studio", "Conversations", "Routines", "Assistants", "Calculator", "Units", "Code", "Clock", "Web pages", "Presentations", "Documents"] as const;
+export const ACTION_AREAS = ["Study", "Notebook", "Sources", "Memory", "Projects", "Studio", "Conversations", "Routines", "Assistants", "Calculator", "Units", "Code", "Clock", "Web pages", "Presentations", "Documents", "Spreadsheets"] as const;
 
 /**
  * Run one call. Never throws: a tool that fails answers the model with why,

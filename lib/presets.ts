@@ -1245,25 +1245,38 @@ const THANKS = /^(thanks|thank you|ok|okay|cheers|great|perfect|nice|cool|got it
  * the checker is back.
  */
 const VERIFY = /\b(is (that|this|it) (right|correct|true|accurate)|are you sure|double[- ]?check|check (it|this|that|again)|verify|fact[- ]?check)\b/i;
-const CHAT = /^(hi|hello|hey|hiya|yo|salam|salem|privet|привет|здравствуйте|сәлем|сәлеметсіз бе|good (morning|afternoon|evening|night)|how are you( doing)?|how's it going|what'?s up|who are you|what are you|what can you do|what's your name|bye|goodbye|see you|lol|haha|yes|no|yep|nope|sure|go on|continue|next|more|спасибо|рахмет|thanks a lot|thank you so much)(?=$|[\s!?.,])/iu;
+const CHAT = /^(hi|hello|hey|hiya|yo|salam|salem|privet|привет|здравствуйте|добрый (день|вечер)|доброе утро|как дела|пока|благодарю|сәлем|сәлеметсіз бе|қалың қалай|сау бол|good (morning|afternoon|evening|night)|how are you( doing)?|how's it going|what'?s up|who are you|what are you|what can you do|what's your name|bye|goodbye|see you|lol|haha|yes|no|yep|nope|sure|go on|continue|next|more|спасибо|рахмет|thanks a lot|thank you so much)(?=$|[\s!?.,])/iu;
 const LOOKUP = /^(what(?:'s| is| are| was| were)|who (is|was|are|were|wrote|invented|discovered|painted|founded|won)|when (is|was|did|does|were)|where (is|are|was|were|does)|which (country|city|year|planet|element|continent|ocean|language)|how (many|much|old|tall|far|long|big|heavy|deep|high)|define|definition of|meaning of|what does \S+ mean|capital of|synonyms? (of|for)|antonyms? (of|for)|opposite of|spell|plural of|past tense of|translate (?!(this|that|it|these|those|the (text|page|document|file))\b))/i;
 const DEPTH = /\b(why|explain|compare|comparison|difference|differ|vs\.?|versus|should|best|recommend|prove|proof|design|analy[sz]e|analysis|evaluate|pros and cons|advantages?|disadvantages?|step[- ]by[- ]step|in detail|detailed|essay|plan|strategy|how (do|does|did|can|could|would|to|should))\b/i;
 const CODEISH = /[{}<>;=`]|\b(code|function|bug|error|exception|api|sql|regex|react|python|javascript|typescript|css|html|class|compile|deploy|script|query)\b/i;
+/* The same, in Russian and Kazakh, bounded by "not a letter" because `\b`
+   knows only Latin, and on stems because both languages inflect. */
+const RUB = (x: string) => new RegExp(`(?<![\\p{L}])(?:${x})`, "iu");
+const VERIFY_RU = RUB("ты уверен|вы уверены|это правда|это верно|точно\\?|проверь|перепроверь|рас ба|тексер");
+const LOOKUP_RU = RUB("^(что такое|кто так(ой|ая|ие)|кто (написал|изобр[её]л|открыл|основал)|когда (был|была|было|родил)|где находится|сколько (лет|весит|будет|стоит)|какая столица|столица|что означает|переведи (слово )?\\p{L}+ на)|не деген|кім (болған|жазған)|қашан|қай жерде|қай қала|қанша|астанасы");
+const DEPTH_RU = RUB("почему|объясн|сравни|разниц|отлича|стоит ли|лучше|посоветуй|докажи|подробн|анализ|план|стратеги|как (сделать|работает|решить)|неге|түсіндір|салыстыр");
+const CODE_RU = /код|функци|ошибк|скрипт|программ|запрос/iu;
+/* Arithmetic and mathematics are exactly what a second model catches. */
+const MATHS = /\d\s*[-+*/×÷^=]\s*\d|\d\s*%|\b(integral|integrate|derivative|differentiate|solve|equation|simplify|factori[sz]e|probability|limit of|sum of|calculate|prove)\b|интеграл|производн|уравнени|реши|вычисли/iu;
 export function simpleAsk(ask: string, size = 0): boolean {
   const t = ask.trim();
   const words = t.split(/\s+/).filter(Boolean).length;
   if (!words) return true;
   if (size >= BRIEF_TOKENS) return false;
-  if (VERIFY.test(t)) return false;
-  if (words <= 6 && CHAT.test(t)) return true;
-  return words <= 9 && LOOKUP.test(t) && !DEPTH.test(t) && !CODEISH.test(t);
+  if (VERIFY.test(t) || VERIFY_RU.test(t)) return false;
+  /* Anything that asks for thought, code or maths is not small, however it
+     opens: "hi, why is the sky blue?" is a why with a greeting in front. */
+  if (words > 9 || DEPTH.test(t) || DEPTH_RU.test(t) || CODEISH.test(t) || CODE_RU.test(t) || MATHS.test(t)) return false;
+  /* A greeting is small only when it is all there is. */
+  if (words <= 4 && CHAT.test(t)) return true;
+  return LOOKUP.test(t) || LOOKUP_RU.test(t);
 }
 
 export function worthChecking(ask: string): boolean {
   const t = ask.trim();
   const words = t.split(/\s+/).filter(Boolean).length;
   if (!words) return false;
-  if (VERIFY.test(t)) return true;
+  if (VERIFY.test(t) || VERIFY_RU.test(t)) return true;
   if (simpleAsk(t)) return false;
   if (/\?/.test(t)) return true;
   if (THANKS.test(t)) return false;
@@ -1375,7 +1388,7 @@ export function shapePlan(
   /* A greeting or a small fact: one model, and the line says why, so a
      person on a tactic that promises a team is not left wondering where
      it went. A duel is two answers someone chose to see, and stays. */
-  if (ctx.ask !== undefined && simpleAsk(ctx.ask, ctx.size) && !playersFor(ctx.cast ?? null, "duel").length) {
+  if (ctx.ask !== undefined && plan.check !== "second" && simpleAsk(ctx.ask, ctx.size) && !playersFor(ctx.cast ?? null, "duel").length) {
     next.check = "none";
     next.why = `${preset.name} — one model is enough for a quick question; ask "is that right?" and a second one checks it.`;
     return next;

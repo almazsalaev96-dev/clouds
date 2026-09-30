@@ -83,13 +83,13 @@ check(made.length === 3 && made.some((t) => /Essay plan/.test(t)), "what you mad
 
 console.log("\nThe search box searches the room");
 await go("Study");
-await side.getByRole("button", { name: "Find a deck" }).click();
+await side.getByRole("button", { name: /^(Find a deck|Search decks)$/ }).click();
 await side.getByRole("textbox", { name: "Search decks" }).fill("cell");
 await p.waitForTimeout(400);
 const found = await rows("Decks").allInnerTexts();
 check(found.length === 1 && /Cell biology/.test(found[0]), "typing narrows the decks", found.join(" | "));
 await go("Conversations");
-check((await side.getByRole("button", { name: "Find a conversation" }).count()) + (await side.getByRole("textbox", { name: "Search conversations" }).count()) >= 1, "and in Conversations it is conversations again");
+check((await side.getByRole("button", { name: /^(Find a conversation|Search chats)$/ }).count()) + (await side.getByRole("textbox", { name: "Search conversations" }).count()) >= 1, "and in Conversations it is conversations again");
 
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors");
 if (errs.length) failed++;

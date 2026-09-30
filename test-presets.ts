@@ -656,6 +656,14 @@ console.log("\nA greeting or a small fact is one model; the team is for work");
   for (const t of ["what is the capital of Peru? are you sure?", "why is the sky blue", "what is the difference between mitosis and meiosis", "what is wrong with this code: for (i=0;i<n;i++)", "translate this into Japanese", "how do I centre a div", "what should I revise first for my chemistry exam next week"])
     check(!simpleAsk(t), `the team for ${JSON.stringify(t.slice(0, 44))}`);
   check(!simpleAsk("summarise this", 9_000), "and forty pages is never a small question");
+  for (const t of ["привет", "спасибо!", "что такое осмос?", "кто написал Войну и мир", "какая столица Казахстана?", "сәлем", "рахмет", "Қазақстанның астанасы қай қала?"])
+    check(simpleAsk(t), `one model in Russian or Kazakh: ${JSON.stringify(t)}`);
+  for (const t of ["почему небо голубое", "что такое осмос? ты уверен?", "объясни разницу между митозом и мейозом", "что не так с моим кодом"])
+    check(!simpleAsk(t), `the team in Russian: ${JSON.stringify(t)}`);
+  check(worthChecking("это правда?"), "and asking whether it is true brings the checker back");
+  for (const t of ["Hey, can you explain recursion?", "hi, why is the sky blue?", "no, use Python 3 instead", "What is the integral of x e^x?", "what is 17% of 240"])
+    check(!simpleAsk(t), `not small, whatever it opens with: ${JSON.stringify(t)}`);
+  check(!worthBriefing("shorter", undefined, 0) && !worthBriefing("hi", undefined, 0), "a reshaping or a greeting is not briefed");
   const all = { anthropic: true, openai: true, google: true, xai: true };
   const hard = PRESETS.find((p) => p.cast.some((c) => c.role === "check"))!;
   const cast = resolveCast(hard.id, { configured: all })!;

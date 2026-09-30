@@ -106,7 +106,7 @@ console.log("\nAnd they hold in the document reader too");
 console.log("\nPersonalization: a style, a characteristic and a nickname reach the model");
 {
   await p.keyboard.press("Escape");
-  await p.getByRole("button", { name: "Settings", exact: true }).first().click();
+  await p.getByRole("button", { name: /(^|\s)Settings$/ }).first().click();
   await p.waitForTimeout(500);
   const dlg = p.locator("[role=dialog]");
   await dlg.getByRole("button", { name: "Personalization", exact: true }).click();

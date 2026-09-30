@@ -41,14 +41,15 @@ await p.waitForTimeout(900);
 console.log("\nThe sidebar, laid out as ChatGPT's app lays it out");
 {
   const aside = p.locator("aside").first();
-  for (const name of ["Find a conversation", "Conversations", "Notebook", "Projects", "Studio", "New chat", "Settings"])
+  for (const name of ["Search chats", "Conversations", "Notebook", "Projects", "Studio", "New chat"])
     check(await aside.getByRole("button", { name, exact: true }).isVisible(), `the panel has ${name}`);
+  check(await aside.getByRole("button", { name: /^Almaz\s*Settings$/ }).isVisible(), "and you, by name, with your settings behind it");
   check(!(await aside.getByRole("button", { name: "Study", exact: true }).count()), "and no Study: it is not one of the listed rooms");
   /* On a desk (a mouse and a wide window) it is the desktop apps' column:
      New chat and Search as the first rows, the account at the foot, and the
      switch inside the panel's own header. */
   const chat = await aside.getByRole("button", { name: "New chat", exact: true }).boundingBox();
-  const gear = await aside.getByRole("button", { name: "Settings", exact: true }).boundingBox();
+  const gear = await aside.getByRole("button", { name: /Settings$/ }).boundingBox();
   const panel = await aside.boundingBox();
   check(chat && panel && chat.y < panel.y + 110 && chat.height <= 40, "New chat is a row at the top, desk-sized", chat ? `${Math.round(chat.y)}px down, ${Math.round(chat.height)}px tall` : "");
   check(gear && panel && gear.y > panel.y + panel.height - 70, "and you and your settings are the row at the foot");
@@ -63,7 +64,7 @@ console.log("\nThe sidebar, laid out as ChatGPT's app lays it out");
   check(await aside.getByRole("button", { name: "Studio", exact: true }).isVisible() && await aside.getByRole("button", { name: "Show sidebar" }).isVisible(), "with every room and the switch to open it");
   await aside.getByRole("button", { name: "Show sidebar" }).click();
   await p.waitForTimeout(500);
-  check(await aside.getByRole("button", { name: "Search chats" }).count() === 0 && await aside.getByRole("button", { name: "Find a conversation" }).isVisible(), "open again, Search is a row");
+  check(await aside.getByRole("button", { name: "Search chats", exact: true }).isVisible(), "open again, Search is a row, named by its words");
   await aside.getByRole("button", { name: "Hide sidebar" }).click();
   await p.waitForTimeout(400);
   await p.keyboard.press("Meta+Shift+S");

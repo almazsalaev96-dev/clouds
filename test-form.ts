@@ -27,8 +27,33 @@ console.log("\nThe form the content has");
     ["write an email to my teacher asking for an extension", "message"],
     ["tell me everything about the French Revolution in detail", "deep"],
     ["the weather is nice here today", null],
+    ["ok, write the essay about Hamlet", "message"],
+    ["Great, now make it a table", null],
+    ["Thanks! Now build me a todo app", "build"],
+    ["recommend 5 books about space", "list"],
   ];
   for (const [q, want] of cases) check(formOf(q) === want, `${JSON.stringify(q.slice(0, 50))} → ${want}`, String(formOf(q)));
+}
+
+console.log("\nIn Russian and Kazakh too");
+{
+  const cases: [string, string | null][] = [
+    ["привет!", "chat"],
+    ["рахмет", "chat"],
+    ["что такое фотосинтез?", "fact"],
+    ["как установить Python на Windows", "steps"],
+    ["чем отличается TCP от UDP", "compare"],
+    ["что мне выбрать: Python или JavaScript?", "decide"],
+    ["мой сайт не работает, в консоли ошибка", "fix"],
+    ["сделай мне сайт для пекарни", "build"],
+    ["маған дүкен сайтын жаса", "build"],
+    ["объясни как работает фотосинтез", "explain"],
+    ["напиши письмо учителю", "message"],
+    ["расскажи подробно про Французскую революцию", "deep"],
+  ];
+  for (const [q, want] of cases) check(formOf(q) === want, `${JSON.stringify(q)} → ${want}`, String(formOf(q)));
+  check(moodOf("я очень устал и боюсь завалить экзамен").includes("stressed"), "stressed, in Russian");
+  check(moodOf("я новичок, объясни циклы").includes("beginner"), "a beginner, in Russian");
 }
 
 console.log("\nHow the person is");
@@ -37,6 +62,8 @@ console.log("\nHow the person is");
   check(moodOf("it STILL doesn't work!!").includes("frustrated"), "frustrated, from how they wrote it");
   check(moodOf("I'm a beginner, how do loops work").includes("beginner"), "new to it");
   check(moodOf("how do loops work").length === 0, "and nothing read into an ordinary question");
+  check(!moodOf("Why is my unit test failing the CI build?").includes("stressed"), "a failing test is not a person failing");
+  check(moodOf("I'm failing my exams and I don't know what to do").includes("stressed"), "a person failing their exams is");
 }
 
 console.log("\nThe note for the writer");

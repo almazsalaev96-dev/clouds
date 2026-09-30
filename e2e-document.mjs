@@ -81,6 +81,38 @@ console.log("\nSave as PDF sets it as a worksheet");
   check(Boolean(dl) && /\.docx$/.test(dl?.suggestedFilename() ?? ""), "and Word saves a .docx", dl?.suggestedFilename());
 }
 
+console.log("\nAsked for a spreadsheet, the model makes a real workbook with live formulas");
+{
+  await p.getByRole("button", { name: "New chat" }).first().click();
+  await p.waitForTimeout(500);
+  await fetch(`${MOCK}/__reset`);
+  await say("make me a spreadsheet for my trip budget");
+  await p.waitForTimeout(5500);
+  const chip = lastRow().getByRole("list", { name: "Done in this app" });
+  check(/Made a spreadsheet: “Бюджет поездки”, 2 sheets, 6 rows/.test(await chip.innerText().catch(() => "")), "the chip names it and counts sheets and rows", (await chip.innerText().catch(() => "")).replace(/\s+/g, " "));
+  await chip.getByRole("button", { name: "Open" }).click();
+  await p.waitForTimeout(1200);
+  const [dl] = await Promise.all([p.waitForEvent("download", { timeout: 8000 }).catch(() => null), p.getByRole("button", { name: "Save as Excel" }).click()]);
+  check(Boolean(dl) && dl.suggestedFilename() === "byudzhet-poezdki.xlsx", "Excel saves a .xlsx, the Russian title in Latin letters so the name survives", dl?.suggestedFilename());
+  if (dl) {
+    const path = await dl.path();
+    const { execFileSync } = await import("node:child_process");
+    const read = (name) => execFileSync("python3", ["-c", `import zipfile,sys;print(zipfile.ZipFile(sys.argv[1]).read(sys.argv[2]).decode())`, path, name]).toString();
+    const book = read("xl/workbook.xml");
+    const one = read("xl/worksheets/sheet1.xml");
+    check(/name="Costs"/.test(book) && /name="Notes"/.test(book), "two sheets, named by the model", (book.match(/sheet name="[^"]+"/g) ?? []).join(" "));
+    check(/<f>B2\*C2<\/f>/.test(one) && /<f>SUM\(D2:D4\)<\/f>/.test(one) && /fullCalcOnLoad="1"/.test(book), "the totals are formulas, worked out when it opens");
+    check(/<v>45<\/v>/.test(one) && /Food \| snacks/.test(one), "figures are numbers, and a | in a cell survives");
+    check(/state="frozen"/.test(one) && /s="1"/.test(one), "the header row is styled and frozen");
+  }
+  const [word] = await Promise.all([p.waitForEvent("download", { timeout: 8000 }).catch(() => null), p.getByRole("button", { name: "Save as Word" }).click()]);
+  if (word) {
+    const { execFileSync } = await import("node:child_process");
+    const xml = execFileSync("python3", ["-c", `import zipfile,sys;print(zipfile.ZipFile(sys.argv[1]).read("word/document.xml").decode())`, await word.path()]).toString();
+    check((xml.match(/<w:tbl>/g) ?? []).length === 2, "and in Word the tables are real tables", `${(xml.match(/<w:tbl>/g) ?? []).length} tables`);
+  } else check(false, "and in Word the tables are real tables", "no download");
+}
+
 console.log("\nAsked for a presentation, the model makes a real deck");
 {
   await p.getByRole("button", { name: "New chat" }).first().click();

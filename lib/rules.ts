@@ -78,10 +78,25 @@ export function toggled(on: string[], id: string): string[] {
   return [...on.filter((r) => !clash.has(r)), id];
 }
 
-/** The rules that are on, in the order they are listed. */
+/**
+ * Presets no longer offered — each repeated what the house rules or the app
+ * already do — but kept for anyone who had switched one on, so a rule
+ * somebody chose does not vanish on an update. They are shown in the panel
+ * under "Kept from before", where they can be turned off, and never offered
+ * to anyone new.
+ */
+export const RETIRED: Rule[] = [
+  { id: "no-preamble", group: "answers", label: "No preamble, no praise", blurb: "Straight in, and never “great question”.", text: "No preamble, no praise, and never restate my question back to me. Start with the answer." },
+  { id: "ask-first", group: "answers", label: "Ask before guessing", blurb: "One clarifying question when the ask is ambiguous.", text: "If my question could mean two different things, ask one short clarifying question before answering rather than guessing." },
+  { id: "check-me", group: "teaching", label: "Check I followed", blurb: "One short question after every explanation.", text: "After explaining something, ask me one short question that checks I followed. Wait for my answer." },
+  { id: "confidence", group: "honesty", label: "Say how sure you are", blurb: "High, medium or low, with the reason.", text: "At the end of any factual answer, say how sure you are — high, medium or low — and why in one line." },
+  { id: "my-language", group: "language", label: "Answer in the language I write in", blurb: "Russian in, Russian out; Kazakh in, Kazakh out.", text: "Always answer in the language I wrote my message in, even if the material is in another language." },
+];
+
+/** The rules that are on, in the order they are listed; retired ones someone still has, after. */
 export function rulesOn(ids: string[]): Rule[] {
   const on = new Set(ids);
-  return RULES.filter((r) => on.has(r.id));
+  return [...RULES.filter((r) => on.has(r.id)), ...RETIRED.filter((r) => on.has(r.id))];
 }
 
 /** How many rules are in force, presets and your own lines together. */
