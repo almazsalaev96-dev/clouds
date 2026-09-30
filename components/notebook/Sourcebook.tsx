@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useDraft } from "@/lib/hooks/useDraft";
+import { focusSources } from "@/lib/scope";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   ArrowLeft, ArrowUp, BookOpen, Check, ChevronLeft, Copy, FileText, Globe, Layers, MoreHorizontal, NotebookPen,
@@ -161,7 +162,14 @@ export function Sourcebook({ note, sources, configured, onBack, onOpenPage, onOp
     const ctl = new AbortController();
     abortRef.current = ctl;
     try {
-      const raw = await makeFromSources(chatInstruction(text, nb, history), on.map((s) => ({ name: s.name, text: s.text })), modelId, 90_000, { signal: ctl.signal });
+      /* A question is its own topic: past what one call holds, each long
+         source is cut to the passages about it (lib/scope.ts), found by
+         search in a few milliseconds, instead of the whole book being read
+         in parts before the first word of the answer — minutes, and paid
+         for again after every reload. The large slice tells
+         makeFromSources the excerpts are already chosen. */
+      const focus = focusSources(on.map((s) => ({ name: s.name, text: s.text })), `${text}\n${history.slice(-2).map((t) => t.q).join("\n")}`);
+      const raw = await makeFromSources(chatInstruction(text, nb, history), focus.sources, modelId, focus.focused ? 200_000 : 90_000, { signal: ctl.signal });
       if (ctl.signal.aborted) return;
       if (!raw) { setNotice("Nothing usable came back. Try asking it differently."); return; }
       const { text: body, citations } = extractCitations(raw, on);

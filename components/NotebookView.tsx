@@ -29,6 +29,7 @@ import { offerUndo } from "@/lib/undo";
 import { useAutoGrow } from "@/lib/hooks/useAutoGrow";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { draftCards, makeFromSources, reviseCanvas } from "@/lib/generate";
+import { useScope } from "@/components/ScopePicker";
 import { citeScore, extractCitations, findIn, type Citation } from "@/lib/cite";
 import { extractPdf, isPdf, readingLine, readTextFile, cutLine } from "@/lib/pdf";
 import { Markdown } from "@/components/chat/Markdown";
@@ -178,6 +179,9 @@ export function NotebookView({
   const [draft, setDraft] = React.useState("");
   const [instruction, setInstruction] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  /* A long book asks which part first (lib/scope.ts): a revision pack on
+     chapter 3 is seconds, the same pack on the whole book is minutes. */
+  const scope = useScope();
   /* The same fact one render earlier, for anything that has to know now rather
      than at the next paint. */
   const busyRef = React.useRef(false);
@@ -410,10 +414,12 @@ export function NotebookView({
       setNotice("No key configured yet — add one in Settings.");
       return;
     }
+    const scoped = await scope.askAll(sources.map((x) => ({ name: x.name, text: x.text })));
+    if (!scoped) return;
     busyRef.current = true;
     setBusy(true);
     setNotice(null);
-    const source = sourceName(sources);
+    const source = sourceName(sources) + (scoped.label ? ` — ${scoped.label}` : "");
     const made: Note[] = [];
     try {
       const ctrl = new AbortController();
@@ -423,7 +429,7 @@ export function NotebookView({
         setLive("");
         const raw = await makeFromSources(
           recipe.instruction,
-          sources.map((x) => ({ name: x.name, text: x.text })),
+          scoped.sources,
           modelId,
           undefined,
           {
@@ -517,6 +523,8 @@ export function NotebookView({
       setNotice("No key configured yet — add one in Settings to ask for a revision.");
       return;
     }
+    const scoped = sources.length ? await scope.askAll(sources.map((s) => ({ name: s.name, text: s.text }))) : null;
+    if (sources.length && !scoped) return;
     busyRef.current = true;
     setBusy(true);
     setNotice(null);
@@ -533,7 +541,7 @@ export function NotebookView({
         setLive("");
         const raw = await makeFromSources(
           text,
-          sources.map((s) => ({ name: s.name, text: s.text })),
+          scoped!.sources,
           modelId,
           undefined,
           {
@@ -1126,6 +1134,7 @@ export function NotebookView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {scope.element}
       <DetailBar onBack={onBack} backLabel="All pages">
         <span className="mr-auto flex items-center gap-2.5">
           <span className="text-xs text-tertiary tnum">

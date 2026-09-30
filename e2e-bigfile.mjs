@@ -26,6 +26,11 @@ const BOOK = "Chapter one. Supply and demand.\n\n" + "A price rises when demand 
 console.log(`\nA file of ${BOOK.length.toLocaleString()} characters, in a conversation`);
 await p.setInputFiles('input[aria-label="Choose photos and files to attach"]', { name: "economics.txt", mimeType: "text/plain", buffer: Buffer.from(BOOK) });
 await p.waitForTimeout(800);
+const asked = p.getByRole("region", { name: "Which part of economics.txt?" });
+check(await asked.isVisible(), "a long book asks which part is wanted");
+check(await asked.getByText("Chapter forty. The long run.").isVisible(), "listing its own chapters");
+await asked.getByRole("button", { name: /^Whole book/ }).click();
+check(!(await asked.count()) && await p.getByText("The whole book").first().isVisible(), "and the whole book is still one press away");
 await fetch(`${MOCK}/__reset`);
 await p.getByRole("textbox", { name: "Message" }).fill("What does the last chapter say?");
 await p.keyboard.press("Enter");
@@ -46,6 +51,42 @@ check(/part \d+ of \d+/.test(saw), "the page says it is reading, part by part, a
 check(/Read in \d+ parts/.test(sent), "what reached the model is the notes on every part");
 check(sent.length < 1_000_000, "small enough to hold", `${Math.round(sent.length / 1000)}k characters sent, not ${Math.round(BOOK.length / 1000)}k`);
 check((await p.locator(".msg").count()) >= 2, "and an answer came back rather than \"prompt is too long\"");
+
+console.log("\nA part chosen: only that part, no reading first");
+{
+  await p.getByRole("button", { name: "New chat" }).last().click().catch(() => {});
+  await p.waitForTimeout(400);
+  await p.setInputFiles('input[aria-label="Choose photos and files to attach"]', { name: "economics.txt", mimeType: "text/plain", buffer: Buffer.from(BOOK) });
+  await p.waitForTimeout(800);
+  const asked = p.getByRole("region", { name: "Which part of economics.txt?" });
+  await asked.getByLabel("Find a topic").fill("long run inputs");
+  await p.waitForTimeout(200);
+  check(await asked.getByText("Chapter forty. The long run.").isVisible() && !(await asked.getByText("Chapter one. Supply and demand.").count()), "a topic finds the chapter about it");
+  await asked.getByRole("button", { name: "Use the best match" }).click();
+  check(await p.getByText(/Chapter forty\. The long run\./).first().isVisible(), "the chip names the part");
+  await fetch(`${MOCK}/__reset`);
+  const t0 = Date.now();
+  await p.getByRole("textbox", { name: "Message" }).fill("Summarise it");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(3500);
+  const sent2 = JSON.stringify((await (await fetch(`${MOCK}/__last?kind=answer`)).json()) ?? {});
+  check(sent2.includes("[Only part of economics.txt") && sent2.includes("every input can be changed") && sent2.length < 50_000, "only that part is sent", `${Math.round(sent2.length / 1000)}k characters`);
+  check(!/Read in \d+ parts/.test(sent2), "with no reading of the whole first", `${Date.now() - t0} ms`);
+}
+
+console.log("\nNo part chosen, a question asked: the passages about it");
+{
+  await p.getByRole("button", { name: "New chat" }).last().click().catch(() => {});
+  await p.waitForTimeout(400);
+  await p.setInputFiles('input[aria-label="Choose photos and files to attach"]', { name: "economics.txt", mimeType: "text/plain", buffer: Buffer.from(BOOK) });
+  await p.waitForTimeout(800);
+  await fetch(`${MOCK}/__reset`);
+  await p.getByRole("textbox", { name: "Message" }).fill("What happens in the long run to inputs?");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(3500);
+  const sent3 = JSON.stringify((await (await fetch(`${MOCK}/__last?kind=answer`)).json()) ?? {});
+  check(sent3.includes("[The passages of economics.txt") && sent3.includes("every input can be changed") && sent3.length < 120_000, "the question is the topic: the passages that answer it are found and sent", `${Math.round(sent3.length / 1000)}k characters`);
+}
 
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors");
 if (errs.length) failed++;

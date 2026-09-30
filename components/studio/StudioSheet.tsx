@@ -12,6 +12,8 @@ import { draftCards, makeFromSources } from "@/lib/generate";
 import { extractCitations } from "@/lib/cite";
 import { extractPdf, isPdf, readingLine, readTextFile } from "@/lib/pdf";
 import { readWhole } from "@/lib/digest";
+import { LONG } from "@/lib/scope";
+import { useScope } from "@/components/ScopePicker";
 import { marksOf } from "@/lib/exam";
 import { rulesText } from "@/lib/rules";
 import { useSettings } from "@/lib/store";
@@ -99,6 +101,7 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
   });
   const [minutes, setMinutes] = React.useState(45);
   const [jobs, setJobs] = React.useState<Job[]>([]);
+  const scope = useScope();
   const [notice, setNotice] = React.useState<string | null>(null);
   const [pasting, setPasting] = React.useState(false);
   const [pasted, setPasted] = React.useState("");
@@ -118,9 +121,22 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
 
   /* ------------------------------------------------------- reading -- */
 
-  const read = React.useCallback(async (src: { name: string; text: string } | null, about: string) => {
-    setStep("reading");
+  const read = React.useCallback(async (given: { name: string; text: string } | null, about: string) => {
     setNotice(null);
+    /* A long book: which part first. Everything after — the reading, every
+       tool, the checker — then works from that part, in seconds rather
+       than after the whole book has been read in parts. */
+    let src = given;
+    if (src && src.text.length > LONG) {
+      const r = await scope.ask(src.name, src.text);
+      if (!r) { setStep("source"); return; }
+      if (!r.whole) {
+        src = { name: src.name, text: r.text };
+        setSource(src);
+        setNotice(r.label ? `Working from ${r.label}.` : null);
+      }
+    }
+    setStep("reading");
     if (!src) {
       /* A topic, not a book: nothing to read, so the choice is offered at
          once with what suits a topic. */
@@ -146,7 +162,7 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
     setBrief((b) => ({ ...b, title: r.title, subject: b.subject || r.subject, level: b.level || r.level }));
     setPicked((p) => (p.size ? p : new Set(r.recommend.slice(0, 3))));
     setStep("choose");
-  }, [modelId]);
+  }, [modelId, scope]);
 
   React.useEffect(() => {
     if (step === "reading" && (request.source || request.topic) && !reading) void read(request.source ?? null, request.topic ?? "");
@@ -291,6 +307,8 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
   };
 
   return (
+    <>
+    {scope.element}
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--bg-overlay)] sm:items-center sm:p-6" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget && step !== "making") onClose(); }}>
       <section
         role="dialog"
@@ -523,6 +541,7 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
         )}
       </section>
     </div>
+    </>
   );
 }
 

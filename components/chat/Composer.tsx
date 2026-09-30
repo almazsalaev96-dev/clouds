@@ -16,6 +16,8 @@ import { fileToBase64, formatBytes, sniffKind, cn } from "@/lib/utils";
 import { isPdf, pdfBlock, readingLine, readTextFile, cutLine } from "@/lib/pdf";
 import { useSettings, useDrafts } from "@/lib/store";
 import { Tooltip } from "@/components/ui/primitives";
+import { ScopePicker } from "@/components/ScopePicker";
+import { LONG, forQuestion } from "@/lib/scope";
 
 /** Longer than this and a paste becomes a chip instead of flooding the box. */
 const PASTE_COLLAPSE_CHARS = 1500;
@@ -29,6 +31,11 @@ interface Attachment {
   size: number;
   data: string;
   preview?: string;
+  /* A long book: the whole text kept while a part of it is what is sent,
+     the part's name for the chip, and whether it is still being asked. */
+  whole?: string;
+  part?: string;
+  asking?: boolean;
 }
 
 export function Composer({
@@ -263,6 +270,8 @@ export function Composer({
         });
       }
     }
+    /* A long book asks which part is wanted before anything is read. */
+    for (const n of next) if (n.kind === "file" && n.data.length > LONG) n.asking = true;
     if (next.length) setAttachments((a) => [...a, ...next]);
   }, []);
 
@@ -275,7 +284,10 @@ export function Composer({
       ...attachments.map((a): ContentBlock =>
         a.kind === "image"
           ? { type: "image", mimeType: a.mimeType, data: a.data, name: a.name }
-          : { type: "file", mimeType: a.mimeType, name: a.name, text: a.data },
+          /* Sent with a question and no part chosen: the passages about the
+             question, found by search, rather than the whole book read first.
+             With no question there is nothing to search by, so it goes whole. */
+          : { type: "file", mimeType: a.mimeType, name: a.name, text: a.asking && trimmed ? forQuestion(a.data, a.name, trimmed) : a.data },
       ),
       ...(trimmed ? [{ type: "text" as const, text: trimmed }] : []),
     ];
@@ -391,11 +403,26 @@ export function Composer({
                       you send something — the chip used to show only the
                       name, which is the one thing you already knew. */}
                   <span className="text-tiny text-faint">
-                    {a.kind === "image" ? "Image" : a.mimeType === "application/pdf" ? "PDF" : (a.name.split(".").pop() ?? "file").toUpperCase()}
-                    {" · "}
-                    {formatBytes(a.size)}
+                    {a.part ? (
+                      <span className="text-secondary">{a.part}</span>
+                    ) : (
+                      <>
+                        {a.kind === "image" ? "Image" : a.mimeType === "application/pdf" ? "PDF" : (a.name.split(".").pop() ?? "file").toUpperCase()}
+                        {" · "}
+                        {formatBytes(a.size)}
+                      </>
+                    )}
                   </span>
                 </span>
+                {(a.whole || (a.kind === "file" && a.data.length > LONG)) && !a.asking && (
+                  <button
+                    onClick={() => setAttachments((list) => list.map((x) => (x.id === a.id ? { ...x, data: x.whole ?? x.data, whole: undefined, part: undefined, asking: true } : x)))}
+                    aria-label={`Choose a part of ${a.name}`}
+                    className="text-tiny text-tertiary underline-offset-2 hover:text-primary hover:underline"
+                  >
+                    {a.part ? "Change" : "Choose a part"}
+                  </button>
+                )}
                 <button
                   onClick={() => setAttachments((list) => list.filter((x) => x.id !== a.id))}
                   aria-label={`Remove ${a.name}`}
@@ -405,6 +432,21 @@ export function Composer({
                 </button>
               </div>
             ))}
+            {(() => {
+              const a = attachments.find((x) => x.asking);
+              if (!a) return null;
+              return (
+                <ScopePicker
+                  key={a.id}
+                  name={a.name}
+                  text={a.data}
+                  className="mt-1 w-full"
+                  hint="Or just ask your question — the parts of the book about it are found and sent."
+                  onPick={(text, label) => setAttachments((list) => list.map((x) => (x.id === a.id ? { ...x, whole: x.data, data: text, part: label, asking: false } : x)))}
+                  onWhole={() => setAttachments((list) => list.map((x) => (x.id === a.id ? { ...x, asking: false, part: "The whole book" } : x)))}
+                />
+              );
+            })()}
           </div>
           ) : null
         }

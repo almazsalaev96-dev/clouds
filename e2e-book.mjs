@@ -41,6 +41,11 @@ await fetch(`${MOCK}/__reset`);
 await p.getByRole("button", { name: "More ways to use this" }).click();
 await p.waitForTimeout(250);
 await p.getByRole("button", { name: /Make lessons/ }).click();
+await p.waitForTimeout(400);
+const which = p.getByRole("dialog").getByRole("region", { name: "Which part of oceans.txt?" });
+check(await which.isVisible(), "a long book first asks which part");
+check(await which.getByText("Chapter nine. Estuaries.").isVisible(), "listing the book's own chapters");
+await which.getByRole("button", { name: /^Whole book/ }).click();
 
 const said = [];
 for (let i = 0; i < 60; i++) {
@@ -64,6 +69,25 @@ check(/Part 6 of 6|Part 5 of 5|Part 7 of 7/.test(writer), "the material reaches 
 check(/Cover the whole of it, not just the first parts/.test(writer), "and the writer is told to cover the whole");
 check(/Only the lines under \\"Quotable\\"|Only the lines under "Quotable"/.test(writer), "and which lines are the book's own words, so citations stay exact");
 check((await p.getByRole("button", { name: /^Keep/ }).count()) === 1, "the lessons arrive as the page, with a diff, as before");
+
+console.log("\nOne chapter chosen: no reading, only that chapter");
+{
+  await p.getByRole("button", { name: /^Keep/ }).click().catch(() => {});
+  await p.waitForTimeout(300);
+  await fetch(`${MOCK}/__reset`);
+  await p.getByRole("button", { name: "More ways to use this" }).click();
+  await p.waitForTimeout(250);
+  await p.getByRole("button", { name: /Make lessons/ }).click();
+  await p.waitForTimeout(400);
+  const which = p.getByRole("dialog").getByRole("region", { name: "Which part of oceans.txt?" });
+  await which.getByRole("checkbox", { name: /Chapter nine/ }).check();
+  await which.getByRole("button", { name: "Use this part" }).click();
+  for (let i = 0; i < 40 && !(await p.getByRole("button", { name: /^Keep/ }).count()); i++) await p.waitForTimeout(250);
+  const { recent: r2 } = await (await fetch(`${MOCK}/__recent`)).json();
+  const w2 = JSON.stringify((await (await fetch(`${MOCK}/__last`)).json()) ?? {});
+  check(!r2.some((r) => /You are reading part \d+ of \d+/.test(r.head ?? "")), "no part of the book is read first", `${r2.length} calls`);
+  check(w2.includes("[Only part of oceans.txt") && w2.includes("brackish") && !w2.includes("near water toward it and the far water away.\\n\\nThe moon pulls"), "the writer gets that chapter and not the rest");
+}
 
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors");
 if (errs.length) failed++;

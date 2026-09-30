@@ -2,6 +2,8 @@
 
 import { openStudio } from "@/lib/studioBus";
 import { readWhole } from "@/lib/digest";
+import { LONG } from "@/lib/scope";
+import { useScope } from "@/components/ScopePicker";
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft, ChevronRight, Eraser, Highlighter, Loader2, MousePointer2, PenLine, Trash2, Undo2, X } from "lucide-react";
@@ -70,6 +72,7 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
   const [shot, setShot] = React.useState<{ url: string; width: number; height: number } | null>(null);
   const [box, setBox] = React.useState<Box | null>(null);
   const [asking, setAsking] = React.useState(false);
+  const scope = useScope();
   const [live, setLive] = React.useState("");
   const [question, setQuestion] = React.useState("");
   const [notice, setNotice] = React.useState<string | null>(null);
@@ -373,13 +376,22 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
   const makePage = async (kind: "guide" | "questions" | "summary") => {
     if (!cast) { setNotice("No key configured yet — add one in Settings."); return; }
     if (!lesson.text && !words) { setNotice("There are no words in this document to make that from."); return; }
+    /* A long book: which part the guide or the questions are for. A summary
+       is of the page on screen and needs no asking. */
+    let whole = lesson.text;
+    let part = "";
+    if (kind !== "summary" && whole.length > LONG) {
+      const r = await scope.ask(lesson.name, whole);
+      if (!r) return;
+      whole = r.text;
+      part = r.label ?? "";
+    }
     setAsking(true);
     setNotice(null);
     try {
       /* The whole document, not its first forty thousand characters. A long
          one is read in parts into notes first (lib/digest.ts); a summary of
          the page on screen stays a summary of that page. */
-      let whole = lesson.text;
       if (whole.length > 40_000) {
         const read = await readWhole([{ name: lesson.name, text: whole }], {
           onPart: (done, total) => setNotice(done < total ? `Reading the whole document — part ${done + 1} of ${total}…` : "Read it all. Writing…"),
@@ -395,7 +407,7 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
         system: "You write revision material for a student from the document given. Use only what the document says. Markdown, headings, no preamble.",
       });
       if (!out) { setNotice("Nothing usable came back."); return; }
-      const title = `${lesson.name.replace(/\.[^.]+$/, "")} — ${spec.label}`;
+      const title = `${lesson.name.replace(/\.[^.]+$/, "")}${part ? ` (${part})` : ""} — ${spec.label}`;
       await createNote({ title, content: `# ${title}\n\n${out.trim()}` });
       setNotice(`“${title}” is in the Notebook.`);
     } catch (err) {
@@ -454,6 +466,7 @@ export function Tutor({ lesson, configured, onLeave, onAsk }: {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+      {scope.element}
       {/* ------------------------------------------------------- the page -- */}
       {/* Stacked under lg the page keeps a fixed share of the screen and the
           chat scrolls in the rest; left to flex, a chat with three answers in
