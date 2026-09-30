@@ -30,14 +30,11 @@ export const RULES: Rule[] = [
   /* --- how it answers */
   { id: "short", group: "answers", label: "Keep it short", blurb: "The point first, then only what is needed.", text: "Keep answers short: the point first, then only what is needed to use it. No padding." },
   { id: "examples", group: "answers", label: "One example every time", blurb: "Every abstract point comes with a concrete case.", text: "Give one concrete example with every abstract point." },
-  { id: "no-preamble", group: "answers", label: "No preamble, no praise", blurb: "Straight in, and never “great question”.", text: "No preamble, no praise, and never restate my question back to me. Start with the answer." },
-  { id: "ask-first", group: "answers", label: "Ask before guessing", blurb: "One clarifying question when the ask is ambiguous.", text: "If my question could mean two different things, ask one short clarifying question before answering rather than guessing." },
   { id: "tables", group: "answers", label: "Compare in a table", blurb: "Two or more things side by side, always as a table.", text: "Whenever you compare or contrast two or more things, put the comparison in a table, one row per point of difference." },
   { id: "easy-read", group: "answers", label: "Easy to read", blurb: "Short sentences, one idea per line, key terms in bold.", text: "Write for easy reading: short sentences, one idea per bullet, key terms in bold, no walls of text. (Helpful for dyslexia and tired eyes.)" },
   { id: "latex", group: "answers", label: "Maths step by step", blurb: "LaTeX maths, one step per line.", text: "Write all mathematics in LaTeX, one step per line, and say in words what each step does." },
   /* --- how it teaches */
   { id: "hint-first", group: "teaching", label: "Hints before answers", blurb: "When I am working something out, do not finish it for me.", text: "When I am working something out, give a hint before an answer, and never the last step unless I ask for it outright." },
-  { id: "check-me", group: "teaching", label: "Check I followed", blurb: "One short question after every explanation.", text: "After explaining something, ask me one short question that checks I followed. Wait for my answer." },
   { id: "exam-level", group: "teaching", label: "Exam standard", blurb: "Pitch at A-level / IB, in the board's own wording.", text: "Pitch answers at A-level / IB standard. Use the exam board's own terms and wording where they exist, and say what a full-mark answer would have to contain." },
   { id: "test-me", group: "teaching", label: "End with a question to test me", blurb: "Recall beats rereading: every explanation ends on a question.", text: "End every explanation or set of notes with two short questions that test what was just covered, with the answers hidden under a line I have to scroll past." },
   { id: "mark-scheme", group: "teaching", label: "Answer like the mark scheme", blurb: "Mark points first, command word obeyed.", text: "When I ask an exam-style question, answer the way the mark scheme is written: the command word obeyed, one point per mark, in the board's wording, and say how many marks the answer would earn." },
@@ -55,11 +52,9 @@ export const RULES: Rule[] = [
   { id: "unsure", group: "honesty", label: "Say when unsure", blurb: "And never invent a number, a source or a quote.", text: "Say plainly when you are unsure or when the material does not settle it. Never invent a number, a source, a quote or a citation." },
   { id: "quote", group: "honesty", label: "Quote what you relied on", blurb: "From my files, notes or the page.", text: "When answering from my files, my notes or a page I am reading, quote the exact line you relied on." },
   { id: "pages", group: "honesty", label: "Page numbers from my files", blurb: "Say the page when citing a PDF.", text: "When you rely on one of my PDFs or documents, give the page number (or section) you took it from." },
-  { id: "confidence", group: "honesty", label: "Say how sure you are", blurb: "High, medium or low, with the reason.", text: "At the end of any factual answer, say how sure you are — high, medium or low — and why in one line." },
   /* --- language */
   { id: "british", group: "language", label: "British English", blurb: "Spelling, units and dates.", text: "Use British English spelling, metric units and day-month-year dates." },
   { id: "american", group: "language", label: "American English", blurb: "US spelling and month-day-year dates.", text: "Use American English spelling and month-day-year dates." },
-  { id: "my-language", group: "language", label: "Answer in the language I write in", blurb: "Russian in, Russian out; Kazakh in, Kazakh out.", text: "Always answer in the language I wrote my message in, even if the material is in another language." },
   { id: "glossary", group: "language", label: "Key terms in both languages", blurb: "For studying in a second language.", text: "I am studying in a second language: give each key term in English and, in brackets, in the language I write to you in." },
 ];
 

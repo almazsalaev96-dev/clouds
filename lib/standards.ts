@@ -11,7 +11,7 @@
 export type ToolId =
   | "notes" | "guide" | "organiser" | "cornell" | "flashcards" | "quiz" | "paper" | "questions"
   | "mindmap" | "glossary" | "timeline" | "summary" | "worked" | "essay" | "model"
-  | "lesson" | "plan" | "listen" | "checker" | "faq" | "annotate";
+  | "lesson" | "plan" | "listen" | "checker" | "faq" | "annotate" | "slides";
 
 /**
  * The rules study material is written under, in brief, for a chat answer
@@ -21,6 +21,16 @@ export type ToolId =
 export const EDU_RULES = "This is study material, so: correct at the level asked; the subject's own terms and the exam board's wording, with the words a mark scheme looks for in bold and how the marks are earned; built to be recalled rather than reread — questions before, quick checks during, retrieval questions with answers after; small steps, one idea at a time; every idea with a concrete example, every method with a worked example and then one to try; a labelled diagram or table where a structure is easier seen than read; common mistakes and look-alikes named; nothing invented, and anything beyond the source marked as added.";
 
 export const STANDARDS: Record<ToolId, { name: string; standard: string[] }> = {
+  slides: {
+    name: "Presentation",
+    standard: [
+      "One idea a slide, with a title that states the point rather than the topic",
+      "Few words on a slide; what the speaker says is in the notes",
+      "A mix of layouts — points, comparison, a big number, a table, a chart, a timeline — where the content has that shape",
+      "Opens with a title slide and closes with the three things to remember",
+      "Every figure, date and quotation is real",
+    ],
+  },
   notes: {
     name: "Revision notes",
     standard: [

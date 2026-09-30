@@ -483,16 +483,16 @@ export function Composer({
                     picker instead. */}
                 <MenuRow icon={<Camera size={16} />} title="Take a photo" onClick={() => { setPlusOpen(false); cameraRef.current?.click(); }} />
                 {onPicture && (
-                  <MenuRow icon={<ImagePlus size={16} />} on={picture} title={picture ? "Stop making a picture" : "Make a picture"} hint="Describe it and it is drawn in the thread." onClick={() => { setPlusOpen(false); onPicture(); }} />
+                  <MenuRow icon={<ImagePlus size={16} />} on={picture} title={picture ? "Stop making a picture" : "Create image"} hint="Describe it and it is drawn in the thread." onClick={() => { setPlusOpen(false); onPicture(); }} />
                 )}
                 {/* The tools, each with a line saying what it does — the +
                     menu as Gemini and ChatGPT have it, for the person who
                     would rather read a menu than learn the chips. */}
                 {onToggleLearn && (
-                  <MenuRow icon={<GraduationCap size={16} />} on={learn} title={learn ? "Stop learning mode" : "Learn"} hint="A plan, one step at a time, a check after each." onClick={() => { setPlusOpen(false); onToggleLearn(); }} />
+                  <MenuRow icon={<GraduationCap size={16} />} on={learn} title={learn ? "Stop learning mode" : "Study and learn"} hint="A plan, one step at a time, a check after each." onClick={() => { setPlusOpen(false); onToggleLearn(); }} />
                 )}
                 {onToggleResearch && (
-                  <MenuRow icon={<Globe size={16} />} on={research} title={research ? "Stop searching the web" : "Research"} hint="Let it search the web and say what it read." onClick={() => { setPlusOpen(false); onToggleResearch(); }} />
+                  <MenuRow icon={<Globe size={16} />} on={research} title={research ? "Stop searching the web" : "Web search"} hint="Let it search the web and say what it read." onClick={() => { setPlusOpen(false); onToggleResearch(); }} />
                 )}
                 {onToggleDeep && (
                   <MenuRow icon={<Telescope size={16} />} on={deep} title={deep ? "Stop deep research" : "Deep research"} hint="Several searches from different angles, then a report with sources." onClick={() => { setPlusOpen(false); onToggleDeep(); }} />

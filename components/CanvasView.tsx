@@ -50,6 +50,7 @@ import { DetailBar, SectionIndex } from "@/components/SectionIndex";
 import { plainLine } from "@/lib/plain";
 import { printHtml } from "@/lib/print";
 import { deckToPptx, isDeck } from "@/lib/office";
+import { THEMES, type ThemeId } from "@/lib/deck";
 
 /**
  * The canvas: a document you and the model both write to.
@@ -935,6 +936,7 @@ function Editor({
      and the timer starts again the moment you go full-screen. Everything
      below hides in place, and the frame never moves. */
   const titleField = useDraft(canvas.title, (title) => void db.canvases.update(canvas.id, { title }), 300, canvas.id);
+  const [pptTheme, setPptTheme] = React.useState<ThemeId>("clean");
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
       {focused && (
@@ -1036,13 +1038,25 @@ function Editor({
                   </Button>
                 )}
                 {deck && (
+                  /* The look of the PowerPoint: the deck is drawn again in
+                     one of the themes, with its own shapes, charts and notes. */
+                  <select
+                    value={pptTheme}
+                    onChange={(e) => setPptTheme(e.target.value as ThemeId)}
+                    aria-label="PowerPoint theme"
+                    className="h-8 rounded-md border border-line bg-transparent px-1.5 text-xs text-secondary"
+                  >
+                    {THEMES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                )}
+                {deck && (
                   <Button
                     size="sm"
                     variant="ghost"
                     aria-label="Download as PowerPoint"
                     onClick={() => {
                       const merged = files.map((f) => (f.name === activeFile?.name ? { ...f, content: draft } : f));
-                      deckToPptx(exportWeb(merged), canvas.title || "slides")
+                      deckToPptx(exportWeb(merged), canvas.title || "slides", pptTheme)
                         .then((n) => setNotice(`Saved ${n} slide${n === 1 ? "" : "s"} as PowerPoint.`))
                         .catch(() => setNotice("Couldn't make the PowerPoint file."));
                     }}

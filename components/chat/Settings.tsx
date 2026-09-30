@@ -1,5 +1,6 @@
 "use client";
 
+import { BASES, DEFAULT_PERSONA, TRAITS, type Base, type Level, type Persona } from "@/lib/persona";
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Download, ExternalLink, Eye, EyeOff, MessageSquarePlus, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
@@ -29,7 +30,7 @@ import { GROUPS, RULES, rulesCount } from "@/lib/rules";
 import { Button, ConfirmInline, Kbd } from "@/components/ui/primitives";
 import { SHORTCUT_GROUPS } from "@/components/ShortcutsOverlay";
 
-type Tab = "keys" | "local" | "plus" | "appearance" | "model" | "styles" | "memory" | "routines" | "data" | "shortcuts" | "privacy" | "rules" | "assistants";
+type Tab = "keys" | "local" | "plus" | "appearance" | "personal" | "model" | "styles" | "memory" | "routines" | "data" | "shortcuts" | "privacy" | "rules" | "assistants";
 
 /* Settings holds what is set once: keys, the plan, how it looks, the model,
    your data, privacy. Rules, assistants, styles, memory, routines and
@@ -42,6 +43,7 @@ const TABS: { id: Tab; label: string; hidden?: boolean }[] = [
   { id: "local", label: "Free AI" },
   { id: "plus", label: "Armi Plus" },
   { id: "appearance", label: "Appearance" },
+  { id: "personal", label: "Personalization" },
   { id: "model", label: "Model" },
   { id: "rules", label: "Rules", hidden: true },
   { id: "assistants", label: "Assistants", hidden: true },
@@ -120,6 +122,7 @@ export function Settings({
             {tab === "local" && <LocalPanel />}
             {tab === "plus" && <PlusPanel />}
             {tab === "appearance" && <AppearancePanel />}
+            {tab === "personal" && <PersonalPanel onRules={() => setTab("rules")} />}
             {tab === "model" && <ModelPanel configured={configured} />}
             {tab === "rules" && <RulesPanel />}
             {tab === "assistants" && <AssistantsPanel onStart={onStartAssistant ? (id) => { onStartAssistant(id); onOpenChange(false); } : undefined} />}
@@ -451,6 +454,84 @@ function KeyRow({ provider, serverConfigured }: { provider: ProviderId; serverCo
         </p>
       )}
     </div>
+  );
+}
+
+/* -------------------------------------------------------- personalization -- */
+
+/**
+ * How it talks to you, set once: the reference products' Personalization
+ * page — a base style and tone, four characteristics turned up or down, your
+ * own instructions, and what it should know about you. All of it is sent
+ * with every question (it is written here to be), and none of it is sent
+ * while it is left at its default.
+ */
+function PersonalPanel({ onRules }: { onRules: () => void }) {
+  const s = useSettings();
+  const p = { ...DEFAULT_PERSONA, ...(s.persona ?? {}) };
+  const put = (patch: Partial<Persona>) => s.set({ persona: { ...(s.persona ?? {}), ...patch } });
+  const field = "focus-inset w-full rounded-md border border-line-strong bg-field px-2.5 text-sm text-primary outline-none focus:border-accent";
+  return (
+    <Panel title="Personalization" description="How Armi talks to you and what it knows about you. It is sent with every question; left at Default, nothing is.">
+      <Field label="Base style and tone" hint="The voice every answer starts from. Your own instructions below still win.">
+        <select
+          value={p.base}
+          onChange={(e) => put({ base: e.target.value as Base })}
+          aria-label="Base style and tone"
+          className={cn(field, "h-9 max-w-xs")}
+        >
+          {BASES.map((b) => (
+            <option key={b.id} value={b.id}>{b.label} — {b.blurb}</option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Characteristics" hint="Turn one up or down; Default leaves it to the style.">
+        <div className="divide-y divide-line rounded-lg border border-line bg-surface">
+          {TRAITS.map((t) => (
+            <div key={t.id} className="flex items-center gap-3 px-3 py-2">
+              <span className="min-w-0 flex-1 text-sm text-primary" id={`trait-${t.id}`}>{t.label}</span>
+              <div aria-labelledby={`trait-${t.id}`} role="group">
+                <Segmented
+                  value={p[t.id]}
+                  options={[
+                    { value: "more", label: "More" },
+                    { value: "default", label: "Default" },
+                    { value: "less", label: "Less" },
+                  ]}
+                  onChange={(v) => put({ [t.id]: v as Level })}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </Field>
+      <Field label="Custom instructions" hint="Anything else about how to answer — the same text as Your own rules.">
+        <textarea
+          value={s.systemPrompt}
+          onChange={(e) => s.setSystemPrompt(e.target.value)}
+          rows={3}
+          aria-label="Custom instructions"
+          placeholder=""
+          className={cn(field, "resize-y py-2")}
+        />
+        <button onClick={onRules} className="focus-inset mt-1.5 rounded text-xs text-accent underline-offset-2 hover:underline">
+          Rules you can switch on and off
+        </button>
+      </Field>
+      <div className="border-t border-line pt-4">
+        <h3 className="text-sm font-semibold text-primary">About you</h3>
+        <p className="mt-0.5 text-xs text-tertiary">Used where it helps — examples from your world, answers at your level — and never read back to you.</p>
+      </div>
+      <Field label="Nickname" hint="What it calls you. Separate from the greeting's name, which never leaves this browser.">
+        <input value={p.nickname} onChange={(e) => put({ nickname: e.target.value })} aria-label="Nickname" placeholder="" className={cn(field, "h-9 max-w-xs")} />
+      </Field>
+      <Field label="Occupation">
+        <input value={p.occupation} onChange={(e) => put({ occupation: e.target.value })} aria-label="Occupation" placeholder="" className={cn(field, "h-9 max-w-md")} />
+      </Field>
+      <Field label="More about you" hint="Your subjects and exams, your level, your interests, what you find hard.">
+        <textarea value={p.about} onChange={(e) => put({ about: e.target.value })} rows={3} aria-label="More about you" placeholder="" className={cn(field, "resize-y py-2")} />
+      </Field>
+    </Panel>
   );
 }
 

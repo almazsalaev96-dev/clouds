@@ -28,6 +28,7 @@ import {
 } from "@/lib/db";
 import { composeSystemPrompt, composeTurnPrompt, DEEP_RESEARCH } from "@/lib/prompt";
 import { rulesCount, rulesText } from "@/lib/rules";
+import { personaText } from "@/lib/persona";
 import { examNote } from "@/lib/exam";
 import { effortFor, taskOf, type TaskKind } from "@/lib/task";
 import { shapeFor } from "@/lib/shape";
@@ -381,7 +382,7 @@ export default function Page() {
          the inline script and kept in sync here. ------------------------- */
   React.useEffect(() => {
     setMounted(true);
-    if (window.matchMedia("(max-width: 767px)").matches) settings.setSidebar(false);
+    if (window.matchMedia("(max-width: 1023px)").matches) settings.setSidebar(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -950,7 +951,7 @@ export default function Page() {
       const composed = composeSystemPrompt({
         who: preset?.name,
         assistant,
-        base: [rulesText(settings.rules ?? [], settings.systemPrompt), conv?.systemPrompt ?? "", conv?.deep ? DEEP_RESEARCH : ""].filter(Boolean).join("\n\n"),
+        base: [rulesText(settings.rules ?? [], settings.systemPrompt), personaText(settings.persona), conv?.systemPrompt ?? "", conv?.deep ? DEEP_RESEARCH : ""].filter(Boolean).join("\n\n"),
         learner: conv?.temporary ? null : settings.learner,
         project,
         files,
@@ -1430,7 +1431,7 @@ export default function Page() {
         params: { ...mode.params, ...(plan.effort ? { reasoningEffort: plan.effort } : {}) },
       });
     },
-    [stream, settings.systemPrompt, settings.styleId, settings.mode, settings.memoryOn, settings.actionsOn, settings.keys, configured, customStyles],
+    [stream, settings.systemPrompt, settings.persona, settings.styleId, settings.mode, settings.memoryOn, settings.actionsOn, settings.keys, configured, customStyles],
   );
 
   /** Same rule as the model: the open thread owns it, the app holds the default. */
@@ -2290,7 +2291,7 @@ export default function Page() {
   );
 
   const closeDrawerOnMobile = React.useCallback(() => {
-    if (window.matchMedia("(max-width: 767px)").matches) settings.setSidebar(false);
+    if (window.matchMedia("(max-width: 1023px)").matches) settings.setSidebar(false);
   }, [settings]);
 
   const newChat = React.useCallback(() => {
@@ -3128,7 +3129,7 @@ export default function Page() {
 
         {/* The room. Named for the view transition, so a section change slides
             in the direction you travelled instead of cutting. */}
-        <main className="vt-room relative flex min-w-0 flex-1 flex-col">
+        <main className="vt-room relative flex min-w-0 flex-1 flex-col" data-empty={(settings.section === "chat" && showEmpty) || undefined}>
           {settings.section !== "chat" ? (
             <>
               {/* The sidebar's switch, in every room, in both states.
@@ -3145,7 +3146,7 @@ export default function Page() {
                   hides this lone row; a room with no such header keeps the
                   row, which is one button and not a blank strip. */}
               {!inUse && (
-                <header className="room-toggle-row no-print flex h-[var(--topbar-h)] shrink-0 items-center gap-1 px-2 md:hidden">
+                <header className="room-toggle-row no-print flex h-[var(--topbar-h)] shrink-0 items-center gap-1 px-2 desk:hidden">
                   <IconButton
                     label={settings.sidebarOpen ? "Hide sidebar" : "Show sidebar"}
                     keys={["mod", "\\"]}
@@ -3163,7 +3164,7 @@ export default function Page() {
                       label={settings.sidebarOpen ? "Hide sidebar" : "Show sidebar"}
                       keys={["mod", "\\"]}
                       onClick={settings.toggleSidebar}
-                      className="rounded-lg hover:bg-subtle md:hidden"
+                      className="rounded-lg hover:bg-subtle desk:hidden"
                     >
                       <PanelLeft size={16} />
                     </IconButton>

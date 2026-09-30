@@ -46,7 +46,7 @@ console.log("\nA command, and a menu entry");
   await box().fill("");
   await p.getByRole("button", { name: "Add files and tools" }).click();
   await p.waitForTimeout(300);
-  const entry = p.getByRole("button", { name: /Make a picture/ });
+  const entry = p.getByRole("button", { name: /Create image/ });
   check(await entry.isVisible(), "the + menu offers to make one");
   check(await p.getByRole("button", { name: "Take a photo", exact: true }).isVisible(), "and to take a photo");
   await entry.click();

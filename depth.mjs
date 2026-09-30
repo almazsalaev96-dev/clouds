@@ -212,6 +212,10 @@ for (const theme of ["light", "dark"]) {
       for (const el of document.querySelectorAll('[class*="shadow-sm"], [class*="shadow-md"], [class*="shadow-lg"]')) {
         const r = el.getBoundingClientRect();
         if (!r.width || !r.height) continue;
+        /* Flat on a desk by its own say-so: the sidebar is flush there and
+           the top bar plain, as the desktop apps draw them. */
+        const cn = typeof el.className === "string" ? el.className : "";
+        if (cn.includes("desk:shadow-none") && matchMedia("(min-width: 1024px) and (pointer: fine)").matches) continue;
         const ls = split(getComputedStyle(el).boxShadow).map(layer).filter((l) => !l.empty);
         if (!ls.some((l) => !l.inset)) {
           const cls = (typeof el.className === "string" ? el.className : "").split(" ")[0];

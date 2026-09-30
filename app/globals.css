@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* A desk: a wide window and a mouse. The layout the desktop apps of the
+   reference products share — a flush 260px sidebar of small rows, a plain
+   top bar, the box in the middle of an empty chat — where a tablet keeps
+   its large touch rows and floating controls. */
+@custom-variant desk (@media (min-width: 1024px) and (pointer: fine));
+
 /* ============================================================================
    TOKENS — §4 of the master prompt.
    Nothing in this codebase hardcodes a color, radius, duration or shadow.
@@ -782,6 +788,9 @@
    controls that sit in a bar and controls that fill it. */
 @media (min-width: 768px) {
   :root { --topbar-h: 60px; }
+}
+@media (min-width: 1024px) and (pointer: fine) {
+  :root { --sidebar-w: 260px; --rail-w: 52px; --topbar-h: 56px; }
 }
 
 /* --- Expose tokens to Tailwind's utility generator. --------------------- */
@@ -2858,7 +2867,7 @@ main:has(.has-room-toggle) > .room-toggle-row { display: none; }
 /* The wrapper a room's header keeps for the phone's drawer opener holds a
    hidden button on a desk, and its negative margins would still pull the
    title left; on a desk it is gone with the button. */
-@media (min-width: 768px) { .has-room-toggle { display: none; } }
+@media (min-width: 1024px) and (pointer: fine) { .has-room-toggle { display: none; } }
 
 /* A row you swipe, not scroll: no bar under a line of pills on a phone. */
 .swipe-row { scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
@@ -2958,4 +2967,20 @@ main:has(.has-room-toggle) > .room-toggle-row { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .gravity-fall { animation: none; }
   .game-shake { animation: none; }
+}
+
+/* An empty chat on a desk: the greeting and the box together in the middle
+   of the window, as the desktop apps open — the box moves to the foot with
+   the first answer. The dock is the same element either way; only the space
+   around it changes, so nothing is remounted and the caret stays put. */
+@media (min-width: 1024px) and (pointer: fine) {
+  main[data-empty] > .empty-state {
+    flex: 0 1 auto;
+    margin-top: auto;
+  }
+  main[data-empty] > .empty-state > div:first-child { margin-block: 0; padding-bottom: 1rem; }
+  main[data-empty] > .composer-dock {
+    margin-bottom: auto;
+    padding-bottom: 14vh;
+  }
 }

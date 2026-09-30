@@ -42,7 +42,7 @@ console.log("\nOff by default, and then on");
   await p.getByRole("button", { name: "Add files and tools" }).click();
   await p.waitForTimeout(400);
   const menu = p.locator("[data-radix-popper-content-wrapper]").last();
-  const entry = menu.getByRole("button", { name: /Research/ });
+  const entry = menu.getByRole("button", { name: /Web search/ });
   check(await entry.isVisible(), "the tools menu offers it, by name");
   check(/search the web/.test(await menu.innerText()), "with a line saying what it does");
   check((await entry.getAttribute("aria-pressed")) === "false", "and says it is off");
@@ -60,7 +60,7 @@ console.log("\nOff by default, and then on");
     "and pressing the chip takes it off");
   await p.getByRole("button", { name: "Add files and tools" }).click();
   await p.waitForTimeout(300);
-  await p.locator("[data-radix-popper-content-wrapper]").last().getByRole("button", { name: /Research/ }).click();
+  await p.locator("[data-radix-popper-content-wrapper]").last().getByRole("button", { name: /Web search|Stop searching the web/ }).click();
   await p.waitForTimeout(300);
 }
 

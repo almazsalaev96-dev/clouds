@@ -103,6 +103,40 @@ console.log("\nAnd they hold in the document reader too");
   check(/## Your rules/.test(tsys) && /Always show the units/.test(tsys), "the tutor's request carries the same rules", tsys.slice(0, 60).replace(/\s+/g, " "));
 }
 
+console.log("\nPersonalization: a style, a characteristic and a nickname reach the model");
+{
+  await p.keyboard.press("Escape");
+  await p.getByRole("button", { name: "Settings", exact: true }).first().click();
+  await p.waitForTimeout(500);
+  const dlg = p.locator("[role=dialog]");
+  await dlg.getByRole("button", { name: "Personalization", exact: true }).click();
+  await p.waitForTimeout(300);
+  await dlg.getByLabel("Base style and tone").selectOption("efficient");
+  await dlg.getByRole("group", { name: "Emoji" }).getByRole("radio", { name: "Less" }).click();
+  await dlg.getByLabel("Nickname").fill("Al");
+  await dlg.getByLabel("Occupation").fill("Year 12 student");
+  await p.waitForTimeout(200);
+  check((await dlg.getByLabel("Custom instructions").inputValue()).includes("Always show the units."), "custom instructions are your own rules, the same text");
+  await p.keyboard.press("Escape");
+  await p.waitForTimeout(300);
+  await p.getByRole("button", { name: "New chat" }).first().click();
+  await p.waitForTimeout(600);
+  await fetch(`${MOCK}/__reset`);
+  await p.getByRole("textbox", { name: "Message" }).fill("What is osmosis");
+  await p.keyboard.press("Meta+Enter");
+  await p.waitForTimeout(3500);
+  const rec = (await fetch(`${MOCK}/__recent`).then((r) => r.json())).recent ?? [];
+  const psys = [...rec].reverse().find((r) => r.kind === "answer")?.system ?? "";
+  check(/## How to talk to this person/.test(psys), "the system prompt carries a personalization section");
+  check(/Concise and plain/.test(psys) && /Never use emoji\./.test(psys), "with the style and the characteristic");
+  check(/Call them Al\./.test(psys) && /Year 12 student/.test(psys), "and what it should know about them");
+  /* The greeting's name is "Almaz" here, which is also the name of Armi's
+     maker in the identity block; the personalization section is what
+     must not carry it. */
+  const section = psys.slice(psys.indexOf("## How to talk to this person")).split("\n## ")[0];
+  check(!/Almaz/.test(section), "while the greeting's name, promised to stay in the browser, is not in it");
+}
+
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors");
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 await b.close();

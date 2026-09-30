@@ -45,7 +45,9 @@ export type ToolKind =
   /** A paper to sit and have marked. */
   | "paper"
   /** Not made from a source: a form. */
-  | "form";
+  | "form"
+  /** A presentation: a PowerPoint and a page that runs. */
+  | "slides";
 
 export interface Tool {
   id: ToolId;
@@ -117,6 +119,13 @@ export const TOOLS: Tool[] = [
     kind: "page",
     standard: STANDARDS.cornell.standard,
     instruction: CORNELL.instruction,
+  },
+  {
+    id: "slides",
+    name: "Presentation",
+    blurb: "A designed PowerPoint: themes, charts, tables and speaker notes",
+    kind: "slides",
+    standard: STANDARDS.slides.standard,
   },
   {
     id: "flashcards",

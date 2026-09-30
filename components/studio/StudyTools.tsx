@@ -10,6 +10,7 @@ import { openStudio } from "@/lib/studioBus";
 import { Button } from "@/components/ui/primitives";
 
 export const ICONS: Record<ToolId, React.ReactNode> = {
+  slides: <Presentation size={16} />,
   notes: <Highlighter size={16} />,
   guide: <BookOpen size={16} />,
   organiser: <Rows3 size={16} />,

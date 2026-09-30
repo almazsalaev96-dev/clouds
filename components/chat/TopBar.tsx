@@ -108,7 +108,7 @@ export function TopBar({
       /* No bar: two floating controls at the top left and one pill at the
          top right, over the page, as ChatGPT's app has them. The strip
          itself lets touches through to what scrolls beneath it. */
-      className="safe-top no-print pointer-events-none sticky top-0 z-20 flex h-[calc(4.25rem+env(safe-area-inset-top))] shrink-0 items-center gap-2 px-3 [&>*]:pointer-events-auto"
+      className="safe-top no-print pointer-events-none sticky top-0 z-20 flex h-[calc(4.25rem+env(safe-area-inset-top))] shrink-0 items-center gap-2 px-3 desk:h-[var(--topbar-h)] desk:px-2 [&>*]:pointer-events-auto"
       data-scrolled={scrolled || undefined}
     >
       {/* The sidebar's switch, round, in the corner, open or shut. */}
@@ -117,7 +117,9 @@ export function TopBar({
           onClick={toggleSidebar}
           aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
           aria-expanded={sidebarOpen}
-          className="tap flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-primary shadow-sm transition-[filter] duration-[var(--dur-fast)] hover:brightness-125"
+          /* On a desk the sidebar carries its own switch (and a rail when
+             closed), so this round one is for touch only. */
+          className="tap flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-primary shadow-sm transition-[filter] duration-[var(--dur-fast)] hover:brightness-125 desk:hidden"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
             <path d="M3 7h14M3 13h9" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
@@ -290,7 +292,7 @@ export function TopBar({
       )}
 
       {/* New chat and the thread's menu, in one pill at the top right. */}
-      <div className="ml-auto flex h-11 items-center gap-0.5 rounded-full border border-line bg-surface px-1 shadow-sm">
+      <div className="ml-auto flex h-11 items-center gap-0.5 rounded-full border border-line bg-surface px-1 shadow-sm desk:h-9 desk:border-transparent desk:bg-transparent desk:shadow-none">
         {/* Before the first message only. ChatGPT, Gemini and Claude all
             put this here, top right of a new chat, and it is the right
             place: a decision about the chat you are about to have, made

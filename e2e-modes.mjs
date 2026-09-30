@@ -79,10 +79,10 @@ console.log("\nLearn and Research: on in the bar, off with a press");
 {
   await p.getByRole("button", { name: "New chat" }).first().click();
   await p.waitForTimeout(400);
-  await pick(/^Learn/);
+  await pick(/^Study and learn/);
   const learn = bar().getByRole("button", { name: "Stop learning mode" });
   check(await learn.isVisible(), "Learn shows as a chip by the model");
-  await pick(/^Research/);
+  await pick(/^Web search/);
   const research = bar().getByRole("button", { name: "Stop searching the web" });
   check(await research.isVisible(), "so does Research, beside it");
   check((await bar().getByRole("group", { name: "On for this chat" }).getByRole("button").count()) === 2, "two chips, in one row");
@@ -104,7 +104,7 @@ console.log("\nLearn and Research: on in the bar, off with a press");
 
 console.log("\nA picture: the same, and a press again in the menu cancels");
 {
-  await pick(/^Make a picture/);
+  await pick(/^Create image/);
   const chip = bar().getByRole("button", { name: "Stop making a picture" });
   check(await chip.isVisible(), "Picture shows as a chip");
   check(!(await box().getAttribute("placeholder")), "the box carries no prompt text");
@@ -122,7 +122,7 @@ console.log("\nOn a phone the chips do not push the menu off the bar");
   await phone.waitForTimeout(800);
   await phone.getByRole("button", { name: "Add files and tools" }).click();
   await phone.waitForTimeout(300);
-  await phone.locator("[data-radix-popper-content-wrapper]").last().getByRole("button", { name: /^Learn/ }).click();
+  await phone.locator("[data-radix-popper-content-wrapper]").last().getByRole("button", { name: /^Study and learn/ }).click();
   await phone.waitForTimeout(300);
   await phone.getByRole("button", { name: "Add files and tools" }).click();
   await phone.waitForTimeout(300);

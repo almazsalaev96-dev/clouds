@@ -34,7 +34,9 @@ import {
   createDeck,
   createNote,
   createProject,
+  createWebCanvas,
   db,
+  deleteCanvas,
   deleteAssistant,
   deleteMemory,
   deleteNote,
@@ -52,6 +54,7 @@ import { solve } from "./arith";
 import { runCode } from "./sandbox";
 import { convert } from "./units";
 import { useSettings } from "./store";
+import { THEMES, deckHtml, parseDeck, type ThemeId } from "./deck";
 
 export interface ActionContext {
   conversationId: string;
@@ -601,6 +604,66 @@ const TOOLS: Tool[] = [
       return { ok: true, text: `${summary}. Study now counts down to it.`, summary, open: { section: "study" }, undo: async () => { useSettings.getState().setExam(before); } };
     },
   },
+  /* ---- a presentation, designed and ready as PowerPoint. The model
+     writes the deck as data (layouts, not styling), and lib/deck.ts draws
+     it — the same engine as the Studio's Presentation. */
+  {
+    spec: {
+      name: "make_presentation",
+      description:
+        "Make a designed presentation (PowerPoint) and keep it in the Library, where it runs as slides and downloads as .pptx in any theme. " +
+        "Use when they ask for a presentation, slides, a deck or a PowerPoint. Write the content yourself — 6 to 14 slides, one idea each, at most 5 short bullets a slide, speaker notes on every slide. " +
+        "Layouts: title (first), section, bullets, two (left/right columns), quote, stat (one big number), table, chart (bar/line/pie with numbers), timeline (steps), closing (last). Use a chart or table only for real data.",
+      schema: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          subtitle: { type: "string" },
+          theme: { type: "string", enum: THEMES.map((t) => t.id), description: "Default clean." },
+          slides: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                layout: { type: "string", enum: ["title", "section", "bullets", "two", "quote", "stat", "table", "chart", "timeline", "closing"] },
+                title: { type: "string" },
+                subtitle: { type: "string" },
+                bullets: { type: "array", items: { type: "string" } },
+                left: { type: "object", properties: { heading: { type: "string" }, bullets: { type: "array", items: { type: "string" } } } },
+                right: { type: "object", properties: { heading: { type: "string" }, bullets: { type: "array", items: { type: "string" } } } },
+                quote: { type: "string" },
+                by: { type: "string" },
+                stat: { type: "string" },
+                label: { type: "string" },
+                table: { type: "object", properties: { header: { type: "array", items: { type: "string" } }, rows: { type: "array", items: { type: "array", items: { type: "string" } } } } },
+                chart: { type: "object", properties: { type: { type: "string", enum: ["bar", "line", "pie"] }, labels: { type: "array", items: { type: "string" } }, series: { type: "array", items: { type: "object", properties: { name: { type: "string" }, values: { type: "array", items: { type: "number" } } } } } } },
+                steps: { type: "array", items: { type: "object", properties: { title: { type: "string" }, text: { type: "string" } } } },
+                notes: { type: "string", description: "What the speaker says." },
+              },
+              required: ["layout", "title"],
+            },
+          },
+        },
+        required: ["title", "slides"],
+      },
+    },
+    doing: "Designing the presentation",
+    run: async (input) => {
+      const title = str(input.title, 120) || "Presentation";
+      const theme = (THEMES.some((t) => t.id === input.theme) ? input.theme : "clean") as ThemeId;
+      const deck = parseDeck(input, title, theme);
+      if (!deck || deck.slides.length < 2) return fail("A presentation needs at least two slides, each with a layout and a title.");
+      const canvas = await createWebCanvas([{ name: "index.html", lang: "html", content: deckHtml(deck) }], { title: `${deck.title} — Presentation` });
+      const summary = `Made a presentation: ${q(deck.title)}, ${plural(deck.slides.length, "slide")}`;
+      return {
+        ok: true,
+        text: `${summary}. It is in the Library; opening it shows the slides, and Download as PowerPoint saves the .pptx in any of ${THEMES.length} themes. Tell them in one line; do not repeat the slides in the chat.`,
+        summary,
+        open: { section: "creative", id: canvas.id },
+        undo: async () => { await deleteCanvas(canvas.id); },
+      };
+    },
+  },
   /* ---- the app's own machinery: a schedule, a project, an assistant.
      ChatGPT's scheduled tasks, projects and GPTs are each a form; here they
      are also a sentence in the chat, which is where the wish is spoken. */
@@ -725,7 +788,7 @@ export function doingOf(name: string): string {
 }
 
 /** The rooms this can reach, for the settings line and the docs. */
-export const ACTION_AREAS = ["Study", "Notebook", "Sources", "Memory", "Projects", "Studio", "Conversations", "Routines", "Assistants", "Calculator", "Units", "Code", "Clock", "Web pages"] as const;
+export const ACTION_AREAS = ["Study", "Notebook", "Sources", "Memory", "Projects", "Studio", "Conversations", "Routines", "Assistants", "Calculator", "Units", "Code", "Clock", "Web pages", "Presentations"] as const;
 
 /**
  * Run one call. Never throws: a tool that fails answers the model with why,

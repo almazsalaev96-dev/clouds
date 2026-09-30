@@ -44,17 +44,28 @@ console.log("\nThe sidebar, laid out as ChatGPT's app lays it out");
   for (const name of ["Find a conversation", "Conversations", "Notebook", "Projects", "Studio", "New chat", "Settings"])
     check(await aside.getByRole("button", { name, exact: true }).isVisible(), `the panel has ${name}`);
   check(!(await aside.getByRole("button", { name: "Study", exact: true }).count()), "and no Study: it is not one of the listed rooms");
+  /* On a desk (a mouse and a wide window) it is the desktop apps' column:
+     New chat and Search as the first rows, the account at the foot, and the
+     switch inside the panel's own header. */
   const chat = await aside.getByRole("button", { name: "New chat", exact: true }).boundingBox();
   const gear = await aside.getByRole("button", { name: "Settings", exact: true }).boundingBox();
   const panel = await aside.boundingBox();
-  check(chat && gear && panel && chat.y > panel.y + panel.height - 90 && gear.x > chat.x && Math.abs(chat.y + chat.height / 2 - (gear.y + gear.height / 2)) < 4, "the Chat pill and the gear float at the foot, side by side");
+  check(chat && panel && chat.y < panel.y + 110 && chat.height <= 40, "New chat is a row at the top, desk-sized", chat ? `${Math.round(chat.y)}px down, ${Math.round(chat.height)}px tall` : "");
+  check(gear && panel && gear.y > panel.y + panel.height - 70, "and you and your settings are the row at the foot");
+  check(panel && Math.round(panel.x) === 0 && panel.width <= 262, "flush to the edge, 260 wide", panel ? `${Math.round(panel.x)}, ${Math.round(panel.width)}` : "");
   const header = p.locator("main header").first();
-  check(await header.getByRole("button", { name: "Hide sidebar" }).isVisible(), "the round switch is on the page, top left");
-  check(await header.getByRole("button", { name: "Start a new chat" }).isVisible(), "and a new chat is in the pill at the top right");
-  await header.getByRole("button", { name: "Hide sidebar" }).click();
+  check(!(await header.getByRole("button", { name: "Hide sidebar" }).isVisible()), "the page's round switch is for touch; on a desk the panel carries its own");
+  check(await header.getByRole("button", { name: "Start a new chat" }).isVisible(), "and a new chat is at the top right");
+  await aside.getByRole("button", { name: "Hide sidebar" }).click();
   await p.waitForTimeout(500);
   const w = await aside.evaluate((el) => el.getBoundingClientRect().width).catch(() => 0);
-  check(w < 2, "closed, no rail is left", `${Math.round(w)}px wide`);
+  check(w > 40 && w < 60, "closed, a rail of icons is left, as the desktop apps leave one", `${Math.round(w)}px wide`);
+  check(await aside.getByRole("button", { name: "Studio", exact: true }).isVisible() && await aside.getByRole("button", { name: "Show sidebar" }).isVisible(), "with every room and the switch to open it");
+  await aside.getByRole("button", { name: "Show sidebar" }).click();
+  await p.waitForTimeout(500);
+  check(await aside.getByRole("button", { name: "Search chats" }).count() === 0 && await aside.getByRole("button", { name: "Find a conversation" }).isVisible(), "open again, Search is a row");
+  await aside.getByRole("button", { name: "Hide sidebar" }).click();
+  await p.waitForTimeout(400);
   await p.keyboard.press("Meta+Shift+S");
   await p.waitForTimeout(500);
   check(await aside.getByRole("button", { name: "Notebook", exact: true }).isVisible(), "⌘⇧S opens it again, as the reference's chord does");
@@ -76,7 +87,7 @@ console.log("\nThe box's plus menu holds the functions");
   await p.getByRole("button", { name: "Add files and tools" }).click();
   await p.waitForTimeout(300);
   const menu = await p.locator("[data-radix-popper-content-wrapper]").last().innerText();
-  for (const item of ["Add photos and files", "Take a photo", "Make a picture", "Learn", "Research", "Deep research", "Slides", "Add to a project", "Answer as an assistant", "Temporary chat"])
+  for (const item of ["Add photos and files", "Take a photo", "Create image", "Study and learn", "Web search", "Deep research", "Slides", "Add to a project", "Answer as an assistant", "Temporary chat"])
     check(menu.includes(item), `offers ${item}`);
   await p.getByRole("button", { name: /^Add to a project/ }).click();
   await p.waitForTimeout(250);
@@ -128,6 +139,34 @@ console.log("\nA project from the chat itself");
   check(rows.projects === 2 && rows.linked, "a second project exists with this conversation in it", JSON.stringify(rows));
   check(Boolean(rows.made) && rows.made !== "New project", "named for the conversation", rows.made);
   check(rows.assistant === "as1" && rows.deep === true, "and the assistant and deep research chosen before the first message stuck to it", JSON.stringify({ assistant: rows.assistant, deep: rows.deep }));
+}
+
+console.log("\nOn an iPad the touch layout stays: big rows, the pill and the gear, the round switch");
+{
+  const land = await (await b.newContext({ viewport: { width: 1180, height: 820 }, hasTouch: true })).newPage();
+  await land.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await land.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), S);
+  await land.reload({ waitUntil: "networkidle" });
+  await land.waitForTimeout(800);
+  const aside = land.locator("aside").first();
+  const chat = await aside.getByRole("button", { name: "New chat", exact: true }).boundingBox();
+  const gear = await aside.getByRole("button", { name: "Settings", exact: true }).boundingBox();
+  const panel = await aside.boundingBox();
+  check(chat && gear && panel && chat.y > panel.y + panel.height - 90 && gear.x > chat.x && Math.abs(chat.y + chat.height / 2 - (gear.y + gear.height / 2)) < 4, "landscape: the Chat pill and the gear float at the foot, side by side");
+  check(await land.locator("main header").first().getByRole("button", { name: "Hide sidebar" }).isVisible(), "and the round switch is on the page, top left");
+  await land.close();
+  const port = await (await b.newContext({ viewport: { width: 820, height: 1180 }, hasTouch: true })).newPage();
+  await port.goto("http://localhost:3100", { waitUntil: "networkidle" });
+  await port.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify({ state: s, version: 1 })), S);
+  await port.reload({ waitUntil: "networkidle" });
+  await port.waitForTimeout(800);
+  check(!(await port.locator("aside").getByRole("button", { name: "New chat" }).isVisible()), "upright: the page has the whole width, the sidebar starts closed");
+  await port.getByRole("button", { name: "Show sidebar" }).first().click();
+  await port.waitForTimeout(500);
+  const drawer = await port.locator("aside").first().boundingBox();
+  const main = await port.locator("main").first().boundingBox();
+  check(drawer && main && main.x < 5, "and opens as a drawer over the page, which keeps its width", `main at ${Math.round(main?.x ?? -1)}px`);
+  await port.close();
 }
 
 console.log("\nOn a phone the bar opens the drawer");

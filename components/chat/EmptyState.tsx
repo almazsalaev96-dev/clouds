@@ -144,7 +144,7 @@ export function EmptyState({
   const waiting = useWaiting();
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-4">
+    <div className="empty-state flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-4">
       <div className="my-auto w-full max-w-[var(--measure)] py-8">
         {/* The signature, then a greeting that knows what time it is and — once
             you have said so — what you are called. The two are the whole of
@@ -307,14 +307,16 @@ export function EmptyState({
       {hasAnyKey && onStart && (
         <nav
           aria-label="Ways to start"
-          className="mx-auto w-full max-w-[var(--measure)] pb-1 anim-rise"
+          /* On a desk the three are a row of pills over the centred box,
+             as the desktop apps set their suggestions; on a tablet, rows. */
+          className="mx-auto w-full max-w-[var(--measure)] pb-1 anim-rise desk:flex desk:flex-wrap desk:justify-center desk:gap-2 desk:pb-3"
           style={{ animationDelay: "90ms" }}
         >
           {STARTS.map((st) => (
             <button
               key={st.id}
               onClick={() => onStart(st.id)}
-              className="tap focus-inset flex h-11 w-full items-center gap-3 rounded-md px-3 text-left text-[0.9375rem] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+              className="tap focus-inset flex h-11 w-full items-center gap-3 rounded-md px-3 text-left text-[0.9375rem] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary desk:h-9 desk:w-auto desk:gap-2 desk:rounded-full desk:border desk:border-line desk:px-3.5 desk:text-sm desk:[&_svg]:size-4"
             >
               <span className="shrink-0 text-tertiary">{st.icon}</span>
               {st.label}

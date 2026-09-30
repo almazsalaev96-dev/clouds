@@ -88,7 +88,7 @@ console.log("\nLearn: a mode of the thread, a press away");
     "with Learn off, the composer carries nothing about it");
   await p.getByRole("button", { name: "Add files and tools" }).click();
   await p.waitForTimeout(400);
-  const entry = p.locator("[data-radix-popper-content-wrapper]").last().getByRole("button", { name: /Learn/ });
+  const entry = p.locator("[data-radix-popper-content-wrapper]").last().getByRole("button", { name: /Study and learn/ });
   check(await entry.isVisible(), "the tools menu offers Learn");
   check((await entry.getAttribute("aria-pressed")) === "false", "off to begin with");
   await entry.click();
@@ -116,8 +116,8 @@ console.log("\nThe + menu says what each tool does");
   await p.waitForTimeout(400);
   const menu = await p.locator("[data-radix-popper-content-wrapper]").last().innerText();
   check(/Add photos and files/.test(menu), "attach is first");
-  check(/Stop learning mode|Learn/.test(menu) && /A plan, one step at a time/.test(menu), "Learn is there with a line saying what it does");
-  check(/Research/.test(menu) && /search the web/.test(menu), "and Research, likewise");
+  check(/Stop learning mode|Study and learn/.test(menu) && /A plan, one step at a time/.test(menu), "Learn is there with a line saying what it does");
+  check(/Web search|Stop searching the web/.test(menu) && /search the web/.test(menu), "and Web search, likewise");
   await p.keyboard.press("Escape");
 }
 

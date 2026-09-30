@@ -23,37 +23,17 @@ export const isDeck = (html: string): boolean =>
 const text = (el: Element | null | undefined) => (el?.textContent ?? "").replace(/\s+/g, " ").trim();
 
 /**
- * The deck, as PowerPoint. Each slide keeps its heading, its bullets and
- * its paragraphs as text, and its speaker notes as notes; what the CSS
- * drew is not carried, since a picture drawn in CSS has no equivalent in a
- * .pptx and a wrong one is worse than none.
+ * The deck, as PowerPoint — drawn in a theme by `lib/deck.ts`: a deck made
+ * here carries its own slides as data and is drawn exactly; a deck the chat
+ * wrote as a page is read into slides (headings, points, tables, big
+ * numbers, notes) and drawn the same way, rather than dumped as text boxes.
  */
-export async function deckToPptx(html: string, title: string): Promise<number> {
-  const { default: PptxGenJS } = await import("pptxgenjs");
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  let slides = [...doc.querySelectorAll(".slide")];
-  if (!slides.length) slides = [...doc.querySelectorAll("section")];
-  const pptx = new PptxGenJS();
-  pptx.layout = "LAYOUT_16x9";
-  pptx.title = title;
-  for (const s of slides) {
-    const slide = pptx.addSlide();
-    const heading = text(s.querySelector("h1, h2, h3"));
-    const notes = text(s.querySelector("aside.notes, .notes, aside"));
-    const bullets = [...s.querySelectorAll("li")].filter((li) => !li.closest("aside")).map((li) => text(li)).filter(Boolean);
-    const paras = [...s.querySelectorAll("p")].filter((p) => !p.closest("aside")).map((p) => text(p)).filter(Boolean);
-    const big = text(s.querySelector(".big, .number, strong.big"));
-    if (heading) slide.addText(heading, { x: 0.5, y: 0.35, w: 9, h: 1.1, fontSize: 30, bold: true, fontFace: "Calibri" });
-    const body = [
-      ...bullets.map((t) => ({ text: t, options: { bullet: true, breakLine: true } })),
-      ...paras.filter((t) => t !== heading && t !== big).map((t) => ({ text: t, options: { breakLine: true } })),
-    ];
-    if (big && !bullets.length && !paras.length) slide.addText(big, { x: 0.5, y: 1.8, w: 9, h: 2.5, fontSize: 60, bold: true, align: "center" });
-    else if (body.length) slide.addText(body, { x: 0.7, y: 1.55, w: 8.6, h: 3.7, fontSize: 18, valign: "top", fontFace: "Calibri" });
-    if (notes) slide.addNotes(notes);
-  }
-  await pptx.writeFile({ fileName: `${slug(title)}.pptx` });
-  return slides.length;
+export async function deckToPptx(html: string, title: string, theme?: import("./deck").ThemeId): Promise<number> {
+  const { deckInHtml, deckFromHtml, downloadPptx } = await import("./deck");
+  const own = deckInHtml(html);
+  const deck = own ? { ...own, theme: theme ?? own.theme } : deckFromHtml(html, title, theme ?? "clean");
+  if (!deck) return 0;
+  return downloadPptx(deck);
 }
 
 /* Inline **bold**, *italic* and `code` into runs; everything else plain. */

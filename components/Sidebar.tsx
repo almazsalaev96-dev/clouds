@@ -3,8 +3,8 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  BookOpen, ChevronRight, FolderOpen, Keyboard, MessagesSquare, MoreHorizontal, NotebookPen,
-  PanelLeft, Pin, PinOff, Plus, Search, Settings, Settings2, Sparkles, SquarePen, Trash2, X,
+  BookOpen, ChevronRight, FolderOpen, MessagesSquare, MoreHorizontal, NotebookPen,
+  PanelLeft, Pin, PinOff, Plus, Search, Settings, Sparkles, SquarePen, Trash2, X,
 } from "lucide-react";
 import type { Conversation } from "@/lib/types";
 import { createNote, db, deleteConversation, groupConversations } from "@/lib/db";
@@ -121,7 +121,7 @@ export function Sidebar({
       {sidebarOpen && (
         <div
           onClick={toggleSidebar}
-          className="no-print fixed inset-0 z-30 bg-[var(--bg-overlay)] anim-fade md:hidden"
+          className="no-print fixed inset-0 z-30 bg-[var(--bg-overlay)] anim-fade lg:hidden"
           aria-hidden
         />
       )}
@@ -129,7 +129,10 @@ export function Sidebar({
         className={cn(
           "glass safe-y no-print z-40 flex shrink-0 flex-col overflow-hidden border-r border-line",
           "fixed inset-y-0 left-0 w-[var(--sidebar-w)] transition-transform duration-[var(--dur-layout)] ease-[var(--ease-out)]",
-          "md:relative md:z-auto md:transition-[width]",
+          /* Below 1024 — a phone, an iPad upright — the panel is a drawer
+             over the page, as the reference's iPad app has it upright: the
+             page keeps its whole width and the list slides over it. */
+          "lg:relative lg:z-auto lg:transition-[width]",
           /* On a desk and a tablet the column stops being a wall and
              becomes a panel: inset from three edges, cornered, lifted,
              with the page visible around it. A border welded to the
@@ -138,10 +141,14 @@ export function Sidebar({
              the truer description of a list of rooms. Flush on a phone,
              where the drawer covers the screen and a margin around it
              would be a gap to nowhere. */
-          "md:my-2 md:ml-2 md:rounded-xl md:border-r-0 md:shadow-md",
+          "lg:my-2 lg:ml-2 lg:rounded-xl lg:border-r-0 lg:shadow-md",
+          /* On a desk it is the desktop apps' column: flush to the edge,
+             one hairline, no float — and closed it is a rail of icons,
+             not nothing, so every room is still one click away. */
+          "desk:m-0 desk:rounded-none desk:border-r desk:shadow-none",
           sidebarOpen
-            ? "translate-x-0 md:w-[var(--sidebar-w)]"
-            : "-translate-x-full md:hidden",
+            ? "translate-x-0 lg:w-[var(--sidebar-w)]"
+            : "-translate-x-full lg:hidden desk:flex! desk:w-[var(--rail-w)] desk:translate-x-0",
         )}
         /* The full panel, below, is `inert` as well as `aria-hidden` when
            closed, and the pair is the point: clipped to nothing on a desk
@@ -161,8 +168,19 @@ export function Sidebar({
         {/* Closed is closed: no rail. The sidebar's switch stays at the top
             left of the page, a round button over the content, as ChatGPT's
             iPad app has it. */}
+        {!sidebarOpen && (
+          <Rail
+            section={section}
+            name={name}
+            onOpen={toggleSidebar}
+            onNewChat={onNewChat}
+            onSearch={() => { toggleSidebar(); setSearching(true); }}
+            onGoToSection={onGoToSection}
+            onOpenSettings={onOpenSettings}
+          />
+        )}
         <div
-          className={cn("relative flex min-h-0 w-[var(--sidebar-w)] flex-1 flex-col", !sidebarOpen && "md:hidden")}
+          className={cn("relative flex min-h-0 w-[var(--sidebar-w)] flex-1 flex-col", !sidebarOpen && "lg:hidden")}
           inert={!sidebarOpen}
           aria-hidden={!sidebarOpen}
         >
@@ -170,13 +188,16 @@ export function Sidebar({
               the reference's header has them: the panel carries its own
               switch, and the same square at the top of the rail carries
               the other half of it when the panel is closed. */}
-          <div className="flex h-16 items-center gap-2 pl-4 pr-3 pt-1">
+          <div className="flex h-16 items-center gap-2 pl-4 pr-3 pt-1 desk:h-[3.25rem] desk:pl-3 desk:pr-1.5 desk:pt-0">
             {/* The drawn word, not the name set in the interface font. A
                 product's own name is the one string it should never render in
                 whatever the operating system happened to load. */}
             <span className="min-w-0 flex-1">
-              <Lockup />
+              <Lockup className="desk:origin-left desk:scale-[0.74]" />
             </span>
+            {/* On a desk the panel carries its own switch, top right, as the
+                desktop apps have it; the page's round one is for touch. */}
+            <SidebarToggle open onClick={toggleSidebar} className="hidden desk:flex" />
             <button
               onClick={() => setSearching((v) => !v)}
               /* Not the same name as the field it opens: two controls with
@@ -191,7 +212,7 @@ export function Sidebar({
                    floor argued for in the rows two inches below this one
                    is the floor here too, and a rule that bends for the
                    thing its author happens to be drawing is not a rule. */
-                "tap flex size-11 shrink-0 items-center justify-center rounded-full transition-colors duration-[var(--dur-fast)]",
+                "tap flex size-11 shrink-0 items-center justify-center rounded-full transition-colors duration-[var(--dur-fast)] desk:hidden",
                 searching ? "bg-accent-subtle text-accent" : "bg-subtle text-primary hover:brightness-110",
               )}
             >
@@ -199,7 +220,34 @@ export function Sidebar({
             </button>
           </div>
 
-          <div className="space-y-1 px-2 pb-2">
+          {/* New chat and Search as the first two rows, on a desk: the
+              desktop apps put both at the top of the list, where the pointer
+              already is, rather than in a pill at the foot. */}
+          <div className="hidden flex-col gap-px px-2 pb-1 desk:flex">
+            <button
+              onClick={onNewChat}
+              aria-label="New chat"
+              className="tap focus-inset group flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm text-primary transition-colors duration-[var(--dur-fast)] hover:bg-subtle/70"
+            >
+              <SquarePen size={18} className="shrink-0" aria-hidden />
+              <span className="flex-1">New chat</span>
+              <span className="opacity-0 transition-opacity duration-[var(--dur-fast)] group-hover:opacity-100"><Kbd keys={["mod", "N"]} /></span>
+            </button>
+            <button
+              onClick={() => { if (searching) setQuery(""); setSearching((v) => !v); }}
+              aria-label={`Find ${FIND[section].one}`}
+              aria-expanded={searching}
+              className={cn(
+                "tap focus-inset flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm text-primary transition-colors duration-[var(--dur-fast)]",
+                searching ? "bg-subtle" : "hover:bg-subtle/70",
+              )}
+            >
+              <Search size={18} className="shrink-0" aria-hidden />
+              {section === "chat" ? "Search chats" : `Search ${FIND[section].many}`}
+            </button>
+          </div>
+
+          <div className="space-y-1 px-2 pb-2 desk:pb-1">
             {/* Shown when it is asked for, which is the same rule the tools
                 in the composer follow. A search box that sits there on every
                 screen of every session is a row of furniture for the one
@@ -252,7 +300,7 @@ export function Sidebar({
               /* A fill, not a floating object: it sits behind the row it
                  marks, so it takes no shadow at all rather than one turned
                  off. */
-              indicatorClassName="rounded-md bg-subtle"
+              indicatorClassName="rounded-md bg-subtle desk:rounded-lg"
               /* `gap`, not `space-y`. The indicator is the first child of this
                  box, so `space-y-*` — which margins every sibling after the
                  first — would push the whole list down by one step the moment
@@ -283,6 +331,7 @@ export function Sidebar({
                        rooms has to spare. */
                     className={cn(
                       "tap flex h-12 w-full items-center gap-3.5 rounded-xl px-3 text-[1.0625rem] text-primary transition-colors duration-[var(--dur-fast)]",
+                      "desk:h-9 desk:gap-2.5 desk:rounded-lg desk:px-2.5 desk:text-sm desk:[&_svg]:size-[18px]",
                       // The row only changes the colour of its ink; the fill
                       // underneath it is the one element that moves.
                       on ? "font-medium" : "hover:bg-subtle/60",
@@ -302,7 +351,7 @@ export function Sidebar({
               below read as two different kinds of thing. */}
           <div className="mx-2 mb-1 mt-1 border-t border-line" aria-hidden />
 
-          <div className="flex-1 overflow-y-auto px-2 pb-24">
+          <div className="flex-1 overflow-y-auto px-2 pb-24 desk:pb-3">
             {/* The list under the rooms is the room's own. Conversations in
                 Conversations; decks in Study, pages in the Notebook, projects
                 in Projects, what you made in Studio — each a tap away
@@ -340,7 +389,7 @@ export function Sidebar({
               as it is last on the screen, so Tab walks down the panel: a blue "Chat" pill to
               start a new conversation and a round gear for settings, floating
               over the end of the list rather than a row of their own. */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-between bg-gradient-to-t from-[var(--bg-canvas)] via-[color-mix(in_oklab,var(--bg-canvas)_70%,transparent)] to-transparent px-4 pb-4 pt-10">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-between desk:hidden bg-gradient-to-t from-[var(--bg-canvas)] via-[color-mix(in_oklab,var(--bg-canvas)_70%,transparent)] to-transparent px-4 pb-4 pt-10">
             <button
               onClick={onNewChat}
               aria-label="New chat"
@@ -356,6 +405,20 @@ export function Sidebar({
               <Settings size={21} />
             </button>
           </div>
+          {/* On a desk, the account at the foot as one row — your initial,
+              your name, and the settings behind them — the way the desktop
+              apps end their sidebar. */}
+          <div className="hidden border-t border-line p-2 desk:block">
+            <button
+              onClick={onOpenSettings}
+              aria-label="Settings"
+              className="tap focus-inset flex h-11 w-full items-center gap-2.5 rounded-lg px-2 text-left text-sm text-primary transition-colors duration-[var(--dur-fast)] hover:bg-subtle/70"
+            >
+              <Avatar name={name} />
+              <span className="min-w-0 flex-1 truncate">{name.trim() || "You"}</span>
+              <Settings size={16} className="shrink-0 text-tertiary" aria-hidden />
+            </button>
+          </div>
         </div>
       </aside>
     </>
@@ -368,15 +431,16 @@ export function Sidebar({
  * open-sidebar icon; on the open panel it is the icon, in the header's
  * corner. Same square, same shortcut, either way.
  */
-function SidebarToggle({ open, onClick }: { open: boolean; onClick: () => void }) {
+function SidebarToggle({ open, onClick, className }: { open: boolean; onClick: () => void; className?: string }) {
   return (
-    <Tooltip label={open ? "Close sidebar" : "Open sidebar"} keys={["mod", "\\"]} side={open ? "bottom" : "right"}>
+    <Tooltip label={open ? "Hide sidebar" : "Show sidebar"} keys={["mod", "\\"]} side={open ? "bottom" : "right"}>
       <button
         onClick={onClick}
-        aria-label={open ? "Close sidebar" : "Open sidebar"}
+        aria-label={open ? "Hide sidebar" : "Show sidebar"}
         aria-expanded={open}
         className={cn(
-          "group tap relative flex size-10 shrink-0 items-center justify-center rounded-lg text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary",
+          "group tap relative flex size-9 shrink-0 items-center justify-center rounded-lg text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary",
+          className,
         )}
       >
         {open ? (
@@ -394,6 +458,69 @@ function SidebarToggle({ open, onClick }: { open: boolean; onClick: () => void }
   );
 }
 
+/** Your initial in a round, for the account row and the rail. */
+function Avatar({ name }: { name: string }) {
+  const initial = (name.trim()[0] ?? "").toUpperCase();
+  return (
+    <span aria-hidden className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--blue)] text-xs font-semibold text-white">
+      {initial || <Settings size={14} />}
+    </span>
+  );
+}
+
+/**
+ * The closed sidebar on a desk: the desktop apps' rail. The mark (which
+ * turns into the open icon under the pointer), New chat, Search, the rooms
+ * as icons, and you at the foot — every room still one click away while
+ * the page has the width.
+ */
+function Rail({
+  section,
+  name,
+  onOpen,
+  onNewChat,
+  onSearch,
+  onGoToSection,
+  onOpenSettings,
+}: {
+  section: Section;
+  name: string;
+  onOpen: () => void;
+  onNewChat: () => void;
+  onSearch: () => void;
+  onGoToSection: (s: Section) => void;
+  onOpenSettings: () => void;
+}) {
+  const cell = "tap focus-inset flex size-9 items-center justify-center rounded-lg text-primary transition-colors duration-[var(--dur-fast)] hover:bg-subtle [&_svg]:size-[18px]";
+  return (
+    <nav aria-label="Sidebar, closed" className="hidden h-full w-full flex-col items-center gap-1 py-2 desk:flex">
+      <SidebarToggle open={false} onClick={onOpen} />
+      <Tooltip label="New chat" keys={["mod", "N"]} side="right">
+        <button onClick={onNewChat} aria-label="New chat" className={cell}><SquarePen /></button>
+      </Tooltip>
+      <Tooltip label={`Search ${FIND[section].many}`} side="right">
+        <button onClick={onSearch} aria-label={`Find ${FIND[section].one}`} className={cell}><Search /></button>
+      </Tooltip>
+      <span className="my-1 h-px w-6 bg-[var(--border-subtle)]" aria-hidden />
+      {SECTIONS.map((s) => (
+        <Tooltip key={s.id} label={s.label} side="right">
+          <button
+            onClick={() => onGoToSection(s.id)}
+            aria-label={s.label}
+            aria-current={section === s.id || undefined}
+            className={cn(cell, section === s.id && "bg-subtle text-accent")}
+          >
+            {s.icon}
+          </button>
+        </Tooltip>
+      ))}
+      <button onClick={onOpenSettings} aria-label="Settings" className={cn(cell, "mt-auto rounded-full")}>
+        <Avatar name={name} />
+      </button>
+    </nav>
+  );
+}
+
 /* ----------------------------------------------------------------- lists -- */
 
 function GroupLabel({ children }: { children: React.ReactNode }) {
@@ -407,7 +534,7 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
        heading is for. */
     /* A heading you can read, as ChatGPT sets "Recent": the list's own
        size, in weight, not a faint label. */
-    <h2 className="px-3 pb-1.5 pt-5 text-[1.0625rem] font-semibold text-primary">
+    <h2 className="px-3 pb-1.5 pt-5 text-[1.0625rem] font-semibold text-primary desk:px-2.5 desk:pb-1 desk:pt-4 desk:text-sm desk:font-medium desk:text-tertiary">
       {children}
     </h2>
   );
@@ -451,7 +578,7 @@ function Empty({ query, noun, onNew }: { query: string; noun: string; onNew?: ()
 function Notebooks({ activeId, onOpen, onAll }: { activeId: string | null; onOpen: (id: string) => void; onAll?: () => void }) {
   const books = useLiveQuery(() => db.notes.filter((n) => n.view === "notebook").toArray(), [], []);
   const recent = [...(books ?? [])].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 3);
-  const row = "tap focus-inset flex h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-[1.0625rem] transition-colors duration-[var(--dur-fast)]";
+  const row = "tap focus-inset flex h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-[1.0625rem] transition-colors duration-[var(--dur-fast)] desk:h-9 desk:gap-2.5 desk:rounded-lg desk:px-2.5 desk:text-sm";
   return (
     <section aria-label="Notebooks" className="mb-3">
       <GroupLabel>Notebooks</GroupLabel>
@@ -561,7 +688,7 @@ function RoomList({
                 onClick={() => onOpen(r.id)}
                 aria-current={on || undefined}
                 className={cn(
-                  "tap focus-inset flex h-12 w-full items-center gap-2 rounded-xl px-3 text-left text-[1.0625rem] transition-colors duration-[var(--dur-fast)]",
+                  "tap focus-inset flex h-12 w-full items-center gap-2 rounded-xl px-3 text-left text-[1.0625rem] transition-colors duration-[var(--dur-fast)] desk:h-9 desk:rounded-lg desk:px-2.5 desk:text-sm",
                   on ? "bg-subtle text-primary" : "text-primary hover:bg-subtle/60",
                 )}
                 title={r.title}
@@ -724,7 +851,7 @@ function Row({
   return (
     <div
       className={cn(
-        "tap group relative flex h-12 items-center rounded-xl pl-3 pr-1.5 transition-colors duration-[var(--dur-fast)]",
+        "tap group relative flex h-12 items-center rounded-xl pl-3 pr-1.5 transition-colors duration-[var(--dur-fast)] desk:h-9 desk:rounded-lg desk:pl-2.5 desk:pr-1",
         active ? "bg-subtle" : "hover:bg-subtle/60",
       )}
     >
@@ -736,7 +863,7 @@ function Row({
       <button
         onClick={onSelect}
         className={cn(
-          "flex h-full min-w-0 flex-1 items-center text-left text-[1.0625rem] text-primary",
+          "flex h-full min-w-0 flex-1 items-center text-left text-[1.0625rem] text-primary desk:text-sm",
         )}
         title={title}
       >

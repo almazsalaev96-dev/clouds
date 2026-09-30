@@ -848,7 +848,26 @@ It also reports a figure of nine hundred percent [[cite: ${name} | the result wa
     { topic: "Water potential", question: "Explain why the rate of diffusion increases with temperature. [3]", marks: 3, scheme: ["more kinetic energy", "move faster", "more cross per second"], model: "More kinetic energy, so faster, so more cross per second.", tip: "Link to rate." },
   ] });
   const studioQuiz = /THE TASK: a multiple-choice quiz/.test(asked);
-  const STUDIO_QUIZ = JSON.stringify({ questions: [
+  const decking = /^Make a presentation as JSON/m.test(asked);
+  /* A presentation as the deck maker asks for it: one of each layout, so a
+   probe can see every kind of slide drawn. */
+const DECK = JSON.stringify({
+  title: "Osmosis",
+  subtitle: "How water moves in and out of cells",
+  slides: [
+    { layout: "title", title: "Osmosis", subtitle: "How water moves in and out of cells", notes: "Today: what osmosis is, and why it matters to plants and animals." },
+    { layout: "bullets", title: "Water moves towards the more concentrated solution", bullets: ["Across a partially permeable membrane", "From dilute to concentrated", "No energy is needed"], notes: "The membrane lets water through but not the solute." },
+    { layout: "two", title: "Plant cells and animal cells respond differently", left: { heading: "Plant cell", bullets: ["Becomes turgid", "Wall stops it bursting"] }, right: { heading: "Animal cell", bullets: ["Swells", "Can burst (lysis)"] }, notes: "The cell wall is the difference." },
+    { layout: "stat", title: "Most of a cell is water", stat: "70%", label: "of a typical cell's mass is water", notes: "Which is why water balance matters so much." },
+    { layout: "table", title: "Three kinds of solution", table: { header: ["Solution", "Water moves", "Plant cell"], rows: [["Hypotonic", "In", "Turgid"], ["Isotonic", "No net movement", "Flaccid"], ["Hypertonic", "Out", "Plasmolysed"]] }, notes: "Learn these three words." },
+    { layout: "chart", title: "Potato mass changes with sugar concentration", chart: { type: "bar", labels: ["0.0 M", "0.2 M", "0.4 M", "0.6 M"], series: [{ name: "Change in mass (%)", values: [12, 4, -3, -9] }] }, notes: "Where the bar crosses zero is the cell's own concentration." },
+    { layout: "timeline", title: "Running the potato experiment", steps: [{ title: "Cut", text: "Equal cylinders" }, { title: "Weigh", text: "Record start mass" }, { title: "Soak", text: "30 minutes" }, { title: "Reweigh", text: "Work out % change" }], notes: "A required practical." },
+    { layout: "quote", title: "In their words", quote: "Nothing in biology makes sense except in the light of evolution.", by: "Theodosius Dobzhansky", notes: "A famous line." },
+    { layout: "closing", title: "Three things to remember", bullets: ["Water moves dilute → concentrated", "Through a partially permeable membrane", "Plant cells go turgid, animal cells can burst"], notes: "Questions?" },
+  ],
+});
+
+const STUDIO_QUIZ = JSON.stringify({ questions: [
     { topic: "Osmosis", question: "What moves in osmosis?", options: ["Water", "Glucose", "Salt", "Oxygen"], answer: 0, why: ["Right: osmosis is the movement of water.", "Glucose moves by diffusion or active transport.", "Salt ions are solutes, not the solvent.", "Oxygen diffuses; it is not osmosis."] },
     { topic: "Water potential", question: "What is the water potential of pure water?", options: ["-10 kPa", "0 kPa", "100 kPa", "It depends on the cell"], answer: 1, why: ["Negative values are for solutions.", "Right: pure water is 0 kPa, the highest there is.", "Water potential of pure water is not positive.", "It is fixed at zero."] },
   ] });
@@ -883,7 +902,7 @@ Nothing here looks like it breaks a caller — the return type is the same array
   /* Every call, in order, so a test can prove that one turn was two models:
      a brief to one company and the answer to another, in that order. `__last`
      alone can only ever show whichever was most recent. */
-  const callKind = isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : scouting ? "scout" : deepPlanning ? "plan" : studying ? "study" : studioReading ? "reading" : studioChecking ? "studio-check" : studioFixing ? "studio-fix" : studioTopic ? "studio-topic" : studioPaper ? "studio-paper" : studioQuiz ? "studio-quiz" : studioScheme ? "scheme" : nbGuiding ? "nb-guide" : nbSourceGuiding ? "nb-source" : nbAudio ? "nb-audio" : nbJoin ? "nb-join" : coursing ? "course" : courseNoting ? "course-notes" : questioning ? "question" : examMarking ? "exam-mark" : papering ? "paper" : craftJudging ? "judge" : blueprinting ? "blueprint" : planJudging ? "plan-judge" : mending ? "mend" : "answer";
+  const callKind = isTitle ? "title" : recapping ? "recap" : briefing ? "brief" : seated ? "council" : factchecking ? "facts" : verifying ? "verify" : scouting ? "scout" : deepPlanning ? "plan" : studying ? "study" : studioReading ? "reading" : studioChecking ? "studio-check" : studioFixing ? "studio-fix" : studioTopic ? "studio-topic" : studioPaper ? "studio-paper" : studioQuiz ? "studio-quiz" : decking ? "deck" : studioScheme ? "scheme" : nbGuiding ? "nb-guide" : nbSourceGuiding ? "nb-source" : nbAudio ? "nb-audio" : nbJoin ? "nb-join" : coursing ? "course" : courseNoting ? "course-notes" : questioning ? "question" : examMarking ? "exam-mark" : papering ? "paper" : craftJudging ? "judge" : blueprinting ? "blueprint" : planJudging ? "plan-judge" : mending ? "mend" : "answer";
   if (slow[callKind]) await new Promise((r) => setTimeout(r, slow[callKind]));
   lastByKind[callKind] = lastSeen;
   recent.push({
@@ -951,6 +970,8 @@ Nothing here looks like it breaks a caller — the return type is the same array
     ? STUDIO_PAPER
     : studioQuiz
     ? STUDIO_QUIZ
+    : decking
+    ? DECK
     : studioScheme
     ? STUDIO_SCHEME
     : coursing

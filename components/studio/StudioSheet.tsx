@@ -6,13 +6,14 @@ import {
   BookOpen, Camera, Check, CheckCircle2, ChevronLeft, CircleDashed, ClipboardCheck, FileText, FileUp,
   Layers, ListChecks, Loader2, NotebookPen, Sparkles, X,
 } from "lucide-react";
-import { db, uid, addCards, createDeck, createNote, noteMade } from "@/lib/db";
+import { db, uid, addCards, createWebCanvas, createDeck, createNote, noteMade } from "@/lib/db";
 import { cheapestAvailable, complete, extractJson, whyItFailed } from "@/lib/complete";
 import { draftCards, makeFromSources } from "@/lib/generate";
 import { extractCitations } from "@/lib/cite";
 import { extractPdf, isPdf, readingLine, readTextFile } from "@/lib/pdf";
 import { readWhole } from "@/lib/digest";
 import { LONG } from "@/lib/scope";
+import { THEMES, deckHtml, deckPrompt, downloadPptx, parseDeck, type Deck, type ThemeId } from "@/lib/deck";
 import { useScope } from "@/components/ScopePicker";
 import { marksOf } from "@/lib/exam";
 import { rulesText } from "@/lib/rules";
@@ -51,6 +52,8 @@ interface Job {
   note?: string;
   /** Where the result went. */
   open?: { kind: "page" | "deck" | "paper"; id: string; label: string };
+  /** A presentation made: drawn as a PowerPoint when pressed. */
+  slides?: Deck;
 }
 
 const PURPOSES = [
@@ -257,6 +260,16 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
           if (request.from) await noteMade(request.from.notebookId, { kind: "page", id: note.id, label: note.title, tool: tool.id, at: Date.now() });
           if (!firstPage) firstPage = body;
           set(tool.id, { state: "done", note: verdict ? (fixed ? "checked, and rewritten where it fell short" : verdict.verdict === "meets" ? "checked: meets the standard" : "checked") : "made", open: { kind: "page", id: note.id, label: "Open" } });
+        } else if (tool.id === "slides") {
+          /* The deck as data first, then drawn: a designed PowerPoint and a
+             page that runs, from the same slides (lib/deck.ts). */
+          set(tool.id, { state: "writing" });
+          const body = noSource ? "" : (firstPage ?? (await whole())).slice(0, 60_000);
+          const raw = await complete(deckPrompt({ topic: title, source: body || undefined, level: b.level || undefined, count: 10 }), { modelId, maxTokens: 8_000, temperature: 0.4, signal: ctl.signal });
+          const slides = parseDeck(extractJson(raw ?? ""), title, "clean");
+          if (!slides) throw new Error("The slides did not come back in a shape that could be drawn.");
+          await createWebCanvas([{ name: "index.html", lang: "html", content: deckHtml(slides) }], { title: `${title} — Presentation` });
+          set(tool.id, { state: "done", note: `${slides.slides.length} slides · in Library, and ready as PowerPoint`, slides });
         } else if (tool.id === "flashcards") {
           set(tool.id, { state: "writing" });
           const from = firstPage ?? (await whole());
@@ -515,6 +528,19 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
                         </span>
                       </span>
                       {j.open && <Button size="sm" variant="secondary" onClick={() => open(j)} aria-label={`${j.open.label}: ${t.name}`}>{j.open.label}</Button>}
+                      {j.slides && (
+                        <>
+                          <select
+                            value={j.slides.theme}
+                            onChange={(e) => { const theme = e.target.value as ThemeId; setJobs((js) => js.map((x) => (x.tool === j.tool && x.slides ? { ...x, slides: { ...x.slides, theme } } : x))); }}
+                            aria-label="Presentation theme"
+                            className="h-8 rounded-md border border-line bg-transparent px-1.5 text-xs text-secondary"
+                          >
+                            {THEMES.map((th) => <option key={th.id} value={th.id}>{th.name}</option>)}
+                          </select>
+                          <Button size="sm" variant="secondary" onClick={() => void downloadPptx(j.slides!)} aria-label={`Download PowerPoint: ${t.name}`}>PowerPoint</Button>
+                        </>
+                      )}
                     </li>
                   );
                 })}

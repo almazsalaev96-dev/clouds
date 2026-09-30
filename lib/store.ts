@@ -1,6 +1,7 @@
 "use client";
 
 import type { PlusMembership } from "./plus";
+import type { Persona } from "./persona";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ModelParams, ProviderId } from "./types";
@@ -180,6 +181,8 @@ interface Settings {
   mode: string;
   /** What to call you. Used in the greeting; stays in this browser. */
   name: string;
+  /** How it talks to you and what it knows about you: Settings → Personalization (`lib/persona.ts`). */
+  persona?: Partial<Persona>;
   /** Whether the blank page has asked yet. It asks once. */
   nameAsked: boolean;
   sidebarOpen: boolean;
@@ -295,6 +298,7 @@ export const DEFAULT_SETTINGS = {
   styleId: AUTO_STYLE,
   mode: DEFAULT_MODE,
   name: "",
+  persona: {},
   nameAsked: false,
   sidebarOpen: true,
   sendOnEnter: true,

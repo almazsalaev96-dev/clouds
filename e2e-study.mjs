@@ -337,9 +337,9 @@ console.log("\nDays in a row, and the front door knows");
   await p.getByRole("button", { name: "Back to Study" }).first().click().catch(() => {});
   await p.locator("aside nav").getByRole("button", { name: "Conversations" }).first().click();
   await p.waitForTimeout(500);
-  /* The sidebar's Chat pill, not a row in the list that happens to be an
-     untitled chat called "New chat". */
-  await p.locator("aside").getByRole("button", { name: "New chat", exact: true }).last().click();
+  /* The sidebar's New chat — on a desk the first row, above the list — not
+     a row in the list that happens to be an untitled chat called "New chat". */
+  await p.locator("aside").getByRole("button", { name: "New chat", exact: true }).first().click();
   await p.waitForTimeout(600);
   const strip = p.getByLabel("Waiting in the other rooms");
   check(await strip.isVisible() && /cards? due/.test(await strip.innerText()), "a blank chat says what is waiting in Study", (await strip.innerText()).replace(/\n/g, " · "));

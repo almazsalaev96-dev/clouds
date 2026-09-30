@@ -8,7 +8,9 @@
  */
 import { chromium } from "playwright";
 const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
-const p = await (await b.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
+/* A touch screen: this is the tablet's shell. On a desk (a mouse) the panel
+   carries its own switch and closes to a rail — e2e-chrome checks that one. */
+const p = await (await b.newContext({ viewport: { width: 1280, height: 900 }, hasTouch: true })).newPage();
 const errs = []; p.on("pageerror", (e) => errs.push("PAGE: " + e.message));
 let failed = 0;
 const check = (c, l, d = "") => { if (!c) failed++; console.log(`${c ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
