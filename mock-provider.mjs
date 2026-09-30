@@ -1112,6 +1112,10 @@ Nothing here looks like it breaks a caller — the return type is the same array
     if ((m = /read (?:me )?my (.+?) page/i.exec(ask)) && offered.has("read_note")) return { name: "read_note", input: { title: m[1] } };
     if ((m = /add (?:this|that|a line) to my (.+?) page/i.exec(ask)) && offered.has("append_note")) return { name: "append_note", input: { title: m[1], content: "Added by the model: a throttle enforces a floor between calls." } };
     if ((m = /show me (?:the )?(.+?) i (?:made|built)/i.exec(ask)) && offered.has("read_made")) return { name: "read_made", input: { title: m[1] } };
+    if (/\b(worksheet|printable|as a pdf)\b/i.test(ask) && offered.has("make_document"))
+      return { name: "make_document", input: { title: "Fractions practice", subtitle: "Year 7 · show your working", kind: "worksheet", style: "modern", markdown: "## Part A\n1. What is 1/2 + 1/4? ______\n2. Simplify 6/8. ______\n\n> [!tip] Remember\n> Find a common denominator first.\n\n## Part B\nExplain why 2/3 is bigger than 3/5.\n[lines:4]\n" } };
+    if (/\b(powerpoint|presentation)\b/i.test(ask) && offered.has("make_presentation"))
+      return { name: "make_presentation", input: JSON.parse(DECK) };
     return null;
   })();
   if (resultText) {

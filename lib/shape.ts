@@ -51,6 +51,9 @@ export const SHAPE: Record<TaskKind, string[]> = {
     "Name the input that breaks it before they find it: the empty case, the null, the duplicate, the boundary, the second call. One sentence each.",
     "Where there was a real choice, say what you chose against and why. A decision with no alternative stated reads as the only option and is the thing that gets cargo-culted.",
     "Where the exercise is the point rather than the code, leave the step that carries the learning and mark it clearly — an explicit gap is a question, a filled-in gap is a transcript.",
+    "Write it the way a senior engineer would ship it: typed where the language allows, named for what things mean, errors handled at the boundary with a message a person can act on, no dead code and no TODO left for the reader.",
+    "Secure by default, without being asked: no secrets or keys in client code, parameterised queries, escape whatever is rendered, validate input where it enters, least privilege for anything that touches files, money or accounts.",
+    "Across several files, give each one whole under its path, then the one command that runs it; for a change to an existing file, show only the changed part with enough of its surroundings to find the place, and say which file.",
   ],
 
   research: [

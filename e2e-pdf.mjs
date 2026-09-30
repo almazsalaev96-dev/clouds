@@ -50,7 +50,7 @@ console.log("\nA page, saved as PDF");
     const html = got.html;
     check(/<h1>Osmosis, properly<\/h1>/.test(html) && /<strong>water-potential<\/strong>/.test(html), "typeset: the title, the emphasis");
     check(/<li>Hypotonic<\/li>/.test(html) && /<th>Term<\/th>/.test(html), "the list and the table");
-    check(/<blockquote>The membrane/.test(html), "the callout as a quote, its marker gone");
+    check(/<blockquote class="callout key">The membrane/.test(html) && !/\[!key\]/.test(html), "the callout as a callout, its marker gone");
     check(!/<script src|localhost:3100\/_next/.test(html), "and none of the app on the page");
     check(got.origin === "null", "and the frame has an origin of its own, with nothing of the app's in reach", got.origin);
   }

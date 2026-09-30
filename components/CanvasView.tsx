@@ -49,7 +49,8 @@ import { Button, IconButton, Kbd, SaveBadge } from "@/components/ui/primitives";
 import { DetailBar, SectionIndex } from "@/components/SectionIndex";
 import { plainLine } from "@/lib/plain";
 import { printHtml } from "@/lib/print";
-import { deckToPptx, isDeck } from "@/lib/office";
+import { deckToPptx, isDeck, markdownToDocx } from "@/lib/office";
+import { DOC_KINDS, DOC_STYLES, isDocKind, kindFor, type DocThemeId } from "@/lib/docmeta";
 import { THEMES, type ThemeId } from "@/lib/deck";
 
 /**
@@ -1036,6 +1037,62 @@ function Editor({
                   >
                     <Printer size={13} />
                   </Button>
+                )}
+                {/* A document, printed the way its kind is printed: a report
+                    with a cover, a worksheet with space to write, a CV with
+                    its header — in one of six styles, kept on the document. */}
+                {canvas.kind === "doc" && (
+                  <>
+                    <select
+                      value={canvas.look?.kind ?? kindFor(canvas.title, draft)}
+                      onChange={(e) => void db.canvases.update(canvas.id, { look: { ...(canvas.look ?? {}), kind: e.target.value } })}
+                      aria-label="Document type"
+                      className="h-8 max-w-[7.5rem] rounded-md border border-line bg-transparent px-1.5 text-xs text-secondary"
+                    >
+                      {DOC_KINDS.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
+                    </select>
+                    <select
+                      value={canvas.look?.theme ?? "clean"}
+                      onChange={(e) => void db.canvases.update(canvas.id, { look: { ...(canvas.look ?? {}), theme: e.target.value } })}
+                      aria-label="PDF style"
+                      className="h-8 rounded-md border border-line bg-transparent px-1.5 text-xs text-secondary"
+                    >
+                      {DOC_STYLES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label="Save as PDF"
+                      onClick={() => {
+                        const look = canvas.look ?? {};
+                        void import("@/lib/document").then(({ docHtml }) => {
+                        const ok = printHtml(docHtml({
+                          title: canvas.title || "Untitled",
+                          subtitle: look.subtitle,
+                          author: look.author,
+                          kind: isDocKind(look.kind) ? look.kind : undefined,
+                          theme: look.theme as DocThemeId | undefined,
+                          markdown: draft,
+                        }));
+                        if (!ok) setNotice("The browser blocked the print window. Allow pop-ups for this page and try again.");
+                        });
+                      }}
+                    >
+                      <Printer size={13} />
+                      PDF
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label="Save as Word"
+                      onClick={() => {
+                        markdownToDocx(canvas.title || "Untitled", draft).then(() => setNotice("Saved as Word.")).catch(() => setNotice("Couldn't make the Word file."));
+                      }}
+                    >
+                      <FileText size={13} />
+                      Word
+                    </Button>
+                  </>
                 )}
                 {deck && (
                   /* The look of the PowerPoint: the deck is drawn again in

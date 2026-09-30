@@ -33,6 +33,7 @@ import {
   createAssistant,
   createDeck,
   createNote,
+  createCanvas,
   createProject,
   createWebCanvas,
   db,
@@ -55,6 +56,7 @@ import { runCode } from "./sandbox";
 import { convert } from "./units";
 import { useSettings } from "./store";
 import { THEMES, deckHtml, parseDeck, type ThemeId } from "./deck";
+import { DOC_KINDS, DOC_STYLES, isDocKind, kindFor } from "./docmeta";
 
 export interface ActionContext {
   conversationId: string;
@@ -664,6 +666,57 @@ const TOOLS: Tool[] = [
       };
     },
   },
+  /* ---- a designed document: a report, a worksheet, a letter, a CV, a
+     certificate, a handout — kept in the Library, saved as PDF or Word in
+     the look it was made in (lib/document.ts). */
+  {
+    spec: {
+      name: "make_document",
+      description:
+        "Make a designed document and keep it in the Library, ready to save as PDF or Word: a report (cover page, contents), a worksheet (name line, answer space), a letter, a CV, a certificate, a handout or notes. " +
+        "Use when they ask for a PDF, a printable, a document, a worksheet, a report, a letter, a CV or a certificate. Write the whole content yourself in Markdown: ## for sections, tables, lists, > [!note] Title for a callout. " +
+        "In a worksheet, write ______ for a blank and [lines:4] on its own line for four lines of writing space. Do not put the title in the Markdown; it is set on the page.",
+      schema: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          subtitle: { type: "string", description: "A line under the title: the class, the audience, the role." },
+          kind: { type: "string", enum: DOC_KINDS.map((k) => k.id) },
+          style: { type: "string", enum: DOC_STYLES.map((t) => t.id), description: "Default clean. academic is serif and formal; bold and modern are colourful." },
+          author: { type: "string", description: "Who it is from, where that belongs on the page (a letter, a certificate)." },
+          markdown: { type: "string" },
+        },
+        required: ["title", "markdown"],
+      },
+    },
+    doing: "Designing the document",
+    run: async (input, ctx) => {
+      const title = str(input.title, 160);
+      const markdown = str(input.markdown, 200_000);
+      if (!title || markdown.length < 20) return fail("A document needs a title and its content in Markdown.");
+      const kind = isDocKind(input.kind) ? input.kind : kindFor(title, markdown);
+      const theme = DOC_STYLES.some((t) => t.id === input.style) ? String(input.style) : "clean";
+      const subtitle = str(input.subtitle, 200) || undefined;
+      const author = str(input.author, 120);
+      const canvas = await createCanvas({
+        title,
+        kind: "doc",
+        lang: "markdown",
+        content: markdown,
+        look: { kind, theme, subtitle, author: author || undefined },
+        sourceConversationId: ctx.conversationId,
+      });
+      const name = DOC_KINDS.find((k) => k.id === kind)?.name.toLowerCase() ?? "document";
+      const summary = `Made a ${name}: ${q(title)}`;
+      return {
+        ok: true,
+        text: `${summary}. It is in the Library; Save as PDF prints it in the ${DOC_STYLES.find((t) => t.id === theme)?.name ?? "Clean"} style, and Word saves a .docx. Tell them in one line; do not repeat the document in the chat.`,
+        summary,
+        open: { section: "creative", id: canvas.id },
+        undo: async () => { await deleteCanvas(canvas.id); },
+      };
+    },
+  },
   /* ---- the app's own machinery: a schedule, a project, an assistant.
      ChatGPT's scheduled tasks, projects and GPTs are each a form; here they
      are also a sentence in the chat, which is where the wish is spoken. */
@@ -788,7 +841,7 @@ export function doingOf(name: string): string {
 }
 
 /** The rooms this can reach, for the settings line and the docs. */
-export const ACTION_AREAS = ["Study", "Notebook", "Sources", "Memory", "Projects", "Studio", "Conversations", "Routines", "Assistants", "Calculator", "Units", "Code", "Clock", "Web pages", "Presentations"] as const;
+export const ACTION_AREAS = ["Study", "Notebook", "Sources", "Memory", "Projects", "Studio", "Conversations", "Routines", "Assistants", "Calculator", "Units", "Code", "Clock", "Web pages", "Presentations", "Documents"] as const;
 
 /**
  * Run one call. Never throws: a tool that fails answers the model with why,
@@ -806,24 +859,7 @@ export async function runAction(call: ToolCall, ctx: ActionContext): Promise<Act
   }
 }
 
-/* Undo lives in memory: the closures are this session's, and a chip on a
-   message from last week has nothing to take back that a person could
-   still want taken back the same way. */
-const UNDO = new Map<string, () => Promise<void>>();
-
-export function keepUndo(actionId: string, undo: (() => Promise<void>) | undefined): void {
-  if (undo) UNDO.set(actionId, undo);
-}
-export function canUndo(actionId: string): boolean {
-  return UNDO.has(actionId);
-}
-export async function undoAction(actionId: string): Promise<boolean> {
-  const f = UNDO.get(actionId);
-  if (!f) return false;
-  UNDO.delete(actionId);
-  await f();
-  return true;
-}
+export { keepUndo, canUndo, undoAction } from "./undoActions";
 
 /** A fresh id for an action record. */
 export const actionId = () => uid();

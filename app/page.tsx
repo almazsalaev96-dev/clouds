@@ -7,7 +7,8 @@ import { worthCrafting, studyPrompt, parseStudy, standardNote, askFirst, judgePr
 import { mergeStandard } from "@/lib/standards";
 import { STUDIO_EVENT, type StudioRequest } from "@/lib/studioBus";
 import { chunk, rank } from "@/lib/retrieve";
-import { actionSpecs, doingOf, keepUndo, runAction, undoAction, type ActionContext } from "@/lib/actions";
+import type { ActionContext } from "@/lib/actions";
+import { keepUndo, undoAction } from "@/lib/undoActions";
 import { cleanRecap, covers, recapPrompt, recapSection, RECAP_TOKENS } from "@/lib/recap";
 import type { Action } from "@/lib/types";
 import * as React from "react";
@@ -42,7 +43,7 @@ import "@/lib/local";
 import {
   briefNote, briefPrompt, councilNote, councilPrompt, engineOf, getPreset, objectionNote,
   playerFor, playersFor, resolveCast, shapePlan, worthBriefing, worthChecking, worthConvening, worthResearching, presetFor, JOB_LINE, PRESETS } from "@/lib/presets";
-import { castContext } from "@/lib/cast";
+import { castContext, teamPlanFor } from "@/lib/cast";
 import { costOf, fitToContext } from "@/lib/context";
 import { elsewhere, searcher, roomier } from "@/lib/route";
 import { fitFiles } from "@/lib/digest";
@@ -884,7 +885,9 @@ export default function Page() {
         temporary: Boolean(conv?.temporary),
         memoryOn: settings.memoryOn,
       };
-      const offered = settings.actionsOn ? actionSpecs(room) : [];
+      /* The tools are loaded with the first message that can use them, not with the app. */
+      const acts = settings.actionsOn ? await import("@/lib/actions") : null;
+      const offered = acts ? acts.actionSpecs(room) : [];
       /* The mode is read off the request rather than set on a switch.
          Choosing between Chat and Creative was a question about the machine,
          asked before the person had said what they wanted and answerable only
@@ -1246,7 +1249,11 @@ export default function Page() {
            the command word's meaning and the marks to account for. Every
            question is one in the Exam stance; elsewhere only one that
            carries marks. */
-        note: [note, preset?.stance, examNote(asked, style?.id === "exam"), study ? standardNote(study) : "", blueprint ? planNote(blueprint, planState === "mended") : "", brief ? briefNote(brief) : "", council, deepNotes].filter(Boolean).join("\n\n") || undefined,
+        /* The form this answer should take, read from this question (a
+           sentence, steps, a verdict and a table, the fix first, whole
+           files) and how the person seems — except under a teaching
+           stance, which decides its own shape on purpose. */
+        note: [note, preset?.stance, isTeaching(style?.id) ? "" : (await import("@/lib/form")).formNote(asked, { kind: task?.kind, earlier: history.filter((m) => m.role === "user").slice(-3).map((m) => blockText(m.content)) }), examNote(asked, style?.id === "exam"), study ? standardNote(study) : "", blueprint ? planNote(blueprint, planState === "mended") : "", brief ? briefNote(brief) : "", council, deepNotes].filter(Boolean).join("\n\n") || undefined,
       });
       /* Said on the answer, like the model's reason: an app that quietly
          changes how it writes to you is an app whose answers you cannot
@@ -1386,7 +1393,7 @@ export default function Page() {
         modelId: writer,
         tools: research && !searchWhy.startsWith("could not") ? ["web_search", "web_fetch"] : undefined,
         actions: offered.length
-          ? { specs: offered, run: (call) => runAction(call, room), doing: doingOf, keep: (id, done) => keepUndo(id, done.undo) }
+          ? { specs: offered, run: (call) => acts!.runAction(call, room), doing: acts!.doingOf, keep: (id, done) => keepUndo(id, done.undo) }
           : undefined,
         /* Which Armi model this is, kept with the answer. The engine stays in
            `modelId` because a retry, a second opinion and the token meter all
@@ -1963,7 +1970,12 @@ export default function Page() {
         const projectRow = convRow?.projectId ? await db.projects.get(convRow.projectId) : undefined;
         const projectFiles = projectRow ? await filesOf(projectRow.id) : [];
         const before = pathTo(allMessages ?? [], message.parentId).filter((m) => m.id !== asked.id);
-        const shared = castContext({ project: projectRow, files: projectFiles, content: asked.content, earlier: before });
+        /* And what the team agreed before it was written: the brief's list
+           and the study's standard become the checker's checklist, so the
+           models work to one plan rather than three ideas of the question. */
+        const askKey = `${message.conversationId}:${blockText(asked.content).trim()}`;
+        const agreed = teamPlanFor({ brief: notesByAsk.current.get(askKey)?.brief, standard: craftByAsk.current.get(askKey)?.standard, imagined: craftByAsk.current.get(askKey)?.imagined });
+        const shared = [castContext({ project: projectRow, files: projectFiles, content: asked.content, earlier: before }), agreed].filter(Boolean).join("\n\n");
         /* Once more if nothing came back: a dropped stream or an empty reply
            is usually the connection, not the answer. */
         const verdict =

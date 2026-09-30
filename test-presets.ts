@@ -11,7 +11,7 @@
 import { PROVIDERS } from "./lib/models";
 import {
   PRESETS, DEFAULT_PRESET_ID, getPreset, isPreset, resolveCast, resolvePreset, engineOf,
-  playerFor, playersFor, profileOf, shapePlan, worthBriefing, worthChecking, worthConvening, briefPrompt, canRun,
+  playerFor, playersFor, profileOf, shapePlan, worthBriefing, worthChecking, worthConvening, briefPrompt, canRun, simpleAsk,
   briefNote, councilPrompt, councilNote, objectionNote, makers, plainly,
 } from "./lib/presets";
 import { planTurn } from "./lib/decide";
@@ -417,7 +417,7 @@ console.log("\nTwo models, on every kind of request — not only the convenient 
      shape of request, and any row that comes back as one model is a broken
      promise rather than a saving. */
   const ASKS: [string, number][] = [
-    ["what is a debounce", 0],
+    ["why does my debounce fire twice when I type fast", 0],
     ["teach me how eigenvalues work", 0],
     ["write an email to my landlord about the boiler", 0],
     ["design a landing page layout for a bakery", 0],
@@ -453,7 +453,7 @@ console.log("\nBut a greeting is not a question");
      model reading "thanks" is a second bill for nothing. */
   const hi = planTurn("thanks");
   check(!worthBriefing("thanks", hi), "nothing is bought for two words of politeness");
-  check(worthBriefing("what is recursion", hi), "and a three-word question is still a question");
+  check(worthBriefing("how does recursion actually work", hi), "and a real question is still a question");
   check(worthBriefing("summarise this", hi, 9_000),
     "nor is length in words the test when the question is forty pages long");
 }
@@ -643,8 +643,24 @@ console.log("\nA check is for an answer, not for 'thanks'");
   for (const t of ["thanks", "ok great", "make it shorter", "shorter please", "say that again in French", "put that in a table", "rewrite it simpler"])
     check(!worthChecking(t), `no second model on ${JSON.stringify(t)}`);
   check(!worthBriefing("thanks, can you make it shorter", undefined, 50_000) && !worthConvening("thanks, can you make it shorter and put it in a table now please"), "and no brief or council for a reshaping, however long the thread");
-  for (const t of ["is that right?", "shorter, but is the 18% figure right?", "what is the boiling point of ethanol", "Should the school move to a four-day week next year?", "translate this into Japanese", "summarise this"])
+  for (const t of ["is that right?", "shorter, but is the 18% figure right?", "why does ethanol boil lower than water?", "Should the school move to a four-day week next year?", "translate this into Japanese", "summarise this"])
     check(worthChecking(t), `a check on ${JSON.stringify(t.slice(0, 40))}`);
+}
+
+console.log("\nA greeting or a small fact is one model; the team is for work");
+{
+  /* Three bills and three waits for "what is the capital of Peru" taught
+     people that small things are slow here. One model, straight away. */
+  for (const t of ["hi", "hello!", "how are you?", "thanks a lot", "what is the capital of Peru?", "who wrote Hamlet", "define osmosis", "what is the boiling point of ethanol", "how many bones are in the human body?", "translate hello into French", "привет"])
+    check(simpleAsk(t) && !worthChecking(t) && !worthBriefing(t) && !worthConvening(t), `one model for ${JSON.stringify(t)}`);
+  for (const t of ["what is the capital of Peru? are you sure?", "why is the sky blue", "what is the difference between mitosis and meiosis", "what is wrong with this code: for (i=0;i<n;i++)", "translate this into Japanese", "how do I centre a div", "what should I revise first for my chemistry exam next week"])
+    check(!simpleAsk(t), `the team for ${JSON.stringify(t.slice(0, 44))}`);
+  check(!simpleAsk("summarise this", 9_000), "and forty pages is never a small question");
+  const all = { anthropic: true, openai: true, google: true, xai: true };
+  const hard = PRESETS.find((p) => p.cast.some((c) => c.role === "check"))!;
+  const cast = resolveCast(hard.id, { configured: all })!;
+  const small = shapePlan(planTurn("who wrote Hamlet", { autoStyle: true }), hard, { autoStyle: true, cast, ask: "who wrote Hamlet", size: 0 });
+  check(small.check !== "second" && /one model is enough/.test(small.why ?? ""), "a tactic with a checker says it used one model, and why", small.why);
 }
 
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");

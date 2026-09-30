@@ -14,6 +14,8 @@
  * lists, quotes, tables, links and rules. Anything else prints as text.
  */
 
+import type { DocKind, DocThemeId } from "./docmeta";
+
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 function inline(s: string): string {
@@ -50,8 +52,16 @@ export function markdownToPrintHtml(md: string): string {
     if (/^\s*>\s?/.test(line)) {
       flush();
       const q: string[] = [];
-      while (i < lines.length && /^\s*>\s?/.test(lines[i])) { q.push(lines[i].replace(/^\s*>\s?/, "").replace(/^\[!\w+\]\s*/, "")); i += 1; }
-      out.push(`<blockquote>${inline(q.join(" "))}</blockquote>`);
+      while (i < lines.length && /^\s*>\s?/.test(lines[i])) { q.push(lines[i].replace(/^\s*>\s?/, "")); i += 1; }
+      /* A callout — "> [!note] Key idea" — keeps its title, set apart, and
+         its kind as a class a designed page can colour. */
+      const call = /^\[!(\w+)\]\s*(.*)$/.exec(q[0] ?? "");
+      /* One line is the whole callout, not a title over nothing. */
+      if (call && q.length === 1) out.push(`<blockquote class="callout ${call[1].toLowerCase()}">${inline(call[2])}</blockquote>`);
+      else if (call) {
+        const rest = q.slice(1).join(" ");
+        out.push(`<blockquote class="callout ${call[1].toLowerCase()}">${call[2] ? `<strong class="callout-title">${inline(call[2])}</strong>` : ""}${inline(rest)}</blockquote>`);
+      } else out.push(`<blockquote>${inline(q.join(" "))}</blockquote>`);
       continue;
     }
     if (/^\s*\|/.test(line) && i + 1 < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1])) {
@@ -141,11 +151,23 @@ function printInFrame(html: string, delay: number): boolean {
  * Open the print dialog on a typeset copy. Returns false only when there
  * is no document to print from, so the caller can say so.
  */
-export function printMarkdown(title: string, markdown: string, foot = "Made with Armi"): boolean {
+export function printMarkdown(title: string, markdown: string, foot = "Made with Armi", look?: { kind?: DocKind; theme?: DocThemeId; subtitle?: string }): boolean {
+  /* Set by the document engine: a page numbered and designed for its kind
+     (a report gets a cover, a worksheet space to write) rather than words
+     on white. `foot` is kept for callers that still pass it; the page's
+     own margin carries the title now. */
+  void foot;
+  if (typeof document === "undefined") return false;
+  /* The engine is loaded when it is used, not with the app. */
+  void import("./document").then(({ docHtml }) => printInFrame(docHtml({ title: title || "Untitled", markdown, kind: look?.kind, theme: look?.theme, subtitle: look?.subtitle }), 150));
+  return true;
+}
+
+/** The plain setting, kept for anything that wants words on white. */
+export function plainPrintHtml(title: string, markdown: string, foot = "Made with Armi"): string {
   const safe = esc(title || "Untitled");
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${safe}</title><style>${STYLE}</style></head><body>` +
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${safe}</title><style>${STYLE}</style></head><body>` +
     `<h1>${safe}</h1>${markdownToPrintHtml(markdown)}<p class="foot">${esc(foot)} · ${esc(new Date().toLocaleDateString())}</p></body></html>`;
-  return printInFrame(html, 150);
 }
 
 /** A whole page — a built thing, a deck — sent to the print dialog as it is, so a deck with one slide a page becomes a PDF deck. */

@@ -755,6 +755,8 @@ export interface Canvas {
   updatedAt: number;
   /** The conversation it came out of, so it can point back at its origin. */
   sourceConversationId?: string;
+  /** A document's printed look (`lib/document.ts`): its kind, its style, a line under the title, who it is from. */
+  look?: { kind?: string; theme?: string; subtitle?: string; author?: string };
 }
 
 /**

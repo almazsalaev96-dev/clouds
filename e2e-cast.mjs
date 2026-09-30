@@ -95,6 +95,21 @@ console.log("\nAnd what the first one wrote reaches the second one");
     "and not as something to talk about — the answer is the answer, not a report on its own making");
 }
 
+console.log("\nAnd the checker checks against what the team agreed");
+{
+  /* The brief's list is the checker's checklist: three models working to
+     one plan, not three ideas of the question. */
+  let v = (await calls()).find((r) => r.kind === "verify");
+  if (!v) {
+    const btn = p.locator(".msg").last().getByRole("button", { name: "Check with another model" });
+    if (await btn.count()) { await btn.first().click(); await p.waitForTimeout(3500); }
+    v = (await calls()).find((r) => r.kind === "verify");
+  }
+  check(Boolean(v), "a second model checks the briefed answer", (await calls()).map((r) => r.kind).join(" → "));
+  check(/What the team agreed before this answer was written/.test(v?.asked ?? "") && /the trailing edge is not the default/.test(v?.asked ?? ""),
+    "and is handed the brief's points to check it against", (v?.asked ?? "").slice(-160).replace(/\s+/g, " "));
+}
+
 console.log("\nThe answer says it, rather than leaving you to guess");
 {
   const said = await p.locator(".msg").last().innerText();
@@ -109,7 +124,7 @@ console.log("\nThe answer says it, rather than leaving you to guess");
 console.log("\nThe quick one answers first and is checked after");
 {
   await pick("ARMI Nova 4");
-  await ask("what is a debounce", 6000);
+  await ask("why does my debounce fire twice when I type fast", 6000);
   const seq = await calls();
   const i = seq.findIndex((r) => r.kind === "answer");
   const j = seq.findIndex((r) => r.kind === "verify");
@@ -123,6 +138,18 @@ console.log("\nThe quick one answers first and is checked after");
     (shown.split("\n").find((l) => /mostly agrees|found nothing|disagrees/.test(l)) ?? "").slice(0, 80));
   check(!/GPT|Kimi|DeepSeek|Claude|Sonnet|Haiku|Opus/.test(shown),
     "and not to one of their products, which is a fact about this browser's keys");
+}
+
+console.log("\nA small fact is one model, straight away");
+{
+  await ask("who wrote Hamlet", 4000);
+  const seq = await calls();
+  check(seq.filter((r) => r.kind === "answer").length === 1 && !seq.some((r) => ["brief", "verify", "council"].includes(r.kind)),
+    "no brief, no council, no check — one model answers", seq.map((r) => r.kind).join(" → "));
+  const said = await p.locator(".msg").last().innerText();
+  check(/one model is enough/i.test(said) || !/checked by/i.test(said), "and the answer does not claim a check it did not have");
+  const sys = seq.find((r) => r.kind === "answer")?.system ?? "";
+  check(/## The shape of this answer/.test(sys) && /small factual question: answer in one or two sentences/.test(sys), "and the writer is told the answer's shape: a sentence, not an essay");
 }
 
 /* Two answers side by side was "/compare", a row in the box's menu and the

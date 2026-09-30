@@ -1232,10 +1232,39 @@ const REWORK = /\b(shorter|longer|simpler|simplify|rephrase|reword|rewrite|expan
 const REFERS = /\b(it|that|this answer|your answer|the answer|the last one|what you (just )?(said|wrote))\b/i;
 const BARE = /^(much |a bit |a little |even |way )?(shorter|longer|simpler|briefer|plainer|clearer|less|more)( please| pls)?[.!]?$/i;
 const THANKS = /^(thanks|thank you|ok|okay|cheers|great|perfect|nice|cool|got it|understood)\b/i;
+/**
+ * A question one model answers as well as a team.
+ *
+ * The team — a brief before, a council beside, a check after — earns its
+ * cost on work: a decision, an explanation, a build, a document. On "hi",
+ * "thanks", "what is the capital of Peru" or "define osmosis" it is three
+ * bills and three waits for an answer the first model already had right,
+ * and a person who asked something small and waited for a committee learns
+ * that small things are slow here. So a greeting and a small fact go to one
+ * model, straight away — and the moment someone asks whether it is right,
+ * the checker is back.
+ */
+const VERIFY = /\b(is (that|this|it) (right|correct|true|accurate)|are you sure|double[- ]?check|check (it|this|that|again)|verify|fact[- ]?check)\b/i;
+const CHAT = /^(hi|hello|hey|hiya|yo|salam|salem|privet|привет|здравствуйте|сәлем|сәлеметсіз бе|good (morning|afternoon|evening|night)|how are you( doing)?|how's it going|what'?s up|who are you|what are you|what can you do|what's your name|bye|goodbye|see you|lol|haha|yes|no|yep|nope|sure|go on|continue|next|more|спасибо|рахмет|thanks a lot|thank you so much)(?=$|[\s!?.,])/iu;
+const LOOKUP = /^(what(?:'s| is| are| was| were)|who (is|was|are|were|wrote|invented|discovered|painted|founded|won)|when (is|was|did|does|were)|where (is|are|was|were|does)|which (country|city|year|planet|element|continent|ocean|language)|how (many|much|old|tall|far|long|big|heavy|deep|high)|define|definition of|meaning of|what does \S+ mean|capital of|synonyms? (of|for)|antonyms? (of|for)|opposite of|spell|plural of|past tense of|translate (?!(this|that|it|these|those|the (text|page|document|file))\b))/i;
+const DEPTH = /\b(why|explain|compare|comparison|difference|differ|vs\.?|versus|should|best|recommend|prove|proof|design|analy[sz]e|analysis|evaluate|pros and cons|advantages?|disadvantages?|step[- ]by[- ]step|in detail|detailed|essay|plan|strategy|how (do|does|did|can|could|would|to|should))\b/i;
+const CODEISH = /[{}<>;=`]|\b(code|function|bug|error|exception|api|sql|regex|react|python|javascript|typescript|css|html|class|compile|deploy|script|query)\b/i;
+export function simpleAsk(ask: string, size = 0): boolean {
+  const t = ask.trim();
+  const words = t.split(/\s+/).filter(Boolean).length;
+  if (!words) return true;
+  if (size >= BRIEF_TOKENS) return false;
+  if (VERIFY.test(t)) return false;
+  if (words <= 6 && CHAT.test(t)) return true;
+  return words <= 9 && LOOKUP.test(t) && !DEPTH.test(t) && !CODEISH.test(t);
+}
+
 export function worthChecking(ask: string): boolean {
   const t = ask.trim();
   const words = t.split(/\s+/).filter(Boolean).length;
   if (!words) return false;
+  if (VERIFY.test(t)) return true;
+  if (simpleAsk(t)) return false;
   if (/\?/.test(t)) return true;
   if (THANKS.test(t)) return false;
   if (words <= 12 && (BARE.test(t) || (REWORK.test(t) && REFERS.test(t)))) return false;
@@ -1247,8 +1276,9 @@ export function worthBriefing(ask: string, plan?: Plan, size = 0): boolean {
      two answers rather than one and never had a single turn to plan. The
      length rule is the same either way. */
   if (plan?.strategy === "compute") return false;
+  /* Forty pages with "summarise this" is work, whatever the words say. */
+  if (size >= BRIEF_TOKENS && !THANKS.test(ask.trim())) return true;
   if (!worthChecking(ask)) return false;
-  if (size >= BRIEF_TOKENS) return true;
   return ask.trim().split(/\s+/).filter(Boolean).length >= BRIEF_WORDS;
 }
 
@@ -1342,6 +1372,14 @@ export function shapePlan(
   /* A check the tactic runs only when earned is not forced here: the
      record (`withPast`), "/check" and a low confidence line are the three
      things that earn it, and each sets `second` on its own. */
+  /* A greeting or a small fact: one model, and the line says why, so a
+     person on a tactic that promises a team is not left wondering where
+     it went. A duel is two answers someone chose to see, and stays. */
+  if (ctx.ask !== undefined && simpleAsk(ctx.ask, ctx.size) && !playersFor(ctx.cast ?? null, "duel").length) {
+    next.check = "none";
+    next.why = `${preset.name} — one model is enough for a quick question; ask "is that right?" and a second one checks it.`;
+    return next;
+  }
   const earned = preset.cast.some((c) => c.role === "check" && c.when === "earned");
   const checker = earned ? null : playerFor(ctx.cast ?? null, "check");
   const willBrief =

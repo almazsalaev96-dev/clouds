@@ -17,7 +17,7 @@ import { ComputeScope } from "./ComputeBlock";
 import type { Finding } from "@/lib/lint";
 import type { Action, ChatError, ContentBlock, Message as Msg, Rating, RatingReason, WebSource } from "@/lib/types";
 import { systemConfidence, CONFIDENCE_WORD } from "@/lib/factcheck";
-import { canUndo } from "@/lib/actions";
+import { canUndo } from "@/lib/undoActions";
 import { CALCULATOR, getModel, formatTokens } from "@/lib/models";
 import { authorName, getPreset, plainly, PRESETS } from "@/lib/presets";
 import { blockText } from "@/lib/db";

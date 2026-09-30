@@ -76,3 +76,27 @@ export function castContext(parts: {
   if (!out.length) return "";
   return `${CAST_CONTEXT_HEAD}\n\n${out.join("\n\n")}`;
 }
+
+/**
+ * What the team agreed before the answer was written, for the model that
+ * checks it.
+ *
+ * The brief listed what a good answer had to get right; the study set the
+ * standard it was written to. A checker that never sees either checks the
+ * answer against its own idea of the question, and the three models were
+ * working side by side rather than together. Handed over, the plan becomes
+ * the checklist: the checker can say "it never covered the unit", because
+ * that was on the list.
+ */
+export const TEAM_PLAN_HEAD = "What the team agreed before this answer was written — check the answer against these points as well:";
+
+export function teamPlanFor(parts: { brief?: string; standard?: string[]; imagined?: string }): string {
+  const out: string[] = [];
+  const brief = parts.brief?.trim();
+  if (brief) out.push(`What a good answer had to get right (from the model that read the question first):\n${brief.slice(0, 1_500)}`);
+  const standard = (parts.standard ?? []).map((s) => s.trim()).filter(Boolean).slice(0, 10);
+  if (standard.length) out.push(`The standard it was written to:\n${standard.map((s) => `- ${s}`).join("\n")}`);
+  if (parts.imagined?.trim()) out.push(`What the person most likely pictured: ${parts.imagined.trim().slice(0, 300)}`);
+  if (!out.length) return "";
+  return `${TEAM_PLAN_HEAD}\n\n${out.join("\n\n")}\n\nSay which of these points the answer missed, if any, by name.`;
+}
