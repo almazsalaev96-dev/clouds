@@ -65,7 +65,11 @@ const WORD = /^(?:chapter|unit|part|section|topic|module|lecture|lesson|week|boo
 const MD = /^#{1,3}\s+\S/;
 const NUMBERED = /^(\d{1,2})(?:\.(\d{1,2}))?\.?\s+[A-ZА-ЯЁӘІҢҒҮҰҚӨҺ]/;
 
+/* A PDF's own bookmark, written into the text by lib/pdf.ts. */
+const BOOKMARK = /^--- chapter: (.+) ---$/;
+
 function strength(line: string): number {
+  if (BOOKMARK.test(line)) return 4;
   if (line.length > 90 || line.length < 3) return 0;
   /* A table of contents line: dot leaders, or a title ending in a page number. */
   if (/\.{3,}|…{2,}|\s\d{1,4}$/.test(line) && !MD.test(line)) return 0;
@@ -76,7 +80,7 @@ function strength(line: string): number {
   return 0;
 }
 
-const clean = (line: string) => line.replace(/^#{1,3}\s+/, "").replace(/\s+/g, " ").trim();
+const clean = (line: string) => (BOOKMARK.exec(line)?.[1] ?? line).replace(/^#{1,3}\s+/, "").replace(/\s+/g, " ").trim();
 
 /**
  * The parts of a long text, in order. Headings of the strongest kind the
@@ -88,17 +92,22 @@ export function outlineOf(text: string, max = 60): Section[] {
   const marks = pageMarks(text);
   const lines: { at: number; line: string; s: number }[] = [];
   let at = 0;
+  /* A heading right under a page marker starts with that page, not one
+     line into it — or each chapter would end a page late. */
+  let pageLine = -1;
   for (const raw of text.split("\n")) {
     const line = raw.trim();
     const s = strength(line);
-    if (s) lines.push({ at, line: clean(line), s });
+    if (s) lines.push({ at: pageLine >= 0 ? pageLine : at, line: clean(line), s });
+    if (/^--- page \d+ ---$/.test(line)) pageLine = at;
+    else if (line && !BOOKMARK.test(line)) pageLine = -1;
     at += raw.length + 1;
   }
   /* The strongest kind the book uses at least twice; a lone "Chapter" in a
      preface is not an outline. Numbered sub-sections (2.1) only when there
      is nothing coarser. */
   let heads: typeof lines = [];
-  for (const level of [3, 2, 1.5, 1]) {
+  for (const level of [4, 3, 2, 1.5, 1]) {
     const these = lines.filter((l) => l.s >= level);
     if (these.length >= 2) { heads = these; break; }
   }

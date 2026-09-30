@@ -88,8 +88,11 @@ const SETTING_KEYS = [
  * find out when you restore. Asked of the live database instead, so the answer
  * cannot drift from the schema.
  */
+/** Caches: rebuilt from what is backed up, so left out on purpose. */
+const NOT_BACKED_UP = ["digests"];
+
 export function missingFromBackup(): string[] {
-  const named = new Set<string>(TABLES);
+  const named = new Set<string>([...TABLES, ...NOT_BACKED_UP]);
   return db.tables.map((t) => t.name).filter((n) => !named.has(n));
 }
 

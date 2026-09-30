@@ -43,6 +43,8 @@ class ChatDB extends Dexie {
   courses!: Table<Course, string>;
   marks!: Table<MarkRow, string>;
   mocks!: Table<Mock, string>;
+  /** Notes on each part of a long book, kept so it is read once, not once a session. */
+  digests!: Table<{ key: string; notes: string; at: number }, string>;
 
   constructor() {
     super("clouds");
@@ -246,6 +248,12 @@ class ChatDB extends Dexie {
       courses: "id, updatedAt",
       marks: "id, at, courseId, topicId, mockId",
       mocks: "id, createdAt, courseId",
+    });
+    /* The reading of a long book, part by part: a cache, so it can be
+       thrown away (and is not in a backup), but one worth keeping across
+       reloads — it cost dozens of calls to make. */
+    this.version(21).stores({
+      digests: "key, at",
     });
   }
 }

@@ -89,6 +89,33 @@ console.log("\nOne chapter chosen: no reading, only that chapter");
   check(w2.includes("[Only part of oceans.txt") && w2.includes("brackish") && !w2.includes("near water toward it and the far water away.\\n\\nThe moon pulls"), "the writer gets that chapter and not the rest");
 }
 
+console.log("\nThe next day: the part remembered, the reading kept");
+{
+  await p.getByRole("button", { name: /^Keep/ }).click().catch(() => {});
+  await p.waitForTimeout(300);
+  await p.reload({ waitUntil: "networkidle" });
+  await p.waitForTimeout(900);
+  if (!(await p.getByRole("button", { name: "More ways to use this" }).count())) {
+    await p.locator("aside nav").getByRole("button", { name: "Notebook", exact: true }).click();
+    await p.waitForTimeout(500);
+    /* The page the lessons were written on, reopened from the sidebar's list of pages. */
+    await p.locator("aside").getByRole("button", { name: /What it says/ }).first().click();
+    await p.waitForTimeout(600);
+  }
+  await p.getByRole("button", { name: "More ways to use this" }).click();
+  await p.waitForTimeout(250);
+  await fetch(`${MOCK}/__reset`);
+  await p.getByRole("button", { name: /Make lessons/ }).click();
+  await p.waitForTimeout(400);
+  const which = p.getByRole("dialog").getByRole("region", { name: "Which part of oceans.txt?" });
+  check(await which.getByRole("button", { name: /^Same as last time: Chapter nine/ }).isVisible(), "the part chosen last time is offered");
+  await which.getByRole("button", { name: /^Whole book/ }).click();
+  for (let i = 0; i < 40 && !(await p.getByRole("button", { name: /^Keep/ }).count()); i++) await p.waitForTimeout(250);
+  const { recent: r3 } = await (await fetch(`${MOCK}/__recent`)).json();
+  const w3 = JSON.stringify((await (await fetch(`${MOCK}/__last`)).json()) ?? {});
+  check(!r3.some((r) => /You are reading part \d+ of \d+/.test(r.head ?? "")) && /Read in \d+ parts/.test(w3), "after a reload the whole book is not read again: its notes were kept", `${r3.length} calls`);
+}
+
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors");
 if (errs.length) failed++;
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");

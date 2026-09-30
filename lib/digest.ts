@@ -23,7 +23,8 @@
  * notes, so a quote the reader paraphrased is caught exactly as a quote the
  * writer invented would be.
  *
- * Notes are cached for the session by source and length, because a pack is
+ * Notes are cached by source and part (and kept in the database, so a book
+ * read once is not read again after a reload), because a pack is
  * three pages from the same book and reading it three times would triple
  * the cost and the wait for nothing.
  */
@@ -84,7 +85,36 @@ export function spread<T>(items: T[], n: number): T[] {
 }
 
 const cache = new Map<string, string>();
-const keyOf = (name: string, text: string, i: number) => `${name}\u0000${text.length}\u0000${i}\u0000${text.slice(0, 64)}`;
+/* FNV-1a over the part itself: the same part of the same book is the same
+   key in any session, and a different book with the same name is not. */
+function hashOf(s: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 0x01000193);
+  return (h >>> 0).toString(36);
+}
+const keyOf = (name: string, text: string, i: number, part: string) => `${name}\u0000${text.length}\u0000${i}\u0000${hashOf(part)}`;
+
+/* Kept in the browser's database as well as for the session: a book read
+   yesterday is not read again today. Never fatal either way. */
+async function stored(key: string): Promise<string | undefined> {
+  try {
+    const { db } = await import("./db");
+    return (await db.digests.get(key))?.notes;
+  } catch {
+    return undefined;
+  }
+}
+async function keep(key: string, notes: string): Promise<void> {
+  try {
+    const { db } = await import("./db");
+    await db.digests.put({ key, notes, at: Date.now() });
+    /* Bounded: the oldest readings go first past a few thousand parts. */
+    const n = await db.digests.count();
+    if (n > 3_000) await db.digests.orderBy("at").limit(n - 3_000).delete();
+  } catch {
+    /* a cache */
+  }
+}
 
 const NOTE = (name: string, i: number, n: number, part: string) =>
   `You are reading part ${i + 1} of ${n} of "${name}" so that someone can later write revision material from the whole of it. You will not see the other parts. Make notes on this part only.
@@ -138,8 +168,9 @@ export async function readWhole(
       if (opts.signal?.aborted) return;
       const j = jobs[next++];
       const name = sources[j.source].name;
-      const key = keyOf(name, sources[j.source].text, j.i);
-      let got = cache.get(key);
+      const key = keyOf(name, sources[j.source].text, j.i, j.text);
+      let got = cache.get(key) ?? (await stored(key));
+      if (got) cache.set(key, got);
       if (!got) {
         got = (await complete(NOTE(name, j.i, j.n, j.text), {
           modelId,
@@ -148,7 +179,7 @@ export async function readWhole(
           signal: opts.signal,
           onMoved: opts.onMoved,
         }).catch(() => null)) ?? "";
-        if (got.trim()) cache.set(key, got);
+        if (got.trim()) { cache.set(key, got); void keep(key, got); }
       }
       notes.set(`${j.source}:${j.i}`, got);
       opts.onPart?.(++done, jobs.length);

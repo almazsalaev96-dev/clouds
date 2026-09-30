@@ -6,8 +6,10 @@
  *   npx jiti test-scope.ts
  */
 import { outlineOf, matchTopic, pick, chosenLabel, forQuestion, pageCount, pagesLabel, LONG } from "./lib/scope";
+import { chaptersOf } from "./lib/pdf";
 
 let failed = 0;
+await (async () => {})();
 const check = (c: boolean, l: string, d = "") => { if (!c) failed++; console.log(`${c ? "  ✓" : "  ✗"} ${l}${d ? " — " + d : ""}`); };
 
 const filler = (topic: string, n: number) => Array.from({ length: n }, (_, i) => `This paragraph ${i} is about ${topic}. ${topic} matters in biology for many reasons explained here at length, with examples and detail.`).join("\n\n");
@@ -64,6 +66,27 @@ console.log("\nA book with no headings, and one in Russian");
   check(o.length >= 2 && o.every((s) => /^Pages \d+–\d+$/.test(s.title)), "no headings: even parts named by their pages", o.slice(0, 2).map((s) => s.title).join(", "));
   const ru = `Глава 1. Клетка\n\n${filler("клетка", 400)}\n\nГлава 2. Ферменты\n\n${filler("ферменты", 400)}`;
   check(outlineOf(ru).map((s) => s.title).join(" | ") === "Глава 1. Клетка | Глава 2. Ферменты", "Russian chapters are chapters", outlineOf(ru).map((s) => s.title).join(" | "));
+}
+
+console.log("\nA PDF's own bookmarks");
+{
+  let pg = 0;
+  const bm = ["Cell biology", "Organisation", "Infection and response"].map((t) => Array.from({ length: 12 }, (_, i) => `--- page ${++pg} ---\n${i === 0 ? `--- chapter: ${t} ---\n` : ""}${filler(t.toLowerCase(), 12)}`).join("\n")).join("\n");
+  const o = outlineOf(bm);
+  check(o.map((s) => s.title).join(" | ") === "Cell biology | Organisation | Infection and response", "chapters from the bookmarks, where the pages have no headings", o.map((s) => s.title).join(" | "));
+  check(pagesLabel(o[1]) === "pp. 13–24", "each starting on its bookmarked page", pagesLabel(o[1]));
+}
+{
+  /* A fake document: one book entry with the chapters under it, one named and one direct destination. */
+  const doc = {
+    getOutline: async () => [{ title: "AQA Biology", dest: null, items: [{ title: "1  Cell biology", dest: "c1" }, { title: "2 Organisation", dest: [{ num: 40 }] }] }],
+    getDestination: async (id: string) => (id === "c1" ? [{ num: 4 }] : null),
+    getPageIndex: async (ref: { num: number }) => ref.num,
+  };
+  const at = await chaptersOf(doc);
+  check(at.get(5)?.[0] === "1 Cell biology" && at.get(41)?.[0] === "2 Organisation", "read one level down when the outline is one book with chapters under it", JSON.stringify([...at]));
+  const none = await chaptersOf({ getOutline: async () => null });
+  check(none.size === 0, "and a PDF with no outline has none, without failing");
 }
 
 console.log("\nA question answered from the passages about it");

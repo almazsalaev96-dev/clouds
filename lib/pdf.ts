@@ -45,6 +45,43 @@ const MAX_CHARS = 4_000_000;
 /** How far through a long PDF the reading has got. */
 export type PdfProgress = (page: number, pages: number) => void;
 
+/**
+ * The book's own bookmarks, as the page each chapter starts on.
+ *
+ * Most textbooks carry an outline — the panel of chapters a PDF reader
+ * shows — even when the pages themselves say "Chapter 3" in a picture or
+ * a font the text layer does not keep. Top-level entries are the chapters;
+ * a book whose outline is one entry with the chapters under it is read one
+ * level down. Written into the text as a marker line at the chapter's first
+ * page, which is what `lib/scope.ts` reads as the strongest heading there
+ * is. Never fatal: a book without an outline just has none.
+ */
+type OutlineItem = { title: string; dest: unknown; items?: OutlineItem[] };
+type Outline = OutlineItem[];
+type Doc = {
+  getOutline(): Promise<Outline | null>;
+  getDestination(id: string): Promise<unknown[] | null>;
+  getPageIndex(ref: unknown): Promise<number>;
+};
+export async function chaptersOf(doc: unknown): Promise<Map<number, string[]>> {
+  const at = new Map<number, string[]>();
+  try {
+    const d = doc as Doc;
+    let top = (await d.getOutline()) ?? [];
+    if (top.length === 1 && (top[0].items?.length ?? 0) > 1) top = top[0].items!;
+    for (const item of top.slice(0, 200)) {
+      const dest = typeof item.dest === "string" ? await d.getDestination(item.dest) : (item.dest as unknown[] | null);
+      if (!Array.isArray(dest) || !dest[0]) continue;
+      const page = (await d.getPageIndex(dest[0])) + 1;
+      const title = String(item.title ?? "").replace(/\s+/g, " ").trim().slice(0, 90);
+      if (title) at.set(page, [...(at.get(page) ?? []), title]);
+    }
+  } catch {
+    /* no outline, or one that points nowhere */
+  }
+  return at;
+}
+
 export async function extractPdf(file: File | ArrayBuffer, onPage?: PdfProgress): Promise<PdfText> {
   const mod = await load();
   const data = file instanceof ArrayBuffer ? file : await file.arrayBuffer();
@@ -55,6 +92,7 @@ export async function extractPdf(file: File | ArrayBuffer, onPage?: PdfProgress)
   /* Freed however the reading ends: a page that throws halfway through a
      900-page book must not leave the worker holding the whole file. */
   try {
+  const chapters = await chaptersOf(doc);
   for (let n = 1; n <= doc.numPages && chars < MAX_CHARS; n++) {
     /* Said every few pages, and a breath given to the page between them: a
        900-page book is minutes of work, and a frozen tab reads as a crash. */
@@ -81,8 +119,9 @@ export async function extractPdf(file: File | ArrayBuffer, onPage?: PdfProgress)
     if (line.trim()) lines.push(line.trimEnd());
 
     const text = lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
-    if (text) {
-      out.push(`--- page ${n} ---\n${text}`);
+    const marks = (chapters.get(n) ?? []).map((t) => `--- chapter: ${t} ---\n`).join("");
+    if (text || marks) {
+      out.push(`--- page ${n} ---\n${marks}${text}`);
       chars += text.length;
     }
     page.cleanup();
@@ -289,7 +328,7 @@ export function pageText(text: string, pageNo: number): string {
   if (at === -1) return "";
   const rest = text.slice(at);
   const next = rest.slice(1).search(/^--- page \d+ ---$/m);
-  return (next === -1 ? rest : rest.slice(0, next + 1)).replace(re, "").trim();
+  return (next === -1 ? rest : rest.slice(0, next + 1)).replace(re, "").replace(/^--- chapter: .+ ---$/gm, "").trim();
 }
 
 export const isPdf = (f: { name: string; type: string }) =>

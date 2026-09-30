@@ -43,10 +43,24 @@ export function ScopePicker({
   const matched = React.useMemo(() => (query.trim().length >= 3 ? matchTopic(text, sections, query) : null), [text, sections, query]);
   const shown: Section[] = matched ?? sections;
 
+  /* What was chosen for this book last time, by chapter title: somebody
+     working through a textbook asks about the same chapter for a week. */
+  const memoryKey = `armi.scope.${name}.${text.length}`;
+  const last = React.useMemo(() => {
+    try {
+      const titles = JSON.parse(localStorage.getItem(memoryKey) ?? "[]") as string[];
+      const found = sections.filter((s) => titles.includes(s.title));
+      return found.length && found.length === titles.length ? found : [];
+    } catch {
+      return [];
+    }
+  }, [memoryKey, sections]);
+
   const toggle = (id: string) => setChosen((c) => { const n = new Set(c); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const use = (ids: Set<string>) => {
     const parts = sections.filter((s) => ids.has(s.id));
     if (!parts.length) return;
+    try { localStorage.setItem(memoryKey, JSON.stringify(parts.map((s) => s.title))); } catch { /* a convenience */ }
     onPick(pick(text, parts, name, pages), chosenLabel(parts));
   };
   const size = pages ? `${pages} pages` : `${Math.round(text.length / 1_800)} pages or so`;
@@ -94,6 +108,11 @@ export function ScopePicker({
       </ul>
 
       <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        {last.length > 0 && !chosen.size && !matched && (
+          <Button size="sm" variant="secondary" onClick={() => use(new Set(last.map((s) => s.id)))} aria-label={`Same as last time: ${chosenLabel(last)}`}>
+            Same as last time · <span className="max-w-[14rem] truncate">{chosenLabel(last)}</span>
+          </Button>
+        )}
         <Button size="sm" variant="primary" disabled={!chosen.size} onClick={() => use(chosen)}>
           {chosen.size ? `Use ${chosen.size === 1 ? "this part" : `these ${chosen.size} parts`}` : "Choose a part"}
         </Button>
