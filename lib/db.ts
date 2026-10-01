@@ -975,16 +975,18 @@ export async function deleteRoutine(id: string): Promise<() => Promise<void>> {
   return async () => { if (row) await db.routines.put(row); };
 }
 
-export function exportMarkdown(c: Conversation, messages: Message[]): string {
+export function exportMarkdown(c: Conversation, messages: Message[], who?: (m: Message) => string): string {
   const head = `# ${c.title || "Conversation"}\n\n_${new Date(c.createdAt).toLocaleString()}_\n`;
   const body = messages
     .map((m) => {
-      const who = m.role === "user" ? "You" : m.modelId ?? "Assistant";
+      /* The Armi model that answered, where the caller can name it; the
+         engine id is a fact about this browser's keys, not a byline. */
+      const name = who ? who(m) : m.role === "user" ? "You" : "Armi";
       const attachments = m.content
         .filter((b) => b.type !== "text")
         .map((b) => (b.type === "image" ? `> [image: ${b.name ?? "pasted"}]` : `> [file: ${b.name}]`))
         .join("\n");
-      return `## ${who}\n\n${attachments ? attachments + "\n\n" : ""}${blockText(m.content)}`;
+      return `## ${name}\n\n${attachments ? attachments + "\n\n" : ""}${blockText(m.content)}`;
     })
     .join("\n\n---\n\n");
   return `${head}\n${body}\n`;

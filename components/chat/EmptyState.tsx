@@ -3,7 +3,7 @@
 import { getPlusOffer } from "@/lib/configured";
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BookOpen, GraduationCap, KeyRound, LayoutTemplate, PenLine, Sparkles, X } from "lucide-react";
+import { BookOpen, Cpu, GraduationCap, KeyRound, LayoutTemplate, PenLine, Sparkles, X } from "lucide-react";
 import { db } from "@/lib/db";
 import { dueNow, type Card } from "@/lib/study";
 import { useSettings, type Section } from "@/lib/store";
@@ -119,6 +119,7 @@ export function EmptyState({
   hasAnyKey,
   onAddKey,
   onPlus,
+  onLocal,
   onGo,
   onStart,
   assistants = [],
@@ -132,6 +133,8 @@ export function EmptyState({
   onAddKey: () => void;
   /** Or the other door: Armi Plus, where the server offers it. */
   onPlus?: () => void;
+  /** Or the third: a free model on this computer. */
+  onLocal?: () => void;
   /** Into another room, from the line that says what is waiting there. */
   onGo?: (section: Section) => void;
   /** One of the three rows above the box was pressed. */
@@ -245,12 +248,28 @@ export function EmptyState({
         {/* The other door, where this installation has one: a dollar a
             month and no keys at all. Said under the key button, quietly,
             because the key is still the arrangement most people here want. */}
-        {!hasAnyKey && onPlus && getPlusOffer().on && (
-          <p className="anim-rise mt-2 text-center text-xs text-tertiary" style={{ animationDelay: "200ms" }}>
-            or{" "}
-            <button onClick={onPlus} className="focus-inset rounded underline decoration-[var(--border-strong)] underline-offset-2 hover:text-primary">
-              Armi Plus, {getPlusOffer().price} — no keys needed
-            </button>
+        {!hasAnyKey && ((onPlus && getPlusOffer().on) || onLocal) && (
+          <p className="anim-rise mt-2 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-center text-xs text-tertiary" style={{ animationDelay: "200ms" }}>
+            or
+            {onPlus && getPlusOffer().on && (
+              <button onClick={onPlus} className="focus-inset rounded underline decoration-[var(--border-strong)] underline-offset-2 hover:text-primary">
+                Armi Plus, {getPlusOffer().price} — no keys needed
+              </button>
+            )}
+            {onPlus && getPlusOffer().on && onLocal && <span aria-hidden>·</span>}
+            {/* The third door, and the only free one with nobody to pay:
+                an open model installed on this computer. */}
+            {onLocal && (
+              <button onClick={onLocal} className="focus-inset flex items-center gap-1 rounded underline decoration-[var(--border-strong)] underline-offset-2 hover:text-primary">
+                <Cpu size={12} aria-hidden /> a free AI on this computer
+              </button>
+            )}
+          </p>
+        )}
+        {/* For somebody deciding, not asking: what this is and why, on its own page. */}
+        {!hasAnyKey && (
+          <p className="anim-rise mt-6 text-center text-xs text-tertiary" style={{ animationDelay: "260ms" }}>
+            <a href="/why" className="focus-inset rounded hover:text-primary hover:underline">Why Armi? What it does, how it compares, what it costs</a>
           </p>
         )}
 

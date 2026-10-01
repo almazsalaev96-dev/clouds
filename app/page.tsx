@@ -42,7 +42,7 @@ import { AUTO, CALCULATOR, DEFAULT_MODEL_ID, PROVIDERS, estimateTokens, getModel
 import "@/lib/local";
 import {
   briefNote, briefPrompt, councilNote, councilPrompt, engineOf, getPreset, objectionNote,
-  playerFor, playersFor, resolveCast, shapePlan, worthBriefing, worthChecking, worthConvening, worthResearching, presetFor, JOB_LINE, PRESETS } from "@/lib/presets";
+  playerFor, playersFor, resolveCast, shapePlan, worthBriefing, worthChecking, worthConvening, worthResearching, presetFor, JOB_LINE, PRESETS, authorName } from "@/lib/presets";
 import { castContext, teamPlanFor } from "@/lib/cast";
 import { costOf, fitToContext } from "@/lib/context";
 import { elsewhere, searcher, roomier } from "@/lib/route";
@@ -292,7 +292,7 @@ export default function Page() {
   const [modelPickerOpen, setModelPickerOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   if (settingsOpen) everOpened.current.settings = true;
-  const [settingsTab, setSettingsTab] = React.useState<"keys" | "plus" | "appearance" | "model" | "rules" | "assistants" | "routines" | "styles" | "memory" | "data" | "shortcuts">("keys");
+  const [settingsTab, setSettingsTab] = React.useState<"keys" | "local" | "plus" | "appearance" | "personal" | "model" | "rules" | "assistants" | "routines" | "styles" | "memory" | "data" | "shortcuts" | "privacy">("keys");
   const [scrolled, setScrolled] = React.useState(false);
   const [artifact, setArtifact] = React.useState<Artifact | null>(null);
   /** Where j/k currently sit in the transcript. */
@@ -2595,9 +2595,28 @@ export default function Page() {
     [activeId],
   );
 
+  /* Each turn under the name of who said it: "You", and the Armi model
+     that answered — never the engine's id, which is a fact about this
+     browser's keys and not a byline. */
+  const conversationMarkdown = React.useCallback(
+    () => (conversation ? exportMarkdown(conversation, path, (m) => (m.role === "user" ? "You" : authorName(m.presetId, m.modelId ?? ""))) : ""),
+    [conversation, path],
+  );
+  const saveConversationPdf = React.useCallback(() => {
+    if (!conversation) return;
+    const md = conversationMarkdown().replace(/^# .*\n\n_[^\n]*_\n\n?/, "");
+    void import("@/lib/print").then(({ printMarkdown }) => {
+      if (!printMarkdown(conversation.title || "Conversation", md)) setNotice("The browser blocked the print window. Allow pop-ups for this page and try again.");
+    });
+  }, [conversation, conversationMarkdown]);
+  const saveConversationWord = React.useCallback(() => {
+    if (!conversation) return;
+    const md = conversationMarkdown().replace(/^# .*\n\n_[^\n]*_\n\n?/, "");
+    void import("@/lib/office").then(({ markdownToDocx }) => markdownToDocx(conversation.title || "Conversation", md)).catch(() => setNotice("Couldn't make the Word file."));
+  }, [conversation, conversationMarkdown]);
   const exportConversation = React.useCallback(() => {
     if (!conversation) return;
-    const md = exportMarkdown(conversation, path);
+    const md = conversationMarkdown();
     const blob = new Blob([md], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -2605,7 +2624,7 @@ export default function Page() {
     a.download = `${(conversation.title || "conversation").replace(/[^\w-]+/g, "-").toLowerCase()}.md`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [conversation, path]);
+  }, [conversation, conversationMarkdown]);
 
   /* Share: the device's own sheet where there is one — Messages, Mail,
      AirDrop, whatever the phone offers — with the thread as text; a copy to
@@ -2837,6 +2856,26 @@ export default function Page() {
     setSettingsTab("plus");
     setSettingsOpen(true);
   }, []);
+  const openLocal = React.useCallback(() => {
+    setSettingsTab("local");
+    setSettingsOpen(true);
+  }, []);
+
+  /* A door named in the address: /#plus, /#keys, /#local open the matching
+     Settings page, so a button on the Why page lands where it says. The
+     address is cleaned so a reload does not open it twice. */
+  React.useEffect(() => {
+    const open = () => {
+      const door = window.location.hash.replace(/^#/, "");
+      if (door !== "plus" && door !== "keys" && door !== "local") return;
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      (door === "plus" ? openPlus : door === "local" ? openLocal : openKeys)();
+    };
+    open();
+    /* And while the app is already open: a door typed into the address bar. */
+    window.addEventListener("hashchange", open);
+    return () => window.removeEventListener("hashchange", open);
+  }, [openPlus, openLocal, openKeys]);
 
   /* The Creations room is folded into Studio; a section saved before that
      still says "code", and lands in Studio. */
@@ -3293,6 +3332,8 @@ export default function Page() {
             scrolled={scrolled}
             onRename={(title) => activeId && db.conversations.update(activeId, { title })}
             onExport={exportConversation}
+            onSavePdf={saveConversationPdf}
+            onSaveWord={saveConversationWord}
             onShare={shareConversation}
             onDelete={removeConversation}
             onNewChat={() => void createInSection("chat")}
@@ -3332,6 +3373,7 @@ export default function Page() {
               hasAnyKey={hasAnyKey}
               onAddKey={openKeys}
               onPlus={openPlus}
+              onLocal={openLocal}
               assistants={assistants}
               onAssistant={startWithAssistant}
               onGo={(section) => withTransition(() => settings.setSection(section), "forward")}

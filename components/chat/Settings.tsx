@@ -285,6 +285,10 @@ function PrivacyPanel() {
           Clearing site data in your browser does the same. Anything already sent to a
           provider is theirs to delete, on their terms.
         </Line>
+        <p className="text-xs text-tertiary">
+          The longer version — why Armi exists, what it does, how it compares and what it costs — is on{" "}
+          <a href="/why" className="focus-inset rounded text-accent underline-offset-2 hover:underline">its own page</a>.
+        </p>
       </div>
     </Panel>
   );

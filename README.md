@@ -20,6 +20,14 @@ the brief, [Known gaps](#known-gaps) says so.
 
 ---
 
+## Why it exists
+
+`/why` is the page for somebody who has not opened the app yet: why it is
+needed, everything it does, how it compares with a chat app and a revision
+site, what it costs, and where your work goes. Its buttons open the app on
+the right Settings page (`/#plus`, `/#keys`, `/#local`), and a link to any
+page carries a drawn card when it is shared.
+
 ## Running it
 
 ```bash

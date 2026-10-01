@@ -4,7 +4,15 @@ import "katex/dist/katex.min.css";
 import { CrashNet } from "@/components/ui/CrashNet";
 import { Shell } from "@/components/ui/Shell";
 
+/* Where the site lives, for the absolute addresses a share card needs: the
+   branch's own address on Vercel, the deployment's otherwise, and the dev
+   server at home. Without it the card points at localhost from anywhere. */
+const SITE =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_BRANCH_URL ? `https://${process.env.VERCEL_BRANCH_URL}` : process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://localhost:${process.env.PORT || 3000}`);
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE),
   title: "Armi",
   /* What this is, in its own words. It used to be a list of four other
      companies' models, which described the plumbing rather than the product
