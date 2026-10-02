@@ -3,7 +3,7 @@
 import { getPlusOffer } from "@/lib/configured";
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BookOpen, Cpu, GraduationCap, KeyRound, LayoutTemplate, PenLine, Sparkles, X } from "lucide-react";
+import { BookOpen, Cpu, GraduationCap, KeyRound, LayoutTemplate, PenLine, Sparkles, X, FileText } from "lucide-react";
 import { db } from "@/lib/db";
 import { dueNow, type Card } from "@/lib/study";
 import { useSettings, type Section } from "@/lib/store";
@@ -107,12 +107,16 @@ const useIsoLayoutEffect = typeof window === "undefined" ? React.useEffect : Rea
  * rows saying what to start with, no boxes, one press each.
  */
 
-/** What to start with: the reference's three rows, in this app's words. */
-export type Start = "make" | "write" | "read";
+/** What to start with: the reference's three rows, in this app's words —
+    and a fourth for the thing a student asks for most that the others do
+    not offer on their blank page: something to print. It switches the
+    Document mode on, so what is typed next comes back as a PDF. */
+export type Start = "make" | "write" | "read" | "print";
 const STARTS: { id: Start; label: string; icon: React.ReactNode }[] = [
   { id: "make", label: "Make something that runs", icon: <Sparkles size={18} /> },
   { id: "write", label: "Write or edit", icon: <PenLine size={18} /> },
   { id: "read", label: "Learn from a document", icon: <BookOpen size={18} /> },
+  { id: "print", label: "Make a document to print", icon: <FileText size={18} /> },
 ];
 
 export function EmptyState({

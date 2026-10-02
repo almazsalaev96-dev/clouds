@@ -27,6 +27,18 @@ console.log("\nA tier's own name is a command too — and only a tier's");
   check(parseSlash("/maths compound interest")?.kind === "data" && parseSlash("/translate this")?.kind === "translate", "and the jobs are verbs: /maths, /translate");
 }
 
+console.log("\nThe engines by their commands");
+{
+  const pdf = parseSlash("/pdf a letter to the landlord")!;
+  check(pdf?.document === true && pdf.text === "a letter to the landlord", "“/pdf” asks the document engine, with the rest as the subject", JSON.stringify(pdf));
+  check(parseSlash("/doc a CV")?.document === true && parseSlash("/document a report")?.document === true, "“/doc” and “/document” are the same ask");
+  const sheet = parseSlash("/sheet a budget for the trip")!;
+  check(sheet?.spreadsheet === true && sheet.text === "a budget for the trip", "“/sheet” asks the spreadsheet engine", JSON.stringify(sheet));
+  check(parseSlash("/excel a gradebook")?.spreadsheet === true && parseSlash("/spreadsheet a tracker")?.spreadsheet === true, "“/excel” and “/spreadsheet” too");
+  const cmds = slashCommands().map((c) => c.command);
+  check(cmds.includes("pdf") && cmds.includes("sheet") && !cmds.includes("doc"), "the hint lists one spelling of each, not six", cmds.filter((c) => /pdf|doc|sheet|excel/.test(c)).join(" "));
+}
+
 console.log("\nWhat is not a command is sent as written");
 {
   check(parseSlash("/usr/bin/env node") === null, "a path is not a command");

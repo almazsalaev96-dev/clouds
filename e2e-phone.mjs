@@ -85,6 +85,14 @@ console.log("\nSettings is the whole screen, with everything inside it");
   await nav.getByRole("button", { name: "Privacy" }).click();
   await p.waitForTimeout(300);
   check(/What leaves/.test(await dlg.innerText()), "the strip changes the page");
+  /* The second group is in the strip too, past a hairline: a page that is
+     only reachable from where it is used is a page nobody finds first. */
+  const memory = nav.getByRole("button", { name: "Memory" });
+  await memory.scrollIntoViewIfNeeded();
+  check(await memory.isVisible(), "and the strip goes on to Memory, Rules and the rest");
+  await memory.click();
+  await p.waitForTimeout(300);
+  check(await dlg.getByRole("heading", { name: "Memory" }).isVisible().catch(() => false), "which open as pages like any other");
   await p.keyboard.press("Escape");
   await p.waitForTimeout(400);
 }
@@ -188,6 +196,41 @@ console.log("\nOne header on a phone: the sidebar button sits in the room's titl
       `${room}: and it shares the first row with the title or the way back`, shown[0] && title ? `button ${Math.round(shown[0].y)} title ${Math.round(title.y)}` : "missing");
     check(title && title.y < 70, `${room}: so the title starts at the top of the screen`, title ? `${Math.round(title.y)}px` : "missing");
   }
+}
+
+console.log("\nA room's title row fits a phone: the button keeps its icon, the model its wand");
+{
+  await drawer("Notebook");
+  const make = p.getByRole("button", { name: "New page" }).first();
+  const box = await make.boundingBox();
+  check(box && box.height <= 44 && box.width <= 56, "New page is one icon, not two lines of words", box ? `${Math.round(box.width)}×${Math.round(box.height)}` : "missing");
+  const model = p.locator("main").getByRole("button", { name: /model for this room/i }).first();
+  const mb = await model.boundingBox();
+  check(mb && mb.width <= 56, "the room's model is its wand alone, not a name cut to a letter", mb ? `${Math.round(mb.width)}px` : "missing");
+  const name = (await model.getAttribute("aria-label")) ?? "";
+  check(/model for this room/i.test(name), "its name whole for a screen reader", name);
+  const edge = await p.locator("main h1").first().evaluate((h) => { const r = h.closest("header")?.getBoundingClientRect(); return [r ? r.right : 0, window.innerWidth]; });
+  check(edge[0] <= edge[1] + 1 && (await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)), "and nothing runs off the edge", `${Math.round(edge[0])}px of ${edge[1]}`);
+}
+
+console.log("\nAn answer's actions sit on one line, the two checks behind More");
+{
+  await drawer("Conversations");
+  await fetch("http://127.0.0.1:8787/__reset");
+  await p.getByRole("textbox", { name: "Message" }).fill("Explain a debounce in two lines");
+  await p.getByRole("button", { name: "Send message" }).first().click();
+  await p.waitForTimeout(4000);
+  const copy = await p.getByRole("button", { name: "Copy", exact: true }).last().boundingBox();
+  const more = await p.getByRole("button", { name: "More actions" }).last().boundingBox();
+  check(copy && more && Math.abs(copy.y - more.y) < 4, "Copy and More share a row", copy && more ? `copy y=${Math.round(copy.y)} more y=${Math.round(more.y)}` : "missing");
+  check(!(await p.getByRole("button", { name: "Check with another model" }).last().isVisible().catch(() => false)), "the check with another model is not a ninth icon");
+  await p.getByRole("button", { name: "More actions" }).last().click();
+  await p.waitForTimeout(300);
+  const menu = await p.locator("[data-radix-popper-content-wrapper]").last().innerText();
+  /* The other check — a second model — is offered only until one has
+     read the answer, which the cast may already have done. */
+  check(/Fact-check on the web/.test(menu), "the web check is in More", menu.replace(/\s+/g, " ").slice(0, 100));
+  await p.keyboard.press("Escape");
 }
 
 console.log(errs.length ? "\n  ✗ " + errs.join("\n  ") : "\n  ✓ no runtime errors");

@@ -737,6 +737,10 @@ function AssistantMessageImpl({
         /* See the user row above: a 28px box holding 44px controls overflows
            into the answer's own last line, and at 390px eight of them cannot
            sit on one line either. Both were true before anything was added. */
+        /* And so on a phone the two checks — another model, the web — live
+           in the More menu instead, where "Keep as a note" already is, and
+           the row is one line: a lone "···" wrapped under seven icons read
+           as a mistake, not a control. The desk keeps all of them out. */
         className="mt-1.5 flex min-h-7 flex-wrap items-center gap-0.5 reveal"
         data-visible={isLast ? "true" : undefined}
       >
@@ -784,6 +788,7 @@ function AssistantMessageImpl({
             size={28}
             onClick={() => onVerify(message)}
             disabled={verifying}
+            className="max-md:hidden"
           >
             <ShieldQuestion size={14} />
           </IconButton>
@@ -796,6 +801,7 @@ function AssistantMessageImpl({
             size={28}
             onClick={() => onFactCheck(message)}
             disabled={factChecking}
+            className="max-md:hidden"
           >
             <SearchCheck size={14} />
           </IconButton>
@@ -882,6 +888,26 @@ function AssistantMessageImpl({
                   will write cards when asked; the difference here is that
                   they are kept and asked again later, which is the whole
                   of how anybody learns anything. */}
+              {onVerify && !message.verdict && (
+                <DropdownMenu.Item
+                  onSelect={() => onVerify(message)}
+                  disabled={verifying}
+                  className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-secondary outline-none transition-colors duration-[var(--dur-fast)] data-[highlighted]:bg-subtle data-[highlighted]:text-primary md:hidden"
+                >
+                  <ShieldQuestion size={15} className="text-tertiary" />
+                  {verifying ? "Checking…" : "Check with another model"}
+                </DropdownMenu.Item>
+              )}
+              {onFactCheck && !message.facts && (
+                <DropdownMenu.Item
+                  onSelect={() => onFactCheck(message)}
+                  disabled={factChecking}
+                  className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-secondary outline-none transition-colors duration-[var(--dur-fast)] data-[highlighted]:bg-subtle data-[highlighted]:text-primary md:hidden"
+                >
+                  <SearchCheck size={15} className="text-tertiary" />
+                  {factChecking ? "Looking it up…" : "Fact-check on the web"}
+                </DropdownMenu.Item>
+              )}
               {onMakeCards && text && (
                 <DropdownMenu.Item
                   onSelect={() => onMakeCards(text)}

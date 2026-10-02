@@ -88,8 +88,9 @@ console.log("\nThe box's plus menu holds the functions");
   await p.getByRole("button", { name: "Add files and tools" }).click();
   await p.waitForTimeout(300);
   const menu = await p.locator("[data-radix-popper-content-wrapper]").last().innerText();
-  for (const item of ["Add photos and files", "Take a photo", "Create image", "Study and learn", "Web search", "Deep research", "Slides", "Add to a project", "Answer as an assistant", "Temporary chat"])
+  for (const item of ["Add photos and files", "Create image", "Study and learn", "Web search", "Deep research", "Slides", "Document", "Spreadsheet", "Add to a project", "Answer as an assistant", "Temporary chat"])
     check(menu.includes(item), `offers ${item}`);
+  check(!menu.includes("Take a photo"), "and not the camera on a desk, where it would open the same picker as the row above");
   await p.getByRole("button", { name: /^Add to a project/ }).click();
   await p.waitForTimeout(250);
   const pane = await p.locator("[data-radix-popper-content-wrapper]").last().innerText();

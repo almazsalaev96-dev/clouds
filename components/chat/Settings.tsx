@@ -32,27 +32,29 @@ import { SHORTCUT_GROUPS } from "@/components/ShortcutsOverlay";
 
 type Tab = "keys" | "local" | "plus" | "appearance" | "personal" | "model" | "styles" | "memory" | "routines" | "data" | "shortcuts" | "privacy" | "rules" | "assistants";
 
-/* Settings holds what is set once: keys, the plan, how it looks, the model,
-   your data, privacy. Rules, assistants, styles, memory, routines and
-   shortcuts are not listed here any more — they are reached where they are
-   used (the rules chip in the box, "Answer as an assistant" in its menu, a
-   routine's chip, the keyboard button in the sidebar) and from the command
-   palette, and a panel opened that way still shows its page here. */
-const TABS: { id: Tab; label: string; hidden?: boolean }[] = [
+/* The pages a person goes to Settings for, in two groups. First the ones
+   everybody needs — keys, the free local AI, Plus, how it looks, who you
+   are to it, the model, your data, privacy. Then, under "More", the ones
+   that are also reached where they are used (the rules chip in the box,
+   "Answer as an assistant" in its menu, a routine's chip, the keyboard
+   button in the sidebar) and from the command palette: listed here as
+   well, because a page that can only be found from the place it is used
+   is a page nobody finds the first time. */
+const TABS: { id: Tab; label: string; more?: boolean }[] = [
   { id: "keys", label: "API keys" },
   { id: "local", label: "Free AI" },
   { id: "plus", label: "Armi Plus" },
   { id: "appearance", label: "Appearance" },
   { id: "personal", label: "Personalization" },
   { id: "model", label: "Model" },
-  { id: "rules", label: "Rules", hidden: true },
-  { id: "assistants", label: "Assistants", hidden: true },
-  { id: "styles", label: "Styles", hidden: true },
-  { id: "memory", label: "Memory", hidden: true },
-  { id: "routines", label: "Routines", hidden: true },
-  { id: "shortcuts", label: "Shortcuts", hidden: true },
   { id: "data", label: "Data" },
   { id: "privacy", label: "Privacy" },
+  { id: "memory", label: "Memory", more: true },
+  { id: "rules", label: "Rules", more: true },
+  { id: "assistants", label: "Assistants", more: true },
+  { id: "styles", label: "Styles", more: true },
+  { id: "routines", label: "Routines", more: true },
+  { id: "shortcuts", label: "Shortcuts", more: true },
 ];
 
 export function Settings({
@@ -103,17 +105,27 @@ export function Settings({
             )}
           >
             <Dialog.Title className="px-2 py-2 text-sm font-medium text-primary max-sm:sr-only">Settings</Dialog.Title>
-            {TABS.filter((t) => !t.hidden || t.id === tab).map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={cn(
-                  "shrink-0 whitespace-nowrap rounded-md px-2 py-1.5 text-left text-sm transition-colors duration-[var(--dur-fast)] max-sm:min-h-9",
-                  tab === t.id ? "bg-field font-medium text-primary" : "text-secondary hover:text-primary",
+            {TABS.map((t, i) => (
+              <React.Fragment key={t.id}>
+                {t.more && !TABS[i - 1]?.more && (
+                  /* The second group's heading: a word on the desk, a hairline
+                     on a phone, where the row scrolls and a heading would
+                     read as a page that cannot be pressed. */
+                  <>
+                    <span aria-hidden className="mx-1 h-5 w-px shrink-0 self-center bg-[var(--border-strong)] sm:hidden" />
+                    <span aria-hidden className="eyebrow mt-3 px-2 pb-1 text-faint max-sm:hidden">More</span>
+                  </>
                 )}
-              >
-                {t.label}
-              </button>
+                <button
+                  onClick={() => setTab(t.id)}
+                  className={cn(
+                    "shrink-0 whitespace-nowrap rounded-md px-2 py-1.5 text-left text-sm transition-colors duration-[var(--dur-fast)] max-sm:min-h-9",
+                    tab === t.id ? "bg-field font-medium text-primary" : "text-secondary hover:text-primary",
+                  )}
+                >
+                  {t.label}
+                </button>
+              </React.Fragment>
             ))}
           </nav>
 

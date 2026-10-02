@@ -67,12 +67,15 @@ export function RevisePicker({ configured }: { configured: Record<string, boolea
            need on screen, since choosing the engine is what opening it is
            for. The Armi model is in the menu and in this label. */
         aria-label={chosen ? `Model for this room: ${chosen.name}` : "Choose the model for this room"}
-        className="btn-touch ctl-h focus-inset flex min-w-0 shrink items-center gap-1.5 rounded-full px-2 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+        className="btn-touch ctl-h focus-inset flex shrink-0 items-center gap-1.5 rounded-full px-2 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
       >
         {model ? (
           <>
             <Wand2 size={13} className="shrink-0 text-[var(--accent-2)]" />
-            <span className="truncate">{chosen?.short ?? "Auto"}</span>
+            {/* The name is whole or not there: "A…" beside a wand told
+                nobody anything, and on a phone the room's bar has no
+                room for it. The wand says there is a model to choose. */}
+            <span className="whitespace-nowrap max-sm:sr-only">{chosen?.short ?? "Auto"}</span>
           </>
         ) : (
           <span className="truncate text-tertiary">Model</span>

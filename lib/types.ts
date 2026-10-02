@@ -186,6 +186,9 @@ export interface Message {
   canvasId?: string;
 }
 
+/** What the box is making, chosen from its + menu and kept on the conversation. */
+export type MakeMode = "slides" | "picture" | "document" | "spreadsheet";
+
 export interface Conversation {
   id: string;
   title: string;
@@ -240,11 +243,12 @@ export interface Conversation {
    */
   madeId?: string;
   /**
-   * Slides or Picture, switched on for this conversation from the box's
-   * menu. Stays on until the chip is pressed, the way Learn does: every
-   * message is a deck (or a change to the deck) or a picture.
+   * Slides, Picture, Document or Spreadsheet, switched on for this
+   * conversation from the box's menu. Stays on until the chip is pressed,
+   * the way Learn does: every message is a deck (or a change to the deck),
+   * a picture, a designed document or a spreadsheet.
    */
-  make?: "slides" | "picture";
+  make?: MakeMode;
 }
 
 /* ----------------------------------------------------------------- study -- */

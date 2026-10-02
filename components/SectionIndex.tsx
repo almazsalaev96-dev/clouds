@@ -115,17 +115,22 @@ export function SectionIndex({
           scrolled ? "glass border-line" : "border-transparent bg-transparent",
         )}
       >
-        <div className="mx-auto flex w-full max-w-[var(--measure)] items-center gap-3 px-4 py-3">
-          {toggle && <div className="has-room-toggle -ml-2 -mr-1">{toggle}</div>}
-          <h1 className="text-lg font-semibold tracking-[-0.02em] text-primary">{title}</h1>
+        <div className="mx-auto flex w-full max-w-[var(--measure)] items-center gap-2 px-4 py-3 sm:gap-3">
+          {toggle && <div className="has-room-toggle -ml-2 -mr-1 shrink-0">{toggle}</div>}
+          <h1 className="shrink-0 text-lg font-semibold tracking-[-0.02em] text-primary">{title}</h1>
           {!loading && items.length > 0 && (
-            <span className="tnum text-sm text-faint">{items.length}</span>
+            <span className="tnum shrink-0 text-sm text-faint">{items.length}</span>
           )}
-          <span className="ml-auto flex items-center gap-1.5">
+          {/* On a phone the primary action keeps its icon and loses its
+              words: "New page" beside the room's name, its count and its
+              model was five things across 390 pixels, and the button broke
+              into two lines while the model's name became "A…". The words
+              stay for a screen reader, and come back at tablet width. */}
+          <span className="ml-auto flex min-w-0 items-center gap-1 sm:gap-1.5">
             {right}
-            <Button size="sm" variant="primary" className="bloom" onClick={onNew}>
+            <Button size="sm" variant="primary" className="bloom shrink-0 whitespace-nowrap" onClick={onNew}>
               <Plus size={14} />
-              {newLabel}
+              <span className="max-sm:sr-only">{newLabel}</span>
             </Button>
             {after}
           </span>

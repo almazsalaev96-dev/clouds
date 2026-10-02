@@ -102,6 +102,74 @@ console.log("\nLearn and Research: on in the bar, off with a press");
   await bar().getByRole("button", { name: "Stop searching the web" }).click();
 }
 
+console.log("\nDocument and Spreadsheet: the two other engines, as modes beside Slides");
+{
+  await p.getByRole("button", { name: "New chat" }).first().click();
+  await p.waitForTimeout(400);
+  await pick(/^Document/);
+  const chip = bar().getByRole("button", { name: "Stop making documents" });
+  check(await chip.isVisible(), "Document shows as a chip by the model");
+  check((await box().inputValue()) === "", "with nothing typed into the box for it");
+  await p.getByRole("button", { name: "Add files and tools" }).click();
+  await p.waitForTimeout(250);
+  const menu = await p.locator("[data-radix-popper-content-wrapper]").last().innerText();
+  check(/Stop making documents/.test(menu) && /Spreadsheet/.test(menu), "the menu shows it on, with Spreadsheet beside it", menu.replace(/\s+/g, " ").slice(0, 120));
+  await p.keyboard.press("Escape");
+  await fetch(`${MOCK}/__reset`);
+  await box().fill("a fractions worksheet for year 7");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(4500);
+  const main = await p.locator("main").innerText();
+  check(/Make a document, as a PDF, on: a fractions worksheet for year 7/.test(main), "the message went as a request for a document", (main.match(/Make a document[^\n]*/) ?? [""])[0]);
+  check(/Made a worksheet: “Fractions practice”/.test(main), "and the document engine made one, kept in the Library", (main.match(/Made a [^\n]*/) ?? [""])[0]);
+  const conv = await p.evaluate(() => new Promise((res) => { const r = indexedDB.open("clouds"); r.onsuccess = () => { const t = r.result.transaction("conversations").objectStore("conversations").getAll(); t.onsuccess = () => res(t.result); }; }));
+  check(conv.some((c) => c.make === "document"), "kept on the conversation");
+  await fetch(`${MOCK}/__reset`);
+  await box().fill("add a part C on decimals");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(4500);
+  const again = await p.locator("main").innerText();
+  check(/Make the document again, as a PDF, whole, with this change: add a part C on decimals/.test(again), "the next message is a change to it, asked for whole", (again.match(/Make the document again[^\n]*/) ?? [""])[0]);
+  await chip.click();
+  await p.waitForTimeout(300);
+  check((await bar().getByRole("button", { name: "Stop making documents" }).count()) === 0, "pressing the chip turns it off");
+
+  /* The blank page's fourth row is the same switch. */
+  await p.getByRole("button", { name: "New chat" }).first().click();
+  await p.waitForTimeout(400);
+  await p.getByRole("button", { name: "Make a document to print" }).click();
+  await p.waitForTimeout(300);
+  check(await bar().getByRole("button", { name: "Stop making documents" }).isVisible(), "“Make a document to print” on the blank page switches Document on");
+  check(await box().evaluate((el) => document.activeElement === el), "and puts the caret in the box");
+  await bar().getByRole("button", { name: "Stop making documents" }).click();
+  await p.waitForTimeout(300);
+
+  await p.getByRole("button", { name: "New chat" }).first().click();
+  await p.waitForTimeout(400);
+  await pick(/^Spreadsheet/);
+  check(await bar().getByRole("button", { name: "Stop making spreadsheets" }).isVisible(), "Spreadsheet shows as a chip too");
+  await fetch(`${MOCK}/__reset`);
+  await box().fill("a budget for the trip");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(4500);
+  const main2 = await p.locator("main").innerText();
+  check(/Make a spreadsheet on: a budget for the trip/.test(main2), "the message went as a request for a spreadsheet", (main2.match(/Make a spreadsheet[^\n]*/) ?? [""])[0]);
+  check(/Made a spreadsheet: /.test(main2), "and the spreadsheet engine made one", (main2.match(/Made a [^\n]*/) ?? [""])[0]);
+  await bar().getByRole("button", { name: "Stop making spreadsheets" }).click();
+  await p.waitForTimeout(300);
+
+  /* The same two by their commands, for a hand that types. */
+  await p.getByRole("button", { name: "New chat" }).first().click();
+  await p.waitForTimeout(400);
+  await fetch(`${MOCK}/__reset`);
+  await box().fill("/pdf a letter to the landlord");
+  await p.keyboard.press("Enter");
+  await p.waitForTimeout(4500);
+  const main3 = await p.locator("main").innerText();
+  check(/Make a document, as a PDF, on: a letter to the landlord/.test(main3), "/pdf asks the document engine", (main3.match(/Make a document[^\n]*/) ?? [""])[0]);
+  check((await bar().getByRole("button", { name: "Stop making documents" }).count()) === 0, "without switching the mode on");
+}
+
 console.log("\nA picture: the same, and a press again in the menu cancels");
 {
   await pick(/^Create image/);
@@ -126,6 +194,7 @@ console.log("\nOn a phone the chips do not push the menu off the bar");
   await phone.waitForTimeout(300);
   await phone.getByRole("button", { name: "Add files and tools" }).click();
   await phone.waitForTimeout(300);
+  check(/Take a photo/.test(await phone.locator("[data-radix-popper-content-wrapper]").last().innerText()), "the camera is in the phone's menu, where it is a camera");
   await phone.locator("[data-radix-popper-content-wrapper]").last().getByRole("button", { name: /^Slides/ }).click();
   await phone.waitForTimeout(300);
   const wide = await phone.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);

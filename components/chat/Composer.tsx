@@ -4,7 +4,7 @@ import * as React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
   Check, ChevronDown, ChevronLeft, ChevronRight, FileText, FolderOpen, FolderPlus, MessageSquare, MessageSquareDashed, Paperclip, Plus,
-  Presentation, SlidersHorizontal, Sparkles, Telescope, Wand2, X, Globe, ListChecks, GraduationCap, Camera, ImagePlus } from "lucide-react";
+  Presentation, SlidersHorizontal, Sparkles, Telescope, Wand2, X, Globe, ListChecks, GraduationCap, Camera, ImagePlus, Table2 } from "lucide-react";
 import { slashCommands, typingSlash, type SlashExtra } from "@/lib/slash";
 import { mentionAt } from "@/lib/notebook";
 import type { ContentBlock, Style } from "@/lib/types";
@@ -59,6 +59,10 @@ export function Composer({
   onOpenRules,
   onSlides,
   slides,
+  onDocument,
+  doc,
+  onSpreadsheet,
+  sheet,
   picture,
   deep,
   onToggleDeep,
@@ -108,6 +112,12 @@ export function Composer({
       as a chip by the model at the top, where a press turns it off. */
   onSlides?: () => void;
   slides?: boolean;
+  /** A document (PDF or Word) and a spreadsheet (Excel): the engines, as
+      modes of the chat the way Slides is — every message makes one. */
+  onDocument?: () => void;
+  doc?: boolean;
+  onSpreadsheet?: () => void;
+  sheet?: boolean;
   picture?: boolean;
   /** Deep research: several searches, then a report with sources. A mode of the thread. */
   deep?: boolean;
@@ -479,9 +489,12 @@ export function Composer({
                 <MenuRow icon={<Paperclip size={16} />} title="Add photos and files" onClick={() => { setPlusOpen(false); fileRef.current?.click(); }} />
                 {/* The camera, on a phone the way the other apps have it: a
                     photograph of the page, the working, the board — taken
-                    now, not chosen from a roll. A desk browser opens its
-                    picker instead. */}
-                <MenuRow icon={<Camera size={16} />} title="Take a photo" onClick={() => { setPlusOpen(false); cameraRef.current?.click(); }} />
+                    now, not chosen from a roll. Not on a desk: there the
+                    browser opens the same picker as the row above, and a
+                    second way to the same picker is one row too many. */}
+                <div className="desk:hidden">
+                  <MenuRow icon={<Camera size={16} />} title="Take a photo" onClick={() => { setPlusOpen(false); cameraRef.current?.click(); }} />
+                </div>
                 {onPicture && (
                   <MenuRow icon={<ImagePlus size={16} />} on={picture} title={picture ? "Stop making a picture" : "Create image"} hint="Describe it and it is drawn in the thread." onClick={() => { setPlusOpen(false); onPicture(); }} />
                 )}
@@ -499,6 +512,15 @@ export function Composer({
                 )}
                 {onSlides && (
                   <MenuRow icon={<Presentation size={16} />} on={slides} title={slides ? "Stop slides" : "Slides"} hint="A deck, built and run beside the chat; prints to PDF, saves as PowerPoint." onClick={() => { setPlusOpen(false); onSlides(); }} />
+                )}
+                {/* The two other engines, beside Slides where a person
+                    looking for "make me a PDF" looks first. Each is a mode:
+                    on, every message makes one, kept in the Library. */}
+                {onDocument && (
+                  <MenuRow icon={<FileText size={16} />} on={doc} title={doc ? "Stop making documents" : "Document"} hint="A designed report, worksheet, letter, CV or certificate; saves as PDF or Word." onClick={() => { setPlusOpen(false); onDocument(); }} />
+                )}
+                {onSpreadsheet && (
+                  <MenuRow icon={<Table2 size={16} />} on={sheet} title={sheet ? "Stop making spreadsheets" : "Spreadsheet"} hint="Rows and live formulas — a budget, a tracker, a gradebook; saves as Excel." onClick={() => { setPlusOpen(false); onSpreadsheet(); }} />
                 )}
                 {(onMoveToProject || onNewProjectHere) && (
                   <MenuRow

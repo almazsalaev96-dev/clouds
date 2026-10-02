@@ -10,10 +10,10 @@ import { chunk, rank } from "@/lib/retrieve";
 import type { ActionContext } from "@/lib/actions";
 import { keepUndo, undoAction } from "@/lib/undoActions";
 import { cleanRecap, covers, recapPrompt, recapSection, RECAP_TOKENS } from "@/lib/recap";
-import type { Action } from "@/lib/types";
+import type { Action, MakeMode } from "@/lib/types";
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Globe, GraduationCap, ImagePlus, PanelLeft, Presentation, Telescope } from "lucide-react";
+import { FileText, Globe, GraduationCap, ImagePlus, PanelLeft, Presentation, Table2, Telescope } from "lucide-react";
 import { RoomToggle } from "@/components/ui/RoomToggle";
 import type { ContentBlock, Message, Rating, RatingReason } from "@/lib/types";
 import { rememberRequest } from "@/lib/memory";
@@ -165,6 +165,21 @@ const REASON_NOTE: Record<RatingReason, string> = {
   unclear: "The reader marked the previous answer to this as unclear. Lead with the shortest true answer, then one concrete example, and stop.",
 };
 
+/**
+ * How a message is put to the model in Document and Spreadsheet mode: the
+ * words the engines' tools listen for (lib/actions.ts), in front of what was
+ * typed, so "a budget for the trip" in Spreadsheet mode arrives as a request
+ * for one rather than a sentence about one.
+ */
+const MAKE_ASK = {
+  document: "Make a document, as a PDF, on: ",
+  spreadsheet: "Make a spreadsheet on: ",
+} as const;
+const MAKE_AGAIN = {
+  document: "Make the document again, as a PDF, whole, with this change: ",
+  spreadsheet: "Make the spreadsheet again, whole, with this change: ",
+} as const;
+
 export default function Page() {
   const settings = useSettings();
   /* Not `useDrafts()`.
@@ -190,7 +205,7 @@ export default function Page() {
      a deck is a thing asked for once, where Learn is a way of working. */
   /* Slides or Picture for a chat not yet started; once it has started, the
      choice lives on the conversation row (`make`) and stays on. */
-  const [pendingMake, setPendingMake] = React.useState<"slides" | "picture" | null>(null);
+  const [pendingMake, setPendingMake] = React.useState<MakeMode | null>(null);
 
   /* Reloading should not lose your place. The last conversation is written to
      settings on every change and read back once on mount — but only after
@@ -1493,6 +1508,11 @@ export default function Page() {
         /* "/slides the water cycle" is a request for a thing that runs; said
            so in the words the build mode reads. */
         if (slash.slides && slash.text.trim()) content = content.map((c) => (c.type === "text" ? { ...c, text: `Make a slide deck on: ${slash.text.trim()}` } : c));
+        /* "/pdf a worksheet on fractions", "/sheet a budget for the trip":
+           the document and spreadsheet engines, named the way their tools
+           listen for them (lib/actions.ts make_document, make_spreadsheet). */
+        if (slash.document && slash.text.trim()) content = content.map((c) => (c.type === "text" ? { ...c, text: `${MAKE_ASK.document}${slash.text.trim()}` } : c));
+        if (slash.spreadsheet && slash.text.trim()) content = content.map((c) => (c.type === "text" ? { ...c, text: `${MAKE_ASK.spreadsheet}${slash.text.trim()}` } : c));
         if (slash.research) {
           if (convId) void db.conversations.update(convId, { research: true, ...(slash.deep ? { deep: true } : {}) });
           else { setPendingResearch(true); if (slash.deep) setPendingDeep(true); }
@@ -1510,6 +1530,18 @@ export default function Page() {
          pressed: the first message in slides makes the deck, every later
          one changes that deck; in picture, every message is a picture. */
       const make = (convId ? conversation?.make : pendingMake) ?? null;
+      /* Document and Spreadsheet: every message in the mode is one, made
+         by the engine's tool and kept in the Library — a mode chosen for a
+         chat about a document is a chat that makes documents. */
+      if ((make === "document" || make === "spreadsheet") && !slash?.document && !slash?.spreadsheet) {
+        const about = blockText(content).trim();
+        /* Once one has been made in this thread, the next message is a
+           change to it — asked for again whole, with the change, the way
+           a deck is — rather than a new one about the change. */
+        const tool = make === "document" ? "make_document" : "make_spreadsheet";
+        const madeBefore = path.some((m) => m.actions?.some((a) => a.name === tool && a.ok && !a.undone));
+        if (about) content = content.map((c) => (c.type === "text" ? { ...c, text: `${madeBefore ? MAKE_AGAIN[make] : MAKE_ASK[make]}${about}` } : c));
+      }
       if (make === "slides" && !slash?.slides) {
         const about = blockText(content).trim();
         const deckExists = Boolean(convId && conversation?.madeId);
@@ -3055,7 +3087,10 @@ export default function Page() {
         document.querySelector<HTMLInputElement>('input[aria-label="Choose photos and files to attach"]')?.click();
         return;
       }
-      useDrafts.getState().setDraft(activeId ?? "new", what === "make" ? "Make me a " : "Write ");
+      /* The blank page is a chat not yet started, so the mode waits for
+         it the way one chosen in the menu does. */
+      if (what === "print") setPendingMake("document");
+      else useDrafts.getState().setDraft(activeId ?? "new", what === "make" ? "Make me a " : "Write ");
       requestAnimationFrame(() => {
         const el = document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]');
         if (!el) return;
@@ -3085,7 +3120,7 @@ export default function Page() {
     else { setPendingDeep((v) => !v); if (!pendingDeep) setPendingResearch(true); }
   };
   const makeOn = conversation ? conversation.make ?? null : pendingMake;
-  const setMake = (v: "slides" | "picture" | null) => {
+  const setMake = (v: MakeMode | null) => {
     if (activeId && conversation) void db.conversations.update(activeId, { make: v ?? undefined });
     else setPendingMake(v);
   };
@@ -3098,6 +3133,8 @@ export default function Page() {
         : []),
     ...(makeOn === "slides" ? [{ id: "slides", label: "Slides", off: "Stop slides", icon: <Presentation size={13} />, onOff: () => setMake(null) }] : []),
     ...(makeOn === "picture" ? [{ id: "picture", label: "Picture", off: "Stop making a picture", icon: <ImagePlus size={13} />, onOff: () => setMake(null) }] : []),
+    ...(makeOn === "document" ? [{ id: "document", label: "Document", off: "Stop making documents", icon: <FileText size={13} />, onOff: () => setMake(null) }] : []),
+    ...(makeOn === "spreadsheet" ? [{ id: "spreadsheet", label: "Spreadsheet", off: "Stop making spreadsheets", icon: <Table2 size={13} />, onOff: () => setMake(null) }] : []),
   ];
 
   /* Built once, docked under the transcript whether or not there is one yet.
@@ -3133,6 +3170,10 @@ export default function Page() {
       picture={makeOn === "picture"}
       onSlides={() => setMake(makeOn === "slides" ? null : "slides")}
       slides={makeOn === "slides"}
+      onDocument={() => setMake(makeOn === "document" ? null : "document")}
+      doc={makeOn === "document"}
+      onSpreadsheet={() => setMake(makeOn === "spreadsheet" ? null : "spreadsheet")}
+      sheet={makeOn === "spreadsheet"}
       deep={deepOn}
       onToggleDeep={toggleDeep}
       temporary={conversation ? undefined : pendingTemporary}

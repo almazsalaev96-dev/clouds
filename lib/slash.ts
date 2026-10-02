@@ -31,6 +31,10 @@ export interface Slash {
   picture?: boolean;
   /** A slide deck, built and run beside the chat. */
   slides?: boolean;
+  /** A designed document — PDF or Word — made by the document engine. */
+  document?: boolean;
+  /** A spreadsheet with live formulas, saved as Excel. */
+  spreadsheet?: boolean;
   /** Research, taken further: several searches, then a report with sources. */
   deep?: boolean;
   /** The kind of work named by the verb, which shapes the tier's cast. */
@@ -72,6 +76,12 @@ const VERBS: Record<string, Partial<Slash>> = {
   image: { picture: true },
   slides: { slides: true },
   deck: { slides: true },
+  document: { document: true },
+  pdf: { document: true },
+  doc: { document: true },
+  spreadsheet: { spreadsheet: true },
+  excel: { spreadsheet: true },
+  sheet: { spreadsheet: true },
   draw: { picture: true },
   picture: { picture: true },
 };
@@ -119,6 +129,8 @@ export function slashCommands(extra: SlashExtra[] = []): { command: string; does
     { command: "slides", does: "make a slide deck on it — arrow keys to move, print to PDF" },
     { command: "research", does: "let the model search the web in this chat" },
     { command: "deep", does: "search from several angles, then write a report with sources" },
+    { command: "pdf", does: "make a designed document on it — a report, worksheet, letter or CV, saved as PDF or Word" },
+    { command: "sheet", does: "make a spreadsheet on it, with live formulas, saved as Excel" },
     { command: "max", does: "the most that can be done: planned, reasoned independently, checked — Astro 5" },
     { command: "fast", does: "the quickest answer, checked while you read — Nova 4" },
     { command: "check", does: "a second model reads the answer back" },

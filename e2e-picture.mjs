@@ -48,7 +48,7 @@ console.log("\nA command, and a menu entry");
   await p.waitForTimeout(300);
   const entry = p.getByRole("button", { name: /Create image/ });
   check(await entry.isVisible(), "the + menu offers to make one");
-  check(await p.getByRole("button", { name: "Take a photo", exact: true }).isVisible(), "and to take a photo");
+  check(!(await p.getByRole("button", { name: "Take a photo", exact: true }).isVisible().catch(() => false)), "and, on a desk, not to take a photo — that row is the phone's");
   await entry.click();
   await p.waitForTimeout(300);
   /* No slash typed for it: the choice shows as a chip by the model at the
