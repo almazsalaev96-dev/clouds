@@ -271,6 +271,10 @@ export interface Deck {
   source?: string;
   /** The best score in each game played on it: Match in milliseconds, the rest in points. */
   best?: Partial<Record<"match" | "blitz" | "gravity", number>>;
+  /** How many never-seen cards a day this deck may start; the app's cap when unset. */
+  newPerDay?: number;
+  /** How sure the schedule should be that a card comes back remembered, 0.7–0.97; 0.9 when unset. */
+  retention?: number;
 }
 
 /* ----------------------------------------------------------------- turns -- */

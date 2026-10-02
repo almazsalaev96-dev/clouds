@@ -314,6 +314,7 @@ export function StudyView({
     return (
       <Session
         cards={pool}
+        deck={session.deckId ? decks.find((d) => d.id === session.deckId) : undefined}
         mode={session.mode}
         title={session.title ?? (session.deckId ? decks.find((d) => d.id === session.deckId)?.name ?? "Studying" : "Everything due")}
         onLeave={() => setSession(null)}
@@ -838,6 +839,7 @@ function Results({
  */
 function Session({
   cards,
+  deck,
   mode,
   ordered,
   title,
@@ -845,6 +847,8 @@ function Session({
   onAsk,
 }: {
   cards: Card[];
+  /** The one deck being studied, whose own options (new a day, retention) win over the app's. */
+  deck?: Deck;
   /** The schedule's queue, or every card regardless of it. */
   mode: "due" | "cram";
   /** Take the cards in the order given rather than re-sorting them. */
@@ -906,7 +910,8 @@ function Session({
   /* The topic of the card just answered, which has left the queue by the
      time the next one is chosen — so the mix can still avoid it. */
   const [lastKey, setLastKey] = React.useState<string | undefined>();
-  const retention = clampRetention(useSettings((st) => st.retention));
+  const appRetention = useSettings((st) => st.retention);
+  const retention = clampRetention(deck?.retention ?? appRetention);
   /* In practice the order is fixed at the start and walked once, since
      nothing answered changes when anything comes back. The schedule's queue
      re-reads the clock every second, because a card answered "again" is
@@ -916,8 +921,8 @@ function Session({
   );
   const queue = React.useMemo(() => {
     if (mode === "cram") return walk.map((id) => cards.find((c) => c.id === id)).filter((c): c is Card => Boolean(c));
-    return dueNow(cards, now, { after: lastKey });
-  }, [cards, now, mode, walk, lastKey]);
+    return dueNow(cards, now, { after: lastKey, newLimit: deck?.newPerDay });
+  }, [cards, now, mode, walk, lastKey, deck?.newPerDay]);
   const card = queue[0];
 
   const answer = React.useCallback(

@@ -3,9 +3,9 @@
 import { getPlusOffer } from "@/lib/configured";
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BookOpen, Cpu, GraduationCap, KeyRound, LayoutTemplate, PenLine, Sparkles, X, FileText } from "lucide-react";
+import { BookOpen, Cpu, Flame, GraduationCap, KeyRound, LayoutTemplate, PenLine, Sparkles, X, FileText } from "lucide-react";
 import { db } from "@/lib/db";
-import { dueNow, type Card } from "@/lib/study";
+import { dueNow, streakOf, type Card } from "@/lib/study";
 import { useSettings, type Section } from "@/lib/store";
 
 /**
@@ -57,6 +57,7 @@ function useGreeting(): string {
  */
 function useWaiting(): { section: Section; text: string; icon: React.ReactNode }[] {
   const cards = useLiveQuery(() => db.cards.toArray(), [], [] as Card[]);
+  const days = useLiveQuery(() => db.studyDays.toArray(), [], []);
   const notes = useLiveQuery(() => db.notes.orderBy("updatedAt").reverse().limit(1).toArray(), [], []);
   const canvases = useLiveQuery(() => db.canvases.orderBy("updatedAt").reverse().limit(1).toArray(), [], []);
   return React.useMemo(() => {
@@ -64,6 +65,11 @@ function useWaiting(): { section: Section; text: string; icon: React.ReactNode }
     const out: { section: Section; text: string; icon: React.ReactNode }[] = [];
     const due = dueNow(cards, now).length;
     if (due > 0) out.push({ section: "study", text: `${due} card${due === 1 ? "" : "s"} due`, icon: <GraduationCap size={12} /> });
+    /* A streak is the one number that makes today's cards matter: two
+       days in a row is a habit starting, and the line says so before it
+       is broken. One day is not a streak and is not said. */
+    const streak = streakOf(days, now);
+    if (streak >= 2) out.push({ section: "study", text: `${streak}-day streak`, icon: <Flame size={12} /> });
     const note = notes[0];
     if (note && now - note.updatedAt < 2 * 86_400_000) {
       out.push({ section: "notebook", text: `“${(note.title || "Untitled note").slice(0, 32)}” in the notebook`, icon: <BookOpen size={12} /> });
@@ -73,7 +79,7 @@ function useWaiting(): { section: Section; text: string; icon: React.ReactNode }
       out.push({ section: "creative", text: `“${(made.title || "Untitled").slice(0, 32)}” is running`, icon: <LayoutTemplate size={12} /> });
     }
     return out;
-  }, [cards, notes, canvases]);
+  }, [cards, days, notes, canvases]);
 }
 
 /* The four boxed openers that used to live here are gone.

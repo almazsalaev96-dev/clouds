@@ -26,6 +26,25 @@ const mockPayments = () => [
   { payment_id: "pay_failed", status: "failed", created_at: new Date().toISOString(), customer: { customer_id: "cus_mock" }, subscription_id: null, product_cart: [{ product_id: "pdt_mock", quantity: 1 }], total_amount: 100, currency: "USD" },
 ];
 
+/** A drawing and a script, in the chat, for the Run under a block. A page
+    would be lifted out and run beside the chat (lib/built.ts); these stay. */
+const SNIPPET = `Here is a small one.
+
+\`\`\`svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 60" width="240" height="120">
+  <circle cx="30" cy="30" r="20" fill="#0A7CFF" />
+  <text x="60" y="36" font-size="14" font-family="sans-serif">A circle</text>
+</svg>
+\`\`\`
+
+And the sum, as a script:
+
+\`\`\`javascript
+const xs = [1, 2, 3];
+console.log("sum", xs.reduce((a, b) => a + b, 0));
+\`\`\`
+`;
+
 /** A whole page, the way Creative answers a request to make something. */
 const MADE = `Here it is.
 
@@ -577,6 +596,7 @@ createServer(async (req, res) => {
     [body.system, body.turnPrompt].map((x) => (typeof x === "string" ? x : JSON.stringify(x ?? ""))).join(" "),
   );
   const drawing = /\bdraw\b|\bdiagram\b|\bflowchart\b/i.test(asked);
+  const snippeting = /\bshow me an? (?:html|svg) snippet\b/i.test(asked);
   /* A comparison, as a table. Mixed on purpose: a figures column with a
      blank and an "n/a" in it, a text column, a currency column, and one cell
      with a comma — every case a sort or a CSV export gets wrong when it is
@@ -1032,6 +1052,8 @@ Nothing here looks like it breaks a caller — the return type is the same array
         ? PLAN
         : checking
           ? CHECK
+          : snippeting
+            ? SNIPPET
           : making
             ? MADE
             : drawing

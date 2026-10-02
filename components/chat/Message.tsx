@@ -712,7 +712,7 @@ function AssistantMessageImpl({
            which on a 390-pixel screen was a third of the view. The row runs
            to the screen's edge so a pill cut off at the right says there is
            more; wider screens wrap as before. */
-        <div className="swipe-row no-print -mx-4 mt-2.5 flex gap-1.5 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:overflow-visible md:px-0" role="group" aria-label="Follow up">
+        <div className="swipe-row no-print -mx-4 mt-2.5 flex gap-1.5 overflow-x-auto px-4 anim-rise md:mx-0 md:flex-wrap md:overflow-visible md:px-0" role="group" aria-label="Follow up">
           {(made ? MAKE_FOLLOW_UPS : teaching ? TEACH_FOLLOW_UPS : FOLLOW_UPS).map((f) => (
             <button
               key={f.label}
@@ -1516,7 +1516,7 @@ export function Actions({
   live?: boolean;
 }) {
   return (
-    <ul className="no-print mt-3 flex flex-wrap gap-1.5" aria-label="Done in this app">
+    <ul className="no-print mt-3 flex flex-wrap gap-1.5 anim-rise" aria-label="Done in this app">
       {actions.map((a) => (
         <li
           key={a.id}

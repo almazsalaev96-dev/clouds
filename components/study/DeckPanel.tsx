@@ -2,12 +2,12 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, ClipboardPaste, Download, Gamepad2, Plus, Repeat, Trash2 } from "lucide-react";
+import { ChevronLeft, ClipboardPaste, Download, Gamepad2, Plus, Repeat, Settings2, Trash2 } from "lucide-react";
 import type { Deck } from "@/lib/types";
-import { addCards, cardsOf, deleteCard, importCards, updateCard } from "@/lib/db";
+import { addCards, cardsOf, db, deleteCard, importCards, updateCard } from "@/lib/db";
 import { draftCards } from "@/lib/generate";
 import { cheapestAvailable, whyItFailed } from "@/lib/complete";
-import { readiness, clozeQuestion, exportCards, isCloze, progressOf, whenDue, type Card } from "@/lib/study";
+import { DESIRED_RETENTION, NEW_PER_DAY, readiness, clozeQuestion, exportCards, isCloze, progressOf, whenDue, type Card } from "@/lib/study";
 import { offerUndo } from "@/lib/undo";
 import { Button } from "@/components/ui/primitives";
 import { cn } from "@/lib/utils";
@@ -229,6 +229,7 @@ export function DeckPanel({
           </div>
         )}
         {notice && <p className="mb-3 text-sm text-warning">{notice}</p>}
+        <DeckOptions deck={deck} />
         <ul className="space-y-1.5" aria-label="Cards">
           {cards.map((c) => (
             <CardRow key={c.id} card={c} now={now} />
@@ -240,6 +241,71 @@ export function DeckPanel({
           </p>
         )}
       </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The two dials a deck has of its own, closed by default.
+ *
+ * How many new cards a day decides how fast the pile grows — twenty is
+ * the app's number and right for a subject with months to go; a deck
+ * for an exam next week wants more, a language deck kept for years
+ * wants fewer. Retention is how sure the schedule is made to be that a
+ * card comes back remembered: higher means more reviews, sooner. Both
+ * are the deck's, because the right number is a fact about the deck
+ * and not about the person.
+ */
+function DeckOptions({ deck }: { deck: Deck }) {
+  const [open, setOpen] = React.useState(false);
+  const newPerDay = deck.newPerDay ?? NEW_PER_DAY;
+  const retention = Math.round((deck.retention ?? DESIRED_RETENTION) * 100);
+  const set = (patch: Partial<Deck>) => void db.decks.update(deck.id, patch);
+  return (
+    <div className="mb-3">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="focus-inset flex items-center gap-1.5 rounded-md text-xs text-tertiary hover:text-primary"
+      >
+        <Settings2 size={13} />
+        Deck options
+        <span className="text-faint">· {newPerDay} new a day · {retention}% retention</span>
+      </button>
+      {open && (
+        <div className="mt-2 grid gap-3 rounded-xl border border-line bg-surface p-3 sm:grid-cols-2 anim-fade" role="group" aria-label="Deck options">
+          <label className="block text-sm">
+            <span className="text-secondary">New cards a day</span>
+            <input
+              type="number"
+              min={0}
+              max={200}
+              value={newPerDay}
+              onChange={(e) => { const n = Math.max(0, Math.min(200, Math.round(Number(e.target.value) || 0))); set({ newPerDay: n === NEW_PER_DAY ? undefined : n }); }}
+              className="focus-inset rounded-md border border-line bg-field px-3 py-1.5 text-sm text-primary outline-none mt-1 h-9 w-full"
+              aria-label="New cards a day"
+            />
+            <span className="mt-1 block text-xs text-tertiary">Cards never seen that a day may start. Due ones are never capped.</span>
+          </label>
+          <label className="block text-sm">
+            <span className="text-secondary">Retention</span>
+            <span className="mt-1 flex items-center gap-2">
+              <input
+                type="range"
+                min={70}
+                max={97}
+                value={retention}
+                onChange={(e) => { const r = Number(e.target.value) / 100; set({ retention: Math.abs(r - DESIRED_RETENTION) < 0.001 ? undefined : r }); }}
+                className="w-full"
+                aria-label="Retention"
+              />
+              <span className="tnum w-10 text-right text-sm text-primary">{retention}%</span>
+            </span>
+            <span className="mt-1 block text-xs text-tertiary">How sure to be a card comes back remembered. Higher means more reviews, sooner.</span>
+          </label>
+        </div>
       )}
     </div>
   );

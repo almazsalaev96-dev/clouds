@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Check, Copy, Download, WrapText, ChevronDown, PanelRight } from "lucide-react";
+import { Check, Copy, Download, WrapText, ChevronDown, PanelRight, Play, X } from "lucide-react";
 import { highlight, normalizeLang } from "@/lib/highlighter";
+import { runDocument, runKindOf } from "@/lib/runnable";
 import { useSettings } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/primitives";
@@ -49,6 +50,10 @@ export function CodeBlock({
   // Below this a block is easier to read where it is than in a second column.
   const worthLifting = lines.length > 24;
   const liftedHere = artifact?.current?.kind === "code" && artifact.current.content === code;
+  /* A page, a drawing, a stylesheet or a script runs under the block, in
+     a frame that can reach nothing (lib/runnable.ts). */
+  const runKind = React.useMemo(() => runKindOf(normalized ?? lang, code), [normalized, lang, code]);
+  const [running, setRunning] = React.useState(false);
 
   /**
    * Highlighting a partially-received block on every chunk is expensive and
@@ -135,6 +140,22 @@ export function CodeBlock({
             just code, and a Copy button printed beside it is the application
             leaking into the document. */}
         <span className="no-print ml-auto flex items-center gap-0.5">
+          {runKind && !streaming && (
+            <Tooltip label={running ? "Stop" : runKind === "js" ? "Run and show what it prints" : "Run and show it"}>
+              <button
+                onClick={() => setRunning((r) => !r)}
+                aria-label={running ? "Stop running" : "Run"}
+                aria-pressed={running}
+                className={cn(
+                  "ctl-h [--ctl:1.75rem] flex items-center justify-center gap-1 rounded-sm px-1.5 text-xs transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary",
+                  running ? "text-primary" : "text-tertiary",
+                )}
+              >
+                {running ? <X size={13} /> : <Play size={13} />}
+                <span>{running ? "Stop" : "Run"}</span>
+              </button>
+            </Tooltip>
+          )}
           {worthLifting && artifact && !streaming && (
             <Tooltip label="Open in side panel">
               <button
@@ -242,7 +263,54 @@ export function CodeBlock({
           {lines.length} lines hidden — click to expand
         </button>
       )}
+      {running && runKind && <RunPane kind={runKind} code={code} />}
     </figure>
+  );
+}
+
+/**
+ * The block, running. A frame with no origin and a policy that lets
+ * nothing in or out, so what the model wrote can draw and compute and
+ * nothing else; what it prints comes back on a bridge and shows under it.
+ * Keyed by a token per run, so a stale frame's messages are ignored.
+ */
+function RunPane({ kind, code }: { kind: "html" | "svg" | "css" | "js"; code: string }) {
+  const token = React.useMemo(() => Math.random().toString(36).slice(2), []);
+  const [logs, setLogs] = React.useState<{ level: string; text: string }[]>([]);
+  const [done, setDone] = React.useState(false);
+  const doc = React.useMemo(() => runDocument(kind, code, token), [kind, code, token]);
+  React.useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      const d = e.data as { armiRun?: string; level?: string; text?: string } | null;
+      if (!d || d.armiRun !== token) return;
+      if (d.level === "done") { setDone(true); return; }
+      setLogs((l) => (l.length >= 200 ? l : [...l, { level: d.level ?? "log", text: d.text ?? "" }]));
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [token]);
+  const errors = logs.filter((l) => l.level === "error").length;
+  return (
+    <div className="no-print border-t border-line bg-surface anim-fade" role="region" aria-label="Running">
+      <iframe
+        title="The code, running"
+        sandbox="allow-scripts"
+        srcDoc={doc}
+        className={cn("block w-full bg-white", kind === "js" ? "h-40" : "h-72")}
+      />
+      <div className="flex items-center gap-2 border-t border-line px-3 py-1 text-tiny text-tertiary">
+        <span className={cn("inline-block size-1.5 rounded-full", errors ? "bg-[var(--danger)]" : done ? "bg-[var(--success)]" : "bg-[var(--border-strong)]")} aria-hidden />
+        <span>{errors ? `${errors} error${errors === 1 ? "" : "s"}` : done ? "Ran" : "Running…"}</span>
+        <span className="ml-auto">no network, nothing saved</span>
+      </div>
+      {logs.length > 0 && kind !== "js" && (
+        <ol className="max-h-40 overflow-y-auto border-t border-line px-3 py-1.5 font-mono text-xs" aria-label="Console">
+          {logs.map((l, i) => (
+            <li key={i} className={cn("whitespace-pre-wrap", l.level === "error" ? "text-danger" : l.level === "warn" ? "text-warning" : "text-secondary")}>{l.text}</li>
+          ))}
+        </ol>
+      )}
+    </div>
   );
 }
 

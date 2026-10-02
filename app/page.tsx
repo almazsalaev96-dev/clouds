@@ -11,6 +11,8 @@ import type { ActionContext } from "@/lib/actions";
 import { keepUndo, undoAction } from "@/lib/undoActions";
 import { cleanRecap, covers, recapPrompt, recapSection, RECAP_TOKENS } from "@/lib/recap";
 import type { Action, MakeMode } from "@/lib/types";
+import type { DraftCard } from "@/lib/generate";
+import { CardReview } from "@/components/study/CardReview";
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { FileText, Globe, GraduationCap, ImagePlus, PanelLeft, Presentation, Table2, Telescope } from "lucide-react";
@@ -2275,9 +2277,20 @@ export default function Page() {
         return;
       }
       const name = (conversation?.title || text.split("\n")[0] || "From a chat").slice(0, 60);
-      const deck = await createDeck(name, activeId ?? undefined);
-      const n = await addCards(deck.id, drafts, activeId ?? undefined);
       setNotice(null);
+      /* Read before kept: the cards go to a review first, and only the
+         ones accepted there become a deck (components/study/CardReview). */
+      setCardReview({ drafts, name, source: activeId ?? undefined });
+    },
+    [configured, conversation?.title, activeId],
+  );
+  const [cardReview, setCardReview] = React.useState<{ drafts: DraftCard[]; name: string; source?: string } | null>(null);
+  const keepReviewed = React.useCallback(
+    async (name: string, cards: DraftCard[]) => {
+      const source = cardReview?.source;
+      setCardReview(null);
+      const deck = await createDeck(name, source);
+      const n = await addCards(deck.id, cards, source);
       withTransition(() => settings.setSection("study"), "forward");
       /* The undo *is* the delete, not the result of one. `deleteDeck`
          performs the deletion and hands back the way back, which is right
@@ -2285,7 +2298,7 @@ export default function Page() {
          get an undo handle deleted the deck the moment it was made. */
       offerUndo(`${n} card${n === 1 ? "" : "s"} from “${name}”`, async () => { await deleteDeck(deck.id); }, "Made");
     },
-    [configured, conversation?.title, activeId, settings],
+    [cardReview?.source, settings],
   );
 
   /** Remember something the person said, from the message itself. */
@@ -3616,6 +3629,15 @@ export default function Page() {
               setPaperId(id);
               withTransition(() => settings.setSection("study"), "forward");
             }}
+          />
+        )}
+
+        {cardReview && (
+          <CardReview
+            drafts={cardReview.drafts}
+            name={cardReview.name}
+            onConfirm={(name, cards) => void keepReviewed(name, cards)}
+            onCancel={() => setCardReview(null)}
           />
         )}
 

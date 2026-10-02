@@ -125,8 +125,22 @@ console.log("\nAn answer in a chat can become a deck too");
   check(await item.count() === 1, "the answer offers it");
   await item.click();
   await p.waitForTimeout(4500);
+  /* The cards are shown before they are kept: each one readable, fixable
+     in place, droppable — and nothing exists until the button. */
+  const review = p.getByRole("dialog", { name: "Cards from this answer" });
+  check(await review.isVisible(), "the cards come to a review first, not straight into a deck");
+  check((await cards()).length === before, "and nothing is kept yet", `${(await cards()).length} cards`);
+  const drafted = await review.getByRole("list", { name: "Cards to keep" }).locator("li").count();
+  check(drafted >= 2, "with every card the model wrote on it", `${drafted}`);
+  await review.getByRole("textbox", { name: "Question 1" }).fill("What does a debounce wait for before it fires?");
+  await review.getByRole("button", { name: "Drop card 2" }).click();
+  const add = review.getByRole("button", { name: /^Add \d+ cards?$/ });
+  check(new RegExp(`Add ${drafted - 1} card`).test(await add.innerText()), "a dropped card leaves the count", await add.innerText());
+  await add.click();
+  await p.waitForTimeout(1200);
   const after = (await cards()).length;
-  check(after > before, "and pressing it makes a deck from the answer", `${before} → ${after} cards`);
+  check(after === before + drafted - 1, "pressing Add keeps the ones accepted, as a deck", `${before} → ${after} cards`);
+  check((await cards()).some((c) => c.front === "What does a debounce wait for before it fires?"), "with the correction made on the review");
   check(/^Study$/m.test(await p.locator("main").innerText()), "which lands you in the room where it is kept");
   check((await p.getByRole("list", { name: "Study" }).locator("li").count()) === 2, "as a second deck, named after the conversation");
 }
