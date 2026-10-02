@@ -1,6 +1,6 @@
 "use client";
 
-import { BASES, DEFAULT_PERSONA, TRAITS, type Base, type Level, type Persona } from "@/lib/persona";
+import { BASES, DEFAULT_PERSONA, TRAITS, type Base, type Level, type Persona, STAGES, type Stage } from "@/lib/persona";
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Download, ExternalLink, Eye, EyeOff, MessageSquarePlus, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
@@ -522,6 +522,18 @@ function PersonalPanel({ onRules }: { onRules: () => void }) {
         >
           {BASES.map((b) => (
             <option key={b.id} value={b.id}>{b.label} — {b.blurb}</option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Your level" hint="Sets the words and the depth of every answer — a GCSE answer and a university answer to the same question are different answers. Say otherwise in any one chat and that wins.">
+        <select
+          value={p.level}
+          onChange={(e) => put({ level: e.target.value as Stage })}
+          aria-label="Your level"
+          className={cn(field, "h-9 max-w-xs")}
+        >
+          {STAGES.map((l) => (
+            <option key={l.id} value={l.id}>{l.label} — {l.blurb}</option>
           ))}
         </select>
       </Field>

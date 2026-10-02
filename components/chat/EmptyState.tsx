@@ -3,9 +3,10 @@
 import { getPlusOffer } from "@/lib/configured";
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BookOpen, Cpu, Flame, GraduationCap, KeyRound, LayoutTemplate, PenLine, Sparkles, X, FileText } from "lucide-react";
+import { BookOpen, Cpu, Flame, GraduationCap, KeyRound, LayoutTemplate, PenLine, Sparkles, TrendingDown, X, FileText } from "lucide-react";
 import { db } from "@/lib/db";
-import { dueNow, streakOf, type Card } from "@/lib/study";
+import { dueNow, streakOf, weakestTopic, type Card } from "@/lib/study";
+import { attemptsSince } from "@/lib/db";
 import { useSettings, type Section } from "@/lib/store";
 
 /**
@@ -58,6 +59,7 @@ function useGreeting(): string {
 function useWaiting(): { section: Section; text: string; icon: React.ReactNode }[] {
   const cards = useLiveQuery(() => db.cards.toArray(), [], [] as Card[]);
   const days = useLiveQuery(() => db.studyDays.toArray(), [], []);
+  const attempts = useLiveQuery(() => attemptsSince(60), [], []);
   const notes = useLiveQuery(() => db.notes.orderBy("updatedAt").reverse().limit(1).toArray(), [], []);
   const canvases = useLiveQuery(() => db.canvases.orderBy("updatedAt").reverse().limit(1).toArray(), [], []);
   return React.useMemo(() => {
@@ -70,6 +72,10 @@ function useWaiting(): { section: Section; text: string; icon: React.ReactNode }
        is broken. One day is not a streak and is not said. */
     const streak = streakOf(days, now);
     if (streak >= 2) out.push({ section: "study", text: `${streak}-day streak`, icon: <Flame size={12} /> });
+    /* The topic that is going worst, by name — the one line a student
+       would not think to ask for and most needs: not "study", but what. */
+    const weak = weakestTopic(cards, attempts, now);
+    if (weak && (weak.shaky > 0 || weak.wrong > 0)) out.push({ section: "study", text: `“${weak.topic.slice(0, 32)}” is your weakest topic`, icon: <TrendingDown size={12} /> });
     const note = notes[0];
     if (note && now - note.updatedAt < 2 * 86_400_000) {
       out.push({ section: "notebook", text: `“${(note.title || "Untitled note").slice(0, 32)}” in the notebook`, icon: <BookOpen size={12} /> });
@@ -79,7 +85,7 @@ function useWaiting(): { section: Section; text: string; icon: React.ReactNode }
       out.push({ section: "creative", text: `“${(made.title || "Untitled").slice(0, 32)}” is running`, icon: <LayoutTemplate size={12} /> });
     }
     return out;
-  }, [cards, days, notes, canvases]);
+  }, [cards, days, attempts, notes, canvases]);
 }
 
 /* The four boxed openers that used to live here are gone.

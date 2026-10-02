@@ -7,6 +7,7 @@ import { lintAnswer } from "@/lib/lint";
 import { blockText } from "@/lib/db";
 import type { Action, Rating, ChatError, Message as Msg } from "@/lib/types";
 import { PointAt, type PointAction } from "./PointAt";
+import { SelectionBar } from "./SelectionBar";
 import { authorName } from "@/lib/presets";
 import { siblingIndex, siblingsFrom } from "@/lib/db";
 import { cn, formatElapsed } from "@/lib/utils";
@@ -49,6 +50,7 @@ function MessageListImpl({
   onOpenMade,
   onComputed,
   onMakeCards,
+  onQuote,
   onOpenInCanvas,
   onContinue,
   onTighten,
@@ -102,6 +104,8 @@ function MessageListImpl({
   onOpenMade?: (message: Msg) => void;
   onComputed?: (message: Msg, out: import("@/lib/compute").Outcome) => void;
   onMakeCards?: (text: string) => void;
+  /** A few selected words of an answer, put in the box as a quote to ask about. */
+  onQuote?: (text: string) => void;
   onOpenInCanvas: (text: string) => void;
   onContinue: () => void;
   /** Regenerate the answer without the packaging the linter found in it. */
@@ -231,7 +235,7 @@ function MessageListImpl({
       <div
         ref={scrollRef}
         onScroll={onScroll}
-        className="h-full overflow-y-auto"
+        className="relative h-full overflow-y-auto"
         // Not a live region. This element's contents change on every animation
         // frame of a stream and again wholesale when you switch conversations —
         // announcing either would be unusable. The status node below announces
@@ -240,6 +244,12 @@ function MessageListImpl({
         aria-label="Conversation"
         aria-busy={active}
       >
+        <SelectionBar
+          root={scrollRef}
+          onExplain={(t) => onFollowUp(`Explain this part in more detail: “${t}”`)}
+          onQuote={onQuote}
+          onCard={onMakeCards}
+        />
         {/* Which reading mode the text inside is set in. A thread is read once,
             at speed, often while the next words are still arriving. */}
         <div data-read="chat" className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[18vh] pt-4">

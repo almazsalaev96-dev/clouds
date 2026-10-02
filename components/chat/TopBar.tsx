@@ -4,7 +4,7 @@ import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Archive, ArchiveRestore, Check, ChevronDown, Cpu, Download, FileText, FolderOpen, MessageSquareDashed,
-  MoreHorizontal, NotebookPen, Pencil, Pin, PinOff, Printer, Share2, SquarePen, Trash2, Wand2, X,
+  Link2, MoreHorizontal, NotebookPen, Pencil, Pin, PinOff, Printer, Share2, SquarePen, Trash2, Wand2, X,
 } from "lucide-react";
 import type { Conversation, Project } from "@/lib/types";
 import { useSettings } from "@/lib/store";
@@ -24,6 +24,7 @@ export function TopBar({
   onSavePdf,
   onSaveWord,
   onShare,
+  onCopyLink,
   onDelete,
   onTogglePin,
   onToggleArchive,
@@ -56,6 +57,8 @@ export function TopBar({
   onSaveWord?: () => void;
   /** The device's share sheet with the thread as text, or a copy of it. */
   onShare?: () => void;
+  /** A link that opens this conversation here again (`/#chat=<id>`). */
+  onCopyLink?: () => void;
   onDelete: () => void;
   onTogglePin: () => void;
   onToggleArchive: () => void;
@@ -396,6 +399,13 @@ export function TopBar({
                 {onShare && (
                   <Item onSelect={onShare} icon={<Share2 size={14} />}>
                     Share
+                  </Item>
+                )}
+                {/* Not a share: a way back to *this* conversation in this
+                    browser, for a bookmark, a note, a to-do list. */}
+                {onCopyLink && (
+                  <Item onSelect={onCopyLink} icon={<Link2 size={14} />}>
+                    Copy link to this chat
                   </Item>
                 )}
                 {/* The whole thread as a document: a tutorial you want to

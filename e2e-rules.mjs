@@ -113,6 +113,7 @@ console.log("\nPersonalization: a style, a characteristic and a nickname reach t
   await p.waitForTimeout(300);
   await dlg.getByLabel("Base style and tone").selectOption("efficient");
   await dlg.getByRole("group", { name: "Emoji" }).getByRole("radio", { name: "Less" }).click();
+  await dlg.getByLabel("Your level").selectOption("igcse");
   await dlg.getByLabel("Nickname").fill("Al");
   await dlg.getByLabel("Occupation").fill("Year 12 student");
   await p.waitForTimeout(200);
@@ -130,6 +131,7 @@ console.log("\nPersonalization: a style, a characteristic and a nickname reach t
   check(/## How to talk to this person/.test(psys), "the system prompt carries a personalization section");
   check(/Concise and plain/.test(psys) && /Never use emoji\./.test(psys), "with the style and the characteristic");
   check(/Call them Al\./.test(psys) && /Year 12 student/.test(psys), "and what it should know about them");
+  check(/Their level: They are studying for GCSE or IGCSE/.test(psys), "and their level, which sets the words and the depth");
   /* The greeting's name is "Almaz" here, which is also the name of Armi's
      maker in the identity block; the personalization section is what
      must not carry it. */

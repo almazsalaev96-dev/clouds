@@ -445,7 +445,7 @@ function AssistantMessageImpl({
   };
 
   return (
-    <div id={`m-${message.id}`} className={cn("msg group rounded-lg pb-4 pt-2", entering && "msg-enter", settled && "msg-settled")}>
+    <div id={`m-${message.id}`} data-role="assistant" className={cn("msg group rounded-lg pb-4 pt-2", entering && "msg-enter", settled && "msg-settled")}>
       {/* Who is speaking, before you read what they said. In an app with four
           providers this is not metadata — it is context, and it is set a step
           above metadata to say so. 12px was doing both this job and the job of

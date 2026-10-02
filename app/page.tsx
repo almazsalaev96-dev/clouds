@@ -2675,6 +2675,30 @@ export default function Page() {
      AirDrop, whatever the phone offers — with the thread as text; a copy to
      the clipboard where there is not. No server holds a copy, so there is
      no link that outlives this browser; the text is the thing shared. */
+  /* A way back to this conversation, in this browser: the address with
+     its id after the hash, which the door below opens. Nothing is sent;
+     the link is only as good as the browser it was made in. */
+  const copyChatLink = React.useCallback(async () => {
+    if (!activeId) return;
+    const url = `${window.location.origin}${window.location.pathname}#chat=${activeId}`;
+    try { await navigator.clipboard.writeText(url); setReading("Link copied — it opens this chat here."); }
+    catch { setReading(url); }
+    window.setTimeout(() => setReading(null), 2_600);
+  }, [activeId]);
+
+  /* Selected words of an answer, quoted into the box, the caret after. */
+  const quoteIntoBox = React.useCallback((text: string) => {
+    const quoted = text.split("\n").map((l) => `> ${l}`).join("\n");
+    const prior = useDrafts.getState().drafts[activeId ?? "new"] ?? "";
+    useDrafts.getState().setDraft(activeId ?? "new", `${prior.trim() ? prior.replace(/\s+$/, "") + "\n\n" : ""}${quoted}\n\n`);
+    requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]');
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    });
+  }, [activeId]);
+
   const shareConversation = React.useCallback(async () => {
     if (!conversation) return;
     const title = conversation.title || "A conversation with Armi";
@@ -2912,6 +2936,19 @@ export default function Page() {
   React.useEffect(() => {
     const open = () => {
       const door = window.location.hash.replace(/^#/, "");
+      /* `#chat=<id>`: the link the conversation menu copies. Opened only
+         if it is here — a link from another browser opens a blank page
+         and says nothing, since there is nothing to say. */
+      if (door.startsWith("chat=")) {
+        const id = door.slice(5);
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        void db.conversations.get(id).then((c) => {
+          if (!c || c.temporary) return;
+          useSettings.getState().setSection("chat");
+          setActiveId(id);
+        });
+        return;
+      }
       if (door !== "plus" && door !== "keys" && door !== "local") return;
       window.history.replaceState(null, "", window.location.pathname + window.location.search);
       (door === "plus" ? openPlus : door === "local" ? openLocal : openKeys)();
@@ -3389,6 +3426,7 @@ export default function Page() {
             onSavePdf={saveConversationPdf}
             onSaveWord={saveConversationWord}
             onShare={shareConversation}
+            onCopyLink={copyChatLink}
             onDelete={removeConversation}
             onNewChat={() => void createInSection("chat")}
             onTogglePin={() =>
@@ -3480,6 +3518,7 @@ export default function Page() {
                 onContinue={() => void send([{ type: "text", text: CONTINUE_PROMPT }])}
                 onTighten={tighten}
                 onFollowUp={(text) => void send([{ type: "text", text }])}
+                onQuote={quoteIntoBox}
                 teaching={isTeaching(conversation?.styleId) || getPreset(threadModelId)?.id === "tutor"}
                 onRate={rate}
                 onVerify={verify}

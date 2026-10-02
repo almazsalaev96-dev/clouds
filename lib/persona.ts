@@ -12,6 +12,8 @@
 
 export type Base = "default" | "professional" | "friendly" | "candid" | "quirky" | "efficient" | "nerdy" | "cynical";
 export type Level = "more" | "default" | "less";
+/** Where they are in their education, which sets the vocabulary and depth of every answer. */
+export type Stage = "default" | "school" | "igcse" | "alevel" | "university" | "work";
 
 export interface Persona {
   base: Base;
@@ -22,6 +24,7 @@ export interface Persona {
   nickname: string;
   occupation: string;
   about: string;
+  level: Stage;
 }
 
 export const DEFAULT_PERSONA: Persona = {
@@ -33,7 +36,27 @@ export const DEFAULT_PERSONA: Persona = {
   nickname: "",
   occupation: "",
   about: "",
+  level: "default",
 };
+
+/**
+ * The level, said once and read by every answer and every teaching turn.
+ *
+ * It is the one fact about a person that changes what a right answer is:
+ * "explain osmosis" to a 13-year-old and to a second-year biologist are
+ * two different correct answers, and an assistant that does not know
+ * which one is wanted gives the one in the middle, which is wrong for
+ * both. The reference products ask for it on the first run; here it is
+ * set in Personalization and overridable in any one chat by just saying.
+ */
+export const STAGES: { id: Stage; label: string; blurb: string; says: string }[] = [
+  { id: "default", label: "Not set", blurb: "Judged from each question", says: "" },
+  { id: "school", label: "School (up to 14)", blurb: "Plain words, concrete examples", says: "They are at school, under about 14: use plain words, concrete everyday examples and short steps; define any technical word the first time; never assume algebra beyond the basics or any specialist vocabulary." },
+  { id: "igcse", label: "GCSE / IGCSE (14–16)", blurb: "Exam-board terms, mark-scheme points", says: "They are studying for GCSE or IGCSE (14–16): use the exam board's own terms and the level of depth a mark scheme at that level rewards; worked examples with every step shown; name what a full-mark answer must contain; no university-level detail unless asked." },
+  { id: "alevel", label: "A-level / IB (16–18)", blurb: "Full depth for the level, rigorous", says: "They are studying at A-level or IB (16–18): full rigour for that level — proper definitions, derivations where the syllabus expects them, the exceptions and the why; the vocabulary of the subject used and assumed; point out where university treatment differs only when it helps." },
+  { id: "university", label: "University", blurb: "Technical, precise, assumes the basics", says: "They are at university: be technical and precise, assume the basics of the subject, use the standard notation and terminology without re-explaining it, cite the standard results by name, and go to the depth a good textbook at that level goes to." },
+  { id: "work", label: "Working professional", blurb: "Practical, decisive, to the point", says: "They are a working professional: be practical and decisive, lead with what to do and why, assume competence in their field, skip the teaching tone, and give the trade-offs rather than a lecture." },
+];
 
 export const BASES: { id: Base; label: string; blurb: string; says: string }[] = [
   { id: "default", label: "Default", blurb: "Balanced and clear", says: "" },
@@ -59,6 +82,8 @@ export function personaText(p: Partial<Persona> | undefined): string {
   const lines: string[] = [];
   const base = BASES.find((b) => b.id === persona.base);
   if (base?.says) lines.push(`Style and tone: ${base.says}`);
+  const stage = STAGES.find((l) => l.id === persona.level);
+  if (stage?.says) lines.push(`Their level: ${stage.says} If a question is plainly above or below this level, answer the question as asked and say nothing about the level.`);
   for (const t of TRAITS) {
     const level = persona[t.id];
     if (level === "more") lines.push(t.more);
