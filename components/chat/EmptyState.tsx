@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { dueNow, streakOf, weakestTopic, type Card } from "@/lib/study";
 import { attemptsSince } from "@/lib/db";
 import { useSettings, type Section } from "@/lib/store";
+import { STAGES, type Stage } from "@/lib/persona";
 
 /**
  * The time of day, as a greeting.
@@ -160,6 +161,7 @@ export function EmptyState({
   const { name, nameAsked } = settings;
   const greeting = useGreeting();
   const [draftName, setDraftName] = React.useState("");
+  const [draftLevel, setDraftLevel] = React.useState<Stage>("default");
   const waiting = useWaiting();
 
   return (
@@ -303,33 +305,56 @@ export function EmptyState({
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              settings.set({ name: draftName.trim(), nameAsked: true });
+              settings.set({
+                name: draftName.trim(),
+                nameAsked: true,
+                ...(draftLevel !== "default" ? { persona: { ...(settings.persona ?? {}), level: draftLevel } } : {}),
+              });
             }}
-            className="mx-auto mt-5 flex w-full max-w-xs items-center gap-1.5 anim-rise"
+            aria-label="First things"
+            className="mx-auto mt-5 w-full max-w-sm rounded-2xl border border-line bg-surface p-3 anim-rise"
             style={{ animationDelay: "280ms" }}
           >
-            <input
-              value={draftName}
-              onChange={(e) => setDraftName(e.target.value)}
-              placeholder="What should I call you?"
-              aria-label="Your name"
-              className="tap focus-inset h-10 min-w-0 flex-1 rounded-full border border-line bg-surface px-4 text-sm text-primary outline-none placeholder:text-tertiary"
-            />
-            <button
-              type="submit"
-              disabled={!draftName.trim()}
-              className="tap focus-inset h-10 rounded-full px-3.5 text-sm font-medium text-accent transition-colors duration-[var(--dur-fast)] hover:bg-accent-subtle disabled:opacity-40"
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              aria-label="Not now"
-              onClick={() => settings.set({ nameAsked: true })}
-              className="ctl focus-inset flex [--ctl:2.5rem] items-center justify-center rounded-full text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
-            >
-              <X size={15} />
-            </button>
+            {/* Two things, once, and never a modal: a name, which changes
+                how the page reads back, and a level, which changes what a
+                right answer is. Both are optional and both stay here. */}
+            <div className="flex items-center gap-1.5">
+              <input
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                placeholder="What should I call you?"
+                aria-label="Your name"
+                className="tap focus-inset h-10 min-w-0 flex-1 rounded-full border border-line bg-field px-4 text-sm text-primary outline-none placeholder:text-tertiary"
+              />
+              <button
+                type="button"
+                aria-label="Not now"
+                onClick={() => settings.set({ nameAsked: true })}
+                className="ctl focus-inset flex [--ctl:2.5rem] items-center justify-center rounded-full text-tertiary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <div className="mt-2 flex items-center gap-1.5">
+              <select
+                value={draftLevel}
+                onChange={(e) => setDraftLevel(e.target.value as Stage)}
+                aria-label="Your level"
+                className="tap focus-inset h-10 min-w-0 flex-1 rounded-full border border-line bg-field px-3 text-sm text-primary outline-none"
+              >
+                {STAGES.map((l) => (
+                  <option key={l.id} value={l.id}>{l.id === "default" ? "Your level (optional)" : l.label}</option>
+                ))}
+              </select>
+              <button
+                type="submit"
+                disabled={!draftName.trim() && draftLevel === "default"}
+                className="tap focus-inset h-10 rounded-full bg-[var(--cta)] px-4 text-sm font-medium text-[var(--cta-fg)] transition-opacity duration-[var(--dur-fast)] disabled:opacity-40"
+              >
+                Save
+              </button>
+            </div>
+            <p className="mt-2 px-1 text-xs text-tertiary">The name stays in this browser. The level is sent with each chat so answers fit you; change either in Settings.</p>
           </form>
         )}
       </div>
@@ -347,11 +372,14 @@ export function EmptyState({
           className="mx-auto w-full max-w-[var(--measure)] pb-1 anim-rise desk:flex desk:flex-wrap desk:justify-center desk:gap-2 desk:pb-3"
           style={{ animationDelay: "90ms" }}
         >
-          {STARTS.map((st) => (
+          {STARTS.map((st, i) => (
             <button
               key={st.id}
               onClick={() => onStart(st.id)}
-              className="tap focus-inset flex h-11 w-full items-center gap-3 rounded-md px-3 text-left text-[0.9375rem] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary desk:h-9 desk:w-auto desk:gap-2 desk:rounded-full desk:border desk:border-line desk:px-3.5 desk:text-sm desk:[&_svg]:size-4"
+              /* Each a beat after the last: a row of four that lands at
+                 once is a block; four that arrive in turn read as a list. */
+              style={{ animationDelay: `${120 + i * 45}ms` }}
+              className="tap focus-inset anim-rise flex h-11 w-full items-center gap-3 rounded-md px-3 text-left text-[0.9375rem] text-secondary transition-colors duration-[var(--dur-fast)] hover:bg-subtle hover:text-primary desk:h-9 desk:w-auto desk:gap-2 desk:rounded-full desk:border desk:border-line desk:px-3.5 desk:text-sm desk:[&_svg]:size-4"
             >
               <span className="shrink-0 text-tertiary">{st.icon}</span>
               {st.label}

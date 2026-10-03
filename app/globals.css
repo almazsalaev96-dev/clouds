@@ -1071,6 +1071,113 @@ textarea:focus-visible {
 }
 
 /* ---------------------------------------------------------------------------
+   ACCENT
+
+   The one colour the app is allowed to be, chosen in Appearance. Blue is
+   the default and lives in the theme blocks above; these five replace the
+   accent tokens alone — never a neutral, never the signal, never a chart
+   series — so a change of accent is a change of mood and nothing else
+   moves. Each value was measured before it was written: the text accent
+   clears 4.5:1 on the page in both themes (and on the warm paper), white
+   on the fill clears 4.5:1, the fill clears 3:1 against the page. The
+   pre-paint script in app/layout.tsx sets data-accent for the first frame.
+   --------------------------------------------------------------------------- */
+
+:root[data-accent="violet"] {
+  --accent: #6a3fd4;
+  --accent-hover: #532ea9;
+  --accent-fill: #6a3fd4;
+  --accent-subtle: #efe9fd;
+  --accent-rgb: 106 63 212;
+}
+:root[data-accent="teal"] {
+  --accent: #0d7a72;
+  --accent-hover: #095c56;
+  --accent-fill: #0d7a72;
+  --accent-subtle: #e3f5f3;
+  --accent-rgb: 13 122 114;
+}
+:root[data-accent="rose"] {
+  --accent: #c0245f;
+  --accent-hover: #991b4b;
+  --accent-fill: #c0245f;
+  --accent-subtle: #fde8ef;
+  --accent-rgb: 192 36 95;
+}
+:root[data-accent="amber"] {
+  --accent: #9a5b00;
+  --accent-hover: #7a4800;
+  --accent-fill: #9a5b00;
+  --accent-subtle: #fff1dc;
+  --accent-rgb: 154 91 0;
+}
+:root[data-accent="green"] {
+  --accent: #1b7f3b;
+  --accent-hover: #145f2c;
+  --accent-fill: #1b7f3b;
+  --accent-subtle: #e4f5e9;
+  --accent-rgb: 27 127 59;
+}
+:root[data-accent="violet"][data-theme="dark"] {
+  --accent: #c1acff;
+  --accent-hover: #d6c8ff;
+  --accent-fill: #6d4fd6;
+  --accent-subtle: #232323;
+  --accent-rgb: 193 172 255;
+}
+:root[data-accent="teal"][data-theme="dark"] {
+  --accent: #7fd9cf;
+  --accent-hover: #a3e8e0;
+  --accent-fill: #0b6a61;
+  --accent-subtle: #232323;
+  --accent-rgb: 127 217 207;
+}
+:root[data-accent="rose"][data-theme="dark"] {
+  --accent: #f7a6c6;
+  --accent-hover: #fbc3d8;
+  --accent-fill: #c93571;
+  --accent-subtle: #232323;
+  --accent-rgb: 247 166 198;
+}
+:root[data-accent="amber"][data-theme="dark"] {
+  --accent: #f6c04d;
+  --accent-hover: #f9d27f;
+  --accent-fill: #9a5b00;
+  --accent-subtle: #232323;
+  --accent-rgb: 246 192 77;
+}
+:root[data-accent="green"][data-theme="dark"] {
+  --accent: #8fe0a4;
+  --accent-hover: #b0ebbf;
+  --accent-fill: #156a33;
+  --accent-subtle: #232323;
+  --accent-rgb: 143 224 164;
+}
+
+/* The end of a study session, when something was answered: a short fall
+   of paper from the top of the card, in the accent and the signal, gone in
+   under two seconds, and not drawn at all for a person who asked for less
+   motion. A streak kept is the one moment the app is allowed to cheer. */
+@keyframes confetti-fall {
+  0% { translate: 0 -10px; rotate: 0deg; opacity: 0; }
+  10% { opacity: 1; }
+  100% { translate: var(--dx, 0) 160px; rotate: var(--spin, 540deg); opacity: 0; }
+}
+.confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.confetti > i {
+  position: absolute; top: 0; left: var(--x, 50%);
+  width: 7px; height: 11px; border-radius: 2px;
+  background: var(--c, var(--accent-fill));
+  animation: confetti-fall var(--t, 1.6s) var(--ease-out) var(--d, 0ms) both;
+}
+@keyframes flame-pulse { 0%, 100% { scale: 1; } 50% { scale: 1.18; } }
+.flame-pulse { animation: flame-pulse 1.2s ease-in-out 2; transform-origin: 50% 80%; }
+@media (prefers-reduced-motion: reduce) {
+  .confetti { display: none; }
+  .flame-pulse { animation: none; }
+}
+
+/* ---------------------------------------------------------------------------
    GLASS
 
    Anything that floats over the page — the sidebar, the top bar, the strip the

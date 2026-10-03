@@ -18,7 +18,7 @@ import { offerUndo } from "@/lib/undo";
 import {
   backupCounts, buildBackup, downloadBackup, parseBackup, restoreBackup, say, BackupError,
 } from "@/lib/backup";
-import { useSettings, paramsFor, DEFAULT_PARAMS, forgetLocalStorage } from "@/lib/store";
+import { useSettings, paramsFor, DEFAULT_PARAMS, forgetLocalStorage, ACCENTS } from "@/lib/store";
 import { PRESETS, engineOf, getPreset, profileOf, resolveCast, shortName } from "@/lib/presets";
 import { PLUS_NAME, PLUS_PRICE, PLUS_ALLOWED } from "@/lib/plus";
 import { getPlusOffer, setPlusOffer } from "@/lib/configured";
@@ -134,7 +134,7 @@ export function Settings({
             {tab === "local" && <LocalPanel />}
             {tab === "plus" && <PlusPanel />}
             {tab === "appearance" && <AppearancePanel />}
-            {tab === "personal" && <PersonalPanel onRules={() => setTab("rules")} />}
+            {tab === "personal" && <PersonalPanel onRules={() => setTab("rules")} onMemory={() => setTab("memory")} />}
             {tab === "model" && <ModelPanel configured={configured} />}
             {tab === "rules" && <RulesPanel />}
             {tab === "assistants" && <AssistantsPanel onStart={onStartAssistant ? (id) => { onStartAssistant(id); onOpenChange(false); } : undefined} />}
@@ -506,8 +506,9 @@ function KeyRow({ provider, serverConfigured }: { provider: ProviderId; serverCo
  * with every question (it is written here to be), and none of it is sent
  * while it is left at its default.
  */
-function PersonalPanel({ onRules }: { onRules: () => void }) {
+function PersonalPanel({ onRules, onMemory }: { onRules: () => void; onMemory: () => void }) {
   const s = useSettings();
+  const remembered = useLiveQuery(allMemories, [], []);
   const p = { ...DEFAULT_PERSONA, ...(s.persona ?? {}) };
   const put = (patch: Partial<Persona>) => s.set({ persona: { ...(s.persona ?? {}), ...patch } });
   const field = "focus-inset w-full rounded-md border border-line-strong bg-field px-2.5 text-sm text-primary outline-none focus:border-accent";
@@ -525,6 +526,15 @@ function PersonalPanel({ onRules }: { onRules: () => void }) {
           ))}
         </select>
       </Field>
+      {/* What it already knows, said where the person is deciding what to
+          tell it: memory is expected now, and the one thing people ask of
+          it is to be able to see it and take things out. */}
+      <p className="text-sm text-secondary">
+        {remembered.length
+          ? `Armi remembers ${remembered.length} thing${remembered.length === 1 ? "" : "s"} about you from your chats. `
+          : "Armi remembers nothing about you yet; say “remember that…” in a chat and it will. "}
+        <button type="button" onClick={onMemory} className="focus-inset rounded-sm text-accent underline-offset-2 hover:underline">See and edit memory</button>
+      </p>
       <Field label="Your level" hint="Sets the words and the depth of every answer — a GCSE answer and a university answer to the same question are different answers. Say otherwise in any one chat and that wins.">
         <select
           value={p.level}
@@ -622,6 +632,32 @@ function AppearancePanel() {
           ]}
           onChange={(v) => s.setTone(v as "cool" | "warm")}
         />
+      </Field>
+
+      <Field label="Accent" hint="The one colour the app is. Everything else stays grey, so the colour is a mood, not a scheme.">
+        <div role="radiogroup" aria-label="Accent" className="flex flex-wrap gap-2">
+          {ACCENTS.map((a) => {
+            const on = (s.accent ?? "blue") === a.id;
+            return (
+              <button
+                key={a.id}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                aria-label={a.label}
+                title={a.label}
+                onClick={() => s.setAccent(a.id)}
+                className={cn(
+                  "press focus-inset relative flex size-9 items-center justify-center rounded-full border-2 transition-[transform,border-color] duration-[var(--dur-fast)]",
+                  on ? "scale-110 border-[var(--text-primary)]" : "border-transparent hover:scale-105",
+                )}
+              >
+                <span className="block size-6 rounded-full" style={{ background: a.swatch }} aria-hidden />
+                {on && <Check size={12} className="absolute text-white" aria-hidden />}
+              </button>
+            );
+          })}
+        </div>
       </Field>
 
       <Field label="Thinking" hint="When a model shows its reasoning, whether it opens by itself under the answer or waits as a line to press.">

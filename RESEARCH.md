@@ -1044,3 +1044,28 @@ Sources:
 - [I25] Walker & Stickgold (2004), "Sleep-dependent learning and memory consolidation", *Neuron* 44; Weinstein, Madan & Sumeracki (2018), "Teaching the science of learning", *Cognitive Research: Principles and Implications* 3
 
 These were gathered by search on 29 September 2026. The papers are cited from their published records; the web pages could not be opened from here.
+
+## 14. Why millions would use it — what the evidence says, and what was built from it
+
+Gathered by search on 3 October 2026. Three questions: what people actually do with an AI assistant when they study; what they now expect of one; and what makes them come back.
+
+**What students do with it.** The surveys agree on the same short list: explaining a concept, summarising a text, testing themselves before an exam, planning revision, checking writing, and brainstorming — with 24/7 availability and time saved as the reasons given [M1][M2][M3]. Use is no longer marginal: in the UK the share of students using generative AI for assessed work went from 53% to 88% in a year [M4], and a third of college-age adults in the US use ChatGPT [M5]. The implication for Armi: the first five things it must do perfectly are explain, summarise, quiz, plan and check — which is the Studio's first row and the chat's follow-up chips — and it must be reachable in two taps on a phone at midnight.
+
+**What they expect now: memory, visible.** Persistent memory went from a differentiator to table stakes in a year; every serious assistant has it, and one survey of professionals put the saving at about 47 minutes a day once memory was set up [M6][M7]. The same research names the risks: memory makes an assistant likelier to tell you what you want to hear, and the UX problems of 2026 are management, transparency, privacy and control — users want to see what is held, take things out, and keep projects apart [M8][M9]. Armi already holds memory locally and lets it be edited; what was missing was *seeing* it from where you decide what to tell it. Built: the count and a door to memory on the Personalization page; a first-run card that asks the two things worth knowing (a name, a level) once and never as a modal.
+
+**What brings people back.** Duolingo's numbers are the clearest public evidence on habit: learners with a 7-day streak retain at 2.4× the rate of those without one, and separating the streak from the daily goal raised 7-day streaks by over 40% [M10][M11]. The mechanism is loss aversion plus a visible tracker plus a small celebration [M12]. Armi keeps a streak but said it in one place (the study calendar). Built: the streak on the blank page's waiting line, the weakest topic named beside it, and a short celebration — paper falling, the streak kept — at the end of a session, drawn only when something was answered and never for a person who asked for less motion.
+
+**What makes an app feel like theirs.** A choice of colour is the cheapest form of ownership an interface can offer, and every flagship app now has one. Built: six accents, each measured before it was written so the text accent clears 4.5:1 on the page in both themes and on the warm paper, and nothing but the accent moves when it changes.
+
+- [M1] [The use of ChatGPT in academia: perspectives of higher education students — Cogent Education (2025)](https://www.tandfonline.com/doi/full/10.1080/2331186X.2025.2508216)
+- [M2] [Is ChatGPT massively used by students nowadays? — arXiv 2412.17486](https://arxiv.org/html/2412.17486v1)
+- [M3] [Students around the world find ChatGPT useful, but also express concerns — EurekAlert](https://www.eurekalert.org/news-releases/1072031)
+- [M4] [Student Generative AI Survey 2025 — HEPI](https://www.hepi.ac.uk/reports/student-generative-ai-survey-2025/)
+- [M5] [One-third of college-age young adults use ChatGPT — BestColleges](https://www.bestcolleges.com/news/students-embrace-chatgpt/)
+- [M6] [AI memory in 2026: how to set up a persistent AI assistant — AI Magicx](https://www.aimagicx.com/blog/ai-memory-persistent-assistant-setup-guide-2026)
+- [M7] [9 best AI assistants that remember your preferences in 2026 — MemoryLake](https://www.memorylake.ai/en/blogs/best-ai-assistants-that-remember-your-preferences)
+- [M8] [Memory and personalization make AI more likely to tell you what you want to hear — The Register (June 2026)](https://www.theregister.com/ai-and-ml/2026/06/11/memory-and-personalization-make-ai-more-likely-to-tell-you-what-you-want-to-hear/5253850)
+- [M9] [Why "AI memory" is becoming the next big UX challenge — Fintechasia (August 2026)](https://fintechasia.net/2026/08/20/why-ai-memory-is-becoming-the-next-big-ux-challenge-according-to-2026-research/)
+- [M10] [Duolingo's customer retention strategy — Propel](https://www.trypropel.ai/resources/blogs/duolingo-customer-retention-strategy)
+- [M11] [Duolingo — streak system detailed breakdown — Medium](https://medium.com/@salamprem49/duolingo-streak-system-detailed-breakdown-design-flow-886f591c953f)
+- [M12] [The psychology behind Duolingo's streak feature — Just Another PM](https://www.justanotherpm.com/blog/the-psychology-behind-duolingos-streak-feature)

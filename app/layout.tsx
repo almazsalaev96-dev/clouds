@@ -66,6 +66,7 @@ const THEME_SCRIPT = `
     document.documentElement.dataset.theme = t;
     if (s.density && s.density !== "comfortable") document.documentElement.dataset.density = s.density;
     if (s.tone === "warm") document.documentElement.dataset.tone = "warm";
+    if (s.accent && s.accent !== "blue") document.documentElement.dataset.accent = s.accent;
     if (s.textSize && s.textSize !== "normal") document.documentElement.dataset.text = s.textSize;
     if (s.easyRead) document.documentElement.dataset.ease = "on";
   } catch (e) {}

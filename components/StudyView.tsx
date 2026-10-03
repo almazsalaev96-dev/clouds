@@ -911,6 +911,8 @@ function Session({
      time the next one is chosen — so the mix can still avoid it. */
   const [lastKey, setLastKey] = React.useState<string | undefined>();
   const appRetention = useSettings((st) => st.retention);
+  const studyDays = useLiveQuery(() => db.studyDays.toArray(), [], []);
+  const streak = streakOf(studyDays, Date.now());
   const retention = clampRetention(deck?.retention ?? appRetention);
   /* In practice the order is fixed at the start and walked once, since
      nothing answered changes when anything comes back. The schedule's queue
@@ -1135,7 +1137,17 @@ function Session({
 
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-4 py-8">
         {!card ? (
-          <div className="text-center" role="status">
+          <div className="relative text-center" role="status">
+            {done > 0 && <Celebration />}
+            {done > 0 && streak >= 2 && (
+              /* The one moment the app cheers: the day's work done and the
+                 run kept. Said with the number, because the number is what
+                 the person comes back for tomorrow. */
+              <p className="mb-2 flex items-center justify-center gap-1.5 text-sm font-medium text-[var(--warning)]" aria-label="Streak">
+                <Flame size={16} className="flame-pulse" aria-hidden />
+                {streak}-day streak kept
+              </p>
+            )}
             <p className="text-xl text-primary">Nothing left for now.</p>
             <p className="mx-auto mt-1.5 max-w-prose text-sm text-secondary">
               {done > 0
@@ -1758,5 +1770,28 @@ function Topics({ topics, onPractise }: { topics: TopicStat[]; onPractise: (topi
         </button>
       )}
     </section>
+  );
+}
+
+/**
+ * Twenty-two pieces of paper falling from the top of the card, each on its
+ * own path and timing, in the accent and the signal. CSS only; gone in
+ * under two seconds; not drawn for a person who asked for less motion.
+ */
+function Celebration() {
+  const bits = React.useMemo(() => Array.from({ length: 22 }, (_, i) => ({
+    x: `${4 + ((i * 37) % 92)}%`,
+    dx: `${((i * 53) % 61) - 30}px`,
+    d: `${(i * 29) % 420}ms`,
+    t: `${1300 + ((i * 71) % 700)}ms`,
+    spin: `${360 + ((i * 97) % 540)}deg`,
+    c: i % 3 === 0 ? "var(--accent-2)" : i % 3 === 1 ? "var(--accent-fill)" : "var(--warning)",
+  })), []);
+  return (
+    <div className="confetti" aria-hidden data-testid="celebration">
+      {bits.map((b, i) => (
+        <i key={i} style={{ "--x": b.x, "--dx": b.dx, "--d": b.d, "--t": b.t, "--spin": b.spin, "--c": b.c } as React.CSSProperties} />
+      ))}
+    </div>
   );
 }

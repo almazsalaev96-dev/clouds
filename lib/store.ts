@@ -106,6 +106,15 @@ export function forgetLocalStorage() {
 }
 
 export type Theme = "light" | "dark" | "system";
+export type Accent = "blue" | "violet" | "teal" | "rose" | "amber" | "green";
+export const ACCENTS: { id: Accent; label: string; swatch: string }[] = [
+  { id: "blue", label: "Blue", swatch: "#0b57d0" },
+  { id: "violet", label: "Violet", swatch: "#6a3fd4" },
+  { id: "teal", label: "Teal", swatch: "#0d7a72" },
+  { id: "rose", label: "Rose", swatch: "#c0245f" },
+  { id: "amber", label: "Amber", swatch: "#9a5b00" },
+  { id: "green", label: "Green", swatch: "#1b7f3b" },
+];
 export type Density = "compact" | "comfortable" | "spacious";
 /**
  * The rooms.
@@ -175,6 +184,8 @@ interface Settings {
   thinkingOpen: boolean;
   /** The neutrals' undertone: the app's cool blue, or a warm paper. */
   tone: "cool" | "warm";
+  /** The one colour the app is: blue by default, or one of five others. */
+  accent: Accent;
   /** The response style new chats start with. Threads can override it. */
   styleId: string;
   /** Chat or Creative, likewise. */
@@ -248,6 +259,7 @@ interface Settings {
   toggleRule: (id: string) => void;
   setThinkingOpen: (v: boolean) => void;
   setTone: (t: "cool" | "warm") => void;
+  setAccent: (a: Accent) => void;
   setStyle: (id: string) => void;
   setMode: (id: string) => void;
   toggleSidebar: () => void;
@@ -295,6 +307,7 @@ export const DEFAULT_SETTINGS = {
   rules: [],
   thinkingOpen: false,
   tone: "cool",
+  accent: "blue",
   styleId: AUTO_STYLE,
   mode: DEFAULT_MODE,
   name: "",
@@ -345,6 +358,7 @@ export const useSettings = create<Settings>()(
       toggleRule: (id) => set((st) => ({ rules: toggled(st.rules, id) })),
       setThinkingOpen: (thinkingOpen) => set({ thinkingOpen }),
       setTone: (tone) => set({ tone }),
+      setAccent: (accent) => set({ accent }),
       setStyle: (styleId) => set({ styleId }),
       setMode: (mode) => set({ mode }),
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),

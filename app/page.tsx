@@ -3041,6 +3041,10 @@ export default function Page() {
     if (settings.tone === "warm") document.documentElement.dataset.tone = "warm";
     else delete document.documentElement.dataset.tone;
   }, [settings.tone]);
+  React.useEffect(() => {
+    if (settings.accent && settings.accent !== "blue") document.documentElement.dataset.accent = settings.accent;
+    else delete document.documentElement.dataset.accent;
+  }, [settings.accent]);
 
   /* The software keyboard, as a number the layout can use.
      ---------------------------------------------------------------
