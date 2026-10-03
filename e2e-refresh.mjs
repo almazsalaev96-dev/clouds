@@ -38,46 +38,36 @@ await p.evaluate((s) => localStorage.setItem("store.settings.v1", JSON.stringify
 await p.reload({ waitUntil: "networkidle" });
 await p.waitForTimeout(900);
 
-console.log("\nA warm tone, at the same lightness");
+console.log("\nOne undertone, one spacing, one way to show thinking — the options are gone");
 {
+  /* Tone, Density and Thinking were switches on the Appearance page. Three
+     greys, three spacings and two ways to open reasoning were three
+     decisions handed to the reader that the app should make; it makes them
+     now, and the page is shorter. The accent stays: a colour is a mood,
+     and that one is theirs. */
   const coolCanvas = await token("--bg-canvas");
-  const coolText = await token("--text-primary");
-  const coolAccent = await token("--accent");
   await p.getByRole("button", { name: /Settings/ }).last().click();
   await p.waitForTimeout(600);
   await p.getByRole("button", { name: "Appearance", exact: true }).click();
   await p.waitForTimeout(300);
-  await p.getByRole("radio", { name: "Warm" }).click().catch(async () => p.getByRole("button", { name: "Warm", exact: true }).click());
-  await p.waitForTimeout(300);
-  check((await p.evaluate(() => document.documentElement.dataset.tone)) === "warm", "the root carries the tone");
-  const warmCanvas = await token("--bg-canvas");
-  check(warmCanvas !== coolCanvas, "the canvas changed", `${coolCanvas} → ${warmCanvas}`);
-  const [r, g, bl] = [1, 3, 5].map((i) => parseInt(warmCanvas.slice(i, i + 2), 16));
-  check(r >= g && g >= bl, "and it is warm — red over green over blue", warmCanvas);
-  check((await token("--accent")) === coolAccent, "the accent did not change — only the neutrals");
-  const cCool = contrast(coolText, coolCanvas);
-  const cWarm = contrast(await token("--text-primary"), warmCanvas);
-  check(Math.abs(cCool - cWarm) / cCool < 0.08 && cWarm >= 12, "body text keeps its contrast", `${cCool.toFixed(1)} → ${cWarm.toFixed(1)}`);
-  /* And in the dark. */
-  await p.getByRole("radio", { name: "Dark" }).click().catch(async () => p.getByRole("button", { name: "Dark", exact: true }).click());
-  await p.waitForTimeout(400);
-  const darkCanvas = await token("--bg-canvas");
-  const [dr, dg, db] = [1, 3, 5].map((i) => parseInt(darkCanvas.slice(i, i + 2), 16));
-  check(dr >= dg && dg >= db && lum(darkCanvas) < 0.02, "dark is warm too, and still dark", darkCanvas);
-  check(contrast(await token("--text-primary"), darkCanvas) >= 12, "with body text that clears the bar", contrast(await token("--text-primary"), darkCanvas).toFixed(1));
-  await p.getByRole("radio", { name: "Light" }).click().catch(async () => p.getByRole("button", { name: "Light", exact: true }).click());
-  await p.getByRole("radio", { name: "Cool" }).click().catch(async () => p.getByRole("button", { name: "Cool", exact: true }).click());
-  await p.waitForTimeout(300);
-  check((await token("--bg-canvas")) === coolCanvas, "and back to cool is back to the same canvas");
-}
-
-console.log("\nThinking opens by itself when asked to");
-{
   const dlg = p.locator("[role=dialog]");
-  await dlg.getByRole("radio", { name: "Open by itself" }).click().catch(async () => dlg.getByRole("button", { name: "Open by itself" }).click());
-  await p.waitForTimeout(200);
-  const kept = await p.evaluate(() => JSON.parse(localStorage.getItem("store.settings.v1") || "{}").state?.thinkingOpen);
-  check(kept === true, "the setting is kept");
+  const text = await dlg.innerText();
+  check(!/\bTone\b/.test(text) && !/\bWarm\b/.test(text), "no tone switch");
+  check(!/\bDensity\b/.test(text) && !/\bCompact\b/.test(text), "no density switch");
+  check(!/Open by itself/.test(text), "no thinking switch");
+  check(/Accent/.test(text) && /Text size/.test(text) && /Easier reading/.test(text), "the accent, the text size and easier reading stay");
+  check((await p.evaluate(() => document.documentElement.dataset.tone)) === undefined, "the root carries no tone");
+  /* With no accent chosen, the dark theme is the acid lime it was made
+     for, and the swatch that is on says so. */
+  await dlg.getByRole("radio", { name: "Dark" }).click().catch(async () => dlg.getByRole("button", { name: "Dark", exact: true }).click());
+  await p.waitForTimeout(400);
+  check((await p.evaluate(() => document.documentElement.dataset.accent)) === undefined, "no accent attribute until one is chosen");
+  check((await token("--accent")).toLowerCase() === "#d1fe17", "and in the dark the accent is lime by default", await token("--accent"));
+  check((await dlg.getByRole("radio", { name: "Lime" }).getAttribute("aria-checked")) === "true", "which the Lime swatch shows");
+  await dlg.getByRole("radio", { name: "Light" }).click().catch(async () => dlg.getByRole("button", { name: "Light", exact: true }).click());
+  await p.waitForTimeout(400);
+  check((await token("--bg-canvas")) === coolCanvas, "back in the light, the canvas is the one it was");
+  check((await dlg.getByRole("radio", { name: "Blue" }).getAttribute("aria-checked")) === "true", "and the Blue swatch is on");
   await p.keyboard.press("Escape");
   await p.waitForTimeout(400);
 }

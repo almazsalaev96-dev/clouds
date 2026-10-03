@@ -1138,6 +1138,11 @@ textarea:focus-visible {
   --accent-rgb: 10 116 108;
   --accent-glow: 73 255 233;
 }
+/* No accent chosen: blue in the light, acid lime in the dark. The dark
+   theme is near-black and the lime is what it was made for; the person
+   who never opens Appearance still gets the look. Choosing any swatch,
+   blue included, pins it in both themes. */
+:root[data-theme="dark"]:not([data-accent]),
 :root[data-accent="lime"][data-theme="dark"] {
   --accent: #d1fe17;
   --accent-hover: #e3ff66;
@@ -2595,9 +2600,11 @@ textarea.bare:focus-visible,
   --measure: 48rem;
   --measure-text: 48rem;
   --read-size: var(--text-base);
-  /* ChatGPT's 16 on 26. */
-  --read-leading: 1.625;
-  --read-gap: 1em;
+  /* ChatGPT's answer, measured: 16px on a 28px line (its `leading-7`),
+     with 1.25em between paragraphs. Asked for by name in October 2026,
+     after two rounds of splitting the difference. */
+  --read-leading: 1.75;
+  --read-gap: 1.25em;
 }
 
 /* A document. Read properly, re-read, and kept — so a step up in size and in
@@ -2614,7 +2621,8 @@ textarea.bare:focus-visible,
   /* Above the conversation's, which is what 1.72 quietly stopped being the
      moment the conversation went up. A document is the more settled read of
      the two and has to stay the airier one. */
-  --read-leading: 1.75;
+  /* A step above the conversation's 1.75: a page is read slowly and settles. */
+  --read-leading: 1.8;
   --read-gap: 1.15em;
 }
 /* A page's own title, set large the way every room's page opens now. Only

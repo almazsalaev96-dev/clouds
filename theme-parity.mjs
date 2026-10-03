@@ -186,6 +186,10 @@ const ACCEPTED = [
   { was: "rgb(69, 73, 86)", why: "syntax" },
   { was: "rgb(36, 82, 54)", why: "syntax" },
   { was: "rgb(69, 78, 104)", why: "syntax" },
+  /* The ink on a filled control: white on blue in the light, near-black on
+     acid lime in the dark (October 2026). Both clear AA by a wide margin;
+     the dark one is simply stronger, and only that direction is accepted. */
+  { was: "rgb(255, 255, 255)", why: "ink on a filled control — white on blue in the light, ink on acid in the dark; both clear AA, the dark one is stronger", onlyStronger: true },
 ];
 
 let failed = 0;
@@ -208,7 +212,7 @@ for (const i of colorIssues) {
 }
 const over = [];
 for (const g of [...byRole.values()].sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap))) {
-  const ok = ACCEPTED.find((a) => a.was === g.color);
+  const ok = ACCEPTED.find((a) => a.was === g.color && (!a.onlyStronger || Number(g.dark) >= Number(g.light)));
   /* Only where the difference is visible.
      Above about 12:1 both themes are as legible as text gets — the eye cannot
      tell 14 from 17, and a gate that insists on matching them is measuring

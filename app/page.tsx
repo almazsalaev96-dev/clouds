@@ -410,12 +410,6 @@ export default function Page() {
      reload. */
   React.useEffect(() => {
     const root = document.documentElement;
-    if (settings.density === "comfortable") delete root.dataset.density;
-    else root.dataset.density = settings.density;
-  }, [settings.density]);
-
-  React.useEffect(() => {
-    const root = document.documentElement;
     if (!settings.textSize || settings.textSize === "normal") delete root.dataset.text;
     else root.dataset.text = settings.textSize;
   }, [settings.textSize]);
@@ -3039,15 +3033,14 @@ export default function Page() {
     setSettingsOpen(true);
   }, []);
 
-  /* The neutrals' undertone, on the root so every token reads it. The
-     pre-paint script in the layout sets it for the first frame; this keeps
-     it in step with the switch afterwards. */
+  /* The accent, on the root so every token reads it. The pre-paint script
+     in the layout sets it for the first frame; this keeps it in step with
+     the swatches afterwards. "auto" is no attribute: blue in the light and
+     lime in the dark, decided in the stylesheet. The tone and density
+     switches that used to sit here are gone — one undertone and one
+     spacing, the best ones, rather than three of each to choose between. */
   React.useEffect(() => {
-    if (settings.tone === "warm") document.documentElement.dataset.tone = "warm";
-    else delete document.documentElement.dataset.tone;
-  }, [settings.tone]);
-  React.useEffect(() => {
-    if (settings.accent && settings.accent !== "blue") document.documentElement.dataset.accent = settings.accent;
+    if (settings.accent && settings.accent !== "auto") document.documentElement.dataset.accent = settings.accent;
     else delete document.documentElement.dataset.accent;
   }, [settings.accent]);
 

@@ -322,7 +322,7 @@ export function MessageBar({
                 tabIndex={voiceInPlace ? 0 : -1}
                 aria-label="Voice mode"
                 className={cn(
-                  "focus-inset absolute inset-0 flex items-center justify-center rounded-full bg-[var(--accent-fill)] text-white transition-[opacity,filter] duration-[var(--dur-fast)] hover:brightness-110",
+                  "focus-inset absolute inset-0 flex items-center justify-center rounded-full bg-[var(--accent-fill)] text-[var(--accent-fg)] transition-[opacity,filter] duration-[var(--dur-fast)] hover:brightness-110",
                   voiceInPlace ? "opacity-100" : "pointer-events-none opacity-0",
                 )}
               >

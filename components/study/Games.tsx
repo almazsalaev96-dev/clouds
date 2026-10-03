@@ -153,7 +153,7 @@ export function Level({ xp, className }: { xp: number; className?: string }) {
   const l = levelOf(xp);
   return (
     <div className={cn("flex items-center gap-3", className)} aria-label={`Level ${l.level}, ${xp} points`}>
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-fill)] text-sm font-semibold text-white tnum" aria-hidden>{l.level}</span>
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-fill)] text-sm font-semibold text-[var(--accent-fg)] tnum" aria-hidden>{l.level}</span>
       <div className="min-w-0 flex-1">
         <p className="text-sm text-primary tnum">
           Level {l.level} <span className="text-tertiary">· {xp} XP · {l.need - l.into} to level {l.level + 1}</span>
@@ -183,7 +183,7 @@ function Result({ r, onAgain, onOther, onDone, doneLabel, onReview }: {
       <p className="mt-1 text-sm text-secondary tnum">{r.detail}</p>
       <div className="mt-3 flex flex-wrap gap-2 text-sm">
         {r.best && r.answered > 0 && (
-          <span className="anim-pop inline-flex items-center gap-1.5 rounded-full bg-[var(--accent-fill)] px-3 py-1 font-medium text-white"><Trophy size={14} aria-hidden />New best</span>
+          <span className="anim-pop inline-flex items-center gap-1.5 rounded-full bg-[var(--accent-fill)] px-3 py-1 font-medium text-[var(--accent-fg)]"><Trophy size={14} aria-hidden />New best</span>
         )}
         <span className="inline-flex items-center rounded-full bg-subtle px-3 py-1 text-primary tnum">+{r.xp} XP</span>
         {r.goalMet && (
@@ -406,7 +406,7 @@ function Blitz({ pool, onEnd: ended, onQuit }: { pool: Pair[]; onEnd: (o: Outcom
       <Bar onQuit={onQuit}>
         <span aria-label="Time left" className={cn("text-lg font-semibold", left < 10_000 ? "text-[var(--danger)]" : "text-primary")}>{Math.ceil(left / 1000)}s</span>
         <span aria-label="Score">{x.score} points</span>
-        {x.run >= 3 && <span className="anim-pop rounded-full bg-[var(--accent-fill)] px-2 py-0.5 text-xs font-semibold text-white">×{comboOf(x.run)}</span>}
+        {x.run >= 3 && <span className="anim-pop rounded-full bg-[var(--accent-fill)] px-2 py-0.5 text-xs font-semibold text-[var(--accent-fg)]">×{comboOf(x.run)}</span>}
       </Bar>
       <div className="h-1 overflow-hidden rounded-full bg-subtle" aria-hidden>
         <div className="h-full bg-[var(--accent-fill)] transition-[width] duration-200 ease-linear" style={{ width: `${(left / BLITZ_MS) * 100}%` }} />

@@ -110,13 +110,15 @@ console.log("\nA conversation and a document are set differently");
      at this column width than it would at a narrower one — the longer the
      line, the further the eye travels back to find the start of the next, and
      leading is the only thing keeping it off the wrong one. */
-  /* 1.625: ChatGPT's own 16 on 26, which this app now sets exactly. */
-  check(Math.abs(chat.leading - 1.625) < 0.02, "and is given the air that length needs", `${chatLeading}`);
+  /* 1.75: ChatGPT's answer measured — 16px on a 28px line, its `leading-7`
+     — which this app sets exactly, asked for by name in October 2026. */
+  check(Math.abs(chat.leading - 1.75) < 0.02, "and is given the air that length needs", `${chatLeading}`);
   const gap = await p.evaluate(() => {
     const el = document.querySelector(".prose > * + *");
     return el ? parseFloat(getComputedStyle(el).marginTop) : null;
   });
-  check(gap !== null && gap >= 12 && gap <= 18, "a conversation breathes between paragraphs", `${gap}px`);
+  /* 1.25em at 16px: 20px between paragraphs, ChatGPT's measured gap. */
+  check(gap !== null && gap >= 18 && gap <= 22, "a conversation breathes between paragraphs", `${gap}px`);
 
   // The notebook, which is set as a document.
   await p.locator("aside nav").getByRole("button", { name: "Notebook", exact: true }).click();

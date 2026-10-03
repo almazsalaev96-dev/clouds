@@ -50,6 +50,7 @@ export function SectionIndex({
   waysIn,
   right,
   after,
+  quietEmpty,
 }: {
   title: string;
   items: IndexItem[];
@@ -79,6 +80,8 @@ export function SectionIndex({
   right?: React.ReactNode;
   /** A second way to make something, after the main one. */
   after?: React.ReactNode;
+  /** The empty line as a quiet left-aligned sentence under the lead, not a centred display line — for a room whose lead already does the talking. */
+  quietEmpty?: boolean;
 }) {
   const [query, setQuery] = React.useState("");
   const toggle = React.useContext(RoomToggle);
@@ -178,8 +181,8 @@ export function SectionIndex({
              the same ways in the chat's blank page offers — as a quiet line,
              not as chips. The button stays in the header, where it will
              still be when the room is full. */
-          <div className="px-4 pb-6 pt-12 text-center anim-fade">
-            <p className="display-italic text-[1.25rem] text-secondary">{emptyTitle}</p>
+          <div className={cn("anim-fade", quietEmpty ? "pb-4 pt-1" : "px-4 pb-6 pt-12 text-center")}>
+            <p className={quietEmpty ? "text-sm text-faint" : "display-italic text-[1.25rem] text-secondary"}>{emptyTitle}</p>
             {emptyHint && <p className="mx-auto mt-2 max-w-[28rem] text-sm text-tertiary">{emptyHint}</p>}
             {waysIn && waysIn.length > 0 && (
               <p className="mt-5 flex flex-wrap items-center justify-center gap-x-1 gap-y-1 text-xs text-tertiary" aria-label="Ways to start">

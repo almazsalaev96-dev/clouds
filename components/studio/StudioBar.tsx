@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, Plus, Sparkles } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import { TOOLS } from "@/lib/studio";
 import { openStudio, routeStudioAsk } from "@/lib/studioBus";
 import { MessageBar } from "@/components/chat/MessageBar";
@@ -63,7 +63,11 @@ export function StudioBar({ onBuild }: { onBuild: (text: string) => void }) {
   );
 
   return (
-    <div className="shrink-0">
+    <div className="relative shrink-0 bg-canvas">
+      {/* The column scrolls under the bar. Without an edge the pills above
+          looked cut off by the chips; a short fade says "there is more
+          behind" the way every chat's dock does. */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-gradient-to-b from-transparent to-[var(--bg-canvas)]" />
       <div className="mx-auto w-full max-w-[var(--measure)] px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {/* The tools. One row that scrolls sideways, and "All" opens the
             rest as a wrapped list under it — so the whole set is one press
@@ -85,8 +89,10 @@ export function StudioBar({ onBuild }: { onBuild: (text: string) => void }) {
           </ul>
         </section>
 
-        {/* Things to build, as sentences. The same row scrolls. */}
-        <Ideas onBuild={onBuild} className="swipe-row mb-2 flex gap-1.5 overflow-x-auto pb-1" />
+        {/* Things to build, as sentences. The same row scrolls. Not on a
+            phone, where three rows over the box left half a screen for the
+            column; the ideas are one typed sentence away there. */}
+        <Ideas onBuild={onBuild} className="swipe-row mb-2 flex gap-1.5 overflow-x-auto pb-1 max-sm:hidden" />
 
         <MessageBar
           value={text}
@@ -109,9 +115,6 @@ export function StudioBar({ onBuild }: { onBuild: (text: string) => void }) {
           }
           right={<RevisePicker configured={getConfigured()} />}
         />
-        <p className="mt-1.5 flex items-center justify-center gap-1 text-center text-xs text-faint">
-          <Sparkles size={11} aria-hidden /> A topic or a book makes study material. Something that runs gets built.
-        </p>
       </div>
     </div>
   );

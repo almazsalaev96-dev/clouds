@@ -177,6 +177,7 @@ export function LibraryView({
         newLabel="New document"
         right={<RevisePicker configured={getConfigured()} />}
         emptyTitle="Nothing made yet."
+        quietEmpty
         loading={loading}
         lead={
           <>
@@ -189,9 +190,9 @@ export function LibraryView({
               </span>
               <div className="prose min-w-0">
                 <p>
-                  What are you working on? Name a topic, paste your notes or drop a book, and say what you want from it — revision notes, flashcards, a quiz, an exam paper with its mark scheme, a mind map. Each is written to a standard and checked before you see it.
+                  What are you working on? Name a topic, paste notes or drop a book, and say what you want from it — notes, flashcards, a quiz, an exam paper. Each is written to a standard and checked before you see it.
                 </p>
-                <p>Ask for something that runs — a timer, a quiz app, a tracker, a page — and it gets built beside the conversation instead.</p>
+                <p>Ask for something that runs — a timer, a tracker, a page — and it gets built beside the conversation.</p>
               </div>
             </article>
             {/* The grids the room used to open on, as two lines of pills

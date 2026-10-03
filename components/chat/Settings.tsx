@@ -605,6 +605,19 @@ function PersonalPanel({ onRules, onMemory }: { onRules: () => void; onMemory: (
 
 function AppearancePanel() {
   const s = useSettings();
+  /* Which swatch is on when none was chosen: the one the stylesheet is
+     using — blue in the light, lime in the dark. Read from the root, which
+     always carries the resolved theme. */
+  const [dark, setDark] = React.useState(false);
+  React.useEffect(() => {
+    const root = document.documentElement;
+    const read = () => setDark(root.dataset.theme === "dark");
+    read();
+    const mo = new MutationObserver(read);
+    mo.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => mo.disconnect();
+  }, []);
+  const effective = s.accent && s.accent !== "auto" ? s.accent : dark ? "lime" : "blue";
   return (
     <Panel title="Appearance">
       <Field label="Your name" hint="For the greeting. It stays in this browser and is never sent to a model.">
@@ -627,21 +640,10 @@ function AppearancePanel() {
           onChange={(v) => s.setTheme(v as typeof s.theme)}
         />
       </Field>
-      <Field label="Tone" hint="The undertone of the greys. Cool is the app's blue; warm is a paper that is easier on the eyes over a long session.">
-        <Segmented
-          value={s.tone ?? "cool"}
-          options={[
-            { value: "cool", label: "Cool" },
-            { value: "warm", label: "Warm" },
-          ]}
-          onChange={(v) => s.setTone(v as "cool" | "warm")}
-        />
-      </Field>
-
-      <Field label="Accent" hint="The one colour the app is. Everything else stays grey, so the colour is a mood, not a scheme.">
+      <Field label="Accent" hint="The one colour the app is. Until you choose, it is blue in the light and lime in the dark.">
         <div role="radiogroup" aria-label="Accent" className="flex flex-wrap gap-2">
           {ACCENTS.map((a) => {
-            const on = (s.accent ?? "blue") === a.id;
+            const on = effective === a.id;
             return (
               <button
                 key={a.id}
@@ -662,17 +664,6 @@ function AppearancePanel() {
             );
           })}
         </div>
-      </Field>
-
-      <Field label="Thinking" hint="When a model shows its reasoning, whether it opens by itself under the answer or waits as a line to press.">
-        <Segmented
-          value={s.thinkingOpen ? "open" : "closed"}
-          options={[
-            { value: "closed", label: "A line to press" },
-            { value: "open", label: "Open by itself" },
-          ]}
-          onChange={(v) => s.setThinkingOpen(v === "open")}
-        />
       </Field>
 
       <Field label="Text size" hint="Every letter in the app, in steps. The layout keeps its proportions.">
@@ -696,28 +687,6 @@ function AppearancePanel() {
           ]}
           onChange={(v) => s.set({ easyRead: v === "on" })}
         />
-      </Field>
-      <Field label="Density" hint="Scales every spacing value in the app.">
-        <Segmented
-          value={s.density}
-          options={[
-            { value: "compact", label: "Compact" },
-            { value: "comfortable", label: "Comfortable" },
-            { value: "spacious", label: "Spacious" },
-          ]}
-          onChange={(v) => s.setDensity(v as typeof s.density)}
-        />
-      </Field>
-      <Field label="Code blocks">
-        <div className="space-y-2">
-          <Toggle
-            checked={s.showLineNumbers}
-            onChange={(v) => s.set({ showLineNumbers: v })}
-            label="Always show line numbers"
-            hint="Otherwise they appear past 12 lines."
-          />
-          <Toggle checked={s.wrapCode} onChange={(v) => s.set({ wrapCode: v })} label="Wrap long lines by default" />
-        </div>
       </Field>
       <Field label="Sending">
         <Toggle

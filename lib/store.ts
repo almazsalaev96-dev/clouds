@@ -106,13 +106,14 @@ export function forgetLocalStorage() {
 }
 
 export type Theme = "light" | "dark" | "system";
-export type Accent = "blue" | "violet" | "teal" | "rose" | "amber" | "green" | "lime" | "aqua";
+/** "auto" is no choice made: blue in the light theme, lime in the dark (globals.css). */
+export type Accent = "auto" | "blue" | "violet" | "teal" | "rose" | "amber" | "green" | "lime" | "aqua";
 /* Eight. The last two are the pair the AI video studios made the look of
    2026 — acid lime and aqua on near-black — and they behave differently
    from the six before them: too light to carry white text, so a button in
    them is ink on colour rather than white on colour (`--accent-fg`), the
    way the originals do it. Measured like the rest (RESEARCH §15). */
-export const ACCENTS: { id: Accent; label: string; swatch: string }[] = [
+export const ACCENTS: { id: Exclude<Accent, "auto">; label: string; swatch: string }[] = [
   { id: "blue", label: "Blue", swatch: "#0b57d0" },
   { id: "violet", label: "Violet", swatch: "#6a3fd4" },
   { id: "teal", label: "Teal", swatch: "#0d7a72" },
@@ -314,7 +315,7 @@ export const DEFAULT_SETTINGS = {
   rules: [],
   thinkingOpen: false,
   tone: "cool",
-  accent: "blue",
+  accent: "auto",
   styleId: AUTO_STYLE,
   mode: DEFAULT_MODE,
   name: "",
@@ -386,7 +387,20 @@ export const useSettings = create<Settings>()(
         })),
       set: (partial) => set(partial),
     }),
-    { name: SETTINGS_KEY, version: 1 },
+    {
+      name: SETTINGS_KEY,
+      version: 1,
+      /* What comes back from storage is data, not a contract. A room name
+         this build does not know — from an older build, a hand edit, an
+         import — used to be rendered as that room and stopped the app
+         drawing; it opens on the chat instead. */
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<Settings>;
+        const rooms: Section[] = ["chat", "code", "creative", "projects", "notebook", "study"];
+        const section = p.section && rooms.includes(p.section) ? p.section : current.section;
+        return { ...current, ...p, section };
+      },
+    },
   ),
 );
 
