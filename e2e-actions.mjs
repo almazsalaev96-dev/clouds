@@ -42,6 +42,16 @@ console.log("\nAsked for cards, the model saves them into Study");
   const chip = lastRow().getByRole("list", { name: "Done in this app" });
   check(await chip.isVisible(), "and the chip under it says so");
   check(/Saved 3 cards to “Debounce”/.test(await chip.innerText()), "with the count and the deck", (await chip.innerText()).replace(/\s+/g, " "));
+  /* And the cards themselves, in the chat: asked for flashcards, the
+     person sees flashcards, not a receipt for them. */
+  const made = lastRow().getByRole("group", { name: "Cards made in this answer" });
+  check(await made.isVisible().catch(() => false), "the cards are drawn in the chat");
+  const faces = made.getByRole("button", { name: /^Question: / });
+  check((await faces.count()) === 3, "three of them, question up", `${await faces.count()}`);
+  await faces.first().click();
+  await p.waitForTimeout(200);
+  check((await made.getByRole("button", { name: /^Answer: / }).count()) === 1, "a press turns one over to its answer");
+  check(await made.getByRole("button", { name: "Study them in the deck" }).isVisible(), "with the deck a press away");
   const system = recent.find((r) => r.kind === "answer")?.system ?? "";
   check(/What you can do in this app/.test(system), "and the model was told the manners");
 }

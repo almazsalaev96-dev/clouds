@@ -31,12 +31,10 @@ import {
   exportMarkdown, pathTo, addMessage, blockText, createCanvas, createWebCanvas, createProject,
   filesOf,
 } from "@/lib/db";
-import { composeSystemPrompt, composeTurnPrompt, DEEP_RESEARCH } from "@/lib/prompt";
 import { rulesCount, rulesText } from "@/lib/rules";
 import { personaText } from "@/lib/persona";
 import { examNote } from "@/lib/exam";
 import { effortFor, taskOf, type TaskKind } from "@/lib/task";
-import { shapeFor } from "@/lib/shape";
 import { lintAnswer } from "@/lib/lint";
 import { visualFor } from "@/lib/visual";
 import { allStyles, findStyle, isTeaching } from "@/lib/styles";
@@ -805,6 +803,11 @@ export default function Page() {
         kind?: TaskKind;
       },
     ) => {
+      /* The prompt texts — the house rules, the shapes, the deep-research
+         brief — are read only when a message goes out, so they are not
+         part of the first load. A few kilobytes each, every turn, from
+         the cache after the first. */
+      const [{ composeSystemPrompt, composeTurnPrompt, DEEP_RESEARCH }, { shapeFor }] = await Promise.all([import("@/lib/prompt"), import("@/lib/shape")]);
       /* An Armi model is a tactic, and this is where it becomes a request:
          which engine it runs on given the keys that are here, how hard it
          thinks, how it writes, and whether a second company checks it.

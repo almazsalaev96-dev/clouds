@@ -104,6 +104,7 @@ run test-scope npx jiti test-scope.ts
 run test-deck npx jiti test-deck.ts
 run test-form npx jiti test-form.ts
 run test-document npx jiti test-document.ts
+run test-house npx jiti test-house.ts
 run test-retrieve npx jiti test-retrieve.ts
 run test-exam npx jiti test-exam.ts
 run test-plan npx jiti test-plan.ts

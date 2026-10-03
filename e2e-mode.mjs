@@ -82,7 +82,9 @@ console.log("\nAsking about the same subject does not");
   const seen = await ask("how does a reading tracker usually store its data");
   const sys = seen.systemText ?? "";
   check(!/Work in a creative register/.test(sys), "a question gets no creative register");
-  check(!/complete HTML document/i.test(sys), "and is not told to build anything");
+  /* The house rules say, for every chat, that a thing asked for is built;
+     what a plain question must not get is the build mode's own brief. */
+  check(!/Rules for anything you build/.test(sys) && !/Design it like something people pay for/.test(sys), "and is not given the build mode's brief");
 }
 
 console.log("\nAnd neither does asking for words");

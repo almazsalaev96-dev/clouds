@@ -7,7 +7,6 @@ import { formatTokens } from "@/lib/models";
 import { shortName } from "@/lib/presets";
 import { useStream } from "@/lib/hooks/useStream";
 import { db, filesOf } from "@/lib/db";
-import { composeSystemPrompt } from "@/lib/prompt";
 import { rulesText } from "@/lib/rules";
 import { findStyle } from "@/lib/styles";
 import { useSettings } from "@/lib/store";
@@ -173,6 +172,9 @@ function CompareColumn({
       const project = conv?.projectId ? await db.projects.get(conv.projectId) : undefined;
       const files = project ? await filesOf(project.id) : [];
       const custom = await db.styles.toArray();
+      // Loaded here rather than at the top: the prompt text is the heaviest
+      // thing in this file's graph and nobody pays for it until they compare.
+      const { composeSystemPrompt } = await import("@/lib/prompt");
       const composed = composeSystemPrompt({
         base: [rulesText(settings.rules ?? [], settings.systemPrompt), conv?.systemPrompt ?? ""].filter(Boolean).join("\n\n"),
         project,

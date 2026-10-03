@@ -121,6 +121,25 @@ const BROKEN_GATE = `\`fold\` with no initial value takes the first element as t
 
 Pass an initial value and the empty case becomes that value instead.`;
 
+/* Revision notes, when revision notes are asked for. Brace-free on purpose:
+   the craft test reads the whole row and a code sample in the answer would
+   look like leaked JSON. Shaped the way the house rules ask for study
+   writing — the term in bold first, one idea a paragraph, the wrong
+   version named, a question to answer from memory at the end. */
+const NOTES = `The **marketing mix** is the set of decisions a business makes about product, price, place and promotion so that the four fit each other and the customer.
+
+**Product** is what is sold and how it differs from rivals: design, quality, features and the brand around it.
+
+**Price** is what is charged, and the method behind it. Penetration pricing starts low to win customers; skimming starts high to recover costs from early buyers.
+
+**Place** is how the product reaches the customer: shops, online, or both. **Promotion** is how the customer hears of it: advertising, sales promotion, sponsorship, social media.
+
+> [!mistake]
+> Writing "place means the location of the shop" loses the mark. Place is the channel: how the product gets to the buyer.
+
+> [!recall]
+> A new phone launches at a high price and is sold only online. Which two elements of the mix is that, and what is the pricing method called?`;
+
 const REPLY = `A **debounce** waits for silence: the call fires once the input has stopped changing for a set interval.
 
 \`\`\`ts title="debounce.ts"
@@ -550,7 +569,13 @@ createServer(async (req, res) => {
      the essay would prove nothing about the diff. Instead the document is
      returned with one deterministic edit — the first line rewritten and a line
      appended — which is exactly +2 / −1 and can be asserted on. */
+  /* What the person asked, not what the app told the model. On the OpenAI
+     shapes the instructions travel as a system message in the same list, and
+     a matcher that read them would answer the house rules instead of the
+     question — the line telling the model to draw a diagram where one helps
+     is not a request for a diagram. */
   const asked = (body.messages ?? [])
+    .filter((m) => m.role !== "system")
     .flatMap((m) => (Array.isArray(m.content) ? m.content : [{ type: "text", text: m.content }]))
     .filter((c) => c.type === "text")
     .map((c) => c.text)
@@ -596,6 +621,7 @@ createServer(async (req, res) => {
     [body.system, body.turnPrompt].map((x) => (typeof x === "string" ? x : JSON.stringify(x ?? ""))).join(" "),
   );
   const drawing = /\bdraw\b|\bdiagram\b|\bflowchart\b/i.test(asked);
+  const noting = /\brevision notes\b/i.test(asked);
   const snippeting = /\bshow me an? (?:html|svg) snippet\b/i.test(asked);
   /* A comparison, as a table. Mixed on purpose: a figures column with a
      blank and an "n/a" in it, a text column, a currency column, and one cell
@@ -1056,6 +1082,8 @@ Nothing here looks like it breaks a caller — the return type is the same array
             ? SNIPPET
           : making
             ? MADE
+            : noting
+              ? NOTES
             : drawing
               ? DRAWN
               : tabling

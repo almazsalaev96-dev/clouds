@@ -99,8 +99,8 @@ const TOOLS: Tool[] = [
     spec: {
       name: "save_cards",
       description:
-        "Save flashcards into the person's Study room, into a named deck (made if it does not exist). " +
-        "Use when they ask for cards, a deck, or to quiz them later on something. Each card is one question and one answer; " +
+        "Make flashcards: they appear in the chat as cards the person can flip, and are kept in their Study room in a named deck (made if it does not exist) to be reviewed on a schedule. " +
+        "Use whenever they ask for cards, flashcards, a deck, or to be quizzed later on something — write the cards with this rather than listing them in prose. Each card is one question and one answer, the back the answer alone; " +
         "front is the question, back the answer, topic a short label for grouping. Cards already in the deck are skipped.",
       schema: {
         type: "object",

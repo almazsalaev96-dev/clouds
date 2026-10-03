@@ -20,7 +20,8 @@ import { systemConfidence, CONFIDENCE_WORD } from "@/lib/factcheck";
 import { canUndo } from "@/lib/undoActions";
 import { CALCULATOR, getModel, formatTokens } from "@/lib/models";
 import { authorName, getPreset, plainly, PRESETS } from "@/lib/presets";
-import { blockText } from "@/lib/db";
+import { blockText, cardsOf } from "@/lib/db";
+import { useLiveQuery } from "dexie-react-hooks";
 import { cn, describeTiming, formatDuration, whenSaid } from "@/lib/utils";
 import { guessLang } from "@/lib/lang";
 import { Markdown } from "./Markdown";
@@ -1538,7 +1539,11 @@ export function Actions({
   /** Still streaming: no undo yet, the turn is not over. */
   live?: boolean;
 }) {
+  /* Cards the model just wrote are shown, not only counted: the newest
+     deck a save_cards action made in this turn, as cards to flip. */
+  const cardsAction = [...actions].reverse().find((a) => a.name === "save_cards" && a.ok && !a.undone && a.open?.id);
   return (
+    <>
     <ul className="no-print mt-3 flex flex-wrap gap-1.5 anim-rise" aria-label="Done in this app">
       {actions.map((a) => (
         <li
@@ -1575,6 +1580,60 @@ export function Actions({
         </li>
       ))}
     </ul>
+    {cardsAction?.open?.id && <InlineCards deckId={cardsAction.open.id} at={cardsAction.at} onOpen={onOpen ? () => onOpen(cardsAction.open!) : undefined} />}
+    </>
+  );
+}
+
+/**
+ * The cards, in the chat.
+ *
+ * "Make me flashcards" used to come back as a chip saying eight were saved
+ * somewhere else — true, and the opposite of what was asked for, which was
+ * to see them. So the cards this turn wrote are drawn here: question up,
+ * a press turns one over, and the deck they are kept in is a press away.
+ * At most eight, the newest first; the rest are in the deck.
+ */
+function InlineCards({ deckId, at, onOpen }: { deckId: string; at: number; onOpen?: () => void }) {
+  const cards = useLiveQuery(() => cardsOf(deckId), [deckId], []);
+  const [flipped, setFlipped] = React.useState<Record<string, boolean>>({});
+  /* The ones this turn made, not the whole deck: a deck that had forty
+     cards already should not unroll under one answer. */
+  const fresh = React.useMemo(
+    () => [...cards].filter((c) => c.createdAt >= at - 60_000).sort((a, b) => b.createdAt - a.createdAt).slice(0, 8),
+    [cards, at],
+  );
+  if (!fresh.length) return null;
+  return (
+    <div className="no-print mt-2 anim-rise" role="group" aria-label="Cards made in this answer">
+      <ul className="grid gap-2 sm:grid-cols-2">
+        {fresh.map((c) => {
+          const back = Boolean(flipped[c.id]);
+          return (
+            <li key={c.id}>
+              <button
+                type="button"
+                onClick={() => setFlipped((f) => ({ ...f, [c.id]: !f[c.id] }))}
+                aria-pressed={back}
+                aria-label={back ? `Answer: ${c.back}` : `Question: ${c.front}`}
+                className={cn(
+                  "press focus-inset flex min-h-[5.5rem] w-full flex-col justify-between rounded-xl border p-3 text-left transition-colors duration-[var(--dur-fast)]",
+                  back ? "border-accent bg-accent-subtle" : "border-line bg-surface hover:border-line-strong",
+                )}
+              >
+                <span className="text-sm text-primary [overflow-wrap:anywhere]">{back ? c.back : c.front}</span>
+                <span className="mt-2 text-tiny text-faint">{back ? "Answer · press for the question" : "Press to turn over"}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      {onOpen && (
+        <button type="button" onClick={onOpen} className="focus-inset mt-2 rounded-sm text-xs text-accent underline-offset-2 hover:underline">
+          Study them in the deck
+        </button>
+      )}
+    </div>
   );
 }
 
