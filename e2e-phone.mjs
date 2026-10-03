@@ -119,7 +119,8 @@ console.log("\nThe study session's hint names what a finger can do");
 console.log("\nA made thing's header fits a phone");
 {
   await drawer("Studio");
-  await p.locator("main").getByText("A deck that flips").first().click();
+  /* The ready-made apps are pills now, named rather than described. */
+  await p.locator("main").getByRole("button", { name: /^Flashcards/ }).first().click();
   await p.waitForTimeout(1200);
   const back = await p.getByRole("button", { name: "All canvases" }).boundingBox();
   const title = await p.getByLabel("Canvas title").boundingBox();

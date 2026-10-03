@@ -3069,6 +3069,14 @@ export default function Page() {
     const apply = () => {
       const gap = Math.round(window.innerHeight - vv.height - vv.offsetTop);
       root.style.setProperty("--kb", `${gap > 100 ? gap : 0}px`);
+      /* Safari's other move. Besides leaving the layout viewport tall, it
+         scrolls the page by the keyboard's height to bring the caret into
+         view — so on an iPad the whole app slid up under the keyboard and
+         the person went to the composer rather than the composer coming to
+         them. The frame is already the keyboard shorter, so that scroll
+         only hides the top of the app: put it back to nought, on the
+         resize and on every scroll the keyboard causes while it is up. */
+      if (gap > 100 && (window.scrollY > 0 || vv.offsetTop > 0)) window.scrollTo(0, 0);
     };
     apply();
     vv.addEventListener("resize", apply);

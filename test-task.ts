@@ -98,5 +98,23 @@ console.log("\nChecking means something different for each kind");
     "with no check repeated across two kinds, which would mean it belonged in the standing rules");
 }
 
+
+console.log("\nSix more kinds, from what people actually ask (October 2026)");
+{
+  check(kind("which laptop should I buy for university under £800, the MacBook Air or a ThinkPad?") === "decide", "a purchase to decide", kind("which laptop should I buy for university under £800, the MacBook Air or a ThinkPad?"));
+  check(kind("pros and cons of renting vs buying for me") === "decide", "a trade-off wants a recommendation", kind("pros and cons of renting vs buying for me"));
+  check(kind("why isn't my printer connecting to the wifi") === "fix", "something that should work and does not", kind("why isn't my printer connecting to the wifi"));
+  check(kind("my iPad keeps restarting, what should I check first") === "fix", "however it is worded", kind("my iPad keeps restarting, what should I check first"));
+  check(kind("I've had a headache for three days and my blood pressure reading is 150/95, is that dangerous") === "health", "a body", kind("I've had a headache for three days and my blood pressure reading is 150/95, is that dangerous"));
+  check(kind("can my landlord keep my deposit for painting the walls") === "legal", "the law", kind("can my landlord keep my deposit for painting the walls"));
+  check(kind("give me 20 name ideas for a study app") === "brainstorm", "ideas to pick from", kind("give me 20 name ideas for a study app"));
+  check(kind("solve for x: 3x^2 - 5x + 2 = 0") === "math", "a problem with a worked answer", kind("solve for x: 3x^2 - 5x + 2 = 0"));
+  check(kind("how many moles of NaCl are in 58.5 g") === "math", "a chemistry calculation is a worked answer, not a dataset", kind("how many moles of NaCl are in 58.5 g"));
+  check(kind("fix this stack trace, it throws a type error on line 4") === "coding", "and a broken program is still code, not a broken printer", kind("fix this stack trace, it throws a type error on line 4"));
+  check(kind("what is the capital of Mongolia") === "general", "a plain question is still general", kind("what is the capital of Mongolia"));
+  check(kind("tell me about the French revolution") === "general", "and so is an open one", kind("tell me about the French revolution"));
+  for (const k of ["decide", "fix", "health", "legal", "brainstorm", "math"] as TaskKind[]) check(CHECKS[k].length >= 2, `${k} has its own checks`, `${CHECKS[k].length}`);
+}
+
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");
 process.exit(failed ? 1 : 0);

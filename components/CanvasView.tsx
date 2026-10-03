@@ -189,7 +189,11 @@ export function CanvasView({
  * shapes are not variations of a setting you would go looking for — they are
  * different rooms, and the only moment anyone is deciding between them is now.
  */
-export function Starters({ onSelect }: { onSelect: (id: string, seed?: string) => void }) {
+export function Starters({ onSelect, compact = false }: {
+  onSelect: (id: string, seed?: string) => void;
+  /** As a row of pills under a line of text, the way the Studio's column offers them, rather than a grid of tiles. */
+  compact?: boolean;
+}) {
   const fileRef = React.useRef<HTMLInputElement>(null);
   /**
    * The other direction. Last round a folder learned to leave as one file;
@@ -228,6 +232,37 @@ export function Starters({ onSelect }: { onSelect: (id: string, seed?: string) =
       make: async () => (await createCanvas({ kind: "doc", title: "Untitled" })).id,
     },
   ];
+
+  if (compact) {
+    const pill = "focus-inset tap chip-press inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary";
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        <input
+          ref={fileRef}
+          type="file"
+          multiple
+          accept=".html,.htm,.css,.js,.mjs,.json,.svg,.md,.txt,text/html,text/css,text/javascript"
+          aria-label="Files to open"
+          tabIndex={-1}
+          className="sr-only"
+          onChange={(e) => {
+            void importFiles(e.target.files);
+            e.target.value = "";
+          }}
+        />
+        {start.map((s) => (
+          <button key={s.title} onClick={async () => onSelect(await s.make())} title={s.blurb} className={pill}>
+            <span className="text-accent" aria-hidden>{s.icon}</span>
+            {s.title}
+          </button>
+        ))}
+        <button onClick={() => fileRef.current?.click()} title="A page you already have, or a folder of them." className={pill}>
+          <span className="text-tertiary" aria-hidden><FilePlus2 size={16} /></span>
+          Open files
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-5">

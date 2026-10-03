@@ -8,6 +8,7 @@ import {
   parseScheme, schemeFromText, toolById,
 } from "./lib/studio";
 import { STANDARDS, mergeStandard, toolForAsk } from "./lib/standards";
+import { routeStudioAsk } from "./lib/studioBus";
 import { houseStudy, standardNote, studyPrompt, worthCrafting } from "./lib/craft";
 
 let failed = 0;
@@ -77,6 +78,18 @@ console.log("\nCraft holds a chat ask for study material to the same standard");
   const s = houseStudy({ id: "mindmap", ...STANDARDS.mindmap }, "m");
   check(s.edu === true && s.standard.length === STANDARDS.mindmap.standard.length, "with no study, the house standard is the standard");
   check(/This is study material, so:/.test(standardNote(s)), "and the writer is given the education rules");
+}
+
+
+console.log("\nWhat a sentence typed into the Studio's bar does");
+{
+  check(routeStudioAsk("Osmosis") === "study", "a bare topic makes study material", routeStudioAsk("Osmosis"));
+  check(routeStudioAsk("revision notes on the Cold War for GCSE") === "study", "and so does an ask for notes", routeStudioAsk("revision notes on the Cold War for GCSE"));
+  check(routeStudioAsk("make me a pomodoro timer app") === "build", "a thing that runs is built", routeStudioAsk("make me a pomodoro timer app"));
+  check(routeStudioAsk("build a quiz app on the periodic table") === "build", "a quiz *app* is built, a quiz is written", routeStudioAsk("build a quiz app on the periodic table"));
+  check(routeStudioAsk("a quiz on the periodic table") === "study", "", routeStudioAsk("a quiz on the periodic table"));
+  check(routeStudioAsk("Make me a landing page for my tutoring business") === "build", "'make me a …' with no study word is a build", routeStudioAsk("Make me a landing page for my tutoring business"));
+  check(routeStudioAsk("x".repeat(700)) === "source", "a long paste is the source", routeStudioAsk("x".repeat(700)));
 }
 
 console.log(failed ? `\n  ${failed} failed` : "\n  all passed");

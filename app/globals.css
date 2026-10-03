@@ -452,7 +452,7 @@
      past that band rather than an oversight, and it is the reason the leading
      below matters more than it did: a longer line needs more air under it to
      keep the eye from dropping to the wrong one on the way back. */
-  --measure: 47.5rem;
+  --measure: 48rem;
   /* What the prose inside that container is allowed to be. See `.prose`. */
   --measure-text: 41rem;
   /* Wider than prose, for a page-shaped sheet and its toolbar. */
@@ -1118,6 +1118,44 @@ textarea:focus-visible {
   --accent-subtle: #e4f5e9;
   --accent-rgb: 27 127 59;
 }
+:root[data-accent="lime"] {
+  /* In the light the acid lime cannot carry text or hold an edge (1.2:1
+     against the page), so the ink is the olive the lime darkens to, and
+     the lime itself is the glow and the tint. In the dark it is the real
+     thing: acid on near-black, ink on acid for a button. */
+  --accent: #4f6b00;
+  --accent-hover: #3f5600;
+  --accent-fill: #4f6b00;
+  --accent-subtle: #f1fbd0;
+  --accent-rgb: 79 107 0;
+  --accent-glow: 200 241 53;
+}
+:root[data-accent="aqua"] {
+  --accent: #0a746c;
+  --accent-hover: #085a54;
+  --accent-fill: #0a746c;
+  --accent-subtle: #dcfaf6;
+  --accent-rgb: 10 116 108;
+  --accent-glow: 73 255 233;
+}
+:root[data-accent="lime"][data-theme="dark"] {
+  --accent: #d1fe17;
+  --accent-hover: #e3ff66;
+  --accent-fill: #d1fe17;
+  --accent-fg: #0f1113;
+  --accent-subtle: #232323;
+  --accent-rgb: 209 254 23;
+  --accent-glow: 209 254 23;
+}
+:root[data-accent="aqua"][data-theme="dark"] {
+  --accent: #49ffe9;
+  --accent-hover: #8dfff3;
+  --accent-fill: #49ffe9;
+  --accent-fg: #0f1113;
+  --accent-subtle: #232323;
+  --accent-rgb: 73 255 233;
+  --accent-glow: 73 255 233;
+}
 :root[data-accent="violet"][data-theme="dark"] {
   --accent: #c1acff;
   --accent-hover: #d6c8ff;
@@ -1152,6 +1190,55 @@ textarea:focus-visible {
   --accent-fill: #156a33;
   --accent-subtle: #232323;
   --accent-rgb: 143 224 164;
+}
+
+/* ---------------------------------------------------------------------------
+   AURA AND PRESS
+   The two kinds of motion the AI studios of 2026 made ordinary: a soft
+   field of the accent breathing behind the one line that greets you, and a
+   press you can feel on anything you tap. Both are decoration and both are
+   off for a person who asked for less motion. The aura is drawn behind the
+   greeting only — a field behind every answer would be a background that
+   moves, which this app's own rule forbids.
+--------------------------------------------------------------------------- */
+.aura {
+  position: relative;
+  isolation: isolate;
+}
+.aura::before {
+  content: "";
+  position: absolute;
+  inset: -3rem -6rem;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side, rgb(var(--accent-glow, var(--accent-rgb)) / 0.22), transparent 70%);
+  filter: blur(18px);
+  opacity: 0.9;
+  transform-origin: 50% 50%;
+}
+:root[data-theme="dark"] .aura::before {
+  background:
+    radial-gradient(closest-side, rgb(var(--accent-glow, var(--accent-rgb)) / 0.28), transparent 70%);
+}
+@keyframes aura-breathe {
+  0%, 100% { transform: scale(1) translateY(0); opacity: 0.75; }
+  50% { transform: scale(1.12) translateY(-2%); opacity: 1; }
+}
+@media not (prefers-reduced-motion: reduce) {
+  .aura::before { animation: aura-breathe 7s ease-in-out infinite; }
+}
+
+/* A press: the control shrinks under the finger and springs back. */
+.chip-press,
+.btn-press {
+  transition: transform var(--dur-fast, 120ms) var(--ease-out, ease-out), background-color var(--dur-fast, 120ms), border-color var(--dur-fast, 120ms), color var(--dur-fast, 120ms);
+}
+@media not (prefers-reduced-motion: reduce) {
+  .chip-press:active, .btn-press:active { transform: scale(0.96); }
+  .chip-press:hover { transform: translateY(-1px); }
+  .chip-press:hover:active { transform: translateY(-1px) scale(0.96); }
 }
 
 /* The end of a study session, when something was answered: a short fall

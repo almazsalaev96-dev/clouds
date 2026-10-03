@@ -3,8 +3,8 @@
 import { RevisePicker } from "@/components/chat/RevisePicker";
 import { getConfigured } from "@/lib/configured";
 import * as React from "react";
-import { CreativeView } from "./CreativeView";
-import { StudyTools } from "./studio/StudyTools";
+import { Templates } from "./CreativeView";
+import { StudioBar } from "./studio/StudioBar";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Code2, FileText, GraduationCap, LayoutTemplate, NotebookPen } from "lucide-react";
 import { db, deleteCanvas, deleteDeck, deleteNote } from "@/lib/db";
@@ -13,6 +13,7 @@ import { plainLine } from "@/lib/plain";
 import { cn } from "@/lib/utils";
 import { SectionIndex, type IndexItem } from "@/components/SectionIndex";
 import { Starters } from "@/components/CanvasView";
+import { Sparkles } from "lucide-react";
 
 /**
  * Everything you made, in one room.
@@ -170,49 +171,75 @@ export function LibraryView({
   };
 
   return (
-    <SectionIndex
-      title="Studio"
-      newLabel="New document"
-      right={<RevisePicker configured={getConfigured()} />}
-      emptyTitle="Nothing made yet."
-      loading={loading}
-      lead={
-        <>
-          <StudyTools />
-          {onBuild && onMade && <CreativeView embedded onBuild={onBuild} onMade={onMade} />}
-          <h2 className="mb-2 mt-2 text-base font-medium text-primary">Start blank</h2>
-          <Starters onSelect={onNewCanvas} />
-          {(loading || items.length > 0) && (
-            <h2 className="mb-2 mt-6 text-base font-medium text-primary">Made here</h2>
-          )}
-          {present.length > 1 && (
-            <div role="group" aria-label="Kinds" className="mb-3 flex flex-wrap gap-1.5">
-              {[{ id: "all" as const, plural: "All" }, ...present].map((k) => {
-                const on = kind === k.id;
-                return (
-                  <button
-                    key={k.id}
-                    onClick={() => setKind(k.id)}
-                    aria-pressed={on}
-                    className={cn(
-                      "tap rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-[var(--dur-fast)]",
-                      on
-                        ? "border-transparent bg-accent-subtle text-accent"
-                        : "border-line bg-surface text-secondary hover:border-line-strong hover:text-primary",
-                    )}
-                  >
-                    {k.plural}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </>
-      }
-      items={shown}
-      onOpen={open}
-      onNew={onNew}
-      onDelete={remove}
-    />
+    <div className="flex min-h-0 flex-1 flex-col">
+      <SectionIndex
+        title="Studio"
+        newLabel="New document"
+        right={<RevisePicker configured={getConfigured()} />}
+        emptyTitle="Nothing made yet."
+        loading={loading}
+        lead={
+          <>
+            {/* The room opens the way a conversation does: one turn from the
+                app saying what it can do here, in the voice of the answers
+                rather than a heading over a grid. */}
+            <article data-role="assistant" className="anim-rise mb-6 flex gap-3" aria-label="Studio">
+              <span className="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full bg-accent-subtle text-accent" aria-hidden>
+                <Sparkles size={14} />
+              </span>
+              <div className="prose min-w-0">
+                <p>
+                  What are you working on? Name a topic, paste your notes or drop a book, and say what you want from it — revision notes, flashcards, a quiz, an exam paper with its mark scheme, a mind map. Each is written to a standard and checked before you see it.
+                </p>
+                <p>Ask for something that runs — a timer, a quiz app, a tracker, a page — and it gets built beside the conversation instead.</p>
+              </div>
+            </article>
+            {/* The grids the room used to open on, as two lines of pills
+                under the turn: the same presses, read as offers in a
+                conversation rather than tiles on a board. */}
+            <section aria-label="Start blank" className="anim-fade mb-4" style={{ animationDelay: "60ms" }}>
+              <p className="eyebrow mb-1.5 text-faint">Start blank</p>
+              <Starters compact onSelect={onNewCanvas} />
+            </section>
+            {onMade && (
+              <section aria-label="Ready to use" className="anim-fade mb-6" style={{ animationDelay: "110ms" }}>
+                <p className="eyebrow mb-1.5 text-faint">Ready to use</p>
+                <Templates compact onMade={onMade} />
+              </section>
+            )}
+            {(loading || items.length > 0) && (
+              <h2 className="mb-2 mt-2 text-base font-medium text-primary">Made here</h2>
+            )}
+            {present.length > 1 && (
+              <div role="group" aria-label="Kinds" className="mb-3 flex flex-wrap gap-1.5">
+                {[{ id: "all" as const, plural: "All" }, ...present].map((k) => {
+                  const on = kind === k.id;
+                  return (
+                    <button
+                      key={k.id}
+                      onClick={() => setKind(k.id)}
+                      aria-pressed={on}
+                      className={cn(
+                        "tap chip-press rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-[var(--dur-fast)]",
+                        on
+                          ? "border-transparent bg-accent-subtle text-accent"
+                          : "border-line bg-surface text-secondary hover:border-line-strong hover:text-primary",
+                      )}
+                    >
+                      {k.plural}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        }
+        items={shown}
+        onOpen={open}
+        onNew={onNew}
+        onDelete={remove}
+      />
+      {onBuild && <StudioBar onBuild={onBuild} />}
+    </div>
   );
 }

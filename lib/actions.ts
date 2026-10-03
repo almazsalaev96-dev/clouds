@@ -30,6 +30,7 @@ import {
   addRoutine,
   allCards,
   attemptsSince,
+  noteAttempt,
   createAssistant,
   createDeck,
   createNote,
@@ -604,6 +605,42 @@ const TOOLS: Tool[] = [
       useSettings.getState().setExam({ name: name || "Exam", date });
       const summary = `Exam set: ${name || "Exam"} on ${new Date(`${date}T09:00`).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}`;
       return { ok: true, text: `${summary}. Study now counts down to it.`, summary, open: { section: "study" }, undo: async () => { useSettings.getState().setExam(before); } };
+    },
+  },
+  /* ---- the mistake bank. Every wrong answer in a chat is data the Study
+     room already knows how to use — the weakest topic, targeted practice,
+     the "why did I get this wrong" review — but only if it is written down.
+     The model notes it when it marks something wrong; nothing else changes
+     in the reply. */
+  {
+    spec: {
+      name: "note_mistake",
+      description: "Record a mistake the person just made — a wrong answer, a misapplied rule, a confused pair — so Study can bring the topic back and set practice on it. Use it whenever you mark something of theirs wrong; it is silent for them. Not for your own errors.",
+      schema: {
+        type: "object",
+        properties: {
+          topic: { type: "string", description: "The topic in two to five words, e.g. 'Quadratic equations' or 'Osmosis'" },
+          question: { type: "string", description: "What was asked, in full" },
+          given: { type: "string", description: "What they answered" },
+          expected: { type: "string", description: "The right answer, briefly" },
+          missed: { type: "string", description: "The misconception or slip, named: 'sign error', 'confused mass with weight', 'describe where explain was asked'" },
+          sure: { type: "boolean", description: "Whether they said they were confident. Omit if they did not say." },
+        },
+        required: ["topic", "question", "given", "expected"],
+      },
+    },
+    offered: (ctx) => !ctx.temporary,
+    doing: "Noting the mistake for Study",
+    run: async (input) => {
+      const topic = str(input.topic, 80);
+      const question = str(input.question, 1_000);
+      const given = str(input.given, 1_000);
+      const expected = str(input.expected, 1_000);
+      const missed = str(input.missed, 200);
+      if (!topic || !question || !expected) return fail("A mistake needs the topic, the question and the right answer.");
+      const row = await noteAttempt({ topic, question, given, expected, right: false, ...(missed ? { missed } : {}), ...(typeof input.sure === "boolean" ? { sure: input.sure } : {}) });
+      const summary = `Noted for Study: ${topic}${missed ? ` — ${missed}` : ""}`;
+      return { ok: true, text: `${summary}. It counts toward the weakest topic and practice on it.`, summary, undo: async () => { await db.attempts.delete(row.id); } };
     },
   },
   /* ---- a presentation, designed and ready as PowerPoint. The model

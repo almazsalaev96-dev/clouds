@@ -63,14 +63,14 @@ console.log("\nPersonalization says what is remembered, and shows the level");
   check(await dlg.getByRole("heading", { name: "Memory" }).isVisible(), "and the door opens the Memory page");
 }
 
-console.log("\nSix accents, each measured");
+console.log("\nEight accents, each measured");
 {
   const dlg = p.locator("[role=dialog]");
   await dlg.getByRole("button", { name: "Appearance", exact: true }).click();
   await p.waitForTimeout(300);
   const group = dlg.getByRole("radiogroup", { name: "Accent" });
   const names = await group.getByRole("radio").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  check(names.join(" ") === "Blue Violet Teal Rose Amber Green", "six to choose from", names.join(" "));
+  check(names.join(" ") === "Blue Violet Teal Rose Amber Green Lime Aqua", "eight to choose from", names.join(" "));
   const before = { canvas: await token("--bg-canvas"), text: await token("--text-primary"), signal: await token("--accent-2"), accent: await token("--accent") };
   await group.getByRole("radio", { name: "Violet" }).click();
   await p.waitForTimeout(300);
@@ -79,13 +79,16 @@ console.log("\nSix accents, each measured");
   check((await token("--bg-canvas")) === before.canvas && (await token("--text-primary")) === before.text && (await token("--accent-2")) === before.signal, "and nothing else did — the page, the ink and the signal are as they were");
   for (const theme of ["light", "dark"]) {
     await p.evaluate((t) => { document.documentElement.dataset.theme = t; }, theme);
-    for (const a of ["Blue", "Violet", "Teal", "Rose", "Amber", "Green"]) {
+    for (const a of ["Blue", "Violet", "Teal", "Rose", "Amber", "Green", "Lime", "Aqua"]) {
       await group.getByRole("radio", { name: a }).click();
       await p.waitForTimeout(120);
       const text = await ratio(await token("--accent"), await token("--bg-canvas"));
-      const onFill = await ratio("#ffffff", await token("--accent-fill"));
+      /* The ink on a filled control is the accent's own foreground: white
+         for six of them, near-black for the two acid ones that cannot
+         carry white — which is why it is measured rather than assumed. */
+      const onFill = await ratio(await token("--accent-fg"), await token("--accent-fill"));
       const edge = await ratio(await token("--accent-fill"), await token("--bg-canvas"));
-      check(text >= 4.5 && onFill >= 4.5 && edge >= 3, `${theme} ${a}: text ${text.toFixed(2)}, white on fill ${onFill.toFixed(2)}, fill edge ${edge.toFixed(2)}`);
+      check(text >= 4.5 && onFill >= 4.5 && edge >= 3, `${theme} ${a}: text ${text.toFixed(2)}, ink on fill ${onFill.toFixed(2)}, fill edge ${edge.toFixed(2)}`);
     }
   }
   await p.evaluate(() => { document.documentElement.dataset.theme = "light"; });

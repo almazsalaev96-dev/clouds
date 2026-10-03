@@ -32,6 +32,8 @@ export const LEARNING_RULES = [
   "9. What students get wrong. Name the common mistakes and the look-alikes that get confused, and say how to tell them apart.",
   "10. Pitched honestly. At the level given; if none is given, at school exam level, and say what you assumed in one line at the top. The student's language, keeping names, symbols and quoted terms exact.",
   "11. Complete and clean. No preamble, no filler, no placeholders, no 'as an AI'. Headings, tables and lists in Markdown.",
+  "12. The step before. Where a topic rests on an earlier one — integration on differentiation, equilibrium on supply and demand, essays on the command word — open with a one-line check of the earlier step, because that is where most of the trouble with the later one lives.",
+  "13. Sure, or right? Where there is a question, ask for the answer and how sure they are before the answer is shown, and treat confident-and-wrong as the case to dwell on: name the rule they were applying, say what it mispredicts, and give one more of the same kind.",
 ].join("\n");
 
 /* ------------------------------------------------------- flashcards -- */

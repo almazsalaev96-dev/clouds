@@ -179,7 +179,7 @@ export function EmptyState({
           {/* One plain line in the interface's own type, as ChatGPT greets
               you — no mark, no second line under it. */}
           <h1
-            className="text-[1.75rem] font-normal tracking-tight text-primary anim-rise"
+            className="aura inline-block text-[1.75rem] font-normal tracking-tight text-primary anim-rise"
             title={greeting}
             suppressHydrationWarning
           >

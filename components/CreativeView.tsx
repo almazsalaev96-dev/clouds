@@ -55,7 +55,6 @@ export function CreativeView({
   /** Start a making conversation with this request. */
   onBuild: (text: string) => void;
 }) {
-  const [busy, setBusy] = React.useState<string | null>(null);
   const [text, setText] = React.useState("");
 
   const submit = () => {
@@ -89,20 +88,73 @@ export function CreativeView({
 
       {/* Ideas, written as requests, sent as they are. A blank box in a room
           called Creative is the one place a blank box is unkind. */}
-      <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Ideas">
-        {IDEAS.map((idea) => (
-          <button
-            key={idea}
-            onClick={() => onBuild(idea)}
-            className="focus-inset tap rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
-          >
-            {idea.replace(/^Make me a /, "A ")}
-          </button>
-        ))}
-      </div>
+      <Ideas onBuild={onBuild} className="mt-3 flex flex-wrap gap-1.5" />
 
       <h2 className="mt-10 text-base font-medium text-primary">Ready to use</h2>
 
+      <Templates onMade={onMade} />
+    </div>
+  );
+}
+
+/** The ideas, as presses, sent as they are. Shared with the Studio's bar. */
+export function Ideas({ onBuild, className }: { onBuild: (text: string) => void; className?: string }) {
+  return (
+    <div className={className ?? "flex flex-wrap gap-1.5"} role="group" aria-label="Ideas">
+      {IDEAS.map((idea) => (
+        <button
+          key={idea}
+          onClick={() => onBuild(idea)}
+          className="focus-inset tap chip-press shrink-0 rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
+        >
+          {idea.replace(/^Make me a /, "A ")}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** The ready-made apps, each a press that builds its folder. */
+export function Templates({ onMade, compact = false }: {
+  onMade: (canvasId: string, seed: string) => void;
+  /** As pills in a row rather than tiles in a grid. */
+  compact?: boolean;
+}) {
+  const [busy, setBusy] = React.useState<string | null>(null);
+  if (compact) {
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {MAKES.map((m) => (
+          <button
+            key={m.id}
+            disabled={busy !== null}
+            title={m.blurb}
+            onClick={async () => {
+              setBusy(m.id);
+              try {
+                const canvas = await createWebCanvas(await m.files(), { title: m.title });
+                onMade(canvas.id, m.ask);
+              } finally {
+                setBusy(null);
+              }
+            }}
+            className="focus-inset tap chip-press inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-secondary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary disabled:opacity-60"
+          >
+            <span className="text-[var(--accent-2)]" aria-hidden><MakeMark icon={m.icon} size={14} /></span>
+            {busy === m.id ? "Building…" : m.name}
+          </button>
+        ))}
+        <button
+          onClick={() => document.querySelector<HTMLTextAreaElement>(".composer-shell textarea")?.focus()}
+          title="Describe it in the bar and it gets built."
+          className="focus-inset tap chip-press inline-flex items-center gap-1.5 rounded-full border border-line bg-transparent px-3 py-1.5 text-sm text-tertiary transition-colors duration-[var(--dur-fast)] hover:border-line-strong hover:text-primary"
+        >
+          <Wand2 size={14} aria-hidden /> Anything else
+        </button>
+      </div>
+    );
+  }
+  return (
       <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-3">
         {MAKES.map((m) => (
           <button
@@ -139,6 +191,5 @@ export function CreativeView({
           <span className="text-xs text-tertiary">Describe it above and it gets built.</span>
         </button>
       </div>
-    </div>
   );
 }

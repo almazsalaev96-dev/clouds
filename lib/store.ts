@@ -106,7 +106,12 @@ export function forgetLocalStorage() {
 }
 
 export type Theme = "light" | "dark" | "system";
-export type Accent = "blue" | "violet" | "teal" | "rose" | "amber" | "green";
+export type Accent = "blue" | "violet" | "teal" | "rose" | "amber" | "green" | "lime" | "aqua";
+/* Eight. The last two are the pair the AI video studios made the look of
+   2026 — acid lime and aqua on near-black — and they behave differently
+   from the six before them: too light to carry white text, so a button in
+   them is ink on colour rather than white on colour (`--accent-fg`), the
+   way the originals do it. Measured like the rest (RESEARCH §15). */
 export const ACCENTS: { id: Accent; label: string; swatch: string }[] = [
   { id: "blue", label: "Blue", swatch: "#0b57d0" },
   { id: "violet", label: "Violet", swatch: "#6a3fd4" },
@@ -114,6 +119,8 @@ export const ACCENTS: { id: Accent; label: string; swatch: string }[] = [
   { id: "rose", label: "Rose", swatch: "#c0245f" },
   { id: "amber", label: "Amber", swatch: "#9a5b00" },
   { id: "green", label: "Green", swatch: "#1b7f3b" },
+  { id: "lime", label: "Lime", swatch: "#c8f135" },
+  { id: "aqua", label: "Aqua", swatch: "#49ffe9" },
 ];
 export type Density = "compact" | "comfortable" | "spacious";
 /**

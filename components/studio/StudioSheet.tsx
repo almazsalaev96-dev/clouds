@@ -327,7 +327,7 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
         role="dialog"
         aria-modal="true"
         aria-label="Studio"
-        className="flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-line bg-canvas shadow-2xl sm:rounded-2xl"
+        className="flex max-h-[92dvh] w-full max-w-[var(--measure)] flex-col overflow-hidden rounded-t-2xl border border-line bg-canvas shadow-2xl sm:rounded-2xl"
       >
         <header className="flex items-center gap-2 border-b border-line px-4 py-3">
           {(step === "choose" || step === "checker") && !request.source && !request.topic && request.tool !== "checker" && (
@@ -433,24 +433,26 @@ export function StudioSheet({ request, configured, onClose, onOpenPage, onOpenDe
               <div>
                 <p className="text-sm font-medium text-primary">What would you like from it?</p>
                 <p className="mt-0.5 text-xs text-tertiary">The ones that suit it are ticked. Each is written to a standard and checked by a second model before you see it.</p>
-                <ul className="mt-2 grid gap-1.5 sm:grid-cols-2" aria-label="What to make">
-                  {TOOLS.filter((t) => t.id !== "checker").map((t) => {
+                {/* Pills, not boxes. The grid of two-line tiles read as a
+                    settings page; a row of presses reads as a question
+                    with answers, which is what it is. The blurb is the
+                    tooltip, and the ones that suit the material lead. */}
+                <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="What to make">
+                  {[...TOOLS.filter((t) => t.id !== "checker")].sort((a, b) => Number(reading.recommend.includes(b.id)) - Number(reading.recommend.includes(a.id))).map((t, i) => {
                     const on = picked.has(t.id);
                     const suggested = reading.recommend.includes(t.id);
                     return (
-                      <li key={t.id}>
+                      <li key={t.id} className="anim-rise" style={{ animationDelay: `${Math.min(i, 12) * 18}ms` }}>
                         <button
                           role="checkbox"
                           aria-checked={on}
                           aria-label={t.name}
+                          title={t.blurb}
                           onClick={() => toggle(t.id)}
-                          className={cn("focus-ring flex w-full items-start gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors", on ? "border-[var(--accent)] bg-accent-subtle" : "border-line hover:bg-subtle")}
+                          className={cn("focus-ring chip-press inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors", on ? "border-transparent bg-accent text-accent-fg" : suggested ? "border-[var(--accent)]/50 bg-accent-subtle text-primary hover:border-[var(--accent)]" : "border-line text-secondary hover:bg-subtle hover:text-primary")}
                         >
-                          <span className={cn("mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border", on ? "border-transparent bg-accent text-accent-fg" : "border-[var(--border-strong)]")}>{on && <Check size={11} strokeWidth={3} />}</span>
-                          <span className="min-w-0">
-                            <span className="flex items-center gap-1.5 text-sm text-primary">{ICON[t.id]}{t.name}{suggested && <span className="rounded-full bg-subtle px-1.5 text-[0.65rem] text-tertiary">suits it</span>}</span>
-                            <span className="block text-xs leading-snug text-tertiary">{t.blurb}</span>
-                          </span>
+                          {on ? <Check size={13} strokeWidth={3} aria-hidden /> : ICON[t.id] ?? null}
+                          {t.name}
                         </button>
                       </li>
                     );

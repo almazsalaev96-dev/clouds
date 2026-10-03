@@ -48,11 +48,11 @@ console.log("\nWhat an answer did is told to the turns after it");
 console.log("\nWhich tools are offered where");
 {
   const all = actionSpecs({ conversationId: "c", projectId: "p", temporary: false, memoryOn: true }).map((s) => s.name);
-  check(all.length === 25, "a full room offers the lot", `${all.length}: ${all.join(", ")}`);
+  check(all.length === 26, "a full room offers the lot", `${all.length}: ${all.join(", ")}`);
   for (const name of ["read_note", "append_note", "read_made", "schedule_routine", "create_assistant", "list_memories", "forget", "convert_units", "search_sources", "read_web_page", "set_exam_date", "make_presentation", "make_document", "make_spreadsheet"]) check(all.includes(name), `including ${name}`);
   check(!all.includes("create_project"), "inside a project there is no second project to make");
   const loose = actionSpecs({ conversationId: "c", temporary: false, memoryOn: true }).map((s) => s.name);
-  check(loose.includes("create_project") && loose.length === 25, "outside one, making a project takes the place of adding to it", `${loose.length}`);
+  check(loose.includes("create_project") && loose.length === 26, "outside one, making a project takes the place of adding to it", `${loose.length}`);
   const temp = actionSpecs({ conversationId: "c", temporary: true, memoryOn: true }).map((s) => s.name);
   check(!temp.includes("remember") && !temp.includes("forget") && !temp.includes("list_memories"), "a temporary chat cannot remember, or read or change what is remembered");
   check(!temp.includes("save_to_project"), "and outside a project there is no project to add to");

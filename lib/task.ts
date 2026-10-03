@@ -45,6 +45,25 @@ export type TaskKind =
   | "translate"
   /** Getting from here to somewhere: steps, an order, what depends on what. */
   | "plan"
+  /* Six more, from reading what people actually ask an assistant for
+     (RESEARCH §15): the kinds where the general voice fails in a specific
+     way. A choice answered with a balanced survey and no recommendation; a
+     thing that will not work answered with a lecture instead of the first
+     check; a symptom answered with either a diagnosis or a refusal; a law
+     answered as if one jurisdiction were the world; a brainstorm answered
+     with four safe ideas; a sum answered with a number and no working. */
+  /** Which one: options, a purchase, a trade-off, a recommendation. */
+  | "decide"
+  /** Something that should work and does not — a device, a setting, a process; code has its own kind. */
+  | "fix"
+  /** A body: a symptom, a measurement, a medicine, a diet, training, sleep. */
+  | "health"
+  /** The law: a right, a contract, a rule, what is allowed. */
+  | "legal"
+  /** Ideas, names, options, angles — quantity and range, to pick from. */
+  | "brainstorm"
+  /** A problem with a worked answer: arithmetic, algebra, a proof, a physics or chemistry calculation. */
+  | "math"
   /** Everything else, which is most things. */
   | "general";
 
@@ -166,10 +185,71 @@ const EVIDENCE: Record<Exclude<TaskKind, "general">, { strong: RegExp[]; weak: R
     weak: [/\bplan(?:ning)?\b/i, /\bmilestones?\b/i, /\bdeadlines?\b/i, /\bpriorit(?:y|ies|i[sz]e)\b/i,
            /\bweek by week\b/i, /\bby (?:monday|friday|next week|next month|the end of)\b/i],
   },
+  decide: {
+    strong: [
+      /\b(?:which|what) (?:one |of these |of them )?(?:should|would|do) (?:i|we|you) (?:buy|choose|pick|get|go (?:for|with)|use|take)\b/i,
+      /\b(?:pros and cons|trade-?offs?|is it worth (?:it|buying|the money)|worth it\b)/i,
+      /\b(?:recommend(?:ation)?s? (?:for|a|an|me)|what(?:'s| is) the best (?:option|choice|one|\w+ for))\b/i,
+      /\b(?:x or y|a or b|this or that)\b/i,
+      /\b(?:should i (?:buy|get|switch|upgrade|choose|go with|pick|take|accept|quit|move))\b/i,
+    ],
+    weak: [/\boptions?\b/i, /\bbudget\b/i, /\bcompare\b/i, /\bversus|\bvs\.?\b/i, /\balternatives?\b/i,
+           /\bdecid(?:e|ing|sion)\b/i, /\bbetter\b/i, /\bcheaper\b/i, /\bfor my (?:needs|use case|situation)\b/i],
+  },
+  fix: {
+    strong: [
+      /\b(?:why (?:isn'?t|is(?:n'?t| not)|won'?t|doesn'?t|does not|can'?t) (?:this|it|my \w+|the \w+) (?:work(?:ing)?|turn(?:ing)? on|connect(?:ing)?|charg(?:e|ing)|start(?:ing)?|open(?:ing)?|load(?:ing)?|print(?:ing)?|sync(?:ing)?|boot(?:ing)?|respond(?:ing)?))\b/i,
+      /\b(?:how do i fix|how to fix|what should i check first|troubleshoot(?:ing)?|not working|stopped working|keeps (?:crashing|freezing|disconnecting|restarting|turning off))\b/i,
+      /\b(?:what caused|what'?s causing|what is causing) (?:this|the|it|my)\b/i,
+    ],
+    weak: [/\berror\b/i, /\bbroken?\b/i, /\bissue\b/i, /\bproblem\b/i, /\bwon'?t\b/i, /\bdoesn'?t\b/i,
+           /\b(?:wifi|wi-fi|router|printer|battery|screen|bluetooth|iphone|ipad|android|laptop|windows|macos|update)\b/i],
+  },
+  health: {
+    strong: [
+      /\b(?:symptoms?|diagnos(?:is|ed|e)|side effects?|dosage|dose of|prescri(?:bed|ption)|is it (?:safe|normal|dangerous) (?:to|that|if)|should i (?:see|go to) (?:a|the) doctor|what (?:does|do) (?:my|this|these) (?:blood|test|lab|results?|readings?|levels?))\b/i,
+      /\b(?:blood pressure|heart rate|resting hr|cholesterol|hba1c|glucose|bmi|vo2|iron|vitamin [a-z0-9]+|thyroid|ferritin|creatinine)\b/i,
+      /\b(?:i (?:have|'ve had|feel|get|keep getting|woke up with) (?:a |an )?(?:headache|fever|rash|pain|chest pain|cough|dizz(?:y|iness)|nausea|cramps?|numbness|palpitations|insomnia|anxiety attack))\b/i,
+      /\b(?:this (?:medication|medicine|pill|tablet|drug)|ibuprofen|paracetamol|acetaminophen|antibiotics?|antidepressants?|insulin|metformin|statins?)\b/i,
+    ],
+    weak: [/\bdoctor\b/i, /\bhealth\b/i, /\bmedical\b/i, /\bpain\b/i, /\bsleep\b/i, /\bdiet\b/i, /\bworkout|exercise|training plan\b/i,
+           /\bcalories?|protein|macros\b/i, /\binjur(?:y|ed)\b/i, /\bcondition\b/i, /\bpregnan(?:t|cy)\b/i],
+  },
+  legal: {
+    strong: [
+      /\b(?:is (?:it|this|that) (?:legal|illegal|allowed|against the law)|can (?:they|my (?:landlord|employer|boss|school|university|bank)|the (?:police|council|company)) (?:legally )?(?:do|charge|fire|evict|withhold|refuse|keep|record|share|sue)\b)/i,
+      /\b(?:my rights?|legal rights|statutory|what does (?:this|the) (?:law|clause|contract|section|article|regulation|act) (?:mean|say))\b/i,
+      /\b(?:tenancy|lease agreement|notice period|deposit (?:back|return)|unfair dismissal|redundancy|small claims|gdpr|consumer rights|warranty claim|refund (?:rights|law)|visa (?:rules|requirements)|power of attorney|will and testament|custody|divorce)\b/i,
+      /\b(?:should i (?:ask|get|see|talk to) a (?:lawyer|solicitor|attorney))\b/i,
+    ],
+    weak: [/\bcontract\b/i, /\blaw\b/i, /\blegal\b/i, /\blawyer|solicitor|attorney\b/i, /\bclause\b/i, /\bsue|lawsuit|court\b/i,
+           /\blandlord|tenant|employer|employee\b/i, /\bfine|penalty\b/i, /\bjurisdiction\b/i, /\bliab(?:le|ility)\b/i],
+  },
+  brainstorm: {
+    strong: [
+      /\b(?:brainstorm|give me (?:some |a few |\d+ |ten |twenty )?(?:ideas|names|options|angles|titles|hooks|slogans|taglines|themes|prompts|topics|questions to ask))\b/i,
+      /\b(?:ideas for (?:a|an|my|the)|name ideas|what (?:could|should) i (?:call|name)|(?:startup|business|app|product|content|video|gift|project|essay|story) ideas)\b/i,
+      /\b(?:come up with|think of) (?:some |a few |\d+ )?(?:ideas|names|options|ways|alternatives|features)\b/i,
+    ],
+    weak: [/\bideas?\b/i, /\bcreative\b/i, /\bsuggestions?\b/i, /\binspiration\b/i, /\bpossibilit(?:y|ies)\b/i, /\bconcepts?\b/i],
+  },
+  math: {
+    strong: [
+      /\b(?:solve (?:for|this|the following|the equation|this (?:problem|question|equation|integral|sum))|find the (?:value|roots?|derivative|integral|area|volume|limit|probability|gradient|slope|mean|median|mode|range) of|simplify|factori[sz]e|differentiate|integrate|evaluate the (?:expression|integral|limit)|prove that|show that)\b/i,
+      /(?:\d+\s*[+\-×x*/÷^]\s*\d+\s*=|=\s*\?|\^2|√|∫|∑|\bsin\(|\bcos\(|\blog\(|\bln\()/,
+      /\b(?:how many (?:ways|moles|grams|joules|newtons|metres|meters|seconds)|what is \d[\d.,]*\s*(?:%|percent) of|convert \d|calculate the)\b/i,
+      /\b(?:quadratic|simultaneous equations|pythagoras|trigonometry|binomial|matrix|vector|moles? of|molar mass|kinetic energy|momentum|ohm'?s law|stoichiometry)\b/i,
+    ],
+    weak: [/\bequation\b/i, /\bformula\b/i, /\bcalculate\b/i, /\bworking\b/i, /\bproof\b/i, /\bmaths?\b/i, /\bphysics\b/i, /\bchemistry\b/i,
+           /\bunits?\b/i, /\bsignificant figures|s\.f\.|d\.p\.|decimal places\b/i, /\bmarks?\]/],
+  },
 };
 
 /** The order kinds are reported in when two tie, so the answer is stable. */
-const ORDER: Exclude<TaskKind, "general">[] = ["coding", "data", "research", "learning", "translate", "summarize", "plan", "design", "writing"];
+const ORDER: Exclude<TaskKind, "general">[] = [
+  "coding", "math", "fix", "health", "legal", "data", "research", "decide", "learning",
+  "translate", "summarize", "plan", "brainstorm", "design", "writing",
+];
 
 const LABEL: Record<TaskKind, string> = {
   learning: "someone trying to understand this, not to be handed it",
@@ -181,6 +261,12 @@ const LABEL: Record<TaskKind, string> = {
   summarize: "a shorter account of something longer",
   translate: "the same thing in another language",
   plan: "a way to get from here to somewhere",
+  decide: "a choice to make",
+  fix: "something that should work and does not",
+  health: "a question about a body",
+  legal: "a question about the law",
+  brainstorm: "ideas to pick from",
+  math: "a problem with a worked answer",
   general: "no particular kind of work",
 };
 
@@ -298,6 +384,35 @@ export const CHECKS: Record<TaskKind, string[]> = {
     "Say if a step depends on something no earlier step establishes.",
     "Say if the first step is not something a person could do today.",
   ],
+  decide: [
+    "Say if it surveys the options and never says which. That is the failure here, and it reads as balance.",
+    "Say if the recommendation rests on a fact about the person it was never told — their budget, their use, their constraint.",
+    "Say if a price, a specification or an availability is stated as current without saying as of when.",
+  ],
+  fix: [
+    "Say if the first thing it tells them to check is not the cheapest one to check.",
+    "Say if it jumps to a cause without a step that would confirm or rule it out.",
+    "Say if a step could lose data or make things worse and it did not say so first.",
+  ],
+  health: [
+    "Check every number — a dose, a range, a threshold — against what the guidance actually says; a wrong dose is the worst thing on this list.",
+    "Say if it names a diagnosis where it should name possibilities, or refuses where it should inform.",
+    "Say if a sign that needs urgent care is missing or buried: chest pain, trouble breathing, a sudden severe headache, signs of stroke, an allergic reaction, thoughts of self-harm.",
+  ],
+  legal: [
+    "Say if it states a rule as universal when the law differs by country or state, or if it never said which it was describing.",
+    "Say if a deadline, a notice period or a limit is given as fact without its source.",
+    "Say if it should have said where getting this wrong is costly and a lawyer is worth it, and did not.",
+  ],
+  brainstorm: [
+    "Say if the ideas are variations on one idea. Range is the point.",
+    "Say if any is unusable as stated — a name already famous for something else, an idea that breaks a constraint they gave.",
+  ],
+  math: [
+    "Redo the working yourself. Check every line follows from the last, and that the final answer has units and sensible precision.",
+    "Say if a sign, a unit conversion or a rearrangement is wrong, even when the final number happens to be right.",
+    "Say if it solved a different problem — misread a figure, dropped a condition, assumed a value it was not given.",
+  ],
   general: [],
 };
 
@@ -320,7 +435,7 @@ export const CHECKS: Record<TaskKind, string[]> = {
  * `undefined` rather than "medium" for the rest: absent means the model's own
  * setting stands, which is what the person chose if they ever chose one.
  */
-const THINKS_HARDER = new Set<TaskKind>(["coding", "data", "research"]);
+const THINKS_HARDER = new Set<TaskKind>(["coding", "data", "research", "math"]);
 
 export function effortFor(kind: TaskKind | undefined): "high" | undefined {
   return kind && THINKS_HARDER.has(kind) ? "high" : undefined;
