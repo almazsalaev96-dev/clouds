@@ -72,6 +72,10 @@ export function Settings({
   onStartAssistant?: (id: string) => void;
 }) {
   const [tab, setTab] = React.useState<Tab>(initialTab);
+  /* A page opens at its top. Switching pages kept the last page's scroll,
+     so Appearance could open on its last field with Theme out of sight. */
+  const pageRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => { pageRef.current?.scrollTo({ top: 0 }); }, [tab]);
   React.useEffect(() => {
     if (open) setTab(initialTab);
   }, [open, initialTab]);
@@ -92,7 +96,7 @@ export function Settings({
           className={cn(
             "fixed z-50 flex overflow-hidden glass border border-line shadow-lg anim-modal",
             "inset-0 flex-col rounded-none",
-            "sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-[34rem] sm:max-h-[calc(100vh-3rem)] sm:w-[44rem] sm:max-w-[calc(100vw-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:flex-row sm:rounded-xl",
+            "sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-[38rem] sm:max-h-[calc(100vh-3rem)] sm:w-[44rem] sm:max-w-[calc(100vw-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:flex-row sm:rounded-xl",
           )}
         >
           <nav
@@ -101,7 +105,7 @@ export function Settings({
               "flex shrink-0 gap-0.5 border-line bg-subtle p-2",
               "safe-top h-14 flex-row items-center overflow-x-auto border-b pe-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
               "sm:h-auto sm:items-stretch",
-              "sm:w-40 sm:flex-col sm:overflow-visible sm:border-b-0 sm:border-r sm:pe-2",
+              "sm:w-40 sm:flex-col sm:overflow-y-auto sm:border-b-0 sm:border-r sm:pe-2",
             )}
           >
             <Dialog.Title className="px-2 py-2 text-sm font-medium text-primary max-sm:sr-only">Settings</Dialog.Title>
@@ -129,7 +133,7 @@ export function Settings({
             ))}
           </nav>
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+          <div ref={pageRef} className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
             {tab === "keys" && <KeysPanel configured={configured} />}
             {tab === "local" && <LocalPanel />}
             {tab === "plus" && <PlusPanel />}

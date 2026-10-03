@@ -121,7 +121,7 @@ export function inOverlay(e: Event): boolean {
  */
 export function whenSaid(at: number, now = Date.now()): string {
   const d = new Date(at);
-  const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
   const label = dayLabel(at, now);
   return label === "Today" ? time : `${label}, ${time}`;
 }

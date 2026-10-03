@@ -23,6 +23,7 @@ export function LearnerCard() {
   const learner = useSettings((s) => s.learner);
   const setLearner = useSettings((s) => s.setLearner);
   const [editing, setEditing] = React.useState(false);
+  const [picked, setPicked] = React.useState<Learner["stage"] | null>(null);
   const [later, setLater] = React.useState(() => {
     try { return sessionStorage.getItem(HIDE_KEY) === "1"; } catch { return false; }
   });
@@ -41,12 +42,31 @@ export function LearnerCard() {
     );
   }
   if (!learner && later && !editing) return null;
+  /* Before anything is known: one line and three chips, not a form. The
+     form — level, board, subjects, aim — opens the moment a chip is
+     pressed, with that chip chosen. A page that opens on a form it has
+     not been asked for reads as a form to get past. */
+  if (!learner && !editing && picked === null) {
+    return (
+      <section aria-label="What are you studying for?" className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface px-3.5 py-2.5">
+        <GraduationCap size={16} className="shrink-0 text-accent" aria-hidden />
+        <span className="text-sm text-secondary">What are you studying for?</span>
+        <span role="radiogroup" aria-label="Stage" className="flex flex-wrap gap-1.5">
+          {STAGES.map((x) => (
+            <button key={x.id} role="radio" aria-checked={false} onClick={() => setPicked(x.id)} className="btn-touch focus-ring rounded-full border border-line px-3 py-1 text-xs text-secondary transition-colors hover:bg-subtle">{x.name}</button>
+          ))}
+        </span>
+        <button onClick={() => { setLater(true); try { sessionStorage.setItem(HIDE_KEY, "1"); } catch { /* fine */ } }} aria-label="Not now" className="ctl focus-inset ml-auto flex [--ctl:1.75rem] items-center justify-center rounded-md text-tertiary hover:bg-subtle hover:text-primary"><X size={14} /></button>
+      </section>
+    );
+  }
   return (
     <LearnerForm
-      initial={learner}
-      onSave={(l) => { setLearner(l); setEditing(false); }}
+      initial={learner ?? (picked ? { stage: picked, level: "", board: "", subjects: "", target: "" } : null)}
+      onSave={(l) => { setLearner(l); setEditing(false); setPicked(null); }}
       onClose={() => {
         setEditing(false);
+        setPicked(null);
         if (!learner) {
           setLater(true);
           try { sessionStorage.setItem(HIDE_KEY, "1"); } catch { /* fine */ }
@@ -71,7 +91,7 @@ function LearnerForm({ initial, onSave, onClose }: { initial: Learner | null; on
       <div className="flex items-center gap-2">
         <GraduationCap size={18} className="shrink-0 text-accent" aria-hidden />
         <h2 className="flex-1 text-base font-medium text-primary">What are you studying for?</h2>
-        <button onClick={onClose} aria-label={initial ? "Close" : "Not now"} className="ctl focus-inset flex [--ctl:1.75rem] items-center justify-center rounded-md text-tertiary hover:bg-subtle hover:text-primary"><X size={14} /></button>
+        <button onClick={onClose} aria-label={initial?.level || initial?.subjects ? "Close" : "Not now"} className="ctl focus-inset flex [--ctl:1.75rem] items-center justify-center rounded-md text-tertiary hover:bg-subtle hover:text-primary"><X size={14} /></button>
       </div>
       <p className="mt-1 text-xs text-tertiary">Every note, card, question and answer is then pitched at it.</p>
 
@@ -108,7 +128,7 @@ function LearnerForm({ initial, onSave, onClose }: { initial: Learner | null; on
 
       <div className="mt-4 flex gap-2">
         <Button variant="primary" disabled={!level.trim() && !subjects.trim()} onClick={() => onSave({ stage, level: level.trim(), board: board.trim(), subjects: subjects.trim(), target: target.trim() })}>Save</Button>
-        <Button variant="ghost" onClick={onClose}>{initial ? "Cancel" : "Not now"}</Button>
+        <Button variant="ghost" onClick={onClose}>{initial?.level || initial?.subjects ? "Cancel" : "Not now"}</Button>
       </div>
     </section>
   );

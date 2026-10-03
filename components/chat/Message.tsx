@@ -565,7 +565,7 @@ function AssistantMessageImpl({
         )}
       </div>
 
-      {said && <p className="-mt-1 mb-2 text-meta text-tertiary">{said}</p>}
+
 
       {message.reasoning && <Reasoning text={message.reasoning} ms={message.ttftMs} />}
 
@@ -716,6 +716,12 @@ function AssistantMessageImpl({
           ))}
         </div>
       )}
+      {/* Why this answer took the shape it did — under it, where a note
+          belongs, not over it where it read as a heading on every turn.
+          The six honesty claims this line carries (another company checked
+          it, it went round twice, the engine it wanted was away) are still
+          made; they are just made after the answer rather than before. */}
+      {said && <p className="no-print mt-2 text-tiny text-faint" aria-label="Why this answer">{said}</p>}
       {isLast && onFollowUp && !message.error && !computed && text && !message.asks?.length && (
         /* One row on a phone, swiped sideways, rather than six pills
            wrapping into two tall rows between the answer and its actions —
