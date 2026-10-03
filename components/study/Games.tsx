@@ -153,13 +153,13 @@ export function Level({ xp, className }: { xp: number; className?: string }) {
   const l = levelOf(xp);
   return (
     <div className={cn("flex items-center gap-3", className)} aria-label={`Level ${l.level}, ${xp} points`}>
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--blue)] text-sm font-semibold text-white tnum" aria-hidden>{l.level}</span>
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-fill)] text-sm font-semibold text-white tnum" aria-hidden>{l.level}</span>
       <div className="min-w-0 flex-1">
         <p className="text-sm text-primary tnum">
           Level {l.level} <span className="text-tertiary">· {xp} XP · {l.need - l.into} to level {l.level + 1}</span>
         </p>
         <div role="progressbar" aria-label="Progress to the next level" aria-valuemin={0} aria-valuemax={l.need} aria-valuenow={l.into} className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-subtle">
-          <div className="h-full rounded-full bg-[var(--blue)] transition-[width] duration-500" style={{ width: `${Math.round((l.into / l.need) * 100)}%` }} />
+          <div className="h-full rounded-full bg-[var(--accent-fill)] transition-[width] duration-500" style={{ width: `${Math.round((l.into / l.need) * 100)}%` }} />
         </div>
       </div>
     </div>
@@ -183,7 +183,7 @@ function Result({ r, onAgain, onOther, onDone, doneLabel, onReview }: {
       <p className="mt-1 text-sm text-secondary tnum">{r.detail}</p>
       <div className="mt-3 flex flex-wrap gap-2 text-sm">
         {r.best && r.answered > 0 && (
-          <span className="anim-pop inline-flex items-center gap-1.5 rounded-full bg-[var(--blue)] px-3 py-1 font-medium text-white"><Trophy size={14} aria-hidden />New best</span>
+          <span className="anim-pop inline-flex items-center gap-1.5 rounded-full bg-[var(--accent-fill)] px-3 py-1 font-medium text-white"><Trophy size={14} aria-hidden />New best</span>
         )}
         <span className="inline-flex items-center rounded-full bg-subtle px-3 py-1 text-primary tnum">+{r.xp} XP</span>
         {r.goalMet && (
@@ -297,7 +297,7 @@ function Match({ cards, best, onEnd, onQuit }: { cards: Card[]; best?: number; o
                 "focus-ring flex min-h-[5.5rem] items-center justify-center rounded-xl border px-3 py-2 text-center text-sm leading-snug text-primary",
                 "transition-[opacity,transform,background-color,border-color] duration-200",
                 out ? "pointer-events-none scale-90 opacity-0" : "bg-surface hover:bg-subtle",
-                picked === t.key ? "border-[var(--blue)] bg-subtle ring-2 ring-[var(--blue)]" : "border-line",
+                picked === t.key ? "border-[var(--accent-fill)] bg-subtle ring-2 ring-[var(--accent-fill)]" : "border-line",
                 wrong.includes(t.key) && "game-shake border-[var(--danger)] ring-2 ring-[var(--danger)]",
               )}
             >
@@ -406,10 +406,10 @@ function Blitz({ pool, onEnd: ended, onQuit }: { pool: Pair[]; onEnd: (o: Outcom
       <Bar onQuit={onQuit}>
         <span aria-label="Time left" className={cn("text-lg font-semibold", left < 10_000 ? "text-[var(--danger)]" : "text-primary")}>{Math.ceil(left / 1000)}s</span>
         <span aria-label="Score">{x.score} points</span>
-        {x.run >= 3 && <span className="anim-pop rounded-full bg-[var(--blue)] px-2 py-0.5 text-xs font-semibold text-white">×{comboOf(x.run)}</span>}
+        {x.run >= 3 && <span className="anim-pop rounded-full bg-[var(--accent-fill)] px-2 py-0.5 text-xs font-semibold text-white">×{comboOf(x.run)}</span>}
       </Bar>
       <div className="h-1 overflow-hidden rounded-full bg-subtle" aria-hidden>
-        <div className="h-full bg-[var(--blue)] transition-[width] duration-200 ease-linear" style={{ width: `${(left / BLITZ_MS) * 100}%` }} />
+        <div className="h-full bg-[var(--accent-fill)] transition-[width] duration-200 ease-linear" style={{ width: `${(left / BLITZ_MS) * 100}%` }} />
       </div>
       <p className="mt-5 min-h-[3.5rem] text-xl leading-snug text-primary" aria-live="polite">{cur.pair.q}</p>
       <div className="mt-4 grid gap-2 sm:grid-cols-2" role="group" aria-label="Answers">
@@ -604,7 +604,7 @@ export function DailyGoal({ days, now, onPlay }: { days: StudyDay[]; now: number
           <circle cx="26" cy="26" r={R} fill="none" strokeWidth="6" style={{ stroke: "var(--border-subtle)" }} />
           <circle
             cx="26" cy="26" r={R} fill="none" strokeWidth="6" strokeLinecap="round"
-            style={{ stroke: done ? "var(--success)" : "var(--blue)", strokeDasharray: C, strokeDashoffset: C * (1 - part), transition: "stroke-dashoffset 600ms var(--ease-out, ease-out)" }}
+            style={{ stroke: done ? "var(--success)" : "var(--accent-fill)", strokeDasharray: C, strokeDashoffset: C * (1 - part), transition: "stroke-dashoffset 600ms var(--ease-out, ease-out)" }}
           />
         </svg>
         <div className="min-w-0 flex-1">

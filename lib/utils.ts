@@ -113,3 +113,31 @@ export function inOverlay(e: Event): boolean {
     target.closest('[role="dialog"], [role="menu"], [role="listbox"], [data-radix-popper-content-wrapper]'),
   );
 }
+
+/**
+ * When something was said, as a person reads a clock: the time alone for
+ * today, "Yesterday" or the date for anything older — never a full
+ * timestamp under every turn, which is a log, not a conversation.
+ */
+export function whenSaid(at: number, now = Date.now()): string {
+  const d = new Date(at);
+  const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const label = dayLabel(at, now);
+  return label === "Today" ? time : `${label}, ${time}`;
+}
+
+/** "Today", "Yesterday", or the date — the heading a day's turns sit under. */
+export function dayLabel(at: number, now = Date.now()): string {
+  const d = new Date(at), n = new Date(now);
+  const day = (x: Date) => `${x.getFullYear()}-${x.getMonth()}-${x.getDate()}`;
+  if (day(d) === day(n)) return "Today";
+  const y = new Date(now - 86_400_000);
+  if (day(d) === day(y)) return "Yesterday";
+  return d.toLocaleDateString(undefined, d.getFullYear() === n.getFullYear() ? { day: "numeric", month: "long" } : { day: "numeric", month: "long", year: "numeric" });
+}
+
+/** Whether two moments fall on different calendar days, locally. */
+export function daysApart(a: number, b: number): boolean {
+  const x = new Date(a), y = new Date(b);
+  return x.getFullYear() !== y.getFullYear() || x.getMonth() !== y.getMonth() || x.getDate() !== y.getDate();
+}

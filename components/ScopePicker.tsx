@@ -98,7 +98,7 @@ export function ScopePicker({
         {shown.map((s) => (
           <li key={s.id}>
             <label className={cn("flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm hover:bg-subtle", chosen.has(s.id) && "bg-subtle")}>
-              <input type="checkbox" checked={chosen.has(s.id)} onChange={() => toggle(s.id)} className="size-4 shrink-0 accent-[var(--blue)]" />
+              <input type="checkbox" checked={chosen.has(s.id)} onChange={() => toggle(s.id)} className="size-4 shrink-0 accent-[var(--accent-fill)]" />
               <span className="min-w-0 flex-1 truncate text-primary">{s.title}</span>
               {pagesLabel(s) && <span className="shrink-0 text-xs text-tertiary tnum">{pagesLabel(s)}</span>}
             </label>

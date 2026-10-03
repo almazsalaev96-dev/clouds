@@ -10,7 +10,7 @@ import { PointAt, type PointAction } from "./PointAt";
 import { SelectionBar } from "./SelectionBar";
 import { authorName } from "@/lib/presets";
 import { siblingIndex, siblingsFrom } from "@/lib/db";
-import { cn, formatElapsed } from "@/lib/utils";
+import { cn, dayLabel, daysApart, formatElapsed } from "@/lib/utils";
 import { AssistantMessage, InlineError, UserMessage, Actions } from "./Message";
 import { builtDocument, building, titleOf, withoutBuild } from "@/lib/built";
 import { Markdown, useThrottled } from "./Markdown";
@@ -288,7 +288,21 @@ function MessageListImpl({
             const findings = last && m.role === "assistant"
               ? lintAnswer(blockText(m.content), asked ? blockText(asked.content) : undefined)
               : undefined;
-            return m.role === "user" ? (
+            /* A thread that runs over days says where each day starts: a
+               hairline and "Yesterday", the way messages apps do, and the
+               way an assistant's transcript usually does not — which is
+               why "what did it say last Tuesday" has no answer there. Only
+               where the day actually changes; a one-sitting thread shows
+               nothing. */
+            const newDay = i > 0 && daysApart(messages[i - 1].createdAt, m.createdAt);
+            const dayHeading = newDay ? (
+              <div key={`day-${m.id}`} className="my-3 flex items-center gap-3" role="separator" aria-label={dayLabel(m.createdAt)}>
+                <span className="h-px flex-1 bg-[var(--border-subtle)]" aria-hidden />
+                <span className="eyebrow text-faint">{dayLabel(m.createdAt)}</span>
+                <span className="h-px flex-1 bg-[var(--border-subtle)]" aria-hidden />
+              </div>
+            ) : null;
+            const turn = m.role === "user" ? (
               <UserMessage
                 key={m.id}
                 message={m}
@@ -333,6 +347,7 @@ function MessageListImpl({
                 isLast={i === messages.length - 1}
               />
             );
+            return dayHeading ? <React.Fragment key={`t-${m.id}`}>{dayHeading}{turn}</React.Fragment> : turn;
           })}
 
           {compare && <CompareGrid {...compare} />}

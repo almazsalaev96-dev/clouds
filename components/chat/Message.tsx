@@ -21,7 +21,7 @@ import { canUndo } from "@/lib/undoActions";
 import { CALCULATOR, getModel, formatTokens } from "@/lib/models";
 import { authorName, getPreset, plainly, PRESETS } from "@/lib/presets";
 import { blockText } from "@/lib/db";
-import { cn, describeTiming, formatDuration } from "@/lib/utils";
+import { cn, describeTiming, formatDuration, whenSaid } from "@/lib/utils";
 import { guessLang } from "@/lib/lang";
 import { Markdown } from "./Markdown";
 import { IconButton, Button, Tooltip } from "@/components/ui/primitives";
@@ -194,6 +194,16 @@ function UserMessageImpl({
           and the top of the hit target lands on the last line of the message
           above. Nothing clips, so nothing ever caught it. */}
       <div className="flex min-h-6 flex-wrap items-center gap-0.5 reveal">
+        {/* When it was said, with the controls that show on hover: there
+            when you look for it, never a timestamp printed under every
+            turn. The full date is on the title for the ones that are old. */}
+        <time
+          dateTime={new Date(message.createdAt).toISOString()}
+          title={new Date(message.createdAt).toLocaleString()}
+          className="tnum mr-1.5 text-tiny text-faint"
+        >
+          {whenSaid(message.createdAt)}
+        </time>
         {siblings.length > 1 && (
           <BranchNav siblings={siblings} index={index} onNavigate={onNavigate} />
         )}
@@ -992,6 +1002,13 @@ function AssistantMessageImpl({
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
         </DropdownMenu.Root>
+        <time
+          dateTime={new Date(message.createdAt).toISOString()}
+          title={new Date(message.createdAt).toLocaleString()}
+          className="tnum ml-1.5 text-tiny text-faint"
+        >
+          {whenSaid(message.createdAt)}
+        </time>
 
         {/* Reading aloud is the one action with a running state, so it stays
             visible while it runs rather than hiding in a menu you have to

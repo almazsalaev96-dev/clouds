@@ -395,7 +395,7 @@ export function Sidebar({
             <button
               onClick={onNewChat}
               aria-label="New chat"
-              className="tap pointer-events-auto flex h-12 items-center gap-2.5 rounded-full bg-[var(--blue)] pl-4 pr-5 text-[1.0625rem] font-medium text-white shadow-lg transition-[filter] duration-[var(--dur-fast)] hover:brightness-110"
+              className="tap pointer-events-auto flex h-12 items-center gap-2.5 rounded-full bg-[var(--accent-fill)] pl-4 pr-5 text-[1.0625rem] font-medium text-white shadow-lg transition-[filter] duration-[var(--dur-fast)] hover:brightness-110"
             >
               <SquarePen size={20} /> Chat
             </button>
@@ -463,7 +463,7 @@ function SidebarToggle({ open, onClick, className }: { open: boolean; onClick: (
 function Avatar({ name }: { name: string }) {
   const initial = (name.trim()[0] ?? "").toUpperCase();
   return (
-    <span aria-hidden className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--blue)] text-xs font-semibold text-white">
+    <span aria-hidden className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--accent-fill)] text-xs font-semibold text-white">
       {initial || <Settings size={14} />}
     </span>
   );

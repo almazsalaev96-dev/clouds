@@ -12,7 +12,9 @@ import { keepUndo, undoAction } from "@/lib/undoActions";
 import { cleanRecap, covers, recapPrompt, recapSection, RECAP_TOKENS } from "@/lib/recap";
 import type { Action, MakeMode } from "@/lib/types";
 import type { DraftCard } from "@/lib/generate";
-import { CardReview } from "@/components/study/CardReview";
+/* The cards review is a dialog nobody sees until they ask for cards, so
+   its code is not part of the first load. */
+const CardReview = React.lazy(() => import("@/components/study/CardReview").then((m) => ({ default: m.CardReview })));
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { FileText, Globe, GraduationCap, ImagePlus, PanelLeft, Presentation, Table2, Telescope } from "lucide-react";
@@ -3676,12 +3678,14 @@ export default function Page() {
         )}
 
         {cardReview && (
-          <CardReview
-            drafts={cardReview.drafts}
-            name={cardReview.name}
-            onConfirm={(name, cards) => void keepReviewed(name, cards)}
-            onCancel={() => setCardReview(null)}
-          />
+          <React.Suspense fallback={null}>
+            <CardReview
+              drafts={cardReview.drafts}
+              name={cardReview.name}
+              onConfirm={(name, cards) => void keepReviewed(name, cards)}
+              onCancel={() => setCardReview(null)}
+            />
+          </React.Suspense>
         )}
 
         {(settingsOpen || everOpened.current.settings) && (
